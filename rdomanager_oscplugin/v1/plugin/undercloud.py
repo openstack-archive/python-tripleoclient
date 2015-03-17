@@ -17,6 +17,7 @@
 
 import logging
 import six
+import subprocess
 import sys
 
 from cliff import command
@@ -35,6 +36,6 @@ class InstallPlugin(command.Command):
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
 
-        self.log.debug("To be implemented")
+        subprocess.call("instack-install-undercloud")
 
         return
