@@ -13,14 +13,10 @@
 #   under the License.
 #
 
-import sys
-
 from rdomanager_oscplugin.tests import base
 from rdomanager_oscplugin.tests import fakes
-from rdomanager_oscplugin.v1 import plugin
 
 # Load the plugin init module for the plugin list and show commands
-import rdomanager_oscplugin.plugin
 plugin_name = 'rdomanager_oscplugin'
 plugin_client = 'rdomanager_oscplugin.plugin'
 
