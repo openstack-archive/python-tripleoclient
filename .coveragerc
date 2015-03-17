@@ -1,0 +1,7 @@
+[run]
+branch = True
+source = rdomanager_oscplugin
+omit = rdomanager_oscplugin/tests/*,rdomanager_oscplugin/openstack/*
+
+[report]
+ignore-errors = True
