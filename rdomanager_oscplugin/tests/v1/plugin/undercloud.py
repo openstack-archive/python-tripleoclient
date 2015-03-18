@@ -15,13 +15,12 @@
 
 import sys
 
-from rdomanager_oscplugin.tests import base
-from rdomanager_oscplugin.tests import fakes
+import mock
+
 from rdomanager_oscplugin.tests.v1.test_plugin import TestPluginV1
-from rdomanager_oscplugin.v1.plugin import undercloud
 
 # Load the plugin init module for the plugin list and show commands
-import rdomanager_oscplugin.plugin
+from rdomanager_oscplugin import plugin
 plugin_name = 'rdomanager_oscplugin'
 plugin_client = 'rdomanager_oscplugin.plugin'
 
@@ -52,6 +51,5 @@ class TestUndercloudInstall(TestPluginV1):
 
         # DisplayCommandBase.take_action() returns two tuples
         self.cmd.take_action(parsed_args)
-
 
         mock_subprocess.assert_called_with('instack-install-undercloud')
