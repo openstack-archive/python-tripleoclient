@@ -13,16 +13,12 @@
 #   under the License.
 #
 
-import sys
-
 import mock
 
 from rdomanager_oscplugin.tests.v1.test_plugin import TestPluginV1
 
 # Load the plugin init module for the plugin list and show commands
-from rdomanager_oscplugin import plugin
-plugin_name = 'rdomanager_oscplugin'
-plugin_client = 'rdomanager_oscplugin.plugin'
+from rdomanager_oscplugin.v1.plugin import undercloud
 
 
 class FakePluginV1Client(object):
@@ -36,12 +32,8 @@ class TestUndercloudInstall(TestPluginV1):
     def setUp(self):
         super(TestUndercloudInstall, self).setUp()
 
-        self.app.ext_modules = [
-            sys.modules[plugin_client],
-        ]
-
         # Get the command object to test
-        self.cmd = plugin.undercloud.InstallPlugin(self.app, None)
+        self.cmd = undercloud.InstallPlugin(self.app, None)
 
     @mock.patch('subprocess.call')
     def test_undercloud_install(self, mock_subprocess):
