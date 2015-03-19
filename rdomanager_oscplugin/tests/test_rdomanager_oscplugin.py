@@ -23,6 +23,4 @@ from rdomanager_oscplugin.tests import base
 
 
 class TestRdomanagerOscplugin(base.TestCase):
-
-    def test_something(self):
-        pass
+    pass
