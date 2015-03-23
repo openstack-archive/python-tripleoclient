@@ -18,7 +18,7 @@ import mock
 from rdomanager_oscplugin.tests.v1.test_plugin import TestPluginV1
 
 # Load the plugin init module for the plugin list and show commands
-from rdomanager_oscplugin.v1.plugin import undercloud
+from rdomanager_oscplugin.v1 import undercloud
 
 
 class FakePluginV1Client(object):
