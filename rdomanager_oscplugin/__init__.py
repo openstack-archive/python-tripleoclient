@@ -15,4 +15,5 @@
 import pbr.version
 
 
-__version__ = pbr.version.VersionInfo('python-rdomanager-oscplugin').version_string()
+__version__ = pbr.version.VersionInfo(
+    'python-rdomanager-oscplugin').version_string()

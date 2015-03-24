@@ -17,6 +17,7 @@
 
 import logging
 
+from ironicclient import client as ironic_client
 from openstackclient.common import utils
 
 
@@ -27,28 +28,10 @@ DEFAULT_RDOMANAGER_OSCPLUGIN_API_VERSION = '1'
 # Required by the OSC plugin interface
 API_NAME = 'rdomanager_oscplugin'
 API_VERSION_OPTION = 'os_rdomanager_oscplugin_api_version'
-API_VERSIONS = {
-    '1': 'rdomanager_oscplugin.plugin.EmptyClient',
-}
 
 
-# Required by the OSC plugin interface
 def make_client(instance):
-    """Returns a client to the ClientManager
-
-    Called to instantiate the requested client version.  instance has
-    any available auth info that may be required to prepare the client.
-
-    :param ClientManager instance: The ClientManager that owns the new client
-    """
-    plugin_client = utils.get_client_class(
-        API_NAME,
-        instance._api_version[API_NAME],
-        API_VERSIONS)
-    LOG.debug('Instantiating plugin client: %s' % plugin_client)
-
-    client = plugin_client()
-    return client
+    return ClientWrapper(instance)
 
 
 # Required by the OSC plugin interface
@@ -74,7 +57,24 @@ def build_option_parser(parser):
     return parser
 
 
-class EmptyClient(object):
-    """The ultimate placeholder"""
+class ClientWrapper(object):
 
-    pass
+    def __init__(self, instace):
+        self._instace = instace
+        self._baremetal = None
+
+    def baremetal(self):
+
+        if self._baremetal is None:
+
+            endpoint = self._instace.get_endpoint_for_service_type(
+                "baremetal",
+                region_name=self._instace._region_name,
+            )
+
+            token = self._instace.auth.get_token(self._instace.session)
+
+            self._baremetal = ironic_client.get_client(
+                1, os_auth_token=token, ironic_url=endpoint)
+
+        return self._baremetal
