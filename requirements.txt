@@ -10,3 +10,5 @@ os-cloud-config
 python-ironicclient>=0.4.1
 python-openstackclient>=1.0.0
 
+# The ironic-discoverd OSC integration isn't yet on PyPI
+-e git://github.com/stackforge/ironic-discoverd.git#egg=ironic_discoverd

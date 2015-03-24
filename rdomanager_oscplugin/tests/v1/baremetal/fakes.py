@@ -36,4 +36,5 @@ class TestBaremetal(utils.TestCommand):
     def setUp(self):
         super(TestBaremetal, self).setUp()
 
+        self.app.client_manager.auth_ref = mock.Mock(auth_token="TOKEN")
         self.app.client_manager.rdomanager_oscplugin = FakeClientWrapper()

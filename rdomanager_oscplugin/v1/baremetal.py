@@ -21,6 +21,7 @@ import json
 import logging
 import sys
 
+from ironic_discoverd import client as discoverd_client
 from os_cloud_config import nodes
 
 from cliff import command
@@ -87,3 +88,20 @@ class ImportPlugin(command.Command):
             nodes_json,
             client=self.app.client_manager.rdomanager_oscplugin.baremetal(),
             keystone_client=self.app.client_manager.identity)
+
+
+class IntrospectionAllPlugin(command.Command):
+    """Baremetal introspection all plugin"""
+
+    log = logging.getLogger(__name__ + ".IntrospectionAll")
+
+    def take_action(self, parsed_args):
+
+        self.log.debug("take_action(%s)" % parsed_args)
+        client = self.app.client_manager.rdomanager_oscplugin.baremetal()
+
+        for node in client.node.list():
+            self.log.debug("Starting introspection of Ironic node {0}".format(
+                node.uuid))
+            auth_token = self.app.client_manager.auth_ref.auth_token
+            discoverd_client.introspect(node.uuid, auth_token=auth_token)

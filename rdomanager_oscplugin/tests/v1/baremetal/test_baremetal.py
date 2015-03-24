@@ -23,19 +23,13 @@ from rdomanager_oscplugin.tests.v1.baremetal import fakes
 from rdomanager_oscplugin.v1 import baremetal
 
 
-class TestBaremetalBase(fakes.TestBaremetal):
-
-    def setUp(self):
-        super(TestBaremetalBase, self).setUp()
-
-        # Get the command object to test
-        self.cmd = baremetal.ImportPlugin(self.app, None)
-
-
-class TestImport(TestBaremetalBase):
+class TestImport(fakes.TestBaremetal):
 
     def setUp(self):
         super(TestImport, self).setUp()
+
+        # Get the command object to test
+        self.cmd = baremetal.ImportPlugin(self.app, None)
 
         self.json_file = tempfile.NamedTemporaryFile(mode='w', delete=False)
         self.csv_file = tempfile.NamedTemporaryFile(mode='w', delete=False)
@@ -140,3 +134,44 @@ pxe_ssh,192.168.122.1,root,"KEY2",00:7c:ef:3d:eb:60""")
             ],
             client=self.app.client_manager.rdomanager_oscplugin.baremetal(),
             keystone_client=None)
+
+
+class TestIntrospectionAll(fakes.TestBaremetal):
+
+    def setUp(self):
+        super(TestIntrospectionAll, self).setUp()
+
+        # Get the command object to test
+        self.cmd = baremetal.IntrospectionAllPlugin(self.app, None)
+
+    @mock.patch('ironic_discoverd.client.introspect')
+    def test_introspect_all_one(self, discoverd_mock):
+
+        client = self.app.client_manager.rdomanager_oscplugin.baremetal()
+        client.node.list.return_value = [
+            mock.Mock(uuid="ABCDEFGH")
+        ]
+
+        parsed_args = self.check_parser(self.cmd, [], [])
+        self.cmd.take_action(parsed_args)
+
+        discoverd_mock.assert_called_once_with('ABCDEFGH', auth_token='TOKEN')
+
+    @mock.patch('ironic_discoverd.client.introspect')
+    def test_introspect_all(self, discoverd_mock):
+
+        client = self.app.client_manager.rdomanager_oscplugin.baremetal()
+        client.node.list.return_value = [
+            mock.Mock(uuid="ABCDEFGH"),
+            mock.Mock(uuid="IJKLMNOP"),
+            mock.Mock(uuid="QRSTUVWX"),
+        ]
+
+        parsed_args = self.check_parser(self.cmd, [], [])
+        self.cmd.take_action(parsed_args)
+
+        discoverd_mock.assert_has_calls([
+            mock.call('ABCDEFGH', auth_token='TOKEN'),
+            mock.call('IJKLMNOP', auth_token='TOKEN'),
+            mock.call('QRSTUVWX', auth_token='TOKEN'),
+        ])
