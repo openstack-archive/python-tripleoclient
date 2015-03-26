@@ -13,6 +13,7 @@
 #   under the License.
 #
 
+import mock
 from rdomanager_oscplugin.tests.v1.test_plugin import TestPluginV1
 
 # Load the plugin init module for the plugin list and show commands
@@ -39,4 +40,58 @@ class TestOvercloudImageCreate(TestPluginV1):
         super(TestOvercloudImageCreate, self).setUp()
 
         # Get the command object to test
-        self.cmd = overcloud_image.CreatePlugin(self.app, None)
+        self.cmd = overcloud_image.CreateOvercloud(self.app, None)
+        self.app.client_manager.image = mock.Mock()
+        self.app.client_manager.image.images.create.return_value = \
+            mock.Mock(id=10)
+        self.cmd._read_image_file_pointer = mock.Mock(return_value=b'IMGDATA')
+        self.cmd._check_file_exists = mock.Mock(return_value=True)
+
+    @mock.patch('subprocess.call')
+    def test_overcloud_create_images(self, mock_subprocess_call):
+        parsed_args = self.check_parser(self.cmd, [], [])
+
+        self.cmd.take_action(parsed_args)
+
+        self.assertEqual(
+            2,
+            self.app.client_manager.image.images.delete.call_count
+        )
+        self.assertEqual(
+            5,
+            self.app.client_manager.image.images.create.call_count
+        )
+        self.assertEqual(
+            [mock.call(data=b'IMGDATA',
+                       name='overcloud-full-vmlinuz',
+                       disk_format='aki',
+                       is_public=True),
+             mock.call(data=b'IMGDATA',
+                       name='overcloud-full-initrd',
+                       disk_format='ari',
+                       is_public=True),
+             mock.call(properties={'kernel_id': 10, 'ramdisk_id': 10},
+                       name='overcloud-full',
+                       data=b'IMGDATA',
+                       container_format='bare',
+                       disk_format='qcow2',
+                       is_public=True),
+             mock.call(data=b'IMGDATA',
+                       name='bm-deploy-kernel',
+                       disk_format='aki',
+                       is_public=True),
+             mock.call(data=b'IMGDATA',
+                       name='bm-deploy-ramdisk',
+                       disk_format='ari',
+                       is_public=True)
+             ], self.app.client_manager.image.images.create.call_args_list
+        )
+
+        self.assertEqual(mock_subprocess_call.call_count, 2)
+        self.assertEqual(
+            mock_subprocess_call.call_args_list, [
+                mock.call('sudo cp -f "./discovery-ramdisk.kernel" '
+                          '"/tftpboot/discovery.kernel"', shell=True),
+                mock.call('sudo cp -f "./discovery-ramdisk.initramfs" '
+                          '"/tftpboot/discovery.ramdisk"', shell=True)
+            ])
