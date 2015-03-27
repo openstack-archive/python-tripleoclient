@@ -155,7 +155,8 @@ class TestIntrospectionAll(fakes.TestBaremetal):
         parsed_args = self.check_parser(self.cmd, [], [])
         self.cmd.take_action(parsed_args)
 
-        discoverd_mock.assert_called_once_with('ABCDEFGH', auth_token='TOKEN')
+        discoverd_mock.assert_called_once_with(
+            'ABCDEFGH', base_url=None, auth_token='TOKEN')
 
     @mock.patch('ironic_discoverd.client.introspect')
     def test_introspect_all(self, discoverd_mock):
@@ -171,7 +172,70 @@ class TestIntrospectionAll(fakes.TestBaremetal):
         self.cmd.take_action(parsed_args)
 
         discoverd_mock.assert_has_calls([
-            mock.call('ABCDEFGH', auth_token='TOKEN'),
-            mock.call('IJKLMNOP', auth_token='TOKEN'),
-            mock.call('QRSTUVWX', auth_token='TOKEN'),
+            mock.call('ABCDEFGH', base_url=None, auth_token='TOKEN'),
+            mock.call('IJKLMNOP', base_url=None, auth_token='TOKEN'),
+            mock.call('QRSTUVWX', base_url=None, auth_token='TOKEN'),
         ])
+
+
+class TestStatusAll(fakes.TestBaremetal):
+
+    def setUp(self):
+        super(TestStatusAll, self).setUp()
+
+        # Get the command object to test
+        self.cmd = baremetal.StatusAllPlugin(self.app, None)
+
+    @mock.patch('ironic_discoverd.client.get_status')
+    def test_introspect_all_one(self, discoverd_mock):
+
+        client = self.app.client_manager.rdomanager_oscplugin.baremetal()
+        client.node.list.return_value = [
+            mock.Mock(uuid="ABCDEFGH")
+        ]
+
+        discoverd_mock.return_value = {
+            'finished': False, 'error': None
+        }
+
+        parsed_args = self.check_parser(self.cmd, [], [])
+        result = self.cmd.take_action(parsed_args)
+
+        discoverd_mock.assert_called_once_with(
+            'ABCDEFGH', base_url=None, auth_token='TOKEN')
+
+        self.assertEqual(result, (
+            ('Node UUID', 'Finished', 'Error'),
+            [('ABCDEFGH', False, None)]))
+
+    @mock.patch('ironic_discoverd.client.get_status')
+    def test_introspect_all(self, discoverd_mock):
+
+        client = self.app.client_manager.rdomanager_oscplugin.baremetal()
+        client.node.list.return_value = [
+            mock.Mock(uuid="ABCDEFGH"),
+            mock.Mock(uuid="IJKLMNOP"),
+            mock.Mock(uuid="QRSTUVWX"),
+        ]
+
+        discoverd_mock.return_value = {
+            'finished': False, 'error': None
+        }
+
+        parsed_args = self.check_parser(self.cmd, [], [])
+        result = self.cmd.take_action(parsed_args)
+
+        discoverd_mock.assert_has_calls([
+            mock.call('ABCDEFGH', base_url=None, auth_token='TOKEN'),
+            mock.call('IJKLMNOP', base_url=None, auth_token='TOKEN'),
+            mock.call('QRSTUVWX', base_url=None, auth_token='TOKEN'),
+        ])
+
+        self.assertEqual(result, (
+            ('Node UUID', 'Finished', 'Error'),
+            [
+                ('ABCDEFGH', False, None),
+                ('IJKLMNOP', False, None),
+                ('QRSTUVWX', False, None)
+            ]
+        ))

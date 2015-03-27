@@ -21,7 +21,9 @@ import json
 import logging
 import sys
 
+from cliff import lister
 from ironic_discoverd import client as discoverd_client
+from openstackclient.common import utils
 from os_cloud_config import nodes
 
 from cliff import command
@@ -90,8 +92,19 @@ class ImportPlugin(command.Command):
             keystone_client=self.app.client_manager.identity)
 
 
-class IntrospectionAllPlugin(command.Command):
-    """Baremetal introspection all plugin"""
+class IntrospectionParser(object):
+
+    def get_parser(self, prog_name):
+        parser = super(IntrospectionParser, self).get_parser(prog_name)
+        parser.add_argument('--discoverd-url',
+                            default=utils.env('DISCOVERD_URL', default=None),
+                            help='discoverd URL, defaults to localhost '
+                            '(env: DISCOVERD_URL).')
+        return parser
+
+
+class IntrospectionAllPlugin(IntrospectionParser, command.Command):
+    """Baremetal all introspection plugin"""
 
     log = logging.getLogger(__name__ + ".IntrospectionAll")
 
@@ -104,4 +117,35 @@ class IntrospectionAllPlugin(command.Command):
             self.log.debug("Starting introspection of Ironic node {0}".format(
                 node.uuid))
             auth_token = self.app.client_manager.auth_ref.auth_token
-            discoverd_client.introspect(node.uuid, auth_token=auth_token)
+            discoverd_client.introspect(
+                node.uuid,
+                base_url=parsed_args.discoverd_url,
+                auth_token=auth_token)
+
+
+class StatusAllPlugin(IntrospectionParser, lister.Lister):
+    """Baremetal all status plugin"""
+
+    log = logging.getLogger(__name__ + ".StatusAllPlugin")
+
+    def take_action(self, parsed_args):
+
+        self.log.debug("take_action(%s)" % parsed_args)
+        client = self.app.client_manager.rdomanager_oscplugin.baremetal()
+
+        statuses = []
+
+        for node in client.node.list():
+            self.log.debug("Getting introspection status of Ironic node {0}"
+                           .format(node.uuid))
+            auth_token = self.app.client_manager.auth_ref.auth_token
+            statuses.append((node.uuid, discoverd_client.get_status(
+                node.uuid,
+                base_url=parsed_args.discoverd_url,
+                auth_token=auth_token)))
+
+        return (
+            ("Node UUID", "Finished", "Error"),
+            list((node_uuid, status['finished'], status['error'])
+                 for (node_uuid, status) in statuses)
+        )

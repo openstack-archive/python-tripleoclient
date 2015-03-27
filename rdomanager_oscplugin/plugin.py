@@ -65,6 +65,10 @@ class ClientWrapper(object):
 
     def baremetal(self):
 
+        # TODO(d0ugal): When the ironicclient has it's own OSC plugin, the
+        # following client handling code should be removed in favor of the
+        # upstream version.
+
         if self._baremetal is None:
 
             endpoint = self._instace.get_endpoint_for_service_type(
