@@ -23,7 +23,7 @@ sys.path.insert(0, os.path.abspath('../..'))
 extensions = [
     'sphinx.ext.autodoc',
     #'sphinx.ext.intersphinx',
-    'oslo.sphinx'
+    # 'oslo.sphinx'
 ]
 
 # autodoc generation is a bit aggressive and a nuisance when doing heavy
