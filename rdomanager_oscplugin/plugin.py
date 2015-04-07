@@ -64,21 +64,58 @@ class ClientWrapper(object):
         self._baremetal = None
 
     def baremetal(self):
+        """Returns an baremetal service client"""
 
         # TODO(d0ugal): When the ironicclient has it's own OSC plugin, the
         # following client handling code should be removed in favor of the
         # upstream version.
 
-        if self._baremetal is None:
+        if self._baremetal is not None:
+            return self._baremetal
 
-            endpoint = self._instace.get_endpoint_for_service_type(
-                "baremetal",
-                region_name=self._instace._region_name,
-            )
+        endpoint = self._instace.get_endpoint_for_service_type(
+            "baremetal",
+            region_name=self._instace._region_name,
+        )
 
-            token = self._instace.auth.get_token(self._instace.session)
+        token = self._instace.auth.get_token(self._instace.session)
 
-            self._baremetal = ironic_client.get_client(
-                1, os_auth_token=token, ironic_url=endpoint)
+        self._baremetal = ironic_client.get_client(
+            1, os_auth_token=token, ironic_url=endpoint)
 
         return self._baremetal
+
+    def orchestration(self):
+        """Returns an orchestration service client"""
+
+        # TODO(d0ugal): This code is based on the upstream WIP implementation
+        # and should be removed when it lands:
+        # https://review.openstack.org/#/c/111786
+
+        if self._orchestration is not None:
+            return self._orchestration
+
+        API_VERSIONS = {
+            '1': 'heatclient.v1.client.Client',
+        }
+
+        heat_client = utils.get_client_class(
+            API_NAME,
+            self.instance._api_version[API_NAME],
+            API_VERSIONS)
+        LOG.debug('Instantiating orchestration client: %s', heat_client)
+
+        endpoint = self.instance.get_endpoint_for_service_type('orchestration')
+
+        client = heat_client(
+            endpoint=endpoint,
+            auth_url=self.instance._auth_url,
+            token=self.instance._token,
+            username=self.instance._username,
+            password=self.instance._password,
+            region_name=self.instance._region_name,
+            insecure=self.instance._insecure,
+        )
+
+        self._orchestration = client
+        return self._orchestration
