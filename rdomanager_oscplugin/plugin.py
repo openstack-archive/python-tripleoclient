@@ -62,6 +62,7 @@ class ClientWrapper(object):
     def __init__(self, instance):
         self._instance = instance
         self._baremetal = None
+        self._orchestration = None
 
     def baremetal(self):
         """Returns an baremetal service client"""
@@ -101,20 +102,21 @@ class ClientWrapper(object):
 
         heat_client = utils.get_client_class(
             API_NAME,
-            self.instance._api_version[API_NAME],
+            self._instance._api_version[API_NAME],
             API_VERSIONS)
         LOG.debug('Instantiating orchestration client: %s', heat_client)
 
-        endpoint = self.instance.get_endpoint_for_service_type('orchestration')
+        endpoint = self._instance.get_endpoint_for_service_type('orchestration')
+        token = self._instance.auth.get_token(self._instance.session)
 
         client = heat_client(
             endpoint=endpoint,
-            auth_url=self.instance._auth_url,
-            token=self.instance._token,
-            username=self.instance._username,
-            password=self.instance._password,
-            region_name=self.instance._region_name,
-            insecure=self.instance._insecure,
+            auth_url=self._instance._auth_url,
+            token=token,
+            username=self._instance._username,
+            password=self._instance._password,
+            region_name=self._instance._region_name,
+            insecure=self._instance._insecure,
         )
 
         self._orchestration = client
