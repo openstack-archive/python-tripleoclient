@@ -20,7 +20,7 @@ from openstackclient.tests import utils
 class FakeClientWrapper(object):
 
     def __init__(self):
-        self._instace = mock.Mock()
+        self._instance = mock.Mock()
         self._baremetal = None
 
     def baremetal(self):

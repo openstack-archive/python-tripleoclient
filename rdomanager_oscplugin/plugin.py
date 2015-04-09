@@ -59,8 +59,8 @@ def build_option_parser(parser):
 
 class ClientWrapper(object):
 
-    def __init__(self, instace):
-        self._instace = instace
+    def __init__(self, instance):
+        self._instance = instance
         self._baremetal = None
 
     def baremetal(self):
@@ -73,12 +73,12 @@ class ClientWrapper(object):
         if self._baremetal is not None:
             return self._baremetal
 
-        endpoint = self._instace.get_endpoint_for_service_type(
+        endpoint = self._instance.get_endpoint_for_service_type(
             "baremetal",
-            region_name=self._instace._region_name,
+            region_name=self._instance._region_name,
         )
 
-        token = self._instace.auth.get_token(self._instace.session)
+        token = self._instance.auth.get_token(self._instance.session)
 
         self._baremetal = ironic_client.get_client(
             1, os_auth_token=token, ironic_url=endpoint)
