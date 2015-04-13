@@ -106,7 +106,8 @@ class ClientWrapper(object):
             API_VERSIONS)
         LOG.debug('Instantiating orchestration client: %s', heat_client)
 
-        endpoint = self._instance.get_endpoint_for_service_type('orchestration')
+        endpoint = self._instance.get_endpoint_for_service_type(
+            'orchestration')
         token = self._instance.auth.get_token(self._instance.session)
 
         client = heat_client(
