@@ -82,6 +82,8 @@ class ImportPlugin(command.Command):
 
         if parsed_args.json is True:
             nodes_json = json.load(parsed_args.file_in)
+            if 'nodes' in nodes_json:
+                nodes_json = nodes_json['nodes']
         else:
             nodes_json = _csv_to_nodes_dict(parsed_args.file_in)
 
