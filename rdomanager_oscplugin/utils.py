@@ -19,6 +19,13 @@ import uuid
 
 
 def _generate_password():
+    """Create a random password
+
+    The password is made by taking a uuid and passing it though sha1sum.
+    echo "We may change this in future to gain more entropy.
+
+    This is based on the tripleo command os-make-password
+    """
     uuid_str = six.text_type(uuid.uuid1()).encode("UTF-8")
     return hashlib.sha1(uuid_str).hexdigest()
 
@@ -42,3 +49,32 @@ def generate_overcloud_passwords():
     )
 
     return dict((password, _generate_password()) for password in passwords)
+
+
+def check_hypervisor_stats(compute_client, nodes=1, memory=0, vcpu=0):
+    """Check the Hypervisor stats meet a minimum value
+
+    Check the hypervisor stats match the required counts. This is an
+    implementation of a command in TripleO with the same name.
+
+    :param compute_client: Instance of Nova client
+    :type  compute_client: novaclient.client.v2.Client
+
+    :param nodes: The number of nodes to wait for, defaults to 1.
+    :type  nodes: int
+
+    :param memory: The amount of memory to wait for in MB, defaults to 0.
+    :type  memory: int
+
+    :param vcpu: The number of vcpus to wait for, defaults to 0.
+    :type  vcpu: int
+    """
+
+    statistics = compute_client.hypervisors.statistics().to_dict()
+
+    if all([statistics['count'] >= nodes,
+            statistics['memory_mb'] >= memory,
+            statistics['vcpus'] >= vcpu]):
+        return statistics
+    else:
+        return None
