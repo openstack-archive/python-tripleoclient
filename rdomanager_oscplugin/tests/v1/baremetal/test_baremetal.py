@@ -31,8 +31,9 @@ class TestImport(fakes.TestBaremetal):
         # Get the command object to test
         self.cmd = baremetal.ImportPlugin(self.app, None)
 
-        self.json_file = tempfile.NamedTemporaryFile(mode='w', delete=False)
         self.csv_file = tempfile.NamedTemporaryFile(mode='w', delete=False)
+        self.json_file = tempfile.NamedTemporaryFile(mode='w', delete=False)
+        self.instack_json = tempfile.NamedTemporaryFile(mode='w', delete=False)
 
         self.csv_file.write("""\
 pxe_ssh,192.168.122.1,root,"KEY1",00:d0:28:4c:e8:e8
@@ -57,19 +58,77 @@ pxe_ssh,192.168.122.1,root,"KEY2",00:7c:ef:3d:eb:60""")
             ]
         }], self.json_file)
 
-        self.json_file.close()
+        json.dump({
+            "nodes": [{
+                "pm_user": "stack",
+                "pm_addr": "192.168.122.1",
+                "pm_password": "KEY1",
+                "pm_type": "pxe_ssh",
+                "mac": [
+                    "00:0b:d0:69:7e:59"
+                ],
+            }, {
+                "arch": "x86_64",
+                "pm_user": "stack",
+                "pm_addr": "192.168.122.2",
+                "pm_password": "KEY2",
+                "pm_type": "pxe_ssh",
+                "mac": [
+                    "00:0b:d0:69:7e:58"
+                ]
+            }]
+        }, self.instack_json)
+
         self.csv_file.close()
+        self.json_file.close()
+        self.instack_json.close()
 
     def tearDown(self):
 
         super(TestImport, self).tearDown()
-        os.unlink(self.json_file.name)
         os.unlink(self.csv_file.name)
+        os.unlink(self.json_file.name)
+        os.unlink(self.instack_json.name)
 
     @mock.patch('os_cloud_config.nodes.register_all_nodes')
     def test_json_import(self, mock_register_nodes):
 
         arglist = [self.json_file.name, '--json', '-s', 'http://localhost']
+
+        verifylist = [
+            ('csv', False),
+            ('json', True),
+        ]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
+
+        mock_register_nodes.assert_called_with(
+            'http://localhost',
+            [
+                {
+                    'pm_password': 'KEY1',
+                    'pm_type': 'pxe_ssh',
+                    'pm_user': 'stack',
+                    'pm_addr': '192.168.122.1',
+                    'mac': ['00:0b:d0:69:7e:59']
+                }, {
+                    'pm_user': 'stack',
+                    'pm_password': 'KEY2',
+                    'pm_addr': '192.168.122.2',
+                    'arch': 'x86_64',
+                    'pm_type': 'pxe_ssh',
+                    'mac': ['00:0b:d0:69:7e:58']
+                }
+            ],
+            client=self.app.client_manager.rdomanager_oscplugin.baremetal(),
+            keystone_client=None)
+
+    @mock.patch('os_cloud_config.nodes.register_all_nodes')
+    def test_instack_json_import(self, mock_register_nodes):
+
+        arglist = [self.instack_json.name, '--json', '-s', 'http://localhost']
 
         verifylist = [
             ('csv', False),
