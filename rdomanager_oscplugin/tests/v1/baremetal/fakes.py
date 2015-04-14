@@ -21,13 +21,9 @@ class FakeClientWrapper(object):
 
     def __init__(self):
         self._instance = mock.Mock()
-        self._baremetal = None
+        self._baremetal = mock.Mock()
 
     def baremetal(self):
-
-        if self._baremetal is None:
-            self._baremetal = mock.Mock()
-
         return self._baremetal
 
 
@@ -38,3 +34,4 @@ class TestBaremetal(utils.TestCommand):
 
         self.app.client_manager.auth_ref = mock.Mock(auth_token="TOKEN")
         self.app.client_manager.rdomanager_oscplugin = FakeClientWrapper()
+        self.app.client_manager.image = mock.Mock()

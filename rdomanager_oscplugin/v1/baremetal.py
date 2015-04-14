@@ -151,3 +151,45 @@ class StatusAllPlugin(IntrospectionParser, lister.Lister):
             list((node_uuid, status['finished'], status['error'])
                  for (node_uuid, status) in statuses)
         )
+
+
+class ConfigureBootPlugin(command.Command):
+    """Baremetal configure boot plugin"""
+
+    log = logging.getLogger(__name__ + ".ConfigureBootPlugin")
+
+    def take_action(self, parsed_args):
+
+        self.log.debug("take_action(%s)" % parsed_args)
+        bm_client = self.app.client_manager.rdomanager_oscplugin.baremetal()
+
+        image_client = self.app.client_manager.image
+        kernel_id = utils.find_resource(
+            image_client.images, 'bm-deploy-kernel').id
+        ramdisk_id = utils.find_resource(
+            image_client.images, 'bm-deploy-ramdisk').id
+
+        self.log.debug("Using kernel ID: {0} and ramdisk ID: {1}".format(
+            kernel_id, ramdisk_id))
+
+        for node in bm_client.node.list():
+            self.log.debug("Configuring boot for Node {0}".format(
+                node.uuid))
+
+            bm_client.node.update(node.uuid, [
+                {
+                    'op': 'add',
+                    'path': '/properties/capabilities',
+                    'value': 'boot_option:local',
+                },
+                {
+                    'op': 'add',
+                    'path': '/driver_info/deploy_ramdisk',
+                    'value': ramdisk_id,
+                },
+                {
+                    'op': 'add',
+                    'path': '/driver_info/deploy_kernel',
+                    'value': kernel_id,
+                },
+            ])

@@ -298,3 +298,51 @@ class TestStatusAll(fakes.TestBaremetal):
                 ('QRSTUVWX', False, None)
             ]
         ))
+
+
+class TestConfigureBoot(fakes.TestBaremetal):
+
+    def setUp(self):
+        super(TestConfigureBoot, self).setUp()
+
+        # Get the command object to test
+        self.cmd = baremetal.ConfigureBootPlugin(self.app, None)
+
+    @mock.patch('openstackclient.common.utils.find_resource')
+    def test_configure_boot(self, find_resource_mock):
+
+        find_resource_mock.return_value = mock.Mock(id="IDIDID")
+        bm_client = self.app.client_manager.rdomanager_oscplugin.baremetal()
+        bm_client.node.list.return_value = [
+            mock.Mock(uuid="ABCDEFGH"),
+            mock.Mock(uuid="IJKLMNOP"),
+        ]
+
+        parsed_args = self.check_parser(self.cmd, [], [])
+        self.cmd.take_action(parsed_args)
+
+        self.assertEqual(find_resource_mock.call_count, 2)
+
+        self.assertEqual(bm_client.node.update.call_count, 2)
+        self.assertEqual(bm_client.node.update.mock_calls, [
+            mock.call('ABCDEFGH', [{
+                'op': 'add', 'value': 'boot_option:local',
+                'path': '/properties/capabilities'
+            }, {
+                'op': 'add', 'value': 'IDIDID',
+                'path': '/driver_info/deploy_ramdisk'
+            }, {
+                'op': 'add', 'value': 'IDIDID',
+                'path': '/driver_info/deploy_kernel'
+            }]),
+            mock.call('IJKLMNOP', [{
+                'op': 'add', 'value': 'boot_option:local',
+                'path': '/properties/capabilities'
+            }, {
+                'op': 'add', 'value': 'IDIDID',
+                'path': '/driver_info/deploy_ramdisk'
+            }, {
+                'op': 'add', 'value': 'IDIDID',
+                'path': '/driver_info/deploy_kernel'
+            }])
+        ])
