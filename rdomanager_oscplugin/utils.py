@@ -14,7 +14,9 @@
 #
 
 import hashlib
+import re
 import six
+import time
 import uuid
 
 
@@ -78,3 +80,43 @@ def check_hypervisor_stats(compute_client, nodes=1, memory=0, vcpu=0):
         return statistics
     else:
         return None
+
+
+def wait_for_stack_ready(
+        orchestration_client, stack_name, loops=220, sleep=10):
+    """Check the status of an orchestration stack
+
+    Get the status of an orchestration stack and check whether it is complete
+    or failed.
+
+    :param orchestration_client: Instance of Orchestration client
+    :type  orchestration_client: heatclient.v1.client.Client
+
+    :param stack_name: Name or UUID of stack to retrieve
+    :type  stack_name: string
+
+    :param loops: How many times to loop
+    :type loops: int
+
+    :param sleep: How long to sleep between loops
+    :type sleep: int
+    """
+    SUCCESSFUL_MATCH_OUTPUT = "(CREATE|UPDATE)_COMPLETE"
+    FAIL_MATCH_OUTPUT = "(CREATE|UPDATE)_FAILED"
+
+    for _ in range(0, loops):
+        stack = orchestration_client.stacks.get(stack_name)
+
+        if not stack:
+            return False
+
+        status = stack.stack_status
+
+        if re.match(SUCCESSFUL_MATCH_OUTPUT, status):
+            return True
+        if re.match(FAIL_MATCH_OUTPUT, status):
+            return False
+
+        time.sleep(sleep)
+
+    return False
