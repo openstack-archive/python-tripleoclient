@@ -222,13 +222,18 @@ class TestIntrospectionAll(fakes.TestBaremetal):
 
         client = self.app.client_manager.rdomanager_oscplugin.baremetal()
         client.node.list.return_value = [
-            mock.Mock(uuid="ABCDEFGH"),
-            mock.Mock(uuid="IJKLMNOP"),
-            mock.Mock(uuid="QRSTUVWX"),
+            mock.Mock(uuid="ABCDEFGH", provision_state="available"),
+            mock.Mock(uuid="IJKLMNOP", provision_state="manageable"),
+            mock.Mock(uuid="QRSTUVWX", provision_state="available"),
         ]
 
         parsed_args = self.check_parser(self.cmd, [], [])
         self.cmd.take_action(parsed_args)
+
+        client.node.set_provision_state.assert_has_calls([
+            mock.call('ABCDEFGH', 'manage'),
+            mock.call('QRSTUVWX', 'manage'),
+        ])
 
         discoverd_mock.assert_has_calls([
             mock.call('ABCDEFGH', base_url=None, auth_token='TOKEN'),
