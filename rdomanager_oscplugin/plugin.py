@@ -28,6 +28,9 @@ DEFAULT_RDOMANAGER_OSCPLUGIN_API_VERSION = '1'
 # Required by the OSC plugin interface
 API_NAME = 'rdomanager_oscplugin'
 API_VERSION_OPTION = 'os_rdomanager_oscplugin_api_version'
+API_VERSIONS = {
+    '1': 'rdomanager_oscplugin.plugin'
+}
 
 
 def make_client(instance):
