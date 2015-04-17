@@ -116,6 +116,15 @@ class IntrospectionAllPlugin(IntrospectionParser, command.Command):
         client = self.app.client_manager.rdomanager_oscplugin.baremetal()
 
         for node in client.node.list():
+
+            if node.provision_state == "available":
+
+                self.log.debug(("Setting provision state from {0} to "
+                                "'manageable' for Node {1}"
+                                ).format(node.provision_state, node.uuid))
+
+                client.node.set_provision_state(node.uuid, 'manage')
+
             self.log.debug("Starting introspection of Ironic node {0}".format(
                 node.uuid))
             auth_token = self.app.client_manager.auth_ref.auth_token
