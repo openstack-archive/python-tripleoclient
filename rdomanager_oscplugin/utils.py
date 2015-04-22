@@ -14,6 +14,7 @@
 #
 
 import hashlib
+import logging
 import re
 import six
 import time
@@ -120,3 +121,70 @@ def wait_for_stack_ready(
         time.sleep(sleep)
 
     return False
+
+
+def wait_for_provision_state(baremetal_client, node_uuid, provision_state,
+                             loops=10, sleep=1):
+
+    for _ in range(0, loops):
+
+        node = baremetal_client.node.get(node_uuid)
+
+        if node.provision_state == provision_state:
+            return True
+
+        time.sleep(sleep)
+
+    return False
+
+
+def wait_for_node_discovery(discoverd_client, auth_token, discoverd_url,
+                            node_uuids, loops=220, sleep=10):
+    """Check the status of Node discovery in Ironic discoverd
+
+    Gets the status and waits for them to complete.
+
+    :param discoverd_client: Instance of Orchestration client
+    :type  discoverd_client: heatclient.v1.client.Client
+
+    :param auth_token: Authorisation token used by discoverd client
+    :type auth_token: string
+
+    :param discoverd_url: URL used by the discoverd client
+    :type discoverd_url: string
+
+    :param node_uuids: List of Node UUID's to wait for discovery
+    :type node_uuids: [string, ]
+
+    :param loops: How many times to loop
+    :type loops: int
+
+    :param sleep: How long to sleep between loops
+    :type sleep: int
+    """
+
+    log = logging.getLogger(__name__ + ".wait_for_node_discovery")
+    node_uuids = node_uuids[:]
+
+    for _ in range(0, loops):
+
+        for node_uuid in node_uuids:
+
+            status = discoverd_client.get_status(
+                node_uuid,
+                base_url=discoverd_url,
+                auth_token=auth_token)
+
+            if status['finished']:
+                log.debug("Discover finished for node {0} (Error: {1})".format(
+                    node_uuid, status['error']))
+                node_uuids.remove(node_uuid)
+                yield node_uuid, status
+
+        if not len(node_uuids):
+            raise StopIteration
+        time.sleep(sleep)
+
+    if len(node_uuids):
+        log.error("Discovery didn't finish for nodes {0}".format(
+            ','.join(node_uuids)))
