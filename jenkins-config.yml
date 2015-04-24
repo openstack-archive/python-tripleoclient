@@ -44,11 +44,14 @@ product:
     repo_type: poodle
     version: 6.0
     config:
-        enable_epel: n
+        enable_epel: y
+    rpmrepo:
+        RedHat: http://rhos-release.virt.bos.redhat.com/repos/rhos-release/
+
 
 python_rdomanager_oscplugin_rpm_deps: [
   gcc, git, python-sphinx, python-tox, python-pip,
-  python-rdomanager-oscplugin
+  libxml2-devel, libxslt-devel, libffi-devel, openssl-devel,
 ]
 
 rdomanager_oscplugin_virt_config:
@@ -62,8 +65,6 @@ rdomanager_oscplugin_virt_config:
       export NOSE_HTML_OUT_FILE=../logs/nose_results.html;
       export NSS_HASH_ALG_SUPPORT=+MD5;
       export OPENSSL_ENABLE_MD5_VERIFY=1;
-      sudo yum remove -y python-rdomanager-oscplugin;
-      truncate --size 0 requirements.txt;
       rpm -qa > all-rpms.txt;
       set -o pipefail;
       tox --sitepackages -v -epy27 2>&1 | tee ../logs/venv-testrun.log;
