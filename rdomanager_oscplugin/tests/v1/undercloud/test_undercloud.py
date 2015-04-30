@@ -35,7 +35,7 @@ class TestUndercloudInstall(TestPluginV1):
         # Get the command object to test
         self.cmd = undercloud.InstallPlugin(self.app, None)
 
-    @mock.patch('subprocess.call')
+    @mock.patch('subprocess.check_call')
     def test_undercloud_install(self, mock_subprocess):
         arglist = []
         verifylist = []

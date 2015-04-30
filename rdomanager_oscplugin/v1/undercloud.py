@@ -30,6 +30,6 @@ class InstallPlugin(command.Command):
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
 
-        subprocess.call("instack-install-undercloud")
+        subprocess.check_call("instack-install-undercloud")
 
         return
