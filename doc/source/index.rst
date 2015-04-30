@@ -11,7 +11,7 @@ Contents:
 
    readme
    installation
-   usage
+   command-list
    contributing
 
 Indices and tables
