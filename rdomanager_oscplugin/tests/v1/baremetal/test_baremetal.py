@@ -19,6 +19,7 @@ import json
 import mock
 import os
 
+from rdomanager_oscplugin import exceptions
 from rdomanager_oscplugin.tests.v1.baremetal import fakes
 from rdomanager_oscplugin.v1 import baremetal
 
@@ -351,3 +352,44 @@ class TestConfigureBoot(fakes.TestBaremetal):
                 'path': '/driver_info/deploy_kernel'
             }])
         ])
+
+    @mock.patch('openstackclient.common.utils.find_resource')
+    @mock.patch.object(baremetal.ConfigureBootPlugin, 'sleep_time',
+                       new_callable=mock.PropertyMock,
+                       return_value=0)
+    def test_configure_boot_in_transition(self, _, find_resource_mock):
+        find_resource_mock.return_value = mock.Mock(id="IDIDID")
+
+        bm_client = self.app.client_manager.rdomanager_oscplugin.baremetal()
+        bm_client.node.list.return_value = [mock.Mock(uuid="ABCDEFGH",
+                                                      power_state=None),
+                                            ]
+        bm_client.node.get.side_effect = [mock.Mock(uuid="ABCDEFGH",
+                                                    power_state=None),
+                                          mock.Mock(uuid="ABCDEFGH",
+                                                    power_state='available'),
+                                          ]
+        parsed_args = self.check_parser(self.cmd, [], [])
+        self.cmd.take_action(parsed_args)
+
+        self.assertEqual(1, bm_client.node.list.call_count)
+        self.assertEqual(2, bm_client.node.get.call_count)
+        self.assertEqual(1, bm_client.node.update.call_count)
+
+    @mock.patch('openstackclient.common.utils.find_resource')
+    @mock.patch.object(baremetal.ConfigureBootPlugin, 'sleep_time',
+                       new_callable=mock.PropertyMock,
+                       return_value=0)
+    def test_configure_boot_timeout(self, _, find_resource_mock):
+        find_resource_mock.return_value = mock.Mock(id="IDIDID")
+
+        bm_client = self.app.client_manager.rdomanager_oscplugin.baremetal()
+        bm_client.node.list.return_value = [mock.Mock(uuid="ABCDEFGH",
+                                                      power_state=None),
+                                            ]
+        bm_client.node.get.return_value = mock.Mock(uuid="ABCDEFGH",
+                                                    power_state=None)
+        parsed_args = self.check_parser(self.cmd, [], [])
+        self.assertRaises(exceptions.Timeout,
+                          self.cmd.take_action,
+                          parsed_args)

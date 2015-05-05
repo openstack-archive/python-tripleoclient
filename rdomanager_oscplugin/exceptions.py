@@ -19,3 +19,8 @@
 class UnsupportedVersion(Exception):
     """The user is trying to use an unsupported version of the API"""
     pass
+
+
+class Timeout(Exception):
+    """An operation timed out"""
+    pass

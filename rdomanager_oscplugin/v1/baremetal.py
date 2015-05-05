@@ -20,13 +20,15 @@ import csv
 import json
 import logging
 import sys
+import time
 
+from cliff import command
 from cliff import lister
 from ironic_discoverd import client as discoverd_client
 from openstackclient.common import utils
 from os_cloud_config import nodes
 
-from cliff import command
+from rdomanager_oscplugin import exceptions
 
 
 def _csv_to_nodes_dict(nodes_csv):
@@ -166,6 +168,8 @@ class ConfigureBootPlugin(command.Command):
     """Baremetal configure boot plugin"""
 
     log = logging.getLogger(__name__ + ".ConfigureBootPlugin")
+    loops = 12
+    sleep_time = 10
 
     def take_action(self, parsed_args):
 
@@ -182,6 +186,24 @@ class ConfigureBootPlugin(command.Command):
             kernel_id, ramdisk_id))
 
         for node in bm_client.node.list():
+            # NOTE(bnemec): Ironic won't let us update the node while the
+            # power_state is transitioning.
+            if node.power_state is None:
+                self.log.warning('Node %s power state is in transition. '
+                                 'Waiting up to %d seconds for it to '
+                                 'complete.',
+                                 node.uuid,
+                                 self.loops * self.sleep_time)
+                for _ in range(self.loops):
+                    time.sleep(self.sleep_time)
+                    node = bm_client.node.get(node.uuid)
+                    if node.power_state is not None:
+                        break
+                else:
+                    msg = ('Timed out waiting for node %s power state.' %
+                           node.uuid)
+                    raise exceptions.Timeout(msg)
+
             self.log.debug("Configuring boot for Node {0}".format(
                 node.uuid))
 
