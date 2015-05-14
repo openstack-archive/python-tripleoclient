@@ -14,7 +14,9 @@
 #
 
 import hashlib
+import json
 import logging
+import os
 import re
 import six
 import time
@@ -208,3 +210,41 @@ def wait_for_node_discovery(discoverd_client, auth_token, discoverd_url,
     if len(node_uuids):
         log.error("Discovery didn't finish for nodes {0}".format(
             ','.join(node_uuids)))
+
+
+def create_environment_file(path="~/overcloud-env.json",
+                            control_scale=1, compute_scale=1,
+                            ceph_storage_scale=0, block_storage_scale=0,
+                            swift_storage_scale=0):
+    """Create a heat environment file
+
+    Create the heat environment file with the scale parameters.
+
+    :param control_scale: Scale value for control roles.
+    :type control_scale: int
+
+    :param compute_scale: Scale value for compute roles.
+    :type compute_scale: int
+
+    :param ceph_storage_scale: Scale value for ceph storage roles.
+    :type ceph_storage_scale: int
+
+    :param block_storage_scale: Scale value for block storage roles.
+    :type block_storage_scale: int
+
+    :param swift_storage_scale: Scale value for swift storage roles.
+    :type swift_storage_scale: int
+    """
+
+    env_path = os.path.expanduser(path)
+    with open(env_path, 'w+') as f:
+        f.write(json.dumps({
+            "parameters": {
+                "ControllerCount": control_scale,
+                "ComputeCount": compute_scale,
+                "CephStorageCount": ceph_storage_scale,
+                "BlockStorageCount": block_storage_scale,
+                "ObjectStorageCount": swift_storage_scale}
+        }))
+
+    return env_path

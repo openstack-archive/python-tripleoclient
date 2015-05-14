@@ -191,3 +191,17 @@ class TestWaitForDiscovery(TestCase):
                                                loops=4, sleep=0.01)
 
         self.assertEqual(list(result), [])
+
+    def test_create_environment_file(self):
+
+        json_file_path = "env.json"
+
+        mock_open = mock.mock_open()
+
+        with mock.patch('six.moves.builtins.open', mock_open):
+            with mock.patch('json.dumps', return_value="JSON"):
+                utils.create_environment_file(path=json_file_path)
+
+                mock_open.assert_called_with('env.json', 'w+')
+
+        mock_open().write.assert_called_with('JSON')
