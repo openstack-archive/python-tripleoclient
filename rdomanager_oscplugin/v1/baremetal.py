@@ -108,14 +108,14 @@ class IntrospectionParser(object):
         return parser
 
 
-class StartBaremetalIntrospectionAll(IntrospectionParser, command.Command):
-    """Start introspection on all baremetal nodes"""
+class StartBaremetalIntrospectionBulk(IntrospectionParser, command.Command):
+    """Start bulk introspection on all baremetal nodes"""
 
-    log = logging.getLogger(__name__ + ".StartBaremetalIntrospectionAll")
+    log = logging.getLogger(__name__ + ".StartBaremetalIntrospectionBulk")
 
     def get_parser(self, prog_name):
         parser = super(
-            StartBaremetalIntrospectionAll, self).get_parser(prog_name)
+            StartBaremetalIntrospectionBulk, self).get_parser(prog_name)
         parser.add_argument('--no-poll', dest='poll', action='store_false')
         parser.set_defaults(poll=True)
         return parser
@@ -151,10 +151,10 @@ class StartBaremetalIntrospectionAll(IntrospectionParser, command.Command):
                     uuid, status['error']))
 
 
-class StatusBaremetalIntrospectionAll(IntrospectionParser, lister.Lister):
+class StatusBaremetalIntrospectionBulk(IntrospectionParser, lister.Lister):
     """Get the status of all baremetal nodes"""
 
-    log = logging.getLogger(__name__ + ".StatusBaremetalIntrospectionAll")
+    log = logging.getLogger(__name__ + ".StatusBaremetalIntrospectionBulk")
 
     def take_action(self, parsed_args):
 

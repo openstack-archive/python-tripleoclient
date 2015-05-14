@@ -34,25 +34,25 @@ Import baremetal nodes
 
     Filename to be imported
 
-baremetal introspection all start
----------------------------------
+baremetal introspection bulk start
+----------------------------------
 
 Begin introspection of all baremetal nodes
 
-.. program:: baremetal introspection all start
+.. program:: baremetal introspection bulk start
 .. code:: bash
 
-    os baremetal introspection all start
+    os baremetal introspection bulk start
 
-baremetal introspection all status
-----------------------------------
+baremetal introspection bulk status
+-----------------------------------
 
 Get status of node introspection
 
-.. program:: baremetal introspection all status
+.. program:: baremetal introspection bulk status
 .. code:: bash
 
-    os baremetal introspection all status
+    os baremetal introspection bulk status
 
 baremetal configure boot
 ------------------------

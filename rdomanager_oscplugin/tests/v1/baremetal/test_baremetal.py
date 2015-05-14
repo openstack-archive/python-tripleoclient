@@ -198,16 +198,16 @@ pxe_ssh,192.168.122.1,root,"KEY2",00:7c:ef:3d:eb:60""")
             keystone_client=None)
 
 
-class TestStartBaremetalIntrospectionAll(fakes.TestBaremetal):
+class TestStartBaremetalIntrospectionBulk(fakes.TestBaremetal):
 
     def setUp(self):
-        super(TestStartBaremetalIntrospectionAll, self).setUp()
+        super(TestStartBaremetalIntrospectionBulk, self).setUp()
 
         # Get the command object to test
-        self.cmd = baremetal.StartBaremetalIntrospectionAll(self.app, None)
+        self.cmd = baremetal.StartBaremetalIntrospectionBulk(self.app, None)
 
     @mock.patch('ironic_discoverd.client.introspect')
-    def test_introspect_all_one(self, discoverd_mock):
+    def test_introspect_bulk_one(self, discoverd_mock):
 
         client = self.app.client_manager.rdomanager_oscplugin.baremetal()
         client.node.list.return_value = [
@@ -224,8 +224,8 @@ class TestStartBaremetalIntrospectionAll(fakes.TestBaremetal):
     @mock.patch('rdomanager_oscplugin.utils.wait_for_provision_state')
     @mock.patch('ironic_discoverd.client.get_status')
     @mock.patch('ironic_discoverd.client.introspect')
-    def test_introspect_all(self, introspect_mock, get_status_mock,
-                            wait_for_state_mock, wait_for_discover_mock):
+    def test_introspect_bulk(self, introspect_mock, get_status_mock,
+                             wait_for_state_mock, wait_for_discover_mock):
 
         wait_for_discover_mock.return_value = []
         wait_for_state_mock.return_value = True
@@ -265,9 +265,9 @@ class TestStartBaremetalIntrospectionAll(fakes.TestBaremetal):
     @mock.patch('rdomanager_oscplugin.utils.wait_for_provision_state')
     @mock.patch('ironic_discoverd.client.get_status')
     @mock.patch('ironic_discoverd.client.introspect')
-    def test_introspect_all_no_poll(self, introspect_mock, get_status_mock,
-                                    wait_for_state_mock,
-                                    wait_for_discover_mock):
+    def test_introspect_bulk_no_poll(self, introspect_mock, get_status_mock,
+                                     wait_for_state_mock,
+                                     wait_for_discover_mock):
 
         wait_for_discover_mock.return_value = []
         wait_for_state_mock.return_value = True
@@ -303,16 +303,16 @@ class TestStartBaremetalIntrospectionAll(fakes.TestBaremetal):
         self.assertFalse(wait_for_discover_mock.called)
 
 
-class TestStatusBaremetalIntrospectionAll(fakes.TestBaremetal):
+class TestStatusBaremetalIntrospectionBulk(fakes.TestBaremetal):
 
     def setUp(self):
-        super(TestStatusBaremetalIntrospectionAll, self).setUp()
+        super(TestStatusBaremetalIntrospectionBulk, self).setUp()
 
         # Get the command object to test
-        self.cmd = baremetal.StatusBaremetalIntrospectionAll(self.app, None)
+        self.cmd = baremetal.StatusBaremetalIntrospectionBulk(self.app, None)
 
     @mock.patch('ironic_discoverd.client.get_status')
-    def test_status_all_one(self, discoverd_mock):
+    def test_status_bulk_one(self, discoverd_mock):
 
         client = self.app.client_manager.rdomanager_oscplugin.baremetal()
         client.node.list.return_value = [
@@ -334,7 +334,7 @@ class TestStatusBaremetalIntrospectionAll(fakes.TestBaremetal):
             [('ABCDEFGH', False, None)]))
 
     @mock.patch('ironic_discoverd.client.get_status')
-    def test_status_all(self, discoverd_mock):
+    def test_status_bulk(self, discoverd_mock):
 
         client = self.app.client_manager.rdomanager_oscplugin.baremetal()
         client.node.list.return_value = [
