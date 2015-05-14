@@ -226,3 +226,14 @@ class TestWaitForDiscovery(TestCase):
         bm_client.node.set_provision_state.assert_has_calls([
             mock.call('IJKLMNOP', 'provide'),
         ])
+
+    @mock.patch("subprocess.Popen")
+    def test_get_hiera_key(self, mock_popen):
+
+        process_mock = mock.Mock()
+        process_mock.communicate.return_value = ["pa$$word", ""]
+        mock_popen.return_value = process_mock
+
+        value = utils.get_hiera_key('password_name')
+
+        self.assertEqual(value, "pa$$word")
