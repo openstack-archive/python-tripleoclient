@@ -315,3 +315,13 @@ def get_hiera_key(key_name):
     p = subprocess.Popen(command, stdout=subprocess.PIPE)
     out, err = p.communicate()
     return out
+
+
+def remove_known_hosts(overcloud_ip):
+    """For a given IP address remove SSH keys from the known_hosts file"""
+
+    known_hosts = os.path.expanduser("~/.ssh/known_hosts")
+
+    if os.path.exists(known_hosts):
+        command = ['ssh-keygen', '-R', overcloud_ip]
+        subprocess.check_call(command)

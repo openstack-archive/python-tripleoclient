@@ -273,3 +273,23 @@ class TestWaitForDiscovery(TestCase):
                                                 sleep=0.01)
 
         self.assertEqual(result, False)
+
+    @mock.patch('subprocess.check_call')
+    @mock.patch('os.path.exists')
+    def test_remove_known_hosts(self, mock_exists, mock_check_call):
+
+        mock_exists.return_value = True
+
+        utils.remove_known_hosts('192.168.0.1')
+
+        mock_check_call.assert_called_with(['ssh-keygen', '-R', '192.168.0.1'])
+
+    @mock.patch('subprocess.check_call')
+    @mock.patch('os.path.exists')
+    def test_remove_known_hosts_no_file(self, mock_exists, mock_check_call):
+
+        mock_exists.return_value = False
+
+        utils.remove_known_hosts('192.168.0.1')
+
+        mock_check_call.assert_not_called()
