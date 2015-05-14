@@ -237,3 +237,39 @@ class TestWaitForDiscovery(TestCase):
         value = utils.get_hiera_key('password_name')
 
         self.assertEqual(value, "pa$$word")
+
+    def test_wait_for_provision_state(self):
+
+        baremetal_client = mock.Mock()
+
+        baremetal_client.node.get.return_value = mock.Mock(
+            provision_state="available")
+
+        result = utils.wait_for_provision_state(baremetal_client, 'UUID',
+                                                "available")
+
+        self.assertEqual(result, True)
+
+    def test_wait_for_provision_state_not_found(self):
+
+        baremetal_client = mock.Mock()
+
+        baremetal_client.node.get.return_value = None
+
+        result = utils.wait_for_provision_state(baremetal_client, 'UUID',
+                                                "available")
+
+        self.assertEqual(result, True)
+
+    def test_wait_for_provision_state_fail(self):
+
+        baremetal_client = mock.Mock()
+
+        baremetal_client.node.get.return_value = mock.Mock(
+            provision_state="not what we want")
+
+        result = utils.wait_for_provision_state(baremetal_client, 'UUID',
+                                                "available", loops=1,
+                                                sleep=0.01)
+
+        self.assertEqual(result, False)
