@@ -19,6 +19,7 @@ import logging
 import os
 import re
 import six
+import sys
 import time
 import uuid
 
@@ -248,3 +249,50 @@ def create_environment_file(path="~/overcloud-env.json",
         }))
 
     return env_path
+
+
+def set_nodes_state(baremetal_client, nodes, transition, target_state,
+                    skipped_states=()):
+    """Make all nodes available in the baremetal service for a deployment
+
+    For each node, make it available unless it is already available or active.
+    Available nodes can be used for a deployment and an active node is already
+    in use.
+
+    :param baremetal_client: Instance of Ironic client
+    :type  baremetal_client: ironicclient.v1.client.Client
+
+    :param nodes: List of Baremetal Nodes
+    :type  nodes: [ironicclient.v1.node.Node]
+
+    :param transition: The state to set for a node. The full list of states
+                       can be found in ironic.common.states.
+    :type  transition: string
+
+    :param target_state: The expected result state for a node. For example when
+                         transitioning to 'manage' the result is 'manageable'
+    :type  target_state: string
+
+    :param skipped_states: A set of states to skip, for example 'active' nodes
+                           are already deployed and the state can't always be
+                           changed.
+    :type  skipped_states: iterable of strings
+    """
+
+    log = logging.getLogger(__name__ + ".set_nodes_state")
+
+    for node in nodes:
+
+        if node.provision_state in skipped_states:
+            continue
+
+        log.debug(
+            "Setting provision state from {0} to '{1} for Node {2}"
+            .format(node.provision_state, transition, node.uuid))
+
+        baremetal_client.node.set_provision_state(node.uuid, transition)
+
+        if not wait_for_provision_state(baremetal_client, node.uuid,
+                                        target_state):
+            print("FAIL: State not updated for Node {0}".format(
+                  node.uuid, file=sys.stderr))

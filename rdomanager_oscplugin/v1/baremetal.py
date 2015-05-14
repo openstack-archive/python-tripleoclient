@@ -129,23 +129,11 @@ class StartBaremetalIntrospectionAll(IntrospectionParser, command.Command):
 
         node_uuids = []
 
+        available_nodes = [node for node in client.node.list()
+                           if node.provision_state == "available"]
+        utils.set_nodes_state(client, available_nodes, 'manage', 'manageable')
+
         for node in client.node.list():
-
-            if node.provision_state == "available":
-
-                uuid = node.uuid
-                node_uuids.append(uuid)
-
-                self.log.debug(("Setting provision state from {0} to "
-                                "'manageable' for Node {1}"
-                                ).format(node.provision_state, uuid))
-
-                client.node.set_provision_state(node.uuid, 'manage')
-
-                if not utils.wait_for_provision_state(
-                        client, uuid, 'manageable'):
-                    print("FAIL: State not updated for Node {0}".format(
-                          node.uuid, file=sys.stderr))
 
             self.log.debug("Starting introspection of Ironic node {0}".format(
                 node.uuid))

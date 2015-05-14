@@ -259,7 +259,7 @@ class TestStartBaremetalIntrospectionAll(fakes.TestBaremetal):
         ])
 
         wait_for_discover_mock.assert_called_once_with(
-            discoverd_client, 'TOKEN', None, ['ABCDEFGH', 'QRSTUVWX'])
+            discoverd_client, 'TOKEN', None, [])
 
     @mock.patch('rdomanager_oscplugin.utils.wait_for_node_discovery')
     @mock.patch('rdomanager_oscplugin.utils.wait_for_provision_state')
