@@ -22,7 +22,7 @@ from cliff import command
 
 
 class InstallPlugin(command.Command):
-    """Undercloud Install plugin"""
+    """Install and setup the undercloud"""
 
     auth_required = False
     log = logging.getLogger(__name__ + ".InstallPlugin")
