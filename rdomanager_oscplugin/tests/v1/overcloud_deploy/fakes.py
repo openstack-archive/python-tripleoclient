@@ -30,12 +30,16 @@ class FakeClientWrapper(object):
         self._instance = mock.Mock()
         self._orchestration = mock.Mock()
         self._baremetal = mock.Mock()
+        self._management = mock.Mock()
 
     def orchestration(self):
         return self._orchestration
 
     def baremetal(self):
         return self._baremetal
+
+    def management(self):
+        return self._management
 
 
 class TestDeployOvercloud(utils.TestCommand):

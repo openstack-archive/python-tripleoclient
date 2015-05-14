@@ -91,3 +91,45 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertEqual(kwargs['template'], 'template')
         self.assertEqual(kwargs['environment'], 'env')
         self.assertEqual(kwargs['stack_name'], 'overcloud')
+
+    @mock.patch('heatclient.common.template_utils.'
+                'process_multiple_environments_and_files')
+    @mock.patch('heatclient.common.template_utils.get_template_contents')
+    @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
+                '_get_stack')
+    @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
+                '_pre_heat_deploy')
+    @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
+                '_post_heat_deploy')
+    @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
+                '_heat_deploy')
+    def test_tuskar_deploy(self, mock_heat_deploy, mock_post_deploy,
+                           most_pre_deploy, mock_get_stack,
+                           mock_get_templte_contents,
+                           mock_process_multiple_env):
+
+        arglist = ['--plan-uuid', 'UUID', '--output-dir', 'fake']
+        verifylist = [
+            ('use_tht', False),
+            ('plan_uuid', 'UUID'),
+            ('output_dir', 'fake'),
+        ]
+
+        clients = self.app.client_manager
+        management = clients.rdomanager_oscplugin.management()
+
+        management.plans.templates.return_value = {}
+
+        mock_get_templte_contents.return_value = ({}, "template")
+        mock_process_multiple_env.return_value = ({}, "envs")
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
+
+        mock_heat_deploy.assert_called_with(
+            mock_get_stack(),
+            'fake/plan.yaml',
+            None,
+            ['fake/environment.yaml']
+        )
