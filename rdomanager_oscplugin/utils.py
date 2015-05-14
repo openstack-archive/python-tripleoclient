@@ -325,3 +325,7 @@ def remove_known_hosts(overcloud_ip):
     if os.path.exists(known_hosts):
         command = ['ssh-keygen', '-R', overcloud_ip]
         subprocess.check_call(command)
+
+
+def setup_endpoints(overcloud_ip, passwords):
+    pass

@@ -17,18 +17,25 @@ import mock
 from openstackclient.tests import utils
 
 
+def create_to_dict_mock(**kwargs):
+    mock_plan = mock.Mock()
+    mock_plan.configure_mock(**kwargs)
+    mock_plan.to_dict.return_value = kwargs
+    return mock_plan
+
+
 class FakeClientWrapper(object):
 
     def __init__(self):
         self._instance = mock.Mock()
-        self._orchestration = None
+        self._orchestration = mock.Mock()
+        self._baremetal = mock.Mock()
 
     def orchestration(self):
-
-        if self._orchestration is None:
-            self._orchestration = mock.Mock()
-
         return self._orchestration
+
+    def baremetal(self):
+        return self._baremetal
 
 
 class TestDeployOvercloud(utils.TestCommand):
@@ -38,3 +45,6 @@ class TestDeployOvercloud(utils.TestCommand):
 
         self.app.client_manager.auth_ref = mock.Mock(auth_token="TOKEN")
         self.app.client_manager.rdomanager_oscplugin = FakeClientWrapper()
+        self.app.client_manager.network = mock.Mock()
+        self.app.client_manager.compute = mock.Mock()
+        self.app.client_manager.identity = mock.Mock()
