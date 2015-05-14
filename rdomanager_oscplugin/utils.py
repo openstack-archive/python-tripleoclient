@@ -125,6 +125,26 @@ def wait_for_stack_ready(
 
 def wait_for_provision_state(baremetal_client, node_uuid, provision_state,
                              loops=10, sleep=1):
+    """Wait for a given Provisioning state in Ironic Discoverd
+
+    Updating the provisioning state is an async operation, we
+    need to wait for it to be completed.
+
+    :param baremetal_client: Instance of Ironic client
+    :type  baremetal_client: ironicclient.v1.client.Client
+
+    :param node_uuid: The Ironic node UUID
+    :type  node_uuid: str
+
+    :param provision_state: The provisioning state name to wait for
+    :type  provision_state: str
+
+    :param loops: How many times to loop
+    :type loops: int
+
+    :param sleep: How long to sleep between loops
+    :type sleep: int
+    """
 
     for _ in range(0, loops):
 
