@@ -14,8 +14,56 @@
 #
 
 import logging
+import os
 
 from cliff import command
+
+
+TRIPLEO_HEAT_TEMPLATES = "/usr/share/openstack-tripleo-heat-templates/"
+OVERCLOUD_YAML_PATH = os.path.join(TRIPLEO_HEAT_TEMPLATES,
+                                   "overcloud-without-mergepy.yaml")
+RESOURCE_REGISTRY_PATH = os.path.join(
+    TRIPLEO_HEAT_TEMPLATES, "overcloud-resource-registry-puppet.yaml")
+
+PARAMETERS = {
+    'AdminPassword': None,
+    'AdminToken': None,
+    'CeilometerPassword': None,
+    'CeilometerMeteringSecret': None,
+    'CinderPassword': None,
+    'CinderISCSIHelper': 'lioadm',
+    'CloudName': 'overcloud',
+    'ExtraConfig': '{}',
+    'GlancePassword': None,
+    'HeatPassword': None,
+    'NeutronControlPlaneID': None,
+    'NeutronDnsmasqOptions': 'dhcp-option-force=26,1400',
+    'NeutronPassword': None,
+    'NeutronPublicInterface': 'nic1',
+    'NeutronFlatNetworks': 'datacentre',
+    'HypervisorNeutronPhysicalBridge': 'br-ex',
+    'NeutronBridgeMappings': 'datacentre:br-ex',
+    'HypervisorNeutronPublicInterface': 'nic1',
+    'NovaComputeLibvirtType': 'qemu',
+    'NovaPassword': None,
+    'SwiftHashSuffix': None,
+    'SwiftPassword': None,
+    'NeutronNetworkType': 'gre',
+    'NeutronTunnelTypes': 'gre',
+    'SnmpdReadonlyUserPassword': None,
+    'OvercloudControlFlavor': 'baremetal',
+    'OvercloudComputeFlavor': 'baremetal',
+    'OvercloudBlockStorageFlavor': 'baremetal',
+    'OvercloudSwiftStorageFlavor': 'baremetal',
+    'OvercloudCephStorageFlavor': 'baremetal',
+    'NtpServer': '',
+    'controllerImage': 'overcloud-full',
+    'NovaImage': 'overcloud-full',
+    'BlockStorageImage': 'overcloud-full',
+    'SwiftStorageImage': 'overcloud-full',
+    'CephStorageImage': 'overcloud-full',
+    'Debug': 'True',
+}
 
 
 class DeployOvercloud(command.Command):
