@@ -17,10 +17,10 @@ from rdomanager_oscplugin.tests.v1.overcloud_deploy import fakes
 from rdomanager_oscplugin.v1 import overcloud_deploy
 
 
-class TestOvercloudDeploy(fakes.TestOrchestration):
+class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
     def setUp(self):
-        super(TestOvercloudDeploy, self).setUp()
+        super(TestDeployOvercloud, self).setUp()
 
         # Get the command object to test
-        self.cmd = overcloud_deploy.DeployPlugin(self.app, None)
+        self.cmd = overcloud_deploy.DeployOvercloud(self.app, None)

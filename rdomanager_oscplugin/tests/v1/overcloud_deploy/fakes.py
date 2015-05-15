@@ -31,10 +31,10 @@ class FakeClientWrapper(object):
         return self._orchestration
 
 
-class TestOrchestration(utils.TestCommand):
+class TestDeployOvercloud(utils.TestCommand):
 
     def setUp(self):
-        super(TestOrchestration, self).setUp()
+        super(TestDeployOvercloud, self).setUp()
 
         self.app.client_manager.auth_ref = mock.Mock(auth_token="TOKEN")
         self.app.client_manager.rdomanager_oscplugin = FakeClientWrapper()
