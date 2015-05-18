@@ -27,6 +27,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         # Get the command object to test
         self.cmd = overcloud_deploy.DeployOvercloud(self.app, None)
 
+    @mock.patch('rdomanager_oscplugin.utils.setup_endpoints')
     @mock.patch('time.sleep', return_value=None)
     @mock.patch('os_cloud_config.keystone.initialize')
     @mock.patch('rdomanager_oscplugin.utils.remove_known_hosts')
@@ -44,7 +45,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                         mock_get_templte_contents, mock_process_multiple_env,
                         set_nodes_state_mock, wait_for_stack_ready_mock,
                         mock_remove_known_hosts, mock_keystone_initialize,
-                        mock_sleep):
+                        mock_sleep, mock_setup_endpoints):
 
         arglist = ['--use-tripleo-heat-templates', ]
         verifylist = [
