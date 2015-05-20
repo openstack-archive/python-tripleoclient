@@ -30,7 +30,7 @@ class TestOvercloudImageBuild(TestPluginV1):
         self.cmd._ramdisk_image_create = mock.Mock()
 
     @mock.patch.object(overcloud_image.BuildOvercloudImage,
-                       '_build_image_fedora_user')
+                       '_build_image_fedora_user', autospec=True)
     def test_overcloud_image_build_all(self, mock_fedora_user):
         arglist = ['--all']
         verifylist = [('all', True)]
@@ -43,10 +43,10 @@ class TestOvercloudImageBuild(TestPluginV1):
         self.assertEqual(1, self.cmd._disk_image_create.call_count)
         self.assertEqual(1, mock_fedora_user.call_count)
 
-    @mock.patch('subprocess.call')
-    @mock.patch('os.path.isfile')
+    @mock.patch('subprocess.call', autospec=True)
+    @mock.patch('os.path.isfile', autospec=True)
     @mock.patch('os.chmod')
-    @mock.patch('requests.get')
+    @mock.patch('requests.get', autospec=True)
     def test_overcloud_image_build_fedora_user_no_cache(
             self,
             mock_requests_get,
@@ -81,7 +81,7 @@ class TestOvercloudImageBuild(TestPluginV1):
         mock_open_context.assert_has_calls(
             [mock.call('fedora-user.qcow2', 'wb')])
 
-    @mock.patch('os.path.isfile')
+    @mock.patch('os.path.isfile', autospec=True)
     def test_overcloud_image_build_overcloud_full(
             self,
             mock_os_path_isfile):
@@ -115,7 +115,7 @@ class TestOvercloudImageBuild(TestPluginV1):
             "undercloud-package-install "
             "pip-and-virtualenv-override 2>&1 | tee dib-overcloud-full.log")
 
-    @mock.patch('os.path.isfile')
+    @mock.patch('os.path.isfile', autospec=True)
     def test_overcloud_image_build_deploy_ramdisk(
             self,
             mock_os_path_isfile):
@@ -158,7 +158,7 @@ class TestOvercloudImageCreate(TestPluginV1):
         self.cmd._read_image_file_pointer = mock.Mock(return_value=b'IMGDATA')
         self.cmd._check_file_exists = mock.Mock(return_value=True)
 
-    @mock.patch('subprocess.call')
+    @mock.patch('subprocess.call', autospec=True)
     def test_overcloud_create_images(self, mock_subprocess_call):
         parsed_args = self.check_parser(self.cmd, [], [])
 

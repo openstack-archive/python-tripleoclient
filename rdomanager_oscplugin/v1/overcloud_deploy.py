@@ -160,7 +160,7 @@ class DeployOvercloud(command.Command):
         self.log.debug("Verifying that Baremetal nodes to available or active")
         utils.set_nodes_state(
             baremetal_client, baremetal_client.node.list(),
-            'provide', skipped_states=("available", "active"))
+            'provide', 'available', skipped_states=("available", "active"))
 
         stack_name = "overcloud"
 

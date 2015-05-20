@@ -93,7 +93,7 @@ pxe_ssh,192.168.122.1,root,"KEY2",00:7c:ef:3d:eb:60""")
         os.unlink(self.json_file.name)
         os.unlink(self.instack_json.name)
 
-    @mock.patch('os_cloud_config.nodes.register_all_nodes')
+    @mock.patch('os_cloud_config.nodes.register_all_nodes', autospec=True)
     def test_json_import(self, mock_register_nodes):
 
         arglist = [self.json_file.name, '--json', '-s', 'http://localhost']
@@ -128,7 +128,7 @@ pxe_ssh,192.168.122.1,root,"KEY2",00:7c:ef:3d:eb:60""")
             client=self.app.client_manager.rdomanager_oscplugin.baremetal(),
             keystone_client=None)
 
-    @mock.patch('os_cloud_config.nodes.register_all_nodes')
+    @mock.patch('os_cloud_config.nodes.register_all_nodes', autospec=True)
     def test_instack_json_import(self, mock_register_nodes):
 
         arglist = [self.instack_json.name, '--json', '-s', 'http://localhost']
@@ -163,7 +163,7 @@ pxe_ssh,192.168.122.1,root,"KEY2",00:7c:ef:3d:eb:60""")
             client=self.app.client_manager.rdomanager_oscplugin.baremetal(),
             keystone_client=None)
 
-    @mock.patch('os_cloud_config.nodes.register_all_nodes')
+    @mock.patch('os_cloud_config.nodes.register_all_nodes', autospec=True)
     def test_csv_import(self, mock_register_nodes):
 
         arglist = [self.csv_file.name, '--csv', '-s', 'http://localhost']
@@ -206,7 +206,7 @@ class TestStartBaremetalIntrospectionBulk(fakes.TestBaremetal):
         # Get the command object to test
         self.cmd = baremetal.StartBaremetalIntrospectionBulk(self.app, None)
 
-    @mock.patch('ironic_discoverd.client.introspect')
+    @mock.patch('ironic_discoverd.client.introspect', autospec=True)
     def test_introspect_bulk_one(self, discoverd_mock):
 
         client = self.app.client_manager.rdomanager_oscplugin.baremetal()
@@ -220,10 +220,12 @@ class TestStartBaremetalIntrospectionBulk(fakes.TestBaremetal):
         discoverd_mock.assert_called_once_with(
             'ABCDEFGH', base_url=None, auth_token='TOKEN')
 
-    @mock.patch('rdomanager_oscplugin.utils.wait_for_node_discovery')
-    @mock.patch('rdomanager_oscplugin.utils.wait_for_provision_state')
-    @mock.patch('ironic_discoverd.client.get_status')
-    @mock.patch('ironic_discoverd.client.introspect')
+    @mock.patch('rdomanager_oscplugin.utils.wait_for_node_discovery',
+                autospec=True)
+    @mock.patch('rdomanager_oscplugin.utils.wait_for_provision_state',
+                autospec=True)
+    @mock.patch('ironic_discoverd.client.get_status', autospec=True)
+    @mock.patch('ironic_discoverd.client.introspect', autospec=True)
     def test_introspect_bulk(self, introspect_mock, get_status_mock,
                              wait_for_state_mock, wait_for_discover_mock):
 
@@ -261,10 +263,12 @@ class TestStartBaremetalIntrospectionBulk(fakes.TestBaremetal):
         wait_for_discover_mock.assert_called_once_with(
             discoverd_client, 'TOKEN', None, [])
 
-    @mock.patch('rdomanager_oscplugin.utils.wait_for_node_discovery')
-    @mock.patch('rdomanager_oscplugin.utils.wait_for_provision_state')
-    @mock.patch('ironic_discoverd.client.get_status')
-    @mock.patch('ironic_discoverd.client.introspect')
+    @mock.patch('rdomanager_oscplugin.utils.wait_for_node_discovery',
+                autospec=True)
+    @mock.patch('rdomanager_oscplugin.utils.wait_for_provision_state',
+                autospec=True)
+    @mock.patch('ironic_discoverd.client.get_status', autospec=True)
+    @mock.patch('ironic_discoverd.client.introspect', autospec=True)
     def test_introspect_bulk_no_poll(self, introspect_mock, get_status_mock,
                                      wait_for_state_mock,
                                      wait_for_discover_mock):
@@ -311,7 +315,7 @@ class TestStatusBaremetalIntrospectionBulk(fakes.TestBaremetal):
         # Get the command object to test
         self.cmd = baremetal.StatusBaremetalIntrospectionBulk(self.app, None)
 
-    @mock.patch('ironic_discoverd.client.get_status')
+    @mock.patch('ironic_discoverd.client.get_status', autospec=True)
     def test_status_bulk_one(self, discoverd_mock):
 
         client = self.app.client_manager.rdomanager_oscplugin.baremetal()
@@ -333,7 +337,7 @@ class TestStatusBaremetalIntrospectionBulk(fakes.TestBaremetal):
             ('Node UUID', 'Finished', 'Error'),
             [('ABCDEFGH', False, None)]))
 
-    @mock.patch('ironic_discoverd.client.get_status')
+    @mock.patch('ironic_discoverd.client.get_status', autospec=True)
     def test_status_bulk(self, discoverd_mock):
 
         client = self.app.client_manager.rdomanager_oscplugin.baremetal()
@@ -374,7 +378,7 @@ class TestConfigureBaremetalBoot(fakes.TestBaremetal):
         # Get the command object to test
         self.cmd = baremetal.ConfigureBaremetalBoot(self.app, None)
 
-    @mock.patch('openstackclient.common.utils.find_resource')
+    @mock.patch('openstackclient.common.utils.find_resource', autospec=True)
     def test_configure_boot(self, find_resource_mock):
 
         find_resource_mock.return_value = mock.Mock(id="IDIDID")
@@ -413,7 +417,7 @@ class TestConfigureBaremetalBoot(fakes.TestBaremetal):
             }])
         ])
 
-    @mock.patch('openstackclient.common.utils.find_resource')
+    @mock.patch('openstackclient.common.utils.find_resource', autospec=True)
     @mock.patch.object(baremetal.ConfigureBaremetalBoot, 'sleep_time',
                        new_callable=mock.PropertyMock,
                        return_value=0)
@@ -436,7 +440,7 @@ class TestConfigureBaremetalBoot(fakes.TestBaremetal):
         self.assertEqual(2, bm_client.node.get.call_count)
         self.assertEqual(1, bm_client.node.update.call_count)
 
-    @mock.patch('openstackclient.common.utils.find_resource')
+    @mock.patch('openstackclient.common.utils.find_resource', autospec=True)
     @mock.patch.object(baremetal.ConfigureBaremetalBoot, 'sleep_time',
                        new_callable=mock.PropertyMock,
                        return_value=0)
