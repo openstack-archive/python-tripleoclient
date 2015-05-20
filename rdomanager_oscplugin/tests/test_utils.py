@@ -240,6 +240,15 @@ class TestWaitForDiscovery(TestCase):
 
         self.assertEqual(value, "pa$$word")
 
+    @mock.patch("six.moves.configparser")
+    def test_get_config_value(self, mock_config_parser):
+
+        mock_config_parser.ConfigParser().get.return_value = "pa$$word"
+
+        value = utils.get_config_value('section', 'password_name')
+
+        self.assertEqual(value, "pa$$word")
+
     def test_wait_for_provision_state(self):
 
         baremetal_client = mock.Mock()

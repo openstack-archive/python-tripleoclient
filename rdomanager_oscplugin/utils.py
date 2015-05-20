@@ -13,12 +13,14 @@
 #   under the License.
 #
 
+import base64
 import hashlib
 import json
 import logging
 import os
 import re
 import six
+import struct
 import subprocess
 import sys
 import time
@@ -319,6 +321,13 @@ def get_hiera_key(key_name):
     return out
 
 
+def get_config_value(section, option):
+
+    p = six.moves.configparser.ConfigParser()
+    p.read(os.path.expanduser("~/undercloud-passwords.conf"))
+    return p.get(section, option)
+
+
 def remove_known_hosts(overcloud_ip):
     """For a given IP address remove SSH keys from the known_hosts file"""
 
@@ -566,3 +575,11 @@ def setup_endpoints(overcloud_ip,
                           identity_client, description="OpenStack Dashboard",
                           internal_url=internal_host,
                           region=region)
+
+
+def create_cephx_key():
+    # NOTE(gfidente): Taken from
+    # https://github.com/ceph/ceph-deploy/blob/master/ceph_deploy/new.py#L21
+    key = os.urandom(16)
+    header = struct.pack("<hiih", 1, int(time.time()), 0, len(key))
+    return base64.b64encode(header + key)
