@@ -139,3 +139,17 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             None,
             ['fake/environment.yaml']
         )
+
+    @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.glob.os.listdir')
+    def test_get_extra_config(self, os_mock):
+        fake_conf_dir = '/etc/tripleo/extra_config.d'
+        fake_reg_file = fake_conf_dir + '/cool_config/cool.registry.yaml'
+        fake_env_file = fake_conf_dir + '/cool_config/environment.yaml'
+        fake_extra_file = fake_conf_dir + '/cool_config/meow.tar.gz'
+        os_mock.return_value = ([fake_reg_file, fake_env_file,
+                                 fake_extra_file])
+
+        extra_list = self.cmd._get_extra_config(fake_conf_dir)
+        self.assertIn(fake_reg_file, extra_list)
+        self.assertIn(fake_env_file, extra_list)
+        self.assertNotIn(fake_extra_file, extra_list)
