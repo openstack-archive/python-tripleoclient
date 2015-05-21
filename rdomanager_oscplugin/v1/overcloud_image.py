@@ -45,7 +45,6 @@ class BuildOvercloudImage(command.Command):
         'puppet-modules',
         'hiera',
         'os-net-config',
-        'delorean-repo',
         'stable-interface-names',
         'grub2',
         '-p python-psutil,python-debtcollector',
@@ -156,6 +155,13 @@ class BuildOvercloudImage(command.Command):
             help="Use RHOS release for repo management (debug only)"
         )
         parser.add_argument(
+            "--use-delorean-trunk",
+            dest="use_delorean_trunk",
+            action='store_true',
+            default=os.environ.get('USE_DELOREAN_TRUNK', False),
+            help="Use Delorean trunk repo",
+        )
+        parser.add_argument(
             "--delorean-trunk-repo",
             dest="delorean_trunk_repo",
             default=os.environ.get(
@@ -163,6 +169,12 @@ class BuildOvercloudImage(command.Command):
                 'http://trunk.rdoproject.org/kilo/centos7/latest-RDO-kilo-CI/'
             ),
             help="URL to Delorean trunk repo",
+        )
+        parser.add_argument(
+            "--delorean-repo-file",
+            dest="delorean_repo_file",
+            default=os.environ.get('DELOREAN_REPO_FILE', 'delorean-kilo.repo'),
+            help="Filename for delorean repo config file",
         )
         parser.add_argument(
             "--overcloud-full-dib-extra-args",
@@ -226,11 +238,11 @@ class BuildOvercloudImage(command.Command):
     def _prepare_env_variables(self, parsed_args):
         self._env_var_or_set('ELEMENTS_PATH', parsed_args.elements_path)
         self._env_var_or_set('TMP_DIR', parsed_args.tmp_dir)
+        self._env_var_or_set('DIB_DEFAULT_INSTALLTYPE', 'package')
         self._env_var_or_set(
-            'DIB_REPOREF_puppetlabs_concat',
-            '15ecb98dc3a551024b0b92c6aafdefe960a4596f')
-
-        self._env_var_or_set('DIB_INSTALLTYPE_puppet_modules', 'source')
+            'DELOREAN_TRUNK_REPO', parsed_args.delorean_trunk_repo)
+        self._env_var_or_set(
+            'DELOREAN_REPO_FILE', parsed_args.delorean_repo_file)
 
         # Attempt to detect host distribution if not specified
         if not parsed_args.node_dist:
@@ -297,6 +309,9 @@ class BuildOvercloudImage(command.Command):
                 'undercloud-package-install',
                 'pip-and-virtualenv-override',
             ])
+
+        if parsed_args.use_delorean_trunk:
+            dib_common_elements.append('delorean-repo')
 
         parsed_args.dib_common_elements = " ".join(dib_common_elements)
 
