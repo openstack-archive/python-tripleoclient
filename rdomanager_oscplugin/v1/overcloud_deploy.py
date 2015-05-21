@@ -170,12 +170,6 @@ class DeployOvercloud(command.Command):
         self.log.debug("Deploying environment: %s", env)
         self.log.debug("Deploying files: %s", files)
 
-        self.log.debug("Deploying stack: %s", type(stack_name))
-        self.log.debug("Deploying template: %s", type(template))
-        self.log.debug("Deploying parameters: %s", type(parameters))
-        self.log.debug("Deploying environment: %s", type(env))
-        self.log.debug("Deploying files: %s", type(files))
-
         stack_args = {
             'stack_name': stack_name,
             'template': template,
