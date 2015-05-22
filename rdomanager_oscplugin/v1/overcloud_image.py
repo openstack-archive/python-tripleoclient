@@ -152,13 +152,14 @@ class BuildOvercloudImage(command.Command):
             "--run-rhos-release",
             dest="run_rhos_release",
             action='store_true',
+            default=(os.environ.get('USE_RHOS_RELEASE', '0') == '1'),
             help="Use RHOS release for repo management (debug only)"
         )
         parser.add_argument(
             "--use-delorean-trunk",
             dest="use_delorean_trunk",
             action='store_true',
-            default=os.environ.get('USE_DELOREAN_TRUNK', False),
+            default=(os.environ.get('USE_DELOREAN_TRUNK', '0') == '1'),
             help="Use Delorean trunk repo",
         )
         parser.add_argument(
