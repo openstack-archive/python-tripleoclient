@@ -202,7 +202,7 @@ class TestOvercloudImageCreate(TestPluginV1):
         self.assertEqual(
             mock_subprocess_call.call_args_list, [
                 mock.call('sudo cp -f "./discovery-ramdisk.kernel" '
-                          '"/tftpboot/discovery.kernel"', shell=True),
+                          '"/httpboot/discovery.kernel"', shell=True),
                 mock.call('sudo cp -f "./discovery-ramdisk.initramfs" '
-                          '"/tftpboot/discovery.ramdisk"', shell=True)
+                          '"/httpboot/discovery.ramdisk"', shell=True)
             ])
