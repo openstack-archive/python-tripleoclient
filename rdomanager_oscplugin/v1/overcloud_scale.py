@@ -34,7 +34,7 @@ class ScaleOvercloud(command.Command):
     def get_parser(self, prog_name):
         parser = super(ScaleOvercloud, self).get_parser(prog_name)
         parser.add_argument('-r', '--role', dest='role', required=True)
-        parser.add_argument('-n', '--num', dest='num', required=True)
+        parser.add_argument('-n', '--num', dest='num', type=int, required=True)
         parser.add_argument('plan', nargs='?',
                             help='Name or ID of tuskar plan to scale '
                                  '(default=Env: OVERCLOUD_PLAN_NAME)',
@@ -55,4 +55,6 @@ class ScaleOvercloud(command.Command):
             heatclient=orchestration,
             plan_id=parsed_args.plan,
             stack_id=parsed_args.stack)
+        print("Scaling out role {0} in stack {1} to {2} nodes".format(
+            parsed_args.role, parsed_args.stack, parsed_args.num))
         scale_manager.scaleup(parsed_args.role, parsed_args.num)
