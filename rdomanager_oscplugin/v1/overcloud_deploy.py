@@ -18,6 +18,7 @@ import logging
 import os
 import six
 import sys
+import tempfile
 import uuid
 
 from cliff import command
@@ -226,7 +227,47 @@ class DeployOvercloud(command.Command):
                           [RESOURCE_REGISTRY_PATH, env_path])
 
     def _deploy_tuskar(self, stack, parsed_args):
-        pass
+
+        clients = self.app.client_manager
+        management = clients.rdomanager_oscplugin.management()
+
+        # TODO(dmatthews): The Tuskar client has very similar code to this. It
+        # should be refactored upstream so we can use it.
+
+        if parsed_args.output_dir:
+            output_dir = parsed_args.output_dir
+        else:
+            output_dir = tempfile.mkdtemp()
+
+        if not os.path.isdir(output_dir):
+            os.mkdir(output_dir)
+
+        # retrieve templates
+        templates = management.plans.templates(parsed_args.plan_uuid)
+
+        # write file for each key-value in templates
+        print("The following templates will be written:")
+        for template_name, template_content in templates.items():
+
+            # It's possible to organize the role templates and their dependent
+            # files into directories, in which case the template_name will
+            # carry the directory information. If that's the case, first
+            # create the directory structure (if it hasn't already been
+            # created by another file in the templates list).
+            template_dir = os.path.dirname(template_name)
+            output_template_dir = os.path.join(output_dir, template_dir)
+            if template_dir and not os.path.exists(output_template_dir):
+                os.makedirs(output_template_dir)
+
+            filename = os.path.join(output_dir, template_name)
+            with open(filename, 'w+') as template_file:
+                template_file.write(template_content)
+            print(filename)
+
+        overcloud_yaml = os.path.join(output_dir, 'plan.yaml')
+        environment_yaml = os.path.join(output_dir, 'environment.yaml')
+
+        self._heat_deploy(stack, overcloud_yaml, None, [environment_yaml, ])
 
     def _post_heat_deploy(self):
         """Setup after the Heat stack create or update has been done."""
