@@ -474,13 +474,18 @@ class CreateOvercloud(command.Command):
         parser = super(CreateOvercloud, self).get_parser(prog_name)
         parser.add_argument(
             "--image-path",
-            default='./',
+            default=os.environ.get('IMAGE_PATH', './'),
             help="Path to directory containing image files",
         )
         parser.add_argument(
             "--os-image",
-            default='overcloud-full.qcow2',
+            default=os.environ.get('OS_IMAGE', 'overcloud-full.qcow2'),
             help="OpenStack disk image filename",
+        )
+        parser.add_argument(
+            "--http-boot",
+            default=os.environ.get('HTTP_BOOT', '/httpboot'),
+            help="Root directory for dicovery images",
         )
         return parser
 
@@ -490,7 +495,6 @@ class CreateOvercloud(command.Command):
 
         self._env_variable_or_set('DEPLOY_NAME', 'deploy-ramdisk-ironic')
         self._env_variable_or_set('DISCOVERY_NAME', 'discovery-ramdisk')
-        self._env_variable_or_set('TFTP_ROOT', '/tftpboot')
 
         self.log.debug("check image files")
 
@@ -533,16 +537,16 @@ class CreateOvercloud(command.Command):
                                                os.environ['DEPLOY_NAME'])
         )
 
-        self.log.debug("copy discovery images to TFTP")
+        self.log.debug("copy discovery images to HTTP BOOT dir")
 
         self._copy_file(
             os.path.join(parsed_args.image_path,
                          '%s.kernel' % os.environ['DISCOVERY_NAME']),
-            os.path.join(os.environ['TFTP_ROOT'], 'discovery.kernel')
+            os.path.join(parsed_args.http_boot, 'discovery.kernel')
         )
 
         self._copy_file(
             os.path.join(parsed_args.image_path,
                          '%s.initramfs' % os.environ['DISCOVERY_NAME']),
-            os.path.join(os.environ['TFTP_ROOT'], 'discovery.ramdisk')
+            os.path.join(parsed_args.http_boot, 'discovery.ramdisk')
         )
