@@ -15,8 +15,10 @@
 
 from unittest import TestCase
 
+from collections import namedtuple
 import mock
 
+from rdomanager_oscplugin import exceptions
 from rdomanager_oscplugin import utils
 
 
@@ -293,3 +295,378 @@ class TestWaitForDiscovery(TestCase):
         utils.remove_known_hosts('192.168.0.1')
 
         mock_check_call.assert_not_called()
+
+
+class TestRegisterEndpoint(TestCase):
+    def setUp(self):
+        self.mock_identity = mock.Mock()
+
+        Project = namedtuple('Project', 'id name')
+        self.mock_identity.projects.list.return_value = [
+            Project(id='123', name='service'),
+            Project(id='234', name='admin')
+        ]
+
+        def _role_list_side_effect(*args, **kwargs):
+            Role = namedtuple('Role', 'id name')
+            user = kwargs.get('user')
+            project = kwargs.get('project')
+
+            if user and project:
+                return Role(id='123', name='admin')
+            else:
+                return [
+                    Role(id='123', name='admin'),
+                    Role(id='345', name='ResellerAdmin'),
+                ]
+        self.mock_identity.roles.list.side_effect = _role_list_side_effect
+
+        User = namedtuple('User', 'id name')
+        self.mock_identity.users.list.return_value = [
+            User(id='123', name='nova')
+        ]
+
+        self.services_create_mock = mock.Mock()
+        self.mock_identity.services.create.return_value = (
+            self.services_create_mock)
+
+        self.endpoints_create_mock = mock.Mock()
+        self.mock_identity.endpoints.create.return_value = (
+            self.endpoints_create_mock)
+
+        self.users_create_mock = mock.Mock()
+        self.mock_identity.users.create.return_value = (
+            self.users_create_mock)
+
+    def test_unknown_service(self):
+        self.mock_identity.reset_mock()
+
+        self.assertRaises(exceptions.UnknownService,
+                          utils.register_endpoint,
+                          'unknown_name',
+                          'unknown_endpoint_type',
+                          'unknown_url',
+                          self.mock_identity)
+
+    def test_no_admin_role(self):
+        local_mock_identity = mock.Mock()
+        local_mock_identity.roles.list.return_value = []
+        self.assertRaises(exceptions.NotFound,
+                          utils.register_endpoint,
+                          'name',
+                          'compute',
+                          'url',
+                          local_mock_identity)
+
+    def test_endpoint_is_dashboard(self):
+        self.mock_identity.reset_mock()
+
+        utils.register_endpoint(
+            'name',
+            'dashboard',
+            'url',
+            self.mock_identity,
+            description='description'
+        )
+
+        self.mock_identity.roles.list.assert_called_once_with()
+
+        self.mock_identity.services.create.assert_called_once_with(
+            name='name',
+            type='dashboard',
+            description='description',
+            enabled=True
+        )
+
+        self.mock_identity.endpoints.create.assert_called_once_with(
+            'regionOne',
+            self.services_create_mock.id,
+            "url/",
+            "url/admin",
+            "url/"
+        )
+
+    def test_endpoint_is_not_dashboard(self):
+        self.mock_identity.reset_mock()
+
+        utils.register_endpoint(
+            'nova',
+            'compute',
+            'url',
+            self.mock_identity,
+            description='description'
+        )
+
+        assert not self.mock_identity.users.create.called
+        self.mock_identity.users.list.assert_called_once_with()
+
+        self.mock_identity.projects.list.assert_called_once_with()
+
+        self.mock_identity.roles.list.assert_has_calls([
+            mock.call(),
+            mock.call(user='123', project='123')
+        ])
+
+        self.mock_identity.services.create.assert_called_once_with(
+            name='nova',
+            type='compute',
+            description='description',
+            enabled=True
+        )
+
+        self.mock_identity.endpoints.create.assert_called_once_with(
+            'regionOne',
+            self.services_create_mock.id,
+            "url/v2/$(tenant_id)s",
+            "url/v2/$(tenant_id)s",
+            "url/v2/$(tenant_id)s"
+        )
+
+    def test_endpoint_is_metering(self):
+        self.mock_identity.reset_mock()
+
+        utils.register_endpoint(
+            'ceilometer',
+            'metering',
+            'url',
+            self.mock_identity,
+            description='description',
+            password='password'
+        )
+
+        self.mock_identity.users.list.assert_called_once_with()
+
+        self.mock_identity.users.create.assert_called_once_with(
+            name='ceilometer',
+            domain=None,
+            default_project='123',
+            password='password',
+            email='nobody@example.com',
+            description=None,
+            enabled=True
+        )
+        self.mock_identity.services.create.assert_called_once_with(
+            name='ceilometer',
+            type='metering',
+            description='description',
+            enabled=True
+        )
+
+        self.mock_identity.endpoints.create.assert_called_once_with(
+            'regionOne',
+            self.services_create_mock.id,
+            "url/",
+            "url/",
+            "url/"
+        )
+
+        self.mock_identity.roles.list.assert_has_calls([
+            mock.call(),
+            mock.call(user=self.users_create_mock.id, project='123'),
+            mock.call(user=self.users_create_mock.id, project='234'),
+        ])
+
+        self.mock_identity.projects.list.assert_called_once_with()
+
+
+class TestSetupEndpoints(TestCase):
+    def setUp(self):
+        self.mock_identity = mock.Mock()
+
+    @mock.patch('rdomanager_oscplugin.utils.register_endpoint')
+    def test_setup_endpoints_all_ssl(self, mock_register_endpoint):
+        passwords = utils.generate_overcloud_passwords()
+        utils.setup_endpoints(
+            '127.0.0.1',
+            passwords,
+            self.mock_identity,
+            region='regionOne',
+            enable_horizon=True,
+            ssl='127.0.0.2'
+        )
+
+        # import sys
+        # print(mock_register_endpoint.mock_calls, file=sys.stderr)
+        mock_register_endpoint.assert_has_calls([
+            mock.call('ceilometer', 'metering', 'https://127.0.0.2:8777',
+                      self.mock_identity,
+                      internal_url='http://127.0.0.1:13777',
+                      description='Ceilometer Service',
+                      password=passwords['OVERCLOUD_CEILOMETER_PASSWORD'],
+                      region='regionOne'),
+            mock.call('cinder', 'volume', 'https://127.0.0.2:8776',
+                      self.mock_identity,
+                      internal_url='http://127.0.0.1:13776',
+                      description='Cinder Volume Service',
+                      password=passwords['OVERCLOUD_CINDER_PASSWORD'],
+                      region='regionOne'),
+            mock.call('cinderv2', 'volumev2', 'https://127.0.0.2:8776',
+                      self.mock_identity,
+                      internal_url='http://127.0.0.1:13776',
+                      description='Cinder Volume Service V2',
+                      password=passwords['OVERCLOUD_CINDER_PASSWORD'],
+                      region='regionOne'),
+            mock.call('ec2', 'ec2', 'https://127.0.0.2:8773',
+                      self.mock_identity,
+                      internal_url='http://127.0.0.1:13773',
+                      description='EC2 Compatibility Layer',
+                      region='regionOne'),
+            mock.call('glance', 'image', 'https://127.0.0.2:9292',
+                      self.mock_identity,
+                      internal_url='http://127.0.0.1:13292',
+                      description='Glance Image Service',
+                      password=passwords['OVERCLOUD_GLANCE_PASSWORD'],
+                      region='regionOne'),
+            mock.call('heat', 'orchestration', 'https://127.0.0.2:8004',
+                      self.mock_identity,
+                      internal_url='http://127.0.0.1:13004',
+                      description='Heat Service',
+                      password=passwords['OVERCLOUD_HEAT_PASSWORD'],
+                      region='regionOne'),
+            mock.call('neutron', 'network', 'https://127.0.0.2:9696',
+                      self.mock_identity,
+                      internal_url='http://127.0.0.1:13696',
+                      description='Neutron Service',
+                      password=passwords['OVERCLOUD_NEUTRON_PASSWORD'],
+                      region='regionOne'),
+            mock.call('nova', 'compute', 'https://127.0.0.2:8774',
+                      self.mock_identity,
+                      internal_url='http://127.0.0.1:13774',
+                      description='Nova Compute Service',
+                      password=passwords['OVERCLOUD_NOVA_PASSWORD'],
+                      region='regionOne'),
+            mock.call('nova', 'computev3', 'https://127.0.0.2:8774',
+                      self.mock_identity,
+                      internal_url='http://127.0.0.1:13774',
+                      description='Nova Compute Service v3',
+                      password=passwords['OVERCLOUD_NOVA_PASSWORD'],
+                      region='regionOne'),
+            mock.call('swift', 'object-store', 'https://127.0.0.2:8080',
+                      self.mock_identity,
+                      internal_url='http://127.0.0.1:13080',
+                      description='Swift Object Storage Service',
+                      password=passwords['OVERCLOUD_SWIFT_PASSWORD'],
+                      region='regionOne'),
+            # Tuskar not enabled yet
+            # mock.call('tuskar', 'management', 'https://127.0.0.2:8585',
+            #           self.mock_identity,
+            #           internal_url='http://127.0.0.1:8585',
+            #           description='Tuskar Service',
+            #           password=passwords['OVERCLOUD_TUSKAR_PASSWORD'],
+            #           region='regionOne'),
+            mock.call('horizon', 'dashboard', 'http://127.0.0.1:',
+                      self.mock_identity,
+                      description='OpenStack Dashboard',
+                      internal_url='http://127.0.0.1:',
+                      region='regionOne')
+        ])
+
+    @mock.patch('rdomanager_oscplugin.utils.register_endpoint')
+    def test_setup_endpoints_all_no_ssl(self, mock_register_endpoint):
+        passwords = utils.generate_overcloud_passwords()
+        utils.setup_endpoints(
+            '127.0.0.1',
+            passwords,
+            self.mock_identity,
+            region='regionOne',
+            enable_horizon=True,
+            public='127.0.0.3'
+        )
+
+        # import sys
+        # print(mock_register_endpoint.mock_calls, file=sys.stderr)
+        mock_register_endpoint.assert_has_calls([
+            mock.call('ceilometer', 'metering', 'http://127.0.0.3:8777',
+                      self.mock_identity,
+                      internal_url='http://127.0.0.1:8777',
+                      description='Ceilometer Service',
+                      password=passwords['OVERCLOUD_CEILOMETER_PASSWORD'],
+                      region='regionOne'),
+            mock.call('cinder', 'volume', 'http://127.0.0.3:8776',
+                      self.mock_identity,
+                      internal_url='http://127.0.0.1:8776',
+                      description='Cinder Volume Service',
+                      password=passwords['OVERCLOUD_CINDER_PASSWORD'],
+                      region='regionOne'),
+            mock.call('cinderv2', 'volumev2', 'http://127.0.0.3:8776',
+                      self.mock_identity,
+                      internal_url='http://127.0.0.1:8776',
+                      description='Cinder Volume Service V2',
+                      password=passwords['OVERCLOUD_CINDER_PASSWORD'],
+                      region='regionOne'),
+            mock.call('ec2', 'ec2', 'http://127.0.0.3:8773',
+                      self.mock_identity,
+                      internal_url='http://127.0.0.1:8773',
+                      description='EC2 Compatibility Layer',
+                      region='regionOne'),
+            mock.call('glance', 'image', 'http://127.0.0.3:9292',
+                      self.mock_identity,
+                      internal_url='http://127.0.0.1:9292',
+                      description='Glance Image Service',
+                      password=passwords['OVERCLOUD_GLANCE_PASSWORD'],
+                      region='regionOne'),
+            mock.call('heat', 'orchestration', 'http://127.0.0.3:8004',
+                      self.mock_identity,
+                      internal_url='http://127.0.0.1:8004',
+                      description='Heat Service',
+                      password=passwords['OVERCLOUD_HEAT_PASSWORD'],
+                      region='regionOne'),
+            mock.call('neutron', 'network', 'http://127.0.0.3:9696',
+                      self.mock_identity,
+                      internal_url='http://127.0.0.1:9696',
+                      description='Neutron Service',
+                      password=passwords['OVERCLOUD_NEUTRON_PASSWORD'],
+                      region='regionOne'),
+            mock.call('nova', 'compute', 'http://127.0.0.3:8774',
+                      self.mock_identity,
+                      internal_url='http://127.0.0.1:8774',
+                      description='Nova Compute Service',
+                      password=passwords['OVERCLOUD_NOVA_PASSWORD'],
+                      region='regionOne'),
+            mock.call('nova', 'computev3', 'http://127.0.0.3:8774',
+                      self.mock_identity,
+                      internal_url='http://127.0.0.1:8774',
+                      description='Nova Compute Service v3',
+                      password=passwords['OVERCLOUD_NOVA_PASSWORD'],
+                      region='regionOne'),
+            mock.call('swift', 'object-store', 'http://127.0.0.3:8080',
+                      self.mock_identity,
+                      internal_url='http://127.0.0.1:8080',
+                      description='Swift Object Storage Service',
+                      password=passwords['OVERCLOUD_SWIFT_PASSWORD'],
+                      region='regionOne'),
+            # Tuskar not enabled yet
+            # mock.call('tuskar', 'management', 'https://127.0.0.2:8585',
+            #           self.mock_identity,
+            #           internal_url='http://127.0.0.1:8585',
+            #           description='Tuskar Service',
+            #           password=passwords['OVERCLOUD_TUSKAR_PASSWORD'],
+            #           region='regionOne'),
+            mock.call('horizon', 'dashboard', 'http://127.0.0.1:',
+                      self.mock_identity,
+                      description='OpenStack Dashboard',
+                      internal_url='http://127.0.0.1:',
+                      region='regionOne')
+        ])
+
+    @mock.patch('rdomanager_oscplugin.utils.register_endpoint')
+    def test_setup_endpoints_skip_no_password(self, mock_register_endpoint):
+        mock_register_endpoint.reset_mock()
+
+        passwords = dict((password, 'password') for password in (
+            "OVERCLOUD_GLANCE_PASSWORD",
+            "OVERCLOUD_HEAT_PASSWORD",
+            "OVERCLOUD_NEUTRON_PASSWORD",
+            "OVERCLOUD_NOVA_PASSWORD",
+        ))
+
+        utils.setup_endpoints(
+            '127.0.0.1',
+            passwords,
+            self.mock_identity,
+            region='regionOne',
+            enable_horizon=True,
+            ssl='127.0.0.2'
+        )
+
+        self.assertEqual(mock_register_endpoint.call_count, 7)

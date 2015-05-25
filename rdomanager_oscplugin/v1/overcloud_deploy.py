@@ -259,7 +259,7 @@ class DeployOvercloud(command.Command):
         except ksc_exc.Conflict:
             pass
 
-        utils.setup_endpoints(overcloud_ip, self.passwords)
+        utils.setup_endpoints(overcloud_ip, self.passwords, identity_client)
 
         try:
             identity_client.roles.create(name='heat_stack_user')

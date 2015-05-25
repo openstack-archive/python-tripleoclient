@@ -24,3 +24,13 @@ class UnsupportedVersion(Exception):
 class Timeout(Exception):
     """An operation timed out"""
     pass
+
+
+class UnknownService(Exception):
+    """The service type is unknown"""
+    pass
+
+
+class NotFound(Exception):
+    """Resource not found"""
+    pass
