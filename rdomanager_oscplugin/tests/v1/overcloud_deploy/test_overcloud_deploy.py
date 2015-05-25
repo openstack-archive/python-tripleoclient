@@ -29,17 +29,22 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
     @mock.patch('rdomanager_oscplugin.utils.setup_endpoints')
     @mock.patch('time.sleep', return_value=None)
-    @mock.patch('os_cloud_config.keystone.initialize')
-    @mock.patch('rdomanager_oscplugin.utils.remove_known_hosts')
-    @mock.patch('rdomanager_oscplugin.utils.wait_for_stack_ready')
-    @mock.patch('rdomanager_oscplugin.utils.set_nodes_state')
+    @mock.patch('os_cloud_config.keystone.initialize', autospec=True)
+    @mock.patch('rdomanager_oscplugin.utils.remove_known_hosts', autospec=True)
+    @mock.patch('rdomanager_oscplugin.utils.wait_for_stack_ready',
+                autospec=True)
+    @mock.patch('rdomanager_oscplugin.utils.set_nodes_state', autospec=True)
     @mock.patch('heatclient.common.template_utils.'
-                'process_multiple_environments_and_files')
-    @mock.patch('heatclient.common.template_utils.get_template_contents')
-    @mock.patch('os_cloud_config.keystone_pki.generate_certs_into_json')
-    @mock.patch('rdomanager_oscplugin.utils.create_environment_file')
-    @mock.patch('rdomanager_oscplugin.utils.get_hiera_key')
-    @mock.patch('rdomanager_oscplugin.utils.check_hypervisor_stats')
+                'process_multiple_environments_and_files', autospec=True)
+    @mock.patch('heatclient.common.template_utils.get_template_contents',
+                autospec=True)
+    @mock.patch('os_cloud_config.keystone_pki.generate_certs_into_json',
+                autospec=True)
+    @mock.patch('rdomanager_oscplugin.utils.create_environment_file',
+                autospec=True)
+    @mock.patch('rdomanager_oscplugin.utils.get_hiera_key', autospec=True)
+    @mock.patch('rdomanager_oscplugin.utils.check_hypervisor_stats',
+                autospec=True)
     def test_tht_deploy(self, mock_check_hypervisor_stats, mock_get_key,
                         mock_create_env, generate_certs_mock,
                         mock_get_templte_contents, mock_process_multiple_env,
