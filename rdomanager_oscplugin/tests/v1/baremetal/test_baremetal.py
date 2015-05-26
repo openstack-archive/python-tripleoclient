@@ -206,8 +206,9 @@ class TestStartBaremetalIntrospectionBulk(fakes.TestBaremetal):
         # Get the command object to test
         self.cmd = baremetal.StartBaremetalIntrospectionBulk(self.app, None)
 
+    @mock.patch('ironic_discoverd.client.get_status', autospec=True)
     @mock.patch('ironic_discoverd.client.introspect', autospec=True)
-    def test_introspect_bulk_one(self, discoverd_mock):
+    def test_introspect_bulk_one(self, introspect_mock, get_status_mock,):
 
         client = self.app.client_manager.rdomanager_oscplugin.baremetal()
         client.node.list.return_value = [
@@ -217,7 +218,7 @@ class TestStartBaremetalIntrospectionBulk(fakes.TestBaremetal):
         parsed_args = self.check_parser(self.cmd, [], [])
         self.cmd.take_action(parsed_args)
 
-        discoverd_mock.assert_called_once_with(
+        introspect_mock.assert_called_once_with(
             'ABCDEFGH', base_url=None, auth_token='TOKEN')
 
     @mock.patch('rdomanager_oscplugin.utils.wait_for_node_discovery',
@@ -261,7 +262,8 @@ class TestStartBaremetalIntrospectionBulk(fakes.TestBaremetal):
         ])
 
         wait_for_discover_mock.assert_called_once_with(
-            discoverd_client, 'TOKEN', None, [])
+            discoverd_client, 'TOKEN', None,
+            ['ABCDEFGH', 'IJKLMNOP', 'QRSTUVWX'])
 
     @mock.patch('rdomanager_oscplugin.utils.wait_for_node_discovery',
                 autospec=True)

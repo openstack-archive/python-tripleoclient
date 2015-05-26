@@ -135,6 +135,8 @@ class StartBaremetalIntrospectionBulk(IntrospectionParser, command.Command):
 
         for node in client.node.list():
 
+            node_uuids.append(node.uuid)
+
             self.log.debug("Starting introspection of Ironic node {0}".format(
                 node.uuid))
             discoverd_client.introspect(
