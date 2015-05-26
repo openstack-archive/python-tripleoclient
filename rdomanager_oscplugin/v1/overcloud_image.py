@@ -412,10 +412,10 @@ class BuildOvercloudImage(command.Command):
                 }[image_type](parsed_args)
 
 
-class CreateOvercloud(command.Command):
+class UploadOvercloudImage(command.Command):
     """Create overcloud glance images from existing image files."""
     auth_required = False
-    log = logging.getLogger(__name__ + ".CreateOvercloud")
+    log = logging.getLogger(__name__ + ".UploadOvercloudImage")
 
     def _env_variable_or_set(self, key_name, default_value):
         os.environ[key_name] = os.environ.get(key_name, default_value)
@@ -471,7 +471,7 @@ class CreateOvercloud(command.Command):
         )
 
     def get_parser(self, prog_name):
-        parser = super(CreateOvercloud, self).get_parser(prog_name)
+        parser = super(UploadOvercloudImage, self).get_parser(prog_name)
         parser.add_argument(
             "--image-path",
             default=os.environ.get('IMAGE_PATH', './'),

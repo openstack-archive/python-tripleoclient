@@ -146,12 +146,12 @@ class TestOvercloudImageBuild(TestPluginV1):
             "pip-and-virtualenv-override 2>&1 | tee dib-deploy.log")
 
 
-class TestOvercloudImageCreate(TestPluginV1):
+class TestUploadOvercloudImage(TestPluginV1):
     def setUp(self):
-        super(TestOvercloudImageCreate, self).setUp()
+        super(TestUploadOvercloudImage, self).setUp()
 
         # Get the command object to test
-        self.cmd = overcloud_image.CreateOvercloud(self.app, None)
+        self.cmd = overcloud_image.UploadOvercloudImage(self.app, None)
         self.app.client_manager.image = mock.Mock()
         self.app.client_manager.image.images.create.return_value = \
             mock.Mock(id=10)
