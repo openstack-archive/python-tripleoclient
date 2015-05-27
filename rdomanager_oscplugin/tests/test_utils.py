@@ -307,8 +307,9 @@ class TestRegisterEndpoint(TestCase):
             Project(id='234', name='admin')
         ]
 
+        Role = namedtuple('Role', 'id name')
+
         def _role_list_side_effect(*args, **kwargs):
-            Role = namedtuple('Role', 'id name')
             user = kwargs.get('user')
             project = kwargs.get('project')
 
@@ -319,7 +320,11 @@ class TestRegisterEndpoint(TestCase):
                     Role(id='123', name='admin'),
                     Role(id='345', name='ResellerAdmin'),
                 ]
+
         self.mock_identity.roles.list.side_effect = _role_list_side_effect
+
+        self.mock_identity.roles.roles_for_user.return_value = (
+            Role(id='123', name='admin'))
 
         User = namedtuple('User', 'id name')
         self.mock_identity.users.list.return_value = [
@@ -372,10 +377,9 @@ class TestRegisterEndpoint(TestCase):
         self.mock_identity.roles.list.assert_called_once_with()
 
         self.mock_identity.services.create.assert_called_once_with(
-            name='name',
-            type='dashboard',
-            description='description',
-            enabled=True
+            'name',
+            'dashboard',
+            'description'
         )
 
         self.mock_identity.endpoints.create.assert_called_once_with(
@@ -402,16 +406,17 @@ class TestRegisterEndpoint(TestCase):
 
         self.mock_identity.projects.list.assert_called_once_with()
 
-        self.mock_identity.roles.list.assert_has_calls([
-            mock.call(),
-            mock.call(user='123', project='123')
-        ])
+        self.mock_identity.roles.roles_for_user.assert_has_calls(
+            [
+                mock.call('123', '123')
+            ]
+        )
+        self.mock_identity.roles.list.assert_called_once_with()
 
         self.mock_identity.services.create.assert_called_once_with(
-            name='nova',
-            type='compute',
-            description='description',
-            enabled=True
+            'nova',
+            'compute',
+            'description'
         )
 
         self.mock_identity.endpoints.create.assert_called_once_with(
@@ -437,19 +442,16 @@ class TestRegisterEndpoint(TestCase):
         self.mock_identity.users.list.assert_called_once_with()
 
         self.mock_identity.users.create.assert_called_once_with(
-            name='ceilometer',
-            domain=None,
-            default_project='123',
-            password='password',
-            email='nobody@example.com',
-            description=None,
+            'ceilometer',
+            'password',
+            'nobody@example.com',
+            tenant_id='123',
             enabled=True
         )
         self.mock_identity.services.create.assert_called_once_with(
-            name='ceilometer',
-            type='metering',
-            description='description',
-            enabled=True
+            'ceilometer',
+            'metering',
+            'description'
         )
 
         self.mock_identity.endpoints.create.assert_called_once_with(
@@ -460,12 +462,13 @@ class TestRegisterEndpoint(TestCase):
             "url/"
         )
 
-        self.mock_identity.roles.list.assert_has_calls([
-            mock.call(),
-            mock.call(user=self.users_create_mock.id, project='123'),
-            mock.call(user=self.users_create_mock.id, project='234'),
-        ])
-
+        self.mock_identity.roles.roles_for_user.assert_has_calls(
+            [
+                mock.call(self.users_create_mock.id, '123'),
+                mock.call(self.users_create_mock.id, '234')
+            ]
+        )
+        self.mock_identity.roles.list.assert_called_once_with()
         self.mock_identity.projects.list.assert_called_once_with()
 
 

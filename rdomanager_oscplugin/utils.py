@@ -392,18 +392,17 @@ def register_endpoint(name,
         user_id = next((user.id for user in users if user.name in name), None)
         if not user_id:
             user = identity_client.users.create(
-                name=name,
-                domain=None,
-                default_project=service_project_id,
-                password=password,
-                email='nobody@example.com',
-                description=None,
+                name,
+                password,
+                'nobody@example.com',
+                tenant_id=service_project_id,
                 enabled=True
             )
             user_id = user.id
-        role = identity_client.roles.list(
-            user=user_id,
-            project=service_project_id)
+
+        role = identity_client.roles.roles_for_user(
+            user_id, service_project_id)
+
         if not role:
             # Log "Creating user-role assignment for user $NAME, role admin,
             # tenant service"
@@ -420,10 +419,8 @@ def register_endpoint(name,
                                     projects if project.name in 'admin')
             # Log "Creating user-role assignment for user $NAME, role admin,
             # tenant admin"
-            role = identity_client.roles.list(
-                user=user_id,
-                project=admin_project_id
-            )
+            role = identity_client.roles.roles_for_user(
+                user_id, admin_project_id)
             if not role:
                 identity_client.roles.grant(
                     admin_role_id,
@@ -442,12 +439,9 @@ def register_endpoint(name,
                 )
 
     service = identity_client.services.create(
-        name=name,
-        type=endpoint_type,
-        description=description,
-        enabled=True
-    )
-    # Assumes v2 identity_client
+        name,
+        endpoint_type,
+        description)
     identity_client.endpoints.create(
         region,
         service.id,
