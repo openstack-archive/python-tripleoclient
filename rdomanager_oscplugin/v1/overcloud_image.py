@@ -245,6 +245,10 @@ class BuildOvercloudImage(command.Command):
         self._env_var_or_set(
             'DELOREAN_REPO_FILE', parsed_args.delorean_repo_file)
 
+        # Needed for corosync to be able to use hostnames
+        # https://bugs.launchpad.net/tripleo/+bug/1447497
+        os.environ['DIB_CLOUD_INIT_ETC_HOSTS'] = ''
+
         # Attempt to detect host distribution if not specified
         if not parsed_args.node_dist:
             with open('/etc/redhat-release', 'r') as f:
