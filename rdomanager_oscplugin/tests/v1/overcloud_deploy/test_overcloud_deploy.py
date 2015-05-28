@@ -27,6 +27,27 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         # Get the command object to test
         self.cmd = overcloud_deploy.DeployOvercloud(self.app, None)
 
+        def _generate_overcloud_passwords_return_value():
+            passwords = (
+                "OVERCLOUD_ADMIN_PASSWORD",
+                "OVERCLOUD_ADMIN_TOKEN",
+                "OVERCLOUD_CEILOMETER_PASSWORD",
+                "OVERCLOUD_CEILOMETER_SECRET",
+                "OVERCLOUD_CINDER_PASSWORD",
+                "OVERCLOUD_DEMO_PASSWORD",
+                "OVERCLOUD_GLANCE_PASSWORD",
+                "OVERCLOUD_HEAT_PASSWORD",
+                "OVERCLOUD_HEAT_STACK_DOMAIN_PASSWORD",
+                "OVERCLOUD_NEUTRON_PASSWORD",
+                "OVERCLOUD_NOVA_PASSWORD",
+                "OVERCLOUD_SWIFT_HASH",
+                "OVERCLOUD_SWIFT_PASSWORD",
+            )
+
+            return dict((password, 'password') for password in passwords)
+
+        self._get_passwords = _generate_overcloud_passwords_return_value
+
     @mock.patch('rdomanager_oscplugin.utils.setup_endpoints')
     @mock.patch('time.sleep', return_value=None)
     @mock.patch('os_cloud_config.keystone.initialize', autospec=True)
@@ -42,7 +63,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True)
     @mock.patch('rdomanager_oscplugin.utils.create_environment_file',
                 autospec=True)
-    @mock.patch('rdomanager_oscplugin.utils.get_hiera_key', autospec=True)
+    @mock.patch('rdomanager_oscplugin.utils.get_config_value', autospec=True)
     @mock.patch('rdomanager_oscplugin.utils.check_hypervisor_stats',
                 autospec=True)
     def test_tht_deploy(self, mock_check_hypervisor_stats, mock_get_key,
@@ -98,6 +119,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertEqual(kwargs['environment'], 'env')
         self.assertEqual(kwargs['stack_name'], 'overcloud')
 
+    @mock.patch('rdomanager_oscplugin.utils.get_config_value', autospec=True)
+    @mock.patch('rdomanager_oscplugin.utils.generate_overcloud_passwords')
     @mock.patch('heatclient.common.template_utils.'
                 'process_multiple_environments_and_files')
     @mock.patch('heatclient.common.template_utils.get_template_contents')
@@ -112,7 +135,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_tuskar_deploy(self, mock_heat_deploy, mock_post_deploy,
                            most_pre_deploy, mock_get_stack,
                            mock_get_templte_contents,
-                           mock_process_multiple_env):
+                           mock_process_multiple_env,
+                           mock_generate_overcloud_passwords,
+                           mock_get_key):
 
         arglist = ['--plan-uuid', 'UUID', '--output-dir', 'fake']
         verifylist = [
@@ -128,15 +153,97 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_get_templte_contents.return_value = ({}, "template")
         mock_process_multiple_env.return_value = ({}, "envs")
+        clients.network.api.find_attr.return_value = {
+            "id": "network id"
+        }
+
+        mock_get_key.return_value = "PASSWORD"
+
+        def _generate_overcloud_passwords_return_value():
+            passwords = (
+                "OVERCLOUD_ADMIN_PASSWORD",
+                "OVERCLOUD_ADMIN_TOKEN",
+                "OVERCLOUD_CEILOMETER_PASSWORD",
+                "OVERCLOUD_CEILOMETER_SECRET",
+                "OVERCLOUD_CINDER_PASSWORD",
+                "OVERCLOUD_DEMO_PASSWORD",
+                "OVERCLOUD_GLANCE_PASSWORD",
+                "OVERCLOUD_HEAT_PASSWORD",
+                "OVERCLOUD_HEAT_STACK_DOMAIN_PASSWORD",
+                "OVERCLOUD_NEUTRON_PASSWORD",
+                "OVERCLOUD_NOVA_PASSWORD",
+                "OVERCLOUD_SWIFT_HASH",
+                "OVERCLOUD_SWIFT_PASSWORD",
+            )
+
+            return dict((password, 'password') for password in passwords)
+
+        mock_generate_overcloud_passwords.return_value = self._get_passwords()
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.cmd.take_action(parsed_args)
 
+        parameters = {
+            'Controller-1::NeutronPublicInterface': 'nic1',
+            'Controller-1::SnmpdReadonlyUserPassword': "PASSWORD",
+            'Compute-1::NeutronPassword': 'password',
+            'Ceph-Storage-1::Image': 'overcloud-full',
+            'Controller-1::NeutronPassword': 'password',
+            'Cinder-Storage-1::SnmpdReadonlyUserPassword': "PASSWORD",
+            'Compute-1::CeilometerMeteringSecret': 'password',
+            'Compute-1::count': 1,
+            'NeutronControlPlaneID': 'network id',
+            'Cinder-Storage-1::count': 0,
+            'Compute-1::NeutronBridgeMappings': 'datacentre:br-ex',
+            'Cinder-Storage-1::Image': 'overcloud-full',
+            'Cinder-Storage-1::Flavor': 'baremetal',
+            'Compute-1::NeutronPhysicalBridge': 'br-ex',
+            'Swift-Storage-1::Flavor': 'baremetal',
+            'Controller-1::AdminPassword': 'password',
+            'Controller-1::Image': 'overcloud-full',
+            'Compute-1::NeutronFlatNetworks': 'datacentre',
+            'Compute-1::Flavor': 'baremetal',
+            'Compute-1::SnmpdReadonlyUserPassword': "PASSWORD",
+            'Compute-1::NeutronTunnelTypes': 'gre',
+            'Controller-1::Flavor': 'baremetal',
+            'Controller-1::NtpServer': '',
+            'Ceph-Storage-1::Flavor': 'baremetal',
+            'Controller-1::count': 1,
+            'Compute-1::CeilometerPassword': 'password',
+            'Controller-1::CinderPassword': 'password',
+            'Controller-1::CeilometerPassword': 'password',
+            'Compute-1::AdminPassword': 'password',
+            'Controller-1::HeatPassword': 'password',
+            'Compute-1::NtpServer': '',
+            'Swift-Storage-1::count': 0,
+            'Controller-1::CeilometerMeteringSecret': 'password',
+            'Controller-1::CinderISCSIHelper': 'lioadm',
+            'Controller-1::NeutronTunnelTypes': 'gre',
+            'Controller-1::SwiftPassword': 'password',
+            'Controller-1::NeutronBridgeMappings': 'datacentre:br-ex',
+            'Controller-1::NeutronFlatNetworks': 'datacentre',
+            'Swift-Storage-1::Image': 'overcloud-full',
+            'Ceph-Storage-1::count': 0,
+            'Compute-1::NeutronNetworkType': 'gre',
+            'Compute-1::NeutronPublicInterface': 'nic1',
+            'Controller-1::NovaPassword': 'password',
+            'Compute-1::NovaComputeLibvirtType': 'qemu',
+            'Controller-1::SwiftHashSuffix': 'password',
+            'Compute-1::NovaPassword': 'password',
+            'Controller-1::GlancePassword': 'password',
+            'Swift-Storage-1::SnmpdReadonlyUserPassword': "PASSWORD",
+            'Controller-1::NeutronNetworkType': 'gre',
+            'Controller-1::CloudName': 'overcloud',
+            'Cinder-Storage-1::CinderISCSIHelper': 'lioadm',
+            'Controller-1::AdminToken': 'password',
+            'Compute-1::Image': 'overcloud-full'
+        }
+
         mock_heat_deploy.assert_called_with(
             mock_get_stack(),
             'fake/plan.yaml',
-            None,
+            parameters,
             ['fake/environment.yaml']
         )
 
