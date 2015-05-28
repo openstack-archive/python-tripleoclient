@@ -37,7 +37,7 @@ def _generate_password():
 
     This is based on the tripleo command os-make-password
     """
-    uuid_str = six.text_type(uuid.uuid1()).encode("UTF-8")
+    uuid_str = six.text_type(uuid.uuid4()).encode("UTF-8")
     return hashlib.sha1(uuid_str).hexdigest()
 
 
