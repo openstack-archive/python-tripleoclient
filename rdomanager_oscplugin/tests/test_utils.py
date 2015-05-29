@@ -13,23 +13,76 @@
 #   under the License.
 #
 
-from unittest import TestCase
-
 from collections import namedtuple
 import mock
+from unittest import TestCase
 
 from rdomanager_oscplugin import exceptions
+from rdomanager_oscplugin.tests.v1.utils import (
+    generate_overcloud_passwords_mock)
 from rdomanager_oscplugin import utils
 
 
 class TestPasswordsUtil(TestCase):
-    def test_generate_passwords(self):
 
-        passwords = utils.generate_overcloud_passwords()
-        passwords2 = utils.generate_overcloud_passwords()
+    @mock.patch("os.path.isfile", return_value=False)
+    @mock.patch("rdomanager_oscplugin.utils._generate_password",
+                return_value="PASSWORD")
+    def test_generate_passwords(self, generate_password_mock, isfile_mock):
+
+        mock_open = mock.mock_open()
+
+        with mock.patch('six.moves.builtins.open', mock_open):
+            passwords = utils.generate_overcloud_passwords()
+
+        self.assertEqual(sorted(mock_open().write.mock_calls), [
+            mock.call('OVERCLOUD_ADMIN_PASSWORD=PASSWORD\n'),
+            mock.call('OVERCLOUD_ADMIN_TOKEN=PASSWORD\n'),
+            mock.call('OVERCLOUD_CEILOMETER_PASSWORD=PASSWORD\n'),
+            mock.call('OVERCLOUD_CEILOMETER_SECRET=PASSWORD\n'),
+            mock.call('OVERCLOUD_CINDER_PASSWORD=PASSWORD\n'),
+            mock.call('OVERCLOUD_DEMO_PASSWORD=PASSWORD\n'),
+            mock.call('OVERCLOUD_GLANCE_PASSWORD=PASSWORD\n'),
+            mock.call('OVERCLOUD_HEAT_PASSWORD=PASSWORD\n'),
+            mock.call('OVERCLOUD_HEAT_STACK_DOMAIN_PASSWORD=PASSWORD\n'),
+            mock.call('OVERCLOUD_NEUTRON_PASSWORD=PASSWORD\n'),
+            mock.call('OVERCLOUD_NOVA_PASSWORD=PASSWORD\n'),
+            mock.call('OVERCLOUD_SWIFT_HASH=PASSWORD\n'),
+            mock.call('OVERCLOUD_SWIFT_PASSWORD=PASSWORD\n'),
+        ])
+        self.assertEqual(generate_password_mock.call_count, 13)
 
         self.assertEqual(len(passwords), 13)
-        self.assertNotEqual(passwords, passwords2)
+
+    @mock.patch("os.path.isfile", return_value=True)
+    @mock.patch("rdomanager_oscplugin.utils._generate_password",
+                return_value="PASSWORD")
+    def test_load_passwords(self, generate_password_mock, isfile_mock):
+
+        mock_open = mock.mock_open()
+        mock_open().__iter__.return_value = iter([
+            'OVERCLOUD_ADMIN_PASSWORD=PASSWORD',
+            'OVERCLOUD_ADMIN_TOKEN=PASSWORD',
+            'OVERCLOUD_CEILOMETER_PASSWORD=PASSWORD',
+            'OVERCLOUD_CEILOMETER_SECRET=PASSWORD',
+            'OVERCLOUD_CINDER_PASSWORD=PASSWORD',
+            'OVERCLOUD_DEMO_PASSWORD=PASSWORD',
+            'OVERCLOUD_GLANCE_PASSWORD=PASSWORD',
+            'OVERCLOUD_HEAT_PASSWORD=PASSWORD',
+            'OVERCLOUD_HEAT_STACK_DOMAIN_PASSWORD=PASSWORD',
+            'OVERCLOUD_NEUTRON_PASSWORD=PASSWORD',
+            'OVERCLOUD_NOVA_PASSWORD=PASSWORD',
+            'OVERCLOUD_SWIFT_HASH=PASSWORD',
+            'OVERCLOUD_SWIFT_PASSWORD=PASSWORD',
+        ])
+
+        with mock.patch('six.moves.builtins.open', mock_open):
+            passwords = utils.generate_overcloud_passwords()
+
+        mock_open().write.assert_not_called()
+        generate_password_mock.assert_not_called()
+
+        self.assertEqual(len(passwords), 13)
 
 
 class TestCheckHypervisorUtil(TestCase):
@@ -487,7 +540,7 @@ class TestSetupEndpoints(TestCase):
 
     @mock.patch('rdomanager_oscplugin.utils.register_endpoint')
     def test_setup_endpoints_all_ssl(self, mock_register_endpoint):
-        passwords = utils.generate_overcloud_passwords()
+        passwords = generate_overcloud_passwords_mock()
         utils.setup_endpoints(
             '127.0.0.1',
             passwords,
@@ -575,7 +628,7 @@ class TestSetupEndpoints(TestCase):
 
     @mock.patch('rdomanager_oscplugin.utils.register_endpoint')
     def test_setup_endpoints_all_no_ssl(self, mock_register_endpoint):
-        passwords = utils.generate_overcloud_passwords()
+        passwords = generate_overcloud_passwords_mock()
         utils.setup_endpoints(
             '127.0.0.1',
             passwords,

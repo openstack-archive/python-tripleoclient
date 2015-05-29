@@ -16,6 +16,8 @@
 import mock
 
 from rdomanager_oscplugin.tests.v1.overcloud_deploy import fakes
+from rdomanager_oscplugin.tests.v1.utils import (
+    generate_overcloud_passwords_mock)
 from rdomanager_oscplugin.v1 import overcloud_deploy
 
 
@@ -27,27 +29,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         # Get the command object to test
         self.cmd = overcloud_deploy.DeployOvercloud(self.app, None)
 
-        def _generate_overcloud_passwords_return_value():
-            passwords = (
-                "OVERCLOUD_ADMIN_PASSWORD",
-                "OVERCLOUD_ADMIN_TOKEN",
-                "OVERCLOUD_CEILOMETER_PASSWORD",
-                "OVERCLOUD_CEILOMETER_SECRET",
-                "OVERCLOUD_CINDER_PASSWORD",
-                "OVERCLOUD_DEMO_PASSWORD",
-                "OVERCLOUD_GLANCE_PASSWORD",
-                "OVERCLOUD_HEAT_PASSWORD",
-                "OVERCLOUD_HEAT_STACK_DOMAIN_PASSWORD",
-                "OVERCLOUD_NEUTRON_PASSWORD",
-                "OVERCLOUD_NOVA_PASSWORD",
-                "OVERCLOUD_SWIFT_HASH",
-                "OVERCLOUD_SWIFT_PASSWORD",
-            )
+        self._get_passwords = generate_overcloud_passwords_mock
 
-            return dict((password, 'password') for password in passwords)
-
-        self._get_passwords = _generate_overcloud_passwords_return_value
-
+    @mock.patch('rdomanager_oscplugin.utils.generate_overcloud_passwords')
     @mock.patch('rdomanager_oscplugin.utils.setup_endpoints')
     @mock.patch('time.sleep', return_value=None)
     @mock.patch('os_cloud_config.keystone.initialize', autospec=True)
@@ -71,12 +55,15 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                         mock_get_templte_contents, mock_process_multiple_env,
                         set_nodes_state_mock, wait_for_stack_ready_mock,
                         mock_remove_known_hosts, mock_keystone_initialize,
-                        mock_sleep, mock_setup_endpoints):
+                        mock_sleep, mock_setup_endpoints,
+                        mock_generate_overcloud_passwords):
 
         arglist = ['--use-tripleo-heat-templates', ]
         verifylist = [
             ('use_tht', True),
         ]
+
+        mock_generate_overcloud_passwords.return_value = self._get_passwords()
 
         clients = self.app.client_manager
         orchestration_client = clients.rdomanager_oscplugin.orchestration()
@@ -158,25 +145,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         }
 
         mock_get_key.return_value = "PASSWORD"
-
-        def _generate_overcloud_passwords_return_value():
-            passwords = (
-                "OVERCLOUD_ADMIN_PASSWORD",
-                "OVERCLOUD_ADMIN_TOKEN",
-                "OVERCLOUD_CEILOMETER_PASSWORD",
-                "OVERCLOUD_CEILOMETER_SECRET",
-                "OVERCLOUD_CINDER_PASSWORD",
-                "OVERCLOUD_DEMO_PASSWORD",
-                "OVERCLOUD_GLANCE_PASSWORD",
-                "OVERCLOUD_HEAT_PASSWORD",
-                "OVERCLOUD_HEAT_STACK_DOMAIN_PASSWORD",
-                "OVERCLOUD_NEUTRON_PASSWORD",
-                "OVERCLOUD_NOVA_PASSWORD",
-                "OVERCLOUD_SWIFT_HASH",
-                "OVERCLOUD_SWIFT_PASSWORD",
-            )
-
-            return dict((password, 'password') for password in passwords)
 
         mock_generate_overcloud_passwords.return_value = self._get_passwords()
 

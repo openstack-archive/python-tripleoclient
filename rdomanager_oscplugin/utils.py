@@ -33,7 +33,7 @@ def _generate_password():
     """Create a random password
 
     The password is made by taking a uuid and passing it though sha1sum.
-    echo "We may change this in future to gain more entropy.
+    We may change this in future to gain more entropy.
 
     This is based on the tripleo command os-make-password
     """
@@ -41,9 +41,19 @@ def _generate_password():
     return hashlib.sha1(uuid_str).hexdigest()
 
 
-def generate_overcloud_passwords():
+def generate_overcloud_passwords(output_file="tripleo-overcloud-passwords"):
+    """Create the passwords needed for the overcloud
 
-    passwords = (
+    This will create the set of passwords required by the overcloud, store
+    them in the output file path and return a dictionary of passwords. If the
+    file already exists the existing passwords will be returned instead,
+    """
+
+    if os.path.isfile(output_file):
+        with open(output_file) as f:
+            return dict(line.split('=') for line in f)
+
+    password_names = (
         "OVERCLOUD_ADMIN_PASSWORD",
         "OVERCLOUD_ADMIN_TOKEN",
         "OVERCLOUD_CEILOMETER_PASSWORD",
@@ -59,7 +69,13 @@ def generate_overcloud_passwords():
         "OVERCLOUD_SWIFT_PASSWORD",
     )
 
-    return dict((password, _generate_password()) for password in passwords)
+    passwords = dict((p, _generate_password()) for p in password_names)
+
+    with open(output_file, 'w') as f:
+        for name, password in passwords.items():
+            f.write("{0}={1}\n".format(name, password))
+
+    return passwords
 
 
 def check_hypervisor_stats(compute_client, nodes=1, memory=0, vcpu=0):
