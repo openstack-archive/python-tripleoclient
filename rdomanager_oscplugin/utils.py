@@ -26,7 +26,18 @@ import sys
 import time
 import uuid
 
-from rdomanager_oscplugin import exceptions
+
+SERVICE_LIST = {
+    'ceilometer': {'password_field': 'OVERCLOUD_CEILOMETER_PASSWORD'},
+    'cinder': {'password_field': 'OVERCLOUD_CINDER_PASSWORD'},
+    'ec2': {},
+    'glance': {'password_field': 'OVERCLOUD_GLANCE_PASSWORD'},
+    'heat': {'password_field': 'OVERCLOUD_HEAT_PASSWORD'},
+    'neutron': {'password_field': 'OVERCLOUD_NEUTRON_PASSWORD'},
+    'nova': {'password_field': 'OVERCLOUD_NOVA_PASSWORD'},
+    'novav3': {'password_field': 'OVERCLOUD_NOVA_PASSWORD'},
+    'swift': {'password_field': 'OVERCLOUD_SWIFT_PASSWORD'},
+}
 
 
 def _generate_password():
@@ -51,7 +62,7 @@ def generate_overcloud_passwords(output_file="tripleo-overcloud-passwords"):
 
     if os.path.isfile(output_file):
         with open(output_file) as f:
-            return dict(line.split('=') for line in f)
+            return dict(line.split('=') for line in f.read().splitlines())
 
     password_names = (
         "OVERCLOUD_ADMIN_PASSWORD",
@@ -352,245 +363,6 @@ def remove_known_hosts(overcloud_ip):
     if os.path.exists(known_hosts):
         command = ['ssh-keygen', '-R', overcloud_ip]
         subprocess.check_call(command)
-
-
-def register_endpoint(name,
-                      endpoint_type,
-                      public_url,
-                      identity_client,
-                      password=None,
-                      description=None,
-                      admin_url=None,
-                      internal_url=None,
-                      region="regionOne"):
-    SUFFIXES = {
-        'baremetal': {'suffix': '/'},
-        'compute': {'suffix': "/v2/$(tenant_id)s"},
-        'computev3': {'suffix': "/v3"},
-        'dashboard': {'suffix': "/",
-                      'admin_suffix': "/admin"},
-        'ec2': {'suffix': '/services/Cloud',
-                'admin_suffix': '/service/Admin'},
-        'identity': {'suffix': "/v2.0"},
-        'image': {'suffix': '/'},
-        'management': {'suffix': "/v2"},
-        'metering': {'suffix': '/'},
-        'network': {'suffix': '/'},
-        'object-store': {'suffix': "/v1/AUTH_%%(tenant_id)s",
-                         'admin_suffix': "/v1"},
-        'orchestration': {'suffix': "/v1/%%(tenant_id)s"},
-        'volume': {'suffix': "/v1/%%(tenant_id)s"},
-        'volumev2': {'suffix': "/v2/%%(tenant_id)s"},
-    }
-
-    service = SUFFIXES.get(endpoint_type)
-
-    if not service:
-        raise exceptions.UnknownService
-
-    suffix = service['suffix']
-    admin_suffix = service.get('admin_suffix', suffix)
-
-    if not internal_url:
-        internal_url = public_url
-
-    if not admin_url:
-        admin_url = internal_url
-
-    roles = identity_client.roles.list()
-    admin_role_id = next((role.id for role in roles if role.name in 'admin'),
-                         None)
-    if not admin_role_id:
-        raise exceptions.NotFound
-
-    if endpoint_type not in 'dashboard':
-        projects = identity_client.projects.list()
-        service_project_id = next(project.id for project in
-                                  projects if project.name in 'service')
-
-        if not password:
-            password = _generate_password()
-
-        # Some services have multiple endpoints, the user doesn't need to
-        # be recreated
-        users = identity_client.users.list()
-        user_id = next((user.id for user in users if user.name in name), None)
-        if not user_id:
-            user = identity_client.users.create(
-                name,
-                password,
-                'nobody@example.com',
-                tenant_id=service_project_id,
-                enabled=True
-            )
-            user_id = user.id
-
-        role = identity_client.roles.roles_for_user(
-            user_id, service_project_id)
-
-        if not role:
-            # Log "Creating user-role assignment for user $NAME, role admin,
-            # tenant service"
-            identity_client.roles.grant(
-                admin_role_id,
-                user=user_id,
-                project=service_project_id
-            )
-
-        # Add the admin tenant role for ceilometer user to enable polling
-        # services
-        if endpoint_type in 'metering':
-            admin_project_id = next(project.id for project in
-                                    projects if project.name in 'admin')
-            # Log "Creating user-role assignment for user $NAME, role admin,
-            # tenant admin"
-            role = identity_client.roles.roles_for_user(
-                user_id, admin_project_id)
-            if not role:
-                identity_client.roles.grant(
-                    admin_role_id,
-                    user=user_id,
-                    project=admin_project_id
-                )
-
-                # swift polling requires ResellerAdmin role to be added to the
-                # Ceilometer user
-                reseller_admin_role_id = next(role.id for role in roles if
-                                              role.name in 'ResellerAdmin')
-                identity_client.roles.grant(
-                    reseller_admin_role_id,
-                    user=user_id,
-                    project=admin_project_id
-                )
-
-    service = identity_client.services.create(
-        name,
-        endpoint_type,
-        description)
-    identity_client.endpoints.create(
-        region,
-        service.id,
-        "%s%s" % (public_url, suffix),
-        "%s%s" % (admin_url, admin_suffix),
-        "%s%s" % (internal_url, suffix)
-    )
-    # Log "Service $TYPE created"
-
-
-def setup_endpoints(overcloud_ip,
-                    passwords,
-                    identity_client,
-                    region='regionOne',
-                    enable_horizon=False,
-                    ssl=None,
-                    public=None):
-    """Perform initial setup of a cloud running on <overcloud_ip>
-
-    This will register ec2, image, orchestration, identity, network,
-    volume (optional), dashboard (optional), metering (optional) and
-    compute services as running on the default ports on controlplane-ip.
-    """
-
-    SERVICE_LIST = [
-        {'name': 'ceilometer', 'type': 'metering',
-         'description': 'Ceilometer Service',
-         'port': 8777, 'ssl_port': 13777,
-         'password_field': 'OVERCLOUD_CEILOMETER_PASSWORD'},
-        {'name': 'cinder', 'type': 'volume',
-         'description': 'Cinder Volume Service',
-         'port': 8776, 'ssl_port': 13776,
-         'password_field': 'OVERCLOUD_CINDER_PASSWORD'},
-        {'name': 'cinderv2', 'type': 'volumev2',
-         'description': 'Cinder Volume Service V2',
-         'port': 8776, 'ssl_port': 13776,
-         'password_field': 'OVERCLOUD_CINDER_PASSWORD'},
-        {'name': 'ec2', 'type': 'ec2',
-         'description': 'EC2 Compatibility Layer',
-         'port': 8773, 'ssl_port': 13773},
-        {'name': 'glance', 'type': 'image',
-         'description': 'Glance Image Service',
-         'port': 9292, 'ssl_port': 13292,
-         'password_field': 'OVERCLOUD_GLANCE_PASSWORD'},
-        {'name': 'heat', 'type': 'orchestration',
-         'description': 'Heat Service',
-         'port': 8004, 'ssl_port': 13004,
-         'password_field': 'OVERCLOUD_HEAT_PASSWORD'},
-        {'name': 'ironic', 'type': 'baremetal',
-         'description': 'Ironic Service',
-         'port': 6385, 'ssl_port': 6385,
-         'password_field': 'OVERCLOUD_IRONIC_PASSWORD'},
-        {'name': 'neutron', 'type': 'network',
-         'description': 'Neutron Service',
-         'port': 9696, 'ssl_port': 13696,
-         'password_field': 'OVERCLOUD_NEUTRON_PASSWORD'},
-        {'name': 'nova', 'type': 'compute',
-         'description': 'Nova Compute Service',
-         'port': 8774, 'ssl_port': 13774,
-         'password_field': 'OVERCLOUD_NOVA_PASSWORD'},
-        {'name': 'nova', 'type': 'computev3',
-         'description': 'Nova Compute Service v3',
-         'port': 8774, 'ssl_port': 13774,
-         'password_field': 'OVERCLOUD_NOVA_PASSWORD'},
-        {'name': 'swift', 'type': 'object-store',
-         'description': 'Swift Object Storage Service',
-         'port': 8080, 'ssl_port': 13080,
-         'password_field': 'OVERCLOUD_SWIFT_PASSWORD'},
-        {'name': 'tuskar', 'type': 'management',
-         'description': 'Tuskar Service',
-         'port': 8585, 'ssl_port': 8585,
-         'password_field': 'OVERCLOUD_TUSKAR_PASSWORD'},
-    ]
-
-    skip_no_password = [
-        'metering',
-        'volume',
-        'volumev2',
-        'object-store',
-        'baremetal',
-        'management'
-    ]
-
-    internal_host = 'http://%s:' % overcloud_ip
-
-    if ssl:
-        public_host = "https://%s:" % ssl
-    elif public:
-        public_host = "http://%s:" % public
-    else:
-        public_host = internal_host
-
-    for service in SERVICE_LIST:
-        password_field = service.get('password_field', None)
-        password = passwords.get(password_field, None)
-
-        if not password and service['type'] in skip_no_password:
-            continue
-
-        port = service['port']
-        ssl_port = service['ssl_port'] if ssl else port
-        args = (
-            service['name'],
-            service['type'],
-            "%s%d" % (public_host, port),
-            identity_client,
-        )
-        kwargs = {
-            'description': service['description'],
-            'region': region,
-            'internal_url': "%s%d" % (internal_host, ssl_port),
-        }
-
-        if password:
-            kwargs.update({'password': password})
-
-        register_endpoint(*args, **kwargs)
-
-    if enable_horizon:
-        # Horizon is different enough to warrant a separate case
-        register_endpoint('horizon', 'dashboard', internal_host,
-                          identity_client, description="OpenStack Dashboard",
-                          internal_url=internal_host,
-                          region=region)
 
 
 def create_cephx_key():

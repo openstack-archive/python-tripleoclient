@@ -31,8 +31,12 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         self._get_passwords = generate_overcloud_passwords_mock
 
+    @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
+                '_update_nodesjson')
     @mock.patch('rdomanager_oscplugin.utils.generate_overcloud_passwords')
-    @mock.patch('rdomanager_oscplugin.utils.setup_endpoints')
+    @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
+                '_create_overcloudrc')
+    @mock.patch('os_cloud_config.keystone.setup_endpoints', autospec=True)
     @mock.patch('time.sleep', return_value=None)
     @mock.patch('os_cloud_config.keystone.initialize', autospec=True)
     @mock.patch('rdomanager_oscplugin.utils.remove_known_hosts', autospec=True)
@@ -56,7 +60,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                         set_nodes_state_mock, wait_for_stack_ready_mock,
                         mock_remove_known_hosts, mock_keystone_initialize,
                         mock_sleep, mock_setup_endpoints,
-                        mock_generate_overcloud_passwords):
+                        mock_create_overcloudrc,
+                        mock_generate_overcloud_passwords,
+                        mock_update_nodesjson):
 
         arglist = ['--use-tripleo-heat-templates', ]
         verifylist = [
@@ -106,6 +112,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertEqual(kwargs['environment'], 'env')
         self.assertEqual(kwargs['stack_name'], 'overcloud')
 
+    @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
+                '_update_nodesjson')
     @mock.patch('rdomanager_oscplugin.utils.get_config_value', autospec=True)
     @mock.patch('rdomanager_oscplugin.utils.generate_overcloud_passwords')
     @mock.patch('heatclient.common.template_utils.'
@@ -116,15 +124,15 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
                 '_pre_heat_deploy')
     @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
-                '_post_heat_deploy')
+                '_create_overcloudrc')
     @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
                 '_heat_deploy')
-    def test_tuskar_deploy(self, mock_heat_deploy, mock_post_deploy,
+    def test_tuskar_deploy(self, mock_heat_deploy, mock_create_overcloudrc,
                            most_pre_deploy, mock_get_stack,
                            mock_get_templte_contents,
                            mock_process_multiple_env,
                            mock_generate_overcloud_passwords,
-                           mock_get_key):
+                           mock_get_key, mock_update_nodesjson):
 
         arglist = ['--plan-uuid', 'UUID', '--output-dir', 'fake']
         verifylist = [
