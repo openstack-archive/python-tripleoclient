@@ -64,11 +64,6 @@ PARAMETERS = {
     'NeutronNetworkType': 'gre',
     'NeutronTunnelTypes': 'gre',
     'SnmpdReadonlyUserPassword': None,
-    'OvercloudControlFlavor': 'baremetal',
-    'OvercloudComputeFlavor': 'baremetal',
-    'OvercloudBlockStorageFlavor': 'baremetal',
-    'OvercloudSwiftStorageFlavor': 'baremetal',
-    'OvercloudCephStorageFlavor': 'baremetal',
     'NtpServer': '',
     'controllerImage': 'overcloud-full',
     'NovaImage': 'overcloud-full',
@@ -209,7 +204,15 @@ class DeployOvercloud(command.Command):
                     'Controller-1::CinderEnableIscsiBackend': True
                 })
 
-        if not args.use_tht:
+        if args.use_tht:
+            parameters.update({
+                'OvercloudControlFlavor': args.control_flavor,
+                'OvercloudComputeFlavor': args.compute_flavor,
+                'OvercloudBlockStorageFlavor': args.block_storage_flavor,
+                'OvercloudSwiftStorageFlavor': args.swift_storage_flavor,
+                'OvercloudCephStorageFlavor': args.ceph_storage_flavor,
+            })
+        else:
             parameters.update({
                 'Controller-1::CinderISCSIHelper': 'lioadm',
                 'Cinder-Storage-1::CinderISCSIHelper': 'lioadm',
@@ -239,11 +242,11 @@ class DeployOvercloud(command.Command):
                 'Swift-Storage-1::count': args.swift_storage_scale,
                 'Cinder-Storage-1::count': args.block_storage_scale,
                 'Ceph-Storage-1::count': args.ceph_storage_scale,
-                'Cinder-Storage-1::Flavor': 'baremetal',
-                'Compute-1::Flavor': 'baremetal',
-                'Controller-1::Flavor': 'baremetal',
-                'Swift-Storage-1::Flavor': 'baremetal',
-                'Ceph-Storage-1::Flavor': 'baremetal',
+                'Cinder-Storage-1::Flavor': args.block_storage_flavor,
+                'Compute-1::Flavor': args.compute_flavor,
+                'Controller-1::Flavor': args.control_flavor,
+                'Swift-Storage-1::Flavor': args.swift_storage_flavor,
+                'Ceph-Storage-1::Flavor': args.ceph_storage_flavor,
                 'Swift-Storage-1::Image': 'overcloud-full',
                 'Cinder-Storage-1::Image': 'overcloud-full',
                 'Ceph-Storage-1::Image': 'overcloud-full',
@@ -451,6 +454,19 @@ class DeployOvercloud(command.Command):
         parser.add_argument('--ceph-storage-scale', type=int, default=0)
         parser.add_argument('--block-storage-scale', type=int, default=0)
         parser.add_argument('--swift-storage-scale', type=int, default=0)
+        parser.add_argument('--control-flavor', default='baremetal',
+                            help=_("Nova flavor to use for control nodes."))
+        parser.add_argument('--compute-flavor', default='baremetal',
+                            help=_("Nova flavor to use for compute nodes."))
+        parser.add_argument('--ceph-storage-flavor', default='baremetal',
+                            help=_("Nova flavor to use for ceph storage "
+                                   "nodes."))
+        parser.add_argument('--block-storage-flavor', default='baremetal',
+                            help=_("Nova flavor to use for cinder storage "
+                                   "nodes."))
+        parser.add_argument('--swift-storage-flavor', default='baremetal',
+                            help=_("Nova flavor to use for swift storage "
+                                   "nodes."))
         parser.add_argument('--use-tripleo-heat-templates',
                             dest='use_tht', action='store_true')
         parser.add_argument('--neutron-flat-networks', default='datacentre')
