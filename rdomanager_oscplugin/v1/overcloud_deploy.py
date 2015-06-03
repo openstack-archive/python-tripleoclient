@@ -180,13 +180,16 @@ class DeployOvercloud(command.Command):
 
         if args.control_scale > 1:
             if args.use_tht:
-                parameters['NeutronL3HA'] = True
+                parameters.update({
+                    'NeutronL3HA': True,
+                    'NeutronAllowL3AgentFailover': False,
+                })
             else:
                 parameters.update({
                     'Controller-1::NeutronL3HA': True,
                     'Controller-1::NeutronAllowL3AgentFailover': False,
                     'Compute-1::NeutronL3HA': True,
-                    'Controller-1::NeutronAllowL3AgentFailover': False,
+                    'Compute-1::NeutronAllowL3AgentFailover': False,
                 })
 
         if args.ceph_storage_scale > 0:
