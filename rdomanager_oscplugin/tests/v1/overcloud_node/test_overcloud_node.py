@@ -27,7 +27,7 @@ class TestDeleteNode(fakes.TestDeleteNode):
         # Get the command object to test
         self.cmd = overcloud_node.DeleteNode(self.app, None)
 
-    @mock.patch('tripleo_common.scale.ScaleManager')
+    @mock.patch('tripleo_common.scale.ScaleManager', autospec=True)
     def test_node_delete(self, scale_manager):
         argslist = ['instance1', 'instance2', '--plan', 'overcloud',
                     '--stack', 'overcloud']
@@ -39,4 +39,5 @@ class TestDeleteNode(fakes.TestDeleteNode):
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
         self.cmd.take_action(parsed_args)
         scale_manager.scaledown(parsed_args.nodes)
-        scale_manager.scaledown.called_once_with(['instance1', 'instance2'])
+        scale_manager.scaledown.assert_called_once_with(['instance1',
+                                                         'instance2'])
