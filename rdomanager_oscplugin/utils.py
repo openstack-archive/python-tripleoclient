@@ -371,3 +371,7 @@ def create_cephx_key():
     key = os.urandom(16)
     header = struct.pack("<hiih", 1, int(time.time()), 0, len(key))
     return base64.b64encode(header + key)
+
+
+def run_shell(cmd):
+    return subprocess.check_call([cmd], shell=True)
