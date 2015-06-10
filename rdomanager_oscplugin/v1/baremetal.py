@@ -198,10 +198,23 @@ class ConfigureBaremetalBoot(command.Command):
         bm_client = self.app.client_manager.rdomanager_oscplugin.baremetal()
 
         image_client = self.app.client_manager.image
-        kernel_id = osc_utils.find_resource(
-            image_client.images, 'bm-deploy-kernel').id
-        ramdisk_id = osc_utils.find_resource(
-            image_client.images, 'bm-deploy-ramdisk').id
+        try:
+            kernel_id = osc_utils.find_resource(
+                image_client.images, 'bm-deploy-kernel').id
+        except AttributeError:
+            print("ERROR: Please make sure there is only one image named "
+                  "'bm-deploy-kernel' in glance.",
+                  file=sys.stderr)
+            return
+
+        try:
+            ramdisk_id = osc_utils.find_resource(
+                image_client.images, 'bm-deploy-ramdisk').id
+        except AttributeError:
+            print("ERROR: Please make sure there is only one image named "
+                  "'bm-deploy-ramdisk' in glance.",
+                  file=sys.stderr)
+            return
 
         self.log.debug("Using kernel ID: {0} and ramdisk ID: {1}".format(
             kernel_id, ramdisk_id))
