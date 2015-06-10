@@ -46,7 +46,7 @@ class BuildOvercloudImage(command.Command):
         'hiera',
         'os-net-config',
         'stable-interface-names',
-        'grub2',
+        'grub2-deprecated',
         '-p python-psutil,python-debtcollector',
     ]
 
