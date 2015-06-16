@@ -372,6 +372,239 @@ class TestStatusBaremetalIntrospectionBulk(fakes.TestBaremetal):
         ))
 
 
+class TestConfigureReadyState(fakes.TestBaremetal):
+
+    def setUp(self):
+        super(TestConfigureReadyState, self).setUp()
+        self.cmd = baremetal.ConfigureReadyState(self.app, None)
+
+    @mock.patch('rdomanager_oscplugin.v1.baremetal.ConfigureReadyState.'
+                '_configure_bios')
+    @mock.patch('rdomanager_oscplugin.v1.baremetal.ConfigureReadyState.'
+                '_configure_root_raid_volumes')
+    @mock.patch('rdomanager_oscplugin.v1.baremetal.ConfigureReadyState.'
+                '_configure_nonroot_raid_volumes')
+    @mock.patch('rdomanager_oscplugin.v1.baremetal.ConfigureReadyState.'
+                '_wait_for_drac_config_jobs')
+    @mock.patch('rdomanager_oscplugin.v1.baremetal.ConfigureReadyState.'
+                '_delete_raid_volumes')
+    @mock.patch('rdomanager_oscplugin.v1.baremetal.ConfigureReadyState.'
+                '_change_power_state')
+    @mock.patch('rdomanager_oscplugin.v1.baremetal.ConfigureReadyState.'
+                '_run_introspection')
+    def test_configure_ready_state(self, mock_run_introspection,
+                                   mock_change_power_state,
+                                   mock_delete_raid_volumes,
+                                   mock_wait_for_drac_config_jobs,
+                                   mock_configure_nonroot_raid_volumes,
+                                   mock_configure_root_raid_volumes,
+                                   mock_configure_bios):
+
+        nodes = [mock.Mock(uuid='foo', driver='drac'),
+                 mock.Mock(uuid='bar', driver='ilo'),
+                 mock.Mock(uuid='baz', driver='drac')]
+        bm_client = self.app.client_manager.rdomanager_oscplugin.baremetal()
+        bm_client.node.list.return_value = nodes
+
+        argslist = ['--delete-existing-raid-volumes']
+        verifylist = [('delete_raid_volumes', True)]
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+        self.cmd.take_action(parsed_args)
+
+        drac_nodes = [node for node in nodes if 'drac' in node.driver]
+        mock_configure_bios.assert_called_once_with(drac_nodes)
+        mock_configure_root_raid_volumes.assert_called_once_with(drac_nodes)
+        mock_configure_nonroot_raid_volumes.assert_called_once_with(drac_nodes)
+        mock_wait_for_drac_config_jobs.assert_called_with(drac_nodes)
+        mock_delete_raid_volumes.assert_called_with(drac_nodes)
+        mock_change_power_state.assert_has_calls(([
+            mock.call(drac_nodes, 'reboot'),
+            mock.call(drac_nodes, 'reboot'),
+            mock.call(drac_nodes, 'off'),
+        ]))
+        mock_run_introspection.assert_called_once_with(drac_nodes)
+
+    @mock.patch('rdomanager_oscplugin.v1.baremetal.ConfigureReadyState.'
+                '_configure_bios')
+    @mock.patch('rdomanager_oscplugin.v1.baremetal.ConfigureReadyState.'
+                '_configure_root_raid_volumes')
+    @mock.patch('rdomanager_oscplugin.v1.baremetal.ConfigureReadyState.'
+                '_configure_nonroot_raid_volumes')
+    @mock.patch('rdomanager_oscplugin.v1.baremetal.ConfigureReadyState.'
+                '_wait_for_drac_config_jobs')
+    @mock.patch('rdomanager_oscplugin.v1.baremetal.ConfigureReadyState.'
+                '_change_power_state')
+    @mock.patch('rdomanager_oscplugin.v1.baremetal.ConfigureReadyState.'
+                '_run_introspection')
+    def test_configure_ready_state_with_delete_existing_raid_volumes(
+            self, mock_run_introspection, mock_change_power_state,
+            mock_wait_for_drac_config_jobs,
+            mock_configure_nonroot_raid_volumes,
+            mock_configure_root_raid_volumes, mock_configure_bios):
+
+        nodes = [mock.Mock(uuid='foo', driver='drac'),
+                 mock.Mock(uuid='bar', driver='ilo'),
+                 mock.Mock(uuid='baz', driver='drac')]
+        bm_client = self.app.client_manager.rdomanager_oscplugin.baremetal()
+        bm_client.node.list.return_value = nodes
+
+        parsed_args = self.check_parser(self.cmd, [], [])
+        self.cmd.take_action(parsed_args)
+
+        drac_nodes = [node for node in nodes if 'drac' in node.driver]
+        mock_configure_bios.assert_called_once_with(drac_nodes)
+        mock_configure_root_raid_volumes.assert_called_once_with(drac_nodes)
+        mock_configure_nonroot_raid_volumes.assert_called_once_with(drac_nodes)
+        mock_wait_for_drac_config_jobs.assert_called_with(drac_nodes)
+        mock_change_power_state.assert_has_calls(([
+            mock.call(drac_nodes, 'reboot'),
+            mock.call(drac_nodes, 'reboot'),
+            mock.call(drac_nodes, 'off'),
+        ]))
+        mock_run_introspection.assert_called_once_with(drac_nodes)
+
+    @mock.patch.object(baremetal.ConfigureReadyState, 'sleep_time',
+                       new_callable=mock.PropertyMock,
+                       return_value=0)
+    def test__configure_bios(self, mock_sleep_time):
+        nodes = [mock.Mock(uuid='foo')]
+        bm_client = self.app.client_manager.rdomanager_oscplugin.baremetal()
+        self.cmd.bm_client = bm_client
+
+        self.cmd._configure_bios(nodes)
+
+        bm_client.node.vendor_passthru.assert_called_once_with(
+            'foo', 'configure_bios_settings', http_method='POST')
+
+    @mock.patch.object(baremetal.ConfigureReadyState, 'sleep_time',
+                       new_callable=mock.PropertyMock,
+                       return_value=0)
+    def test__configure_root_raid_volumes(self, mock_sleep_time):
+        nodes = [mock.Mock(uuid='foo')]
+        bm_client = self.app.client_manager.rdomanager_oscplugin.baremetal()
+        self.cmd.bm_client = bm_client
+
+        self.cmd._configure_root_raid_volumes(nodes)
+
+        bm_client.node.vendor_passthru.assert_called_once_with(
+            'foo', 'create_raid_configuration',
+            {'create_nonroot_volumes': False,
+             'create_root_volume': True},
+            'POST')
+
+    @mock.patch.object(baremetal.ConfigureReadyState, 'sleep_time',
+                       new_callable=mock.PropertyMock,
+                       return_value=0)
+    def test__configure_nonroot_raid_volumes(self, mock_sleep_time):
+        nodes = [mock.Mock(uuid='foo')]
+        bm_client = self.app.client_manager.rdomanager_oscplugin.baremetal()
+        self.cmd.bm_client = bm_client
+
+        self.cmd._configure_nonroot_raid_volumes(nodes)
+
+        bm_client.node.vendor_passthru.assert_called_once_with(
+            'foo', 'create_raid_configuration',
+            {'create_nonroot_volumes': True,
+             'create_root_volume': False},
+            'POST')
+
+    @mock.patch.object(baremetal.ConfigureReadyState, 'sleep_time',
+                       new_callable=mock.PropertyMock,
+                       return_value=0)
+    def test__wait_for_drac_config_jobs(self, mock_sleep_time):
+        nodes = [mock.Mock(uuid='foo')]
+        bm_client = self.app.client_manager.rdomanager_oscplugin.baremetal()
+        bm_client.node.vendor_passthru.side_effect = [
+            mock.Mock(unfinished_jobs={'percent_complete': '34',
+                                       'id': 'JID_343938731947',
+                                       'name': 'ConfigBIOS:BIOS.Setup.1-1'}),
+            mock.Mock(unfinished_jobs={}),
+        ]
+        self.cmd.bm_client = bm_client
+
+        self.cmd._wait_for_drac_config_jobs(nodes)
+
+        self.assertEqual(2, bm_client.node.vendor_passthru.call_count)
+        bm_client.node.vendor_passthru.assert_has_calls(
+            mock.call('foo', 'list_unfinished_jobs', http_method='GET'),
+        )
+
+    @mock.patch.object(baremetal.ConfigureReadyState, 'sleep_time',
+                       new_callable=mock.PropertyMock,
+                       return_value=0)
+    def test__wait_for_drac_config_jobs_times_out(self, mock_sleep_time):
+        nodes = [mock.Mock(uuid='foo')]
+        bm_client = self.app.client_manager.rdomanager_oscplugin.baremetal()
+        bm_client.node.vendor_passthru.return_value = mock.Mock(
+            unfinished_jobs={'percent_complete': '34',
+                             'id': 'JID_343938731947',
+                             'name': 'ConfigBIOS:BIOS.Setup.1-1'})
+        self.cmd.bm_client = bm_client
+
+        self.assertRaises(exceptions.Timeout,
+                          self.cmd._wait_for_drac_config_jobs,
+                          nodes)
+
+    @mock.patch.object(baremetal.ConfigureReadyState, 'sleep_time',
+                       new_callable=mock.PropertyMock,
+                       return_value=0)
+    def test__delete_raid_volumes(self, mock_sleep_time):
+        node_with_raid_volume = mock.Mock(uuid='foo')
+        nodes = [node_with_raid_volume, mock.Mock(uuid='bar')]
+        bm_client = self.app.client_manager.rdomanager_oscplugin.baremetal()
+        bm_client.node.vendor_passthru.side_effect = [
+            mock.Mock(virtual_disks=[
+                {'controller': 'RAID.Integrated.1-1',
+                 'id': 'Disk.Virtual.0:RAID.Integrated.1-1'},
+                {'controller': 'RAID.Integrated.1-1',
+                 'id': 'Disk.Virtual.0:RAID.Integrated.1-2'}]),
+            True, True, True,
+            mock.Mock(virtual_disks=[])
+        ]
+        self.cmd.bm_client = bm_client
+
+        nodes_to_restart = self.cmd._delete_raid_volumes(nodes)
+
+        bm_client.node.vendor_passthru.assert_has_calls([
+            mock.call('foo', 'list_virtual_disks', http_method='GET'),
+            mock.call('foo', 'delete_virtual_disk',
+                      {'virtual_disk': 'Disk.Virtual.0:RAID.Integrated.1-1'},
+                      'POST'),
+            mock.call('foo', 'delete_virtual_disk',
+                      {'virtual_disk': 'Disk.Virtual.0:RAID.Integrated.1-2'},
+                      'POST'),
+            mock.call('foo', 'apply_pending_raid_config',
+                      {'raid_controller': 'RAID.Integrated.1-1'}, 'POST'),
+        ])
+        self.assertEqual(set([node_with_raid_volume]), nodes_to_restart)
+
+    def test__change_power_state(self):
+        nodes = [mock.Mock(uuid='foo')]
+        bm_client = self.app.client_manager.rdomanager_oscplugin.baremetal()
+        self.cmd.bm_client = bm_client
+
+        self.cmd._change_power_state(nodes, 'reboot')
+
+        bm_client.node.set_power_state.assert_called_once_with('foo', 'reboot')
+
+    @mock.patch('ironic_discoverd.client.introspect', autospec=True)
+    @mock.patch('rdomanager_oscplugin.utils.wait_for_node_discovery',
+                autospec=True)
+    def test__run_introspection(self, mock_wait_for_node_discovery,
+                                mock_introspect):
+        nodes = [mock.Mock(uuid='foo')]
+        bm_client = self.app.client_manager.rdomanager_oscplugin.baremetal()
+        self.cmd.bm_client = bm_client
+        self.cmd.discoverd_url = None
+
+        self.cmd._run_introspection(nodes)
+
+        mock_introspect.assert_called_once_with('foo', base_url=None,
+                                                auth_token='TOKEN')
+        mock_wait_for_node_discovery.assert_called_once_with(mock.ANY, 'TOKEN',
+                                                             None, ['foo'])
+
+
 class TestConfigureBaremetalBoot(fakes.TestBaremetal):
 
     def setUp(self):
