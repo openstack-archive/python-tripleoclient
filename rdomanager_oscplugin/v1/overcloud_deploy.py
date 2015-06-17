@@ -69,6 +69,15 @@ PARAMETERS = {
     'SwiftStorageImage': 'overcloud-full',
     'CephStorageImage': 'overcloud-full',
     'Debug': 'True',
+    'OvercloudControlFlavor': 'baremetal',
+    'OvercloudComputeFlavor': 'baremetal',
+    'OvercloudBlockStorageFlavor': 'baremetal',
+    'OvercloudSwiftStorageFlavor': 'baremetal',
+    'OvercloudCephStorageFlavor': 'baremetal',
+    'NeutronNetworkType': 'gre',
+    'NeutronTunnelTypes': 'gre',
+    'NeutronNetworkVLANRanges': 'datacentre:1000',
+    'NeutronEnableTunnelling': 'True',
 }
 
 
@@ -211,66 +220,73 @@ class DeployOvercloud(command.Command):
         neutron_enable_tunneling = not args.neutron_disable_tunneling
 
         if args.use_tht:
-            parameters.update({
-                'OvercloudControlFlavor': args.control_flavor,
-                'OvercloudComputeFlavor': args.compute_flavor,
-                'OvercloudBlockStorageFlavor': args.block_storage_flavor,
-                'OvercloudSwiftStorageFlavor': args.swift_storage_flavor,
-                'OvercloudCephStorageFlavor': args.ceph_storage_flavor,
-                'NeutronNetworkType': args.neutron_network_type,
-                'NeutronTunnelTypes': args.neutron_tunnel_types,
-                'NeutronNetworkVLANRanges': args.neutron_network_vlan_ranges,
-                'NeutronEnableTunnelling': neutron_enable_tunneling,
-            })
+            param_args = (
+                ('OvercloudControlFlavor', 'control_flavor'),
+                ('OvercloudComputeFlavor', 'compute_flavor'),
+                ('OvercloudBlockStorageFlavor', 'block_storage_flavor'),
+                ('OvercloudSwiftStorageFlavor', 'swift_storage_flavor'),
+                ('OvercloudCephStorageFlavor', 'ceph_storage_flavor'),
+                ('NeutronNetworkType', 'neutron_network_type'),
+                ('NeutronTunnelTypes', 'neutron_tunnel_types'),
+                ('NeutronNetworkVLANRanges', 'neutron_network_vlan_ranges'),
+            )
+
+            if args.neutron_disable_tunneling is not None:
+                neutron_enable_tunneling = not args.neutron_disable_tunneling
+                parameters.update({
+                    'NeutronEnableTunnelling':
+                        neutron_enable_tunneling,
+                })
+
         else:
-            parameters.update({
-                'Controller-1::CinderISCSIHelper': 'lioadm',
-                'Cinder-Storage-1::CinderISCSIHelper': 'lioadm',
-                'Controller-1::CloudName': 'overcloud',
-                'Controller-1::NeutronPublicInterface':
-                    args.neutron_public_interface,
-                'Controller-1::NeutronBridgeMappings':
-                    args.neutron_bridge_mappings,
-                'Compute-1::NeutronBridgeMappings':
-                    args.neutron_bridge_mappings,
-                'Controller-1::NeutronFlatNetworks':
-                    args.neutron_flat_networks,
-                'Compute-1::NeutronFlatNetworks': args.neutron_flat_networks,
-                'Compute-1::NeutronPhysicalBridge':
-                    args.neutron_physical_bridge,
-                'Compute-1::NeutronPublicInterface':
-                    args.neutron_public_interface,
-                'Compute-1::NovaComputeLibvirtType': args.libvirt_type,
-                'Controller-1::NtpServer': args.ntp_server,
-                'Compute-1::NtpServer': args.ntp_server,
-                'Controller-1::NeutronNetworkType': args.neutron_network_type,
-                'Compute-1::NeutronNetworkType': args.neutron_network_type,
-                'Controller-1::NeutronTunnelTypes': args.neutron_tunnel_types,
-                'Compute-1::NeutronTunnelTypes': args.neutron_tunnel_types,
-                'Controller-1::NeutronNetworkVLANRanges':
-                    args.neutron_network_vlan_ranges,
-                'Compute-1::NeutronNetworkVLANRanges':
-                    args.neutron_network_vlan_ranges,
-                'Controller-1::NeutronEnableTunnelling':
-                    neutron_enable_tunneling,
-                'Compute-1::NeutronEnableTunnelling':
-                    neutron_enable_tunneling,
-                'Controller-1::count': args.control_scale,
-                'Compute-1::count': args.compute_scale,
-                'Swift-Storage-1::count': args.swift_storage_scale,
-                'Cinder-Storage-1::count': args.block_storage_scale,
-                'Ceph-Storage-1::count': args.ceph_storage_scale,
-                'Cinder-Storage-1::Flavor': args.block_storage_flavor,
-                'Compute-1::Flavor': args.compute_flavor,
-                'Controller-1::Flavor': args.control_flavor,
-                'Swift-Storage-1::Flavor': args.swift_storage_flavor,
-                'Ceph-Storage-1::Flavor': args.ceph_storage_flavor,
-                'Swift-Storage-1::Image': 'overcloud-full',
-                'Cinder-Storage-1::Image': 'overcloud-full',
-                'Ceph-Storage-1::Image': 'overcloud-full',
-                'Controller-1::Image': 'overcloud-full',
-                'Compute-1::Image': 'overcloud-full',
-            })
+            param_args = (
+                ('Controller-1::NeutronPublicInterface',
+                    'neutron_public_interface'),
+                ('Compute-1::NeutronPublicInterface',
+                    'neutron_public_interface'),
+                ('Controller-1::NeutronBridgeMappings',
+                    'neutron_bridge_mappings'),
+                ('Compute-1::NeutronBridgeMappings',
+                    'neutron_bridge_mappings'),
+                ('Controller-1::NeutronFlatNetworks', 'neutron_flat_networks'),
+                ('Compute-1::NeutronFlatNetworks', 'neutron_flat_networks'),
+                ('Compute-1::NeutronPhysicalBridge',
+                    'neutron_physical_bridge'),
+                ('Compute-1::NovaComputeLibvirtType', 'libvirt_type'),
+                ('Controller-1::NtpServer', 'ntp_server'),
+                ('Compute-1::NtpServer', 'ntp_server'),
+                ('Controller-1::NeutronNetworkType', 'neutron_network_type'),
+                ('Compute-1::NeutronNetworkType', 'neutron_network_type'),
+                ('Controller-1::NeutronTunnelTypes', 'neutron_tunnel_types'),
+                ('Compute-1::NeutronTunnelTypes', 'neutron_tunnel_types'),
+                ('Controller-1::NeutronNetworkVLANRanges',
+                    'neutron_network_vlan_ranges'),
+                ('Compute-1::NeutronNetworkVLANRanges',
+                    'neutron_network_vlan_ranges'),
+                ('Controller-1::count', 'control_scale'),
+                ('Compute-1::count', 'compute_scale'),
+                ('Swift-Storage-1::count', 'swift_storage_scale'),
+                ('Cinder-Storage-1::count', 'block_storage_scale'),
+                ('Ceph-Storage-1::count', 'ceph_storage_scale'),
+                ('Cinder-Storage-1::Flavor', 'block_storage_flavor'),
+                ('Compute-1::Flavor', 'compute_flavor'),
+                ('Controller-1::Flavor', 'control_flavor'),
+                ('Swift-Storage-1::Flavor', 'swift_storage_flavor'),
+                ('Ceph-Storage-1::Flavor', 'ceph_storage_flavor'),
+            )
+            if args.neutron_disable_tunneling is not None:
+                neutron_enable_tunneling = not args.neutron_disable_tunneling
+                parameters.update({
+                    'Controller-1::NeutronEnableTunnelling':
+                        neutron_enable_tunneling,
+                    'Compute-1::NeutronEnableTunnelling':
+                        neutron_enable_tunneling,
+                })
+
+        # Update parameters from commandline
+        for param, arg in param_args:
+            if getattr(args, arg, None) is not None:
+                parameters[param] = getattr(args, arg)
 
         return parameters
 
@@ -477,37 +493,35 @@ class DeployOvercloud(command.Command):
         parser.add_argument('--ceph-storage-scale', type=int, default=0)
         parser.add_argument('--block-storage-scale', type=int, default=0)
         parser.add_argument('--swift-storage-scale', type=int, default=0)
-        parser.add_argument('--control-flavor', default='baremetal',
+        parser.add_argument('--control-flavor',
                             help=_("Nova flavor to use for control nodes."))
-        parser.add_argument('--compute-flavor', default='baremetal',
+        parser.add_argument('--compute-flavor',
                             help=_("Nova flavor to use for compute nodes."))
-        parser.add_argument('--ceph-storage-flavor', default='baremetal',
+        parser.add_argument('--ceph-storage-flavor',
                             help=_("Nova flavor to use for ceph storage "
                                    "nodes."))
-        parser.add_argument('--block-storage-flavor', default='baremetal',
+        parser.add_argument('--block-storage-flavor',
                             help=_("Nova flavor to use for cinder storage "
                                    "nodes."))
-        parser.add_argument('--swift-storage-flavor', default='baremetal',
+        parser.add_argument('--swift-storage-flavor',
                             help=_("Nova flavor to use for swift storage "
                                    "nodes."))
         parser.add_argument('--use-tripleo-heat-templates',
                             dest='use_tht', action='store_true')
-        parser.add_argument('--neutron-flat-networks', default='datacentre')
-        parser.add_argument('--neutron-physical-bridge', default='br-ex')
-        parser.add_argument('--neutron-bridge-mappings',
-                            default='datacentre:br-ex')
-        parser.add_argument('--neutron-public-interface', default='nic1')
+        parser.add_argument('--neutron-flat-networks')
+        parser.add_argument('--neutron-physical-bridge')
+        parser.add_argument('--neutron-bridge-mappings')
+        parser.add_argument('--neutron-public-interface')
         parser.add_argument('--hypervisor-neutron-public-interface',
                             default='nic1')
-        parser.add_argument('--neutron-network-type', default='gre')
-        parser.add_argument('--neutron-tunnel-types', default='gre')
+        parser.add_argument('--neutron-network-type')
+        parser.add_argument('--neutron-tunnel-types')
         parser.add_argument('--neutron-disable-tunneling',
-                            dest='neutron_disable_tunneling', default=False,
-                            action="store_true"),
-        parser.add_argument('--neutron-network-vlan-ranges',
-                            default='datacentre:1:1000')
-        parser.add_argument('--libvirt-type', default='qemu')
-        parser.add_argument('--ntp-server', default='')
+                            dest='neutron_disable_tunneling',
+                            action="store_const", const=True),
+        parser.add_argument('--neutron-network-vlan-ranges')
+        parser.add_argument('--libvirt-type')
+        parser.add_argument('--ntp-server')
         parser.add_argument('--cinder-lvm',
                             dest='cinder_lvm',
                             action='store_true')
