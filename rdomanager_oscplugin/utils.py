@@ -119,11 +119,13 @@ def check_hypervisor_stats(compute_client, nodes=1, memory=0, vcpu=0):
 
 
 def wait_for_stack_ready(
-        orchestration_client, stack_name, loops=220, sleep=10):
+        orchestration_client, stack_name, loops=360, sleep=10):
     """Check the status of an orchestration stack
 
     Get the status of an orchestration stack and check whether it is complete
     or failed.
+
+    The default timeout is 60 minutes.
 
     :param orchestration_client: Instance of Orchestration client
     :type  orchestration_client: heatclient.v1.client.Client
