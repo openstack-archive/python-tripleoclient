@@ -26,6 +26,7 @@ import uuid
 from cliff import command
 from heatclient.common import template_utils
 from heatclient.exc import HTTPNotFound
+from openstackclient.common import utils as oscutils
 from openstackclient.i18n import _
 from os_cloud_config import keystone_pki
 
@@ -379,8 +380,11 @@ class DeployOvercloud(command.Command):
         if not os.path.isdir(output_dir):
             os.mkdir(output_dir)
 
+        management_plan = oscutils.find_resource(
+            management.plans, parsed_args.plan)
+
         # retrieve templates
-        templates = management.plans.templates(parsed_args.plan_uuid)
+        templates = management.plans.templates(management_plan.plan_uuid)
 
         parameters = self._update_paramaters(parsed_args, network_client)
 
@@ -520,8 +524,12 @@ class DeployOvercloud(command.Command):
             default=os.environ.get('no_proxy', '')
         )
         parser.add_argument(
-            '--plan-uuid',
+            '--plan-uuid', dest='plan',
             help=_("The UUID of the Tuskar plan to deploy.")
+        )
+        parser.add_argument(
+            '--plan',
+            help=_("The Name or UUID of the Tuskar plan to deploy.")
         )
         parser.add_argument(
             '-O', '--output-dir', metavar='<OUTPUT DIR>',

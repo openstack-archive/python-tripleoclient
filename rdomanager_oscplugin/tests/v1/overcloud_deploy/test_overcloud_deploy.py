@@ -15,6 +15,8 @@
 
 import mock
 
+from tuskarclient.v2.plans import Plan
+
 from rdomanager_oscplugin.tests.v1.overcloud_deploy import fakes
 from rdomanager_oscplugin.tests.v1.utils import (
     generate_overcloud_passwords_mock)
@@ -134,10 +136,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                            mock_generate_overcloud_passwords,
                            mock_get_key, mock_update_nodesjson):
 
-        arglist = ['--plan-uuid', 'UUID', '--output-dir', 'fake']
+        arglist = ['--plan', 'undercloud', '--output-dir', 'fake']
         verifylist = [
             ('use_tht', False),
-            ('plan_uuid', 'UUID'),
+            ('plan', 'undercloud'),
             ('output_dir', 'fake'),
         ]
 
@@ -145,6 +147,11 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         management = clients.rdomanager_oscplugin.management()
 
         management.plans.templates.return_value = {}
+        management.plans.resource_class = Plan
+
+        mock_plan = mock.Mock()
+        mock_plan.configure_mock(name="undercloud")
+        management.plans.list.return_value = [mock_plan, ]
 
         mock_get_templte_contents.return_value = ({}, "template")
         mock_process_multiple_env.return_value = ({}, "envs")
