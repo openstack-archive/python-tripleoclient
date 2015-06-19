@@ -109,7 +109,7 @@ class TestOvercloudImageBuild(TestPluginV1):
             "overcloud-compute overcloud-ceph-storage sysctl hosts baremetal "
             "dhcp-all-interfaces os-collect-config heat-config-puppet "
             "heat-config-script puppet-modules hiera os-net-config "
-            "stable-interface-names grub2-deprecated "
+            "stable-interface-names grub2-deprecated sosreport "
             "-p python-psutil,python-debtcollector selinux-permissive "
             "element-manifest network-gateway epel rdo-release "
             "undercloud-package-install "
