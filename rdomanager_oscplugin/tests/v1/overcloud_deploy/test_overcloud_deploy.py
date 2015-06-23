@@ -139,7 +139,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         arglist = ['--plan', 'undercloud', '--output-dir', 'fake',
                    '--compute-flavor', 'baremetal',
                    '--neutron-bridge-mappings', 'datacentre:br-test',
-                   '--neutron-disable-tunneling']
+                   '--neutron-disable-tunneling',
+                   '--control-scale', '3']
+
         verifylist = [
             ('use_tht', False),
             ('plan', 'undercloud'),
@@ -176,32 +178,32 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'Controller-1::NeutronPassword': 'password',
             'Cinder-Storage-1::SnmpdReadonlyUserPassword': "PASSWORD",
             'Compute-1::CeilometerMeteringSecret': 'password',
-            'Compute-1::count': 1,
             'NeutronControlPlaneID': 'network id',
-            'Cinder-Storage-1::count': 0,
             'Compute-1::NeutronBridgeMappings': 'datacentre:br-test',
             'Controller-1::AdminPassword': 'password',
             'Compute-1::Flavor': 'baremetal',
             'Compute-1::SnmpdReadonlyUserPassword': "PASSWORD",
             'Controller-1::NeutronEnableTunnelling': False,
             'Compute-1::NeutronEnableTunnelling': False,
-            'Controller-1::count': 1,
+            'Controller-1::count': 3,
             'Compute-1::CeilometerPassword': 'password',
             'Controller-1::CinderPassword': 'password',
             'Controller-1::CeilometerPassword': 'password',
             'Compute-1::AdminPassword': 'password',
             'Controller-1::HeatPassword': 'password',
-            'Swift-Storage-1::count': 0,
             'Controller-1::CeilometerMeteringSecret': 'password',
             'Controller-1::SwiftPassword': 'password',
             'Controller-1::NeutronBridgeMappings': 'datacentre:br-test',
-            'Ceph-Storage-1::count': 0,
             'Controller-1::NovaPassword': 'password',
             'Controller-1::SwiftHashSuffix': 'password',
             'Compute-1::NovaPassword': 'password',
             'Controller-1::GlancePassword': 'password',
             'Swift-Storage-1::SnmpdReadonlyUserPassword': "PASSWORD",
             'Controller-1::AdminToken': 'password',
+            'Controller-1::NeutronL3HA': True,
+            'Controller-1::NeutronAllowL3AgentFailover': False,
+            'Compute-1::NeutronL3HA': True,
+            'Compute-1::NeutronAllowL3AgentFailover': False,
         }
 
         mock_heat_deploy.assert_called_with(

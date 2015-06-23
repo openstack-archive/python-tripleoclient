@@ -180,43 +180,6 @@ class DeployOvercloud(command.Command):
         net = network_client.api.find_attr('networks', 'ctlplane')
         parameters['NeutronControlPlaneID'] = net['id']
 
-        if args.control_scale > 1:
-            if args.use_tht:
-                parameters.update({
-                    'NeutronL3HA': True,
-                    'NeutronAllowL3AgentFailover': False,
-                })
-            else:
-                parameters.update({
-                    'Controller-1::NeutronL3HA': True,
-                    'Controller-1::NeutronAllowL3AgentFailover': False,
-                    'Compute-1::NeutronL3HA': True,
-                    'Compute-1::NeutronAllowL3AgentFailover': False,
-                })
-
-        if args.ceph_storage_scale > 0:
-            parameters.update({
-                'CephClusterFSID': six.text_type(uuid.uuid1()),
-                'CephMonKey': utils.create_cephx_key(),
-                'CephAdminKey': utils.create_cephx_key()
-            })
-
-            cinder_lvm = True if args.cinder_lvm else False
-
-            if args.use_tht:
-                parameters.update({
-                    'CinderEnableRbdBackend': True,
-                    'NovaEnableRbdBackend': True,
-                    'CinderEnableIscsiBackend': cinder_lvm,
-                })
-            else:
-                parameters.update({
-                    'Controller-1::CinderEnableRbdBackend': True,
-                    'Controller-1::GlanceBackend': 'rbd',
-                    'Compute-1::NovaEnableRbdBackend': True,
-                    'Controller-1::CinderEnableIscsiBackend': cinder_lvm
-                })
-
         neutron_enable_tunneling = not args.neutron_disable_tunneling
 
         if args.use_tht:
@@ -287,6 +250,44 @@ class DeployOvercloud(command.Command):
         for param, arg in param_args:
             if getattr(args, arg, None) is not None:
                 parameters[param] = getattr(args, arg)
+
+        # Scaling needs extra parameters
+        if parameters.get('Controller-1::count', 1) > 1:
+            if args.use_tht:
+                parameters.update({
+                    'NeutronL3HA': True,
+                    'NeutronAllowL3AgentFailover': False,
+                })
+            else:
+                parameters.update({
+                    'Controller-1::NeutronL3HA': True,
+                    'Controller-1::NeutronAllowL3AgentFailover': False,
+                    'Compute-1::NeutronL3HA': True,
+                    'Compute-1::NeutronAllowL3AgentFailover': False,
+                })
+
+        if parameters.get('Ceph-Storage-1::count', 0) > 0:
+            parameters.update({
+                'CephClusterFSID': six.text_type(uuid.uuid1()),
+                'CephMonKey': utils.create_cephx_key(),
+                'CephAdminKey': utils.create_cephx_key()
+            })
+
+            cinder_lvm = True if args.cinder_lvm else False
+
+            if args.use_tht:
+                parameters.update({
+                    'CinderEnableRbdBackend': True,
+                    'NovaEnableRbdBackend': True,
+                    'CinderEnableIscsiBackend': cinder_lvm,
+                })
+            else:
+                parameters.update({
+                    'Controller-1::CinderEnableRbdBackend': True,
+                    'Controller-1::GlanceBackend': 'rbd',
+                    'Compute-1::NovaEnableRbdBackend': True,
+                    'Controller-1::CinderEnableIscsiBackend': cinder_lvm
+                })
 
         return parameters
 
@@ -488,11 +489,11 @@ class DeployOvercloud(command.Command):
 
     def get_parser(self, prog_name):
         parser = super(DeployOvercloud, self).get_parser(prog_name)
-        parser.add_argument('--control-scale', type=int, default=1)
-        parser.add_argument('--compute-scale', type=int, default=1)
-        parser.add_argument('--ceph-storage-scale', type=int, default=0)
-        parser.add_argument('--block-storage-scale', type=int, default=0)
-        parser.add_argument('--swift-storage-scale', type=int, default=0)
+        parser.add_argument('--control-scale', type=int)
+        parser.add_argument('--compute-scale', type=int)
+        parser.add_argument('--ceph-storage-scale', type=int)
+        parser.add_argument('--block-storage-scale', type=int)
+        parser.add_argument('--swift-storage-scale', type=int)
         parser.add_argument('--control-flavor',
                             help=_("Nova flavor to use for control nodes."))
         parser.add_argument('--compute-flavor',
