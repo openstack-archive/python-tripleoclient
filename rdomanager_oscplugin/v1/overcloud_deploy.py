@@ -384,7 +384,7 @@ class DeployOvercloud(command.Command):
             management.plans, parsed_args.plan)
 
         # retrieve templates
-        templates = management.plans.templates(management_plan.plan_uuid)
+        templates = management.plans.templates(management_plan.uuid)
 
         parameters = self._update_paramaters(parsed_args, network_client)
 
