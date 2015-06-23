@@ -28,7 +28,10 @@ from heatclient.common import template_utils
 from heatclient.exc import HTTPNotFound
 from openstackclient.common import utils as oscutils
 from openstackclient.i18n import _
+from os_cloud_config import keystone
 from os_cloud_config import keystone_pki
+from os_cloud_config import neutron
+from os_cloud_config.utils import clients
 
 from rdomanager_oscplugin import utils
 
@@ -470,6 +473,75 @@ class DeployOvercloud(command.Command):
         with open("instackenv.json", "w") as f:
             json.dump(instack_env, f)
 
+    def _deploy_postconfig(self, stack, parsed_args):
+        self.log.debug("_deploy_postconfig(%s)" % parsed_args)
+
+        passwords = self.passwords
+
+        overcloud_endpoint = self._get_overcloud_endpoint(stack)
+        overcloud_ip = six.moves.urllib.parse.urlparse(
+            overcloud_endpoint).hostname
+
+        utils.remove_known_hosts(overcloud_ip)
+
+        keystone.initialize(
+            overcloud_ip,
+            passwords['OVERCLOUD_ADMIN_TOKEN'],
+            'admin@example.com',
+            passwords['OVERCLOUD_ADMIN_PASSWORD'],
+            user='heat-admin')
+
+        services = {}
+        for service, data in six.iteritems(utils.SERVICE_LIST):
+            service_data = {}
+            password_field = data.get('password_field')
+            if password_field:
+                service_data['password'] = passwords[password_field]
+            services.update({service: service_data})
+
+        keystone_client = clients.get_keystone_client(
+            'admin',
+            passwords['OVERCLOUD_ADMIN_PASSWORD'],
+            'admin',
+            overcloud_endpoint)
+        keystone.setup_endpoints(
+            services,
+            client=keystone_client,
+            os_auth_url=overcloud_endpoint)
+
+        network_description = {
+            "float": {
+                "cidr": parsed_args.network_cidr,
+                "name": "default-net",
+                "nameserver": parsed_args.overcloud_nameserver
+            },
+            "external": {
+                "name": "ext-net",
+                "cidr": parsed_args.floating_id_cidr,
+                "allocation_start": parsed_args.floating_ip_start,
+                "allocation_end": parsed_args.floating_ip_end,
+                "gateway": parsed_args.bm_network_gateway,
+            }
+        }
+
+        neutron_client = clients.get_neutron_client(
+            'admin',
+            passwords['OVERCLOUD_ADMIN_PASSWORD'],
+            'admin',
+            overcloud_endpoint)
+        neutron.initialize_neutron(
+            network_description,
+            neutron_client=neutron_client,
+            keystone_client=keystone_client,
+        )
+
+        compute_client = clients.get_nova_bm_client(
+            'admin',
+            passwords['OVERCLOUD_ADMIN_PASSWORD'],
+            'admin',
+            overcloud_endpoint)
+        compute_client.flavors.create('m1.demo', 512, 1, 10, 'auto')
+
     def get_parser(self, prog_name):
         parser = super(DeployOvercloud, self).get_parser(prog_name)
         parser.add_argument('--control-scale', type=int, default=1)
@@ -543,6 +615,12 @@ class DeployOvercloud(command.Command):
             help=('Directory containing any extra environment files to pass '
                   'heat. (Defaults to /etc/tripleo/extra_config.d)')
         )
+        parser.add_argument('--overcloud_nameserver', default='8.8.8.8')
+        parser.add_argument('--floating-id-cidr', default='192.0.2.0/24')
+        parser.add_argument('--floating-ip-start', default='192.0.2.45')
+        parser.add_argument('--floating-ip-end', default='192.0.2.64')
+        parser.add_argument('--bm-network-gateway', default='192.0.2.1')
+        parser.add_argument('--network-cidr', default='10.0.0.0/8')
 
         return parser
 
@@ -553,6 +631,7 @@ class DeployOvercloud(command.Command):
         orchestration_client = clients.rdomanager_oscplugin.orchestration()
 
         stack = self._get_stack(orchestration_client)
+        stack_create = stack is None
 
         self._pre_heat_deploy()
 
@@ -573,6 +652,9 @@ class DeployOvercloud(command.Command):
         self._create_overcloudrc(stack, parsed_args)
 
         self._update_nodesjson(stack)
+
+        if stack_create:
+            self._deploy_postconfig(stack, parsed_args)
 
         overcloud_endpoint = self._get_overcloud_endpoint(stack)
         print("Overcloud Endpoint: {0}".format(overcloud_endpoint))
