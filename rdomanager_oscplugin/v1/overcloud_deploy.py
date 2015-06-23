@@ -556,6 +556,11 @@ class DeployOvercloud(command.Command):
 
         self._pre_heat_deploy()
 
+        if parsed_args.use_tht and parsed_args.plan:
+            print(("Either --plan or --use-tripleo-heat-templates "
+                   "should be provided. Not both."), file=sys.stderr)
+            return
+
         if parsed_args.use_tht:
             self._deploy_tripleo_heat_templates(stack, parsed_args)
         else:

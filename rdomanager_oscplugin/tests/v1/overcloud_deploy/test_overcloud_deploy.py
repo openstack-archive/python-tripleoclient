@@ -234,6 +234,28 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             ['fake/environment.yaml']
         )
 
+    @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
+                '_deploy_tuskar', autospec=True)
+    @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
+                '_deploy_tripleo_heat_templates', autospec=True)
+    @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
+                '_pre_heat_deploy', autospec=True)
+    def test_invalid_deploy_call(self, mock_pre_deploy, mock_deploy_tht,
+                                 mock_deploy_tuskar):
+
+        arglist = ['--plan', 'undercloud', '--use-tripleo-heat-templates']
+        verifylist = [
+            ('use_tht', True),
+            ('plan', 'undercloud'),
+        ]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
+
+        self.assertFalse(mock_deploy_tht.called)
+        self.assertFalse(mock_deploy_tuskar.called)
+
     @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.glob.os.listdir')
     def test_get_extra_config(self, os_mock):
         fake_conf_dir = '/etc/tripleo/extra_config.d'
