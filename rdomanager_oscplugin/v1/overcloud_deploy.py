@@ -184,6 +184,17 @@ class DeployOvercloud(command.Command):
 
         if args.use_tht:
             param_args = (
+                ('NeutronPublicInterface', 'neutron_public_interface'),
+                ('NeutronBridgeMappings', 'neutron_bridge_mappings'),
+                ('NeutronFlatNetworks', 'neutron_flat_networks'),
+                ('HypervisorNeutronPhysicalBridge', 'neutron_physical_bridge'),
+                ('NovaComputeLibvirtType', 'libvirt_type'),
+                ('NtpServer', 'ntp_server'),
+                ('ControllerCount', 'control_scale'),
+                ('ComputeCount', 'compute_scale'),
+                ('ObjectStorageCount', 'swift_storage_scale'),
+                ('BlockStorageCount', 'block_storage_scale'),
+                ('CephStorageCount', 'ceph_storage_scale'),
                 ('OvercloudControlFlavor', 'control_flavor'),
                 ('OvercloudComputeFlavor', 'compute_flavor'),
                 ('OvercloudBlockStorageFlavor', 'block_storage_flavor'),
@@ -197,8 +208,7 @@ class DeployOvercloud(command.Command):
             if args.neutron_disable_tunneling is not None:
                 neutron_enable_tunneling = not args.neutron_disable_tunneling
                 parameters.update({
-                    'NeutronEnableTunnelling':
-                        neutron_enable_tunneling,
+                    'NeutronEnableTunnelling': neutron_enable_tunneling,
                 })
 
         else:
