@@ -272,8 +272,6 @@ class BuildOvercloudImage(command.Command):
             if parsed_args.run_rhos_release:
                 self._env_var_or_set('RHOS_RELEASE', '6')
                 dib_common_elements.append('rhos-release')
-            else:
-                dib_common_elements.append('selinux-permissive')
             os.environ['DELOREAN_REPO_URL'] = parsed_args.delorean_trunk_repo
         elif re.match('centos7', parsed_args.node_dist):
             os.environ['DELOREAN_REPO_URL'] = parsed_args.delorean_trunk_repo

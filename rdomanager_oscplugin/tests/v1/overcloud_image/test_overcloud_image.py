@@ -110,7 +110,7 @@ class TestOvercloudImageBuild(TestPluginV1):
             "dhcp-all-interfaces os-collect-config heat-config-puppet "
             "heat-config-script puppet-modules hiera os-net-config "
             "stable-interface-names grub2-deprecated sosreport "
-            "-p python-psutil,python-debtcollector selinux-permissive "
+            "-p python-psutil,python-debtcollector "
             "element-manifest network-gateway epel rdo-release "
             "undercloud-package-install "
             "pip-and-virtualenv-override 2>&1 | tee dib-overcloud-full.log")
@@ -140,7 +140,7 @@ class TestOvercloudImageBuild(TestPluginV1):
 
         self.cmd._ramdisk_image_create.assert_called_once_with(
             "-a amd64 -o deploy-ramdisk-ironic --ramdisk-element "
-            "dracut-ramdisk rhel7 deploy-ironic selinux-permissive "
+            "dracut-ramdisk rhel7 deploy-ironic "
             "element-manifest network-gateway epel rdo-release "
             "undercloud-package-install "
             "pip-and-virtualenv-override 2>&1 | tee dib-deploy.log")
