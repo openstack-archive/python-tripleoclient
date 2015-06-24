@@ -32,6 +32,7 @@ from os_cloud_config import keystone
 from os_cloud_config import keystone_pki
 from os_cloud_config import neutron
 from os_cloud_config.utils import clients
+from tuskarclient.common import utils as tuskarutils
 
 from rdomanager_oscplugin import utils
 
@@ -410,7 +411,7 @@ class DeployOvercloud(command.Command):
         if not os.path.isdir(output_dir):
             os.mkdir(output_dir)
 
-        management_plan = oscutils.find_resource(
+        management_plan = tuskarutils.find_resource(
             management.plans, parsed_args.plan)
 
         # retrieve templates
