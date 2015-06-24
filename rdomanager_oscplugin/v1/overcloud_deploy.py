@@ -544,7 +544,7 @@ class DeployOvercloud(command.Command):
             },
             "external": {
                 "name": "ext-net",
-                "cidr": parsed_args.floating_id_cidr,
+                "cidr": parsed_args.floating_ip_cidr,
                 "allocation_start": parsed_args.floating_ip_start,
                 "allocation_end": parsed_args.floating_ip_end,
                 "gateway": parsed_args.bm_network_gateway,
@@ -641,7 +641,7 @@ class DeployOvercloud(command.Command):
                   'heat. (Defaults to /etc/tripleo/extra_config.d)')
         )
         parser.add_argument('--overcloud_nameserver', default='8.8.8.8')
-        parser.add_argument('--floating-id-cidr', default='192.0.2.0/24')
+        parser.add_argument('--floating-ip-cidr', default='192.0.2.0/24')
         parser.add_argument('--floating-ip-start', default='192.0.2.45')
         parser.add_argument('--floating-ip-end', default='192.0.2.64')
         parser.add_argument('--bm-network-gateway', default='192.0.2.1')
