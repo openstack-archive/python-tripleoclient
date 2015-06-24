@@ -47,6 +47,7 @@ class BuildOvercloudImage(command.Command):
         'os-net-config',
         'stable-interface-names',
         'grub2-deprecated',
+        'sosreport',
         '-p python-psutil,python-debtcollector',
     ]
 
