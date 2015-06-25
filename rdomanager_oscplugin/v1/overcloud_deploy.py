@@ -25,7 +25,6 @@ import uuid
 from cliff import command
 from heatclient.common import template_utils
 from heatclient.exc import HTTPNotFound
-from openstackclient.common import utils as oscutils
 from openstackclient.i18n import _
 from os_cloud_config import keystone
 from os_cloud_config import keystone_pki
