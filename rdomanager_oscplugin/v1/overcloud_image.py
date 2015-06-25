@@ -268,7 +268,6 @@ class BuildOvercloudImage(command.Command):
         dib_common_elements = []
         if re.match('rhel7', parsed_args.node_dist):
             os.environ['REG_METHOD'] = parsed_args.reg_method
-            os.environ['RHOS'] = '0'
 
             if parsed_args.run_rhos_release:
                 self._env_var_or_set('RHOS_RELEASE', '6')
