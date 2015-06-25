@@ -198,6 +198,7 @@ pxe_ssh,192.168.122.1,root,"KEY2",00:7c:ef:3d:eb:60""")
             keystone_client=None)
 
 
+@mock.patch('time.sleep', lambda sec: None)
 class TestStartBaremetalIntrospectionBulk(fakes.TestBaremetal):
 
     def setUp(self):

@@ -144,6 +144,12 @@ class StartBaremetalIntrospectionBulk(IntrospectionParser, command.Command):
                 base_url=parsed_args.discoverd_url,
                 auth_token=auth_token)
 
+            # NOTE(dtantsur): PXE firmware on virtual machines misbehaves when
+            # a lot of nodes start DHCPing simultaneously: it ignores NACK from
+            # DHCP server, tries to get the same address, then times out. Work
+            # around it by using sleep, anyway introspection takes much longer.
+            time.sleep(5)
+
         if parsed_args.poll:
             print("Waiting for discovery to finish")
             for uuid, status in utils.wait_for_node_discovery(
