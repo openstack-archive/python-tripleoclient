@@ -68,6 +68,5 @@ class TestOvercloudValidate(fakes.TestOvercloudValidate):
                       'network.build_timeout 500 '
                       'volume.build_timeout 500 '
                       'scenario.ssh_user cirros'),
-            mock.call('./run_tempest.sh --no-virtual-env -- bar 2>&1 | '
-                      'tee /home/user/tempest/tempest-run.log')
+            mock.call('./tools/run-tests.sh bar')
         ])

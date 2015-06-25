@@ -377,4 +377,4 @@ def create_cephx_key():
 
 
 def run_shell(cmd):
-    return subprocess.check_call([cmd], shell=True)
+    return subprocess.call([cmd], shell=True)
