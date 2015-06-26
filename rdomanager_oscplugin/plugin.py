@@ -87,7 +87,8 @@ class ClientWrapper(object):
         token = self._instance.auth.get_token(self._instance.session)
 
         self._baremetal = ironic_client.get_client(
-            1, os_auth_token=token, ironic_url=endpoint)
+            1, os_auth_token=token, ironic_url=endpoint,
+            ca_file=self._instance._cli_options.os_cacert)
 
         return self._baremetal
 
@@ -123,6 +124,7 @@ class ClientWrapper(object):
             password=self._instance._password,
             region_name=self._instance._region_name,
             insecure=self._instance._insecure,
+            ca_file=self._instance._cli_options.os_cacert,
         )
 
         self._orchestration = client
