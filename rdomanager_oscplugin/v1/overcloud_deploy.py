@@ -78,7 +78,7 @@ PARAMETERS = {
     'OvercloudCephStorageFlavor': 'baremetal',
     'NeutronNetworkType': 'gre',
     'NeutronTunnelTypes': 'gre',
-    'NeutronNetworkVLANRanges': 'datacentre:1000',
+    'NeutronNetworkVLANRanges': 'datacentre:1000:1000',
     'NeutronEnableTunnelling': 'True',
 }
 
