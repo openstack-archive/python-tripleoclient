@@ -13,10 +13,13 @@
 #   under the License.
 #
 
+import sys
+
 import mock
 
 from tuskarclient.v2.plans import Plan
 
+from openstackclient.tests import utils as oscutils
 from rdomanager_oscplugin.tests.v1.overcloud_deploy import fakes
 from rdomanager_oscplugin.tests.v1.utils import (
     generate_overcloud_passwords_mock)
@@ -343,9 +346,13 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             ('plan', 'undercloud'),
         ]
 
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-
-        self.cmd.take_action(parsed_args)
+        try:
+            oldstderr = sys.stderr
+            sys.stderr = self.fake_stdout
+            self.assertRaises(oscutils.ParserException, self.check_parser,
+                              self.cmd, arglist, verifylist)
+        finally:
+            sys.stderr = oldstderr
 
         self.assertFalse(mock_deploy_tht.called)
         self.assertFalse(mock_deploy_tuskar.called)
