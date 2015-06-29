@@ -376,7 +376,7 @@ class ConfigureBaremetalBoot(command.Command):
         self.log.debug("Using kernel ID: {0} and ramdisk ID: {1}".format(
             kernel_id, ramdisk_id))
 
-        for node in bm_client.node.list():
+        for node in bm_client.node.list(maintenance=False):
             # NOTE(bnemec): Ironic won't let us update the node while the
             # power_state is transitioning.
             if node.power_state is None:

@@ -693,3 +693,18 @@ class TestConfigureBaremetalBoot(fakes.TestBaremetal):
         self.assertRaises(exceptions.Timeout,
                           self.cmd.take_action,
                           parsed_args)
+
+    @mock.patch('openstackclient.common.utils.find_resource', autospec=True)
+    def test_configure_boot_skip_maintenance(self, find_resource_mock):
+
+        find_resource_mock.return_value = mock.Mock(id="IDIDID")
+        bm_client = self.app.client_manager.rdomanager_oscplugin.baremetal()
+        bm_client.node.list.return_value = [
+            mock.Mock(uuid="ABCDEFGH", maintenance=False),
+        ]
+
+        parsed_args = self.check_parser(self.cmd, [], [])
+        self.cmd.take_action(parsed_args)
+
+        self.assertEqual(bm_client.node.list.mock_calls, [mock.call(
+            maintenance=False)])
