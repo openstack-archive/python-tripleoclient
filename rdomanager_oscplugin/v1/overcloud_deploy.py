@@ -428,10 +428,13 @@ class DeployOvercloud(command.Command):
                 signing_cert_pem)
             parameters['Controller-1::KeystoneSigningKey'] = signing_key_pem
 
-        # Save the parameters to Tuskar so they can be used when redeploying
+        # Save the parameters to Tuskar so they can be used when redeploying.
+        # Tuskar expects to get all values as strings. So we convert them all
+        # below.
         management.plans.patch(
             management_plan.uuid,
-            [{'name': x[0], 'value': x[1]} for x in parameters.items()]
+            [{'name': x[0], 'value': six.text_type(x[1])}
+             for x in parameters.items()]
         )
 
         # write file for each key-value in templates
