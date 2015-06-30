@@ -565,6 +565,24 @@ class DeployOvercloud(command.Command):
             passwords['OVERCLOUD_ADMIN_PASSWORD'],
             'admin',
             overcloud_endpoint)
+
+        # BZ https://bugzilla.redhat.com/show_bug.cgi?id=1236578
+        # Give the l3 agents a chance, loop for about a minute at worst
+        for count in range(6):  # 6 retries with 10s sleep
+            neutron_agents = neutron_client.list_agents()
+            l3_agents = [r['id'] for r in neutron_agents['agents']
+                         if r['binary'] == 'neutron-l3-agent']
+            if len(l3_agents) < 2:  # cfg.CONF.min_l3_agents_per_router
+                self.log.warning(("Warning can't get enough l3 agents. "
+                                  "Retrying in 10 seconds. Agent ids: %s"),
+                                 l3_agents)
+                time.sleep(10)
+            else:  # have enough agents no need to continue
+                break
+        else:
+            self.log.error(("Warning can't get enough l3 agents. "
+                            "Giving up, agents are %s: " % neutron_agents))
+
         neutron.initialize_neutron(
             network_description,
             neutron_client=neutron_client,
