@@ -110,7 +110,7 @@ class TestOvercloudImageBuild(TestPluginV1):
             "dhcp-all-interfaces os-collect-config heat-config-puppet "
             "heat-config-script puppet-modules hiera os-net-config "
             "stable-interface-names grub2-deprecated "
-            "-p python-psutil,python-debtcollector "
+            "-p python-psutil,python-debtcollector,plotnetcfg "
             "element-manifest network-gateway epel rdo-release "
             "undercloud-package-install "
             "pip-and-virtualenv-override 2>&1 | tee dib-overcloud-full.log")
