@@ -20,6 +20,7 @@ import os
 import six
 import sys
 import tempfile
+import time
 import uuid
 
 from cliff import command
@@ -550,6 +551,11 @@ class DeployOvercloud(command.Command):
                 "gateway": parsed_args.bm_network_gateway,
             }
         }
+
+        # BZ https://bugzilla.redhat.com/show_bug.cgi?id=1236578
+        # Give the l3 agents a chance, one off sleep
+        # ideally wana do 'neutron agent-list | grep neutron-l3'
+        time.sleep(5)
 
         neutron_client = clients.get_neutron_client(
             'admin',
