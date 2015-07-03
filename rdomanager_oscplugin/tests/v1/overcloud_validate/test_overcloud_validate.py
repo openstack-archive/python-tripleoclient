@@ -39,11 +39,13 @@ class TestOvercloudValidate(fakes.TestOvercloudValidate):
 
         argslist = ['--overcloud-auth-url', 'http://foo',
                     '--overcloud-admin-password', 'password',
-                    '--tempest-args', 'bar']
+                    '--tempest-args', 'bar',
+                    '--skipfile', 'skip']
         verifylist = [
             ('overcloud_auth_url', 'http://foo'),
             ('overcloud_admin_password', 'password'),
-            ('tempest_args', 'bar')
+            ('tempest_args', 'bar'),
+            ('skipfile', 'skip')
         ]
 
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
@@ -68,5 +70,5 @@ class TestOvercloudValidate(fakes.TestOvercloudValidate):
                       'network.build_timeout 500 '
                       'volume.build_timeout 500 '
                       'scenario.ssh_user cirros'),
-            mock.call('./tools/run-tests.sh bar')
+            mock.call('./tools/run-tests.sh bar --skip-file skip')
         ])

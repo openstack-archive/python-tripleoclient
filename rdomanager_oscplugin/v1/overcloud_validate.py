@@ -28,7 +28,7 @@ class ValidateOvercloud(command.Command):
     log = logging.getLogger(__name__ + ".ValidateOvercloud")
 
     def _run_tempest(self, overcloud_auth_url, overcloud_admin_password,
-                     tempest_args):
+                     tempest_args, skipfile):
         tempest_run_dir = os.path.join(os.path.expanduser("~"), "tempest")
         try:
             os.stat(tempest_run_dir)
@@ -54,10 +54,14 @@ class ValidateOvercloud(command.Command):
                         {'auth_url': overcloud_auth_url,
                          'admin_password': overcloud_admin_password})
 
-        if tempest_args is None:
-            utils.run_shell('./tools/run-tests.sh')
-        else:
-            utils.run_shell('./tools/run-tests.sh %s' % tempest_args)
+        args = ['./tools/run-tests.sh', ]
+
+        if tempest_args is not None:
+            args.append(tempest_args)
+        if skipfile is not None:
+            args.extend(['--skip-file', skipfile])
+
+        utils.run_shell(' '.join(args))
 
     def get_parser(self, prog_name):
         parser = super(ValidateOvercloud, self).get_parser(prog_name)
@@ -65,6 +69,7 @@ class ValidateOvercloud(command.Command):
         parser.add_argument('--overcloud-auth-url', required=True)
         parser.add_argument('--overcloud-admin-password', required=True)
         parser.add_argument('--tempest-args')
+        parser.add_argument('--skipfile')
 
         return parser
 
@@ -73,4 +78,5 @@ class ValidateOvercloud(command.Command):
 
         self._run_tempest(parsed_args.overcloud_auth_url,
                           parsed_args.overcloud_admin_password,
-                          parsed_args.tempest_args)
+                          parsed_args.tempest_args,
+                          parsed_args.skipfile)
