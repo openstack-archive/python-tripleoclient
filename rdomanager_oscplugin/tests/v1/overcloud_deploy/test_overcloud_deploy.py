@@ -39,6 +39,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
     @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig')
+    @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
+                '_create_tempest_deployer_input', autospec=True)
     @mock.patch('rdomanager_oscplugin.utils.generate_overcloud_passwords')
     @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
                 '_create_overcloudrc')
@@ -71,6 +73,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                        mock_sleep, mock_setup_endpoints,
                        mock_create_overcloudrc,
                        mock_generate_overcloud_passwords,
+                       mock_create_tempest_deployer_input,
                        mock_deploy_postconfig):
 
         arglist = ['--templates', '--ceph-storage-scale', '3']
@@ -170,8 +173,12 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             ('/usr/share/openstack-tripleo-heat-templates/overcloud-without-'
              'mergepy.yaml'))
 
+        mock_create_tempest_deployer_input.assert_called_with(self.cmd)
+
     @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig')
+    @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
+                '_create_tempest_deployer_input', autospec=True)
     @mock.patch('rdomanager_oscplugin.utils.generate_overcloud_passwords')
     @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
                 '_create_overcloudrc')
@@ -204,6 +211,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                         mock_sleep, mock_setup_endpoints,
                         mock_create_overcloudrc,
                         mock_generate_overcloud_passwords,
+                        mock_create_tempest_deployer_input,
                         mock_deploy_postconfig):
 
         arglist = ['--templates', '--ceph-storage-scale', '3']
@@ -316,8 +324,12 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             ('/usr/share/openstack-tripleo-heat-templates/overcloud-without-'
              'mergepy.yaml'))
 
+        mock_create_tempest_deployer_input.assert_called_with(self.cmd)
+
     @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig')
+    @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
+                '_create_tempest_deployer_input', autospec=True)
     @mock.patch('rdomanager_oscplugin.utils.generate_overcloud_passwords')
     @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
                 '_create_overcloudrc')
@@ -349,6 +361,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                      mock_sleep, mock_setup_endpoints,
                                      mock_create_overcloudrc,
                                      mock_generate_overcloud_passwords,
+                                     mock_create_tempest_deployer_input,
                                      mock_deploy_postconfig):
 
         arglist = ['--templates', '/home/stack/tripleo-heat-templates']
@@ -403,9 +416,13 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             '/home/stack/tripleo-heat-templates/overcloud-without-mergepy.yaml'
         )
 
+        mock_create_tempest_deployer_input.assert_called_with(self.cmd)
+
     @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig')
     @mock.patch('rdomanager_oscplugin.utils.get_config_value', autospec=True)
+    @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
+                '_create_tempest_deployer_input', autospec=True)
     @mock.patch('rdomanager_oscplugin.utils.generate_overcloud_passwords')
     @mock.patch('heatclient.common.template_utils.'
                 'process_multiple_environments_and_files')
@@ -423,6 +440,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                            mock_get_templte_contents,
                            mock_process_multiple_env,
                            mock_generate_overcloud_passwords,
+                           mock_create_tempest_deployer_input,
                            mock_get_key,
                            mock_deploy_postconfig):
 
@@ -511,9 +529,13 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             240
         )
 
+        mock_create_tempest_deployer_input.assert_called_with(self.cmd)
+
     @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig')
     @mock.patch('rdomanager_oscplugin.utils.get_config_value', autospec=True)
+    @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
+                '_create_tempest_deployer_input', autospec=True)
     @mock.patch('rdomanager_oscplugin.utils.generate_overcloud_passwords')
     @mock.patch('heatclient.common.template_utils.'
                 'process_multiple_environments_and_files')
@@ -531,6 +553,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                           mock_get_templte_contents,
                           mock_process_multiple_env,
                           mock_generate_overcloud_passwords,
+                          mock_create_tempest_deployer_input,
                           mock_get_key,
                           mock_deploy_postconfig):
 
@@ -618,9 +641,13 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             240
         )
 
+        mock_create_tempest_deployer_input.assert_called_with(self.cmd)
+
     @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig')
     @mock.patch('rdomanager_oscplugin.utils.get_config_value', autospec=True)
+    @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
+                '_create_tempest_deployer_input', autospec=True)
     @mock.patch('rdomanager_oscplugin.utils.generate_overcloud_passwords')
     @mock.patch('heatclient.common.template_utils.'
                 'process_multiple_environments_and_files')
@@ -639,6 +666,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                         mock_get_templte_contents,
                                         mock_process_multiple_env,
                                         mock_generate_overcloud_passwords,
+                                        mock_create_tempest_deployer_input,
                                         mock_get_key,
                                         mock_deploy_postconfig):
 
@@ -739,6 +767,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertEqual(call_args, target)
         self.assertEqual(management.plans.patch.call_count, 1)
 
+        mock_create_tempest_deployer_input.assert_called_with(self.cmd)
+
     @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_tuskar', autospec=True)
     @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
@@ -791,6 +821,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertFalse(mock_deploy_tuskar.called)
 
     @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
+                '_create_tempest_deployer_input', autospec=True)
+    @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
                 '_create_overcloudrc', autospec=True)
     @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
                 '_get_overcloud_endpoint', autospec=True)
@@ -802,7 +834,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 '_pre_heat_deploy', autospec=True)
     def test_rhel_reg_params_provided(self, mock_pre_deploy, mock_deploy_tht,
                                       mock_deploy_tuskar, mock_oc_endpoint,
-                                      mock_create_ocrc):
+                                      mock_create_ocrc,
+                                      mock_create_tempest_deployer_input):
 
         arglist = ['--templates', '--rhel-reg',
                    '--reg-sat-url', 'https://example.com',
@@ -823,3 +856,5 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertTrue(mock_oc_endpoint.called)
         self.assertTrue(mock_create_ocrc.called)
         self.assertFalse(mock_deploy_tuskar.called)
+
+        mock_create_tempest_deployer_input.assert_called_with(self.cmd)
