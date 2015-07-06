@@ -358,3 +358,65 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         self.assertFalse(mock_deploy_tht.called)
         self.assertFalse(mock_deploy_tuskar.called)
+
+    @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
+                '_deploy_tuskar', autospec=True)
+    @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
+                '_deploy_tripleo_heat_templates', autospec=True)
+    @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
+                '_pre_heat_deploy', autospec=True)
+    def test_missing_sat_url(self, mock_pre_deploy, mock_deploy_tht,
+                             mock_deploy_tuskar):
+
+        arglist = ['--use-tripleo-heat-templates', '--rhel-reg',
+                   '--reg-method', 'satellite', '--reg-org', '123456789',
+                   '--reg-activation-key', 'super-awesome-key']
+        verifylist = [
+            ('use_tht', True),
+            ('rhel_reg', True),
+            ('reg_method', 'satellite'),
+            ('reg_org', '123456789'),
+            ('reg_activation_key', 'super-awesome-key')
+        ]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        self.cmd.take_action(parsed_args)
+        self.assertFalse(mock_deploy_tht.called)
+        self.assertFalse(mock_deploy_tuskar.called)
+
+    @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
+                '_update_nodesjson', autospec=True)
+    @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
+                '_create_overcloudrc', autospec=True)
+    @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
+                '_get_overcloud_endpoint', autospec=True)
+    @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
+                '_deploy_tuskar', autospec=True)
+    @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
+                '_deploy_tripleo_heat_templates', autospec=True)
+    @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
+                '_pre_heat_deploy', autospec=True)
+    def test_rhel_reg_params_provided(self, mock_pre_deploy, mock_deploy_tht,
+                                      mock_deploy_tuskar, mock_oc_endpoint,
+                                      mock_create_ocrc, mock_update_njson):
+
+        arglist = ['--use-tripleo-heat-templates', '--rhel-reg',
+                   '--reg-sat-url', 'https://example.com',
+                   '--reg-method', 'satellite', '--reg-org', '123456789',
+                   '--reg-activation-key', 'super-awesome-key']
+        verifylist = [
+            ('use_tht', True),
+            ('rhel_reg', True),
+            ('reg_sat_url', 'https://example.com'),
+            ('reg_method', 'satellite'),
+            ('reg_org', '123456789'),
+            ('reg_activation_key', 'super-awesome-key')
+        ]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        self.cmd.take_action(parsed_args)
+        self.assertTrue(mock_deploy_tht.called)
+        self.assertTrue(mock_oc_endpoint.called)
+        self.assertTrue(mock_create_ocrc.called)
+        self.assertTrue(mock_update_njson.called)
+        self.assertFalse(mock_deploy_tuskar.called)

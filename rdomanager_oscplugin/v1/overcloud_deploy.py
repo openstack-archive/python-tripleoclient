@@ -40,6 +40,8 @@ OVERCLOUD_YAML_PATH = os.path.join(TRIPLEO_HEAT_TEMPLATES,
                                    "overcloud-without-mergepy.yaml")
 RESOURCE_REGISTRY_PATH = os.path.join(
     TRIPLEO_HEAT_TEMPLATES, "overcloud-resource-registry-puppet.yaml")
+RHEL_REGISTRATION_EXTRACONFIG_PATH = os.path.join(
+    TRIPLEO_HEAT_TEMPLATES, "extraconfig/post_deploy/rhel-registration/")
 
 PARAMETERS = {
     'AdminPassword': None,
@@ -309,6 +311,27 @@ class DeployOvercloud(command.Command):
 
         return parameters
 
+    def _create_registration_env(self, args):
+        environment = os.path.join(RHEL_REGISTRATION_EXTRACONFIG_PATH,
+                                   'environment-rhel-registration.yaml')
+        registry = os.path.join(RHEL_REGISTRATION_EXTRACONFIG_PATH,
+                                'rhel-registration-resource-registry.yaml')
+        user_env = ("parameter_defaults:\n"
+                    "  rhel_reg_method: \"%(method)s\"\n"
+                    "  rhel_reg_org: \"%(org)s\"\n"
+                    "  rhel_reg_force: \"%(force)s\"\n"
+                    "  rhel_reg_sat_url: \"%(sat_url)s\"\n"
+                    "  rhel_reg_activation_key: \"%(activation_key)s\"\n"
+                    % {'method': args.reg_method,
+                       'org': args.reg_org,
+                       'force': args.reg_force,
+                       'sat_url': args.reg_sat_url,
+                       'activation_key': args.reg_activation_key})
+        handle, user_env_file = tempfile.mkstemp()
+        with open(user_env_file, 'w') as temp_file:
+            temp_file.write(user_env)
+        return [registry, environment, user_env_file]
+
     def _heat_deploy(self, stack, template_path, parameters, environments):
         """Verify the Baremetal nodes are available and do a stack update"""
 
@@ -393,6 +416,9 @@ class DeployOvercloud(command.Command):
             keystone_pki.generate_certs_into_json(env_path, False)
 
         environments = [RESOURCE_REGISTRY_PATH, env_path]
+        if parsed_args.rhel_reg:
+            reg_env = self._create_registration_env(parsed_args)
+            environments.extend(reg_env)
         if parsed_args.extra_templates:
             environments.extend(parsed_args.extra_templates)
 
@@ -464,6 +490,9 @@ class DeployOvercloud(command.Command):
         overcloud_yaml = os.path.join(output_dir, 'plan.yaml')
         environment_yaml = os.path.join(output_dir, 'environment.yaml')
         environments = [environment_yaml, ]
+        if parsed_args.rhel_reg:
+            reg_env = self._create_registration_env(parsed_args)
+            environments.extend(reg_env)
         if parsed_args.extra_templates:
             environments.extend(parsed_args.extra_templates)
 
@@ -605,7 +634,10 @@ class DeployOvercloud(command.Command):
         parser = super(DeployOvercloud, self).get_parser(prog_name)
         main_group = parser.add_mutually_exclusive_group(required=True)
         main_group.add_argument('--use-tripleo-heat-templates',
-                                dest='use_tht', action='store_true')
+                                dest='use_tht', action='store_true',
+                                help=_("Use the tripleo heat templates "
+                                       "directly, instead of the tuskar "
+                                       "plan. "))
         main_group.add_argument(
             '--plan-uuid', dest='plan',
             help=_("The UUID of the Tuskar plan to deploy.")
@@ -676,9 +708,42 @@ class DeployOvercloud(command.Command):
         parser.add_argument(
             '-e', '--extra-template', metavar='<EXTRA HEAT TEMPLATE>',
             action='append', dest='extra_templates',
-            help=('Extra templates to be passed to the heat stack-create or '
-                  'heat stack-update command. (Can be specified more than '
-                  'once.)')
+            help=_('Extra templates to be passed to the heat stack-create or '
+                   'heat stack-update command. (Can be specified more than '
+                   'once.)')
+        )
+        reg_group = parser.add_argument_group('Registration Parameters')
+        reg_group.add_argument(
+            '--rhel-reg',
+            action='store_true',
+            help=_('Register overcloud nodes to the customer portal or a '
+                   'satellite')
+        )
+        reg_group.add_argument(
+            '--reg-method',
+            choices=['satellite', 'portal'],
+            default='satellite',
+            help=_('RHEL registration method to use for the overcloud nodes')
+        )
+        reg_group.add_argument(
+            '--reg-org',
+            default='',
+            help=_('Organization key to use for registration')
+        )
+        reg_group.add_argument(
+            '--reg-force',
+            action='store_true',
+            help=_('Register the system even if it is already registered')
+        )
+        reg_group.add_argument(
+            '--reg-sat-url',
+            default='',
+            help=_('Satellite server to register overcloud nodes')
+        )
+        reg_group.add_argument(
+            '--reg-activation-key',
+            default='',
+            help=_('Activation key to use for registration')
         )
 
         return parser
@@ -693,6 +758,25 @@ class DeployOvercloud(command.Command):
         stack_create = stack is None
 
         self._pre_heat_deploy()
+
+        if parsed_args.rhel_reg:
+            if parsed_args.reg_method == 'satellite':
+                sat_required_args = (parsed_args.reg_org and
+                                     parsed_args.reg_sat_url and
+                                     parsed_args.reg_activation_key)
+                if not sat_required_args:
+                    print(("ERROR: In order to use satellite registration, "
+                           "you must specify --reg-org, --reg-sat-url, and "
+                           "--reg-activation-key."), file=sys.stderr)
+                    return
+            else:
+                portal_required_args = (parsed_args.reg_org and
+                                        parsed_args.reg_activation_key)
+                if not portal_required_args:
+                    print(("ERROR: In order to use portal registration, you "
+                           "must specify --reg-org, and "
+                           "--reg-activation-key."), file=sys.stderr)
+                    return
 
         if parsed_args.use_tht:
             self._deploy_tripleo_heat_templates(stack, parsed_args)
