@@ -214,6 +214,7 @@ class DeployOvercloud(command.Command):
                 ('NeutronNetworkType', 'neutron_network_type'),
                 ('NeutronTunnelTypes', 'neutron_tunnel_types'),
                 ('NeutronNetworkVLANRanges', 'neutron_network_vlan_ranges'),
+                ('NeutronMechanismDrivers', 'neutron_mechanism_drivers')
             )
 
             if args.neutron_disable_tunneling is not None:
@@ -247,6 +248,10 @@ class DeployOvercloud(command.Command):
                     'neutron_network_vlan_ranges'),
                 ('Compute-1::NeutronNetworkVLANRanges',
                     'neutron_network_vlan_ranges'),
+                ('Controller-1::NeutronMechanismDrivers',
+                    'neutron_mechanism_drivers'),
+                ('Compute-1::NeutronMechanismDrivers',
+                    'neutron_mechanism_drivers'),
                 ('Controller-1::count', 'control_scale'),
                 ('Compute-1::count', 'compute_scale'),
                 ('Swift-Storage-1::count', 'swift_storage_scale'),
@@ -687,6 +692,7 @@ class DeployOvercloud(command.Command):
                             dest='neutron_disable_tunneling',
                             action="store_const", const=True),
         parser.add_argument('--neutron-network-vlan-ranges')
+        parser.add_argument('--neutron-mechanism-drivers')
         parser.add_argument('--libvirt-type')
         parser.add_argument('--ntp-server')
         parser.add_argument('--cinder-lvm',
