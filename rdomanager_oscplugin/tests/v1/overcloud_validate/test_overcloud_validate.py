@@ -26,39 +26,37 @@ class TestOvercloudValidate(fakes.TestOvercloudValidate):
 
         # Get the command object to test
         self.cmd = overcloud_validate.ValidateOvercloud(self.app, None)
+        self.cmd.tempest_run_dir = '/home/user/tempest'
 
+    @mock.patch('rdomanager_oscplugin.v1.overcloud_validate.ValidateOvercloud.'
+                '_setup_dir')
     @mock.patch('os.chdir')
-    @mock.patch('os.mkdir')
-    @mock.patch('os.stat')
-    @mock.patch('os.path.expanduser')
     @mock.patch('rdomanager_oscplugin.utils.run_shell')
-    def test_validate_ok(self, mock_run_shell, mock_os_path_expanduser,
-                         mock_os_stat, mock_os_mkdir, mock_os_chdir):
-        mock_os_stat.return_value = True
-        mock_os_path_expanduser.return_value = '/home/user'
+    def test_validate_ok(self, mock_run_shell, mock_os_chdir, mock_setup_dir):
 
         argslist = ['--overcloud-auth-url', 'http://foo',
                     '--overcloud-admin-password', 'password',
+                    '--deployer-input', 'partial_config_file',
                     '--tempest-args', 'bar',
                     '--skipfile', 'skip']
         verifylist = [
             ('overcloud_auth_url', 'http://foo'),
             ('overcloud_admin_password', 'password'),
+            ('deployer_input', 'partial_config_file'),
             ('tempest_args', 'bar'),
             ('skipfile', 'skip')
         ]
 
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
-
         self.cmd.take_action(parsed_args)
 
-        mock_os_stat.assert_called_with('/home/user/tempest')
-        self.assertEqual(0, mock_os_mkdir.call_count)
+        mock_setup_dir.assert_called_once_with()
         mock_os_chdir.assert_called_with('/home/user/tempest')
         mock_run_shell.assert_has_calls([
             mock.call('/usr/share/openstack-tempest-kilo/tools/'
                       'configure-tempest-directory'),
             mock.call('./tools/config_tempest.py --out etc/tempest.conf '
+                      '--deployer-input partial_config_file '
                       '--debug --create '
                       'identity.uri http://foo '
                       'compute.allow_tenant_isolation true '

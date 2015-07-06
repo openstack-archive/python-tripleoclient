@@ -26,20 +26,25 @@ class ValidateOvercloud(command.Command):
 
     auth_required = False
     log = logging.getLogger(__name__ + ".ValidateOvercloud")
+    tempest_run_dir = os.path.join(os.path.expanduser("~"), "tempest")
+
+    def _setup_dir(self):
+        try:
+            os.stat(self.tempest_run_dir)
+        except OSError:
+            os.mkdir(self.tempest_run_dir)
 
     def _run_tempest(self, overcloud_auth_url, overcloud_admin_password,
-                     tempest_args, skipfile):
-        tempest_run_dir = os.path.join(os.path.expanduser("~"), "tempest")
-        try:
-            os.stat(tempest_run_dir)
-        except OSError:
-            os.mkdir(tempest_run_dir)
+                     deployer_input, tempest_args, skipfile):
+        os.chdir(self.tempest_run_dir)
 
-        os.chdir(tempest_run_dir)
+        if not deployer_input:
+            deployer_input = '/dev/null'
 
         utils.run_shell('/usr/share/openstack-tempest-kilo/tools/'
                         'configure-tempest-directory')
         utils.run_shell('./tools/config_tempest.py --out etc/tempest.conf '
+                        '--deployer-input %(partial_config_file)s '
                         '--debug --create '
                         'identity.uri %(auth_url)s '
                         'compute.allow_tenant_isolation true '
@@ -51,7 +56,8 @@ class ValidateOvercloud(command.Command):
                         'network.build_timeout 500 '
                         'volume.build_timeout 500 '
                         'scenario.ssh_user cirros' %
-                        {'auth_url': overcloud_auth_url,
+                        {'partial_config_file': deployer_input,
+                         'auth_url': overcloud_auth_url,
                          'admin_password': overcloud_admin_password})
 
         args = ['./tools/run-tests.sh', ]
@@ -68,6 +74,7 @@ class ValidateOvercloud(command.Command):
 
         parser.add_argument('--overcloud-auth-url', required=True)
         parser.add_argument('--overcloud-admin-password', required=True)
+        parser.add_argument('--deployer-input')
         parser.add_argument('--tempest-args')
         parser.add_argument('--skipfile')
 
@@ -76,7 +83,9 @@ class ValidateOvercloud(command.Command):
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
 
+        self._setup_dir()
         self._run_tempest(parsed_args.overcloud_auth_url,
                           parsed_args.overcloud_admin_password,
+                          parsed_args.deployer_input,
                           parsed_args.tempest_args,
                           parsed_args.skipfile)
