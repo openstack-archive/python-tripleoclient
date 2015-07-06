@@ -589,6 +589,10 @@ class DeployOvercloud(command.Command):
                 "gateway": parsed_args.bm_network_gateway,
             }
         }
+        if parsed_args.external_net_segmentation_id:
+            network_description['external']['physical_network'] = 'datacentre'
+            network_description['external']['segmentation_id'] = \
+                parsed_args.external_net_segmentation_id
 
         neutron_client = clients.get_neutron_client(
             'admin',
@@ -692,6 +696,7 @@ class DeployOvercloud(command.Command):
         parser.add_argument('--floating-ip-cidr', default='192.0.2.0/24')
         parser.add_argument('--floating-ip-start', default='192.0.2.45')
         parser.add_argument('--floating-ip-end', default='192.0.2.64')
+        parser.add_argument('--external-net-segmentation-id', type=int)
         parser.add_argument('--bm-network-gateway', default='192.0.2.1')
         parser.add_argument('--network-cidr', default='10.0.0.0/8')
         parser.add_argument(
