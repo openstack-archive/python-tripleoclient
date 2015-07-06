@@ -689,7 +689,7 @@ class DeployOvercloud(command.Command):
                             dest='cinder_lvm',
                             action='store_true')
         parser.add_argument('--overcloud_nameserver', default='8.8.8.8')
-        parser.add_argument('--floating-id-cidr', default='192.0.2.0/24')
+        parser.add_argument('--floating-ip-cidr', default='192.0.2.0/24')
         parser.add_argument('--floating-ip-start', default='192.0.2.45')
         parser.add_argument('--floating-ip-end', default='192.0.2.64')
         parser.add_argument('--bm-network-gateway', default='192.0.2.1')
