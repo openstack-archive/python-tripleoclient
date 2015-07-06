@@ -27,6 +27,8 @@ import time
 import uuid
 
 
+WEBROOT = '/dashboard/'
+
 SERVICE_LIST = {
     'ceilometer': {'password_field': 'OVERCLOUD_CEILOMETER_PASSWORD'},
     'cinder': {'password_field': 'OVERCLOUD_CINDER_PASSWORD'},
@@ -38,6 +40,10 @@ SERVICE_LIST = {
     'nova': {'password_field': 'OVERCLOUD_NOVA_PASSWORD'},
     'novav3': {'password_field': 'OVERCLOUD_NOVA_PASSWORD'},
     'swift': {'password_field': 'OVERCLOUD_SWIFT_PASSWORD'},
+    'horizon': {
+        'port': '80',
+        'path': WEBROOT,
+        'admin_path': '%sadmin' % WEBROOT},
 }
 
 
