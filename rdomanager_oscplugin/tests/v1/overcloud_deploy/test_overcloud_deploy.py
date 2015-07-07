@@ -149,7 +149,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                    '--compute-flavor', 'baremetal',
                    '--neutron-bridge-mappings', 'datacentre:br-test',
                    '--neutron-disable-tunneling',
-                   '--control-scale', '3']
+                   '--control-scale', '3',
+                   '--neutron-mechanism-drivers', 'linuxbridge']
 
         verifylist = [
             ('use_tht', False),
@@ -214,6 +215,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'Controller-1::NeutronAllowL3AgentFailover': False,
             'Compute-1::NeutronL3HA': True,
             'Compute-1::NeutronAllowL3AgentFailover': False,
+            'Controller-1::NeutronMechanismDrivers': 'linuxbridge',
+            'Compute-1::NeutronMechanismDrivers': 'linuxbridge',
         }
 
         mock_heat_deploy.assert_called_with(
