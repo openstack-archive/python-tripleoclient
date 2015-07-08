@@ -81,6 +81,8 @@ PARAMETERS = {
 
 NEW_STACK_PARAMETERS = {
     'NovaComputeLibvirtType': 'qemu',
+    'NeutronTunnelIdRanges': '1:1000',
+    'NeutronVniRanges': '1:1000',
     'NeutronEnableTunnelling': 'True',
     'NeutronNetworkType': 'gre',
     'NeutronTunnelTypes': 'gre',
@@ -215,7 +217,9 @@ class DeployOvercloud(command.Command):
             if stack is None:
                 new_stack_args = (
                     ('NeutronNetworkType', 'neutron_network_type'),
+                    ('NeutronTunnelIdRanges', 'neutron_tunnel_id_ranges'),
                     ('NeutronTunnelTypes', 'neutron_tunnel_types'),
+                    ('NeutronVniRanges', 'neutron_vni_ranges'),
                     ('NovaComputeLibvirtType', 'libvirt_type'),
                 )
                 param_args = param_args + new_stack_args
@@ -272,6 +276,12 @@ class DeployOvercloud(command.Command):
                         'neutron_tunnel_types'),
                     ('Compute-1::NeutronTunnelTypes', 'neutron_tunnel_types'),
                     ('Compute-1::NovaComputeLibvirtType', 'libvirt_type'),
+                    ('Controller-1::NeutronTunnelIdRanges',
+                        'neutron_tunnel_id_ranges'),
+                    ('Controller-1::NeutronVniRanges', 'neutron_vni_ranges'),
+                    ('Compute-1::NeutronTunnelIdRanges',
+                        'neutron_tunnel_id_ranges'),
+                    ('Compute-1::NeutronVniRanges', 'neutron_vni_ranges'),
                 )
                 param_args = param_args + new_stack_args
 
@@ -708,6 +718,14 @@ class DeployOvercloud(command.Command):
                             default='nic1')
         parser.add_argument('--neutron-network-type')
         parser.add_argument('--neutron-tunnel-types')
+        parser.add_argument('--neutron-tunnel-id-ranges',
+                            default="1:1000",
+                            help=_("Ranges of GRE tunnel IDs to make "
+                                   "available for tenant network allocation"),)
+        parser.add_argument('--neutron-vni-ranges',
+                            default="1:1000",
+                            help=_("Ranges of VXLAN VNI IDs to make "
+                                   "available for tenant network allocation"),)
         parser.add_argument('--neutron-disable-tunneling',
                             dest='neutron_disable_tunneling',
                             action="store_const", const=True),
