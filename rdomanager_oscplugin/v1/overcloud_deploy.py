@@ -382,6 +382,8 @@ class DeployOvercloud(command.Command):
             orchestration_client.stacks.create(**stack_args)
         else:
             self.log.info("Performing Heat stack update")
+            # Make sure existing parameters for stack are reused
+            stack_args['existing'] = 'true'
             orchestration_client.stacks.update(stack.id, **stack_args)
 
         create_result = utils.wait_for_stack_ready(
