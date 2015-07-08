@@ -555,6 +555,10 @@ class DeployOvercloud(command.Command):
         overcloud_ip = six.moves.urllib.parse.urlparse(
             overcloud_endpoint).hostname
 
+        no_proxy = [os.environ.get('no_proxy'), overcloud_ip]
+        os.environ['no_proxy'] = ','.join(
+            [x for x in no_proxy if x is not None])
+
         utils.remove_known_hosts(overcloud_ip)
 
         keystone.initialize(
