@@ -342,6 +342,8 @@ def set_nodes_state(baremetal_client, nodes, transition, target_state,
                                         target_state):
             print("FAIL: State not updated for Node {0}".format(
                   node.uuid, file=sys.stderr))
+        else:
+            yield node.uuid
 
 
 def get_hiera_key(key_name):

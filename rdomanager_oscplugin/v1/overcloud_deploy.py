@@ -354,12 +354,6 @@ class DeployOvercloud(command.Command):
 
         clients = self.app.client_manager
         orchestration_client = clients.rdomanager_oscplugin.orchestration()
-        baremetal_client = clients.rdomanager_oscplugin.baremetal()
-
-        self.log.debug("Verifying that Baremetal nodes to available or active")
-        utils.set_nodes_state(
-            baremetal_client, baremetal_client.node.list(),
-            'provide', 'available', skipped_states=("available", "active"))
 
         stack_name = "overcloud"
 

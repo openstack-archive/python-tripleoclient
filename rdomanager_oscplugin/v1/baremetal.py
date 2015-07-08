@@ -116,8 +116,6 @@ class StartBaremetalIntrospectionBulk(IntrospectionParser, command.Command):
     def get_parser(self, prog_name):
         parser = super(
             StartBaremetalIntrospectionBulk, self).get_parser(prog_name)
-        parser.add_argument('--no-poll', dest='poll', action='store_false')
-        parser.set_defaults(poll=True)
         return parser
 
     def take_action(self, parsed_args):
@@ -129,16 +127,19 @@ class StartBaremetalIntrospectionBulk(IntrospectionParser, command.Command):
 
         node_uuids = []
 
+        print("Setting available nodes to manageable...")
+        self.log.debug("Moving available nodes to manageable state.")
         available_nodes = [node for node in client.node.list()
                            if node.provision_state == "available"]
-        utils.set_nodes_state(client, available_nodes, 'manage', 'manageable')
+        for uuid in utils.set_nodes_state(client, available_nodes, 'manage',
+                                          'manageable'):
+            self.log.debug("Node {0} has been set to manageable.".format(uuid))
 
         for node in client.node.list():
 
             node_uuids.append(node.uuid)
 
-            self.log.debug("Starting introspection of Ironic node {0}".format(
-                node.uuid))
+            print("Starting introspection of node: {0}".format(node.uuid))
             discoverd_client.introspect(
                 node.uuid,
                 base_url=parsed_args.discoverd_url,
@@ -150,17 +151,30 @@ class StartBaremetalIntrospectionBulk(IntrospectionParser, command.Command):
             # around it by using sleep, anyway introspection takes much longer.
             time.sleep(5)
 
-        if parsed_args.poll:
-            print("Waiting for discovery to finish")
-            for uuid, status in utils.wait_for_node_discovery(
-                    discoverd_client, auth_token, parsed_args.discoverd_url,
-                    node_uuids):
-                if status['error'] is None:
-                    print("Discovery for UUID {0} finished successfully."
-                          .format(uuid))
-                else:
-                    print("Discovery for UUID {0} finished with error: {1}"
-                          .format(uuid, status['error']))
+        print("Waiting for discovery to finish...")
+        for uuid, status in utils.wait_for_node_discovery(
+                discoverd_client, auth_token, parsed_args.discoverd_url,
+                node_uuids):
+            if status['error'] is None:
+                print("Discovery for UUID {0} finished successfully."
+                      .format(uuid))
+            else:
+                print("Discovery for UUID {0} finished with error: {1}"
+                      .format(uuid, status['error']))
+
+        clients = self.app.client_manager
+        baremetal_client = clients.rdomanager_oscplugin.baremetal()
+        print("Setting manageable nodes to available...")
+
+        self.log.debug("Moving manageable nodes to available state.")
+        available_nodes = [node for node in client.node.list()
+                           if node.provision_state == "manageable"]
+        for uuid in utils.set_nodes_state(
+                baremetal_client, baremetal_client.node.list(), 'provide',
+                'available', skipped_states=("available", "active")):
+            print("Node {0} has been set to available.".format(uuid))
+
+        print("Discovery completed.")
 
 
 class StatusBaremetalIntrospectionBulk(IntrospectionParser, lister.Lister):

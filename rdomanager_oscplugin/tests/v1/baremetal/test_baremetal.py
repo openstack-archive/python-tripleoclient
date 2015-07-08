@@ -244,9 +244,7 @@ class TestStartBaremetalIntrospectionBulk(fakes.TestBaremetal):
         ]
 
         arglist = []
-        verifylist = [
-            ('poll', True)
-        ]
+        verifylist = []
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         self.cmd.take_action(parsed_args)
@@ -266,48 +264,9 @@ class TestStartBaremetalIntrospectionBulk(fakes.TestBaremetal):
             discoverd_client, 'TOKEN', None,
             ['ABCDEFGH', 'IJKLMNOP', 'QRSTUVWX'])
 
-    @mock.patch('rdomanager_oscplugin.utils.wait_for_node_discovery',
-                autospec=True)
-    @mock.patch('rdomanager_oscplugin.utils.wait_for_provision_state',
-                autospec=True)
-    @mock.patch('ironic_discoverd.client.get_status', autospec=True)
-    @mock.patch('ironic_discoverd.client.introspect', autospec=True)
-    def test_introspect_bulk_no_poll(self, introspect_mock, get_status_mock,
-                                     wait_for_state_mock,
-                                     wait_for_discover_mock):
-
-        wait_for_discover_mock.return_value = []
-        wait_for_state_mock.return_value = True
-
-        get_status_mock.return_value = {'finished': True, 'error': None}
-
-        client = self.app.client_manager.rdomanager_oscplugin.baremetal()
-        client.node.list.return_value = [
-            mock.Mock(uuid="ABCDEFGH", provision_state="available"),
-            mock.Mock(uuid="IJKLMNOP", provision_state="manageable"),
-            mock.Mock(uuid="QRSTUVWX", provision_state="available"),
-        ]
-
-        arglist = ['--no-poll', ]
-        verifylist = [
-            ('poll', False)
-        ]
-
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-        self.cmd.take_action(parsed_args)
-
         client.node.set_provision_state.assert_has_calls([
-            mock.call('ABCDEFGH', 'manage'),
-            mock.call('QRSTUVWX', 'manage'),
+            mock.call('IJKLMNOP', 'provide'),
         ])
-
-        introspect_mock.assert_has_calls([
-            mock.call('ABCDEFGH', base_url=None, auth_token='TOKEN'),
-            mock.call('IJKLMNOP', base_url=None, auth_token='TOKEN'),
-            mock.call('QRSTUVWX', base_url=None, auth_token='TOKEN'),
-        ])
-
-        self.assertFalse(wait_for_discover_mock.called)
 
 
 class TestStatusBaremetalIntrospectionBulk(fakes.TestBaremetal):

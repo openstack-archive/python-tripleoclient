@@ -273,12 +273,14 @@ class TestWaitForDiscovery(TestCase):
         ]
 
         skipped_states = ('active', 'available')
-        utils.set_nodes_state(bm_client, nodes, 'provide', 'available',
-                              skipped_states)
+        uuids = list(utils.set_nodes_state(bm_client, nodes, 'provide',
+                                           'available', skipped_states))
 
         bm_client.node.set_provision_state.assert_has_calls([
             mock.call('IJKLMNOP', 'provide'),
         ])
+
+        self.assertEqual(uuids, ['IJKLMNOP', ])
 
     @mock.patch("subprocess.Popen")
     def test_get_hiera_key(self, mock_popen):

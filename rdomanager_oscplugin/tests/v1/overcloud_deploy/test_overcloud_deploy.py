@@ -49,7 +49,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('rdomanager_oscplugin.utils.remove_known_hosts', autospec=True)
     @mock.patch('rdomanager_oscplugin.utils.wait_for_stack_ready',
                 autospec=True)
-    @mock.patch('rdomanager_oscplugin.utils.set_nodes_state', autospec=True)
     @mock.patch('heatclient.common.template_utils.'
                 'process_multiple_environments_and_files', autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
@@ -64,7 +63,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_tht_deploy(self, mock_check_hypervisor_stats, mock_get_key,
                         mock_create_env, generate_certs_mock,
                         mock_get_templte_contents, mock_process_multiple_env,
-                        set_nodes_state_mock, wait_for_stack_ready_mock,
+                        wait_for_stack_ready_mock,
                         mock_remove_known_hosts, mock_keystone_initialize,
                         mock_sleep, mock_setup_endpoints,
                         mock_create_overcloudrc,
