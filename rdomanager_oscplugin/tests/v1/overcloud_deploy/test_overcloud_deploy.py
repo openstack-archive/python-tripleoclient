@@ -110,7 +110,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         self.assertEqual(args, (orchestration_client.stacks.get().id, ))
 
-        # The parameters output contains lots of output and some in random.
+        # The parameters output contains lots of output and some is random.
         # So lets just check that it is present
         self.assertTrue('parameters' in kwargs)
 
@@ -118,6 +118,101 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertEqual(kwargs['template'], 'template')
         self.assertEqual(kwargs['environment'], 'env')
         self.assertEqual(kwargs['stack_name'], 'overcloud')
+
+        mock_get_templte_contents.assert_called_with(
+            ('/usr/share/openstack-tripleo-heat-templates/overcloud-without-'
+             'mergepy.yaml'))
+
+    @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
+                '_deploy_postconfig')
+    @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
+                '_update_nodesjson')
+    @mock.patch('rdomanager_oscplugin.utils.generate_overcloud_passwords')
+    @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
+                '_create_overcloudrc')
+    @mock.patch('os_cloud_config.keystone.setup_endpoints', autospec=True)
+    @mock.patch('time.sleep', return_value=None)
+    @mock.patch('os_cloud_config.keystone.initialize', autospec=True)
+    @mock.patch('rdomanager_oscplugin.utils.remove_known_hosts', autospec=True)
+    @mock.patch('rdomanager_oscplugin.utils.wait_for_stack_ready',
+                autospec=True)
+    @mock.patch('heatclient.common.template_utils.'
+                'process_multiple_environments_and_files', autospec=True)
+    @mock.patch('heatclient.common.template_utils.get_template_contents',
+                autospec=True)
+    @mock.patch('os_cloud_config.keystone_pki.generate_certs_into_json',
+                autospec=True)
+    @mock.patch('rdomanager_oscplugin.utils.create_environment_file',
+                autospec=True)
+    @mock.patch('rdomanager_oscplugin.utils.get_config_value', autospec=True)
+    @mock.patch('rdomanager_oscplugin.utils.check_hypervisor_stats',
+                autospec=True)
+    def test_deploy_custom_templates(self, mock_check_hypervisor_stats,
+                                     mock_get_key,
+                                     mock_create_env, generate_certs_mock,
+                                     mock_get_templte_contents,
+                                     mock_process_multiple_env,
+                                     wait_for_stack_ready_mock,
+                                     mock_remove_known_hosts,
+                                     mock_keystone_initialize,
+                                     mock_sleep, mock_setup_endpoints,
+                                     mock_create_overcloudrc,
+                                     mock_generate_overcloud_passwords,
+                                     mock_update_nodesjson,
+                                     mock_deploy_postconfig):
+
+        arglist = ['--template-root', '/home/stack/tripleo-heat-templates']
+        verifylist = [
+            ('use_tht', False),
+            ('template_root', '/home/stack/tripleo-heat-templates'),
+        ]
+
+        mock_generate_overcloud_passwords.return_value = self._get_passwords()
+
+        clients = self.app.client_manager
+        orchestration_client = clients.rdomanager_oscplugin.orchestration()
+        mock_stack = fakes.create_to_dict_mock(
+            outputs=[{
+                'output_key': 'KeystoneURL',
+                'output_value': 'Overcloud endpoint'
+            }]
+        )
+        orchestration_client.stacks.get.return_value = mock_stack
+
+        mock_check_hypervisor_stats.return_value = {
+            'count': 4,
+            'memory_mb': 4096,
+            'vcpus': 8,
+        }
+        mock_get_key.return_value = "PASSWORD"
+        clients.network.api.find_attr.return_value = {
+            "id": "network id"
+        }
+        mock_create_env.return_value = "/fake/path"
+        mock_process_multiple_env.return_value = [{}, "env"]
+        mock_get_templte_contents.return_value = [{}, "template"]
+        wait_for_stack_ready_mock.return_value = True
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
+
+        args, kwargs = orchestration_client.stacks.update.call_args
+
+        self.assertEqual(args, (orchestration_client.stacks.get().id, ))
+
+        # The parameters output contains lots of output and some is random.
+        # So lets just check that it is present
+        self.assertTrue('parameters' in kwargs)
+
+        self.assertEqual(kwargs['files'], {})
+        self.assertEqual(kwargs['template'], 'template')
+        self.assertEqual(kwargs['environment'], 'env')
+        self.assertEqual(kwargs['stack_name'], 'overcloud')
+
+        mock_get_templte_contents.assert_called_with(
+            '/home/stack/tripleo-heat-templates/overcloud-without-mergepy.yaml'
+        )
 
     @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig')

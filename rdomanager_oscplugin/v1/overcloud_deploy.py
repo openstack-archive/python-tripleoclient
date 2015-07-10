@@ -37,12 +37,10 @@ from tuskarclient.common import utils as tuskarutils
 from rdomanager_oscplugin import utils
 
 TRIPLEO_HEAT_TEMPLATES = "/usr/share/openstack-tripleo-heat-templates/"
-OVERCLOUD_YAML_PATH = os.path.join(TRIPLEO_HEAT_TEMPLATES,
-                                   "overcloud-without-mergepy.yaml")
-RESOURCE_REGISTRY_PATH = os.path.join(
-    TRIPLEO_HEAT_TEMPLATES, "overcloud-resource-registry-puppet.yaml")
-RHEL_REGISTRATION_EXTRACONFIG_PATH = os.path.join(
-    TRIPLEO_HEAT_TEMPLATES, "extraconfig/post_deploy/rhel-registration/")
+OVERCLOUD_YAML_NAME = "overcloud-without-mergepy.yaml"
+RESOURCE_REGISTRY_NAME = "overcloud-resource-registry-puppet.yaml"
+RHEL_REGISTRATION_EXTRACONFIG_NAME = (
+    "extraconfig/post_deploy/rhel-registration/")
 
 PARAMETERS = {
     'AdminPassword': None,
@@ -318,9 +316,16 @@ class DeployOvercloud(command.Command):
         return parameters
 
     def _create_registration_env(self, args):
-        environment = os.path.join(RHEL_REGISTRATION_EXTRACONFIG_PATH,
+
+        if args.template_root:
+            tht_root = args.template_root
+        else:
+            tht_root = TRIPLEO_HEAT_TEMPLATES
+
+        environment = os.path.join(tht_root,
+                                   RHEL_REGISTRATION_EXTRACONFIG_NAME,
                                    'environment-rhel-registration.yaml')
-        registry = os.path.join(RHEL_REGISTRATION_EXTRACONFIG_PATH,
+        registry = os.path.join(tht_root, RHEL_REGISTRATION_EXTRACONFIG_NAME,
                                 'rhel-registration-resource-registry.yaml')
         user_env = ("parameter_defaults:\n"
                     "  rhel_reg_method: \"%(method)s\"\n"
@@ -410,6 +415,11 @@ class DeployOvercloud(command.Command):
 
         parameters = self._update_paramaters(parsed_args, network_client)
 
+        if parsed_args.template_root:
+            tht_root = parsed_args.template_root
+        else:
+            tht_root = TRIPLEO_HEAT_TEMPLATES
+
         self.log.debug("Creating Environment file")
         env_path = utils.create_environment_file()
 
@@ -417,14 +427,18 @@ class DeployOvercloud(command.Command):
             self.log.debug("Creating Keystone certificates")
             keystone_pki.generate_certs_into_json(env_path, False)
 
-        environments = [RESOURCE_REGISTRY_PATH, env_path]
+        resource_registry_path = os.path.join(tht_root, RESOURCE_REGISTRY_NAME)
+
+        environments = [resource_registry_path, env_path]
         if parsed_args.rhel_reg:
             reg_env = self._create_registration_env(parsed_args)
             environments.extend(reg_env)
         if parsed_args.extra_templates:
             environments.extend(parsed_args.extra_templates)
 
-        self._heat_deploy(stack, OVERCLOUD_YAML_PATH, parameters, environments)
+        overcloud_yaml = os.path.join(tht_root, OVERCLOUD_YAML_NAME)
+
+        self._heat_deploy(stack, overcloud_yaml, parameters, environments)
 
     def _deploy_tuskar(self, stack, parsed_args):
 
@@ -662,6 +676,9 @@ class DeployOvercloud(command.Command):
             '--plan',
             help=_("The Name or UUID of the Tuskar plan to deploy.")
         )
+        main_group.add_argument(
+            '--template-root',
+            help=_("The directory containging the Heat templates to deploy"))
         parser.add_argument('--control-scale', type=int)
         parser.add_argument('--compute-scale', type=int)
         parser.add_argument('--ceph-storage-scale', type=int)
@@ -796,7 +813,7 @@ class DeployOvercloud(command.Command):
                            "--reg-activation-key."), file=sys.stderr)
                     return
 
-        if parsed_args.use_tht:
+        if parsed_args.use_tht or parsed_args.template_root:
             self._deploy_tripleo_heat_templates(stack, parsed_args)
         else:
             self._deploy_tuskar(stack, parsed_args)
