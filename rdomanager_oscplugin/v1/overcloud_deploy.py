@@ -104,7 +104,7 @@ class DeployOvercloud(command.Command):
         self.passwords = passwords = utils.generate_overcloud_passwords()
         ceilometer_pass = passwords['OVERCLOUD_CEILOMETER_PASSWORD']
         ceilometer_secret = passwords['OVERCLOUD_CEILOMETER_SECRET']
-        if parsed_args.use_tht:
+        if parsed_args.templates:
             parameters['AdminPassword'] = passwords['OVERCLOUD_ADMIN_PASSWORD']
             parameters['AdminToken'] = passwords['OVERCLOUD_ADMIN_TOKEN']
             parameters['CeilometerPassword'] = ceilometer_pass
@@ -177,7 +177,7 @@ class DeployOvercloud(command.Command):
 
     def _update_paramaters(self, args, network_client):
 
-        if args.use_tht:
+        if args.templates:
             parameters = PARAMETERS.copy()
         else:
             parameters = {}
@@ -191,7 +191,7 @@ class DeployOvercloud(command.Command):
 
         neutron_enable_tunneling = not args.neutron_disable_tunneling
 
-        if args.use_tht:
+        if args.templates:
             param_args = (
                 ('NeutronPublicInterface', 'neutron_public_interface'),
                 ('NeutronBridgeMappings', 'neutron_bridge_mappings'),
@@ -277,7 +277,7 @@ class DeployOvercloud(command.Command):
 
         # Scaling needs extra parameters
         if parameters.get('Controller-1::count', 1) > 1:
-            if args.use_tht:
+            if args.templates:
                 parameters.update({
                     'NeutronL3HA': True,
                     'NeutronAllowL3AgentFailover': False,
@@ -299,7 +299,7 @@ class DeployOvercloud(command.Command):
 
             cinder_lvm = True if args.cinder_lvm else False
 
-            if args.use_tht:
+            if args.templates:
                 parameters.update({
                     'CinderEnableRbdBackend': True,
                     'NovaEnableRbdBackend': True,
@@ -317,10 +317,7 @@ class DeployOvercloud(command.Command):
 
     def _create_registration_env(self, args):
 
-        if args.template_root:
-            tht_root = args.template_root
-        else:
-            tht_root = TRIPLEO_HEAT_TEMPLATES
+        tht_root = args.templates
 
         environment = os.path.join(tht_root,
                                    RHEL_REGISTRATION_EXTRACONFIG_NAME,
@@ -415,10 +412,10 @@ class DeployOvercloud(command.Command):
 
         parameters = self._update_paramaters(parsed_args, network_client)
 
-        if parsed_args.template_root:
-            tht_root = parsed_args.template_root
-        else:
-            tht_root = TRIPLEO_HEAT_TEMPLATES
+        tht_root = parsed_args.templates
+
+        print("Deploying templates in the directory {0}".format(
+            os.path.abspath(tht_root)))
 
         self.log.debug("Creating Environment file")
         env_path = utils.create_environment_file()
@@ -664,7 +661,8 @@ class DeployOvercloud(command.Command):
         parser = super(DeployOvercloud, self).get_parser(prog_name)
         main_group = parser.add_mutually_exclusive_group(required=True)
         main_group.add_argument('--use-tripleo-heat-templates',
-                                dest='use_tht', action='store_true',
+                                dest='templates', action='store_const',
+                                const=TRIPLEO_HEAT_TEMPLATES,
                                 help=_("Use the tripleo heat templates "
                                        "directly, instead of the tuskar "
                                        "plan. "))
@@ -677,8 +675,8 @@ class DeployOvercloud(command.Command):
             help=_("The Name or UUID of the Tuskar plan to deploy.")
         )
         main_group.add_argument(
-            '--template-root',
-            help=_("The directory containging the Heat templates to deploy"))
+            '--templates', nargs='?', const=TRIPLEO_HEAT_TEMPLATES,
+            help=_("The directory containing the Heat templates to deploy"))
         parser.add_argument('--control-scale', type=int)
         parser.add_argument('--compute-scale', type=int)
         parser.add_argument('--ceph-storage-scale', type=int)
@@ -813,7 +811,7 @@ class DeployOvercloud(command.Command):
                            "--reg-activation-key."), file=sys.stderr)
                     return
 
-        if parsed_args.use_tht or parsed_args.template_root:
+        if parsed_args.templates:
             self._deploy_tripleo_heat_templates(stack, parsed_args)
         else:
             self._deploy_tuskar(stack, parsed_args)

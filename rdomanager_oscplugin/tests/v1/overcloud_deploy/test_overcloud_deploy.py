@@ -73,7 +73,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         arglist = ['--use-tripleo-heat-templates', ]
         verifylist = [
-            ('use_tht', True),
+            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
         ]
 
         mock_generate_overcloud_passwords.return_value = self._get_passwords()
@@ -161,10 +161,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                      mock_update_nodesjson,
                                      mock_deploy_postconfig):
 
-        arglist = ['--template-root', '/home/stack/tripleo-heat-templates']
+        arglist = ['--templates', '/home/stack/tripleo-heat-templates']
         verifylist = [
-            ('use_tht', False),
-            ('template_root', '/home/stack/tripleo-heat-templates'),
+            ('templates', '/home/stack/tripleo-heat-templates'),
         ]
 
         mock_generate_overcloud_passwords.return_value = self._get_passwords()
@@ -247,7 +246,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                    '--neutron-mechanism-drivers', 'linuxbridge']
 
         verifylist = [
-            ('use_tht', False),
+            ('templates', None),
             ('plan', 'undercloud'),
             ('output_dir', 'fake'),
         ]
@@ -355,7 +354,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                    '-e', 'extra_environment.yaml']
 
         verifylist = [
-            ('use_tht', False),
+            ('templates', None),
             ('plan', 'undercloud'),
             ('output_dir', 'fake'),
             ('extra_templates', ['extra_registry.yaml',
@@ -441,7 +440,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         arglist = ['--plan', 'undercloud', '--use-tripleo-heat-templates']
         verifylist = [
-            ('use_tht', True),
+            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
             ('plan', 'undercloud'),
         ]
 
@@ -469,7 +468,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                    '--reg-method', 'satellite', '--reg-org', '123456789',
                    '--reg-activation-key', 'super-awesome-key']
         verifylist = [
-            ('use_tht', True),
+            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
             ('rhel_reg', True),
             ('reg_method', 'satellite'),
             ('reg_org', '123456789'),
@@ -502,7 +501,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                    '--reg-method', 'satellite', '--reg-org', '123456789',
                    '--reg-activation-key', 'super-awesome-key']
         verifylist = [
-            ('use_tht', True),
+            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
             ('rhel_reg', True),
             ('reg_sat_url', 'https://example.com'),
             ('reg_method', 'satellite'),
