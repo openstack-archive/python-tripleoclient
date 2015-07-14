@@ -19,6 +19,8 @@ from cliff import command
 from openstackclient.common import utils
 from tripleo_common import update
 
+TRIPLEO_HEAT_TEMPLATES = "/usr/share/openstack-tripleo-heat-templates/"
+
 
 class UpdateOvercloud(command.Command):
     """Updates packages on overcloud nodes"""
@@ -40,19 +42,28 @@ class UpdateOvercloud(command.Command):
                             action='store_true')
         parser.add_argument('-a', '--abort', dest='abort_update',
                             action='store_true')
+        parser.add_argument(
+            '--templates', nargs='?', const=TRIPLEO_HEAT_TEMPLATES,
+            help="The directory containing the Heat templates to deploy"
+        )
         return parser
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
-        management = self.app.client_manager.rdomanager_oscplugin.management()
-        orchestration = (self.app.client_manager.rdomanager_oscplugin.
-                         orchestration())
+        osc_plugin = self.app.client_manager.rdomanager_oscplugin
+        if parsed_args.templates:
+            management = None
+        else:
+            management = osc_plugin.management()
+
+        orchestration = osc_plugin.orchestration()
         update_manager = update.PackageUpdateManager(
             tuskarclient=management,
             heatclient=orchestration,
             novaclient=self.app.client_manager.compute,
             plan_id=parsed_args.plan,
-            stack_id=parsed_args.stack)
+            stack_id=parsed_args.stack,
+            tht_dir=parsed_args.templates)
         if parsed_args.abort_update:
             print("cancelling package update on stack {0}".format(
                 parsed_args.stack))
