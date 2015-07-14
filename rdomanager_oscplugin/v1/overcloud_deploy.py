@@ -392,6 +392,12 @@ class DeployOvercloud(command.Command):
             if output['output_key'] == 'KeystoneURL':
                 return output['output_value']
 
+    def _get_service_ips(self, stack):
+        service_ips = {}
+        for output in stack.to_dict().get('outputs', {}):
+            service_ips[output['output_key']] = output['output_value']
+        return service_ips
+
     def _pre_heat_deploy(self):
         """Setup before the Heat stack create or update has been done."""
         clients = self.app.client_manager
@@ -561,6 +567,8 @@ class DeployOvercloud(command.Command):
         os.environ['no_proxy'] = ','.join(
             [x for x in no_proxy if x is not None])
 
+        service_ips = self._get_service_ips(stack)
+
         utils.remove_known_hosts(overcloud_ip)
 
         keystone.initialize(
@@ -576,6 +584,12 @@ class DeployOvercloud(command.Command):
             password_field = data.get('password_field')
             if password_field:
                 service_data['password'] = passwords[password_field]
+
+            service_name = re.sub('v[0-9]+', '',
+                                  service.capitalize() + 'InternalVip')
+            internal_vip = service_ips.get(service_name)
+            if internal_vip:
+                service_data['internal_host'] = internal_vip
             services.update({service: service_data})
 
         keystone_client = clients.get_keystone_client(
