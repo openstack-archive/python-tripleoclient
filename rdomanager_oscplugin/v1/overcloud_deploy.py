@@ -17,11 +17,9 @@ from __future__ import print_function
 import json
 import logging
 import os
-import re
 import six
 import sys
 import tempfile
-import time
 import uuid
 
 from cliff import command
@@ -30,7 +28,6 @@ from heatclient.exc import HTTPNotFound
 from openstackclient.i18n import _
 from os_cloud_config import keystone
 from os_cloud_config import keystone_pki
-from os_cloud_config import neutron
 from os_cloud_config.utils import clients
 from tuskarclient.common import utils as tuskarutils
 
@@ -594,65 +591,6 @@ class DeployOvercloud(command.Command):
             client=keystone_client,
             os_auth_url=overcloud_endpoint)
 
-        network_description = {
-            "float": {
-                "cidr": parsed_args.network_cidr,
-                "name": "default-net",
-                "nameserver": parsed_args.overcloud_nameserver
-            },
-            "external": {
-                "name": "ext-net",
-                "cidr": parsed_args.floating_ip_cidr,
-                "allocation_start": parsed_args.floating_ip_start,
-                "allocation_end": parsed_args.floating_ip_end,
-                "gateway": parsed_args.bm_network_gateway,
-            }
-        }
-        if parsed_args.external_net_segmentation_id:
-            network_description['external']['physical_network'] = 'datacentre'
-            network_description['external']['segmentation_id'] = \
-                parsed_args.external_net_segmentation_id
-
-        neutron_client = clients.get_neutron_client(
-            'admin',
-            passwords['OVERCLOUD_ADMIN_PASSWORD'],
-            'admin',
-            overcloud_endpoint)
-
-        # BZ https://bugzilla.redhat.com/show_bug.cgi?id=1236578
-        # Give the l3 agents a chance, loop for about a minute at worst
-        # This is likely happening in the first place because of
-        # https://bugzilla.redhat.com/show_bug.cgi?id=1238117
-        sleep_time = 20
-        loops = 6
-        min_agents = 2
-        for count in range(loops):
-            neutron_agents = neutron_client.list_agents()
-            # Match the neutron-n-? pattern used by NeutronScale
-            l3_agents = [r['id'] for r in neutron_agents['agents']
-                         if r['binary'] == 'neutron-l3-agent' and
-                         re.search(r'neutron-n-\d{1}', r['host'])]
-            if len(l3_agents) < min_agents:  # min_l3_agents_per_router
-                warn = ("Warning not enough l3 agents (attempt %s of %s). "
-                        "Retrying in %s seconds. Agent ids: %s "
-                        % ((count + 1), loops, sleep_time, l3_agents))
-                self.log.debug(warn)
-                print(warn)
-                time.sleep(sleep_time)
-            else:  # have enough agents no need to continue
-                break
-            if count == (loops - 1):
-                warn = ("Warning can't get enough l3 agents. "
-                        "Giving up, agents are %s: " % neutron_agents)
-                self.log.debug(warn)
-                print(warn)
-
-        neutron.initialize_neutron(
-            network_description,
-            neutron_client=neutron_client,
-            keystone_client=keystone_client,
-        )
-
         compute_client = clients.get_nova_bm_client(
             'admin',
             passwords['OVERCLOUD_ADMIN_PASSWORD'],
@@ -715,13 +653,6 @@ class DeployOvercloud(command.Command):
         parser.add_argument('--cinder-lvm',
                             dest='cinder_lvm',
                             action='store_true')
-        parser.add_argument('--overcloud_nameserver', default='8.8.8.8')
-        parser.add_argument('--floating-ip-cidr', default='192.0.2.0/24')
-        parser.add_argument('--floating-ip-start', default='192.0.2.45')
-        parser.add_argument('--floating-ip-end', default='192.0.2.64')
-        parser.add_argument('--external-net-segmentation-id', type=int)
-        parser.add_argument('--bm-network-gateway', default='192.0.2.1')
-        parser.add_argument('--network-cidr', default='10.0.0.0/8')
         parser.add_argument(
             '--tripleo-root',
             default=os.environ.get('TRIPLEO_ROOT', '/etc/tripleo')
