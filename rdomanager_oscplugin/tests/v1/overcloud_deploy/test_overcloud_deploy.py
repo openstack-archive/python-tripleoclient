@@ -357,8 +357,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             ('templates', None),
             ('plan', 'undercloud'),
             ('output_dir', 'fake'),
-            ('extra_templates', ['extra_registry.yaml',
-                                 'extra_environment.yaml'])
+            ('environment_files', ['extra_registry.yaml',
+                                   'extra_environment.yaml'])
         ]
 
         clients = self.app.client_manager

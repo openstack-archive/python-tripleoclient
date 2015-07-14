@@ -430,8 +430,8 @@ class DeployOvercloud(command.Command):
         if parsed_args.rhel_reg:
             reg_env = self._create_registration_env(parsed_args)
             environments.extend(reg_env)
-        if parsed_args.extra_templates:
-            environments.extend(parsed_args.extra_templates)
+        if parsed_args.environment_files:
+            environments.extend(parsed_args.environment_files)
 
         overcloud_yaml = os.path.join(tht_root, OVERCLOUD_YAML_NAME)
 
@@ -506,8 +506,8 @@ class DeployOvercloud(command.Command):
         if parsed_args.rhel_reg:
             reg_env = self._create_registration_env(parsed_args)
             environments.extend(reg_env)
-        if parsed_args.extra_templates:
-            environments.extend(parsed_args.extra_templates)
+        if parsed_args.environment_files:
+            environments.extend(parsed_args.environment_files)
 
         self._heat_deploy(stack, overcloud_yaml, parameters, environments)
 
@@ -739,10 +739,10 @@ class DeployOvercloud(command.Command):
                    'directory will be used.')
         )
         parser.add_argument(
-            '-e', '--extra-template', metavar='<EXTRA HEAT TEMPLATE>',
-            action='append', dest='extra_templates',
-            help=_('Extra templates to be passed to the heat stack-create or '
-                   'heat stack-update command. (Can be specified more than '
+            '-e', '--environment-file', metavar='<HEAT ENVIRONMENT FILE>',
+            action='append', dest='environment_files',
+            help=_('Environment files to be passed to the heat stack-create '
+                   'or heat stack-update command. (Can be specified more than '
                    'once.)')
         )
         reg_group = parser.add_argument_group('Registration Parameters')
