@@ -620,10 +620,6 @@ class DeployOvercloud(command.Command):
                                        "directly, instead of the tuskar "
                                        "plan. "))
         main_group.add_argument(
-            '--plan-uuid', dest='plan',
-            help=_("The UUID of the Tuskar plan to deploy.")
-        )
-        main_group.add_argument(
             '--plan',
             help=_("The Name or UUID of the Tuskar plan to deploy.")
         )
