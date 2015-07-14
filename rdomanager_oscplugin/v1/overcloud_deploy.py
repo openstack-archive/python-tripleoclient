@@ -613,12 +613,6 @@ class DeployOvercloud(command.Command):
     def get_parser(self, prog_name):
         parser = super(DeployOvercloud, self).get_parser(prog_name)
         main_group = parser.add_mutually_exclusive_group(required=True)
-        main_group.add_argument('--use-tripleo-heat-templates',
-                                dest='templates', action='store_const',
-                                const=TRIPLEO_HEAT_TEMPLATES,
-                                help=_("Use the tripleo heat templates "
-                                       "directly, instead of the tuskar "
-                                       "plan. "))
         main_group.add_argument(
             '--plan',
             help=_("The Name or UUID of the Tuskar plan to deploy.")

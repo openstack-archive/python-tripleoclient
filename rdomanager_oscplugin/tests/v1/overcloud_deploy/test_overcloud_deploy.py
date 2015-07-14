@@ -71,7 +71,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                         mock_update_nodesjson,
                         mock_deploy_postconfig):
 
-        arglist = ['--use-tripleo-heat-templates', ]
+        arglist = ['--templates', ]
         verifylist = [
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
         ]
@@ -438,7 +438,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_invalid_deploy_call(self, mock_pre_deploy, mock_deploy_tht,
                                  mock_deploy_tuskar):
 
-        arglist = ['--plan', 'undercloud', '--use-tripleo-heat-templates']
+        arglist = ['--plan', 'undercloud', '--templates']
         verifylist = [
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
             ('plan', 'undercloud'),
@@ -464,7 +464,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_missing_sat_url(self, mock_pre_deploy, mock_deploy_tht,
                              mock_deploy_tuskar):
 
-        arglist = ['--use-tripleo-heat-templates', '--rhel-reg',
+        arglist = ['--templates', '--rhel-reg',
                    '--reg-method', 'satellite', '--reg-org', '123456789',
                    '--reg-activation-key', 'super-awesome-key']
         verifylist = [
@@ -496,7 +496,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                       mock_deploy_tuskar, mock_oc_endpoint,
                                       mock_create_ocrc, mock_update_njson):
 
-        arglist = ['--use-tripleo-heat-templates', '--rhel-reg',
+        arglist = ['--templates', '--rhel-reg',
                    '--reg-sat-url', 'https://example.com',
                    '--reg-method', 'satellite', '--reg-org', '123456789',
                    '--reg-activation-key', 'super-awesome-key']
