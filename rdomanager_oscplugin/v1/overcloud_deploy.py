@@ -17,6 +17,7 @@ from __future__ import print_function
 import json
 import logging
 import os
+import re
 import six
 import sys
 import tempfile
