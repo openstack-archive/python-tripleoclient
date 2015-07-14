@@ -46,6 +46,13 @@ class UpdateOvercloud(command.Command):
             '--templates', nargs='?', const=TRIPLEO_HEAT_TEMPLATES,
             help="The directory containing the Heat templates to deploy"
         )
+        parser.add_argument(
+            '-e', '--environment-file', metavar='<HEAT ENVIRONMENT FILE>',
+            action='append', dest='environment_files',
+            help='Environment files to be passed to the heat stack-create '
+                   'or heat stack-update command. (Can be specified more than '
+                   'once.)'
+        )
         return parser
 
     def take_action(self, parsed_args):
@@ -63,7 +70,8 @@ class UpdateOvercloud(command.Command):
             novaclient=self.app.client_manager.compute,
             plan_id=parsed_args.plan,
             stack_id=parsed_args.stack,
-            tht_dir=parsed_args.templates)
+            tht_dir=parsed_args.templates,
+            environment_files=parsed_args.environment_files)
         if parsed_args.abort_update:
             print("cancelling package update on stack {0}".format(
                 parsed_args.stack))
