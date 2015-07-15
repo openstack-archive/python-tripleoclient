@@ -43,6 +43,13 @@ class DeleteNode(command.Command):
             '--templates', nargs='?', const=TRIPLEO_HEAT_TEMPLATES,
             help="The directory containing the Heat templates to deploy"
         )
+        parser.add_argument(
+            '-e', '--environment-file', metavar='<HEAT ENVIRONMENT FILE>',
+            action='append', dest='environment_files',
+            help='Environment files to be passed to the heat stack-create '
+                   'or heat stack-update command. (Can be specified more than '
+                   'once.)'
+        )
 
         return parser
 
@@ -60,7 +67,8 @@ class DeleteNode(command.Command):
             heatclient=orchestration,
             plan_id=parsed_args.plan,
             stack_id=parsed_args.stack,
-            tht_dir=parsed_args.templates)
+            tht_dir=parsed_args.templates,
+            environment_files=parsed_args.environment_files)
         print("deleting nodes {0} from stack {1}".format(parsed_args.nodes,
                                                          parsed_args.plan))
         scale_manager.scaledown(parsed_args.nodes)
