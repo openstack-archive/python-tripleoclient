@@ -156,26 +156,6 @@ class TestWaitForStackUtil(TestCase):
 
         self.assertEqual(complete, False)
 
-    def test_wait_for_stack_ready_timeout(self):
-        self.mock_orchestration.reset_mock()
-        self.mock_stacks.reset_mock()
-
-        return_values = [
-            mock.Mock(stack_status='CREATE_RUNNING'),
-            mock.Mock(stack_status='CREATE_RUNNING'),
-            mock.Mock(stack_status='CREATE_RUNNING'),
-            mock.Mock(stack_status='CREATE_RUNNING'),
-            mock.Mock(stack_status='CREATE_COMPLETE')
-        ]
-
-        # self.stack_status.side_effect = return_values
-        self.mock_orchestration.stacks.get.side_effect = return_values
-
-        complete = utils.wait_for_stack_ready(
-            self.mock_orchestration, 'stack', loops=4, sleep=0.1)
-
-        self.assertEqual(complete, False)
-
 
 class TestWaitForDiscovery(TestCase):
 

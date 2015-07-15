@@ -357,7 +357,8 @@ class DeployOvercloud(command.Command):
             temp_file.write(user_env)
         return [registry, environment, user_env_file]
 
-    def _heat_deploy(self, stack, template_path, parameters, environments):
+    def _heat_deploy(self, stack, template_path, parameters, environments,
+                     timeout):
         """Verify the Baremetal nodes are available and do a stack update"""
 
         self.log.debug("Processing environment files")
@@ -389,6 +390,9 @@ class DeployOvercloud(command.Command):
             'environment': env,
             'files': files
         }
+
+        if timeout:
+            stack_args['timeout_mins'] = timeout
 
         if stack is None:
             self.log.info("Performing Heat stack create")
@@ -458,7 +462,8 @@ class DeployOvercloud(command.Command):
 
         overcloud_yaml = os.path.join(tht_root, OVERCLOUD_YAML_NAME)
 
-        self._heat_deploy(stack, overcloud_yaml, parameters, environments)
+        self._heat_deploy(stack, overcloud_yaml, parameters, environments,
+                          parsed_args.timeout)
 
     def _deploy_tuskar(self, stack, parsed_args):
 
@@ -532,7 +537,8 @@ class DeployOvercloud(command.Command):
         if parsed_args.environment_files:
             environments.extend(parsed_args.environment_files)
 
-        self._heat_deploy(stack, overcloud_yaml, parameters, environments)
+        self._heat_deploy(stack, overcloud_yaml, parameters, environments,
+                          parsed_args.timeout)
 
     def _create_overcloudrc(self, stack, parsed_args):
         overcloud_endpoint = self._get_overcloud_endpoint(stack)
@@ -639,6 +645,9 @@ class DeployOvercloud(command.Command):
         main_group.add_argument(
             '--templates', nargs='?', const=TRIPLEO_HEAT_TEMPLATES,
             help=_("The directory containing the Heat templates to deploy"))
+        parser.add_argument('-t', '--timeout', metavar='<TIMEOUT>',
+                            type=int, default=240,
+                            help=_('Deployment timeout in minutes.'))
         parser.add_argument('--control-scale', type=int)
         parser.add_argument('--compute-scale', type=int)
         parser.add_argument('--ceph-storage-scale', type=int)
