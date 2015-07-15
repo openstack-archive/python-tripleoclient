@@ -303,7 +303,9 @@ class DeployOvercloud(command.Command):
                     dhcp_agents_per_network,
             })
 
-        if parameters.get('Ceph-Storage-1::count', 0) > 0:
+        if max((parameters.get('CephStorageCount', 0),
+                parameters.get('Ceph-Storage-1::count', 0))) > 0:
+
             parameters.update({
                 'CephClusterFSID': six.text_type(uuid.uuid1()),
                 'CephMonKey': utils.create_cephx_key(),
@@ -316,6 +318,7 @@ class DeployOvercloud(command.Command):
                 parameters.update({
                     'CinderEnableRbdBackend': True,
                     'NovaEnableRbdBackend': True,
+                    'GlanceBackend': 'rbd',
                     'CinderEnableIscsiBackend': cinder_lvm,
                 })
             else:

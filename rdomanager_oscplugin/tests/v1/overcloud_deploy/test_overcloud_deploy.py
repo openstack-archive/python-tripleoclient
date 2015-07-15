@@ -60,7 +60,11 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('rdomanager_oscplugin.utils.get_config_value', autospec=True)
     @mock.patch('rdomanager_oscplugin.utils.check_hypervisor_stats',
                 autospec=True)
-    def test_tht_deploy(self, mock_check_hypervisor_stats, mock_get_key,
+    @mock.patch('rdomanager_oscplugin.utils.create_cephx_key',
+                autospec=True)
+    @mock.patch('uuid.uuid1', autospec=True)
+    def test_tht_deploy(self, mock_uuid1, mock_create_cephx_key,
+                        mock_check_hypervisor_stats, mock_get_key,
                         mock_create_env, generate_certs_mock,
                         mock_get_templte_contents, mock_process_multiple_env,
                         wait_for_stack_ready_mock,
@@ -71,10 +75,13 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                         mock_update_nodesjson,
                         mock_deploy_postconfig):
 
-        arglist = ['--templates', ]
+        arglist = ['--templates', '--ceph-storage-scale', '3']
         verifylist = [
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
         ]
+
+        mock_create_cephx_key.return_value = "cephx_key"
+        mock_uuid1.return_value = "uuid"
 
         mock_generate_overcloud_passwords.return_value = self._get_passwords()
 
@@ -110,9 +117,58 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         self.assertEqual(args, (orchestration_client.stacks.get().id, ))
 
-        # The parameters output contains lots of output and some is random.
-        # So lets just check that it is present
-        self.assertTrue('parameters' in kwargs)
+        self.assertEqual(kwargs['parameters'], {
+            'AdminPassword': 'password',
+            'AdminToken': 'password',
+            'BlockStorageImage': 'overcloud-full',
+            'CeilometerMeteringSecret': 'password',
+            'CeilometerPassword': 'password',
+            'CephAdminKey': 'cephx_key',
+            'CephClusterFSID': 'uuid',
+            'CephMonKey': 'cephx_key',
+            'CephStorageCount': 3,
+            'CephStorageImage': 'overcloud-full',
+            'CinderEnableIscsiBackend': False,
+            'CinderEnableRbdBackend': True,
+            'CinderEnableRbdBackend': True,
+            'CinderISCSIHelper': 'lioadm',
+            'CinderPassword': 'password',
+            'CloudName': 'overcloud',
+            'controllerImage': 'overcloud-full',
+            'Debug': 'True',
+            'ExtraConfig': '{}',
+            'GlanceBackend': 'rbd',
+            'GlancePassword': 'password',
+            'HeatPassword': 'password',
+            'HeatStackDomainAdminPassword': 'password',
+            'HypervisorNeutronPhysicalBridge': 'br-ex',
+            'HypervisorNeutronPublicInterface': 'nic1',
+            'NeutronBridgeMappings': 'datacentre:br-ex',
+            'NeutronControlPlaneID': 'network id',
+            'NeutronDhcpAgentsPerNetwork': 3,
+            'NeutronDnsmasqOptions': 'dhcp-option-force=26,1400',
+            'NeutronEnableTunnelling': 'True',
+            'NeutronFlatNetworks': 'datacentre',
+            'NeutronNetworkType': 'gre',
+            'NeutronNetworkVLANRanges': 'datacentre:1:1000',
+            'NeutronPassword': 'password',
+            'NeutronPublicInterface': 'nic1',
+            'NeutronTunnelTypes': 'gre',
+            'NovaComputeLibvirtType': 'qemu',
+            'NovaEnableRbdBackend': True,
+            'NovaImage': 'overcloud-full',
+            'NovaPassword': 'password',
+            'NtpServer': '',
+            'OvercloudBlockStorageFlavor': 'baremetal',
+            'OvercloudCephStorageFlavor': 'baremetal',
+            'OvercloudComputeFlavor': 'baremetal',
+            'OvercloudControlFlavor': 'baremetal',
+            'OvercloudSwiftStorageFlavor': 'baremetal',
+            'SnmpdReadonlyUserPassword': 'PASSWORD',
+            'SwiftHashSuffix': 'password',
+            'SwiftPassword': 'password',
+            'SwiftStorageImage': 'overcloud-full',
+        })
 
         self.assertEqual(kwargs['files'], {})
         self.assertEqual(kwargs['template'], 'template')
