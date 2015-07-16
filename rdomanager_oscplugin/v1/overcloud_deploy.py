@@ -598,6 +598,11 @@ class DeployOvercloud(command.Command):
             passwords['OVERCLOUD_ADMIN_PASSWORD'],
             user='heat-admin')
 
+        # NOTE(bcrochet): Bad hack. Remove the ssl_port info from the
+        # os_cloud_config.SERVICES dictionary
+        for service_name, data in keystone.SERVICES.iteritems():
+            data.pop('ssl_port', None)
+
         services = {}
         for service, data in six.iteritems(utils.SERVICE_LIST):
             service_data = data.copy()
@@ -621,7 +626,8 @@ class DeployOvercloud(command.Command):
         keystone.setup_endpoints(
             services,
             client=keystone_client,
-            os_auth_url=overcloud_endpoint)
+            os_auth_url=overcloud_endpoint,
+            public_host=overcloud_ip)
 
         compute_client = clients.get_nova_bm_client(
             'admin',
