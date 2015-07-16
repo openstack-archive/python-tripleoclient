@@ -274,7 +274,11 @@ class DeployOvercloud(command.Command):
                 parameters[param] = getattr(args, arg)
 
         # Scaling needs extra parameters
-        number_controllers = parameters.get('Controller-1::count')
+        number_controllers = max((
+            parameters.get('ControllerCount', 0),
+            parameters.get('Controller-1::count', 0)
+        ))
+
         if number_controllers and number_controllers > 1:
             if args.templates:
                 parameters.update({
