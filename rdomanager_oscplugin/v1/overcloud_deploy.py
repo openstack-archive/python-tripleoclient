@@ -600,7 +600,8 @@ class DeployOvercloud(command.Command):
 
         services = {}
         for service, data in six.iteritems(utils.SERVICE_LIST):
-            service_data = {}
+            service_data = data.copy()
+            service_data.pop('password_field', None)
             password_field = data.get('password_field')
             if password_field:
                 service_data['password'] = passwords[password_field]
