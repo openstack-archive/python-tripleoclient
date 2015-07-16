@@ -60,7 +60,7 @@ class TestOvercloudValidate(fakes.TestOvercloudValidate):
                       '--debug --create '
                       'identity.uri http://foo '
                       'compute.allow_tenant_isolation true '
-                      'object-storage.operator_role SwiftOperator '
+                      'object-storage.operator_role swiftoperator '
                       'identity.admin_password password '
                       'compute.build_timeout 500 '
                       'compute.image_ssh_user cirros '
