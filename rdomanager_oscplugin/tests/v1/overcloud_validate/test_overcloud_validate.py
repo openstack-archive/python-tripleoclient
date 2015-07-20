@@ -36,6 +36,7 @@ class TestOvercloudValidate(fakes.TestOvercloudValidate):
 
         argslist = ['--overcloud-auth-url', 'http://foo',
                     '--overcloud-admin-password', 'password',
+                    '--network-id', '42',
                     '--deployer-input', 'partial_config_file',
                     '--tempest-args', 'bar',
                     '--skipfile', 'skip']
@@ -56,6 +57,7 @@ class TestOvercloudValidate(fakes.TestOvercloudValidate):
             mock.call('/usr/share/openstack-tempest-kilo/tools/'
                       'configure-tempest-directory'),
             mock.call('./tools/config_tempest.py --out etc/tempest.conf '
+                      '--network-id 42 '
                       '--deployer-input partial_config_file '
                       '--debug --create '
                       'identity.uri http://foo '
