@@ -60,7 +60,6 @@ PARAMETERS = {
     'HypervisorNeutronPhysicalBridge': 'br-ex',
     'NeutronBridgeMappings': 'datacentre:br-ex',
     'HypervisorNeutronPublicInterface': 'nic1',
-    'NovaComputeLibvirtType': 'qemu',
     'NovaPassword': None,
     'SwiftHashSuffix': None,
     'SwiftPassword': None,
@@ -77,10 +76,14 @@ PARAMETERS = {
     'OvercloudBlockStorageFlavor': 'baremetal',
     'OvercloudSwiftStorageFlavor': 'baremetal',
     'OvercloudCephStorageFlavor': 'baremetal',
+    'NeutronNetworkVLANRanges': 'datacentre:1:1000',
+}
+
+NEW_STACK_PARAMETERS = {
+    'NovaComputeLibvirtType': 'qemu',
+    'NeutronEnableTunnelling': 'True',
     'NeutronNetworkType': 'gre',
     'NeutronTunnelTypes': 'gre',
-    'NeutronNetworkVLANRanges': 'datacentre:1:1000',
-    'NeutronEnableTunnelling': 'True',
 }
 
 
@@ -173,10 +176,11 @@ class DeployOvercloud(command.Command):
         except HTTPNotFound:
             self.log.info("No stack found, will be doing a stack create")
 
-    def _update_paramaters(self, args, network_client):
-
+    def _update_paramaters(self, args, network_client, stack):
         if args.templates:
             parameters = PARAMETERS.copy()
+            if stack is None:
+                parameters.update(NEW_STACK_PARAMETERS)
         else:
             parameters = {}
 
@@ -195,7 +199,6 @@ class DeployOvercloud(command.Command):
                 ('NeutronBridgeMappings', 'neutron_bridge_mappings'),
                 ('NeutronFlatNetworks', 'neutron_flat_networks'),
                 ('HypervisorNeutronPhysicalBridge', 'neutron_physical_bridge'),
-                ('NovaComputeLibvirtType', 'libvirt_type'),
                 ('NtpServer', 'ntp_server'),
                 ('ControllerCount', 'control_scale'),
                 ('ComputeCount', 'compute_scale'),
@@ -207,17 +210,24 @@ class DeployOvercloud(command.Command):
                 ('OvercloudBlockStorageFlavor', 'block_storage_flavor'),
                 ('OvercloudSwiftStorageFlavor', 'swift_storage_flavor'),
                 ('OvercloudCephStorageFlavor', 'ceph_storage_flavor'),
-                ('NeutronNetworkType', 'neutron_network_type'),
-                ('NeutronTunnelTypes', 'neutron_tunnel_types'),
                 ('NeutronNetworkVLANRanges', 'neutron_network_vlan_ranges'),
                 ('NeutronMechanismDrivers', 'neutron_mechanism_drivers')
             )
 
-            if args.neutron_disable_tunneling is not None:
-                neutron_enable_tunneling = not args.neutron_disable_tunneling
-                parameters.update({
-                    'NeutronEnableTunnelling': neutron_enable_tunneling,
-                })
+            if stack is None:
+                new_stack_args = (
+                    ('NeutronNetworkType', 'neutron_network_type'),
+                    ('NeutronTunnelTypes', 'neutron_tunnel_types'),
+                    ('NovaComputeLibvirtType', 'libvirt_type'),
+                )
+                param_args = param_args + new_stack_args
+
+                if args.neutron_disable_tunneling is not None:
+                    neutron_enable_tunneling = (
+                        not args.neutron_disable_tunneling)
+                    parameters.update({
+                        'NeutronEnableTunnelling': neutron_enable_tunneling,
+                    })
 
         else:
             param_args = (
@@ -233,13 +243,8 @@ class DeployOvercloud(command.Command):
                 ('Compute-1::NeutronFlatNetworks', 'neutron_flat_networks'),
                 ('Compute-1::NeutronPhysicalBridge',
                     'neutron_physical_bridge'),
-                ('Compute-1::NovaComputeLibvirtType', 'libvirt_type'),
                 ('Controller-1::NtpServer', 'ntp_server'),
                 ('Compute-1::NtpServer', 'ntp_server'),
-                ('Controller-1::NeutronNetworkType', 'neutron_network_type'),
-                ('Compute-1::NeutronNetworkType', 'neutron_network_type'),
-                ('Controller-1::NeutronTunnelTypes', 'neutron_tunnel_types'),
-                ('Compute-1::NeutronTunnelTypes', 'neutron_tunnel_types'),
                 ('Controller-1::NeutronNetworkVLANRanges',
                     'neutron_network_vlan_ranges'),
                 ('Compute-1::NeutronNetworkVLANRanges',
@@ -259,14 +264,28 @@ class DeployOvercloud(command.Command):
                 ('Swift-Storage-1::Flavor', 'swift_storage_flavor'),
                 ('Ceph-Storage-1::Flavor', 'ceph_storage_flavor'),
             )
-            if args.neutron_disable_tunneling is not None:
-                neutron_enable_tunneling = not args.neutron_disable_tunneling
-                parameters.update({
-                    'Controller-1::NeutronEnableTunnelling':
-                        neutron_enable_tunneling,
-                    'Compute-1::NeutronEnableTunnelling':
-                        neutron_enable_tunneling,
-                })
+
+            if stack is None:
+                new_stack_args = (
+                    ('Controller-1::NeutronNetworkType',
+                        'neutron_network_type'),
+                    ('Compute-1::NeutronNetworkType', 'neutron_network_type'),
+                    ('Controller-1::NeutronTunnelTypes',
+                        'neutron_tunnel_types'),
+                    ('Compute-1::NeutronTunnelTypes', 'neutron_tunnel_types'),
+                    ('Compute-1::NovaComputeLibvirtType', 'libvirt_type'),
+                )
+                param_args = param_args + new_stack_args
+
+                if args.neutron_disable_tunneling is not None:
+                    neutron_enable_tunneling = (
+                        not args.neutron_disable_tunneling)
+                    parameters.update({
+                        'Controller-1::NeutronEnableTunnelling':
+                            neutron_enable_tunneling,
+                        'Compute-1::NeutronEnableTunnelling':
+                            neutron_enable_tunneling,
+                    })
 
         # Update parameters from commandline
         for param, arg in param_args:
@@ -310,28 +329,29 @@ class DeployOvercloud(command.Command):
         if max((parameters.get('CephStorageCount', 0),
                 parameters.get('Ceph-Storage-1::count', 0))) > 0:
 
-            parameters.update({
-                'CephClusterFSID': six.text_type(uuid.uuid1()),
-                'CephMonKey': utils.create_cephx_key(),
-                'CephAdminKey': utils.create_cephx_key()
-            })
-
-            cinder_lvm = True if args.cinder_lvm else False
-
-            if args.templates:
+            if stack is None:
                 parameters.update({
-                    'CinderEnableRbdBackend': True,
-                    'NovaEnableRbdBackend': True,
-                    'GlanceBackend': 'rbd',
-                    'CinderEnableIscsiBackend': cinder_lvm,
+                    'CephClusterFSID': six.text_type(uuid.uuid1()),
+                    'CephMonKey': utils.create_cephx_key(),
+                    'CephAdminKey': utils.create_cephx_key()
                 })
-            else:
-                parameters.update({
-                    'Controller-1::CinderEnableRbdBackend': True,
-                    'Controller-1::GlanceBackend': 'rbd',
-                    'Compute-1::NovaEnableRbdBackend': True,
-                    'Controller-1::CinderEnableIscsiBackend': cinder_lvm
-                })
+
+                cinder_lvm = True if args.cinder_lvm else False
+
+                if args.templates:
+                    parameters.update({
+                        'CinderEnableRbdBackend': True,
+                        'NovaEnableRbdBackend': True,
+                        'GlanceBackend': 'rbd',
+                        'CinderEnableIscsiBackend': cinder_lvm,
+                    })
+                else:
+                    parameters.update({
+                        'Controller-1::CinderEnableRbdBackend': True,
+                        'Controller-1::GlanceBackend': 'rbd',
+                        'Compute-1::NovaEnableRbdBackend': True,
+                        'Controller-1::CinderEnableIscsiBackend': cinder_lvm
+                    })
 
         return parameters
 
@@ -440,7 +460,8 @@ class DeployOvercloud(command.Command):
         clients = self.app.client_manager
         network_client = clients.network
 
-        parameters = self._update_paramaters(parsed_args, network_client)
+        parameters = self._update_paramaters(
+            parsed_args, network_client, stack)
 
         tht_root = parsed_args.templates
 
@@ -492,7 +513,8 @@ class DeployOvercloud(command.Command):
         # retrieve templates
         templates = management.plans.templates(management_plan.uuid)
 
-        parameters = self._update_paramaters(parsed_args, network_client)
+        parameters = self._update_paramaters(
+            parsed_args, network_client, stack)
 
         if stack is None:
             ca_key_pem, ca_cert_pem = keystone_pki.create_ca_pair()
