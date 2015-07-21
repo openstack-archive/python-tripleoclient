@@ -136,11 +136,13 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'HeatStackDomainAdminPassword': 'password',
             'HypervisorNeutronPhysicalBridge': 'br-ex',
             'HypervisorNeutronPublicInterface': 'nic1',
+            'NeutronAllowL3AgentFailover': False,
             'NeutronBridgeMappings': 'datacentre:br-ex',
             'NeutronControlPlaneID': 'network id',
             'NeutronDhcpAgentsPerNetwork': 3,
             'NeutronDnsmasqOptions': 'dhcp-option-force=26,1400',
             'NeutronFlatNetworks': 'datacentre',
+            'NeutronL3HA': False,
             'NeutronNetworkVLANRanges': 'datacentre:1:1000',
             'NeutronPassword': 'password',
             'NeutronPublicInterface': 'nic1',
@@ -276,12 +278,14 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'HeatStackDomainAdminPassword': 'password',
             'HypervisorNeutronPhysicalBridge': 'br-ex',
             'HypervisorNeutronPublicInterface': 'nic1',
+            'NeutronAllowL3AgentFailover': False,
             'NeutronBridgeMappings': 'datacentre:br-ex',
             'NeutronControlPlaneID': 'network id',
             'NeutronDhcpAgentsPerNetwork': 3,
             'NeutronDnsmasqOptions': 'dhcp-option-force=26,1400',
             'NeutronEnableTunnelling': 'True',
             'NeutronFlatNetworks': 'datacentre',
+            'NeutronL3HA': False,
             'NeutronNetworkType': 'gre',
             'NeutronNetworkVLANRanges': 'datacentre:1:1000',
             'NeutronPassword': 'password',
@@ -498,6 +502,13 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'Controller-1::NeutronMechanismDrivers': 'linuxbridge',
             'Compute-1::NeutronMechanismDrivers': 'linuxbridge',
             'Controller-1::NeutronDhcpAgentsPerNetwork': 3,
+            'Compute-1::NovaEnableRbdBackend': False,
+            'Controller-1::GlanceBackend': 'swift',
+            'Controller-1::CinderEnableIscsiBackend': True,
+            'Controller-1::CinderEnableRbdBackend': False,
+            'CephClusterFSID': "''",
+            'CephMonKey': "''",
+            'CephAdminKey': "''",
         }
 
         mock_heat_deploy.assert_called_with(
@@ -604,6 +615,13 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'Controller-1::NeutronMechanismDrivers': 'linuxbridge',
             'Compute-1::NeutronMechanismDrivers': 'linuxbridge',
             'Controller-1::NeutronDhcpAgentsPerNetwork': 3,
+            'Compute-1::NovaEnableRbdBackend': False,
+            'Controller-1::GlanceBackend': 'swift',
+            'Controller-1::CinderEnableIscsiBackend': True,
+            'Controller-1::CinderEnableRbdBackend': False,
+            'CephClusterFSID': "''",
+            'CephMonKey': "''",
+            'CephAdminKey': "''",
         }
 
         mock_heat_deploy.assert_called_with(
@@ -713,6 +731,13 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'Compute-1::NeutronL3HA': True,
             'Compute-1::NeutronAllowL3AgentFailover': False,
             'Controller-1::NeutronDhcpAgentsPerNetwork': 3,
+            'Compute-1::NovaEnableRbdBackend': False,
+            'Controller-1::GlanceBackend': 'swift',
+            'Controller-1::CinderEnableIscsiBackend': True,
+            'Controller-1::CinderEnableRbdBackend': False,
+            'CephClusterFSID': "''",
+            'CephMonKey': "''",
+            'CephAdminKey': "''",
         }
 
         mock_heat_deploy.assert_called_with(

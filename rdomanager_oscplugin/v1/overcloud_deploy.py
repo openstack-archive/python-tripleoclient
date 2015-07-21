@@ -191,8 +191,6 @@ class DeployOvercloud(command.Command):
         net = network_client.api.find_attr('networks', 'ctlplane')
         parameters['NeutronControlPlaneID'] = net['id']
 
-        neutron_enable_tunneling = not args.neutron_disable_tunneling
-
         if args.templates:
             param_args = (
                 ('NeutronPublicInterface', 'neutron_public_interface'),
@@ -294,11 +292,11 @@ class DeployOvercloud(command.Command):
 
         # Scaling needs extra parameters
         number_controllers = max((
-            parameters.get('ControllerCount', 0),
-            parameters.get('Controller-1::count', 0)
+            int(parameters.get('ControllerCount', 0)),
+            int(parameters.get('Controller-1::count', 0))
         ))
 
-        if number_controllers and number_controllers > 1:
+        if number_controllers > 1:
             if args.templates:
                 parameters.update({
                     'NeutronL3HA': True,
@@ -309,6 +307,19 @@ class DeployOvercloud(command.Command):
                     'Controller-1::NeutronL3HA': True,
                     'Controller-1::NeutronAllowL3AgentFailover': False,
                     'Compute-1::NeutronL3HA': True,
+                    'Compute-1::NeutronAllowL3AgentFailover': False,
+                })
+        else:
+            if args.templates:
+                parameters.update({
+                    'NeutronL3HA': False,
+                    'NeutronAllowL3AgentFailover': False,
+                })
+            else:
+                parameters.update({
+                    'Controller-1::NeutronL3HA': False,
+                    'Controller-1::NeutronAllowL3AgentFailover': False,
+                    'Compute-1::NeutronL3HA': False,
                     'Compute-1::NeutronAllowL3AgentFailover': False,
                 })
 
@@ -326,8 +337,8 @@ class DeployOvercloud(command.Command):
                     dhcp_agents_per_network,
             })
 
-        if max((parameters.get('CephStorageCount', 0),
-                parameters.get('Ceph-Storage-1::count', 0))) > 0:
+        if max((int(parameters.get('CephStorageCount', 0)),
+                int(parameters.get('Ceph-Storage-1::count', 0)))) > 0:
 
             if stack is None:
                 parameters.update({
@@ -352,6 +363,26 @@ class DeployOvercloud(command.Command):
                         'Compute-1::NovaEnableRbdBackend': True,
                         'Controller-1::CinderEnableIscsiBackend': cinder_lvm
                     })
+        else:
+            parameters.update({
+                'CephClusterFSID': "''",
+                'CephMonKey': "''",
+                'CephAdminKey': "''"
+            })
+            if args.templates:
+                parameters.update({
+                    'CinderEnableRbdBackend': False,
+                    'NovaEnableRbdBackend': False,
+                    'GlanceBackend': 'swift',
+                    'CinderEnableIscsiBackend': True,
+                })
+            else:
+                parameters.update({
+                    'Controller-1::CinderEnableRbdBackend': False,
+                    'Controller-1::GlanceBackend': 'swift',
+                    'Compute-1::NovaEnableRbdBackend': False,
+                    'Controller-1::CinderEnableIscsiBackend': True,
+                })
 
         return parameters
 
