@@ -357,7 +357,10 @@ class DeployOvercloud(command.Command):
 
     def _create_registration_env(self, args):
 
-        tht_root = args.templates
+        if args.templates:
+            tht_root = args.templates
+        else:
+            tht_root = TRIPLEO_HEAT_TEMPLATES
 
         environment = os.path.join(tht_root,
                                    RHEL_REGISTRATION_EXTRACONFIG_NAME,
