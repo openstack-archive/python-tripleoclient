@@ -47,16 +47,18 @@ class ValidateOvercloud(command.Command):
                         '--network-id %(network_id)s '
                         '--deployer-input %(partial_config_file)s '
                         '--debug --create '
-                        'identity.uri %(auth_url)s '
                         'compute.allow_tenant_isolation true '
-                        'object-storage.operator_role swiftoperator '
-                        'identity.admin_password %(admin_password)s '
                         'compute.build_timeout 500 '
                         'compute.image_ssh_user cirros '
                         'compute.ssh_user cirros '
+                        'identity.admin_password %(admin_password)s '
+                        'identity.uri %(auth_url)s '
                         'network.build_timeout 500 '
-                        'volume.build_timeout 500 '
-                        'scenario.ssh_user cirros' %
+                        'network.tenant_network_cidr 192.168.0.0/24 '
+                        'object-storage.operator_role swiftoperator '
+                        'orchestration.stack_owner_role heat_stack_user '
+                        'scenario.ssh_user cirros '
+                        'volume.build_timeout 500' %
                         {'network_id': network_id,
                          'partial_config_file': deployer_input,
                          'auth_url': overcloud_auth_url,

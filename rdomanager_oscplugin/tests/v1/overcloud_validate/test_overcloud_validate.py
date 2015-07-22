@@ -60,15 +60,17 @@ class TestOvercloudValidate(fakes.TestOvercloudValidate):
                       '--network-id 42 '
                       '--deployer-input partial_config_file '
                       '--debug --create '
-                      'identity.uri http://foo '
                       'compute.allow_tenant_isolation true '
-                      'object-storage.operator_role swiftoperator '
-                      'identity.admin_password password '
                       'compute.build_timeout 500 '
                       'compute.image_ssh_user cirros '
                       'compute.ssh_user cirros '
+                      'identity.admin_password password '
+                      'identity.uri http://foo '
                       'network.build_timeout 500 '
-                      'volume.build_timeout 500 '
-                      'scenario.ssh_user cirros'),
+                      'network.tenant_network_cidr 192.168.0.0/24 '
+                      'object-storage.operator_role swiftoperator '
+                      'orchestration.stack_owner_role heat_stack_user '
+                      'scenario.ssh_user cirros '
+                      'volume.build_timeout 500'),
             mock.call('./tools/run-tests.sh bar --skip-file skip')
         ])
