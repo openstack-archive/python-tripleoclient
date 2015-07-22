@@ -33,7 +33,6 @@ SERVICE_LIST = {
     'ceilometer': {'password_field': 'OVERCLOUD_CEILOMETER_PASSWORD'},
     'cinder': {'password_field': 'OVERCLOUD_CINDER_PASSWORD'},
     'cinderv2': {'password_field': 'OVERCLOUD_CINDER_PASSWORD'},
-    'ec2': {},
     'glance': {'password_field': 'OVERCLOUD_GLANCE_PASSWORD'},
     'heat': {'password_field': 'OVERCLOUD_HEAT_PASSWORD'},
     'neutron': {'password_field': 'OVERCLOUD_NEUTRON_PASSWORD'},
