@@ -409,6 +409,17 @@ class ConfigureBaremetalBoot(command.Command):
                            node.uuid)
                     raise exceptions.Timeout(msg)
 
+            # Get the full node info
+            node_detail = bm_client.node.get(node.uuid)
+            capabilities = node_detail.properties.get('capabilities', None)
+
+            # Only update capabilities to add boot_option if it doesn't exist.
+            if capabilities:
+                if 'boot_option' not in capabilities:
+                    capabilities = "boot_option:local,%s" % capabilities
+            else:
+                capabilities = "boot_option:local"
+
             self.log.debug("Configuring boot for Node {0}".format(
                 node.uuid))
 
@@ -416,7 +427,7 @@ class ConfigureBaremetalBoot(command.Command):
                 {
                     'op': 'add',
                     'path': '/properties/capabilities',
-                    'value': 'boot_option:local',
+                    'value': capabilities,
                 },
                 {
                     'op': 'add',

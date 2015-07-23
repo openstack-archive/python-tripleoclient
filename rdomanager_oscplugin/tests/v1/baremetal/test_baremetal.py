@@ -583,6 +583,11 @@ class TestConfigureBaremetalBoot(fakes.TestBaremetal):
             mock.Mock(uuid="IJKLMNOP"),
         ]
 
+        bm_client.node.get.side_effect = [
+            mock.Mock(uuid="ABCDEFGH", properties={}),
+            mock.Mock(uuid="IJKLMNOP", properties={}),
+        ]
+
         parsed_args = self.check_parser(self.cmd, [], [])
         self.cmd.take_action(parsed_args)
 
@@ -624,15 +629,20 @@ class TestConfigureBaremetalBoot(fakes.TestBaremetal):
                                                       power_state=None),
                                             ]
         bm_client.node.get.side_effect = [mock.Mock(uuid="ABCDEFGH",
-                                                    power_state=None),
+                                                    power_state=None,
+                                                    properties={}),
                                           mock.Mock(uuid="ABCDEFGH",
-                                                    power_state='available'),
+                                                    power_state='available',
+                                                    properties={}),
+                                          mock.Mock(uuid="ABCDEFGH",
+                                                    power_state='available',
+                                                    properties={}),
                                           ]
         parsed_args = self.check_parser(self.cmd, [], [])
         self.cmd.take_action(parsed_args)
 
         self.assertEqual(1, bm_client.node.list.call_count)
-        self.assertEqual(2, bm_client.node.get.call_count)
+        self.assertEqual(3, bm_client.node.get.call_count)
         self.assertEqual(1, bm_client.node.update.call_count)
 
     @mock.patch('openstackclient.common.utils.find_resource', autospec=True)
@@ -662,8 +672,86 @@ class TestConfigureBaremetalBoot(fakes.TestBaremetal):
             mock.Mock(uuid="ABCDEFGH", maintenance=False),
         ]
 
+        bm_client.node.get.return_value = mock.Mock(uuid="ABCDEFGH",
+                                                    maintenance=False,
+                                                    properties={})
+
         parsed_args = self.check_parser(self.cmd, [], [])
         self.cmd.take_action(parsed_args)
 
         self.assertEqual(bm_client.node.list.mock_calls, [mock.call(
             maintenance=False)])
+
+    @mock.patch('openstackclient.common.utils.find_resource', autospec=True)
+    def test_configure_boot_existing_properties(self, find_resource_mock):
+
+        find_resource_mock.return_value = mock.Mock(id="IDIDID")
+        bm_client = self.app.client_manager.rdomanager_oscplugin.baremetal()
+        bm_client.node.list.return_value = [
+            mock.Mock(uuid="ABCDEFGH"),
+            mock.Mock(uuid="IJKLMNOP"),
+            mock.Mock(uuid="QRSTUVWX"),
+            mock.Mock(uuid="YZABCDEF"),
+        ]
+
+        bm_client.node.get.side_effect = [
+            mock.Mock(uuid="ABCDEFGH", properties={
+                'capabilities': 'existing:cap'
+            }),
+            mock.Mock(uuid="IJKLMNOP", properties={
+                'capabilities': 'boot_option:local'
+            }),
+            mock.Mock(uuid="QRSTUVWX", properties={
+                'capabilities': 'boot_option:remote'
+            }),
+            mock.Mock(uuid="YZABCDEF", properties={}),
+        ]
+
+        parsed_args = self.check_parser(self.cmd, [], [])
+        self.cmd.take_action(parsed_args)
+
+        self.assertEqual(find_resource_mock.call_count, 2)
+
+        self.assertEqual(bm_client.node.update.call_count, 4)
+        self.assertEqual(bm_client.node.update.mock_calls, [
+            mock.call('ABCDEFGH', [{
+                'op': 'add', 'value': 'boot_option:local,existing:cap',
+                'path': '/properties/capabilities'
+            }, {
+                'op': 'add', 'value': 'IDIDID',
+                'path': '/driver_info/deploy_ramdisk'
+            }, {
+                'op': 'add', 'value': 'IDIDID',
+                'path': '/driver_info/deploy_kernel'
+            }]),
+            mock.call('IJKLMNOP', [{
+                'op': 'add', 'value': 'boot_option:local',
+                'path': '/properties/capabilities'
+            }, {
+                'op': 'add', 'value': 'IDIDID',
+                'path': '/driver_info/deploy_ramdisk'
+            }, {
+                'op': 'add', 'value': 'IDIDID',
+                'path': '/driver_info/deploy_kernel'
+            }]),
+            mock.call('QRSTUVWX', [{
+                'op': 'add', 'value': 'boot_option:remote',
+                'path': '/properties/capabilities'
+            }, {
+                'op': 'add', 'value': 'IDIDID',
+                'path': '/driver_info/deploy_ramdisk'
+            }, {
+                'op': 'add', 'value': 'IDIDID',
+                'path': '/driver_info/deploy_kernel'
+            }]),
+            mock.call('YZABCDEF', [{
+                'op': 'add', 'value': 'boot_option:local',
+                'path': '/properties/capabilities'
+            }, {
+                'op': 'add', 'value': 'IDIDID',
+                'path': '/driver_info/deploy_ramdisk'
+            }, {
+                'op': 'add', 'value': 'IDIDID',
+                'path': '/driver_info/deploy_kernel'
+            }]),
+        ])
