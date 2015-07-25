@@ -213,7 +213,7 @@ class TestStartBaremetalIntrospectionBulk(fakes.TestBaremetal):
 
         client = self.app.client_manager.rdomanager_oscplugin.baremetal()
         client.node.list.return_value = [
-            mock.Mock(uuid="ABCDEFGH")
+            mock.Mock(uuid="ABCDEFGH", provision_state="manageable")
         ]
 
         parsed_args = self.check_parser(self.cmd, [], [])
@@ -249,21 +249,24 @@ class TestStartBaremetalIntrospectionBulk(fakes.TestBaremetal):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         self.cmd.take_action(parsed_args)
 
+        # The nodes that are available are set to "manageable" state.
         client.node.set_provision_state.assert_has_calls([
             mock.call('ABCDEFGH', 'manage'),
             mock.call('QRSTUVWX', 'manage'),
         ])
 
+        # Since everything is mocked, the node states doesn't change.
+        # Therefore only the node originally in manageable state is
+        # introspected:
         introspect_mock.assert_has_calls([
-            mock.call('ABCDEFGH', base_url=None, auth_token='TOKEN'),
             mock.call('IJKLMNOP', base_url=None, auth_token='TOKEN'),
-            mock.call('QRSTUVWX', base_url=None, auth_token='TOKEN'),
         ])
 
         wait_for_discover_mock.assert_called_once_with(
             discoverd_client, 'TOKEN', None,
-            ['ABCDEFGH', 'IJKLMNOP', 'QRSTUVWX'])
+            ['IJKLMNOP'])
 
+        # And lastly it  will be set to available:
         client.node.set_provision_state.assert_has_calls([
             mock.call('IJKLMNOP', 'provide'),
         ])
