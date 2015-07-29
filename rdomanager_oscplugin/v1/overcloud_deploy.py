@@ -363,26 +363,6 @@ class DeployOvercloud(command.Command):
                         'Compute-1::NovaEnableRbdBackend': True,
                         'Controller-1::CinderEnableIscsiBackend': cinder_lvm
                     })
-        else:
-            parameters.update({
-                'CephClusterFSID': "''",
-                'CephMonKey': "''",
-                'CephAdminKey': "''"
-            })
-            if args.templates:
-                parameters.update({
-                    'CinderEnableRbdBackend': False,
-                    'NovaEnableRbdBackend': False,
-                    'GlanceBackend': 'swift',
-                    'CinderEnableIscsiBackend': True,
-                })
-            else:
-                parameters.update({
-                    'Controller-1::CinderEnableRbdBackend': False,
-                    'Controller-1::GlanceBackend': 'swift',
-                    'Compute-1::NovaEnableRbdBackend': False,
-                    'Controller-1::CinderEnableIscsiBackend': True,
-                })
 
         return parameters
 
