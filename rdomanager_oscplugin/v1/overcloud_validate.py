@@ -48,7 +48,7 @@ class ValidateOvercloud(command.Command):
                         '--debug --create '
                         'identity.uri %(auth_url)s '
                         'compute.allow_tenant_isolation true '
-                        'object-storage.operator_role SwiftOperator '
+                        'object-storage.operator_role swiftoperator '
                         'identity.admin_password %(admin_password)s '
                         'compute.build_timeout 500 '
                         'compute.image_ssh_user cirros '
