@@ -35,7 +35,7 @@ class ValidateOvercloud(command.Command):
             os.mkdir(self.tempest_run_dir)
 
     def _run_tempest(self, overcloud_auth_url, overcloud_admin_password,
-                     deployer_input, tempest_args, skipfile):
+                     network_id, deployer_input, tempest_args, skipfile):
         os.chdir(self.tempest_run_dir)
 
         if not deployer_input:
@@ -44,6 +44,7 @@ class ValidateOvercloud(command.Command):
         utils.run_shell('/usr/share/openstack-tempest-kilo/tools/'
                         'configure-tempest-directory')
         utils.run_shell('./tools/config_tempest.py --out etc/tempest.conf '
+                        '--network-id %(network_id)s '
                         '--deployer-input %(partial_config_file)s '
                         '--debug --create '
                         'identity.uri %(auth_url)s '
@@ -56,7 +57,8 @@ class ValidateOvercloud(command.Command):
                         'network.build_timeout 500 '
                         'volume.build_timeout 500 '
                         'scenario.ssh_user cirros' %
-                        {'partial_config_file': deployer_input,
+                        {'network_id': network_id,
+                         'partial_config_file': deployer_input,
                          'auth_url': overcloud_auth_url,
                          'admin_password': overcloud_admin_password})
 
@@ -74,6 +76,7 @@ class ValidateOvercloud(command.Command):
 
         parser.add_argument('--overcloud-auth-url', required=True)
         parser.add_argument('--overcloud-admin-password', required=True)
+        parser.add_argument('--network-id', required=True)
         parser.add_argument('--deployer-input')
         parser.add_argument('--tempest-args')
         parser.add_argument('--skipfile')
@@ -86,6 +89,7 @@ class ValidateOvercloud(command.Command):
         self._setup_dir()
         self._run_tempest(parsed_args.overcloud_auth_url,
                           parsed_args.overcloud_admin_password,
+                          parsed_args.network_id,
                           parsed_args.deployer_input,
                           parsed_args.tempest_args,
                           parsed_args.skipfile)
