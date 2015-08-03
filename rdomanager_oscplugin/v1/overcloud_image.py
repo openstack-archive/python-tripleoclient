@@ -13,6 +13,8 @@
 #   under the License.
 #
 
+from __future__ import print_function
+
 import logging
 import os
 import re
@@ -20,10 +22,12 @@ import requests
 import shutil
 import stat
 import subprocess
+import sys
 
 from cliff import command
 from openstackclient.common import exceptions
 from openstackclient.common import utils
+from prettytable import PrettyTable
 from rdomanager_oscplugin import utils as plugin_utils
 
 
@@ -508,6 +512,18 @@ class UploadOvercloudImage(command.Command):
         else:
             self._copy_file(src_file, dest_file)
 
+    def _print_image_info(self, image):
+        table = PrettyTable(['ID', 'Name', 'Disk Format', 'Size', 'Status'])
+        table.add_row([image.id, image.name, image.disk_format, image.size,
+                       image.status])
+        print(table, file=sys.stdout)
+
+    def _upload_image(self, *args, **kwargs):
+        image = self.app.client_manager.image.images.create(*args, **kwargs)
+        print('Image "%s" was uploaded.' % image.name, file=sys.stdout)
+        self._print_image_info(image)
+        return image
+
     def get_parser(self, prog_name):
         parser = super(UploadOvercloudImage, self).get_parser(prog_name)
         parser.add_argument(
@@ -523,7 +539,7 @@ class UploadOvercloudImage(command.Command):
         parser.add_argument(
             "--http-boot",
             default=os.environ.get('HTTP_BOOT', '/httpboot'),
-            help="Root directory for dicovery images",
+            help="Root directory for discovery images",
         )
         parser.add_argument(
             "--update-existing",
@@ -535,7 +551,6 @@ class UploadOvercloudImage(command.Command):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
-        image_client = self.app.client_manager.image
 
         self._env_variable_or_set('DEPLOY_NAME', 'deploy-ramdisk-ironic')
         self._env_variable_or_set('DISCOVERY_NAME', 'discovery-ramdisk')
@@ -563,7 +578,7 @@ class UploadOvercloudImage(command.Command):
         kernel = (self._image_try_update(oc_vmlinuz_name,
                                          oc_vmlinuz_file,
                                          parsed_args) or
-                  image_client.images.create(
+                  self._upload_image(
                       name=oc_vmlinuz_name,
                       is_public=True,
                       disk_format='aki',
@@ -576,7 +591,7 @@ class UploadOvercloudImage(command.Command):
         ramdisk = (self._image_try_update(oc_initrd_name,
                                           oc_initrd_file,
                                           parsed_args) or
-                   image_client.images.create(
+                   self._upload_image(
                        name=oc_initrd_name,
                        is_public=True,
                        disk_format='ari',
@@ -588,7 +603,7 @@ class UploadOvercloudImage(command.Command):
         oc_file = '%s.qcow2' % image_name
         overcloud_image = (self._image_try_update(oc_name, oc_file,
                                                   parsed_args) or
-                           image_client.images.create(
+                           self._upload_image(
                                name=oc_name,
                                is_public=True,
                                disk_format='qcow2',
@@ -611,7 +626,7 @@ class UploadOvercloudImage(command.Command):
         deploy_kernel_name = 'bm-deploy-kernel'
         deploy_kernel_file = '%s.kernel' % os.environ['DEPLOY_NAME']
         self._image_try_update(deploy_kernel_name, deploy_kernel_file,
-                               parsed_args) or image_client.images.create(
+                               parsed_args) or self._upload_image(
             name=deploy_kernel_name,
             is_public=True,
             disk_format='aki',
@@ -623,7 +638,7 @@ class UploadOvercloudImage(command.Command):
         deploy_ramdisk_name = 'bm-deploy-ramdisk'
         deploy_ramdisk_file = '%s.initramfs' % os.environ['DEPLOY_NAME']
         self._image_try_update(deploy_ramdisk_name, deploy_ramdisk_file,
-                               parsed_args) or image_client.images.create(
+                               parsed_args) or self._upload_image(
             name=deploy_ramdisk_name,
             is_public=True,
             disk_format='ari',
