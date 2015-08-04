@@ -347,43 +347,6 @@ class DeployOvercloud(command.Command):
                     'CephAdminKey': utils.create_cephx_key()
                 })
 
-                cinder_lvm = True if args.cinder_lvm else False
-
-                if args.templates:
-                    parameters.update({
-                        'CinderEnableRbdBackend': True,
-                        'NovaEnableRbdBackend': True,
-                        'GlanceBackend': 'rbd',
-                        'CinderEnableIscsiBackend': cinder_lvm,
-                    })
-                else:
-                    parameters.update({
-                        'Controller-1::CinderEnableRbdBackend': True,
-                        'Controller-1::GlanceBackend': 'rbd',
-                        'Compute-1::NovaEnableRbdBackend': True,
-                        'Controller-1::CinderEnableIscsiBackend': cinder_lvm
-                    })
-        else:
-            parameters.update({
-                'CephClusterFSID': "''",
-                'CephMonKey': "''",
-                'CephAdminKey': "''"
-            })
-            if args.templates:
-                parameters.update({
-                    'CinderEnableRbdBackend': False,
-                    'NovaEnableRbdBackend': False,
-                    'GlanceBackend': 'swift',
-                    'CinderEnableIscsiBackend': True,
-                })
-            else:
-                parameters.update({
-                    'Controller-1::CinderEnableRbdBackend': False,
-                    'Controller-1::GlanceBackend': 'swift',
-                    'Compute-1::NovaEnableRbdBackend': False,
-                    'Controller-1::CinderEnableIscsiBackend': True,
-                })
-
         return parameters
 
     def _create_registration_env(self, args):
@@ -752,9 +715,6 @@ class DeployOvercloud(command.Command):
         parser.add_argument('--neutron-mechanism-drivers')
         parser.add_argument('--libvirt-type')
         parser.add_argument('--ntp-server')
-        parser.add_argument('--cinder-lvm',
-                            dest='cinder_lvm',
-                            action='store_true')
         parser.add_argument(
             '--tripleo-root',
             default=os.environ.get('TRIPLEO_ROOT', '/etc/tripleo')

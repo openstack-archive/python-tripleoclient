@@ -265,15 +265,12 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'CephMonKey': 'cephx_key',
             'CephStorageCount': 3,
             'CephStorageImage': 'overcloud-full',
-            'CinderEnableIscsiBackend': False,
-            'CinderEnableRbdBackend': True,
             'CinderISCSIHelper': 'lioadm',
             'CinderPassword': 'password',
             'CloudName': 'overcloud',
             'controllerImage': 'overcloud-full',
             'Debug': 'True',
             'ExtraConfig': '{}',
-            'GlanceBackend': 'rbd',
             'GlancePassword': 'password',
             'HeatPassword': 'password',
             'HeatStackDomainAdminPassword': 'password',
@@ -293,7 +290,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'NeutronPublicInterface': 'nic1',
             'NeutronTunnelTypes': 'gre',
             'NovaComputeLibvirtType': 'qemu',
-            'NovaEnableRbdBackend': True,
             'NovaImage': 'overcloud-full',
             'NovaPassword': 'password',
             'NtpServer': '',
@@ -503,13 +499,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'Controller-1::NeutronMechanismDrivers': 'linuxbridge',
             'Compute-1::NeutronMechanismDrivers': 'linuxbridge',
             'Controller-1::NeutronDhcpAgentsPerNetwork': 3,
-            'Compute-1::NovaEnableRbdBackend': False,
-            'Controller-1::GlanceBackend': 'swift',
-            'Controller-1::CinderEnableIscsiBackend': True,
-            'Controller-1::CinderEnableRbdBackend': False,
-            'CephClusterFSID': "''",
-            'CephMonKey': "''",
-            'CephAdminKey': "''",
         }
 
         mock_heat_deploy.assert_called_with(
@@ -616,13 +605,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'Controller-1::NeutronMechanismDrivers': 'linuxbridge',
             'Compute-1::NeutronMechanismDrivers': 'linuxbridge',
             'Controller-1::NeutronDhcpAgentsPerNetwork': 3,
-            'Compute-1::NovaEnableRbdBackend': False,
-            'Controller-1::GlanceBackend': 'swift',
-            'Controller-1::CinderEnableIscsiBackend': True,
-            'Controller-1::CinderEnableRbdBackend': False,
-            'CephClusterFSID': "''",
-            'CephMonKey': "''",
-            'CephAdminKey': "''",
         }
 
         mock_heat_deploy.assert_called_with(
@@ -732,13 +714,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'Compute-1::NeutronL3HA': True,
             'Compute-1::NeutronAllowL3AgentFailover': False,
             'Controller-1::NeutronDhcpAgentsPerNetwork': 3,
-            'Compute-1::NovaEnableRbdBackend': False,
-            'Controller-1::GlanceBackend': 'swift',
-            'Controller-1::CinderEnableIscsiBackend': True,
-            'Controller-1::CinderEnableRbdBackend': False,
-            'CephClusterFSID': "''",
-            'CephMonKey': "''",
-            'CephAdminKey': "''",
         }
 
         mock_heat_deploy.assert_called_with(
