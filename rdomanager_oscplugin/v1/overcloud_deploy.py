@@ -52,6 +52,7 @@ PARAMETERS = {
     'GlancePassword': None,
     'HeatPassword': None,
     'HeatStackDomainAdminPassword': None,
+    'ManilaPassword': None,
     'NeutronControlPlaneID': None,
     'NeutronDnsmasqOptions': 'dhcp-option-force=26,1400',
     'NeutronPassword': None,
@@ -117,6 +118,8 @@ class DeployOvercloud(command.Command):
             parameters['HeatPassword'] = passwords['OVERCLOUD_HEAT_PASSWORD']
             parameters['HeatStackDomainAdminPassword'] = passwords[
                 'OVERCLOUD_HEAT_STACK_DOMAIN_PASSWORD']
+            parameters['ManilaPassword'] = passwords[
+                'OVERCLOUD_MANILA_PASSWORD']
             parameters['NeutronPassword'] = passwords[
                 'OVERCLOUD_NEUTRON_PASSWORD']
             parameters['NovaPassword'] = passwords['OVERCLOUD_NOVA_PASSWORD']
@@ -153,6 +156,8 @@ class DeployOvercloud(command.Command):
                 passwords['OVERCLOUD_HEAT_PASSWORD'])
             parameters['Controller-1::HeatStackDomainAdminPassword'] = (
                 passwords['OVERCLOUD_HEAT_STACK_DOMAIN_PASSWORD'])
+            parameters['Controller-1::ManilaPassword'] = (
+                passwords['OVERCLOUD_MANILA_PASSWORD'])
             parameters['Controller-1::NeutronPassword'] = (
                 passwords['OVERCLOUD_NEUTRON_PASSWORD'])
             parameters['Compute-1::NeutronPassword'] = (
