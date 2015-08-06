@@ -26,6 +26,251 @@ from rdomanager_oscplugin.tests.v1.baremetal import fakes
 from rdomanager_oscplugin.v1 import baremetal
 
 
+class TestValidateInstackEnv(fakes.TestBaremetal):
+
+    def setUp(self):
+        super(TestValidateInstackEnv, self).setUp()
+
+        self.instack_json = tempfile.NamedTemporaryFile(mode='w', delete=False)
+
+        # Get the command object to test
+        self.cmd = baremetal.ValidateInstackEnv(self.app, None)
+
+    def mock_instackenv_json(self, instackenv_data):
+        json.dump(instackenv_data, self.instack_json)
+        self.instack_json.close()
+
+    def tearDown(self):
+        super(TestValidateInstackEnv, self).tearDown()
+        os.unlink(self.instack_json.name)
+
+    def test_success(self):
+        self.mock_instackenv_json({
+            "nodes": [{
+                "pm_user": "stack",
+                "pm_addr": "192.168.122.1",
+                "pm_password": "SOME SSH KEY",
+                "pm_type": "pxe_ssh",
+                "mac": [
+                    "00:0b:d0:69:7e:59"
+                ],
+            }]
+        })
+
+        arglist = ['-f', self.instack_json.name]
+        parsed_args = self.check_parser(self.cmd, arglist, [])
+        self.cmd.take_action(parsed_args)
+
+        self.assertEqual(0, self.cmd.error_count)
+
+    def test_empty_password(self):
+        self.mock_instackenv_json({
+            "nodes": [{
+                "pm_user": "stack",
+                "pm_addr": "192.168.122.1",
+                "pm_password": "",
+                "pm_type": "pxe_ssh",
+                "mac": [
+                    "00:0b:d0:69:7e:59"
+                ],
+            }]
+        })
+
+        arglist = ['-f', self.instack_json.name]
+        parsed_args = self.check_parser(self.cmd, arglist, [])
+        self.cmd.take_action(parsed_args)
+
+        self.assertEqual(1, self.cmd.error_count)
+
+    def test_no_password(self):
+        self.mock_instackenv_json({
+            "nodes": [{
+                "pm_user": "stack",
+                "pm_addr": "192.168.122.1",
+                "pm_type": "pxe_ssh",
+                "mac": [
+                    "00:0b:d0:69:7e:59"
+                ],
+            }]
+        })
+
+        arglist = ['-f', self.instack_json.name]
+        parsed_args = self.check_parser(self.cmd, arglist, [])
+        self.cmd.take_action(parsed_args)
+
+        self.assertEqual(1, self.cmd.error_count)
+
+    def test_empty_user(self):
+        self.mock_instackenv_json({
+            "nodes": [{
+                "pm_user": "",
+                "pm_addr": "192.168.122.1",
+                "pm_password": "SOME SSH KEY",
+                "pm_type": "pxe_ssh",
+                "mac": [
+                    "00:0b:d0:69:7e:59"
+                ],
+            }]
+        })
+
+        arglist = ['-f', self.instack_json.name]
+        parsed_args = self.check_parser(self.cmd, arglist, [])
+        self.cmd.take_action(parsed_args)
+
+        self.assertEqual(1, self.cmd.error_count)
+
+    def test_no_user(self):
+        self.mock_instackenv_json({
+            "nodes": [{
+                "pm_addr": "192.168.122.1",
+                "pm_password": "SOME SSH KEY",
+                "pm_type": "pxe_ssh",
+                "mac": [
+                    "00:0b:d0:69:7e:59"
+                ],
+            }]
+        })
+
+        arglist = ['-f', self.instack_json.name]
+        parsed_args = self.check_parser(self.cmd, arglist, [])
+        self.cmd.take_action(parsed_args)
+
+        self.assertEqual(1, self.cmd.error_count)
+
+    def test_empty_mac(self):
+        self.mock_instackenv_json({
+            "nodes": [{
+                "pm_user": "stack",
+                "pm_addr": "192.168.122.1",
+                "pm_password": "SOME SSH KEY",
+                "pm_type": "pxe_ssh",
+                "mac": [],
+            }]
+        })
+
+        arglist = ['-f', self.instack_json.name]
+        parsed_args = self.check_parser(self.cmd, arglist, [])
+        self.cmd.take_action(parsed_args)
+
+        self.assertEqual(1, self.cmd.error_count)
+
+    def test_no_mac(self):
+        self.mock_instackenv_json({
+            "nodes": [{
+                "pm_user": "stack",
+                "pm_addr": "192.168.122.1",
+                "pm_password": "SOME SSH KEY",
+                "pm_type": "pxe_ssh",
+            }]
+        })
+
+        arglist = ['-f', self.instack_json.name]
+        parsed_args = self.check_parser(self.cmd, arglist, [])
+        self.cmd.take_action(parsed_args)
+
+        self.assertEqual(1, self.cmd.error_count)
+
+    def test_duplicated_mac(self):
+        self.mock_instackenv_json({
+            "nodes": [{
+                "pm_user": "stack",
+                "pm_addr": "192.168.122.1",
+                "pm_password": "KEY1",
+                "pm_type": "pxe_ssh",
+                "mac": [
+                    "00:0b:d0:69:7e:58"
+                ],
+            }, {
+                "arch": "x86_64",
+                "pm_user": "stack",
+                "pm_addr": "192.168.122.2",
+                "pm_password": "KEY2",
+                "pm_type": "pxe_ssh",
+                "mac": [
+                    "00:0b:d0:69:7e:58"
+                ]
+            }]
+        })
+
+        arglist = ['-f', self.instack_json.name]
+        parsed_args = self.check_parser(self.cmd, arglist, [])
+        self.cmd.take_action(parsed_args)
+
+        self.assertEqual(1, self.cmd.error_count)
+
+    @mock.patch('rdomanager_oscplugin.utils.run_shell')
+    def test_ipmitool_success(self, mock_run_shell):
+        mock_run_shell.return_value = 0
+        self.mock_instackenv_json({
+            "nodes": [{
+                "pm_user": "stack",
+                "pm_addr": "192.168.122.1",
+                "pm_password": "KEY1",
+                "pm_type": "pxe_ipmitool",
+                "mac": [
+                    "00:0b:d0:69:7e:59"
+                ],
+            }]
+        })
+
+        arglist = ['-f', self.instack_json.name]
+        parsed_args = self.check_parser(self.cmd, arglist, [])
+        self.cmd.take_action(parsed_args)
+
+        self.assertEqual(0, self.cmd.error_count)
+
+    @mock.patch('rdomanager_oscplugin.utils.run_shell')
+    def test_ipmitool_failure(self, mock_run_shell):
+        mock_run_shell.return_value = 1
+        self.mock_instackenv_json({
+            "nodes": [{
+                "pm_user": "stack",
+                "pm_addr": "192.168.122.1",
+                "pm_password": "KEY1",
+                "pm_type": "pxe_ipmitool",
+                "mac": [
+                    "00:0b:d0:69:7e:59"
+                ],
+            }]
+        })
+
+        arglist = ['-f', self.instack_json.name]
+        parsed_args = self.check_parser(self.cmd, arglist, [])
+        self.cmd.take_action(parsed_args)
+
+        self.assertEqual(1, self.cmd.error_count)
+
+    @mock.patch('rdomanager_oscplugin.utils.run_shell')
+    def test_duplicated_baremetal_ip(self, mock_run_shell):
+        mock_run_shell.return_value = 0
+        self.mock_instackenv_json({
+            "nodes": [{
+                "pm_user": "stack",
+                "pm_addr": "192.168.122.1",
+                "pm_password": "KEY1",
+                "pm_type": "pxe_ipmitool",
+                "mac": [
+                    "00:0b:d0:69:7e:59"
+                ],
+            }, {
+                "arch": "x86_64",
+                "pm_user": "stack",
+                "pm_addr": "192.168.122.1",
+                "pm_password": "KEY2",
+                "pm_type": "pxe_ipmitool",
+                "mac": [
+                    "00:0b:d0:69:7e:58"
+                ]
+            }]
+        })
+
+        arglist = ['-f', self.instack_json.name]
+        parsed_args = self.check_parser(self.cmd, arglist, [])
+        self.cmd.take_action(parsed_args)
+
+        self.assertEqual(1, self.cmd.error_count)
+
+
 class TestImportBaremetal(fakes.TestBaremetal):
 
     def setUp(self):

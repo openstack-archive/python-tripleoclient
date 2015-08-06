@@ -58,6 +58,90 @@ def _csv_to_nodes_dict(nodes_csv):
     return data
 
 
+class ValidateInstackEnv(command.Command):
+    """Validate `instackenv.json` which is used in `baremetal import`."""
+
+    auth_required = False
+    log = logging.getLogger(__name__ + ".ValidateInstackEnv")
+
+    def get_parser(self, prog_name):
+        parser = super(ValidateInstackEnv, self).get_parser(prog_name)
+        parser.add_argument(
+            '-f', '--file', dest='instackenv',
+            help="Path to the instackenv.json file.",
+            default='instackenv.json')
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)" % parsed_args)
+
+        self.error_count = 0
+
+        with open(parsed_args.instackenv, 'r') as net_file:
+            env_data = json.load(net_file)
+
+        maclist = []
+        baremetal_ips = []
+        for node in env_data['nodes']:
+            self.log.info("Checking node %s" % node['pm_addr'])
+
+            try:
+                if len(node['pm_password']) == 0:
+                    self.log.error('ERROR: Password 0 length.')
+                    self.error_count += 1
+            except Exception as e:
+                self.log.error('ERROR: Password does not exist: %s', e)
+                self.error_count += 1
+            try:
+                if len(node['pm_user']) == 0:
+                    self.log.error('ERROR: User 0 length.')
+                    self.error_count += 1
+            except Exception as e:
+                self.log.error('ERROR: User does not exist: %s', e)
+                self.error_count += 1
+            try:
+                if len(node['mac']) == 0:
+                    self.log.error('ERROR: MAC address 0 length.')
+                    self.error_count += 1
+                maclist.extend(node['mac'])
+            except Exception as e:
+                self.log.error('ERROR: MAC address does not exist: %s', e)
+                self.error_count += 1
+
+            if node['pm_type'] == "pxe_ssh":
+                self.log.debug("Identified virtual node")
+
+            if node['pm_type'] == "pxe_ipmitool":
+                self.log.debug("Identified baremetal node")
+
+                cmd = ('ipmitool -R 1 -I lanplus -H %s -U %s -P %s chassis '
+                       'status' % (node['pm_addr'], node['pm_user'],
+                                   node['pm_password']))
+                self.log.debug("Executing: %s", cmd)
+                status = utils.run_shell(cmd)
+                if status != 0:
+                    self.log.error('ERROR: ipmitool failed')
+                    self.error_count += 1
+                baremetal_ips.append(node['pm_addr'])
+
+        if not utils.all_unique(baremetal_ips):
+            self.log.error('ERROR: Baremetals IPs are not all unique.')
+            self.error_count += 1
+        else:
+            self.log.debug('Baremetal IPs are all unique.')
+
+        if not utils.all_unique(maclist):
+            self.log.error('ERROR: MAC addresses are not all unique.')
+            self.error_count += 1
+        else:
+            self.log.debug('MAC addresses are all unique.')
+
+        if self.error_count == 0:
+            print('SUCCESS: found 0 errors')
+        else:
+            print('FAILURE: found %d errors' % self.error_count)
+
+
 class ImportBaremetal(command.Command):
     """Import baremetal nodes from a JSON or CSV file"""
 
