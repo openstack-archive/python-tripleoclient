@@ -42,7 +42,8 @@
 product:
     name: rhos
     repo_type: poodle
-    version: 6.0
+    version: 7
+    full_version: 7.0
     config:
         enable_epel: y
     rpmrepo:
