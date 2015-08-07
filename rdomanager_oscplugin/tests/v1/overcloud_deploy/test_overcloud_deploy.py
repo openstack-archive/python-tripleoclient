@@ -118,7 +118,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         self.assertEqual(args, (orchestration_client.stacks.get().id, ))
 
-        self.assertEqual(kwargs['parameters'], {
+        expected_parameters = {
             'AdminPassword': 'password',
             'AdminToken': 'password',
             'BlockStorageImage': 'overcloud-full',
@@ -137,6 +137,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'HeatStackDomainAdminPassword': 'password',
             'HypervisorNeutronPhysicalBridge': 'br-ex',
             'HypervisorNeutronPublicInterface': 'nic1',
+            'ManilaPassword': 'password',
             'NeutronAllowL3AgentFailover': False,
             'NeutronBridgeMappings': 'datacentre:br-ex',
             'NeutronControlPlaneID': 'network id',
@@ -159,7 +160,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'SwiftHashSuffix': 'password',
             'SwiftPassword': 'password',
             'SwiftStorageImage': 'overcloud-full',
-        })
+        }
+        self.assertEqual(set(kwargs['parameters'].keys())
+                         ^ set(expected_parameters.keys()), set())
+        self.assertEqual(kwargs['parameters'], expected_parameters)
 
         self.assertEqual(kwargs['files'], {})
         self.assertEqual(kwargs['template'], 'template')
@@ -254,7 +258,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         args, kwargs = orchestration_client.stacks.create.call_args
 
-        self.assertEqual(kwargs['parameters'], {
+        expected_parameters = {
             'AdminPassword': 'password',
             'AdminToken': 'password',
             'BlockStorageImage': 'overcloud-full',
@@ -276,6 +280,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'HeatStackDomainAdminPassword': 'password',
             'HypervisorNeutronPhysicalBridge': 'br-ex',
             'HypervisorNeutronPublicInterface': 'nic1',
+            'ManilaPassword': 'password',
             'NeutronAllowL3AgentFailover': False,
             'NeutronBridgeMappings': 'datacentre:br-ex',
             'NeutronControlPlaneID': 'network id',
@@ -302,7 +307,11 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'SwiftHashSuffix': 'password',
             'SwiftPassword': 'password',
             'SwiftStorageImage': 'overcloud-full',
-        })
+        }
+
+        self.assertEqual(set(kwargs['parameters'].keys())
+                         ^ set(expected_parameters.keys()), set())
+        self.assertEqual(kwargs['parameters'], expected_parameters)
 
         self.assertEqual(kwargs['files'], {})
         self.assertEqual(kwargs['template'], 'template')
@@ -466,40 +475,40 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.cmd.take_action(parsed_args)
 
         parameters = {
-            'Controller-1::SnmpdReadonlyUserPassword': "PASSWORD",
-            'Compute-1::NeutronPassword': 'password',
-            'Controller-1::NeutronPassword': 'password',
             'Cinder-Storage-1::SnmpdReadonlyUserPassword': "PASSWORD",
-            'Compute-1::CeilometerMeteringSecret': 'password',
-            'NeutronControlPlaneID': 'network id',
-            'Compute-1::NeutronBridgeMappings': 'datacentre:br-test',
-            'Controller-1::AdminPassword': 'password',
-            'Compute-1::Flavor': 'baremetal',
-            'Compute-1::SnmpdReadonlyUserPassword': "PASSWORD",
-            'Controller-1::count': 3,
-            'Compute-1::CeilometerPassword': 'password',
-            'Controller-1::CinderPassword': 'password',
-            'Controller-1::CeilometerPassword': 'password',
             'Compute-1::AdminPassword': 'password',
+            'Compute-1::CeilometerMeteringSecret': 'password',
+            'Compute-1::CeilometerPassword': 'password',
+            'Compute-1::Flavor': 'baremetal',
+            'Compute-1::NeutronAllowL3AgentFailover': False,
+            'Compute-1::NeutronBridgeMappings': 'datacentre:br-test',
+            'Compute-1::NeutronL3HA': True,
+            'Compute-1::NeutronMechanismDrivers': 'linuxbridge',
+            'Compute-1::NeutronPassword': 'password',
+            'Compute-1::NovaPassword': 'password',
+            'Compute-1::SnmpdReadonlyUserPassword': "PASSWORD",
+            'Controller-1::AdminPassword': 'password',
+            'Controller-1::AdminToken': 'password',
+            'Controller-1::CeilometerMeteringSecret': 'password',
+            'Controller-1::CeilometerPassword': 'password',
+            'Controller-1::CinderPassword': 'password',
+            'Controller-1::count': 3,
+            'Controller-1::GlancePassword': 'password',
             'Controller-1::HeatPassword': 'password',
             'Controller-1::HeatStackDomainAdminPassword': 'password',
-            'Controller-1::CeilometerMeteringSecret': 'password',
-            'Controller-1::SwiftPassword': 'password',
-            'Controller-1::NeutronBridgeMappings': 'datacentre:br-test',
-            'Controller-1::NovaPassword': 'password',
-            'Controller-1::SwiftHashSuffix': 'password',
-            'Compute-1::NovaPassword': 'password',
-            'Controller-1::GlancePassword': 'password',
-            'Swift-Storage-1::SnmpdReadonlyUserPassword': "PASSWORD",
-            'Controller-1::AdminToken': 'password',
-            'Controller-1::NeutronL3HA': True,
-            'Controller-1::NeutronAllowL3AgentFailover': False,
-            'Compute-1::NeutronL3HA': True,
-            'Compute-1::NeutronAllowL3AgentFailover': False,
-            'Controller-1::NeutronMechanismDrivers': 'linuxbridge',
-            'Compute-1::NeutronMechanismDrivers': 'linuxbridge',
-            'Controller-1::NeutronDhcpAgentsPerNetwork': 3,
             'Controller-1::ManilaPassword': 'password',
+            'Controller-1::NeutronAllowL3AgentFailover': False,
+            'Controller-1::NeutronBridgeMappings': 'datacentre:br-test',
+            'Controller-1::NeutronDhcpAgentsPerNetwork': 3,
+            'Controller-1::NeutronL3HA': True,
+            'Controller-1::NeutronMechanismDrivers': 'linuxbridge',
+            'Controller-1::NeutronPassword': 'password',
+            'Controller-1::NovaPassword': 'password',
+            'Controller-1::SnmpdReadonlyUserPassword': "PASSWORD",
+            'Controller-1::SwiftHashSuffix': 'password',
+            'Controller-1::SwiftPassword': 'password',
+            'NeutronControlPlaneID': 'network id',
+            'Swift-Storage-1::SnmpdReadonlyUserPassword': "PASSWORD",
         }
 
         mock_heat_deploy.assert_called_with(
@@ -573,39 +582,40 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.cmd.take_action(parsed_args)
 
         parameters = {
-            'Controller-1::SnmpdReadonlyUserPassword': "PASSWORD",
-            'Compute-1::NeutronPassword': 'password',
-            'Controller-1::NeutronPassword': 'password',
             'Cinder-Storage-1::SnmpdReadonlyUserPassword': "PASSWORD",
-            'Compute-1::CeilometerMeteringSecret': 'password',
-            'NeutronControlPlaneID': 'network id',
-            'Compute-1::NeutronBridgeMappings': 'datacentre:br-test',
-            'Controller-1::AdminPassword': 'password',
-            'Compute-1::Flavor': 'baremetal',
-            'Compute-1::SnmpdReadonlyUserPassword': "PASSWORD",
-            'Controller-1::count': 3,
-            'Compute-1::CeilometerPassword': 'password',
-            'Controller-1::CinderPassword': 'password',
-            'Controller-1::CeilometerPassword': 'password',
             'Compute-1::AdminPassword': 'password',
+            'Compute-1::CeilometerMeteringSecret': 'password',
+            'Compute-1::CeilometerPassword': 'password',
+            'Compute-1::Flavor': 'baremetal',
+            'Compute-1::NeutronAllowL3AgentFailover': False,
+            'Compute-1::NeutronBridgeMappings': 'datacentre:br-test',
+            'Compute-1::NeutronL3HA': True,
+            'Compute-1::NeutronMechanismDrivers': 'linuxbridge',
+            'Compute-1::NeutronPassword': 'password',
+            'Compute-1::NovaPassword': 'password',
+            'Compute-1::SnmpdReadonlyUserPassword': "PASSWORD",
+            'Controller-1::AdminPassword': 'password',
+            'Controller-1::AdminToken': 'password',
+            'Controller-1::CeilometerMeteringSecret': 'password',
+            'Controller-1::CeilometerPassword': 'password',
+            'Controller-1::CinderPassword': 'password',
+            'Controller-1::count': 3,
+            'Controller-1::GlancePassword': 'password',
             'Controller-1::HeatPassword': 'password',
             'Controller-1::HeatStackDomainAdminPassword': 'password',
-            'Controller-1::CeilometerMeteringSecret': 'password',
-            'Controller-1::SwiftPassword': 'password',
-            'Controller-1::NeutronBridgeMappings': 'datacentre:br-test',
-            'Controller-1::NovaPassword': 'password',
-            'Controller-1::SwiftHashSuffix': 'password',
-            'Compute-1::NovaPassword': 'password',
-            'Controller-1::GlancePassword': 'password',
-            'Swift-Storage-1::SnmpdReadonlyUserPassword': "PASSWORD",
-            'Controller-1::AdminToken': 'password',
-            'Controller-1::NeutronL3HA': True,
+            'Controller-1::ManilaPassword': 'password',
             'Controller-1::NeutronAllowL3AgentFailover': False,
-            'Compute-1::NeutronL3HA': True,
-            'Compute-1::NeutronAllowL3AgentFailover': False,
-            'Controller-1::NeutronMechanismDrivers': 'linuxbridge',
-            'Compute-1::NeutronMechanismDrivers': 'linuxbridge',
+            'Controller-1::NeutronBridgeMappings': 'datacentre:br-test',
             'Controller-1::NeutronDhcpAgentsPerNetwork': 3,
+            'Controller-1::NeutronL3HA': True,
+            'Controller-1::NeutronMechanismDrivers': 'linuxbridge',
+            'Controller-1::NeutronPassword': 'password',
+            'Controller-1::NovaPassword': 'password',
+            'Controller-1::SnmpdReadonlyUserPassword': "PASSWORD",
+            'Controller-1::SwiftHashSuffix': 'password',
+            'Controller-1::SwiftPassword': 'password',
+            'NeutronControlPlaneID': 'network id',
+            'Swift-Storage-1::SnmpdReadonlyUserPassword': "PASSWORD",
         }
 
         mock_heat_deploy.assert_called_with(
@@ -684,38 +694,38 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.cmd.take_action(parsed_args)
 
         parameters = {
-            'Controller-1::SnmpdReadonlyUserPassword': "PASSWORD",
-            'Compute-1::NeutronPassword': 'password',
-            'Controller-1::NeutronPassword': 'password',
             'Cinder-Storage-1::SnmpdReadonlyUserPassword': "PASSWORD",
-            'Compute-1::CeilometerMeteringSecret': 'password',
-            'NeutronControlPlaneID': 'network id',
-            'Compute-1::NeutronBridgeMappings': 'datacentre:br-test',
-            'Controller-1::AdminPassword': 'password',
-            'Compute-1::Flavor': 'baremetal',
-            'Compute-1::SnmpdReadonlyUserPassword': "PASSWORD",
-            'Controller-1::count': 3,
-            'Compute-1::CeilometerPassword': 'password',
-            'Controller-1::CinderPassword': 'password',
-            'Controller-1::CeilometerPassword': 'password',
             'Compute-1::AdminPassword': 'password',
+            'Compute-1::CeilometerMeteringSecret': 'password',
+            'Compute-1::CeilometerPassword': 'password',
+            'Compute-1::Flavor': 'baremetal',
+            'Compute-1::NeutronAllowL3AgentFailover': False,
+            'Compute-1::NeutronBridgeMappings': 'datacentre:br-test',
+            'Compute-1::NeutronL3HA': True,
+            'Compute-1::NeutronPassword': 'password',
+            'Compute-1::NovaPassword': 'password',
+            'Compute-1::SnmpdReadonlyUserPassword': "PASSWORD",
+            'Controller-1::AdminPassword': 'password',
+            'Controller-1::AdminToken': 'password',
+            'Controller-1::CeilometerMeteringSecret': 'password',
+            'Controller-1::CeilometerPassword': 'password',
+            'Controller-1::CinderPassword': 'password',
+            'Controller-1::count': 3,
+            'Controller-1::GlancePassword': 'password',
             'Controller-1::HeatPassword': 'password',
             'Controller-1::HeatStackDomainAdminPassword': 'password',
-            'Controller-1::CeilometerMeteringSecret': 'password',
-            'Controller-1::SwiftPassword': 'password',
-            'Controller-1::NeutronBridgeMappings': 'datacentre:br-test',
-            'Controller-1::NovaPassword': 'password',
-            'Controller-1::SwiftHashSuffix': 'password',
-            'Compute-1::NovaPassword': 'password',
-            'Controller-1::GlancePassword': 'password',
-            'Swift-Storage-1::SnmpdReadonlyUserPassword': "PASSWORD",
-            'Controller-1::AdminToken': 'password',
-            'Controller-1::NeutronL3HA': True,
-            'Controller-1::NeutronAllowL3AgentFailover': False,
-            'Compute-1::NeutronL3HA': True,
-            'Compute-1::NeutronAllowL3AgentFailover': False,
-            'Controller-1::NeutronDhcpAgentsPerNetwork': 3,
             'Controller-1::ManilaPassword': 'password',
+            'Controller-1::NeutronAllowL3AgentFailover': False,
+            'Controller-1::NeutronBridgeMappings': 'datacentre:br-test',
+            'Controller-1::NeutronDhcpAgentsPerNetwork': 3,
+            'Controller-1::NeutronL3HA': True,
+            'Controller-1::NeutronPassword': 'password',
+            'Controller-1::NovaPassword': 'password',
+            'Controller-1::SnmpdReadonlyUserPassword': "PASSWORD",
+            'Controller-1::SwiftHashSuffix': 'password',
+            'Controller-1::SwiftPassword': 'password',
+            'NeutronControlPlaneID': 'network id',
+            'Swift-Storage-1::SnmpdReadonlyUserPassword': "PASSWORD",
         }
 
         mock_heat_deploy.assert_called_with(
