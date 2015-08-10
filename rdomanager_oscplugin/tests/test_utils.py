@@ -41,15 +41,14 @@ class TestPasswordsUtil(TestCase):
             mock.call('OVERCLOUD_GLANCE_PASSWORD=PASSWORD\n'),
             mock.call('OVERCLOUD_HEAT_PASSWORD=PASSWORD\n'),
             mock.call('OVERCLOUD_HEAT_STACK_DOMAIN_PASSWORD=PASSWORD\n'),
-            mock.call('OVERCLOUD_MANILA_PASSWORD=PASSWORD\n'),
             mock.call('OVERCLOUD_NEUTRON_PASSWORD=PASSWORD\n'),
             mock.call('OVERCLOUD_NOVA_PASSWORD=PASSWORD\n'),
             mock.call('OVERCLOUD_SWIFT_HASH=PASSWORD\n'),
             mock.call('OVERCLOUD_SWIFT_PASSWORD=PASSWORD\n'),
         ])
-        self.assertEqual(generate_password_mock.call_count, 14)
+        self.assertEqual(generate_password_mock.call_count, 13)
 
-        self.assertEqual(len(passwords), 14)
+        self.assertEqual(len(passwords), 13)
 
     @mock.patch("os.path.isfile", return_value=True)
     @mock.patch("rdomanager_oscplugin.utils._generate_password",
@@ -65,7 +64,6 @@ class TestPasswordsUtil(TestCase):
             'OVERCLOUD_GLANCE_PASSWORD=PASSWORD\n',
             'OVERCLOUD_HEAT_PASSWORD=PASSWORD\n',
             'OVERCLOUD_HEAT_STACK_DOMAIN_PASSWORD=PASSWORD\n',
-            'OVERCLOUD_MANILA_PASSWORD=PASSWORD\n',
             'OVERCLOUD_NEUTRON_PASSWORD=PASSWORD\n',
             'OVERCLOUD_NOVA_PASSWORD=PASSWORD\n',
             'OVERCLOUD_SWIFT_HASH=PASSWORD\n',
@@ -82,7 +80,7 @@ class TestPasswordsUtil(TestCase):
         mock_open().write.assert_not_called()
         generate_password_mock.assert_not_called()
 
-        self.assertEqual(len(passwords), 14)
+        self.assertEqual(len(passwords), 13)
 
 
 class TestCheckHypervisorUtil(TestCase):
