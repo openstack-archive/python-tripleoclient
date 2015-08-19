@@ -167,11 +167,11 @@ class DeployOvercloud(command.Command):
             parameters['Controller-1::SwiftPassword'] = (
                 passwords['OVERCLOUD_SWIFT_PASSWORD'])
 
-    def _get_stack(self, orchestration_client):
+    def _get_stack(self, orchestration_client, stack_name):
         """Get the ID for the current deployed overcloud stack if it exists."""
 
         try:
-            stack = orchestration_client.stacks.get('overcloud')
+            stack = orchestration_client.stacks.get(stack_name)
             self.log.info("Stack found, will be doing a stack update")
             return stack
         except HTTPNotFound:
@@ -390,8 +390,8 @@ class DeployOvercloud(command.Command):
             temp_file.write(user_env)
         return [registry, environment, user_env_file]
 
-    def _heat_deploy(self, stack, template_path, parameters, environments,
-                     timeout):
+    def _heat_deploy(self, stack, stack_name, template_path, parameters,
+                     environments, timeout):
         """Verify the Baremetal nodes are available and do a stack update"""
 
         self.log.debug("Processing environment files")
@@ -407,8 +407,6 @@ class DeployOvercloud(command.Command):
 
         clients = self.app.client_manager
         orchestration_client = clients.rdomanager_oscplugin.orchestration()
-
-        stack_name = "overcloud"
 
         self.log.debug("Deploying stack: %s", stack_name)
         self.log.debug("Deploying template: %s", template)
@@ -437,7 +435,7 @@ class DeployOvercloud(command.Command):
             orchestration_client.stacks.update(stack.id, **stack_args)
 
         create_result = utils.wait_for_stack_ready(
-            orchestration_client, "overcloud")
+            orchestration_client, stack_name)
         if not create_result:
             if stack is None:
                 raise Exception("Heat Stack create failed.")
@@ -496,8 +494,8 @@ class DeployOvercloud(command.Command):
 
         overcloud_yaml = os.path.join(tht_root, OVERCLOUD_YAML_NAME)
 
-        self._heat_deploy(stack, overcloud_yaml, parameters, environments,
-                          parsed_args.timeout)
+        self._heat_deploy(stack, parsed_args.stack, overcloud_yaml, parameters,
+                          environments, parsed_args.timeout)
 
     def _deploy_tuskar(self, stack, parsed_args):
 
@@ -572,8 +570,8 @@ class DeployOvercloud(command.Command):
         if parsed_args.environment_files:
             environments.extend(parsed_args.environment_files)
 
-        self._heat_deploy(stack, overcloud_yaml, parameters, environments,
-                          parsed_args.timeout)
+        self._heat_deploy(stack, parsed_args.stack, overcloud_yaml, parameters,
+                          environments, parsed_args.timeout)
 
     def _create_overcloudrc(self, stack, parsed_args):
         overcloud_endpoint = self._get_overcloud_endpoint(stack)
@@ -586,7 +584,7 @@ class DeployOvercloud(command.Command):
             'OS_USERNAME': 'admin',
             'OS_TENANT_NAME': 'admin',
             'OS_NO_CACHE': 'True',
-            'OS_CLOUDNAME': 'overcloud',
+            'OS_CLOUDNAME': stack.stack_name,
             'no_proxy': "%(no_proxy)s,%(overcloud_ip)s" % {
                 'no_proxy': parsed_args.no_proxy,
                 'overcloud_ip': overcloud_ip,
@@ -596,7 +594,7 @@ class DeployOvercloud(command.Command):
             'OS_PASSWORD': self.passwords['OVERCLOUD_ADMIN_PASSWORD'],
             'OS_AUTH_URL': self._get_overcloud_endpoint(stack),
         })
-        with open('overcloudrc', 'w') as f:
+        with open('%src' % stack.stack_name, 'w') as f:
             for key, value in rc_params.items():
                 f.write("export %(key)s=%(value)s\n" %
                         {'key': key, 'value': value})
@@ -673,6 +671,9 @@ class DeployOvercloud(command.Command):
         main_group.add_argument(
             '--templates', nargs='?', const=TRIPLEO_HEAT_TEMPLATES,
             help=_("The directory containing the Heat templates to deploy"))
+        parser.add_argument('--stack',
+                            help=_("Stack name to create or update"),
+                            default='overcloud')
         parser.add_argument('-t', '--timeout', metavar='<TIMEOUT>',
                             type=int, default=240,
                             help=_('Deployment timeout in minutes.'))
@@ -782,7 +783,7 @@ class DeployOvercloud(command.Command):
         clients = self.app.client_manager
         orchestration_client = clients.rdomanager_oscplugin.orchestration()
 
-        stack = self._get_stack(orchestration_client)
+        stack = self._get_stack(orchestration_client, parsed_args.stack)
         stack_create = stack is None
 
         self._pre_heat_deploy()
@@ -813,7 +814,7 @@ class DeployOvercloud(command.Command):
 
         # Get a new copy of the stack after stack update/create. If it was a
         # create then the previous stack object would be None.
-        stack = self._get_stack(orchestration_client)
+        stack = self._get_stack(orchestration_client, parsed_args.stack)
 
         self._create_overcloudrc(stack, parsed_args)
 
