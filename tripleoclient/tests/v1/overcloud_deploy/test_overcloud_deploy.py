@@ -13,7 +13,10 @@
 #   under the License.
 #
 
+import json
+import os
 import sys
+import tempfile
 
 import mock
 import six
@@ -44,6 +47,15 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         self._get_passwords = generate_overcloud_passwords_mock
 
+        self.parameter_defaults_env_file = (
+            tempfile.NamedTemporaryFile(mode='w', delete=False).name)
+
+    def tearDown(self):
+        super(TestDeployOvercloud, self).tearDown()
+        os.unlink(self.parameter_defaults_env_file)
+
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_create_parameters_env')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
@@ -81,7 +93,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                        mock_create_overcloudrc,
                        mock_generate_overcloud_passwords,
                        mock_create_tempest_deployer_input,
-                       mock_deploy_postconfig):
+                       mock_deploy_postconfig,
+                       mock_create_parameters_env):
 
         arglist = ['--templates', '--ceph-storage-scale', '3']
         verifylist = [
@@ -115,13 +128,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         baremetal = clients.tripleoclient.baremetal()
         baremetal.node.list.return_value = range(10)
-
-        result = self.cmd.take_action(parsed_args)
-        self.assertTrue(result)
-
-        args, kwargs = orchestration_client.stacks.update.call_args
-
-        self.assertEqual(args, (orchestration_client.stacks.get().id, ))
 
         expected_parameters = {
             'AdminPassword': 'password',
@@ -165,9 +171,23 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'SwiftPassword': 'password',
             'SwiftStorageImage': 'overcloud-full',
         }
-        self.assertEqual(set(kwargs['parameters'].keys())
-                         ^ set(expected_parameters.keys()), set())
-        self.assertEqual(kwargs['parameters'], expected_parameters)
+
+        def _custom_create_params_env(parameters):
+            for key, value in six.iteritems(parameters):
+                self.assertEqual(value, expected_parameters[key])
+            parameter_defaults = {"parameter_defaults": parameters}
+            with open(self.parameter_defaults_env_file, 'w') as temp_file:
+                temp_file.write(json.dumps(parameter_defaults))
+            return [self.parameter_defaults_env_file]
+
+        mock_create_parameters_env.side_effect = _custom_create_params_env
+
+        result = self.cmd.take_action(parsed_args)
+        self.assertTrue(result)
+
+        args, kwargs = orchestration_client.stacks.update.call_args
+
+        self.assertEqual(args, (orchestration_client.stacks.get().id, ))
 
         self.assertEqual(kwargs['files'], {})
         self.assertEqual(kwargs['template'], 'template')
@@ -180,6 +200,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_create_tempest_deployer_input.assert_called_with(self.cmd)
 
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_create_parameters_env')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
@@ -217,7 +239,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                         mock_create_overcloudrc,
                         mock_generate_overcloud_passwords,
                         mock_create_tempest_deployer_input,
-                        mock_deploy_postconfig):
+                        mock_deploy_postconfig,
+                        mock_create_parameters_env):
 
         arglist = ['--templates', '--ceph-storage-scale', '3']
         verifylist = [
@@ -258,11 +281,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         baremetal = clients.tripleoclient.baremetal()
         baremetal.node.list.return_value = range(10)
 
-        result = self.cmd.take_action(parsed_args)
-        self.assertTrue(result)
-
-        args, kwargs = orchestration_client.stacks.create.call_args
-
         expected_parameters = {
             'AdminPassword': 'password',
             'AdminToken': 'password',
@@ -297,9 +315,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'NeutronNetworkVLANRanges': 'datacentre:1:1000',
             'NeutronPassword': 'password',
             'NeutronPublicInterface': 'nic1',
-            'NeutronTunnelIdRanges': '1:1000',
+            'NeutronTunnelIdRanges': ['1:1000'],
             'NeutronTunnelTypes': 'gre',
-            'NeutronVniRanges': '1:1000',
+            'NeutronVniRanges': ['1:1000'],
             'NovaComputeLibvirtType': 'kvm',
             'NovaImage': 'overcloud-full',
             'NovaPassword': 'password',
@@ -315,9 +333,20 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'SwiftStorageImage': 'overcloud-full',
         }
 
-        self.assertEqual(set(kwargs['parameters'].keys())
-                         ^ set(expected_parameters.keys()), set())
-        self.assertEqual(kwargs['parameters'], expected_parameters)
+        def _custom_create_params_env(parameters):
+            for key, value in six.iteritems(parameters):
+                self.assertEqual(value, expected_parameters[key])
+            parameter_defaults = {"parameter_defaults": parameters}
+            with open(self.parameter_defaults_env_file, 'w') as temp_file:
+                temp_file.write(json.dumps(parameter_defaults))
+            return [self.parameter_defaults_env_file]
+
+        mock_create_parameters_env.side_effect = _custom_create_params_env
+
+        result = self.cmd.take_action(parsed_args)
+        self.assertTrue(result)
+
+        args, kwargs = orchestration_client.stacks.create.call_args
 
         self.assertEqual(kwargs['files'], {})
         self.assertEqual(kwargs['template'], 'template')
@@ -404,10 +433,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         args, kwargs = orchestration_client.stacks.update.call_args
 
         self.assertEqual(args, (orchestration_client.stacks.get().id, ))
-
-        # The parameters output contains lots of output and some is random.
-        # So lets just check that it is present
-        self.assertTrue('parameters' in kwargs)
 
         self.assertEqual(kwargs['files'], {})
         self.assertEqual(kwargs['template'], 'template')

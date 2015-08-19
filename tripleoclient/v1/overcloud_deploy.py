@@ -16,6 +16,7 @@ from __future__ import print_function
 
 import argparse
 import collections
+import json
 import logging
 import os
 import re
@@ -86,8 +87,8 @@ PARAMETERS = {
 
 NEW_STACK_PARAMETERS = {
     'NovaComputeLibvirtType': 'kvm',
-    'NeutronTunnelIdRanges': '1:1000',
-    'NeutronVniRanges': '1:1000',
+    'NeutronTunnelIdRanges': ['1:1000'],
+    'NeutronVniRanges': ['1:1000'],
     'NeutronEnableTunnelling': 'True',
     'NeutronNetworkType': 'gre',
     'NeutronTunnelTypes': 'gre',
@@ -305,7 +306,12 @@ class DeployOvercloud(command.Command):
         # Update parameters from commandline
         for param, arg in param_args:
             if getattr(args, arg, None) is not None:
-                parameters[param] = getattr(args, arg)
+                # these must be converted to [] which is what Heat expects
+                if param.endswith(('NeutronTunnelIdRanges',
+                                   'NeutronVniRanges')):
+                    parameters[param] = [getattr(args, arg)]
+                else:
+                    parameters[param] = getattr(args, arg)
 
         # Scaling needs extra parameters
         number_controllers = max((
@@ -396,7 +402,16 @@ class DeployOvercloud(command.Command):
         handle, user_env_file = tempfile.mkstemp()
         with open(user_env_file, 'w') as temp_file:
             temp_file.write(user_env)
+        os.close(handle)
         return [registry, environment, user_env_file]
+
+    def _create_parameters_env(self, parameters):
+        parameter_defaults = {"parameter_defaults": parameters}
+        handle, parameter_defaults_env_file = tempfile.mkstemp()
+        with open(parameter_defaults_env_file, 'w') as temp_file:
+            temp_file.write(json.dumps(parameter_defaults))
+        os.close(handle)
+        return [parameter_defaults_env_file]
 
     def _heat_deploy(self, stack, stack_name, template_path, parameters,
                      environments, timeout):
@@ -425,7 +440,6 @@ class DeployOvercloud(command.Command):
         stack_args = {
             'stack_name': stack_name,
             'template': template,
-            'parameters': parameters,
             'environment': env,
             'files': files
         }
@@ -508,6 +522,7 @@ class DeployOvercloud(command.Command):
         resource_registry_path = os.path.join(tht_root, RESOURCE_REGISTRY_NAME)
 
         environments = [resource_registry_path, env_path]
+        environments.extend(self._create_parameters_env(parameters))
         if parsed_args.rhel_reg:
             reg_env = self._create_registration_env(parsed_args)
             environments.extend(reg_env)
