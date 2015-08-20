@@ -14,6 +14,7 @@
 #
 
 import mock
+import os.path
 
 from rdomanager_oscplugin import utils
 from unittest import TestCase
@@ -325,8 +326,10 @@ class TestWaitForDiscovery(TestCase):
         mock_exists.return_value = True
 
         utils.remove_known_hosts('192.168.0.1')
+        known_hosts = os.path.expanduser("~/.ssh/known_hosts")
 
-        mock_check_call.assert_called_with(['ssh-keygen', '-R', '192.168.0.1'])
+        mock_check_call.assert_called_with(
+            ['ssh-keygen', '-R', '192.168.0.1', '-f', known_hosts])
 
     @mock.patch('subprocess.check_call')
     @mock.patch('os.path.exists')
