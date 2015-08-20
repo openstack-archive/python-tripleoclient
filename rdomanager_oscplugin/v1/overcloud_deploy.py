@@ -307,6 +307,10 @@ class DeployOvercloud(command.Command):
         ))
 
         if number_controllers > 1:
+            if not args.ntp_server:
+                raise Exception('Specify --ntp-server when using multiple'
+                                ' controllers (with HA).')
+
             if args.templates:
                 parameters.update({
                     'NeutronL3HA': True,
@@ -732,7 +736,9 @@ class DeployOvercloud(command.Command):
         parser.add_argument('--neutron-network-vlan-ranges')
         parser.add_argument('--neutron-mechanism-drivers')
         parser.add_argument('--libvirt-type')
-        parser.add_argument('--ntp-server')
+        parser.add_argument('--ntp-server',
+                            help=_("NTP server address is required for HA"
+                                   " deployments."))
         parser.add_argument(
             '--tripleo-root',
             default=os.environ.get('TRIPLEO_ROOT', '/etc/tripleo')

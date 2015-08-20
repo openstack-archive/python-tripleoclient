@@ -442,12 +442,14 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                    '--neutron-bridge-mappings', 'datacentre:br-test',
                    '--neutron-disable-tunneling',
                    '--control-scale', '3',
-                   '--neutron-mechanism-drivers', 'linuxbridge']
+                   '--neutron-mechanism-drivers', 'linuxbridge',
+                   '--ntp-server', 'ntp.local']
 
         verifylist = [
             ('templates', None),
             ('plan', 'undercloud'),
             ('output_dir', 'fake'),
+            ('ntp_server', 'ntp.local')
         ]
 
         clients = self.app.client_manager
@@ -486,6 +488,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'Compute-1::NeutronMechanismDrivers': 'linuxbridge',
             'Compute-1::NeutronPassword': 'password',
             'Compute-1::NovaPassword': 'password',
+            'Compute-1::NtpServer': 'ntp.local',
             'Compute-1::SnmpdReadonlyUserPassword': "PASSWORD",
             'Controller-1::AdminPassword': 'password',
             'Controller-1::AdminToken': 'password',
@@ -503,6 +506,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'Controller-1::NeutronMechanismDrivers': 'linuxbridge',
             'Controller-1::NeutronPassword': 'password',
             'Controller-1::NovaPassword': 'password',
+            'Controller-1::NtpServer': 'ntp.local',
             'Controller-1::SnmpdReadonlyUserPassword': "PASSWORD",
             'Controller-1::SwiftHashSuffix': 'password',
             'Controller-1::SwiftPassword': 'password',
@@ -548,6 +552,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                    '--neutron-bridge-mappings', 'datacentre:br-test',
                    '--neutron-disable-tunneling',
                    '--control-scale', '3',
+                   '--ntp-server', 'ntp.local',
                    '--neutron-mechanism-drivers', 'linuxbridge']
 
         verifylist = [
@@ -592,6 +597,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'Compute-1::NeutronMechanismDrivers': 'linuxbridge',
             'Compute-1::NeutronPassword': 'password',
             'Compute-1::NovaPassword': 'password',
+            'Compute-1::NtpServer': 'ntp.local',
             'Compute-1::SnmpdReadonlyUserPassword': "PASSWORD",
             'Controller-1::AdminPassword': 'password',
             'Controller-1::AdminToken': 'password',
@@ -609,6 +615,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'Controller-1::NeutronMechanismDrivers': 'linuxbridge',
             'Controller-1::NeutronPassword': 'password',
             'Controller-1::NovaPassword': 'password',
+            'Controller-1::NtpServer': 'ntp.local',
             'Controller-1::SnmpdReadonlyUserPassword': "PASSWORD",
             'Controller-1::SwiftHashSuffix': 'password',
             'Controller-1::SwiftPassword': 'password',
@@ -655,6 +662,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                    '--neutron-bridge-mappings', 'datacentre:br-test',
                    '--neutron-disable-tunneling',
                    '--control-scale', '3',
+                   '--ntp-server', 'ntp.local',
                    '-e', 'extra_registry.yaml',
                    '-e', 'extra_environment.yaml',
                    '-t', '120', ]
@@ -702,6 +710,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'Compute-1::NeutronL3HA': True,
             'Compute-1::NeutronPassword': 'password',
             'Compute-1::NovaPassword': 'password',
+            'Compute-1::NtpServer': 'ntp.local',
             'Compute-1::SnmpdReadonlyUserPassword': "PASSWORD",
             'Controller-1::AdminPassword': 'password',
             'Controller-1::AdminToken': 'password',
@@ -718,6 +727,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'Controller-1::NeutronL3HA': True,
             'Controller-1::NeutronPassword': 'password',
             'Controller-1::NovaPassword': 'password',
+            'Controller-1::NtpServer': 'ntp.local',
             'Controller-1::SnmpdReadonlyUserPassword': "PASSWORD",
             'Controller-1::SwiftHashSuffix': 'password',
             'Controller-1::SwiftPassword': 'password',
