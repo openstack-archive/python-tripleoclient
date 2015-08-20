@@ -34,18 +34,19 @@ class UpdateOvercloud(command.Command):
                             help='Name or ID of heat stack to scale '
                                  '(default=Env: OVERCLOUD_STACK_NAME)',
                             default=utils.env('OVERCLOUD_STACK_NAME'))
-        parser.add_argument('--plan', dest='plan',
-                            help='Name or ID of tuskar plan to scale '
-                                 '(default=Env: OVERCLOUD_PLAN_NAME)',
-                            default=utils.env('OVERCLOUD_PLAN_NAME'))
+        main_group = parser.add_mutually_exclusive_group(required=True)
+        main_group.add_argument('--plan', dest='plan',
+                                help='Name or ID of tuskar plan to scale '
+                                     '(default=Env: OVERCLOUD_PLAN_NAME)',
+                                default=utils.env('OVERCLOUD_PLAN_NAME'))
+        main_group.add_argument(
+            '--templates', nargs='?', const=TRIPLEO_HEAT_TEMPLATES,
+            help="The directory containing the Heat templates to deploy"
+        )
         parser.add_argument('-i', '--interactive', dest='interactive',
                             action='store_true')
         parser.add_argument('-a', '--abort', dest='abort_update',
                             action='store_true')
-        parser.add_argument(
-            '--templates', nargs='?', const=TRIPLEO_HEAT_TEMPLATES,
-            help="The directory containing the Heat templates to deploy"
-        )
         parser.add_argument(
             '-e', '--environment-file', metavar='<HEAT ENVIRONMENT FILE>',
             action='append', dest='environment_files',
