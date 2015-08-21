@@ -154,6 +154,7 @@ class StartBaremetalIntrospectionBulk(IntrospectionParser, command.Command):
             time.sleep(5)
 
         print("Waiting for discovery to finish...")
+        has_errors = False
         for uuid, status in utils.wait_for_node_discovery(
                 discoverd_client, auth_token, parsed_args.discoverd_url,
                 node_uuids):
@@ -163,6 +164,7 @@ class StartBaremetalIntrospectionBulk(IntrospectionParser, command.Command):
             else:
                 print("Discovery for UUID {0} finished with error: {1}"
                       .format(uuid, status['error']))
+                has_errors = True
 
         clients = self.app.client_manager
         baremetal_client = clients.rdomanager_oscplugin.baremetal()
@@ -176,7 +178,10 @@ class StartBaremetalIntrospectionBulk(IntrospectionParser, command.Command):
                 'available', skipped_states=("available", "active")):
             print("Node {0} has been set to available.".format(uuid))
 
-        print("Discovery completed.")
+        if has_errors:
+            print("Discovery completed with errors.")
+        else:
+            print("Discovery completed.")
 
 
 class StatusBaremetalIntrospectionBulk(IntrospectionParser, lister.Lister):
