@@ -144,9 +144,9 @@ Deploy an overcloud stack
     An ordered list of extension driver entrypoints to be loaded from the
     neutron.ml2.extension_drivers namespace.
 
-.. option:: --libvirt-type [kvm|lxc|qemu|uml|xen|parallels]
+.. option:: --libvirt-type {kvm,qemu}
 
-    Libvirt domain type. (default: qemu)
+    Libvirt domain type. (default: kvm)
 
 .. option:: --ntp-server <ip-address>
 

@@ -298,7 +298,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'NeutronTunnelIdRanges': '1:1000',
             'NeutronTunnelTypes': 'gre',
             'NeutronVniRanges': '1:1000',
-            'NovaComputeLibvirtType': 'qemu',
+            'NovaComputeLibvirtType': 'kvm',
             'NovaImage': 'overcloud-full',
             'NovaPassword': 'password',
             'NtpServer': '',

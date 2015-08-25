@@ -81,7 +81,7 @@ PARAMETERS = {
 }
 
 NEW_STACK_PARAMETERS = {
-    'NovaComputeLibvirtType': 'qemu',
+    'NovaComputeLibvirtType': 'kvm',
     'NeutronTunnelIdRanges': '1:1000',
     'NeutronVniRanges': '1:1000',
     'NeutronEnableTunnelling': 'True',
@@ -793,8 +793,9 @@ class DeployOvercloud(command.Command):
                                    'entrypoints to be loaded from the '
                                    'neutron.ml2.extension_drivers namespace.'))
         parser.add_argument('--libvirt-type',
-                            help=_('Libvirt domain type. (default: qemu) '
-                                   '[qemu|kvm|lxc|uml|xen|parallels]'))
+                            default='kvm',
+                            choices=['kvm', 'qemu'],
+                            help=_('Libvirt domain type. (default: kvm)'))
         parser.add_argument('--ntp-server',
                             help=_('The NTP for overcloud nodes.'))
         parser.add_argument(
