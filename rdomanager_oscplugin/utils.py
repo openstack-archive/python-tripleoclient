@@ -376,3 +376,8 @@ def create_cephx_key():
 
 def run_shell(cmd):
     return subprocess.call([cmd], shell=True)
+
+
+def all_unique(x):
+    """Return True if the collection has no duplications."""
+    return len(set(x)) == len(x)
