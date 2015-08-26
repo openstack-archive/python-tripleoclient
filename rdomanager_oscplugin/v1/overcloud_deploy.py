@@ -34,6 +34,7 @@ from os_cloud_config.utils import clients
 from six.moves import configparser
 from tuskarclient.common import utils as tuskarutils
 
+from rdomanager_oscplugin import exceptions
 from rdomanager_oscplugin import utils
 
 TRIPLEO_HEAT_TEMPLATES = "/usr/share/openstack-tripleo-heat-templates/"
@@ -463,8 +464,9 @@ class DeployOvercloud(command.Command):
 
         self.log.debug("Checking hypervisor stats")
         if utils.check_hypervisor_stats(compute_client) is None:
-            print("Expected hypervisor stats not met", file=sys.stderr)
-            return
+            raise exceptions.DeploymentError(
+                "Expected hypervisor stats not met")
+        return True
 
     def _deploy_tripleo_heat_templates(self, stack, parsed_args):
         """Deploy the fixed templates in TripleO Heat Templates"""
@@ -881,44 +883,47 @@ class DeployOvercloud(command.Command):
         stack = self._get_stack(orchestration_client, parsed_args.stack)
         stack_create = stack is None
 
-        self._validate_args(parsed_args)
+        try:
+            self._pre_heat_deploy()
 
-        self._pre_heat_deploy()
+            if parsed_args.rhel_reg:
+                if parsed_args.reg_method == 'satellite':
+                    sat_required_args = (parsed_args.reg_org and
+                                         parsed_args.reg_sat_url and
+                                         parsed_args.reg_activation_key)
+                    if not sat_required_args:
+                        raise exceptions.DeploymentError(
+                            "ERROR: In order to use satellite registration, "
+                            "you must specify --reg-org, --reg-sat-url, and "
+                            "--reg-activation-key.")
+                else:
+                    portal_required_args = (parsed_args.reg_org and
+                                            parsed_args.reg_activation_key)
+                    if not portal_required_args:
+                        raise exceptions.DeploymentError(
+                            "ERROR: In order to use portal registration, you "
+                            "must specify --reg-org, and "
+                            "--reg-activation-key.")
 
-        if parsed_args.rhel_reg:
-            if parsed_args.reg_method == 'satellite':
-                sat_required_args = (parsed_args.reg_org and
-                                     parsed_args.reg_sat_url and
-                                     parsed_args.reg_activation_key)
-                if not sat_required_args:
-                    print(("ERROR: In order to use satellite registration, "
-                           "you must specify --reg-org, --reg-sat-url, and "
-                           "--reg-activation-key."), file=sys.stderr)
-                    return
+            if parsed_args.templates:
+                self._deploy_tripleo_heat_templates(stack, parsed_args)
             else:
-                portal_required_args = (parsed_args.reg_org and
-                                        parsed_args.reg_activation_key)
-                if not portal_required_args:
-                    print(("ERROR: In order to use portal registration, you "
-                           "must specify --reg-org, and "
-                           "--reg-activation-key."), file=sys.stderr)
-                    return
+                self._deploy_tuskar(stack, parsed_args)
 
-        if parsed_args.templates:
-            self._deploy_tripleo_heat_templates(stack, parsed_args)
-        else:
-            self._deploy_tuskar(stack, parsed_args)
+            # Get a new copy of the stack after stack update/create. If it was
+            # a create then the previous stack object would be None.
+            stack = self._get_stack(orchestration_client, parsed_args.stack)
 
-        # Get a new copy of the stack after stack update/create. If it was a
-        # create then the previous stack object would be None.
-        stack = self._get_stack(orchestration_client, parsed_args.stack)
+            self._create_overcloudrc(stack, parsed_args)
+            self._create_tempest_deployer_input()
 
-        self._create_overcloudrc(stack, parsed_args)
-        self._create_tempest_deployer_input()
+            if stack_create:
+                self._deploy_postconfig(stack, parsed_args)
 
-        if stack_create:
-            self._deploy_postconfig(stack, parsed_args)
-
-        overcloud_endpoint = self._get_overcloud_endpoint(stack)
-        print("Overcloud Endpoint: {0}".format(overcloud_endpoint))
-        print("Overcloud Deployed")
+            overcloud_endpoint = self._get_overcloud_endpoint(stack)
+            print("Overcloud Endpoint: {0}".format(overcloud_endpoint))
+            print("Overcloud Deployed")
+            return True
+        except exceptions.DeploymentError as err:
+            print("Deployment failed: ", err, file=sys.stderr)
+            return False

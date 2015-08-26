@@ -34,3 +34,8 @@ class UnknownService(Exception):
 class NotFound(Exception):
     """Resource not found"""
     pass
+
+
+class DeploymentError(Exception):
+    """Deployment failed"""
+    pass
