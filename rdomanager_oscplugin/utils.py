@@ -26,6 +26,8 @@ import sys
 import time
 import uuid
 
+from rdomanager_oscplugin import exceptions
+
 
 WEBROOT = '/dashboard/'
 
@@ -395,3 +397,28 @@ def file_checksum(filepath):
         for fragment in iter(lambda: f.read(65536), ''):
             checksum.update(fragment)
     return checksum.hexdigest()
+
+
+def check_nodes_count(baremetal_client, stack, parameters, defaults):
+    """Check if there are enough available nodes for creating/scaling stack"""
+    count = 0
+    if stack:
+        for param in defaults:
+            try:
+                current = int(stack.parameters[param])
+            except KeyError:
+                raise ValueError(
+                    "Parameter '%s' was not found in existing stack" % param)
+            count += parameters.get(param, current)
+    else:
+        for param, default in defaults.items():
+            count += parameters.get(param, default)
+
+    available = len(baremetal_client.node.list(associated=False,
+                                               maintenance=False))
+    if count > available:
+        raise exceptions.DeploymentError(
+            "Not enough nodes - available: {0}, requested: {1}".format(
+                available, count))
+    else:
+        return True

@@ -476,6 +476,19 @@ class DeployOvercloud(command.Command):
         parameters = self._update_paramaters(
             parsed_args, network_client, stack)
 
+        utils.check_nodes_count(
+            self.app.client_manager.rdomanager_oscplugin.baremetal(),
+            stack,
+            parameters,
+            {
+                'ControllerCount': 1,
+                'ComputeCount': 1,
+                'ObjectStorageCount': 0,
+                'BlockStorageCount': 0,
+                'CephStorageCount': 0,
+            }
+        )
+
         tht_root = parsed_args.templates
 
         print("Deploying templates in the directory {0}".format(
@@ -528,6 +541,19 @@ class DeployOvercloud(command.Command):
 
         parameters = self._update_paramaters(
             parsed_args, network_client, stack)
+
+        utils.check_nodes_count(
+            self.app.client_manager.rdomanager_oscplugin.baremetal(),
+            stack,
+            parameters,
+            {
+                'Controller-1::count': 1,
+                'Compute-1::count': 1,
+                'Swift-Storage-1::count': 0,
+                'Cinder-Storage-1::count': 0,
+                'Ceph-Storage-1::count': 0,
+            }
+        )
 
         if stack is None:
             ca_key_pem, ca_cert_pem = keystone_pki.create_ca_pair()

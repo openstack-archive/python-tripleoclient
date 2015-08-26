@@ -24,6 +24,25 @@ def create_to_dict_mock(**kwargs):
     return mock_plan
 
 
+def create_tht_stack(**kwargs):
+    stack = {
+        'parameters': {
+            'ControllerCount': 1,
+            'ComputeCount': 1,
+            'ObjectStorageCount': 0,
+            'BlockStorageCount': 0,
+            'CephStorageCount': 0,
+        },
+        'stack_name': 'overcloud',
+        'outputs': [{
+            'output_key': 'KeystoneURL',
+            'output_value': 'Overcloud endpoint',
+        }]
+    }
+    stack.update(kwargs)
+    return create_to_dict_mock(**stack)
+
+
 class FakeClientWrapper(object):
 
     def __init__(self):

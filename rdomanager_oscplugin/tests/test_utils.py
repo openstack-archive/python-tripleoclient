@@ -16,6 +16,7 @@
 import mock
 import os.path
 
+from rdomanager_oscplugin import exceptions
 from rdomanager_oscplugin import utils
 from unittest import TestCase
 
@@ -346,3 +347,41 @@ class TestWaitForDiscovery(TestCase):
         with mock.patch('six.moves.builtins.open', mock_open):
             self.assertEqual(utils.file_checksum('emptyfile'),
                              'd41d8cd98f00b204e9800998ecf8427e')
+
+
+class TestCheckNodesCount(TestCase):
+
+    def setUp(self):
+        self.baremetal = mock.Mock()
+        self.baremetal.node.list.return_value = range(3)
+        self.defaults = {
+            'ControllerCount': 1,
+            'ComputeCount': 1,
+            'ObjectStorageCount': 0,
+            'BlockStorageCount': 0,
+            'CephStorageCount': 0,
+        }
+        self.stack = mock.Mock(parameters=self.defaults)
+
+    def test_check_nodes_count_deploy_enough_nodes(self):
+        user_params = {'ControllerCount': 2}
+        self.assertEqual(True,
+                         utils.check_nodes_count(self.baremetal, None,
+                                                 user_params, self.defaults))
+
+    def test_check_nodes_count_deploy_too_much(self):
+        user_params = {'ControllerCount': 3}
+        self.assertRaises(exceptions.DeploymentError, utils.check_nodes_count,
+                          self.baremetal, None, user_params, self.defaults)
+
+    def test_check_nodes_count_scale_enough_nodes(self):
+        user_params = {'ControllerCount': 2}
+        self.assertEqual(True,
+                         utils.check_nodes_count(self.baremetal, None,
+                                                 user_params, self.defaults))
+
+    def test_check_nodes_count_scale_too_much(self):
+        user_params = {'ControllerCount': 3}
+        self.assertRaises(exceptions.DeploymentError, utils.check_nodes_count,
+                          self.baremetal, self.stack, user_params,
+                          self.defaults)

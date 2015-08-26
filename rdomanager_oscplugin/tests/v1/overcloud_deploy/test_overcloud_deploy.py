@@ -90,14 +90,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         clients = self.app.client_manager
         orchestration_client = clients.rdomanager_oscplugin.orchestration()
-        mock_stack = fakes.create_to_dict_mock(
-            outputs=[{
-                'output_key': 'KeystoneURL',
-                'output_value': 'Overcloud endpoint'
-            }],
-            stack_name='overcloud',
-        )
-        orchestration_client.stacks.get.return_value = mock_stack
+        orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
 
         mock_check_hypervisor_stats.return_value = {
             'count': 4,
@@ -114,6 +107,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         wait_for_stack_ready_mock.return_value = True
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        baremetal = clients.rdomanager_oscplugin.baremetal()
+        baremetal.node.list.return_value = range(10)
 
         result = self.cmd.take_action(parsed_args)
         self.assertTrue(result)
@@ -230,13 +226,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         clients = self.app.client_manager
         orchestration_client = clients.rdomanager_oscplugin.orchestration()
-        mock_stack = fakes.create_to_dict_mock(
-            outputs=[{
-                'output_key': 'KeystoneURL',
-                'output_value': 'Overcloud endpoint'
-            }],
-            stack_name='overcloud',
-        )
+        mock_stack = fakes.create_tht_stack()
         orchestration_client.stacks.get.return_value = None
 
         def _orch_clt_create(**kwargs):
@@ -259,6 +249,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         wait_for_stack_ready_mock.return_value = True
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        baremetal = clients.rdomanager_oscplugin.baremetal()
+        baremetal.node.list.return_value = range(10)
 
         result = self.cmd.take_action(parsed_args)
         self.assertTrue(result)
@@ -379,14 +372,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         clients = self.app.client_manager
         orchestration_client = clients.rdomanager_oscplugin.orchestration()
-        mock_stack = fakes.create_to_dict_mock(
-            outputs=[{
-                'output_key': 'KeystoneURL',
-                'output_value': 'Overcloud endpoint'
-            }],
-            stack_name='overcloud',
-        )
-        orchestration_client.stacks.get.return_value = mock_stack
+        orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
 
         mock_check_hypervisor_stats.return_value = {
             'count': 4,
@@ -403,6 +389,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         wait_for_stack_ready_mock.return_value = True
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        baremetal = clients.rdomanager_oscplugin.baremetal()
+        baremetal.node.list.return_value = range(10)
 
         result = self.cmd.take_action(parsed_args)
         self.assertTrue(result)
@@ -488,6 +477,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_generate_overcloud_passwords.return_value = self._get_passwords()
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        baremetal = clients.rdomanager_oscplugin.baremetal()
+        baremetal.node.list.return_value = range(10)
 
         result = self.cmd.take_action(parsed_args)
         self.assertTrue(result)
@@ -602,6 +594,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_generate_overcloud_passwords.return_value = self._get_passwords()
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        baremetal = clients.rdomanager_oscplugin.baremetal()
+        baremetal.node.list.return_value = range(10)
 
         result = self.cmd.take_action(parsed_args)
         self.assertTrue(result)
@@ -721,6 +716,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_generate_overcloud_passwords.return_value = self._get_passwords()
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        baremetal = clients.rdomanager_oscplugin.baremetal()
+        baremetal.node.list.return_value = range(10)
 
         result = self.cmd.take_action(parsed_args)
         self.assertTrue(result)
