@@ -49,12 +49,13 @@ class TestPasswordsUtil(TestCase):
             mock.call('OVERCLOUD_HEAT_STACK_DOMAIN_PASSWORD=PASSWORD\n'),
             mock.call('OVERCLOUD_NEUTRON_PASSWORD=PASSWORD\n'),
             mock.call('OVERCLOUD_NOVA_PASSWORD=PASSWORD\n'),
+            mock.call('OVERCLOUD_SAHARA_PASSWORD=PASSWORD\n'),
             mock.call('OVERCLOUD_SWIFT_HASH=PASSWORD\n'),
             mock.call('OVERCLOUD_SWIFT_PASSWORD=PASSWORD\n'),
         ])
-        self.assertEqual(generate_password_mock.call_count, 14)
+        self.assertEqual(generate_password_mock.call_count, 15)
 
-        self.assertEqual(len(passwords), 14)
+        self.assertEqual(len(passwords), 15)
 
     @mock.patch("os.path.isfile", return_value=True)
     @mock.patch("passlib.utils.generate_password",
@@ -72,6 +73,7 @@ class TestPasswordsUtil(TestCase):
             'OVERCLOUD_HEAT_STACK_DOMAIN_PASSWORD=PASSWORD\n',
             'OVERCLOUD_NEUTRON_PASSWORD=PASSWORD\n',
             'OVERCLOUD_NOVA_PASSWORD=PASSWORD\n',
+            'OVERCLOUD_SAHARA_PASSWORD=PASSWORD\n',
             'OVERCLOUD_SWIFT_HASH=PASSWORD\n',
             'OVERCLOUD_SWIFT_PASSWORD=PASSWORD\n',
             'NEUTRON_METADATA_PROXY_SHARED_SECRET=PASSWORD\n',
@@ -85,7 +87,7 @@ class TestPasswordsUtil(TestCase):
             passwords = utils.generate_overcloud_passwords()
 
         generate_password_mock.assert_not_called()
-        self.assertEqual(len(passwords), 14)
+        self.assertEqual(len(passwords), 15)
         for name in utils._PASSWORD_NAMES:
             self.assertEqual('PASSWORD', passwords[name])
 
