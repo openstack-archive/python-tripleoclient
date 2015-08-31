@@ -15,6 +15,7 @@
 from __future__ import print_function
 
 import argparse
+import collections
 import logging
 import os
 import re
@@ -27,6 +28,7 @@ from cliff import command
 from heatclient.common import template_utils
 from heatclient.exc import HTTPNotFound
 from openstackclient.common import exceptions as oscexc
+from openstackclient.common import utils as osc_utils
 from openstackclient.i18n import _
 from os_cloud_config import keystone
 from os_cloud_config import keystone_pki
@@ -95,6 +97,8 @@ class DeployOvercloud(command.Command):
     """Deploy Overcloud"""
 
     log = logging.getLogger(__name__ + ".DeployOvercloud")
+    predeploy_errors = 0
+    predeploy_warnings = 0
 
     def set_overcloud_passwords(self, parameters, parsed_args):
         """Add passwords to the parameters dictionary
@@ -718,6 +722,239 @@ class DeployOvercloud(command.Command):
             raise oscexc.CommandError("Neutron tunnel types must be specified "
                                       "when Neutron network type is specified")
 
+    def _predeploy_verify_capabilities(self, parsed_args):
+        self.predeploy_errors = 0
+        self.predeploy_warnings = 0
+        self.log.debug("Starting _pre_verify_capabilities")
+
+        bm_client = self.app.client_manager.rdomanager_oscplugin.baremetal()
+
+        self._check_boot_images()
+
+        self._check_flavors_exist(parsed_args)
+
+        for node in bm_client.node.list():
+            node = bm_client.node.get(node.uuid)
+            self.log.debug("Checking config for Node {0}".format(node.uuid))
+            self._check_ironic_boot_configuration(node)
+
+        flavor_profile_map = self._collect_flavor_profiles([
+            parsed_args.control_flavor,
+            parsed_args.compute_flavor,
+            parsed_args.ceph_storage_flavor,
+            parsed_args.block_storage_flavor,
+            parsed_args.swift_storage_flavor,
+        ])
+        node_profile_map = self._collect_node_profiles()
+
+        for target, flavor, scale in [
+            ('control', parsed_args.control_flavor,
+                parsed_args.control_scale),
+            ('compute', parsed_args.compute_flavor,
+                parsed_args.compute_scale),
+            ('ceph-storage', parsed_args.ceph_storage_flavor,
+                parsed_args.ceph_storage_scale),
+            ('block-storage', parsed_args.block_storage_flavor,
+                parsed_args.block_storage_scale),
+            ('swift-storage', parsed_args.swift_storage_flavor,
+                parsed_args.swift_storage_scale),
+        ]:
+            if scale == 0 or flavor is None:
+                self.log.debug("Skipping verification of %s profiles because "
+                               "none will be deployed", flavor)
+                continue
+            self._check_profiles(
+                target, flavor, scale,
+                flavor_profile_map,
+                node_profile_map)
+
+        if len(node_profile_map.get(None, [])) > 0:
+            self.predeploy_warnings += 1
+            self.log.warning(
+                "There are %d ironic nodes with no profile that will "
+                "not be used: %s",
+                len(node_profile_map[None]),
+                ', '.join(node_profile_map[None])
+            )
+
+        return self.predeploy_errors, self.predeploy_warnings
+
+    __kernel_id = None
+    __ramdisk_id = None
+
+    def _image_ids(self):
+        if self.__kernel_id is not None and self.__ramdisk_id is not None:
+            return self.__kernel_id, self.__ramdisk_id
+
+        image_client = self.app.client_manager.image
+        kernel_id, ramdisk_id = None, None
+        try:
+            kernel_id = osc_utils.find_resource(
+                image_client.images, 'bm-deploy-kernel').id
+        except AttributeError as e:
+            self.log.error("Please make sure there is only one image named "
+                           "'bm-deploy-kernel' in glance.")
+            self.log.exception(e)
+
+        try:
+            ramdisk_id = osc_utils.find_resource(
+                image_client.images, 'bm-deploy-ramdisk').id
+        except AttributeError as e:
+            self.log.error("Please make sure there is only one image "
+                           "named 'bm-deploy-ramdisk' in glance.")
+            self.log.exception(e)
+
+        self.log.debug("Using kernel ID: {0} and ramdisk ID: {1}".format(
+            kernel_id, ramdisk_id))
+
+        self.__kernel_id = kernel_id
+        self.__ramdisk_id = ramdisk_id
+        return kernel_id, ramdisk_id
+
+    def _collect_node_profiles(self):
+        """Gather a map of profile -> [node_uuid] for ironic boot profiles"""
+        bm_client = self.app.client_manager.rdomanager_oscplugin.baremetal()
+
+        # map of profile capability -> [node_uuid, ...]
+        profile_map = collections.defaultdict(list)
+
+        for node in bm_client.node.list(maintenance=False):
+            node = bm_client.node.get(node.uuid)
+            profiles = re.findall(r'profile:(.*?)(?:,|$)',
+                                  node.properties.get('capabilities', ''))
+            if not profiles:
+                profile_map[None].append(node.uuid)
+            for p in profiles:
+                profile_map[p].append(node.uuid)
+
+        return dict(profile_map)
+
+    def _collect_flavor_profiles(self, flavors):
+        compute_client = self.app.client_manager.compute
+
+        flavor_profiles = {}
+
+        for flavor in compute_client.flavors.list():
+            if flavor.name not in flavors:
+                self.log.debug("Flavor {} isn't used in this deployment, "
+                               "skipping it".format(flavor.name))
+                continue
+
+            profile = flavor.get_keys().get('capabilities:profile')
+            if profile == '':
+                flavor_profiles[flavor.name] = None
+            else:
+                flavor_profiles[flavor.name] = profile
+
+            if flavor.get_keys().get('capabilities:boot_option', '') \
+                    != 'local':
+                self.predeploy_warnings += 1
+                self.log.error(
+                    'Flavor %s "capabilities:boot_option" is not set to '
+                    '"local". Nodes must have ability to PXE boot from '
+                    'deploy image.', flavor.name)
+                self.log.error(
+                    'Recommended solution: openstack flavor set --property '
+                    '"cpu_arch"="x86_64" --property '
+                    '"capabilities:boot_option"="local" ' + flavor.name)
+
+        return flavor_profiles
+
+    def _check_profiles(self, target, flavor, scale,
+                        flavor_profile_map,
+                        node_profile_map):
+        if flavor_profile_map.get(flavor) is None:
+            self.predeploy_errors += 1
+            self.log.error(
+                'Warning: The flavor selected for --%s-flavor "%s" has no '
+                'profile associated', target, flavor)
+            self.log.error(
+                'Recommendation: assign a profile with openstack flavor set '
+                '--property "capabilities:profile"="PROFILE_NAME" %s',
+                flavor)
+            return
+
+        if len(node_profile_map.get(flavor_profile_map[flavor], [])) < scale:
+            self.predeploy_errors += 1
+            self.log.error(
+                "Error: %s of %s requested ironic nodes tagged to profile %s "
+                "(for flavor %s)",
+                len(node_profile_map.get(flavor_profile_map[flavor], [])),
+                scale, flavor_profile_map[flavor], flavor
+            )
+            self.log.error(
+                "Recommendation: tag more nodes using ironic node-update "
+                "<NODE ID> replace properties/capabilities=profile:%s,"
+                "boot_option:local", flavor_profile_map[flavor])
+
+    def _check_boot_images(self):
+        kernel_id, ramdisk_id = self._image_ids()
+        message = ("No image with the name '{}' found - make "
+                   "sure you've uploaded boot images")
+        if kernel_id is None:
+            self.predeploy_errors += 1
+            self.log.error(message.format('bm-deploy-kernel'))
+        if ramdisk_id is None:
+            self.predeploy_errors += 1
+            self.log.error(message.format('bm-deploy-ramdisk'))
+
+    def _check_flavors_exist(self, parsed_args):
+        """Ensure that selected flavors (--ROLE-flavor) exist in nova."""
+        compute_client = self.app.client_manager.compute
+
+        flavors = {f.name: f for f in compute_client.flavors.list()}
+
+        message = "Provided --{}-flavor, '{}', does not exist"
+
+        for target, flavor, scale in (
+            ('control', parsed_args.control_flavor,
+                parsed_args.control_scale),
+            ('compute', parsed_args.compute_flavor,
+                parsed_args.compute_scale),
+            ('ceph-storage', parsed_args.ceph_storage_flavor,
+                parsed_args.ceph_storage_scale),
+            ('block-storage', parsed_args.block_storage_flavor,
+                parsed_args.block_storage_scale),
+            ('swift-storage', parsed_args.swift_storage_flavor,
+                parsed_args.swift_storage_scale),
+        ):
+            if flavor is None or scale == 0:
+                self.log.debug("--{}-flavor not used".format(target))
+            elif flavor not in flavors:
+                self.predeploy_errors += 1
+                self.log.error(message.format(target, flavor))
+
+    def _check_ironic_boot_configuration(self, node):
+        kernel_id, ramdisk_id = self._image_ids()
+        self.log.debug("Doing boot checks for {}".format(node.uuid))
+        message = ("Node uuid={uuid} has an incorrectly configured "
+                   "{property}. Expected \"{expected}\" but got "
+                   "\"{actual}\".")
+        if node.driver_info.get('deploy_ramdisk') != ramdisk_id:
+            self.predeploy_errors += 1
+            self.log.error(message.format(
+                uuid=node.uuid,
+                property='driver_info/deploy_ramdisk',
+                expected=ramdisk_id,
+                actual=node.driver_info.get('deploy_ramdisk')
+            ))
+        if node.driver_info.get('deploy_kernel') != kernel_id:
+            self.predeploy_errors += 1
+            self.log.error(message.format(
+                uuid=node.uuid,
+                property='driver_info/deploy_kernel',
+                expected=ramdisk_id,
+                actual=node.driver_info.get('deploy_kernel')
+            ))
+        if 'boot_option:local' not in node.properties.get('capabilities', ''):
+            self.predeploy_warnings += 1
+            self.log.warning(message.format(
+                uuid=node.uuid,
+                property='properties/capabilities',
+                expected='boot_option:local',
+                actual=node.properties.get('capabilities')
+            ))
+
     def get_parser(self, prog_name):
         # add_help doesn't work properly, set it to False:
         parser = argparse.ArgumentParser(
@@ -836,6 +1073,21 @@ class DeployOvercloud(command.Command):
                    'or heat stack-update command. (Can be specified more than '
                    'once.)')
         )
+        parser.add_argument(
+            '--validation-errors-fatal',
+            action='store_true',
+            default=False,
+            help=_('Exit if there are errors from the configuration '
+                   'pre-checks. Ignoring these errors will likely cause your '
+                   'deploy to fail.')
+        )
+        parser.add_argument(
+            '--validation-warnings-fatal',
+            action='store_true',
+            default=False,
+            help=_('Exit if there are warnings from the configuration '
+                   'pre-checks.')
+        )
         reg_group = parser.add_argument_group('Registration Parameters')
         reg_group.add_argument(
             '--rhel-reg',
@@ -874,6 +1126,25 @@ class DeployOvercloud(command.Command):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+
+        errors, warnings = self._predeploy_verify_capabilities(parsed_args)
+        if errors > 0:
+            self.log.error(
+                "Configuration has %d errors, fix them before proceeding. "
+                "Ignoring these errors is likely to lead to a failed deploy.",
+                errors)
+            if parsed_args.validation_warnings_fatal or \
+                    parsed_args.validation_errors_fatal:
+                return
+        if warnings > 0:
+            self.log.error(
+                "Configuration has %d warnings, fix them before proceeding. ",
+                warnings)
+            if parsed_args.validation_warnings_fatal:
+                return
+        else:
+            self.log.info("SUCCESS: No warnings or errors in deploy "
+                          "configuration, proceeding.")
 
         clients = self.app.client_manager
         orchestration_client = clients.rdomanager_oscplugin.orchestration()

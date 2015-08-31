@@ -36,6 +36,11 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         # Get the command object to test
         self.cmd = overcloud_deploy.DeployOvercloud(self.app, None)
 
+        # mock validations for all deploy tests
+        # for validator tests, see test_overcloud_deploy_validators.py
+        validator_mock = mock.Mock(return_value=(0, 0))
+        self.cmd._predeploy_verify_capabilities = validator_mock
+
         self._get_passwords = generate_overcloud_passwords_mock
 
     @mock.patch('rdomanager_oscplugin.v1.overcloud_deploy.DeployOvercloud.'
