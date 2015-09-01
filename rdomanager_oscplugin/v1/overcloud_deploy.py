@@ -30,6 +30,7 @@ from openstackclient.i18n import _
 from os_cloud_config import keystone
 from os_cloud_config import keystone_pki
 from os_cloud_config.utils import clients
+from six.moves import configparser
 from tuskarclient.common import utils as tuskarutils
 
 from rdomanager_oscplugin import utils
@@ -600,6 +601,42 @@ class DeployOvercloud(command.Command):
                 f.write("export %(key)s=%(value)s\n" %
                         {'key': key, 'value': value})
 
+    def _create_tempest_deployer_input(self):
+        config = configparser.ConfigParser()
+
+        config.add_section('compute-feature-enabled')
+        # Does the test environment support obtaining instance serial console
+        # output? (default: true)
+        # set in [nova.serial_console]->enabled
+        config.set('compute-feature-enabled', 'console_output', 'false')
+
+        config.add_section('object-storage')
+        # Role to add to users created for swift tests to enable creating
+        # containers (default: 'Member')
+        # keystone role-list returns this role
+        config.set('object-storage', 'operator_role', 'swiftoperator')
+
+        config.add_section('orchestration')
+        # Role required for users to be able to manage stacks
+        # (default: 'heat_stack_owner')
+        # keystone role-list returns this role
+        config.set('orchestration', 'stack_owner_role', 'heat_stack_user')
+
+        config.add_section('volume')
+        # Name of the backend1 (must be declared in cinder.conf)
+        # (default: 'BACKEND_1')
+        # set in [cinder]->enabled_backends
+        config.set('volume', 'backend1_name', 'tripleo_iscsi')
+
+        config.add_section('volume-feature-enabled')
+        # Update bootable status of a volume Not implemented on icehouse
+        # (default: false)
+        # python-cinderclient supports set-bootable
+        config.set('volume-feature-enabled', 'bootable', 'true')
+
+        with open('tempest-deployer-input.conf', 'w+') as config_file:
+            config.write(config_file)
+
     def _deploy_postconfig(self, stack, parsed_args):
         self.log.debug("_deploy_postconfig(%s)" % parsed_args)
 
@@ -855,6 +892,7 @@ class DeployOvercloud(command.Command):
         stack = self._get_stack(orchestration_client, parsed_args.stack)
 
         self._create_overcloudrc(stack, parsed_args)
+        self._create_tempest_deployer_input()
 
         if stack_create:
             self._deploy_postconfig(stack, parsed_args)
