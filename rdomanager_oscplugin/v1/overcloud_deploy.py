@@ -654,11 +654,16 @@ class DeployOvercloud(command.Command):
 
         utils.remove_known_hosts(overcloud_ip)
 
+        keystone_ip = service_ips.get('KeystoneAdminVip')
+        if not keystone_ip:
+            keystone_ip = overcloud_ip
+
         keystone.initialize(
-            overcloud_ip,
+            keystone_ip,
             passwords['OVERCLOUD_ADMIN_TOKEN'],
             'admin@example.com',
             passwords['OVERCLOUD_ADMIN_PASSWORD'],
+            public=overcloud_ip,
             user='heat-admin')
 
         # NOTE(bcrochet): Bad hack. Remove the ssl_port info from the
