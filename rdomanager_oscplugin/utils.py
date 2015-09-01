@@ -150,11 +150,11 @@ def wait_for_stack_ready(orchestration_client, stack_name):
         if re.match(SUCCESSFUL_MATCH_OUTPUT, status):
             return True
         if re.match(FAIL_MATCH_OUTPUT, status):
+            print("Stack failed with status: {}".format(
+                stack.stack_status_reason, file=sys.stderr))
             return False
 
         time.sleep(10)
-
-    return False
 
 
 def wait_for_provision_state(baremetal_client, node_uuid, provision_state,
