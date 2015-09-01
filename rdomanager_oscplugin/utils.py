@@ -381,3 +381,17 @@ def run_shell(cmd):
 def all_unique(x):
     """Return True if the collection has no duplications."""
     return len(set(x)) == len(x)
+
+
+def file_checksum(filepath):
+    """Calculate md5 checksum on file
+
+    :param filepath: Full path to file (e.g. /home/stack/image.qcow2)
+    :type  filepath: string
+
+    """
+    checksum = hashlib.md5()
+    with open(filepath, 'rb') as f:
+        for fragment in iter(lambda: f.read(65536), ''):
+            checksum.update(fragment)
+    return checksum.hexdigest()

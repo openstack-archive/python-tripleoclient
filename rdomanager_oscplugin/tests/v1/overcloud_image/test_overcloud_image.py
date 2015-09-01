@@ -14,7 +14,9 @@
 #
 
 import mock
+import os
 
+from openstackclient.common import exceptions
 from rdomanager_oscplugin.tests.v1.test_plugin import TestPluginV1
 from rdomanager_oscplugin.v1 import overcloud_image
 
@@ -153,19 +155,88 @@ class TestUploadOvercloudImage(TestPluginV1):
         # Get the command object to test
         self.cmd = overcloud_image.UploadOvercloudImage(self.app, None)
         self.app.client_manager.image = mock.Mock()
-        self.app.client_manager.image.images.create.return_value = \
-            mock.Mock(id=10)
+        self.app.client_manager.image.images.create.return_value = (
+            mock.Mock(id=10, name='imgname', properties={'kernel_id': 10,
+                                                         'ramdisk_id': 10},
+                      created_at='2015-07-31T14:37:22.000000'))
         self.cmd._read_image_file_pointer = mock.Mock(return_value=b'IMGDATA')
         self.cmd._check_file_exists = mock.Mock(return_value=True)
 
-    @mock.patch('subprocess.call', autospec=True)
+    @mock.patch('openstackclient.common.utils.find_resource')
+    def test_get_image_exists(self, mock_find_resource):
+        image_mock = mock.Mock(name='imagename')
+        mock_find_resource.return_value = image_mock
+        self.assertEqual(self.cmd._get_image('imagename'), image_mock)
+
+    @mock.patch('openstackclient.common.utils.find_resource')
+    def test_get_image_none(self, mock_find_resource):
+        mock_find_resource.side_effect = exceptions.CommandError('')
+        self.assertEqual(self.cmd._get_image('noimagename'), None)
+
+    def test_image_try_update_no_exist(self):
+        self.cmd._get_image = mock.Mock(return_value=None)
+        parsed_args = mock.Mock(update_existing=False)
+        self.assertFalse(self.cmd._image_try_update('name', 'fn', parsed_args))
+
+    def test_image_try_update_need_update(self):
+        image_mock = mock.Mock(name='imagename')
+        self.cmd._get_image = mock.Mock(return_value=image_mock)
+        self.cmd._image_changed = mock.Mock(return_value=True)
+        parsed_args = mock.Mock(update_existing=False)
+        self.assertEqual(self.cmd._image_try_update('name', 'fn', parsed_args),
+                         image_mock)
+        self.assertEqual(
+            0,
+            self.app.client_manager.image.images.update.call_count
+        )
+
+    def test_image_try_update_do_update(self):
+        image_mock = mock.Mock(name='imagename',
+                               created_at='2015-07-31T14:37:22.000000')
+        update_mock = mock.Mock(return_value=image_mock)
+        self.app.client_manager.image.images.update = update_mock
+        self.cmd._get_image = mock.Mock(return_value=image_mock)
+        self.cmd._image_changed = mock.Mock(return_value=True)
+        parsed_args = mock.Mock(update_existing=True)
+        self.assertEqual(self.cmd._image_try_update('name', 'fn', parsed_args),
+                         None)
+        self.assertEqual(
+            1,
+            update_mock.call_count
+        )
+
+    def test_file_try_update_need_update(self):
+        os.path.isfile = mock.Mock(return_value=True)
+        self.cmd._files_changed = mock.Mock(return_value=True)
+        self.cmd._copy_file = mock.Mock()
+
+        self.cmd._file_create_or_update('discimg', 'discimgprod', False)
+        self.assertEqual(
+            0,
+            self.cmd._copy_file.call_count
+        )
+
+    def test_file_try_update_do_update(self):
+        self.cmd._files_changed = mock.Mock(return_value=True)
+        self.cmd._copy_file = mock.Mock()
+
+        self.cmd._file_create_or_update('discimg', 'discimgprod', True)
+        self.assertEqual(
+            1,
+            self.cmd._copy_file.call_count
+        )
+
+    @mock.patch('subprocess.check_call', autospec=True)
     def test_overcloud_create_images(self, mock_subprocess_call):
         parsed_args = self.check_parser(self.cmd, [], [])
+        os.path.isfile = mock.Mock(return_value=False)
+
+        self.cmd._get_image = mock.Mock(return_value=None)
 
         self.cmd.take_action(parsed_args)
 
         self.assertEqual(
-            2,
+            0,
             self.app.client_manager.image.images.delete.call_count
         )
         self.assertEqual(
@@ -206,3 +277,62 @@ class TestUploadOvercloudImage(TestPluginV1):
                 mock.call('sudo cp -f "./discovery-ramdisk.initramfs" '
                           '"/httpboot/discovery.ramdisk"', shell=True)
             ])
+
+    @mock.patch('subprocess.check_call', autospec=True)
+    def test_overcloud_create_noupdate_images(self, mock_subprocess_call):
+        parsed_args = self.check_parser(self.cmd, [], [])
+        os.path.isfile = mock.Mock(return_value=True)
+        self.cmd._files_changed = mock.Mock(return_value=True)
+
+        existing_image = mock.Mock(id=10, name='imgname',
+                                   properties={'kernel_id': 10,
+                                               'ramdisk_id': 10})
+        self.cmd._get_image = mock.Mock(return_value=existing_image)
+        self.cmd._image_changed = mock.Mock(return_value=True)
+
+        self.cmd.take_action(parsed_args)
+
+        self.assertEqual(
+            0,
+            self.app.client_manager.image.images.delete.call_count
+        )
+        self.assertEqual(
+            0,
+            self.app.client_manager.image.images.create.call_count
+        )
+        self.assertEqual(
+            0,
+            self.app.client_manager.image.images.update.call_count
+        )
+
+        self.assertEqual(mock_subprocess_call.call_count, 0)
+
+    @mock.patch('subprocess.check_call', autospec=True)
+    def test_overcloud_create_update_images(self, mock_subprocess_call):
+        parsed_args = self.check_parser(self.cmd, ['--update-existing'], [])
+        self.cmd._files_changed = mock.Mock(return_value=True)
+
+        existing_image = mock.Mock(id=10, name='imgname',
+                                   properties={'kernel_id': 10,
+                                               'ramdisk_id': 10},
+                                   created_at='2015-07-31T14:37:22.000000')
+        self.cmd._get_image = mock.Mock(return_value=existing_image)
+        self.cmd._image_changed = mock.Mock(return_value=True)
+        self.app.client_manager.image.images.update.return_value = (
+            existing_image)
+
+        self.cmd.take_action(parsed_args)
+
+        self.assertEqual(
+            0,
+            self.app.client_manager.image.images.delete.call_count
+        )
+        self.assertEqual(
+            5,
+            self.app.client_manager.image.images.create.call_count
+        )
+        self.assertEqual(
+            5,
+            self.app.client_manager.image.images.update.call_count
+        )
+        self.assertEqual(mock_subprocess_call.call_count, 2)

@@ -14,9 +14,9 @@
 #
 
 import mock
-from unittest import TestCase
 
 from rdomanager_oscplugin import utils
+from unittest import TestCase
 
 
 class TestPasswordsUtil(TestCase):
@@ -337,3 +337,9 @@ class TestWaitForDiscovery(TestCase):
         utils.remove_known_hosts('192.168.0.1')
 
         mock_check_call.assert_not_called()
+
+    def test_file_checksum(self):
+        mock_open = mock.mock_open()
+        with mock.patch('six.moves.builtins.open', mock_open):
+            self.assertEqual(utils.file_checksum('emptyfile'),
+                             'd41d8cd98f00b204e9800998ecf8427e')
