@@ -26,6 +26,7 @@ import uuid
 from cliff import command
 from heatclient.common import template_utils
 from heatclient.exc import HTTPNotFound
+from openstackclient.common import exceptions as oscexc
 from openstackclient.i18n import _
 from os_cloud_config import keystone
 from os_cloud_config import keystone_pki
@@ -699,6 +700,19 @@ class DeployOvercloud(command.Command):
             overcloud_endpoint)
         compute_client.flavors.create('m1.demo', 512, 1, 10, 'auto')
 
+    def _validate_args(self, parsed_args):
+        network_type = parsed_args.neutron_network_type
+        tunnel_types = parsed_args.neutron_tunnel_types
+        if network_type and tunnel_types:
+            # Validate that neutron_network_type is in neutron_tunnel_types
+            if network_type not in tunnel_types:
+                raise oscexc.CommandError("Neutron network type must be in "
+                                          "Neutron tunnel types "
+                                          "(%s) " % tunnel_types)
+        elif network_type and not tunnel_types:
+            raise oscexc.CommandError("Neutron tunnel types must be specified "
+                                      "when Neutron network type is specified")
+
     def get_parser(self, prog_name):
         # add_help doesn't work properly, set it to False:
         parser = argparse.ArgumentParser(
@@ -860,6 +874,8 @@ class DeployOvercloud(command.Command):
 
         stack = self._get_stack(orchestration_client, parsed_args.stack)
         stack_create = stack is None
+
+        self._validate_args(parsed_args)
 
         self._pre_heat_deploy()
 
