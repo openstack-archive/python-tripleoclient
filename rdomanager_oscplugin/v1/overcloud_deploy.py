@@ -14,6 +14,7 @@
 #
 from __future__ import print_function
 
+import argparse
 import logging
 import os
 import re
@@ -662,7 +663,12 @@ class DeployOvercloud(command.Command):
         compute_client.flavors.create('m1.demo', 512, 1, 10, 'auto')
 
     def get_parser(self, prog_name):
-        parser = super(DeployOvercloud, self).get_parser(prog_name)
+        # add_help doesn't work properly, set it to False:
+        parser = argparse.ArgumentParser(
+            description=self.get_description(),
+            prog=prog_name,
+            add_help=False
+        )
         main_group = parser.add_mutually_exclusive_group(required=True)
         main_group.add_argument(
             '--plan',
@@ -677,11 +683,16 @@ class DeployOvercloud(command.Command):
         parser.add_argument('-t', '--timeout', metavar='<TIMEOUT>',
                             type=int, default=240,
                             help=_('Deployment timeout in minutes.'))
-        parser.add_argument('--control-scale', type=int)
-        parser.add_argument('--compute-scale', type=int)
-        parser.add_argument('--ceph-storage-scale', type=int)
-        parser.add_argument('--block-storage-scale', type=int)
-        parser.add_argument('--swift-storage-scale', type=int)
+        parser.add_argument('--control-scale', type=int,
+                            help=_('New number of control nodes.'))
+        parser.add_argument('--compute-scale', type=int,
+                            help=_('New number of compute nodes.'))
+        parser.add_argument('--ceph-storage-scale', type=int,
+                            help=_('New number of ceph storage nodes.'))
+        parser.add_argument('--block-storage-scale', type=int,
+                            help=_('New number of cinder storage nodes.'))
+        parser.add_argument('--swift-storage-scale', type=int,
+                            help=_('New number of swift storage nodes.'))
         parser.add_argument('--control-flavor',
                             help=_("Nova flavor to use for control nodes."))
         parser.add_argument('--compute-flavor',
@@ -695,14 +706,25 @@ class DeployOvercloud(command.Command):
         parser.add_argument('--swift-storage-flavor',
                             help=_("Nova flavor to use for swift storage "
                                    "nodes."))
-        parser.add_argument('--neutron-flat-networks')
-        parser.add_argument('--neutron-physical-bridge')
-        parser.add_argument('--neutron-bridge-mappings')
-        parser.add_argument('--neutron-public-interface')
+        parser.add_argument('--neutron-flat-networks',
+                            help=_('Comma separated list of physical_network '
+                                   'names with which flat networks can be '
+                                   'created. Use * to allow flat networks '
+                                   'with arbitrary physical_network names.'))
+        parser.add_argument('--neutron-physical-bridge',
+                            help=_('Deprecated.'))
+        parser.add_argument('--neutron-bridge-mappings',
+                            help=_('Comma separated list of bridge mappings. '
+                                   '(default: datacentre:br-ex)'))
+        parser.add_argument('--neutron-public-interface',
+                            help=_('Deprecated.'))
         parser.add_argument('--hypervisor-neutron-public-interface',
-                            default='nic1')
-        parser.add_argument('--neutron-network-type')
-        parser.add_argument('--neutron-tunnel-types')
+                            default='nic1', help=_('Deprecated.'))
+        parser.add_argument('--neutron-network-type',
+                            help=_('The network type for tenant networks.'))
+        parser.add_argument('--neutron-tunnel-types',
+                            help=_('Network types supported by the agent '
+                                   '(gre and/or vxlan).'))
         parser.add_argument('--neutron-tunnel-id-ranges',
                             default="1:1000",
                             help=_("Ranges of GRE tunnel IDs to make "
@@ -713,20 +735,36 @@ class DeployOvercloud(command.Command):
                                    "available for tenant network allocation"),)
         parser.add_argument('--neutron-disable-tunneling',
                             dest='neutron_disable_tunneling',
-                            action="store_const", const=True),
-        parser.add_argument('--neutron-network-vlan-ranges')
-        parser.add_argument('--neutron-mechanism-drivers')
-        parser.add_argument('--libvirt-type')
+                            action="store_const", const=True,
+                            help=_('Disables tunneling.')),
+        parser.add_argument('--neutron-network-vlan-ranges',
+                            help=_('Comma separated list of '
+                                   '<physical_network>:<vlan_min>:<vlan_max> '
+                                   'or <physical_network> specifying '
+                                   'physical_network names usable for VLAN '
+                                   'provider and tenant networks, as well as '
+                                   'ranges of VLAN tags on each available for '
+                                   'allocation to tenant networks. '
+                                   '(ex: datacentre:1:1000)'))
+        parser.add_argument('--neutron-mechanism-drivers',
+                            help=_('An ordered list of extension driver '
+                                   'entrypoints to be loaded from the '
+                                   'neutron.ml2.extension_drivers namespace.'))
+        parser.add_argument('--libvirt-type',
+                            help=_('Libvirt domain type. (default: qemu) '
+                                   '[qemu|kvm|lxc|uml|xen|parallels]'))
         parser.add_argument('--ntp-server',
-                            help=_("NTP server address is required for HA"
-                                   " deployments."))
+                            help=_('The NTP for overcloud nodes.'))
         parser.add_argument(
             '--tripleo-root',
-            default=os.environ.get('TRIPLEO_ROOT', '/etc/tripleo')
+            default=os.environ.get('TRIPLEO_ROOT', '/etc/tripleo'),
+            help=_('The root directory for TripleO templates.')
         )
         parser.add_argument(
             '--no-proxy',
-            default=os.environ.get('no_proxy', '')
+            default=os.environ.get('no_proxy', ''),
+            help=_('A comma separated list of hosts that should not be '
+                   'proxied.')
         )
         parser.add_argument(
             '-O', '--output-dir', metavar='<OUTPUT DIR>',
@@ -746,33 +784,33 @@ class DeployOvercloud(command.Command):
             '--rhel-reg',
             action='store_true',
             help=_('Register overcloud nodes to the customer portal or a '
-                   'satellite')
+                   'satellite.')
         )
         reg_group.add_argument(
             '--reg-method',
             choices=['satellite', 'portal'],
             default='satellite',
-            help=_('RHEL registration method to use for the overcloud nodes')
+            help=_('RHEL registration method to use for the overcloud nodes.')
         )
         reg_group.add_argument(
             '--reg-org',
             default='',
-            help=_('Organization key to use for registration')
+            help=_('Organization key to use for registration.')
         )
         reg_group.add_argument(
             '--reg-force',
             action='store_true',
-            help=_('Register the system even if it is already registered')
+            help=_('Register the system even if it is already registered.')
         )
         reg_group.add_argument(
             '--reg-sat-url',
             default='',
-            help=_('Satellite server to register overcloud nodes')
+            help=_('Satellite server to register overcloud nodes.')
         )
         reg_group.add_argument(
             '--reg-activation-key',
             default='',
-            help=_('Activation key to use for registration')
+            help=_('Activation key to use for registration.')
         )
 
         return parser
