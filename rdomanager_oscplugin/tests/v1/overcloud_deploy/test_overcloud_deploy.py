@@ -18,9 +18,10 @@ import sys
 import mock
 import six
 
+from openstackclient.common import exceptions as oscexc
+from openstackclient.tests import utils as oscutils
 from tuskarclient.v2.plans import Plan
 
-from openstackclient.tests import utils as oscutils
 from rdomanager_oscplugin.tests.v1.overcloud_deploy import fakes
 from rdomanager_oscplugin.tests.v1.utils import (
     generate_overcloud_passwords_mock)
@@ -864,3 +865,46 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertFalse(mock_deploy_tuskar.called)
 
         mock_create_tempest_deployer_input.assert_called_with(self.cmd)
+
+    def test_validate_args_correct(self):
+        arglist = ['--templates',
+                   '--neutron-network-type', 'nettype',
+                   '--neutron-tunnel-types', 'nettype']
+        verifylist = [
+            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
+            ('neutron_network_type', 'nettype'),
+            ('neutron_tunnel_types', 'nettype'),
+        ]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        self.cmd._validate_args(parsed_args)
+
+    def test_validate_args_mismatch(self):
+        arglist = ['--templates',
+                   '--neutron-network-type', 'nettype1',
+                   '--neutron-tunnel-types', 'nettype2']
+        verifylist = [
+            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
+            ('neutron_network_type', 'nettype1'),
+            ('neutron_tunnel_types', 'nettype2'),
+        ]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.assertRaises(oscexc.CommandError,
+                          self.cmd._validate_args,
+                          parsed_args)
+
+    def test_validate_args_no_tunnel_type(self):
+        arglist = ['--templates',
+                   '--neutron-network-type', 'nettype']
+        verifylist = [
+            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
+            ('neutron_network_type', 'nettype'),
+        ]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.assertRaises(oscexc.CommandError,
+                          self.cmd._validate_args,
+                          parsed_args)
