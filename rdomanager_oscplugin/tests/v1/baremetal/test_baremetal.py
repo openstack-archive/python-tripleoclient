@@ -1003,3 +1003,33 @@ class TestConfigureBaremetalBoot(fakes.TestBaremetal):
                 'path': '/driver_info/deploy_kernel'
             }]),
         ])
+
+
+class TestShowNodeCapabilities(fakes.TestBaremetal):
+
+    def setUp(self):
+        super(TestShowNodeCapabilities, self).setUp()
+
+        # Get the command object to test
+        self.cmd = baremetal.ShowNodeCapabilities(self.app, None)
+
+    def test_success(self):
+
+        bm_client = self.app.client_manager.rdomanager_oscplugin.baremetal()
+
+        bm_client.node.list.return_value = [
+            mock.Mock(uuid='UUID1'),
+            mock.Mock(uuid='UUID2'),
+        ]
+
+        bm_client.node.get.return_value = mock.Mock(
+            properties={'capabilities': 'boot_option:local'})
+
+        arglist = []
+        parsed_args = self.check_parser(self.cmd, arglist, [])
+        result = self.cmd.take_action(parsed_args)
+
+        self.assertEqual((
+            ('Node UUID', 'Node Capabilities'),
+            [('UUID1', 'boot_option:local'), ('UUID2', 'boot_option:local')]
+        ), result)
