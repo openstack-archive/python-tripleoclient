@@ -52,7 +52,8 @@ class BuildOvercloudImage(command.Command):
         'os-net-config',
         'stable-interface-names',
         'grub2-deprecated',
-        '-p python-psutil,python-debtcollector,plotnetcfg,sos',
+        '-p python-psutil,python-debtcollector,plotnetcfg,sos,'
+        'python-cisco-networking,python-UcsSdk'
     ]
 
     OVERCLOUD_FULL_DIB_EXTRA_ARGS = [
