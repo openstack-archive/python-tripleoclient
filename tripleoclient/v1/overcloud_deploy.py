@@ -344,9 +344,8 @@ class DeployOvercloud(command.Command):
                     'Compute-1::NeutronAllowL3AgentFailover': False,
                 })
 
-        # set at least 3 dhcp_agents_per_network
-        dhcp_agents_per_network = (number_controllers if number_controllers and
-                                   number_controllers > 3 else 3)
+        dhcp_agents_per_network = (min(number_controllers, 3) if
+                                   number_controllers else 1)
 
         if args.templates:
             parameters.update({
