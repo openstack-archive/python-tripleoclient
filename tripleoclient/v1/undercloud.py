@@ -19,6 +19,7 @@ import logging
 import subprocess
 
 from cliff import command
+from tripleoclient import utils
 
 
 class InstallPlugin(command.Command):
@@ -29,6 +30,8 @@ class InstallPlugin(command.Command):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+
+        utils.ensure_run_as_normal_user()
 
         subprocess.check_call("instack-install-undercloud")
 
