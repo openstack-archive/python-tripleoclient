@@ -413,3 +413,17 @@ class TestCheckNodesCount(TestCase):
 
         self.assertRaises(ValueError, utils.check_nodes_count,
                           self.baremetal, self.stack, dict(), self.defaults)
+
+
+class TestEnsureRunAsNormalUser(TestCase):
+
+    @mock.patch('os.geteuid')
+    def test_ensure_run_as_normal_user(self, os_geteuid_mock):
+        os_geteuid_mock.return_value = 1000
+        self.assertEqual(utils.ensure_run_as_normal_user(), None)
+
+    @mock.patch('os.geteuid')
+    def test_ensure_run_as_normal_user_root(self, os_geteuid_mock):
+        os_geteuid_mock.return_value = 0
+        self.assertRaises(exceptions.RootUserExecution,
+                          utils.ensure_run_as_normal_user)

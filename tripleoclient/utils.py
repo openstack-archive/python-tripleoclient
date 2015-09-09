@@ -464,3 +464,11 @@ def check_nodes_count(baremetal_client, stack, parameters, defaults):
                 ironic_nodes_count, count))
     else:
         return True
+
+
+def ensure_run_as_normal_user():
+    """Check if the command runs under normal user (EUID!=0)"""
+    if os.geteuid() == 0:
+        raise exceptions.RootUserExecution(
+            'This command cannot run under root user.'
+            ' Switch to a normal user.')
