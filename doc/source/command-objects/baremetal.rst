@@ -63,3 +63,13 @@ Configure boot devices for all baremetal nodes
 .. code:: bash
 
     os baremetal configure boot
+        [ --deploy-kernel <image_name> ]
+        [ --deploy-ramdisk <image_name> ]
+
+.. option:: --deploy-kernel <name>
+
+    Image name with kernel which should be used for boot config.
+
+.. option:: --deploy-ramdisk <name>
+
+    Image name with ramdisk which should be used for boot config.
