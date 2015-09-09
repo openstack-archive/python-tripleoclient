@@ -414,11 +414,19 @@ def check_nodes_count(baremetal_client, stack, parameters, defaults):
         for param, default in defaults.items():
             count += parameters.get(param, default)
 
+    # We get number of nodes usable for the stack by getting already
+    # used (associated) nodes and number of nodes which can be used
+    # (not in maintenance mode).
+    # Assumption is that associated nodes are part of the stack (only
+    # one overcloud is supported).
+    associated = len(baremetal_client.node.list(associated=True))
     available = len(baremetal_client.node.list(associated=False,
                                                maintenance=False))
-    if count > available:
+    ironic_nodes_count = associated + available
+
+    if count > ironic_nodes_count:
         raise exceptions.DeploymentError(
             "Not enough nodes - available: {0}, requested: {1}".format(
-                available, count))
+                ironic_nodes_count, count))
     else:
         return True

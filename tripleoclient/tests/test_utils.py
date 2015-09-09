@@ -353,7 +353,6 @@ class TestCheckNodesCount(TestCase):
 
     def setUp(self):
         self.baremetal = mock.Mock()
-        self.baremetal.node.list.return_value = range(3)
         self.defaults = {
             'ControllerCount': 1,
             'ComputeCount': 1,
@@ -362,6 +361,14 @@ class TestCheckNodesCount(TestCase):
             'CephStorageCount': 0,
         }
         self.stack = mock.Mock(parameters=self.defaults)
+
+        def ironic_node_list(*args, **kwargs):
+            if kwargs.get('associated') is True:
+                nodes = range(2)
+            elif kwargs.get('maintenance') is False:
+                nodes = range(1)
+            return nodes
+        self.baremetal.node.list.side_effect = ironic_node_list
 
     def test_check_nodes_count_deploy_enough_nodes(self):
         user_params = {'ControllerCount': 2}
