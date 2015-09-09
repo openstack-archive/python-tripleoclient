@@ -1,7 +1,7 @@
 [run]
 branch = True
-source = rdomanager_oscplugin
-omit = rdomanager_oscplugin/tests/*,rdomanager_oscplugin/openstack/*
+source = tripleoclient
+omit = tripleoclient/tests/*,tripleoclient/openstack/*
 
 [report]
 ignore-errors = True

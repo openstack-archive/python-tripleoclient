@@ -37,8 +37,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'osc-plugin'
-copyright = u'2013 Nebula Inc.'
+project = u'tripleoclient'
+copyright = u'2015 Red Hat, Inc.'
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
 add_function_parentheses = True

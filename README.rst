@@ -1,6 +1,6 @@
-====================
-rdomanager-oscplugin
-====================
+=============
+tripleoclient
+=============
 
 OpenStackClient reference plugin module
 
@@ -9,8 +9,8 @@ properly installed for OSC to find and use it.  It utilizes the
 ``setuptools`` entry points mechanism to advertise to OSC the
 plugin module and supported commands.
 
-**rdomanager-oscplugin** is an OpenStackClient (OSC) plugin implementation that
-implements commands useful for RDO manager and the install and management of
+**tripleoclient** is an OpenStackClient (OSC) plugin implementation that
+implements commands useful for TripleO and the install and management of
 both an undercloud and an overcloud.
 
 Discovery
@@ -57,7 +57,7 @@ requirements.  This limits the ability to add additional auth modules to OSC.
 Client
 ======
 
-The current implementation of the ``rdomanager_oscplugin`` Client class is an
+The current implementation of the ``tripleoclient`` Client class is an
 empty placeholder.  This client object is not equired but OSC's ClientManager
 will maintain it as required and is the interface point for other plugins to
 access anything implemented by this plugin.

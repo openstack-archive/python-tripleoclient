@@ -2,6 +2,6 @@
 Usage
 =====
 
-To use rdomanager-oscplugin in a project::
+To use tripleoclient in a project::
 
-	import rdomanager_oscplugin
+	import tripleoclient
