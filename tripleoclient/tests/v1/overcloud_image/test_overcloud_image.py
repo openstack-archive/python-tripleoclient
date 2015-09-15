@@ -13,6 +13,7 @@
 #   under the License.
 #
 
+import io
 import mock
 import os
 
@@ -39,7 +40,10 @@ class TestOvercloudImageBuild(TestPluginV1):
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
-        self.cmd.take_action(parsed_args)
+        redhat_release = io.StringIO(u'CentOS Fake Release')
+        with mock.patch('tripleoclient.v1.overcloud_image.open',
+                        return_value=redhat_release, create=True):
+            self.cmd.take_action(parsed_args)
 
         self.assertEqual(2, self.cmd._ramdisk_image_create.call_count)
         self.assertEqual(1, self.cmd._disk_image_create.call_count)
