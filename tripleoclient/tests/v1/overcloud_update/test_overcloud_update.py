@@ -31,10 +31,9 @@ class TestOvercloudUpdate(fakes.TestOvercloudUpdate):
     def test_update_out(self, update_manager):
         update_manager.return_value.get_status.return_value = (
             'UPDATE_COMPLETE', {})
-        argslist = ['-i', '--plan', 'overcloud', 'overcloud']
+        argslist = ['overcloud', '-i', '--templates']
         verifylist = [
             ('stack', 'overcloud'),
-            ('plan', 'overcloud'),
             ('interactive', True),
         ]
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)

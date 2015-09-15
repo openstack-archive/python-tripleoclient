@@ -35,10 +35,6 @@ class DeleteNode(command.Command):
                             help='Name or ID of heat stack to scale '
                                  '(default=Env: OVERCLOUD_STACK_NAME)',
                             default=utils.env('OVERCLOUD_STACK_NAME'))
-        parser.add_argument('--plan', dest='plan',
-                            help='Name or ID of tuskar plan to scale '
-                                 '(default=Env: OVERCLOUD_PLAN_NAME)',
-                            default=utils.env('OVERCLOUD_PLAN_NAME'))
         parser.add_argument(
             '--templates', nargs='?', const=TRIPLEO_HEAT_TEMPLATES,
             help="The directory containing the Heat templates to deploy"
@@ -56,19 +52,13 @@ class DeleteNode(command.Command):
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
         osc_plugin = self.app.client_manager.tripleoclient
-        if parsed_args.templates:
-            management = None
-        else:
-            management = osc_plugin.management()
 
         orchestration = osc_plugin.orchestration()
         scale_manager = scale.ScaleManager(
-            tuskarclient=management,
             heatclient=orchestration,
-            plan_id=parsed_args.plan,
             stack_id=parsed_args.stack,
             tht_dir=parsed_args.templates,
             environment_files=parsed_args.environment_files)
         print("deleting nodes {0} from stack {1}".format(parsed_args.nodes,
-                                                         parsed_args.plan))
+                                                         parsed_args.stack))
         scale_manager.scaledown(parsed_args.nodes)

@@ -22,7 +22,6 @@ class FakeClientWrapper(object):
     def __init__(self):
         self._instance = mock.Mock()
         self._orchestration = None
-        self._management = None
 
     def orchestration(self):
 
@@ -30,13 +29,6 @@ class FakeClientWrapper(object):
             self._orchestration = mock.Mock()
 
         return self._orchestration
-
-    def management(self):
-
-        if self._management is None:
-            self._management = mock.Mock()
-
-        return self._management
 
 
 class TestOvercloudUpdate(utils.TestCommand):

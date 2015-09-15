@@ -13,7 +13,7 @@ Deploy an overcloud stack
 .. code:: bash
 
     openstack overcloud deploy stack
-        (--plan PLAN | --templates [TEMPLATES])
+        --templates [TEMPLATES]
         [-t <TIMEOUT>]
         [--control-scale CONTROL_SCALE]
         [--compute-scale COMPUTE_SCALE]
@@ -45,10 +45,6 @@ Deploy an overcloud stack
         [--reg-org REG_ORG] [--reg-force]
         [--reg-sat-url REG_SAT_URL]
         [--reg-activation-key REG_ACTIVATION_KEY]
-
-.. option:: --plan <name or UUID>
-
-    The Name or UUID of the Tuskar plan to deploy.
 
 .. option:: --templates <directory>
 
@@ -167,11 +163,6 @@ Deploy an overcloud stack
 .. option:: --no-proxy <hosts>
 
     A comma separated list of hosts that should not be proxied.
-
-.. option:: -O <directory>, --output-dir <directory>
-
-    Directory to write Tuskar template files into. It will be created if it
-    does not exist. If not provided a temporary directory will be used.
 
 .. option:: -e <file>, --environment-file <file>
 

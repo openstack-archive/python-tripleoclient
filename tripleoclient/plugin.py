@@ -19,7 +19,6 @@ import logging
 
 from ironicclient import client as ironic_client
 from openstackclient.common import utils
-from tuskarclient import client as tuskar_client
 
 
 LOG = logging.getLogger(__name__)
@@ -67,7 +66,6 @@ class ClientWrapper(object):
         self._instance = instance
         self._baremetal = None
         self._orchestration = None
-        self._management = None
 
     def baremetal(self):
         """Returns an baremetal service client"""
@@ -129,18 +127,3 @@ class ClientWrapper(object):
 
         self._orchestration = client
         return self._orchestration
-
-    def management(self):
-        """Returns an management service client"""
-
-        endpoint = self._instance.get_endpoint_for_service_type(
-            "management",
-            region_name=self._instance._region_name,
-        )
-
-        token = self._instance.auth.get_token(self._instance.session)
-
-        self._management = tuskar_client.get_client(
-            2, os_auth_token=token, tuskar_url=endpoint)
-
-        return self._management

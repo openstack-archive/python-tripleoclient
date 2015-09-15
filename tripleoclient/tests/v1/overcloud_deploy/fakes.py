@@ -18,10 +18,10 @@ from openstackclient.tests import utils
 
 
 def create_to_dict_mock(**kwargs):
-    mock_plan = mock.Mock()
-    mock_plan.configure_mock(**kwargs)
-    mock_plan.to_dict.return_value = kwargs
-    return mock_plan
+    mock_with_to_dict = mock.Mock()
+    mock_with_to_dict.configure_mock(**kwargs)
+    mock_with_to_dict.to_dict.return_value = kwargs
+    return mock_with_to_dict
 
 
 def create_tht_stack(**kwargs):
@@ -49,16 +49,12 @@ class FakeClientWrapper(object):
         self._instance = mock.Mock()
         self._orchestration = mock.Mock()
         self._baremetal = mock.Mock()
-        self._management = mock.Mock()
 
     def orchestration(self):
         return self._orchestration
 
     def baremetal(self):
         return self._baremetal
-
-    def management(self):
-        return self._management
 
 
 class TestDeployOvercloud(utils.TestCommand):

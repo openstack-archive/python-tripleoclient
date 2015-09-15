@@ -31,10 +31,9 @@ class TestDeleteNode(fakes.TestDeleteNode):
     # probably be fixed so that it can pass with that.
     @mock.patch('tripleo_common.scale.ScaleManager')
     def test_node_delete(self, scale_manager):
-        argslist = ['instance1', 'instance2', '--plan', 'overcloud',
+        argslist = ['instance1', 'instance2', '--templates',
                     '--stack', 'overcloud']
         verifylist = [
-            ('plan', 'overcloud'),
             ('stack', 'overcloud'),
             ('nodes', ['instance1', 'instance2'])
         ]

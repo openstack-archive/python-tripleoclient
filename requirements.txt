@@ -11,7 +11,6 @@ os-cloud-config
 python-heatclient>=0.3.0
 python-ironicclient>=0.4.1
 python-openstackclient>=1.0.0
-python-tuskarclient>=0.1.17
 six>=1.9.0
 
 # tripleo-common lib is not yet on PyPi

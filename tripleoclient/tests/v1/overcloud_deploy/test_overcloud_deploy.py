@@ -15,15 +15,12 @@
 
 import json
 import os
-import sys
+import six
 import tempfile
 
 import mock
-import six
 
 from openstackclient.common import exceptions as oscexc
-from openstackclient.tests import utils as oscutils
-from tuskarclient.v2.plans import Plan
 
 from tripleoclient import exceptions
 from tripleoclient.tests.v1.overcloud_deploy import fakes
@@ -456,405 +453,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             [self.parameter_defaults_env_file])
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_deploy_postconfig')
-    @mock.patch('tripleoclient.utils.get_config_value', autospec=True)
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_create_tempest_deployer_input', autospec=True)
-    @mock.patch('tripleoclient.utils.generate_overcloud_passwords')
-    @mock.patch('heatclient.common.template_utils.'
-                'process_multiple_environments_and_files')
-    @mock.patch('heatclient.common.template_utils.get_template_contents')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_get_stack')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_pre_heat_deploy')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_create_overcloudrc')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_heat_deploy')
-    def test_tuskar_deploy(self, mock_heat_deploy, mock_create_overcloudrc,
-                           most_pre_deploy, mock_get_stack,
-                           mock_get_templte_contents,
-                           mock_process_multiple_env,
-                           mock_generate_overcloud_passwords,
-                           mock_create_tempest_deployer_input,
-                           mock_get_key,
-                           mock_deploy_postconfig):
-
-        arglist = ['--plan', 'undercloud', '--output-dir', 'fake',
-                   '--compute-flavor', 'baremetal',
-                   '--neutron-bridge-mappings', 'datacentre:br-test',
-                   '--neutron-disable-tunneling',
-                   '--control-scale', '3',
-                   '--neutron-mechanism-drivers', 'linuxbridge',
-                   '--ntp-server', 'ntp.local']
-
-        verifylist = [
-            ('templates', None),
-            ('plan', 'undercloud'),
-            ('output_dir', 'fake'),
-            ('ntp_server', 'ntp.local')
-        ]
-
-        clients = self.app.client_manager
-        management = clients.tripleoclient.management()
-
-        management.plans.templates.return_value = {}
-        management.plans.resource_class = Plan
-
-        mock_plan = mock.Mock()
-        mock_plan.configure_mock(name="undercloud")
-        management.plans.list.return_value = [mock_plan, ]
-
-        mock_get_templte_contents.return_value = ({}, "template")
-        mock_process_multiple_env.return_value = ({}, "envs")
-        clients.network.api.find_attr.return_value = {
-            "id": "network id"
-        }
-
-        mock_get_key.return_value = "PASSWORD"
-
-        mock_generate_overcloud_passwords.return_value = self._get_passwords()
-
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-
-        baremetal = clients.tripleoclient.baremetal()
-        baremetal.node.list.return_value = range(10)
-
-        result = self.cmd.take_action(parsed_args)
-        self.assertTrue(result)
-
-        parameters = {
-            'Cinder-Storage-1::SnmpdReadonlyUserPassword': "PASSWORD",
-            'Compute-1::AdminPassword': 'password',
-            'Compute-1::CeilometerMeteringSecret': 'password',
-            'Compute-1::CeilometerPassword': 'password',
-            'Compute-1::Flavor': 'baremetal',
-            'Compute-1::NeutronAllowL3AgentFailover': False,
-            'Compute-1::NeutronBridgeMappings': 'datacentre:br-test',
-            'Compute-1::NeutronL3HA': True,
-            'Compute-1::NeutronMechanismDrivers': 'linuxbridge',
-            'Compute-1::NeutronPassword': 'password',
-            'Compute-1::NovaPassword': 'password',
-            'Compute-1::NtpServer': 'ntp.local',
-            'Compute-1::SnmpdReadonlyUserPassword': "PASSWORD",
-            'Controller-1::AdminPassword': 'password',
-            'Controller-1::AdminToken': 'password',
-            'Controller-1::CeilometerMeteringSecret': 'password',
-            'Controller-1::CeilometerPassword': 'password',
-            'Controller-1::CinderPassword': 'password',
-            'Controller-1::count': 3,
-            'Controller-1::GlancePassword': 'password',
-            'Controller-1::HeatPassword': 'password',
-            'Controller-1::HeatStackDomainAdminPassword': 'password',
-            'Controller-1::NeutronAllowL3AgentFailover': False,
-            'Controller-1::NeutronBridgeMappings': 'datacentre:br-test',
-            'Controller-1::NeutronDhcpAgentsPerNetwork': 3,
-            'Controller-1::NeutronL3HA': True,
-            'Controller-1::NeutronMechanismDrivers': 'linuxbridge',
-            'Controller-1::NeutronPassword': 'password',
-            'Controller-1::NovaPassword': 'password',
-            'Controller-1::NtpServer': 'ntp.local',
-            'Controller-1::SnmpdReadonlyUserPassword': "PASSWORD",
-            'Controller-1::SwiftHashSuffix': 'password',
-            'Controller-1::SwiftPassword': 'password',
-            'NeutronControlPlaneID': 'network id',
-            'Swift-Storage-1::SnmpdReadonlyUserPassword': "PASSWORD",
-        }
-
-        mock_heat_deploy.assert_called_with(
-            mock_get_stack(),
-            'overcloud',
-            'fake/plan.yaml',
-            parameters,
-            ['fake/environment.yaml'],
-            240
-        )
-
-        mock_create_tempest_deployer_input.assert_called_with(self.cmd)
-
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_deploy_postconfig')
-    @mock.patch('tripleoclient.utils.get_config_value', autospec=True)
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_create_tempest_deployer_input', autospec=True)
-    @mock.patch('tripleoclient.utils.generate_overcloud_passwords')
-    @mock.patch('heatclient.common.template_utils.'
-                'process_multiple_environments_and_files')
-    @mock.patch('heatclient.common.template_utils.get_template_contents')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_get_stack')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_pre_heat_deploy')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_create_overcloudrc')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_heat_deploy')
-    def test_tuskar_scale(self, mock_heat_deploy, mock_create_overcloudrc,
-                          most_pre_deploy, mock_get_stack,
-                          mock_get_templte_contents,
-                          mock_process_multiple_env,
-                          mock_generate_overcloud_passwords,
-                          mock_create_tempest_deployer_input,
-                          mock_get_key,
-                          mock_deploy_postconfig):
-
-        arglist = ['--plan', 'undercloud', '--output-dir', 'fake',
-                   '--compute-flavor', 'baremetal',
-                   '--neutron-bridge-mappings', 'datacentre:br-test',
-                   '--neutron-disable-tunneling',
-                   '--control-scale', '3',
-                   '--ntp-server', 'ntp.local',
-                   '--neutron-mechanism-drivers', 'linuxbridge']
-
-        verifylist = [
-            ('templates', None),
-            ('plan', 'undercloud'),
-            ('output_dir', 'fake'),
-        ]
-
-        clients = self.app.client_manager
-        management = clients.tripleoclient.management()
-
-        management.plans.templates.return_value = {}
-        management.plans.resource_class = Plan
-
-        mock_plan = mock.Mock()
-        mock_plan.configure_mock(name="undercloud")
-        management.plans.list.return_value = [mock_plan, ]
-
-        mock_get_templte_contents.return_value = ({}, "template")
-        mock_process_multiple_env.return_value = ({}, "envs")
-        clients.network.api.find_attr.return_value = {
-            "id": "network id"
-        }
-
-        mock_get_key.return_value = "PASSWORD"
-
-        mock_generate_overcloud_passwords.return_value = self._get_passwords()
-
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-
-        baremetal = clients.tripleoclient.baremetal()
-        baremetal.node.list.return_value = range(10)
-
-        result = self.cmd.take_action(parsed_args)
-        self.assertTrue(result)
-
-        parameters = {
-            'Cinder-Storage-1::SnmpdReadonlyUserPassword': "PASSWORD",
-            'Compute-1::AdminPassword': 'password',
-            'Compute-1::CeilometerMeteringSecret': 'password',
-            'Compute-1::CeilometerPassword': 'password',
-            'Compute-1::Flavor': 'baremetal',
-            'Compute-1::NeutronAllowL3AgentFailover': False,
-            'Compute-1::NeutronBridgeMappings': 'datacentre:br-test',
-            'Compute-1::NeutronL3HA': True,
-            'Compute-1::NeutronMechanismDrivers': 'linuxbridge',
-            'Compute-1::NeutronPassword': 'password',
-            'Compute-1::NovaPassword': 'password',
-            'Compute-1::NtpServer': 'ntp.local',
-            'Compute-1::SnmpdReadonlyUserPassword': "PASSWORD",
-            'Controller-1::AdminPassword': 'password',
-            'Controller-1::AdminToken': 'password',
-            'Controller-1::CeilometerMeteringSecret': 'password',
-            'Controller-1::CeilometerPassword': 'password',
-            'Controller-1::CinderPassword': 'password',
-            'Controller-1::count': 3,
-            'Controller-1::GlancePassword': 'password',
-            'Controller-1::HeatPassword': 'password',
-            'Controller-1::HeatStackDomainAdminPassword': 'password',
-            'Controller-1::NeutronAllowL3AgentFailover': False,
-            'Controller-1::NeutronBridgeMappings': 'datacentre:br-test',
-            'Controller-1::NeutronDhcpAgentsPerNetwork': 3,
-            'Controller-1::NeutronL3HA': True,
-            'Controller-1::NeutronMechanismDrivers': 'linuxbridge',
-            'Controller-1::NeutronPassword': 'password',
-            'Controller-1::NovaPassword': 'password',
-            'Controller-1::NtpServer': 'ntp.local',
-            'Controller-1::SnmpdReadonlyUserPassword': "PASSWORD",
-            'Controller-1::SwiftHashSuffix': 'password',
-            'Controller-1::SwiftPassword': 'password',
-            'NeutronControlPlaneID': 'network id',
-            'Swift-Storage-1::SnmpdReadonlyUserPassword': "PASSWORD",
-        }
-
-        mock_heat_deploy.assert_called_with(
-            mock_get_stack(),
-            'overcloud',
-            'fake/plan.yaml',
-            parameters,
-            ['fake/environment.yaml'],
-            240
-        )
-
-        mock_create_tempest_deployer_input.assert_called_with(self.cmd)
-
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_deploy_postconfig')
-    @mock.patch('tripleoclient.utils.get_config_value', autospec=True)
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_create_tempest_deployer_input', autospec=True)
-    @mock.patch('tripleoclient.utils.generate_overcloud_passwords')
-    @mock.patch('heatclient.common.template_utils.'
-                'process_multiple_environments_and_files')
-    @mock.patch('heatclient.common.template_utils.get_template_contents')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_get_stack')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_pre_heat_deploy')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_create_overcloudrc')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_heat_deploy')
-    def test_tuskar_deploy_extra_config(self, mock_heat_deploy,
-                                        mock_create_overcloudrc,
-                                        most_pre_deploy, mock_get_stack,
-                                        mock_get_templte_contents,
-                                        mock_process_multiple_env,
-                                        mock_generate_overcloud_passwords,
-                                        mock_create_tempest_deployer_input,
-                                        mock_get_key,
-                                        mock_deploy_postconfig):
-
-        arglist = ['--plan', 'undercloud', '--output-dir', 'fake',
-                   '--compute-flavor', 'baremetal',
-                   '--neutron-bridge-mappings', 'datacentre:br-test',
-                   '--neutron-disable-tunneling',
-                   '--control-scale', '3',
-                   '--ntp-server', 'ntp.local',
-                   '-e', 'extra_registry.yaml',
-                   '-e', 'extra_environment.yaml',
-                   '-t', '120', ]
-
-        verifylist = [
-            ('templates', None),
-            ('plan', 'undercloud'),
-            ('output_dir', 'fake'),
-            ('environment_files', ['extra_registry.yaml',
-                                   'extra_environment.yaml'])
-        ]
-
-        clients = self.app.client_manager
-        management = clients.tripleoclient.management()
-
-        management.plans.templates.return_value = {}
-        management.plans.resource_class = Plan
-
-        mock_plan = mock.Mock()
-        mock_plan.configure_mock(name="undercloud")
-        management.plans.list.return_value = [mock_plan, ]
-
-        mock_get_templte_contents.return_value = ({}, "template")
-        mock_process_multiple_env.return_value = ({}, "envs")
-        clients.network.api.find_attr.return_value = {
-            "id": "network id"
-        }
-
-        mock_get_key.return_value = "PASSWORD"
-
-        mock_generate_overcloud_passwords.return_value = self._get_passwords()
-
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-
-        baremetal = clients.tripleoclient.baremetal()
-        baremetal.node.list.return_value = range(10)
-
-        result = self.cmd.take_action(parsed_args)
-        self.assertTrue(result)
-
-        parameters = {
-            'Cinder-Storage-1::SnmpdReadonlyUserPassword': "PASSWORD",
-            'Compute-1::AdminPassword': 'password',
-            'Compute-1::CeilometerMeteringSecret': 'password',
-            'Compute-1::CeilometerPassword': 'password',
-            'Compute-1::Flavor': 'baremetal',
-            'Compute-1::NeutronAllowL3AgentFailover': False,
-            'Compute-1::NeutronBridgeMappings': 'datacentre:br-test',
-            'Compute-1::NeutronL3HA': True,
-            'Compute-1::NeutronPassword': 'password',
-            'Compute-1::NovaPassword': 'password',
-            'Compute-1::NtpServer': 'ntp.local',
-            'Compute-1::SnmpdReadonlyUserPassword': "PASSWORD",
-            'Controller-1::AdminPassword': 'password',
-            'Controller-1::AdminToken': 'password',
-            'Controller-1::CeilometerMeteringSecret': 'password',
-            'Controller-1::CeilometerPassword': 'password',
-            'Controller-1::CinderPassword': 'password',
-            'Controller-1::count': 3,
-            'Controller-1::GlancePassword': 'password',
-            'Controller-1::HeatPassword': 'password',
-            'Controller-1::HeatStackDomainAdminPassword': 'password',
-            'Controller-1::NeutronAllowL3AgentFailover': False,
-            'Controller-1::NeutronBridgeMappings': 'datacentre:br-test',
-            'Controller-1::NeutronDhcpAgentsPerNetwork': 3,
-            'Controller-1::NeutronL3HA': True,
-            'Controller-1::NeutronPassword': 'password',
-            'Controller-1::NovaPassword': 'password',
-            'Controller-1::NtpServer': 'ntp.local',
-            'Controller-1::SnmpdReadonlyUserPassword': "PASSWORD",
-            'Controller-1::SwiftHashSuffix': 'password',
-            'Controller-1::SwiftPassword': 'password',
-            'NeutronControlPlaneID': 'network id',
-            'Swift-Storage-1::SnmpdReadonlyUserPassword': "PASSWORD",
-        }
-
-        mock_heat_deploy.assert_called_with(
-            mock_get_stack(),
-            'overcloud',
-            'fake/plan.yaml',
-            parameters,
-            ['fake/environment.yaml',
-             'extra_registry.yaml',
-             'extra_environment.yaml'],
-            120
-        )
-
-        # We can't use assert_called_with() here, as we need to compare
-        # two lists that may have different ordering, although the ordering
-        # does not matter:
-        call_args = dict([(x['name'], x['value']) for x in
-                          management.plans.patch.call_args_list[0][0][1]])
-        target = dict([(k, six.text_type(v)) for k, v in parameters.items()])
-        self.assertEqual(call_args, target)
-        self.assertEqual(management.plans.patch.call_count, 1)
-
-        mock_create_tempest_deployer_input.assert_called_with(self.cmd)
-
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_deploy_tuskar', autospec=True)
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_tripleo_heat_templates', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_pre_heat_deploy', autospec=True)
-    def test_invalid_deploy_call(self, mock_pre_deploy, mock_deploy_tht,
-                                 mock_deploy_tuskar):
-
-        arglist = ['--plan', 'undercloud', '--templates']
-        verifylist = [
-            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
-            ('plan', 'undercloud'),
-        ]
-
-        try:
-            oldstderr = sys.stderr
-            sys.stderr = self.fake_stdout
-            self.assertRaises(oscutils.ParserException, self.check_parser,
-                              self.cmd, arglist, verifylist)
-        finally:
-            sys.stderr = oldstderr
-
-        self.assertFalse(mock_deploy_tht.called)
-        self.assertFalse(mock_deploy_tuskar.called)
-
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_deploy_tuskar', autospec=True)
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_deploy_tripleo_heat_templates', autospec=True)
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_pre_heat_deploy', autospec=True)
-    def test_missing_sat_url(self, mock_pre_deploy, mock_deploy_tht,
-                             mock_deploy_tuskar):
+    def test_missing_sat_url(self, mock_pre_deploy, mock_deploy_tht):
 
         arglist = ['--templates', '--rhel-reg',
                    '--reg-method', 'satellite', '--reg-org', '123456789',
@@ -871,7 +473,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         result = self.cmd.take_action(parsed_args)
         self.assertFalse(result)
         self.assertFalse(mock_deploy_tht.called)
-        self.assertFalse(mock_deploy_tuskar.called)
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_create_tempest_deployer_input', autospec=True)
@@ -880,13 +481,11 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_get_overcloud_endpoint', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_deploy_tuskar', autospec=True)
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_tripleo_heat_templates', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_pre_heat_deploy', autospec=True)
     def test_rhel_reg_params_provided(self, mock_pre_deploy, mock_deploy_tht,
-                                      mock_deploy_tuskar, mock_oc_endpoint,
+                                      mock_oc_endpoint,
                                       mock_create_ocrc,
                                       mock_create_tempest_deployer_input):
 
@@ -909,7 +508,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertTrue(mock_deploy_tht.called)
         self.assertTrue(mock_oc_endpoint.called)
         self.assertTrue(mock_create_ocrc.called)
-        self.assertFalse(mock_deploy_tuskar.called)
 
         mock_create_tempest_deployer_input.assert_called_with(self.cmd)
 

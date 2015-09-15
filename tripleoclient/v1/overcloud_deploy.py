@@ -35,7 +35,6 @@ from os_cloud_config import keystone
 from os_cloud_config import keystone_pki
 from os_cloud_config.utils import clients
 from six.moves import configparser
-from tuskarclient.common import utils as tuskarutils
 
 from tripleoclient import exceptions
 from tripleoclient import utils
@@ -114,66 +113,24 @@ class DeployOvercloud(command.Command):
         self.passwords = passwords = utils.generate_overcloud_passwords()
         ceilometer_pass = passwords['OVERCLOUD_CEILOMETER_PASSWORD']
         ceilometer_secret = passwords['OVERCLOUD_CEILOMETER_SECRET']
-        if parsed_args.templates:
-            parameters['AdminPassword'] = passwords['OVERCLOUD_ADMIN_PASSWORD']
-            parameters['AdminToken'] = passwords['OVERCLOUD_ADMIN_TOKEN']
-            parameters['CeilometerPassword'] = ceilometer_pass
-            parameters['CeilometerMeteringSecret'] = ceilometer_secret
-            parameters['CinderPassword'] = passwords[
-                'OVERCLOUD_CINDER_PASSWORD']
-            parameters['GlancePassword'] = passwords[
-                'OVERCLOUD_GLANCE_PASSWORD']
-            parameters['HeatPassword'] = passwords['OVERCLOUD_HEAT_PASSWORD']
-            parameters['HeatStackDomainAdminPassword'] = passwords[
-                'OVERCLOUD_HEAT_STACK_DOMAIN_PASSWORD']
-            parameters['NeutronPassword'] = passwords[
-                'OVERCLOUD_NEUTRON_PASSWORD']
-            parameters['NovaPassword'] = passwords['OVERCLOUD_NOVA_PASSWORD']
-            parameters['SwiftHashSuffix'] = passwords['OVERCLOUD_SWIFT_HASH']
-            parameters['SwiftPassword'] = passwords['OVERCLOUD_SWIFT_PASSWORD']
-            parameters['SnmpdReadonlyUserPassword'] = (
-                undercloud_ceilometer_snmpd_password)
-        else:
-            parameters['Controller-1::AdminPassword'] = passwords[
-                'OVERCLOUD_ADMIN_PASSWORD']
-            parameters['Controller-1::AdminToken'] = passwords[
-                'OVERCLOUD_ADMIN_TOKEN']
-            parameters['Compute-1::AdminPassword'] = passwords[
-                'OVERCLOUD_ADMIN_PASSWORD']
-            parameters['Controller-1::SnmpdReadonlyUserPassword'] = (
-                undercloud_ceilometer_snmpd_password)
-            parameters['Cinder-Storage-1::SnmpdReadonlyUserPassword'] = (
-                undercloud_ceilometer_snmpd_password)
-            parameters['Swift-Storage-1::SnmpdReadonlyUserPassword'] = (
-                undercloud_ceilometer_snmpd_password)
-            parameters['Compute-1::SnmpdReadonlyUserPassword'] = (
-                undercloud_ceilometer_snmpd_password)
-            parameters['Controller-1::CeilometerPassword'] = ceilometer_pass
-            parameters[
-                'Controller-1::CeilometerMeteringSecret'] = ceilometer_secret
-            parameters['Compute-1::CeilometerPassword'] = ceilometer_pass
-            parameters[
-                'Compute-1::CeilometerMeteringSecret'] = ceilometer_secret
-            parameters['Controller-1::CinderPassword'] = (
-                passwords['OVERCLOUD_CINDER_PASSWORD'])
-            parameters['Controller-1::GlancePassword'] = (
-                passwords['OVERCLOUD_GLANCE_PASSWORD'])
-            parameters['Controller-1::HeatPassword'] = (
-                passwords['OVERCLOUD_HEAT_PASSWORD'])
-            parameters['Controller-1::HeatStackDomainAdminPassword'] = (
-                passwords['OVERCLOUD_HEAT_STACK_DOMAIN_PASSWORD'])
-            parameters['Controller-1::NeutronPassword'] = (
-                passwords['OVERCLOUD_NEUTRON_PASSWORD'])
-            parameters['Compute-1::NeutronPassword'] = (
-                passwords['OVERCLOUD_NEUTRON_PASSWORD'])
-            parameters['Controller-1::NovaPassword'] = (
-                passwords['OVERCLOUD_NOVA_PASSWORD'])
-            parameters['Compute-1::NovaPassword'] = (
-                passwords['OVERCLOUD_NOVA_PASSWORD'])
-            parameters['Controller-1::SwiftHashSuffix'] = (
-                passwords['OVERCLOUD_SWIFT_HASH'])
-            parameters['Controller-1::SwiftPassword'] = (
-                passwords['OVERCLOUD_SWIFT_PASSWORD'])
+        parameters['AdminPassword'] = passwords['OVERCLOUD_ADMIN_PASSWORD']
+        parameters['AdminToken'] = passwords['OVERCLOUD_ADMIN_TOKEN']
+        parameters['CeilometerPassword'] = ceilometer_pass
+        parameters['CeilometerMeteringSecret'] = ceilometer_secret
+        parameters['CinderPassword'] = passwords[
+            'OVERCLOUD_CINDER_PASSWORD']
+        parameters['GlancePassword'] = passwords[
+            'OVERCLOUD_GLANCE_PASSWORD']
+        parameters['HeatPassword'] = passwords['OVERCLOUD_HEAT_PASSWORD']
+        parameters['HeatStackDomainAdminPassword'] = passwords[
+            'OVERCLOUD_HEAT_STACK_DOMAIN_PASSWORD']
+        parameters['NeutronPassword'] = passwords[
+            'OVERCLOUD_NEUTRON_PASSWORD']
+        parameters['NovaPassword'] = passwords['OVERCLOUD_NOVA_PASSWORD']
+        parameters['SwiftHashSuffix'] = passwords['OVERCLOUD_SWIFT_HASH']
+        parameters['SwiftPassword'] = passwords['OVERCLOUD_SWIFT_PASSWORD']
+        parameters['SnmpdReadonlyUserPassword'] = (
+            undercloud_ceilometer_snmpd_password)
 
     def _get_stack(self, orchestration_client, stack_name):
         """Get the ID for the current deployed overcloud stack if it exists."""
@@ -185,12 +142,9 @@ class DeployOvercloud(command.Command):
             return None
 
     def _update_paramaters(self, args, network_client, stack):
-        if args.templates:
-            parameters = PARAMETERS.copy()
-            if stack is None:
-                parameters.update(NEW_STACK_PARAMETERS)
-        else:
-            parameters = {}
+        parameters = PARAMETERS.copy()
+        if stack is None:
+            parameters.update(NEW_STACK_PARAMETERS)
 
         self.log.debug("Generating overcloud passwords")
         self.set_overcloud_passwords(parameters, args)
@@ -199,107 +153,42 @@ class DeployOvercloud(command.Command):
         net = network_client.api.find_attr('networks', 'ctlplane')
         parameters['NeutronControlPlaneID'] = net['id']
 
-        if args.templates:
-            param_args = (
-                ('NeutronPublicInterface', 'neutron_public_interface'),
-                ('NeutronBridgeMappings', 'neutron_bridge_mappings'),
-                ('NeutronFlatNetworks', 'neutron_flat_networks'),
-                ('HypervisorNeutronPhysicalBridge', 'neutron_physical_bridge'),
-                ('NtpServer', 'ntp_server'),
-                ('ControllerCount', 'control_scale'),
-                ('ComputeCount', 'compute_scale'),
-                ('ObjectStorageCount', 'swift_storage_scale'),
-                ('BlockStorageCount', 'block_storage_scale'),
-                ('CephStorageCount', 'ceph_storage_scale'),
-                ('OvercloudControlFlavor', 'control_flavor'),
-                ('OvercloudComputeFlavor', 'compute_flavor'),
-                ('OvercloudBlockStorageFlavor', 'block_storage_flavor'),
-                ('OvercloudSwiftStorageFlavor', 'swift_storage_flavor'),
-                ('OvercloudCephStorageFlavor', 'ceph_storage_flavor'),
-                ('NeutronNetworkVLANRanges', 'neutron_network_vlan_ranges'),
-                ('NeutronMechanismDrivers', 'neutron_mechanism_drivers')
+        param_args = (
+            ('NeutronPublicInterface', 'neutron_public_interface'),
+            ('NeutronBridgeMappings', 'neutron_bridge_mappings'),
+            ('NeutronFlatNetworks', 'neutron_flat_networks'),
+            ('HypervisorNeutronPhysicalBridge', 'neutron_physical_bridge'),
+            ('NtpServer', 'ntp_server'),
+            ('ControllerCount', 'control_scale'),
+            ('ComputeCount', 'compute_scale'),
+            ('ObjectStorageCount', 'swift_storage_scale'),
+            ('BlockStorageCount', 'block_storage_scale'),
+            ('CephStorageCount', 'ceph_storage_scale'),
+            ('OvercloudControlFlavor', 'control_flavor'),
+            ('OvercloudComputeFlavor', 'compute_flavor'),
+            ('OvercloudBlockStorageFlavor', 'block_storage_flavor'),
+            ('OvercloudSwiftStorageFlavor', 'swift_storage_flavor'),
+            ('OvercloudCephStorageFlavor', 'ceph_storage_flavor'),
+            ('NeutronNetworkVLANRanges', 'neutron_network_vlan_ranges'),
+            ('NeutronMechanismDrivers', 'neutron_mechanism_drivers')
+        )
+
+        if stack is None:
+            new_stack_args = (
+                ('NeutronNetworkType', 'neutron_network_type'),
+                ('NeutronTunnelIdRanges', 'neutron_tunnel_id_ranges'),
+                ('NeutronTunnelTypes', 'neutron_tunnel_types'),
+                ('NeutronVniRanges', 'neutron_vni_ranges'),
+                ('NovaComputeLibvirtType', 'libvirt_type'),
             )
+            param_args = param_args + new_stack_args
 
-            if stack is None:
-                new_stack_args = (
-                    ('NeutronNetworkType', 'neutron_network_type'),
-                    ('NeutronTunnelIdRanges', 'neutron_tunnel_id_ranges'),
-                    ('NeutronTunnelTypes', 'neutron_tunnel_types'),
-                    ('NeutronVniRanges', 'neutron_vni_ranges'),
-                    ('NovaComputeLibvirtType', 'libvirt_type'),
-                )
-                param_args = param_args + new_stack_args
-
-                if args.neutron_disable_tunneling is not None:
-                    neutron_enable_tunneling = (
-                        not args.neutron_disable_tunneling)
-                    parameters.update({
-                        'NeutronEnableTunnelling': neutron_enable_tunneling,
-                    })
-
-        else:
-            param_args = (
-                ('Controller-1::NeutronPublicInterface',
-                    'neutron_public_interface'),
-                ('Compute-1::NeutronPublicInterface',
-                    'neutron_public_interface'),
-                ('Controller-1::NeutronBridgeMappings',
-                    'neutron_bridge_mappings'),
-                ('Compute-1::NeutronBridgeMappings',
-                    'neutron_bridge_mappings'),
-                ('Controller-1::NeutronFlatNetworks', 'neutron_flat_networks'),
-                ('Compute-1::NeutronFlatNetworks', 'neutron_flat_networks'),
-                ('Compute-1::NeutronPhysicalBridge',
-                    'neutron_physical_bridge'),
-                ('Controller-1::NtpServer', 'ntp_server'),
-                ('Compute-1::NtpServer', 'ntp_server'),
-                ('Controller-1::NeutronNetworkVLANRanges',
-                    'neutron_network_vlan_ranges'),
-                ('Compute-1::NeutronNetworkVLANRanges',
-                    'neutron_network_vlan_ranges'),
-                ('Controller-1::NeutronMechanismDrivers',
-                    'neutron_mechanism_drivers'),
-                ('Compute-1::NeutronMechanismDrivers',
-                    'neutron_mechanism_drivers'),
-                ('Controller-1::count', 'control_scale'),
-                ('Compute-1::count', 'compute_scale'),
-                ('Swift-Storage-1::count', 'swift_storage_scale'),
-                ('Cinder-Storage-1::count', 'block_storage_scale'),
-                ('Ceph-Storage-1::count', 'ceph_storage_scale'),
-                ('Cinder-Storage-1::Flavor', 'block_storage_flavor'),
-                ('Compute-1::Flavor', 'compute_flavor'),
-                ('Controller-1::Flavor', 'control_flavor'),
-                ('Swift-Storage-1::Flavor', 'swift_storage_flavor'),
-                ('Ceph-Storage-1::Flavor', 'ceph_storage_flavor'),
-            )
-
-            if stack is None:
-                new_stack_args = (
-                    ('Controller-1::NeutronNetworkType',
-                        'neutron_network_type'),
-                    ('Compute-1::NeutronNetworkType', 'neutron_network_type'),
-                    ('Controller-1::NeutronTunnelTypes',
-                        'neutron_tunnel_types'),
-                    ('Compute-1::NeutronTunnelTypes', 'neutron_tunnel_types'),
-                    ('Compute-1::NovaComputeLibvirtType', 'libvirt_type'),
-                    ('Controller-1::NeutronTunnelIdRanges',
-                        'neutron_tunnel_id_ranges'),
-                    ('Controller-1::NeutronVniRanges', 'neutron_vni_ranges'),
-                    ('Compute-1::NeutronTunnelIdRanges',
-                        'neutron_tunnel_id_ranges'),
-                    ('Compute-1::NeutronVniRanges', 'neutron_vni_ranges'),
-                )
-                param_args = param_args + new_stack_args
-
-                if args.neutron_disable_tunneling is not None:
-                    neutron_enable_tunneling = (
-                        not args.neutron_disable_tunneling)
-                    parameters.update({
-                        'Controller-1::NeutronEnableTunnelling':
-                            neutron_enable_tunneling,
-                        'Compute-1::NeutronEnableTunnelling':
-                            neutron_enable_tunneling,
-                    })
+            if args.neutron_disable_tunneling is not None:
+                neutron_enable_tunneling = (
+                    not args.neutron_disable_tunneling)
+                parameters.update({
+                    'NeutronEnableTunnelling': neutron_enable_tunneling,
+                })
 
         # Update parameters from commandline
         for param, arg in param_args:
@@ -312,57 +201,30 @@ class DeployOvercloud(command.Command):
                     parameters[param] = getattr(args, arg)
 
         # Scaling needs extra parameters
-        number_controllers = max((
-            int(parameters.get('ControllerCount', 0)),
-            int(parameters.get('Controller-1::count', 0))
-        ))
-
+        number_controllers = int(parameters.get('ControllerCount', 0))
         if number_controllers > 1:
             if not args.ntp_server:
                 raise Exception('Specify --ntp-server when using multiple'
                                 ' controllers (with HA).')
 
-            if args.templates:
-                parameters.update({
-                    'NeutronL3HA': True,
-                    'NeutronAllowL3AgentFailover': False,
-                })
-            else:
-                parameters.update({
-                    'Controller-1::NeutronL3HA': True,
-                    'Controller-1::NeutronAllowL3AgentFailover': False,
-                    'Compute-1::NeutronL3HA': True,
-                    'Compute-1::NeutronAllowL3AgentFailover': False,
-                })
+            parameters.update({
+                'NeutronL3HA': True,
+                'NeutronAllowL3AgentFailover': False,
+            })
         else:
-            if args.templates:
-                parameters.update({
-                    'NeutronL3HA': False,
-                    'NeutronAllowL3AgentFailover': False,
-                })
-            else:
-                parameters.update({
-                    'Controller-1::NeutronL3HA': False,
-                    'Controller-1::NeutronAllowL3AgentFailover': False,
-                    'Compute-1::NeutronL3HA': False,
-                    'Compute-1::NeutronAllowL3AgentFailover': False,
-                })
+            parameters.update({
+                'NeutronL3HA': False,
+                'NeutronAllowL3AgentFailover': False,
+            })
 
         dhcp_agents_per_network = (min(number_controllers, 3) if
                                    number_controllers else 1)
 
-        if args.templates:
-            parameters.update({
-                'NeutronDhcpAgentsPerNetwork': dhcp_agents_per_network,
-            })
-        else:
-            parameters.update({
-                'Controller-1::NeutronDhcpAgentsPerNetwork':
-                    dhcp_agents_per_network,
-            })
+        parameters.update({
+            'NeutronDhcpAgentsPerNetwork': dhcp_agents_per_network,
+        })
 
-        if max((int(parameters.get('CephStorageCount', 0)),
-                int(parameters.get('Ceph-Storage-1::count', 0)))) > 0:
+        if int(parameters.get('CephStorageCount', 0)) > 0:
 
             if stack is None:
                 parameters.update({
@@ -375,10 +237,7 @@ class DeployOvercloud(command.Command):
 
     def _create_registration_env(self, args):
 
-        if args.templates:
-            tht_root = args.templates
-        else:
-            tht_root = TRIPLEO_HEAT_TEMPLATES
+        tht_root = args.templates
 
         environment = os.path.join(tht_root,
                                    RHEL_REGISTRATION_EXTRACONFIG_NAME,
@@ -534,95 +393,6 @@ class DeployOvercloud(command.Command):
             environments.extend(parsed_args.environment_files)
 
         overcloud_yaml = os.path.join(tht_root, OVERCLOUD_YAML_NAME)
-
-        self._heat_deploy(stack, parsed_args.stack, overcloud_yaml, parameters,
-                          environments, parsed_args.timeout)
-
-    def _deploy_tuskar(self, stack, parsed_args):
-
-        clients = self.app.client_manager
-        management = clients.tripleoclient.management()
-        network_client = clients.network
-
-        # TODO(dmatthews): The Tuskar client has very similar code to this for
-        # downloading templates. It should be refactored upstream so we can use
-        # it.
-
-        if parsed_args.output_dir:
-            output_dir = parsed_args.output_dir
-        else:
-            output_dir = tempfile.mkdtemp()
-
-        if not os.path.isdir(output_dir):
-            os.mkdir(output_dir)
-
-        management_plan = tuskarutils.find_resource(
-            management.plans, parsed_args.plan)
-
-        # retrieve templates
-        templates = management.plans.templates(management_plan.uuid)
-
-        parameters = self._update_paramaters(
-            parsed_args, network_client, stack)
-
-        utils.check_nodes_count(
-            self.app.client_manager.tripleoclient.baremetal(),
-            stack,
-            parameters,
-            {
-                'Controller-1::count': 1,
-                'Compute-1::count': 1,
-                'Swift-Storage-1::count': 0,
-                'Cinder-Storage-1::count': 0,
-                'Ceph-Storage-1::count': 0,
-            }
-        )
-
-        if stack is None:
-            ca_key_pem, ca_cert_pem = keystone_pki.create_ca_pair()
-            signing_key_pem, signing_cert_pem = (
-                keystone_pki.create_signing_pair(ca_key_pem, ca_cert_pem))
-            parameters['Controller-1::KeystoneCACertificate'] = ca_cert_pem
-            parameters['Controller-1::KeystoneSigningCertificate'] = (
-                signing_cert_pem)
-            parameters['Controller-1::KeystoneSigningKey'] = signing_key_pem
-
-        # Save the parameters to Tuskar so they can be used when redeploying.
-        # Tuskar expects to get all values as strings. So we convert them all
-        # below.
-        management.plans.patch(
-            management_plan.uuid,
-            [{'name': x[0], 'value': six.text_type(x[1])}
-             for x in parameters.items()]
-        )
-
-        # write file for each key-value in templates
-        print("The following templates will be written:")
-        for template_name, template_content in templates.items():
-
-            # It's possible to organize the role templates and their dependent
-            # files into directories, in which case the template_name will
-            # carry the directory information. If that's the case, first
-            # create the directory structure (if it hasn't already been
-            # created by another file in the templates list).
-            template_dir = os.path.dirname(template_name)
-            output_template_dir = os.path.join(output_dir, template_dir)
-            if template_dir and not os.path.exists(output_template_dir):
-                os.makedirs(output_template_dir)
-
-            filename = os.path.join(output_dir, template_name)
-            with open(filename, 'w+') as template_file:
-                template_file.write(template_content)
-            print(filename)
-
-        overcloud_yaml = os.path.join(output_dir, 'plan.yaml')
-        environment_yaml = os.path.join(output_dir, 'environment.yaml')
-        environments = [environment_yaml, ]
-        if parsed_args.rhel_reg:
-            reg_env = self._create_registration_env(parsed_args)
-            environments.extend(reg_env)
-        if parsed_args.environment_files:
-            environments.extend(parsed_args.environment_files)
 
         self._heat_deploy(stack, parsed_args.stack, overcloud_yaml, parameters,
                           environments, parsed_args.timeout)
@@ -1014,14 +784,11 @@ class DeployOvercloud(command.Command):
             prog=prog_name,
             add_help=False
         )
-        main_group = parser.add_mutually_exclusive_group(required=True)
-        main_group.add_argument(
-            '--plan',
-            help=_("The Name or UUID of the Tuskar plan to deploy.")
-        )
-        main_group.add_argument(
+        parser.add_argument(
             '--templates', nargs='?', const=TRIPLEO_HEAT_TEMPLATES,
-            help=_("The directory containing the Heat templates to deploy"))
+            help=_("The directory containing the Heat templates to deploy"),
+            required=True
+        )
         parser.add_argument('--stack',
                             help=_("Stack name to create or update"),
                             default='overcloud')
@@ -1111,12 +878,6 @@ class DeployOvercloud(command.Command):
             default=os.environ.get('no_proxy', ''),
             help=_('A comma separated list of hosts that should not be '
                    'proxied.')
-        )
-        parser.add_argument(
-            '-O', '--output-dir', metavar='<OUTPUT DIR>',
-            help=_('Directory to write Tuskar template files into. It will be '
-                   'created if it does not exist. If not provided a temporary '
-                   'directory will be used.')
         )
         parser.add_argument(
             '-e', '--environment-file', metavar='<HEAT ENVIRONMENT FILE>',
@@ -1230,10 +991,7 @@ class DeployOvercloud(command.Command):
                             "must specify --reg-org, and "
                             "--reg-activation-key.")
 
-            if parsed_args.templates:
-                self._deploy_tripleo_heat_templates(stack, parsed_args)
-            else:
-                self._deploy_tuskar(stack, parsed_args)
+            self._deploy_tripleo_heat_templates(stack, parsed_args)
 
             # Get a new copy of the stack after stack update/create. If it was
             # a create then the previous stack object would be None.
