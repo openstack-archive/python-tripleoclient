@@ -550,10 +550,7 @@ class DeployOvercloud(command.Command):
 
         self._check_flavors_exist(parsed_args)
 
-        for node in bm_client.node.list():
-            node = bm_client.node.get(node.uuid)
-            self.log.debug("Checking config for Node {0}".format(node.uuid))
-            self._check_ironic_boot_configuration(node)
+        self._check_ironic_boot_configuration(bm_client)
 
         flavor_profile_map = self._collect_flavor_profiles([
             parsed_args.control_flavor,
@@ -746,7 +743,12 @@ class DeployOvercloud(command.Command):
                 self.predeploy_errors += 1
                 self.log.error(message.format(target, flavor))
 
-    def _check_ironic_boot_configuration(self, node):
+    def _check_ironic_boot_configuration(self, bm_client):
+        for node in bm_client.node.list(detail=True, maintenance=False):
+            self.log.debug("Checking config for Node {0}".format(node.uuid))
+            self._check_node_boot_configuration(node)
+
+    def _check_node_boot_configuration(self, node):
         kernel_id, ramdisk_id = self._image_ids()
         self.log.debug("Doing boot checks for {}".format(node.uuid))
         message = ("Node uuid={uuid} has an incorrectly configured "

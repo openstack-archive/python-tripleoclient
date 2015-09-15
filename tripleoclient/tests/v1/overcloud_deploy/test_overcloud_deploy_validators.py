@@ -28,10 +28,38 @@ class TestDeployValidators(fakes.TestDeployOvercloud):
         self.cmd = overcloud_deploy.DeployOvercloud(self.app, None)
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_check_node_boot_configuration')
+    def test_ironic_boot_checks(self, mock_node_boot_check):
+        class FakeNode(object):
+            uuid = None
+
+            def __init__(self, uuid):
+                self.uuid = uuid
+
+        bm_client = fakes.FakeClientWrapper().baremetal()
+        mock_node = mock.Mock()
+        bm_client.attach_mock(mock_node, 'node')
+
+        fake_nodes = [FakeNode(uuid) for uuid in (
+            '97dd6459-cf2d-4eea-865e-84fee3bf5e6d',
+            '1867d71b-d0a5-44c6-b83e-ada8b16de556'
+        )]
+        # return a list of FakeNodes, replaces bm_client.node.list
+        mock_maint_nodes = mock.Mock(return_value=fake_nodes)
+        mock_node.attach_mock(mock_maint_nodes, 'list')
+
+        # get a FakeNode by its UUID, replaces bm_client.node.get
+
+        self.cmd._check_ironic_boot_configuration(bm_client)
+
+        mock_maint_nodes.assert_called_once_with(detail=True,
+                                                 maintenance=False)
+
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_image_ids',
                 return_value=('fb7a98fb-acb9-43ec-9b93-525d1286f9d8',
                               '8558de2e-1b72-4654-8ba9-cceb89e9194e'))
-    def test_ironic_boot_checks(self, mock_image_ids):
+    def test_node_boot_checks(self, mock_image_ids):
         class FakeNode(object):
             uuid = 'fake-node-123'
             driver_info = None
@@ -45,18 +73,18 @@ class TestDeployValidators(fakes.TestDeployOvercloud):
         node.properties = {
             'capabilities': 'boot_option:local,profile:foobar'
         }
-        self.cmd._check_ironic_boot_configuration(node)
+        self.cmd._check_node_boot_configuration(node)
         self.assertEqual(self.cmd.predeploy_errors, 0)
         self.assertEqual(self.cmd.predeploy_warnings, 0)
 
         node.properties['capabilities'] = 'profile:foobar'
-        self.cmd._check_ironic_boot_configuration(node)
+        self.cmd._check_node_boot_configuration(node)
         self.assertEqual(self.cmd.predeploy_errors, 0)
         self.assertEqual(self.cmd.predeploy_warnings, 1)
 
         node.properties['capabilities'] = 'profile:foobar,boot_option:local'
         node.driver_info.pop('deploy_kernel')
-        self.cmd._check_ironic_boot_configuration(node)
+        self.cmd._check_node_boot_configuration(node)
         self.assertEqual(self.cmd.predeploy_errors, 1)
         self.assertEqual(self.cmd.predeploy_warnings, 1)
 
