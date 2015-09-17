@@ -104,7 +104,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_generate_overcloud_passwords.return_value = self._get_passwords()
 
         clients = self.app.client_manager
-        orchestration_client = clients.tripleoclient.orchestration()
+        orchestration_client = clients.tripleoclient.orchestration
         orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
 
         mock_check_hypervisor_stats.return_value = {
@@ -253,7 +253,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_generate_overcloud_passwords.return_value = self._get_passwords()
 
         clients = self.app.client_manager
-        orchestration_client = clients.tripleoclient.orchestration()
+        orchestration_client = clients.tripleoclient.orchestration
         mock_stack = fakes.create_tht_stack()
         orchestration_client.stacks.get.return_value = None
 
@@ -410,7 +410,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_generate_overcloud_passwords.return_value = self._get_passwords()
 
         clients = self.app.client_manager
-        orchestration_client = clients.tripleoclient.orchestration()
+        orchestration_client = clients.tripleoclient.orchestration
         orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
 
         mock_check_hypervisor_stats.return_value = {
@@ -562,7 +562,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True)
     def test_pre_heat_deploy_failed(self, mock_check_hypervisor_stats):
         clients = self.app.client_manager
-        orchestration_client = clients.tripleoclient.orchestration()
+        orchestration_client = clients.tripleoclient.orchestration
         orchestration_client.stacks.get.return_value = None
         mock_check_hypervisor_stats.return_value = None
         arglist = ['--templates']

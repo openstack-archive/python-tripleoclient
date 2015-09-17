@@ -285,7 +285,7 @@ class DeployOvercloud(command.Command):
         files = dict(list(template_files.items()) + list(env_files.items()))
 
         clients = self.app.client_manager
-        orchestration_client = clients.tripleoclient.orchestration()
+        orchestration_client = clients.tripleoclient.orchestration
 
         self.log.debug("Deploying stack: %s", stack_name)
         self.log.debug("Deploying template: %s", template)
@@ -970,7 +970,7 @@ class DeployOvercloud(command.Command):
                           "configuration, proceeding.")
 
         clients = self.app.client_manager
-        orchestration_client = clients.tripleoclient.orchestration()
+        orchestration_client = clients.tripleoclient.orchestration
 
         stack = self._get_stack(orchestration_client, parsed_args.stack)
         stack_create = stack is None

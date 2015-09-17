@@ -57,7 +57,7 @@ class UpdateOvercloud(command.Command):
         self.log.debug("take_action(%s)" % parsed_args)
         osc_plugin = self.app.client_manager.tripleoclient
 
-        orchestration = osc_plugin.orchestration()
+        orchestration = osc_plugin.orchestration
         update_manager = update.PackageUpdateManager(
             heatclient=orchestration,
             novaclient=self.app.client_manager.compute,

@@ -53,7 +53,7 @@ class DeleteNode(command.Command):
         self.log.debug("take_action(%s)" % parsed_args)
         osc_plugin = self.app.client_manager.tripleoclient
 
-        orchestration = osc_plugin.orchestration()
+        orchestration = osc_plugin.orchestration
         scale_manager = scale.ScaleManager(
             heatclient=orchestration,
             stack_id=parsed_args.stack,
