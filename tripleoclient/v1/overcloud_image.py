@@ -239,21 +239,24 @@ class BuildOvercloudImage(command.Command):
     def _ramdisk_image_create(self, args):
         subprocess.call('ramdisk-image-create {0}'.format(args), shell=True)
 
-    def _env_var_or_set(self, key_name, default_value):
-        os.environ[key_name] = os.environ.get(key_name, default_value)
+    def _set_env_var(self, dest_dict, key_name, default_value):
+        dest_dict[key_name] = os.environ.get(key_name, default_value)
 
     def _prepare_env_variables(self, parsed_args):
-        self._env_var_or_set('ELEMENTS_PATH', parsed_args.elements_path)
-        self._env_var_or_set('TMP_DIR', parsed_args.tmp_dir)
-        self._env_var_or_set('DIB_DEFAULT_INSTALLTYPE', 'package')
-        self._env_var_or_set(
-            'DELOREAN_TRUNK_REPO', parsed_args.delorean_trunk_repo)
-        self._env_var_or_set(
-            'DELOREAN_REPO_FILE', parsed_args.delorean_repo_file)
+        env_vars = {}
+
+        self._set_env_var(
+            env_vars, 'ELEMENTS_PATH', parsed_args.elements_path)
+        self._set_env_var(env_vars, 'TMP_DIR', parsed_args.tmp_dir)
+        self._set_env_var(env_vars, 'DIB_DEFAULT_INSTALLTYPE', 'package')
+        self._set_env_var(
+            env_vars, 'DELOREAN_TRUNK_REPO', parsed_args.delorean_trunk_repo)
+        self._set_env_var(
+            env_vars, 'DELOREAN_REPO_FILE', parsed_args.delorean_repo_file)
 
         # Needed for corosync to be able to use hostnames
         # https://bugs.launchpad.net/tripleo/+bug/1447497
-        os.environ['DIB_CLOUD_INIT_ETC_HOSTS'] = ''
+        env_vars['DIB_CLOUD_INIT_ETC_HOSTS'] = ''
 
         # Attempt to detect host distribution if not specified
         if not parsed_args.node_dist:
@@ -272,14 +275,14 @@ class BuildOvercloudImage(command.Command):
 
         dib_common_elements = []
         if re.match('rhel7', parsed_args.node_dist):
-            os.environ['REG_METHOD'] = parsed_args.reg_method
+            env_vars['REG_METHOD'] = parsed_args.reg_method
 
             if parsed_args.run_rhos_release:
-                self._env_var_or_set('RHOS_RELEASE', '6')
+                self._set_env_var(env_vars, 'RHOS_RELEASE', '6')
                 dib_common_elements.append('rhos-release')
-            os.environ['DELOREAN_REPO_URL'] = parsed_args.delorean_trunk_repo
+            env_vars['DELOREAN_REPO_URL'] = parsed_args.delorean_trunk_repo
         elif re.match('centos7', parsed_args.node_dist):
-            os.environ['DELOREAN_REPO_URL'] = parsed_args.delorean_trunk_repo
+            env_vars['DELOREAN_REPO_URL'] = parsed_args.delorean_trunk_repo
             dib_common_elements.extend([
                 'selinux-permissive',
                 'centos-cloud-repo',
@@ -296,23 +299,23 @@ class BuildOvercloudImage(command.Command):
             'network-gateway',
         ])
 
-        self._env_var_or_set('RHOS', '0')
-        self._env_var_or_set('RHOS_RELEASE', '0')
+        self._set_env_var(env_vars, 'RHOS', '0')
+        self._set_env_var(env_vars, 'RHOS_RELEASE', '0')
 
         if parsed_args.node_dist in ['rhel7', 'centos7']:
-            self._env_var_or_set('FS_TYPE', 'xfs')
+            self._set_env_var(env_vars, 'FS_TYPE', 'xfs')
 
-            if os.environ.get('RHOS') == '0':
-                os.environ['RDO_RELEASE'] = 'kilo'
+            if env_vars.get('RHOS') == '0':
+                env_vars['RDO_RELEASE'] = 'kilo'
                 dib_common_elements.extend([
                     'epel',
                     'rdo-release',
                 ])
-            elif not os.environ.get('RHOS_RELEASE') == '0':
+            elif not env_vars.get('RHOS_RELEASE') == '0':
                 dib_common_elements.append('rhos-release')
 
-        self._env_var_or_set('PACKAGES', '1')
-        if os.environ.get('PACKAGES') == '1':
+        self._set_env_var(env_vars, 'PACKAGES', '1')
+        if env_vars.get('PACKAGES') == '1':
             dib_common_elements.extend([
                 'undercloud-package-install',
                 'pip-and-virtualenv-override',
@@ -322,6 +325,7 @@ class BuildOvercloudImage(command.Command):
             dib_common_elements.append('delorean-repo')
 
         parsed_args.dib_common_elements = " ".join(dib_common_elements)
+        parsed_args.dib_env_vars = env_vars
 
     def _build_image_ramdisk(self, parsed_args, ramdisk_type):
         image_name = vars(parsed_args)["%s_name" % ramdisk_type]
@@ -342,6 +346,7 @@ class BuildOvercloudImage(command.Command):
                             parsed_args.dib_common_elements,
                         'ramdisk_type': ramdisk_type,
                     })
+            os.environ.update(parsed_args.dib_env_vars)
             self._ramdisk_image_create(args)
 
     def _build_image_ramdisks(self, parsed_args):
@@ -373,6 +378,7 @@ class BuildOvercloudImage(command.Command):
                             parsed_args.dib_common_elements,
                         'image_type': node_type,
                     })
+            os.environ.update(parsed_args.dib_env_vars)
             self._disk_image_create(args)
 
     def _build_image_overcloud_full(self, parsed_args):
@@ -403,7 +409,7 @@ class BuildOvercloudImage(command.Command):
         self.log.debug("take_action(%s)" % parsed_args)
 
         self._prepare_env_variables(parsed_args)
-        self.log.debug("Environment: %s" % os.environ)
+        self.log.debug("Environment: %s" % parsed_args.dib_env_vars)
 
         if parsed_args.all:
             self._build_image_ramdisks(parsed_args)
