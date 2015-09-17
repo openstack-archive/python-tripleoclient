@@ -15,11 +15,13 @@
 
 from __future__ import print_function
 
+import abc
 import logging
 import os
 import re
 import requests
 import shutil
+import six
 import stat
 import subprocess
 import sys
@@ -29,6 +31,76 @@ from openstackclient.common import exceptions
 from openstackclient.common import utils
 from prettytable import PrettyTable
 from tripleoclient import utils as plugin_utils
+
+
+@six.add_metaclass(abc.ABCMeta)
+class ImageBuilder(object):
+    """Base representation of an image building method"""
+
+    @abc.abstractmethod
+    def build_ramdisk(self, parsed_args, ramdisk_type):
+        """Build a ramdisk"""
+        pass
+
+    @abc.abstractmethod
+    def build_image(self, parsed_args, node_type):
+        """Build a disk image"""
+        pass
+
+    def preprocess_parsed_args(self, parsed_args):
+        """Eventually preprocess the parsed arguments"""
+        pass
+
+
+class DibImageBuilder(ImageBuilder):
+    """Build images using diskimage-builder"""
+
+    def _disk_image_create(self, args):
+        subprocess.call('disk-image-create {0}'.format(args), shell=True)
+
+    def _ramdisk_image_create(self, args):
+        subprocess.call('ramdisk-image-create {0}'.format(args), shell=True)
+
+    def build_ramdisk(self, parsed_args, ramdisk_type):
+        image_name = vars(parsed_args)["%s_name" % ramdisk_type]
+        args = ("-a %(arch)s -o %(name)s "
+                "--ramdisk-element dracut-ramdisk %(node_dist)s "
+                "%(image_element)s %(dib_common_elements)s "
+                "2>&1 | tee dib-%(ramdisk_type)s.log" %
+                {
+                    'arch': parsed_args.node_arch,
+                    'name': image_name,
+                    'node_dist': parsed_args.node_dist,
+                    'image_element':
+                        vars(parsed_args)["%s_image_element" %
+                                          ramdisk_type],
+                    'dib_common_elements':
+                        parsed_args.dib_common_elements,
+                    'ramdisk_type': ramdisk_type,
+                })
+        os.environ.update(parsed_args.dib_env_vars)
+        self._ramdisk_image_create(args)
+
+    def build_image(self, parsed_args, node_type):
+        image_name = "%s.qcow2" % vars(parsed_args)['overcloud_%s_name' %
+                                                    node_type]
+        extra_args = vars(parsed_args)["overcloud_%s_dib_extra_args" %
+                                       node_type]
+        args = ("-a %(arch)s -o %(name)s "
+                "%(node_dist)s %(overcloud_dib_extra_args)s "
+                "%(dib_common_elements)s 2>&1 | "
+                "tee dib-overcloud-%(image_type)s.log" %
+                {
+                    'arch': parsed_args.node_arch,
+                    'name': image_name,
+                    'node_dist': parsed_args.node_dist,
+                    'overcloud_dib_extra_args': extra_args,
+                    'dib_common_elements':
+                        parsed_args.dib_common_elements,
+                    'image_type': node_type,
+                })
+        os.environ.update(parsed_args.dib_env_vars)
+        self._disk_image_create(args)
 
 
 class BuildOvercloudImage(command.Command):
@@ -83,6 +155,10 @@ class BuildOvercloudImage(command.Command):
         'discovery-ramdisk',
         'fedora-user',
         'overcloud-full',
+    ]
+
+    _BUILDERS = [
+        'dib',
     ]
 
     def get_parser(self, prog_name):
@@ -250,13 +326,16 @@ class BuildOvercloudImage(command.Command):
                 " ".join(self.DISCOVERY_IMAGE_ELEMENT)),
             help="DIB elements for discovery image",
         )
+        image_group.add_argument(
+            "--builder",
+            dest="builder",
+            metavar='<builder>',
+            choices=self._BUILDERS,
+            default='dib',
+            help="Image builder. One of "
+                 "%s" % ", ".join(self._BUILDERS),
+        )
         return parser
-
-    def _disk_image_create(self, args):
-        subprocess.call('disk-image-create {0}'.format(args), shell=True)
-
-    def _ramdisk_image_create(self, args):
-        subprocess.call('ramdisk-image-create {0}'.format(args), shell=True)
 
     def _set_env_var(self, dest_dict, key_name, default_value):
         dest_dict[key_name] = os.environ.get(key_name, default_value)
@@ -350,23 +429,7 @@ class BuildOvercloudImage(command.Command):
         image_name = vars(parsed_args)["%s_name" % ramdisk_type]
         if (not os.path.isfile("%s.initramfs" % image_name) or
            not os.path.isfile("%s.kernel" % image_name)):
-            args = ("-a %(arch)s -o %(name)s "
-                    "--ramdisk-element dracut-ramdisk %(node_dist)s "
-                    "%(image_element)s %(dib_common_elements)s "
-                    "2>&1 | tee dib-%(ramdisk_type)s.log" %
-                    {
-                        'arch': parsed_args.node_arch,
-                        'name': image_name,
-                        'node_dist': parsed_args.node_dist,
-                        'image_element':
-                            vars(parsed_args)["%s_image_element" %
-                                              ramdisk_type],
-                        'dib_common_elements':
-                            parsed_args.dib_common_elements,
-                        'ramdisk_type': ramdisk_type,
-                    })
-            os.environ.update(parsed_args.dib_env_vars)
-            self._ramdisk_image_create(args)
+            parsed_args._builder.build_ramdisk(parsed_args, ramdisk_type)
 
     def _build_image_ramdisks(self, parsed_args):
         self._build_image_ramdisk_deploy(parsed_args)
@@ -404,23 +467,7 @@ class BuildOvercloudImage(command.Command):
         image_name = "%s.qcow2" % vars(parsed_args)['overcloud_%s_name' %
                                                     node_type]
         if not os.path.isfile(image_name):
-            args = ("-a %(arch)s -o %(name)s "
-                    "%(node_dist)s %(overcloud_dib_extra_args)s "
-                    "%(dib_common_elements)s 2>&1 | "
-                    "tee dib-overcloud-%(image_type)s.log" %
-                    {
-                        'arch': parsed_args.node_arch,
-                        'name': image_name,
-                        'node_dist': parsed_args.node_dist,
-                        'overcloud_dib_extra_args':
-                            vars(parsed_args)["overcloud_%s_dib_extra_args" %
-                                              node_type],
-                        'dib_common_elements':
-                            parsed_args.dib_common_elements,
-                        'image_type': node_type,
-                    })
-            os.environ.update(parsed_args.dib_env_vars)
-            self._disk_image_create(args)
+            parsed_args._builder.build_image(parsed_args, node_type)
 
     def _build_image_overcloud_full(self, parsed_args):
         self._build_image_overcloud(parsed_args, 'full')
@@ -446,10 +493,20 @@ class BuildOvercloudImage(command.Command):
                 image_name,
                 stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH)
 
+    def _create_builder(self, builder):
+        if builder == 'dib':
+            return DibImageBuilder()
+        # Assert here, as the command line handling should have ensured
+        # that the builder is one among a limited choice
+        assert False, "unhandled builder in _create_builder"
+
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
 
+        parsed_args._builder = self._create_builder(parsed_args.builder)
+
         self._prepare_env_variables(parsed_args)
+        parsed_args._builder.preprocess_parsed_args(parsed_args)
         self.log.debug("Environment: %s" % parsed_args.dib_env_vars)
 
         if parsed_args.all:

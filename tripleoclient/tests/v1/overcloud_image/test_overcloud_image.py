@@ -27,10 +27,17 @@ class TestOvercloudImageBuild(TestPluginV1):
     def setUp(self):
         super(TestOvercloudImageBuild, self).setUp()
 
+        def _force_builder(dummy):
+            builder = overcloud_image.DibImageBuilder()
+            builder._disk_image_create = mock.Mock()
+            self.mock_disk_image_create = builder._disk_image_create
+            builder._ramdisk_image_create = mock.Mock()
+            self.mock_ramdisk_image_create = builder._ramdisk_image_create
+            return builder
+
         # Get the command object to test
         self.cmd = overcloud_image.BuildOvercloudImage(self.app, None)
-        self.cmd._disk_image_create = mock.Mock()
-        self.cmd._ramdisk_image_create = mock.Mock()
+        self.cmd._create_builder = _force_builder
 
     @mock.patch.object(overcloud_image.BuildOvercloudImage,
                        '_build_image_fedora_user', autospec=True)
@@ -45,8 +52,8 @@ class TestOvercloudImageBuild(TestPluginV1):
                         return_value=redhat_release, create=True):
             self.cmd.take_action(parsed_args)
 
-        self.assertEqual(2, self.cmd._ramdisk_image_create.call_count)
-        self.assertEqual(1, self.cmd._disk_image_create.call_count)
+        self.assertEqual(2, self.mock_ramdisk_image_create.call_count)
+        self.assertEqual(1, self.mock_disk_image_create.call_count)
         self.assertEqual(1, mock_fedora_user.call_count)
 
     @mock.patch('subprocess.call', autospec=True)
@@ -109,7 +116,7 @@ class TestOvercloudImageBuild(TestPluginV1):
         with mock.patch('six.moves.builtins.open', mock_open_context):
             self.cmd.take_action(parsed_args)
 
-        self.cmd._disk_image_create.assert_called_once_with(
+        self.mock_disk_image_create.assert_called_once_with(
             "-a amd64 -o "
             "overcloud-full.qcow2 rhel7 overcloud-full overcloud-controller "
             "overcloud-compute overcloud-ceph-storage ntp sysctl hosts "
@@ -145,7 +152,7 @@ class TestOvercloudImageBuild(TestPluginV1):
         with mock.patch('six.moves.builtins.open', mock_open_context):
             self.cmd.take_action(parsed_args)
 
-        self.cmd._ramdisk_image_create.assert_called_once_with(
+        self.mock_ramdisk_image_create.assert_called_once_with(
             "-a amd64 -o deploy-ramdisk-ironic --ramdisk-element "
             "dracut-ramdisk rhel7 deploy-ironic "
             "element-manifest network-gateway epel rdo-release "
