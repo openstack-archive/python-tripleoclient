@@ -90,6 +90,7 @@ class ClientWrapper(object):
 
         return self._baremetal
 
+    @property
     def orchestration(self):
         """Returns an orchestration service client"""
 

@@ -60,6 +60,7 @@ class FakeClientWrapper(object):
         self._orchestration = mock.Mock()
         self._baremetal = mock.Mock()
 
+    @property
     def orchestration(self):
         return self._orchestration
 
