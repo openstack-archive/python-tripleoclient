@@ -125,7 +125,6 @@ class BuildOvercloudImage(command.Command):
                     self.TRIPLEOPUPPETELEMENTS,
                     self.INSTACKUNDERCLOUDELEMENTS,
                     '/usr/share/tripleo-image-elements',
-                    '/usr/share/diskimage-builder/elements',
                     '/usr/share/openstack-heat-templates/'
                     'software-config/elements',
                 ])),
