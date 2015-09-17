@@ -27,7 +27,6 @@ import uuid
 
 from cliff import command
 from heatclient.common import template_utils
-from heatclient.exc import HTTPNotFound
 from openstackclient.common import exceptions as oscexc
 from openstackclient.common import utils as osc_utils
 from openstackclient.i18n import _
@@ -131,15 +130,6 @@ class DeployOvercloud(command.Command):
         parameters['SwiftPassword'] = passwords['OVERCLOUD_SWIFT_PASSWORD']
         parameters['SnmpdReadonlyUserPassword'] = (
             undercloud_ceilometer_snmpd_password)
-
-    def _get_stack(self, orchestration_client, stack_name):
-        """Get the ID for the current deployed overcloud stack if it exists."""
-
-        try:
-            stack = orchestration_client.stacks.get(stack_name)
-            return stack
-        except HTTPNotFound:
-            return None
 
     def _update_paramaters(self, args, network_client, stack):
         parameters = PARAMETERS.copy()
@@ -320,17 +310,6 @@ class DeployOvercloud(command.Command):
             else:
                 raise Exception("Heat Stack update failed.")
 
-    def _get_overcloud_endpoint(self, stack):
-        for output in stack.to_dict().get('outputs', {}):
-            if output['output_key'] == 'KeystoneURL':
-                return output['output_value']
-
-    def _get_service_ips(self, stack):
-        service_ips = {}
-        for output in stack.to_dict().get('outputs', {}):
-            service_ips[output['output_key']] = output['output_value']
-        return service_ips
-
     def _pre_heat_deploy(self):
         """Setup before the Heat stack create or update has been done."""
         clients = self.app.client_manager
@@ -398,7 +377,7 @@ class DeployOvercloud(command.Command):
                           environments, parsed_args.timeout)
 
     def _create_overcloudrc(self, stack, parsed_args):
-        overcloud_endpoint = self._get_overcloud_endpoint(stack)
+        overcloud_endpoint = utils.get_overcloud_endpoint(stack)
         overcloud_ip = six.moves.urllib.parse.urlparse(
             overcloud_endpoint).hostname
 
@@ -415,8 +394,8 @@ class DeployOvercloud(command.Command):
             }
         }
         rc_params.update({
-            'OS_PASSWORD': self.passwords['OVERCLOUD_ADMIN_PASSWORD'],
-            'OS_AUTH_URL': self._get_overcloud_endpoint(stack),
+            'OS_PASSWORD': utils.get_password('OVERCLOUD_ADMIN_PASSWORD'),
+            'OS_AUTH_URL': utils.get_overcloud_endpoint(stack),
         })
         with open('%src' % stack.stack_name, 'w') as f:
             for key, value in rc_params.items():
@@ -462,9 +441,7 @@ class DeployOvercloud(command.Command):
     def _deploy_postconfig(self, stack, parsed_args):
         self.log.debug("_deploy_postconfig(%s)" % parsed_args)
 
-        passwords = self.passwords
-
-        overcloud_endpoint = self._get_overcloud_endpoint(stack)
+        overcloud_endpoint = utils.get_overcloud_endpoint(stack)
         overcloud_ip = six.moves.urllib.parse.urlparse(
             overcloud_endpoint).hostname
 
@@ -472,7 +449,7 @@ class DeployOvercloud(command.Command):
         os.environ['no_proxy'] = ','.join(
             [x for x in no_proxy if x is not None])
 
-        service_ips = self._get_service_ips(stack)
+        service_ips = utils.get_service_ips(stack)
 
         utils.remove_known_hosts(overcloud_ip)
 
@@ -482,9 +459,9 @@ class DeployOvercloud(command.Command):
 
         keystone.initialize(
             keystone_ip,
-            passwords['OVERCLOUD_ADMIN_TOKEN'],
+            utils.get_password('OVERCLOUD_ADMIN_TOKEN'),
             'admin@example.com',
-            passwords['OVERCLOUD_ADMIN_PASSWORD'],
+            utils.get_password('OVERCLOUD_ADMIN_PASSWORD'),
             public=overcloud_ip,
             user=parsed_args.overcloud_ssh_user)
 
@@ -499,7 +476,7 @@ class DeployOvercloud(command.Command):
             service_data.pop('password_field', None)
             password_field = data.get('password_field')
             if password_field:
-                service_data['password'] = passwords[password_field]
+                service_data['password'] = utils.get_password(password_field)
 
             service_name = re.sub('v[0-9]+', '',
                                   service.capitalize() + 'InternalVip')
@@ -510,7 +487,7 @@ class DeployOvercloud(command.Command):
 
         keystone_client = clients.get_keystone_client(
             'admin',
-            passwords['OVERCLOUD_ADMIN_PASSWORD'],
+            utils.get_password('OVERCLOUD_ADMIN_PASSWORD'),
             'admin',
             overcloud_endpoint)
         keystone.setup_endpoints(
@@ -521,7 +498,7 @@ class DeployOvercloud(command.Command):
 
         compute_client = clients.get_nova_bm_client(
             'admin',
-            passwords['OVERCLOUD_ADMIN_PASSWORD'],
+            utils.get_password('OVERCLOUD_ADMIN_PASSWORD'),
             'admin',
             overcloud_endpoint)
         compute_client.flavors.create('m1.demo', 512, 1, 10, 'auto')
@@ -969,7 +946,7 @@ class DeployOvercloud(command.Command):
         clients = self.app.client_manager
         orchestration_client = clients.tripleoclient.orchestration()
 
-        stack = self._get_stack(orchestration_client, parsed_args.stack)
+        stack = utils.get_stack(orchestration_client, parsed_args.stack)
         stack_create = stack is None
         if stack_create:
             self.log.info("No stack found, will be doing a stack create")
@@ -1002,7 +979,7 @@ class DeployOvercloud(command.Command):
 
             # Get a new copy of the stack after stack update/create. If it was
             # a create then the previous stack object would be None.
-            stack = self._get_stack(orchestration_client, parsed_args.stack)
+            stack = utils.get_stack(orchestration_client, parsed_args.stack)
 
             self._create_overcloudrc(stack, parsed_args)
             self._create_tempest_deployer_input()
@@ -1010,7 +987,7 @@ class DeployOvercloud(command.Command):
             if stack_create:
                 self._deploy_postconfig(stack, parsed_args)
 
-            overcloud_endpoint = self._get_overcloud_endpoint(stack)
+            overcloud_endpoint = utils.get_overcloud_endpoint(stack)
             print("Overcloud Endpoint: {0}".format(overcloud_endpoint))
             print("Overcloud Deployed")
             return True
