@@ -180,10 +180,9 @@ class DeployOvercloud(command.Command):
 
         try:
             stack = orchestration_client.stacks.get(stack_name)
-            self.log.info("Stack found, will be doing a stack update")
             return stack
         except HTTPNotFound:
-            self.log.info("No stack found, will be doing a stack create")
+            return None
 
     def _update_paramaters(self, args, network_client, stack):
         if args.templates:
@@ -1179,6 +1178,10 @@ class DeployOvercloud(command.Command):
 
         stack = self._get_stack(orchestration_client, parsed_args.stack)
         stack_create = stack is None
+        if stack_create:
+            self.log.info("No stack found, will be doing a stack create")
+        else:
+            self.log.info("Stack found, will be doing a stack update")
 
         try:
             self._pre_heat_deploy()
