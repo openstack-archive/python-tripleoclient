@@ -124,7 +124,7 @@ class TestOvercloudImageBuild(TestPluginV1):
             "heat-config-puppet heat-config-script puppet-modules hiera "
             "os-net-config stable-interface-names grub2-deprecated "
             "-p python-psutil,python-debtcollector,plotnetcfg,sos,"
-            "python-cisco-networking,python-UcsSdk "
+            "python-networking-cisco,python-UcsSdk "
             "element-manifest network-gateway epel rdo-release "
             "undercloud-package-install "
             "pip-and-virtualenv-override 2>&1 | tee dib-overcloud-full.log")
