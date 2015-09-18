@@ -20,7 +20,7 @@ from openstackclient.common import utils
 from openstackclient.i18n import _
 from tripleo_common import update
 
-TRIPLEO_HEAT_TEMPLATES = "/usr/share/openstack-tripleo-heat-templates/"
+from tripleoclient import constants
 
 
 class UpdateOvercloud(command.Command):
@@ -36,7 +36,7 @@ class UpdateOvercloud(command.Command):
                                    '(default=Env: OVERCLOUD_STACK_NAME)'),
                             default=utils.env('OVERCLOUD_STACK_NAME'))
         parser.add_argument(
-            '--templates', nargs='?', const=TRIPLEO_HEAT_TEMPLATES,
+            '--templates', nargs='?', const=constants.TRIPLEO_HEAT_TEMPLATES,
             help=_("The directory containing the Heat templates to deploy"),
             required=True
         )

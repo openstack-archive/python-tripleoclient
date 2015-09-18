@@ -19,7 +19,7 @@ from cliff import command
 from openstackclient.common import utils
 from tripleo_common import scale
 
-TRIPLEO_HEAT_TEMPLATES = "/usr/share/openstack-tripleo-heat-templates/"
+from tripleoclient import constants
 
 
 class DeleteNode(command.Command):
@@ -36,7 +36,7 @@ class DeleteNode(command.Command):
                                  '(default=Env: OVERCLOUD_STACK_NAME)',
                             default=utils.env('OVERCLOUD_STACK_NAME'))
         parser.add_argument(
-            '--templates', nargs='?', const=TRIPLEO_HEAT_TEMPLATES,
+            '--templates', nargs='?', const=constants.TRIPLEO_HEAT_TEMPLATES,
             help="The directory containing the Heat templates to deploy"
         )
         parser.add_argument(
