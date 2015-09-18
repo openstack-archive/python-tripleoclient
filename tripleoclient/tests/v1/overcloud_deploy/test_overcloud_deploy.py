@@ -56,11 +56,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 '_create_parameters_env')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_create_tempest_deployer_input', autospec=True)
+    @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
+                autospec=True)
     @mock.patch('tripleoclient.utils.generate_overcloud_passwords')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_create_overcloudrc')
+    @mock.patch('tripleoclient.utils.create_overcloudrc')
     @mock.patch('os_cloud_config.keystone.setup_endpoints', autospec=True)
     @mock.patch('time.sleep', return_value=None)
     @mock.patch('os_cloud_config.keystone.initialize', autospec=True)
@@ -196,7 +195,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             ('/usr/share/openstack-tripleo-heat-templates/overcloud-without-'
              'mergepy.yaml'))
 
-        mock_create_tempest_deployer_input.assert_called_with(self.cmd)
+        mock_create_tempest_deployer_input.assert_called_with()
         mock_process_multiple_env.assert_called_with(
             [self.parameter_defaults_env_file])
 
@@ -207,11 +206,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 '_create_parameters_env')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_create_tempest_deployer_input', autospec=True)
+    @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
+                autospec=True)
     @mock.patch('tripleoclient.utils.generate_overcloud_passwords')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_create_overcloudrc')
+    @mock.patch('tripleoclient.utils.create_overcloudrc')
     @mock.patch('os_cloud_config.keystone.setup_endpoints', autospec=True)
     @mock.patch('time.sleep', return_value=None)
     @mock.patch('os_cloud_config.keystone.initialize', autospec=True)
@@ -360,7 +358,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             ('/usr/share/openstack-tripleo-heat-templates/overcloud-without-'
              'mergepy.yaml'))
 
-        mock_create_tempest_deployer_input.assert_called_with(self.cmd)
+        mock_create_tempest_deployer_input.assert_called_with()
         mock_process_multiple_env.assert_called_with(
             ['/usr/share/openstack-tripleo-heat-templates/overcloud-resource-'
              'registry-puppet.yaml', '/fake/path',
@@ -371,11 +369,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_create_tempest_deployer_input', autospec=True)
+    @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
+                autospec=True)
     @mock.patch('tripleoclient.utils.generate_overcloud_passwords')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_create_overcloudrc')
+    @mock.patch('tripleoclient.utils.create_overcloudrc')
     @mock.patch('os_cloud_config.keystone.setup_endpoints', autospec=True)
     @mock.patch('time.sleep', return_value=None)
     @mock.patch('os_cloud_config.keystone.initialize', autospec=True)
@@ -458,7 +455,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             '/home/stack/tripleo-heat-templates/overcloud-without-mergepy.yaml'
         )
 
-        mock_create_tempest_deployer_input.assert_called_with(self.cmd)
+        mock_create_tempest_deployer_input.assert_called_with()
         mock_process_multiple_env.assert_called_with(
             [self.parameter_defaults_env_file])
 
@@ -484,10 +481,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertFalse(result)
         self.assertFalse(mock_deploy_tht.called)
 
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_create_tempest_deployer_input', autospec=True)
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_create_overcloudrc', autospec=True)
+    @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
+                autospec=True)
+    @mock.patch('tripleoclient.utils.create_overcloudrc', autospec=True)
     @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_tripleo_heat_templates', autospec=True)
@@ -518,7 +514,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertTrue(mock_oc_endpoint.called)
         self.assertTrue(mock_create_ocrc.called)
 
-        mock_create_tempest_deployer_input.assert_called_with(self.cmd)
+        mock_create_tempest_deployer_input.assert_called_with()
 
     def test_validate_args_correct(self):
         arglist = ['--templates',

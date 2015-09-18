@@ -27,6 +27,8 @@ import sys
 import time
 
 from heatclient.exc import HTTPNotFound
+from six.moves import configparser
+from six.moves import urllib
 
 from tripleoclient import exceptions
 
@@ -70,6 +72,77 @@ def generate_overcloud_passwords(output_file="tripleo-overcloud-passwords"):
             f.write("{0}={1}\n".format(name, password))
 
     return passwords
+
+
+def create_overcloudrc(stack, no_proxy, config_directory='.'):
+    """Given proxy settings and stack, create the overcloudrc
+
+    stack: Heat stack containing the deployed overcloud
+    no_proxy: a comma-separated string of hosts that shouldn't be proxied
+    """
+    overcloud_endpoint = get_overcloud_endpoint(stack)
+    overcloud_ip = urllib.parse.urlparse(overcloud_endpoint).hostname
+
+    rc_params = {
+        'NOVA_VERSION': '1.1',
+        'COMPUTE_API_VERSION': '1.1',
+        'OS_USERNAME': 'admin',
+        'OS_TENANT_NAME': 'admin',
+        'OS_NO_CACHE': 'True',
+        'OS_CLOUDNAME': stack.stack_name,
+        'no_proxy': "%(no_proxy)s,%(overcloud_ip)s" % {
+            'no_proxy': no_proxy,
+            'overcloud_ip': overcloud_ip,
+        }
+    }
+    rc_params.update({
+        'OS_PASSWORD': get_password('OVERCLOUD_ADMIN_PASSWORD'),
+        'OS_AUTH_URL': overcloud_endpoint,
+    })
+
+    config_path = os.path.join(config_directory, '%src' % stack.stack_name)
+
+    with open(config_path, 'w') as f:
+        for key, value in rc_params.items():
+            f.write("export %(key)s=%(value)s\n" %
+                    {'key': key, 'value': value})
+
+
+def create_tempest_deployer_input(config_name='tempest-deployer-input.conf'):
+    config = configparser.ConfigParser()
+
+    config.add_section('compute-feature-enabled')
+    # Does the test environment support obtaining instance serial console
+    # output? (default: true)
+    # set in [nova.serial_console]->enabled
+    config.set('compute-feature-enabled', 'console_output', 'false')
+
+    config.add_section('object-storage')
+    # Role to add to users created for swift tests to enable creating
+    # containers (default: 'Member')
+    # keystone role-list returns this role
+    config.set('object-storage', 'operator_role', 'swiftoperator')
+
+    config.add_section('orchestration')
+    # Role required for users to be able to manage stacks
+    # (default: 'heat_stack_owner')
+    # keystone role-list returns this role
+    config.set('orchestration', 'stack_owner_role', 'heat_stack_user')
+
+    config.add_section('volume')
+    # Name of the backend1 (must be declared in cinder.conf)
+    # (default: 'BACKEND_1')
+    # set in [cinder]->enabled_backends
+    config.set('volume', 'backend1_name', 'tripleo_iscsi')
+
+    config.add_section('volume-feature-enabled')
+    # Update bootable status of a volume Not implemented on icehouse
+    # (default: false)
+    # python-cinderclient supports set-bootable
+    config.set('volume-feature-enabled', 'bootable', 'true')
+
+    with open(config_name, 'w+') as config_file:
+        config.write(config_file)
 
 
 def check_hypervisor_stats(compute_client, nodes=1, memory=0, vcpu=0):
