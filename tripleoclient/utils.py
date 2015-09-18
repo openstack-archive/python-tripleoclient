@@ -161,7 +161,7 @@ def wait_for_stack_ready(orchestration_client, stack_name):
 
 def wait_for_provision_state(baremetal_client, node_uuid, provision_state,
                              loops=10, sleep=1):
-    """Wait for a given Provisioning state in Ironic Discoverd
+    """Wait for a given Provisioning state in Ironic
 
     Updating the provisioning state is an async operation, we
     need to wait for it to be completed.
@@ -199,22 +199,16 @@ def wait_for_provision_state(baremetal_client, node_uuid, provision_state,
     return False
 
 
-def wait_for_node_discovery(discoverd_client, auth_token, discoverd_url,
-                            node_uuids, loops=220, sleep=10):
-    """Check the status of Node discovery in Ironic discoverd
+def wait_for_node_introspection(inspector_client, auth_token, inspector_url,
+                                node_uuids, loops=220, sleep=10):
+    """Check the status of Node introspection in Ironic inspector
 
     Gets the status and waits for them to complete.
 
-    :param discoverd_client: Ironic Discoverd client
-    :type  discoverd_client: ironic_discoverd.client
+    :param inspector_client: Ironic inspector client
+    :type  inspector_client: ironic_inspector_client
 
-    :param auth_token: Authorisation token used by discoverd client
-    :type auth_token: string
-
-    :param discoverd_url: URL used by the discoverd client
-    :type discoverd_url: string
-
-    :param node_uuids: List of Node UUID's to wait for discovery
+    :param node_uuids: List of Node UUID's to wait for introspection
     :type node_uuids: [string, ]
 
     :param loops: How many times to loop
@@ -224,21 +218,21 @@ def wait_for_node_discovery(discoverd_client, auth_token, discoverd_url,
     :type sleep: int
     """
 
-    log = logging.getLogger(__name__ + ".wait_for_node_discovery")
+    log = logging.getLogger(__name__ + ".wait_for_node_introspection")
     node_uuids = node_uuids[:]
 
     for _ in range(0, loops):
 
         for node_uuid in node_uuids:
 
-            status = discoverd_client.get_status(
+            status = inspector_client.get_status(
                 node_uuid,
-                base_url=discoverd_url,
+                base_url=inspector_url,
                 auth_token=auth_token)
 
             if status['finished']:
-                log.debug("Discover finished for node {0} (Error: {1})".format(
-                    node_uuid, status['error']))
+                log.debug("Introspection finished for node {0} "
+                          "(Error: {1})".format(node_uuid, status['error']))
                 node_uuids.remove(node_uuid)
                 yield node_uuid, status
 
@@ -247,7 +241,7 @@ def wait_for_node_discovery(discoverd_client, auth_token, discoverd_url,
         time.sleep(sleep)
 
     if len(node_uuids):
-        log.error("Discovery didn't finish for nodes {0}".format(
+        log.error("Introspection didn't finish for nodes {0}".format(
             ','.join(node_uuids)))
 
 
