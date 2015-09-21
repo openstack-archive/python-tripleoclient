@@ -52,8 +52,8 @@ class TestOvercloudImageBuild(TestPluginV1):
                         return_value=redhat_release, create=True):
             self.cmd.take_action(parsed_args)
 
-        self.assertEqual(2, self.mock_ramdisk_image_create.call_count)
-        self.assertEqual(1, self.mock_disk_image_create.call_count)
+        self.assertEqual(1, self.mock_ramdisk_image_create.call_count)
+        self.assertEqual(2, self.mock_disk_image_create.call_count)
         self.assertEqual(1, mock_fedora_user.call_count)
 
     @mock.patch('subprocess.call', autospec=True)
@@ -313,10 +313,10 @@ class TestUploadOvercloudImage(TestPluginV1):
         self.assertEqual(mock_subprocess_call.call_count, 2)
         self.assertEqual(
             mock_subprocess_call.call_args_list, [
-                mock.call('sudo cp -f "./discovery-ramdisk.kernel" '
-                          '"/httpboot/discovery.kernel"', shell=True),
-                mock.call('sudo cp -f "./discovery-ramdisk.initramfs" '
-                          '"/httpboot/discovery.ramdisk"', shell=True)
+                mock.call('sudo cp -f "./ironic-python-agent.kernel" '
+                          '"/httpboot/agent.kernel"', shell=True),
+                mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
+                          '"/httpboot/agent.ramdisk"', shell=True)
             ])
 
     @mock.patch('subprocess.check_call', autospec=True)
