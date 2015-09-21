@@ -24,7 +24,7 @@ import time
 
 from cliff import command
 from cliff import lister
-from ironic_discoverd import client as discoverd_client
+from ironic_inspector_client import client as inspector_client
 from openstackclient.common import utils as osc_utils
 from os_cloud_config import nodes
 
@@ -186,9 +186,9 @@ class IntrospectionParser(object):
     def get_parser(self, prog_name):
         parser = super(IntrospectionParser, self).get_parser(prog_name)
         parser.add_argument(
-            '--discoverd-url',
-            default=osc_utils.env('DISCOVERD_URL', default=None),
-            help='discoverd URL, defaults to localhost (env: DISCOVERD_URL).')
+            '--inspector-url',
+            default=osc_utils.env('INSPECTOR_URL', default=None),
+            help='inspector URL, defaults to localhost (env: INSPECTOR_URL).')
         return parser
 
 
@@ -208,7 +208,6 @@ class StartBaremetalIntrospectionBulk(IntrospectionParser, command.Command):
         client = self.app.client_manager.tripleoclient.baremetal()
 
         auth_token = self.app.client_manager.auth_ref.auth_token
-
         node_uuids = []
 
         print("Setting available nodes to manageable...")
@@ -226,9 +225,9 @@ class StartBaremetalIntrospectionBulk(IntrospectionParser, command.Command):
             node_uuids.append(node.uuid)
 
             print("Starting introspection of node: {0}".format(node.uuid))
-            discoverd_client.introspect(
+            inspector_client.introspect(
                 node.uuid,
-                base_url=parsed_args.discoverd_url,
+                base_url=parsed_args.inspector_url,
                 auth_token=auth_token)
 
             # NOTE(dtantsur): PXE firmware on virtual machines misbehaves when
@@ -237,16 +236,16 @@ class StartBaremetalIntrospectionBulk(IntrospectionParser, command.Command):
             # around it by using sleep, anyway introspection takes much longer.
             time.sleep(5)
 
-        print("Waiting for discovery to finish...")
+        print("Waiting for introspection to finish...")
         has_errors = False
-        for uuid, status in utils.wait_for_node_discovery(
-                discoverd_client, auth_token, parsed_args.discoverd_url,
+        for uuid, status in utils.wait_for_node_introspection(
+                inspector_client, auth_token, parsed_args.inspector_url,
                 node_uuids):
             if status['error'] is None:
-                print("Discovery for UUID {0} finished successfully."
+                print("Introspection for UUID {0} finished successfully."
                       .format(uuid))
             else:
-                print("Discovery for UUID {0} finished with error: {1}"
+                print("Introspection for UUID {0} finished with error: {1}"
                       .format(uuid, status['error']))
                 has_errors = True
 
@@ -263,9 +262,9 @@ class StartBaremetalIntrospectionBulk(IntrospectionParser, command.Command):
             print("Node {0} has been set to available.".format(uuid))
 
         if has_errors:
-            print("Discovery completed with errors.")
+            print("Introspection completed with errors.")
         else:
-            print("Discovery completed.")
+            print("Introspection completed.")
 
 
 class StatusBaremetalIntrospectionBulk(IntrospectionParser, lister.Lister):
@@ -277,16 +276,17 @@ class StatusBaremetalIntrospectionBulk(IntrospectionParser, lister.Lister):
 
         self.log.debug("take_action(%s)" % parsed_args)
         client = self.app.client_manager.tripleoclient.baremetal()
+        auth_token = self.app.client_manager.auth_ref.auth_token
 
         statuses = []
 
         for node in client.node.list():
             self.log.debug("Getting introspection status of Ironic node {0}"
                            .format(node.uuid))
-            auth_token = self.app.client_manager.auth_ref.auth_token
-            statuses.append((node.uuid, discoverd_client.get_status(
+
+            statuses.append((node.uuid, inspector_client.get_status(
                 node.uuid,
-                base_url=parsed_args.discoverd_url,
+                base_url=parsed_args.inspector_url,
                 auth_token=auth_token)))
 
         return (
@@ -395,21 +395,21 @@ class ConfigureReadyState(IntrospectionParser, command.Command):
 
         for node in nodes:
             print("Starting introspection on node {0}".format(node.uuid))
-            discoverd_client.introspect(
+            inspector_client.introspect(
                 node.uuid,
-                base_url=self.discoverd_url,
+                base_url=self.inspector_url,
                 auth_token=auth_token)
             node_uuids.append(node.uuid)
 
-        print("Waiting for discovery to finish")
-        for uuid, status in utils.wait_for_node_discovery(
-                discoverd_client, auth_token, self.discoverd_url,
+        print("Waiting for introspection to finish")
+        for uuid, status in utils.wait_for_node_introspection(
+                inspector_client, auth_token, self.inspector_url,
                 node_uuids):
             if status['error'] is None:
-                print("Discovery for node {0} finished successfully."
+                print("Introspection for node {0} finished successfully."
                       .format(uuid))
             else:
-                print("Discovery for node {0} finished with error: {1}"
+                print("Introspection for node {0} finished with error: {1}"
                       .format(uuid, status['error']))
 
     def get_parser(self, prog_name):
@@ -424,7 +424,7 @@ class ConfigureReadyState(IntrospectionParser, command.Command):
 
         self.bm_client = (
             self.app.client_manager.tripleoclient.baremetal())
-        self.discoverd_url = parsed_args.discoverd_url
+        self.inspector_url = parsed_args.inspector_url
         drac_nodes = [node for node in self.bm_client.node.list(detail=True)
                       if 'drac' in node.driver]
 

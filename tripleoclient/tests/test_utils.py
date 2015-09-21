@@ -159,39 +159,39 @@ class TestWaitForStackUtil(TestCase):
         self.assertEqual(complete, False)
 
 
-class TestWaitForDiscovery(TestCase):
+class TestWaitForIntrospection(TestCase):
 
-    def test_wait_for_discovery_success(self):
+    def test_wait_for_introspection_success(self):
 
-        mock_discoverd = mock.Mock()
+        mock_inspector = mock.Mock()
         self.node_uuids = [
             'NODE1',
             'NODE2',
         ]
 
-        mock_discoverd.get_status.return_value = {
+        mock_inspector.get_status.return_value = {
             'finished': True,
             'error': None
         }
 
-        result = utils.wait_for_node_discovery(mock_discoverd, "TOKEN",
-                                               "URL", self.node_uuids,
-                                               loops=4, sleep=0.01)
+        result = utils.wait_for_node_introspection(mock_inspector, "TOKEN",
+                                                   "URL", self.node_uuids,
+                                                   loops=4, sleep=0.01)
 
         self.assertEqual(list(result), [
             ('NODE1', {'error': None, 'finished': True}),
             ('NODE2', {'error': None, 'finished': True})
         ])
 
-    def test_wait_for_discovery_partial_success(self):
+    def test_wait_for_introspection_partial_success(self):
 
-        mock_discoverd = mock.Mock()
+        mock_inspector = mock.Mock()
         self.node_uuids = [
             'NODE1',
             'NODE2',
         ]
 
-        mock_discoverd.get_status.side_effect = [{
+        mock_inspector.get_status.side_effect = [{
             'finished': True,
             'error': None
         }, {
@@ -199,31 +199,31 @@ class TestWaitForDiscovery(TestCase):
             'error': "Failed"
         }]
 
-        result = utils.wait_for_node_discovery(mock_discoverd, "TOKEN",
-                                               "URL", self.node_uuids,
-                                               loops=4, sleep=0.01)
+        result = utils.wait_for_node_introspection(mock_inspector, "TOKEN",
+                                                   "URL", self.node_uuids,
+                                                   loops=4, sleep=0.01)
 
         self.assertEqual(list(result), [
             ('NODE1', {'error': None, 'finished': True}),
             ('NODE2', {'error': "Failed", 'finished': True})
         ])
 
-    def test_wait_for_discovery_timeout(self):
+    def test_wait_for_introspection_timeout(self):
 
-        mock_discoverd = mock.Mock()
+        mock_inspector = mock.Mock()
         self.node_uuids = [
             'NODE1',
             'NODE2',
         ]
 
-        mock_discoverd.get_status.return_value = {
+        mock_inspector.get_status.return_value = {
             'finished': False,
             'error': None
         }
 
-        result = utils.wait_for_node_discovery(mock_discoverd, "TOKEN",
-                                               "URL", self.node_uuids,
-                                               loops=4, sleep=0.01)
+        result = utils.wait_for_node_introspection(mock_inspector, "TOKEN",
+                                                   "URL", self.node_uuids,
+                                                   loops=4, sleep=0.01)
 
         self.assertEqual(list(result), [])
 

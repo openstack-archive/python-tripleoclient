@@ -19,8 +19,6 @@ import json
 import mock
 import os
 
-from ironic_discoverd import client as discoverd_client
-
 from tripleoclient import exceptions
 from tripleoclient.tests.v1.baremetal import fakes
 from tripleoclient.v1 import baremetal
@@ -452,9 +450,9 @@ class TestStartBaremetalIntrospectionBulk(fakes.TestBaremetal):
         # Get the command object to test
         self.cmd = baremetal.StartBaremetalIntrospectionBulk(self.app, None)
 
-    @mock.patch('ironic_discoverd.client.get_status', autospec=True)
-    @mock.patch('ironic_discoverd.client.introspect', autospec=True)
-    def test_introspect_bulk_one(self, introspect_mock, get_status_mock,):
+    @mock.patch.object(baremetal.inspector_client, 'get_status', autospec=True)
+    @mock.patch.object(baremetal.inspector_client, 'introspect', autospec=True)
+    def test_introspect_bulk_one(self, inspection_mock, get_status_mock):
 
         client = self.app.client_manager.tripleoclient.baremetal()
         client.node.list.return_value = [
@@ -464,19 +462,19 @@ class TestStartBaremetalIntrospectionBulk(fakes.TestBaremetal):
         parsed_args = self.check_parser(self.cmd, [], [])
         self.cmd.take_action(parsed_args)
 
-        introspect_mock.assert_called_once_with(
+        inspection_mock.assert_called_once_with(
             'ABCDEFGH', base_url=None, auth_token='TOKEN')
 
-    @mock.patch('tripleoclient.utils.wait_for_node_discovery',
+    @mock.patch('tripleoclient.utils.wait_for_node_introspection',
                 autospec=True)
     @mock.patch('tripleoclient.utils.wait_for_provision_state',
                 autospec=True)
-    @mock.patch('ironic_discoverd.client.get_status', autospec=True)
-    @mock.patch('ironic_discoverd.client.introspect', autospec=True)
+    @mock.patch.object(baremetal.inspector_client, 'get_status', autospec=True)
+    @mock.patch.object(baremetal.inspector_client, 'introspect', autospec=True)
     def test_introspect_bulk(self, introspect_mock, get_status_mock,
-                             wait_for_state_mock, wait_for_discover_mock):
+                             wait_for_state_mock, wait_for_inspect_mock):
 
-        wait_for_discover_mock.return_value = []
+        wait_for_inspect_mock.return_value = []
         wait_for_state_mock.return_value = True
 
         get_status_mock.return_value = {'finished': True, 'error': None}
@@ -507,8 +505,8 @@ class TestStartBaremetalIntrospectionBulk(fakes.TestBaremetal):
             mock.call('IJKLMNOP', base_url=None, auth_token='TOKEN'),
         ])
 
-        wait_for_discover_mock.assert_called_once_with(
-            discoverd_client, 'TOKEN', None,
+        wait_for_inspect_mock.assert_called_once_with(
+            baremetal.inspector_client, 'TOKEN', None,
             ['IJKLMNOP'])
 
         # And lastly it  will be set to available:
@@ -525,30 +523,30 @@ class TestStatusBaremetalIntrospectionBulk(fakes.TestBaremetal):
         # Get the command object to test
         self.cmd = baremetal.StatusBaremetalIntrospectionBulk(self.app, None)
 
-    @mock.patch('ironic_discoverd.client.get_status', autospec=True)
-    def test_status_bulk_one(self, discoverd_mock):
+    @mock.patch.object(baremetal.inspector_client, 'get_status', autospec=True)
+    def test_status_bulk_one(self, get_status_mock):
 
         client = self.app.client_manager.tripleoclient.baremetal()
         client.node.list.return_value = [
             mock.Mock(uuid="ABCDEFGH")
         ]
 
-        discoverd_mock.return_value = {
+        get_status_mock.return_value = {
             'finished': False, 'error': None
         }
 
         parsed_args = self.check_parser(self.cmd, [], [])
         result = self.cmd.take_action(parsed_args)
 
-        discoverd_mock.assert_called_once_with(
+        get_status_mock.assert_called_once_with(
             'ABCDEFGH', base_url=None, auth_token='TOKEN')
 
         self.assertEqual(result, (
             ('Node UUID', 'Finished', 'Error'),
             [('ABCDEFGH', False, None)]))
 
-    @mock.patch('ironic_discoverd.client.get_status', autospec=True)
-    def test_status_bulk(self, discoverd_mock):
+    @mock.patch.object(baremetal.inspector_client, 'get_status', autospec=True)
+    def test_status_bulk(self, get_status_mock):
 
         client = self.app.client_manager.tripleoclient.baremetal()
         client.node.list.return_value = [
@@ -557,14 +555,14 @@ class TestStatusBaremetalIntrospectionBulk(fakes.TestBaremetal):
             mock.Mock(uuid="QRSTUVWX"),
         ]
 
-        discoverd_mock.return_value = {
+        get_status_mock.return_value = {
             'finished': False, 'error': None
         }
 
         parsed_args = self.check_parser(self.cmd, [], [])
         result = self.cmd.take_action(parsed_args)
 
-        discoverd_mock.assert_has_calls([
+        get_status_mock.assert_has_calls([
             mock.call('ABCDEFGH', base_url=None, auth_token='TOKEN'),
             mock.call('IJKLMNOP', base_url=None, auth_token='TOKEN'),
             mock.call('QRSTUVWX', base_url=None, auth_token='TOKEN'),
@@ -795,22 +793,22 @@ class TestConfigureReadyState(fakes.TestBaremetal):
 
         bm_client.node.set_power_state.assert_called_once_with('foo', 'reboot')
 
-    @mock.patch('ironic_discoverd.client.introspect', autospec=True)
-    @mock.patch('tripleoclient.utils.wait_for_node_discovery',
+    @mock.patch.object(baremetal.inspector_client, 'introspect', autospec=True)
+    @mock.patch('tripleoclient.utils.wait_for_node_introspection',
                 autospec=True)
-    def test__run_introspection(self, mock_wait_for_node_discovery,
+    def test__run_introspection(self, mock_wait_for_node_introspection,
                                 mock_introspect):
         nodes = [mock.Mock(uuid='foo')]
         bm_client = self.app.client_manager.tripleoclient.baremetal()
         self.cmd.bm_client = bm_client
-        self.cmd.discoverd_url = None
+        self.cmd.inspector_url = None
 
         self.cmd._run_introspection(nodes)
 
         mock_introspect.assert_called_once_with('foo', base_url=None,
                                                 auth_token='TOKEN')
-        mock_wait_for_node_discovery.assert_called_once_with(mock.ANY, 'TOKEN',
-                                                             None, ['foo'])
+        mock_wait_for_node_introspection.assert_called_once_with(
+            mock.ANY, 'TOKEN', None, ['foo'])
 
 
 class TestConfigureBaremetalBoot(fakes.TestBaremetal):
