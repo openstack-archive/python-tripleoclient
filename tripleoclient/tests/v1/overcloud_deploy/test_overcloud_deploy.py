@@ -199,6 +199,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
              'mergepy.yaml'))
 
         mock_create_tempest_deployer_input.assert_called_with(self.cmd)
+        mock_process_multiple_env.assert_called_with(
+            [self.parameter_defaults_env_file])
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_create_parameters_env')
@@ -358,6 +360,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
              'mergepy.yaml'))
 
         mock_create_tempest_deployer_input.assert_called_with(self.cmd)
+        mock_process_multiple_env.assert_called_with(
+            ['/usr/share/openstack-tripleo-heat-templates/overcloud-resource-'
+             'registry-puppet.yaml', '/fake/path',
+             self.parameter_defaults_env_file])
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig')
@@ -427,7 +433,11 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         baremetal = clients.tripleoclient.baremetal()
         baremetal.node.list.return_value = range(10)
 
-        result = self.cmd.take_action(parsed_args)
+        with mock.patch('tempfile.mkstemp') as mkstemp:
+            mkstemp.return_value = (os.open(self.parameter_defaults_env_file,
+                                            os.O_RDWR),
+                                    self.parameter_defaults_env_file)
+            result = self.cmd.take_action(parsed_args)
         self.assertTrue(result)
 
         args, kwargs = orchestration_client.stacks.update.call_args
@@ -444,6 +454,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         )
 
         mock_create_tempest_deployer_input.assert_called_with(self.cmd)
+        mock_process_multiple_env.assert_called_with(
+            [self.parameter_defaults_env_file])
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig')
