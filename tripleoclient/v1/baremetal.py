@@ -454,28 +454,39 @@ class ConfigureBaremetalBoot(command.Command):
     loops = 12
     sleep_time = 10
 
+    def get_parser(self, prog_name):
+        parser = super(ConfigureBaremetalBoot, self).get_parser(prog_name)
+        parser.add_argument('--deploy-kernel',
+                            default='bm-deploy-kernel',
+                            help='Image with deploy kernel.')
+        parser.add_argument('--deploy-ramdisk',
+                            default='bm-deploy-ramdisk',
+                            help='Image with deploy ramdisk.')
+        return parser
+
     def take_action(self, parsed_args):
 
         self.log.debug("take_action(%s)" % parsed_args)
         bm_client = self.app.client_manager.tripleoclient.baremetal()
 
         image_client = self.app.client_manager.image
+
         try:
             kernel_id = osc_utils.find_resource(
-                image_client.images, 'bm-deploy-kernel').id
+                image_client.images, parsed_args.deploy_kernel).id
         except AttributeError:
-            print("ERROR: Please make sure there is only one image named "
-                  "'bm-deploy-kernel' in glance.",
-                  file=sys.stderr)
+            self.log.error("Please make sure that an image named \"%s\" exists"
+                           " in Glance and is the only image with this name."
+                           % parsed_args.deploy_ramdisk)
             return
 
         try:
             ramdisk_id = osc_utils.find_resource(
-                image_client.images, 'bm-deploy-ramdisk').id
+                image_client.images, parsed_args.deploy_ramdisk).id
         except AttributeError:
-            print("ERROR: Please make sure there is only one image named "
-                  "'bm-deploy-ramdisk' in glance.",
-                  file=sys.stderr)
+            self.log.error("Please make sure that an image named \"%s\" exists"
+                           " in Glance and is the only image with this name."
+                           % parsed_args.deploy_ramdisk)
             return
 
         self.log.debug("Using kernel ID: {0} and ramdisk ID: {1}".format(
