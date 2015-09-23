@@ -82,6 +82,7 @@ class DeployOvercloud(command.Command):
 
     def _update_paramaters(self, args, network_client, stack):
         parameters = constants.PARAMETERS.copy()
+
         if stack is None:
             parameters.update(constants.NEW_STACK_PARAMETERS)
 
@@ -721,31 +722,37 @@ class DeployOvercloud(command.Command):
                             help=_('Comma separated list of physical_network '
                                    'names with which flat networks can be '
                                    'created. Use * to allow flat networks '
-                                   'with arbitrary physical_network names.'))
+                                   'with arbitrary physical_network names. '
+                                   '(DEPRECATED)'))
         parser.add_argument('--neutron-physical-bridge',
                             help=_('Deprecated.'))
         parser.add_argument('--neutron-bridge-mappings',
                             help=_('Comma separated list of bridge mappings. '
-                                   '(default: datacentre:br-ex)'))
+                                   '(default: datacentre:br-ex) '
+                                   '(DEPRECATED)'))
         parser.add_argument('--neutron-public-interface',
                             help=_('Deprecated.'))
         parser.add_argument('--neutron-network-type',
-                            help=_('The network type for tenant networks.'))
+                            help=_('The network type for tenant networks. '
+                                   '(DEPRECATED)'))
         parser.add_argument('--neutron-tunnel-types',
                             help=_('Network types supported by the agent '
-                                   '(gre and/or vxlan).'))
+                                   '(gre and/or vxlan). '
+                                   '(DEPRECATED)'))
         parser.add_argument('--neutron-tunnel-id-ranges',
                             default="1:1000",
                             help=_("Ranges of GRE tunnel IDs to make "
-                                   "available for tenant network allocation"),)
+                                   "available for tenant network allocation "
+                                   "(DEPRECATED)"),)
         parser.add_argument('--neutron-vni-ranges',
                             default="1:1000",
                             help=_("Ranges of VXLAN VNI IDs to make "
-                                   "available for tenant network allocation"),)
+                                   "available for tenant network allocation "
+                                   "(DEPRECATED)"),)
         parser.add_argument('--neutron-disable-tunneling',
                             dest='neutron_disable_tunneling',
                             action="store_const", const=True,
-                            help=_('Disables tunneling.')),
+                            help=_('Disables tunneling. (DEPRECATED)')),
         parser.add_argument('--neutron-network-vlan-ranges',
                             help=_('Comma separated list of '
                                    '<physical_network>:<vlan_min>:<vlan_max> '
@@ -754,17 +761,18 @@ class DeployOvercloud(command.Command):
                                    'provider and tenant networks, as well as '
                                    'ranges of VLAN tags on each available for '
                                    'allocation to tenant networks. '
-                                   '(ex: datacentre:1:1000)'))
+                                   '(ex: datacentre:1:1000) (DEPRECATED)'))
         parser.add_argument('--neutron-mechanism-drivers',
                             help=_('An ordered list of extension driver '
                                    'entrypoints to be loaded from the '
-                                   'neutron.ml2.extension_drivers namespace.'))
+                                   'neutron.ml2.extension_drivers namespace. '
+                                   '(DEPRECATED)'))
         parser.add_argument('--libvirt-type',
                             default='kvm',
                             choices=['kvm', 'qemu'],
                             help=_('Libvirt domain type. (default: kvm)'))
         parser.add_argument('--ntp-server',
-                            help=_('The NTP for overcloud nodes.'))
+                            help=_('The NTP for overcloud nodes. '))
         parser.add_argument(
             '--no-proxy',
             default=os.environ.get('no_proxy', ''),

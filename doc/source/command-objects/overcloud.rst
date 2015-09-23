@@ -12,7 +12,8 @@ Deploy an overcloud stack
 .. program:: overcloud deploy stack
 .. code:: bash
 
-    openstack overcloud deploy stack
+    openstack overcloud deploy
+        --stack [STACK_NAME]
         --templates [TEMPLATES]
         [-t <TIMEOUT>]
         [--control-scale CONTROL_SCALE]
@@ -29,7 +30,6 @@ Deploy an overcloud stack
         [--neutron-physical-bridge NEUTRON_PHYSICAL_BRIDGE]
         [--neutron-bridge-mappings NEUTRON_BRIDGE_MAPPINGS]
         [--neutron-public-interface NEUTRON_PUBLIC_INTERFACE]
-        [--hypervisor-neutron-public-interface HYPERVISOR_NEUTRON_PUBLIC_INTERFACE]
         [--neutron-network-type NEUTRON_NETWORK_TYPE]
         [--neutron-tunnel-types NEUTRON_TUNNEL_TYPES]
         [--neutron-disable-tunneling]
@@ -37,14 +37,17 @@ Deploy an overcloud stack
         [--neutron-mechanism-drivers NEUTRON_MECHANISM_DRIVERS]
         [--libvirt-type LIBVIRT_TYPE]
         [--ntp-server NTP_SERVER] [--cinder-lvm]
-        [--tripleo-root TRIPLEO_ROOT]
-        [--nodes-json NODES_JSON]
         [--no-proxy NO_PROXY] [-O <OUTPUT DIR>]
         [-e <HEAT ENVIRONMENT FILE>] [--rhel-reg]
         [--reg-method {satellite,portal}]
         [--reg-org REG_ORG] [--reg-force]
         [--reg-sat-url REG_SAT_URL]
         [--reg-activation-key REG_ACTIVATION_KEY]
+
+.. option:: --stack <stack_name>
+
+    Optionally rename stack from default of 'overcloud'. Currently, only one
+    stack is supported.
 
 .. option:: --templates <directory>
 
@@ -96,6 +99,8 @@ Deploy an overcloud stack
 
 .. option:: --neutron-flat-networks <networks>
 
+    Deprecated.
+
     Comma separated list of physical_network names with which flat networks
     can be created. Use * to allow flat networks with arbitrary
     physical_network names. (default: 'datacentre')
@@ -106,29 +111,35 @@ Deploy an overcloud stack
 
 .. option:: --neutron-bridge-mappings <mappings>
 
+    Deprecated.
+
     Comma separated list of bridge mappings. (default: datacentre:br-ex)
 
 .. option:: --neutron-public-interface <interface>
 
     Deprecated.
 
-.. option:: --hypervisor-neutron-public-interface <interface>
+.. option:: --neutron-network-type <type>
 
     Deprecated.
-
-.. option:: --neutron-network-type <type>
 
     The network type for the tenant networks.
 
 .. option:: --neutron-tunnel-types <type>
 
+    Deprecated.
+
     Network types supported by the agent (gre and/or vxlan).
 
 .. option:: --neutron-disable-tunneling
 
+    Deprecated.
+
     Disables tunneling.
 
 .. option:: --neutron-network-vlan-ranges <ranges>
+
+    Deprecated.
 
     Comma separated list of <physical_network>:<vlan_min>:<vlan_max> or
     <physical_network> specifying physical_network names usable for VLAN
@@ -136,6 +147,8 @@ Deploy an overcloud stack
     available for allocation to tenant networks. (ex: datacentre:1:1000)
 
 .. option:: --neutron-mechanism-drivers <drivers>
+
+    Deprecated.
 
     An ordered list of extension driver entrypoints to be loaded from the
     neutron.ml2.extension_drivers namespace.
@@ -147,18 +160,6 @@ Deploy an overcloud stack
 .. option:: --ntp-server <ip-address>
 
     The NTP for overcloud nodes.
-
-.. option:: --cinder-lvm
-
-    Enables the cinder lvm/iscsi backend.
-
-.. option:: --tripleo-root <directory>
-
-    The root directory for TripleO templates.
-
-.. option:: --nodes-json <file>
-
-    A file containing node definitions. (default: instackenv.json)
 
 .. option:: --no-proxy <hosts>
 
