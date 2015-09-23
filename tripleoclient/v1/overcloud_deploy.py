@@ -817,7 +817,12 @@ class DeployOvercloud(command.Command):
                 flavor_profile_map,
                 node_profile_map)
 
-        if len(node_profile_map.get(None, [])) > 0:
+        if (node_profile_map.get(None) and
+            any([parsed_args.block_storage_flavor,
+                 parsed_args.ceph_storage_flavor,
+                 parsed_args.compute_flavor,
+                 parsed_args.control_flavor,
+                 parsed_args.swift_storage_flavor])):
             self.predeploy_warnings += 1
             self.log.warning(
                 "There are %d ironic nodes with no profile that will "
