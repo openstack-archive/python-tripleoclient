@@ -15,4 +15,4 @@ python-tuskarclient>=0.1.17
 six>=1.9.0
 
 # tripleo-common lib is not yet on PyPi
--e git://github.com/rdo-management/tripleo-common.git#egg=tripleo_common
+-e git://github.com/openstack/tripleo-common.git#egg=tripleo_common

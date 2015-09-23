@@ -4,9 +4,9 @@ Installation
 
 At the command line::
 
-    $ pip install rdomanager-oscplugin
+    $ pip install python-tripleoclient
 
 Or, if you have virtualenvwrapper installed::
 
-    $ mkvirtualenv rdomanager-oscplugin
-    $ pip install rdomanager-oscplugin
+    $ mkvirtualenv python-tripleoclient
+    $ pip install python-tripleoclient

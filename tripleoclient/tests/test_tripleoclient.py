@@ -22,5 +22,5 @@ Tests for `tripleoclient` module.
 from tripleoclient.tests import base
 
 
-class TestRdomanagerOscplugin(base.TestCase):
+class TestTripleoclient(base.TestCase):
     pass

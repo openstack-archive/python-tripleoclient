@@ -24,7 +24,7 @@ from tuskarclient import client as tuskar_client
 
 LOG = logging.getLogger(__name__)
 
-DEFAULT_RDOMANAGER_OSCPLUGIN_API_VERSION = '1'
+DEFAULT_TRIPLEOCLIENT_API_VERSION = '1'
 
 # Required by the OSC plugin interface
 API_NAME = 'tripleoclient'
@@ -53,11 +53,11 @@ def build_option_parser(parser):
         '--os-tripleoclient-api-version',
         metavar='<tripleoclient-api-version>',
         default=utils.env(
-            'OS_RDOMANAGER_OSCPLUGIN_API_VERSION',
-            default=DEFAULT_RDOMANAGER_OSCPLUGIN_API_VERSION),
-        help='RDO Manager OSC Plugin API version, default=' +
-             DEFAULT_RDOMANAGER_OSCPLUGIN_API_VERSION +
-             ' (Env: OS_RDOMANAGER_OSCPLUGIN_API_VERSION)')
+            'OS_TRIPLEOCLIENT_API_VERSION',
+            default=DEFAULT_TRIPLEOCLIENT_API_VERSION),
+        help='TripleO Client API version, default=' +
+             DEFAULT_TRIPLEOCLIENT_API_VERSION +
+             ' (Env: OS_TRIPLEOCLIENT_API_VERSION)')
     return parser
 
 

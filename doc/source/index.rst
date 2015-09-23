@@ -1,8 +1,8 @@
-====================
-rdomanager-oscplugin
-====================
+=============
+tripleoclient
+=============
 
-rdomanager-oscplugin is an OpenStackClient plugin.
+tripleoclient is an OpenStackClient plugin.
 
 Contents:
 
