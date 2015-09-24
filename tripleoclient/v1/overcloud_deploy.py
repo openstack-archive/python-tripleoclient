@@ -76,7 +76,6 @@ PARAMETERS = {
     'BlockStorageImage': 'overcloud-full',
     'SwiftStorageImage': 'overcloud-full',
     'CephStorageImage': 'overcloud-full',
-    'Debug': 'True',
     'OvercloudControlFlavor': 'baremetal',
     'OvercloudComputeFlavor': 'baremetal',
     'OvercloudBlockStorageFlavor': 'baremetal',
