@@ -272,7 +272,7 @@ def create_environment_file(path="~/overcloud-env.json",
     env_path = os.path.expanduser(path)
     with open(env_path, 'w+') as f:
         f.write(json.dumps({
-            "parameters": {
+            "parameter_defaults": {
                 "ControllerCount": control_scale,
                 "ComputeCount": compute_scale,
                 "CephStorageCount": ceph_storage_scale,
