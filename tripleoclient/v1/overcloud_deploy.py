@@ -506,18 +506,22 @@ class DeployOvercloud(command.Command):
     def _validate_args(self, parsed_args):
         network_type = parsed_args.neutron_network_type
         tunnel_types = parsed_args.neutron_tunnel_types
+        tunnel_disabled = parsed_args.neutron_disable_tunneling
         if network_type and tunnel_types:
             # Validate that neutron_network_type is in neutron_tunnel_types
             if network_type not in tunnel_types:
                 raise oscexc.CommandError("Neutron network type must be in "
                                           "Neutron tunnel types "
                                           "(%s) " % tunnel_types)
-        elif network_type and not tunnel_types:
-            raise oscexc.CommandError("Neutron tunnel types must be specified "
-                                      "when Neutron network type is specified")
-        elif tunnel_types and not network_type:
-            raise oscexc.CommandError("Neutron network type must be specified "
-                                      "when Neutron tunnel types is specified")
+        elif not tunnel_disabled:
+            if network_type and not tunnel_types:
+                raise oscexc.CommandError("Neutron tunnel types must be "
+                                          "specified when Neutron network "
+                                          "type is specified")
+            elif tunnel_types and not network_type:
+                raise oscexc.CommandError("Neutron network type must be "
+                                          "specified when Neutron tunnel "
+                                          "types is specified")
 
     def _predeploy_verify_capabilities(self, parsed_args):
         self.predeploy_errors = 0
