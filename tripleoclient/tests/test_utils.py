@@ -120,19 +120,20 @@ class TestWaitForStackUtil(TestCase):
         type(self.mock_stacks).stack_status = self.stack_status
         self.mock_orchestration.stacks.get.return_value = self.mock_stacks
 
-    def test_wait_for_stack_ready(self):
+    @mock.patch('time.sleep', return_value=None)
+    def test_wait_for_stack_ready(self, sleep_mock):
         self.mock_orchestration.reset_mock()
         self.mock_stacks.reset_mock()
 
-        return_values = [
-            'CREATE_COMPLETE'
-        ]
+        return_values = ['CREATE_IN_PROGRESS', 'CREATE_COMPLETE']
 
         self.stack_status.side_effect = return_values
 
         complete = utils.wait_for_stack_ready(self.mock_orchestration, 'stack')
 
-        self.assertEqual(complete, True)
+        self.assertTrue(complete)
+
+        sleep_mock.assert_called_once_with(mock.ANY)
 
     def test_wait_for_stack_ready_no_stack(self):
         self.mock_orchestration.reset_mock()
@@ -143,21 +144,19 @@ class TestWaitForStackUtil(TestCase):
 
         self.mock_orchestration.stacks.get.return_value = self.mock_stacks
 
-        self.assertEqual(complete, False)
+        self.assertFalse(complete)
 
     def test_wait_for_stack_ready_failed(self):
         self.mock_orchestration.reset_mock()
         self.mock_stacks.reset_mock()
 
-        return_values = [
-            'CREATE_FAILED'
-        ]
+        return_values = ['CREATE_FAILED']
 
         self.stack_status.side_effect = return_values
 
         complete = utils.wait_for_stack_ready(self.mock_orchestration, 'stack')
 
-        self.assertEqual(complete, False)
+        self.assertFalse(complete)
 
 
 class TestWaitForIntrospection(TestCase):
@@ -406,3 +405,11 @@ class TestCheckNodesCount(TestCase):
         self.assertRaises(exceptions.DeploymentError, utils.check_nodes_count,
                           self.baremetal, self.stack, user_params,
                           self.defaults)
+
+    def test_check_default_param_not_in_stack(self):
+        missing_param = 'CephStorageCount'
+        self.stack.parameters = self.defaults.copy()
+        del self.stack.parameters[missing_param]
+
+        self.assertRaises(ValueError, utils.check_nodes_count,
+                          self.baremetal, self.stack, dict(), self.defaults)
