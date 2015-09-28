@@ -24,7 +24,7 @@ from unittest import TestCase
 class TestPasswordsUtil(TestCase):
 
     @mock.patch("os.path.isfile", return_value=False)
-    @mock.patch("tripleoclient.utils._generate_password",
+    @mock.patch("passlib.utils.generate_password",
                 return_value="PASSWORD")
     def test_generate_passwords(self, generate_password_mock, isfile_mock):
 
@@ -53,7 +53,7 @@ class TestPasswordsUtil(TestCase):
         self.assertEqual(len(passwords), 13)
 
     @mock.patch("os.path.isfile", return_value=True)
-    @mock.patch("tripleoclient.utils._generate_password",
+    @mock.patch("passlib.utils.generate_password",
                 return_value="PASSWORD")
     def test_load_passwords(self, generate_password_mock, isfile_mock):
         PASSWORDS = [
