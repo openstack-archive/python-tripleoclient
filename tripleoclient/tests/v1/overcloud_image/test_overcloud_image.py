@@ -159,6 +159,35 @@ class TestOvercloudImageBuild(TestPluginV1):
             "undercloud-package-install "
             "pip-and-virtualenv-override 2>&1 | tee dib-deploy.log")
 
+    @mock.patch('os.path.isfile', autospec=True)
+    def test_overcloud_image_build_deploy_ramdisk_agent(
+            self,
+            mock_os_path_isfile):
+        arglist = ['--type', 'agent-ramdisk']
+        verifylist = [('image_types', ['agent-ramdisk'])]
+
+        def os_path_isfile_side_effect(arg):
+            return {
+                'ironic-python-agent.initramfs': False,
+                'ironic-python-agent.vmlinuz': False,
+            }[arg]
+
+        mock_os_path_isfile.side_effect = os_path_isfile_side_effect
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        mock_open_context = mock.mock_open()
+        mock_open_context().readline.return_value = "Red Hat Enterprise Linux"
+
+        with mock.patch('six.moves.builtins.open', mock_open_context):
+            self.cmd.take_action(parsed_args)
+
+        self.mock_disk_image_create.assert_called_once_with(
+            "-a amd64 -o ironic-python-agent "
+            "rhel7 ironic-agent element-manifest network-gateway epel "
+            "rdo-release undercloud-package-install "
+            "pip-and-virtualenv-override 2>&1 | tee dib-agent-ramdisk.log")
+
 
 class TestUploadOvercloudImage(TestPluginV1):
     def setUp(self):

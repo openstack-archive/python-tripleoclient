@@ -43,6 +43,11 @@ class ImageBuilder(object):
         pass
 
     @abc.abstractmethod
+    def build_ramdisk_agent(self, parsed_args):
+        """Build a ramdisk agent"""
+        pass
+
+    @abc.abstractmethod
     def build_image(self, parsed_args, node_type):
         """Build a disk image"""
         pass
@@ -80,6 +85,26 @@ class DibImageBuilder(ImageBuilder):
                 })
         os.environ.update(parsed_args.dib_env_vars)
         self._ramdisk_image_create(args)
+
+    def build_ramdisk_agent(self, parsed_args):
+        # The ironic-agent element builds the ramdisk internally,
+        # so we use disk image create instead of ramdisk image create.
+        image_name = vars(parsed_args)["agent_name"]
+        args = ("-a %(arch)s -o %(name)s "
+                "%(node_dist)s %(image_element)s "
+                "%(dib_common_elements)s 2>&1 | "
+                "tee dib-agent-ramdisk.log" %
+                {
+                    'arch': parsed_args.node_arch,
+                    'name': image_name,
+                    'node_dist': parsed_args.node_dist,
+                    'image_element':
+                        vars(parsed_args)["agent_image_element"],
+                    'dib_common_elements':
+                        parsed_args.dib_common_elements,
+                })
+        os.environ.update(parsed_args.dib_env_vars)
+        self._disk_image_create(args)
 
     def build_image(self, parsed_args, node_type):
         image_name = "%s.qcow2" % vars(parsed_args)['overcloud_%s_name' %
@@ -436,26 +461,10 @@ class BuildOvercloudImage(command.Command):
         self._build_image_ramdisk_discovery(parsed_args)
 
     def _build_image_ramdisk_agent(self, parsed_args):
-        # The ironic-agent element builds the ramdisk internally,
-        # so we use disk image create instead of ramdisk image create.
         image_name = vars(parsed_args)["agent_name"]
         if (not os.path.isfile("%s.initramfs" % image_name) or
            not os.path.isfile("%s.vmlinuz" % image_name)):
-            args = ("-a %(arch)s -o %(name)s "
-                    "%(node_dist)s %(image_element)s "
-                    "%(dib_common_elements)s 2>&1 | "
-                    "tee dib-agent-ramdisk.log" %
-                    {
-                        'arch': parsed_args.node_arch,
-                        'name': image_name,
-                        'node_dist': parsed_args.node_dist,
-                        'image_element':
-                            vars(parsed_args)["agent_image_element"],
-                        'dib_common_elements':
-                            parsed_args.dib_common_elements,
-                    })
-            os.environ.update(parsed_args.dib_env_vars)
-            self._disk_image_create(args)
+            parsed_args._builder.build_ramdisk_agent(parsed_args)
 
     def _build_image_ramdisk_deploy(self, parsed_args):
         self._build_image_ramdisk(parsed_args, 'deploy')
