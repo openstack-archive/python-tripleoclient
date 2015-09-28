@@ -486,7 +486,7 @@ class DeployOvercloud(command.Command):
             'admin@example.com',
             passwords['OVERCLOUD_ADMIN_PASSWORD'],
             public=overcloud_ip,
-            user='heat-admin')
+            user=parsed_args.overcloud_ssh_user)
 
         # NOTE(bcrochet): Bad hack. Remove the ssl_port info from the
         # os_cloud_config.SERVICES dictionary
@@ -878,6 +878,11 @@ class DeployOvercloud(command.Command):
             default=os.environ.get('no_proxy', ''),
             help=_('A comma separated list of hosts that should not be '
                    'proxied.')
+        )
+        parser.add_argument(
+            '--overcloud-ssh-user',
+            default='heat-admin',
+            help=_('User for ssh access to overcloud nodes')
         )
         parser.add_argument(
             '-e', '--environment-file', metavar='<HEAT ENVIRONMENT FILE>',
