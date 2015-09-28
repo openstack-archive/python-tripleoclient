@@ -15,6 +15,7 @@
 
 import mock
 import os.path
+import tempfile
 
 from tripleoclient import exceptions
 from tripleoclient import utils
@@ -342,11 +343,24 @@ class TestWaitForIntrospection(TestCase):
 
         mock_check_call.assert_not_called()
 
-    def test_file_checksum(self):
-        mock_open = mock.mock_open()
-        with mock.patch('six.moves.builtins.open', mock_open):
-            self.assertEqual(utils.file_checksum('emptyfile'),
+    def test_empty_file_checksum(self):
+        # Used a NamedTemporaryFile since it's deleted when the file is closed.
+        with tempfile.NamedTemporaryFile() as empty_temp_file:
+            self.assertEqual(utils.file_checksum(empty_temp_file.name),
                              'd41d8cd98f00b204e9800998ecf8427e')
+
+    def test_non_empty_file_checksum(self):
+        # Used a NamedTemporaryFile since it's deleted when the file is closed.
+        with tempfile.NamedTemporaryFile() as temp_file:
+            temp_file.write(b'foo')
+            temp_file.flush()
+
+            self.assertEqual(utils.file_checksum(temp_file.name),
+                             'acbd18db4cc2f85cedef654fccc4a4d8')
+
+    def test_shouldnt_checksum_open_special_files(self):
+        self.assertRaises(ValueError, utils.file_checksum, '/dev/random')
+        self.assertRaises(ValueError, utils.file_checksum, '/dev/zero')
 
 
 class TestCheckNodesCount(TestCase):
