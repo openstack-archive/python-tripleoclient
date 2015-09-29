@@ -519,7 +519,8 @@ class BuildOvercloudImage(command.Command):
         self.log.debug("Environment: %s" % parsed_args.dib_env_vars)
 
         if parsed_args.all:
-            self._build_image_ramdisks(parsed_args)
+            self._build_image_ramdisk_deploy(parsed_args)
+            self._build_image_ramdisk_agent(parsed_args)
             self._build_image_overcloud_full(parsed_args)
             self._build_image_fedora_user(parsed_args)
         else:
@@ -667,15 +668,15 @@ class UploadOvercloudImage(command.Command):
         self.log.debug("take_action(%s)" % parsed_args)
 
         self._env_variable_or_set('DEPLOY_NAME', 'deploy-ramdisk-ironic')
-        self._env_variable_or_set('DISCOVERY_NAME', 'discovery-ramdisk')
+        self._env_variable_or_set('AGENT_NAME', 'ironic-python-agent')
 
         self.log.debug("checking if image files exist")
 
         image_files = [
             '%s.initramfs' % os.environ['DEPLOY_NAME'],
             '%s.kernel' % os.environ['DEPLOY_NAME'],
-            '%s.initramfs' % os.environ['DISCOVERY_NAME'],
-            '%s.kernel' % os.environ['DISCOVERY_NAME'],
+            '%s.initramfs' % os.environ['AGENT_NAME'],
+            '%s.kernel' % os.environ['AGENT_NAME'],
             parsed_args.os_image
         ]
 
@@ -760,18 +761,18 @@ class UploadOvercloudImage(command.Command):
                                                deploy_ramdisk_file)
         )
 
-        self.log.debug("copy discovery images to HTTP BOOT dir")
+        self.log.debug("copy agent images to HTTP BOOT dir")
 
         self._file_create_or_update(
             os.path.join(parsed_args.image_path,
-                         '%s.kernel' % os.environ['DISCOVERY_NAME']),
-            os.path.join(parsed_args.http_boot, 'discovery.kernel'),
+                         '%s.kernel' % os.environ['AGENT_NAME']),
+            os.path.join(parsed_args.http_boot, 'agent.kernel'),
             parsed_args.update_existing
         )
 
         self._file_create_or_update(
             os.path.join(parsed_args.image_path,
-                         '%s.initramfs' % os.environ['DISCOVERY_NAME']),
-            os.path.join(parsed_args.http_boot, 'discovery.ramdisk'),
+                         '%s.initramfs' % os.environ['AGENT_NAME']),
+            os.path.join(parsed_args.http_boot, 'agent.ramdisk'),
             parsed_args.update_existing
         )
