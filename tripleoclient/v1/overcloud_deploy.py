@@ -442,7 +442,7 @@ class DeployOvercloud(command.Command):
         # Role required for users to be able to manage stacks
         # (default: 'heat_stack_owner')
         # keystone role-list returns this role
-        config.set('orchestration', 'stack_owner_role', 'heat_stack_user')
+        config.set('orchestration', 'stack_owner_role', 'heat_stack_owner')
 
         config.add_section('volume')
         # Name of the backend1 (must be declared in cinder.conf)
