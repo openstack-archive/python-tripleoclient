@@ -830,8 +830,6 @@ class DeployOvercloud(command.Command):
                                    '(default: datacentre:br-ex)'))
         parser.add_argument('--neutron-public-interface',
                             help=_('Deprecated.'))
-        parser.add_argument('--hypervisor-neutron-public-interface',
-                            default='nic1', help=_('Deprecated.'))
         parser.add_argument('--neutron-network-type',
                             help=_('The network type for tenant networks.'))
         parser.add_argument('--neutron-tunnel-types',
@@ -868,11 +866,6 @@ class DeployOvercloud(command.Command):
                             help=_('Libvirt domain type. (default: kvm)'))
         parser.add_argument('--ntp-server',
                             help=_('The NTP for overcloud nodes.'))
-        parser.add_argument(
-            '--tripleo-root',
-            default=os.environ.get('TRIPLEO_ROOT', '/etc/tripleo'),
-            help=_('The root directory for TripleO templates.')
-        )
         parser.add_argument(
             '--no-proxy',
             default=os.environ.get('no_proxy', ''),
