@@ -61,10 +61,11 @@ class DibImageBuilder(ImageBuilder):
     """Build images using diskimage-builder"""
 
     def _disk_image_create(self, args):
-        subprocess.call('disk-image-create {0}'.format(args), shell=True)
+        subprocess.check_call('disk-image-create {0}'.format(args), shell=True)
 
     def _ramdisk_image_create(self, args):
-        subprocess.call('ramdisk-image-create {0}'.format(args), shell=True)
+        subprocess.check_call('ramdisk-image-create {0}'.format(args),
+                              shell=True)
 
     def build_ramdisk(self, parsed_args, ramdisk_type):
         image_name = vars(parsed_args)["%s_name" % ramdisk_type]
