@@ -940,6 +940,8 @@ class DeployOvercloud(command.Command):
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
 
+        self._validate_args(parsed_args)
+
         errors, warnings = self._predeploy_verify_capabilities(parsed_args)
         if errors > 0:
             self.log.error(

@@ -199,6 +199,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             [self.parameter_defaults_env_file])
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_validate_args')
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_create_parameters_env')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig')
@@ -238,7 +240,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                         mock_generate_overcloud_passwords,
                         mock_create_tempest_deployer_input,
                         mock_deploy_postconfig,
-                        mock_create_parameters_env):
+                        mock_create_parameters_env, mock_validate_args):
 
         arglist = ['--templates', '--ceph-storage-scale', '3']
         verifylist = [
@@ -359,6 +361,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             ['/usr/share/openstack-tripleo-heat-templates/overcloud-resource-'
              'registry-puppet.yaml', '/fake/path',
              self.parameter_defaults_env_file])
+
+        mock_validate_args.assert_called_once_with(parsed_args)
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig')
