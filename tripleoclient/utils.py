@@ -386,9 +386,15 @@ def file_checksum(filepath):
     :type  filepath: string
 
     """
+    if not os.path.isfile(filepath):
+        raise ValueError("The given file {0} is not a regular "
+                         "file".format(filepath))
     checksum = hashlib.md5()
     with open(filepath, 'rb') as f:
-        for fragment in iter(lambda: f.read(65536), ''):
+        while True:
+            fragment = f.read(65536)
+            if not fragment:
+                break
             checksum.update(fragment)
     return checksum.hexdigest()
 
