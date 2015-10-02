@@ -163,7 +163,6 @@ class BuildOvercloudImage(command.Command):
 
     DISCOVERY_IMAGE_ELEMENT = [
         'ironic-discoverd-ramdisk-instack',
-        'delorean-rdo-management',
     ]
 
     AGENT_IMAGE_ELEMENT = [
@@ -412,7 +411,6 @@ class BuildOvercloudImage(command.Command):
             ])
 
             parsed_args.discovery_image_element = " ".join([
-                'delorean-rdo-management',
                 'ironic-discoverd-ramdisk-instack',
                 'centos-cr',
             ])
