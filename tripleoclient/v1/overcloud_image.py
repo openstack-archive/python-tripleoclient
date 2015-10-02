@@ -260,13 +260,6 @@ class BuildOvercloudImage(command.Command):
             help="Registration method",
         )
         parser.add_argument(
-            "--run-rhos-release",
-            dest="run_rhos_release",
-            action='store_true',
-            default=(os.environ.get('RUN_RHOS_RELEASE', '0') == '1'),
-            help="Use RHOS release for repo management (debug only)"
-        )
-        parser.add_argument(
             "--use-delorean-trunk",
             dest="use_delorean_trunk",
             action='store_true',
@@ -399,9 +392,6 @@ class BuildOvercloudImage(command.Command):
         if re.match('rhel7', parsed_args.node_dist):
             env_vars['REG_METHOD'] = parsed_args.reg_method
 
-            if parsed_args.run_rhos_release:
-                self._set_env_var(env_vars, 'RHOS_RELEASE', '6')
-                dib_common_elements.append('rhos-release')
             env_vars['DELOREAN_REPO_URL'] = parsed_args.delorean_trunk_repo
         elif re.match('centos7', parsed_args.node_dist):
             env_vars['DELOREAN_REPO_URL'] = parsed_args.delorean_trunk_repo
@@ -421,7 +411,6 @@ class BuildOvercloudImage(command.Command):
         ])
 
         self._set_env_var(env_vars, 'RHOS', '0')
-        self._set_env_var(env_vars, 'RHOS_RELEASE', '0')
 
         if parsed_args.node_dist in ['rhel7', 'centos7']:
             self._set_env_var(env_vars, 'FS_TYPE', 'xfs')
@@ -432,8 +421,6 @@ class BuildOvercloudImage(command.Command):
                     'epel',
                     'rdo-release',
                 ])
-            elif not env_vars.get('RHOS_RELEASE') == '0':
-                dib_common_elements.append('rhos-release')
 
         self._set_env_var(env_vars, 'PACKAGES', '1')
         if env_vars.get('PACKAGES') == '1':
