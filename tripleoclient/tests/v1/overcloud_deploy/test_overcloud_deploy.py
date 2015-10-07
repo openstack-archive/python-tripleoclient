@@ -123,7 +123,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
-        baremetal = clients.tripleoclient.baremetal()
+        baremetal = clients.tripleoclient.baremetal
         baremetal.node.list.return_value = range(10)
 
         expected_parameters = {
@@ -278,7 +278,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
-        baremetal = clients.tripleoclient.baremetal()
+        baremetal = clients.tripleoclient.baremetal
         baremetal.node.list.return_value = range(10)
 
         expected_parameters = {
@@ -429,7 +429,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
-        baremetal = clients.tripleoclient.baremetal()
+        baremetal = clients.tripleoclient.baremetal
         baremetal.node.list.return_value = range(10)
 
         with mock.patch('tempfile.mkstemp') as mkstemp:

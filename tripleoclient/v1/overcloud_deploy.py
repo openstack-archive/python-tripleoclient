@@ -351,7 +351,7 @@ class DeployOvercloud(command.Command):
             parsed_args, network_client, stack)
 
         utils.check_nodes_count(
-            self.app.client_manager.tripleoclient.baremetal(),
+            self.app.client_manager.tripleoclient.baremetal,
             stack,
             parameters,
             {
@@ -544,7 +544,7 @@ class DeployOvercloud(command.Command):
         self.predeploy_warnings = 0
         self.log.debug("Starting _pre_verify_capabilities")
 
-        bm_client = self.app.client_manager.tripleoclient.baremetal()
+        bm_client = self.app.client_manager.tripleoclient.baremetal
 
         self._check_boot_images()
 
@@ -640,7 +640,7 @@ class DeployOvercloud(command.Command):
 
     def _collect_node_profiles(self):
         """Gather a map of profile -> [node_uuid] for ironic boot profiles"""
-        bm_client = self.app.client_manager.tripleoclient.baremetal()
+        bm_client = self.app.client_manager.tripleoclient.baremetal
 
         # map of profile capability -> [node_uuid, ...]
         profile_map = collections.defaultdict(list)

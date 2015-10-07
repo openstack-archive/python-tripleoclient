@@ -368,7 +368,7 @@ pxe_ssh,192.168.122.1,root,"KEY2",00:7c:ef:3d:eb:60""")
                     'mac': ['00:0b:d0:69:7e:58']
                 }
             ],
-            client=self.app.client_manager.tripleoclient.baremetal(),
+            client=self.app.client_manager.tripleoclient.baremetal,
             keystone_client=None)
 
     @mock.patch('os_cloud_config.nodes.register_all_nodes', autospec=True)
@@ -403,7 +403,7 @@ pxe_ssh,192.168.122.1,root,"KEY2",00:7c:ef:3d:eb:60""")
                     'mac': ['00:0b:d0:69:7e:58']
                 }
             ],
-            client=self.app.client_manager.tripleoclient.baremetal(),
+            client=self.app.client_manager.tripleoclient.baremetal,
             keystone_client=None)
 
     @mock.patch('os_cloud_config.nodes.register_all_nodes', autospec=True)
@@ -437,7 +437,7 @@ pxe_ssh,192.168.122.1,root,"KEY2",00:7c:ef:3d:eb:60""")
                     'mac': ['00:7c:ef:3d:eb:60']
                 }
             ],
-            client=self.app.client_manager.tripleoclient.baremetal(),
+            client=self.app.client_manager.tripleoclient.baremetal,
             keystone_client=None)
 
 
@@ -454,7 +454,7 @@ class TestStartBaremetalIntrospectionBulk(fakes.TestBaremetal):
     @mock.patch.object(baremetal.inspector_client, 'introspect', autospec=True)
     def test_introspect_bulk_one(self, inspection_mock, get_status_mock):
 
-        client = self.app.client_manager.tripleoclient.baremetal()
+        client = self.app.client_manager.tripleoclient.baremetal
         client.node.list.return_value = [
             mock.Mock(uuid="ABCDEFGH", provision_state="manageable")
         ]
@@ -479,7 +479,7 @@ class TestStartBaremetalIntrospectionBulk(fakes.TestBaremetal):
 
         get_status_mock.return_value = {'finished': True, 'error': None}
 
-        client = self.app.client_manager.tripleoclient.baremetal()
+        client = self.app.client_manager.tripleoclient.baremetal
         client.node.list.return_value = [
             mock.Mock(uuid="ABCDEFGH", provision_state="available"),
             mock.Mock(uuid="IJKLMNOP", provision_state="manageable"),
@@ -526,7 +526,7 @@ class TestStatusBaremetalIntrospectionBulk(fakes.TestBaremetal):
     @mock.patch.object(baremetal.inspector_client, 'get_status', autospec=True)
     def test_status_bulk_one(self, get_status_mock):
 
-        client = self.app.client_manager.tripleoclient.baremetal()
+        client = self.app.client_manager.tripleoclient.baremetal
         client.node.list.return_value = [
             mock.Mock(uuid="ABCDEFGH")
         ]
@@ -548,7 +548,7 @@ class TestStatusBaremetalIntrospectionBulk(fakes.TestBaremetal):
     @mock.patch.object(baremetal.inspector_client, 'get_status', autospec=True)
     def test_status_bulk(self, get_status_mock):
 
-        client = self.app.client_manager.tripleoclient.baremetal()
+        client = self.app.client_manager.tripleoclient.baremetal
         client.node.list.return_value = [
             mock.Mock(uuid="ABCDEFGH"),
             mock.Mock(uuid="IJKLMNOP"),
@@ -609,7 +609,7 @@ class TestConfigureReadyState(fakes.TestBaremetal):
         nodes = [mock.Mock(uuid='foo', driver='drac'),
                  mock.Mock(uuid='bar', driver='ilo'),
                  mock.Mock(uuid='baz', driver='drac')]
-        bm_client = self.app.client_manager.tripleoclient.baremetal()
+        bm_client = self.app.client_manager.tripleoclient.baremetal
         bm_client.node.list.return_value = nodes
 
         argslist = ['--delete-existing-raid-volumes']
@@ -651,7 +651,7 @@ class TestConfigureReadyState(fakes.TestBaremetal):
         nodes = [mock.Mock(uuid='foo', driver='drac'),
                  mock.Mock(uuid='bar', driver='ilo'),
                  mock.Mock(uuid='baz', driver='drac')]
-        bm_client = self.app.client_manager.tripleoclient.baremetal()
+        bm_client = self.app.client_manager.tripleoclient.baremetal
         bm_client.node.list.return_value = nodes
 
         parsed_args = self.check_parser(self.cmd, [], [])
@@ -674,7 +674,7 @@ class TestConfigureReadyState(fakes.TestBaremetal):
                        return_value=0)
     def test__configure_bios(self, mock_sleep_time):
         nodes = [mock.Mock(uuid='foo')]
-        bm_client = self.app.client_manager.tripleoclient.baremetal()
+        bm_client = self.app.client_manager.tripleoclient.baremetal
         self.cmd.bm_client = bm_client
 
         self.cmd._configure_bios(nodes)
@@ -687,7 +687,7 @@ class TestConfigureReadyState(fakes.TestBaremetal):
                        return_value=0)
     def test__configure_root_raid_volumes(self, mock_sleep_time):
         nodes = [mock.Mock(uuid='foo')]
-        bm_client = self.app.client_manager.tripleoclient.baremetal()
+        bm_client = self.app.client_manager.tripleoclient.baremetal
         self.cmd.bm_client = bm_client
 
         self.cmd._configure_root_raid_volumes(nodes)
@@ -703,7 +703,7 @@ class TestConfigureReadyState(fakes.TestBaremetal):
                        return_value=0)
     def test__configure_nonroot_raid_volumes(self, mock_sleep_time):
         nodes = [mock.Mock(uuid='foo')]
-        bm_client = self.app.client_manager.tripleoclient.baremetal()
+        bm_client = self.app.client_manager.tripleoclient.baremetal
         self.cmd.bm_client = bm_client
 
         self.cmd._configure_nonroot_raid_volumes(nodes)
@@ -719,7 +719,7 @@ class TestConfigureReadyState(fakes.TestBaremetal):
                        return_value=0)
     def test__wait_for_drac_config_jobs(self, mock_sleep_time):
         nodes = [mock.Mock(uuid='foo')]
-        bm_client = self.app.client_manager.tripleoclient.baremetal()
+        bm_client = self.app.client_manager.tripleoclient.baremetal
         bm_client.node.vendor_passthru.side_effect = [
             mock.Mock(unfinished_jobs={'percent_complete': '34',
                                        'id': 'JID_343938731947',
@@ -740,7 +740,7 @@ class TestConfigureReadyState(fakes.TestBaremetal):
                        return_value=0)
     def test__wait_for_drac_config_jobs_times_out(self, mock_sleep_time):
         nodes = [mock.Mock(uuid='foo')]
-        bm_client = self.app.client_manager.tripleoclient.baremetal()
+        bm_client = self.app.client_manager.tripleoclient.baremetal
         bm_client.node.vendor_passthru.return_value = mock.Mock(
             unfinished_jobs={'percent_complete': '34',
                              'id': 'JID_343938731947',
@@ -757,7 +757,7 @@ class TestConfigureReadyState(fakes.TestBaremetal):
     def test__delete_raid_volumes(self, mock_sleep_time):
         node_with_raid_volume = mock.Mock(uuid='foo')
         nodes = [node_with_raid_volume, mock.Mock(uuid='bar')]
-        bm_client = self.app.client_manager.tripleoclient.baremetal()
+        bm_client = self.app.client_manager.tripleoclient.baremetal
         bm_client.node.vendor_passthru.side_effect = [
             mock.Mock(virtual_disks=[
                 {'controller': 'RAID.Integrated.1-1',
@@ -786,7 +786,7 @@ class TestConfigureReadyState(fakes.TestBaremetal):
 
     def test__change_power_state(self):
         nodes = [mock.Mock(uuid='foo')]
-        bm_client = self.app.client_manager.tripleoclient.baremetal()
+        bm_client = self.app.client_manager.tripleoclient.baremetal
         self.cmd.bm_client = bm_client
 
         self.cmd._change_power_state(nodes, 'reboot')
@@ -799,7 +799,7 @@ class TestConfigureReadyState(fakes.TestBaremetal):
     def test__run_introspection(self, mock_wait_for_node_introspection,
                                 mock_introspect):
         nodes = [mock.Mock(uuid='foo')]
-        bm_client = self.app.client_manager.tripleoclient.baremetal()
+        bm_client = self.app.client_manager.tripleoclient.baremetal
         self.cmd.bm_client = bm_client
         self.cmd.inspector_url = None
 
@@ -823,7 +823,7 @@ class TestConfigureBaremetalBoot(fakes.TestBaremetal):
     def test_configure_boot(self, find_resource_mock):
 
         find_resource_mock.return_value = mock.Mock(id="IDIDID")
-        bm_client = self.app.client_manager.tripleoclient.baremetal()
+        bm_client = self.app.client_manager.tripleoclient.baremetal
         bm_client.node.list.return_value = [
             mock.Mock(uuid="ABCDEFGH"),
             mock.Mock(uuid="IJKLMNOP"),
@@ -871,7 +871,7 @@ class TestConfigureBaremetalBoot(fakes.TestBaremetal):
     def test_configure_boot_with_suffix(self, find_resource_mock):
 
         find_resource_mock.return_value = mock.Mock(id="IDIDID")
-        bm_client = self.app.client_manager.tripleoclient.baremetal()
+        bm_client = self.app.client_manager.tripleoclient.baremetal
         bm_client.node.list.return_value = [
             mock.Mock(uuid="ABCDEFGH"),
             mock.Mock(uuid="IJKLMNOP"),
@@ -927,7 +927,7 @@ class TestConfigureBaremetalBoot(fakes.TestBaremetal):
     def test_configure_boot_in_transition(self, _, find_resource_mock):
         find_resource_mock.return_value = mock.Mock(id="IDIDID")
 
-        bm_client = self.app.client_manager.tripleoclient.baremetal()
+        bm_client = self.app.client_manager.tripleoclient.baremetal
         bm_client.node.list.return_value = [mock.Mock(uuid="ABCDEFGH",
                                                       power_state=None),
                                             ]
@@ -955,7 +955,7 @@ class TestConfigureBaremetalBoot(fakes.TestBaremetal):
     def test_configure_boot_timeout(self, _, find_resource_mock):
         find_resource_mock.return_value = mock.Mock(id="IDIDID")
 
-        bm_client = self.app.client_manager.tripleoclient.baremetal()
+        bm_client = self.app.client_manager.tripleoclient.baremetal
         bm_client.node.list.return_value = [mock.Mock(uuid="ABCDEFGH",
                                                       power_state=None),
                                             ]
@@ -970,7 +970,7 @@ class TestConfigureBaremetalBoot(fakes.TestBaremetal):
     def test_configure_boot_skip_maintenance(self, find_resource_mock):
 
         find_resource_mock.return_value = mock.Mock(id="IDIDID")
-        bm_client = self.app.client_manager.tripleoclient.baremetal()
+        bm_client = self.app.client_manager.tripleoclient.baremetal
         bm_client.node.list.return_value = [
             mock.Mock(uuid="ABCDEFGH", maintenance=False),
         ]
@@ -989,7 +989,7 @@ class TestConfigureBaremetalBoot(fakes.TestBaremetal):
     def test_configure_boot_existing_properties(self, find_resource_mock):
 
         find_resource_mock.return_value = mock.Mock(id="IDIDID")
-        bm_client = self.app.client_manager.tripleoclient.baremetal()
+        bm_client = self.app.client_manager.tripleoclient.baremetal
         bm_client.node.list.return_value = [
             mock.Mock(uuid="ABCDEFGH"),
             mock.Mock(uuid="IJKLMNOP"),
@@ -1070,7 +1070,7 @@ class TestShowNodeCapabilities(fakes.TestBaremetal):
 
     def test_success(self):
 
-        bm_client = self.app.client_manager.tripleoclient.baremetal()
+        bm_client = self.app.client_manager.tripleoclient.baremetal
 
         bm_client.node.list.return_value = [
             mock.Mock(uuid='UUID1'),

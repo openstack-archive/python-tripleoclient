@@ -54,6 +54,7 @@ class FakeClientWrapper(object):
     def orchestration(self):
         return self._orchestration
 
+    @property
     def baremetal(self):
         return self._baremetal
 

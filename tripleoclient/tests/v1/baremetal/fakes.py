@@ -23,6 +23,7 @@ class FakeClientWrapper(object):
         self._instance = mock.Mock()
         self._baremetal = mock.Mock()
 
+    @property
     def baremetal(self):
         return self._baremetal
 
