@@ -18,13 +18,13 @@ import hashlib
 import json
 import logging
 import os
+import passlib.utils as passutils
 import re
 import six
 import struct
 import subprocess
 import sys
 import time
-import uuid
 
 from tripleoclient import exceptions
 
@@ -48,16 +48,7 @@ SERVICE_LIST = {
 }
 
 
-def _generate_password():
-    """Create a random password
-
-    The password is made by taking a uuid and passing it though sha1sum.
-    We may change this in future to gain more entropy.
-
-    This is based on the tripleo command os-make-password
-    """
-    uuid_str = six.text_type(uuid.uuid4()).encode("UTF-8")
-    return hashlib.sha1(uuid_str).hexdigest()
+_MIN_PASSWORD_SIZE = 25
 
 
 def generate_overcloud_passwords(output_file="tripleo-overcloud-passwords"):
@@ -88,7 +79,8 @@ def generate_overcloud_passwords(output_file="tripleo-overcloud-passwords"):
         "OVERCLOUD_SWIFT_PASSWORD",
     )
 
-    passwords = dict((p, _generate_password()) for p in password_names)
+    passwords = dict((p, passutils.generate_password(size=_MIN_PASSWORD_SIZE))
+                     for p in password_names)
 
     with open(output_file, 'w') as f:
         for name, password in passwords.items():
