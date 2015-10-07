@@ -732,7 +732,7 @@ class TestConfigureReadyState(fakes.TestBaremetal):
 
         self.assertEqual(2, bm_client.node.vendor_passthru.call_count)
         bm_client.node.vendor_passthru.assert_has_calls(
-            mock.call('foo', 'list_unfinished_jobs', http_method='GET'),
+            [mock.call('foo', 'list_unfinished_jobs', http_method='GET')]
         )
 
     @mock.patch.object(baremetal.ConfigureReadyState, 'sleep_time',
