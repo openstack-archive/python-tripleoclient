@@ -18,6 +18,7 @@ from __future__ import print_function
 import abc
 import logging
 import os
+import platform
 import re
 import requests
 import shutil
@@ -376,18 +377,16 @@ class BuildOvercloudImage(command.Command):
 
         # Attempt to detect host distribution if not specified
         if not parsed_args.node_dist:
-            with open('/etc/redhat-release', 'r') as f:
-                release = f.readline()
-            if re.match('Red Hat Enterprise Linux', release):
+            distro = platform.linux_distribution()[0]
+            if distro.startswith('Red Hat Enterprise Linux'):
                 parsed_args.node_dist = 'rhel7'
-            elif re.match('CentOS', release):
+            elif distro.startswith('CentOS'):
                 parsed_args.node_dist = 'centos7'
-            elif re.match('Fedora', release):
+            elif distro.startswith('Fedora'):
                 parsed_args.node_dist = 'fedora'
             else:
-                raise Exception(
-                    "Could not detect distribution from "
-                    "/etc/redhat-release!")
+                raise RuntimeError(
+                    "Unsupported host distribution detected.")
 
         dib_common_elements = []
         if re.match('rhel7', parsed_args.node_dist):
