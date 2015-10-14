@@ -508,7 +508,6 @@ class BuildOvercloudImage(command.Command):
             self._build_image_ramdisk_deploy(parsed_args)
             self._build_image_ramdisk_agent(parsed_args)
             self._build_image_overcloud_full(parsed_args)
-            self._build_image_fedora_user(parsed_args)
         else:
             for image_type in parsed_args.image_types:
                 {
