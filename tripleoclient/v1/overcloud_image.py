@@ -114,7 +114,7 @@ class DibImageBuilder(ImageBuilder):
                                        node_type]
         args = ("-a %(arch)s -o %(name)s "
                 "%(node_dist)s %(overcloud_dib_extra_args)s "
-                "%(dib_common_elements)s 2>&1 | "
+                "%(dib_common_elements)s --min-tmpfs 5 2>&1 | "
                 "tee dib-overcloud-%(image_type)s.log" %
                 {
                     'arch': parsed_args.node_arch,
