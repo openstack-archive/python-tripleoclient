@@ -26,6 +26,8 @@ import subprocess
 import sys
 import time
 
+from heatclient.exc import HTTPNotFound
+
 from tripleoclient import exceptions
 
 
@@ -342,6 +344,46 @@ def get_config_value(section, option):
     p = six.moves.configparser.ConfigParser()
     p.read(os.path.expanduser("~/undercloud-passwords.conf"))
     return p.get(section, option)
+
+
+def get_overcloud_endpoint(stack):
+    for output in stack.to_dict().get('outputs', {}):
+        if output['output_key'] == 'KeystoneURL':
+            return output['output_value']
+
+
+def get_service_ips(stack):
+    service_ips = {}
+    for output in stack.to_dict().get('outputs', {}):
+        service_ips[output['output_key']] = output['output_value']
+    return service_ips
+
+
+__password_cache = None
+
+
+def get_password(pass_name):
+    """Retrieve a password by name, such as 'OVERCLOUD_ADMIN_PASSWORD'.
+
+    Raises KeyError if password does not exist.
+    """
+    global __password_cache
+    if __password_cache is None:
+        __password_cache = generate_overcloud_passwords()
+    return __password_cache[pass_name]
+
+
+def get_stack(orchestration_client, stack_name):
+    """Get the ID for the current deployed overcloud stack if it exists.
+
+    Caller is responsible for checking if return is None
+    """
+
+    try:
+        stack = orchestration_client.stacks.get(stack_name)
+        return stack
+    except HTTPNotFound:
+        pass
 
 
 def remove_known_hosts(overcloud_ip):
