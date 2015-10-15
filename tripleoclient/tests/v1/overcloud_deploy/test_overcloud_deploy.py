@@ -35,7 +35,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         super(TestDeployOvercloud, self).setUp()
 
         # Get the command object to test
-        self.cmd = overcloud_deploy.DeployOvercloud(self.app, None)
+        app_args = mock.Mock()
+        app_args.verbose_level = 1
+        self.cmd = overcloud_deploy.DeployOvercloud(self.app, app_args)
 
         # mock validations for all deploy tests
         # for validator tests, see test_overcloud_deploy_validators.py
@@ -51,6 +53,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         super(TestDeployOvercloud, self).tearDown()
         os.unlink(self.parameter_defaults_env_file)
 
+    @mock.patch("heatclient.common.event_utils.get_events")
     @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_create_parameters_env')
@@ -92,7 +95,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                        mock_create_tempest_deployer_input,
                        mock_deploy_postconfig,
                        mock_create_parameters_env,
-                       mock_breakpoints_cleanup):
+                       mock_breakpoints_cleanupm,
+                       mock_events):
 
         arglist = ['--templates', '--ceph-storage-scale', '3']
         verifylist = [
@@ -107,6 +111,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         clients = self.app.client_manager
         orchestration_client = clients.tripleoclient.orchestration()
         orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
+        mock_event = mock.Mock()
+        mock_event.id = '1234'
+        mock_events.return_value = [mock_events]
 
         mock_check_hypervisor_stats.return_value = {
             'count': 4,
@@ -366,6 +373,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_validate_args.assert_called_once_with(parsed_args)
 
+    @mock.patch("heatclient.common.event_utils.get_events")
     @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig')
@@ -403,7 +411,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                      mock_generate_overcloud_passwords,
                                      mock_create_tempest_deployer_input,
                                      mock_deploy_postconfig,
-                                     mock_breakpoints_cleanup):
+                                     mock_breakpoints_cleanup,
+                                     mock_events):
 
         arglist = ['--templates', '/home/stack/tripleo-heat-templates']
         verifylist = [
@@ -415,6 +424,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         clients = self.app.client_manager
         orchestration_client = clients.tripleoclient.orchestration()
         orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
+        orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
+        mock_events.return_value = []
 
         mock_check_hypervisor_stats.return_value = {
             'count': 4,

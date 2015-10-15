@@ -115,19 +115,36 @@ class TestCheckHypervisorUtil(TestCase):
 class TestWaitForStackUtil(TestCase):
     def setUp(self):
         self.mock_orchestration = mock.Mock()
-        self.mock_stacks = mock.MagicMock()
-        self.stack_status = mock.PropertyMock()
-        type(self.mock_stacks).stack_status = self.stack_status
-        self.mock_orchestration.stacks.get.return_value = self.mock_stacks
 
+    def mock_event(self, resource_name, id, resource_status_reason,
+                   resource_status, event_time):
+        e = mock.Mock()
+        e.resource_name = resource_name
+        e.id = id
+        e.resource_status_reason = resource_status_reason
+        e.resource_status = resource_status
+        e.event_time = event_time
+        return e
+
+    @mock.patch("heatclient.common.event_utils.get_events")
     @mock.patch('time.sleep', return_value=None)
-    def test_wait_for_stack_ready(self, sleep_mock):
-        self.mock_orchestration.reset_mock()
-        self.mock_stacks.reset_mock()
+    def test_wait_for_stack_ready(self, sleep_mock, mock_el):
+        stack = mock.Mock()
+        stack.stack_name = 'stack'
+        self.mock_orchestration.stacks.get.return_value = stack
 
-        return_values = ['CREATE_IN_PROGRESS', 'CREATE_COMPLETE']
-
-        self.stack_status.side_effect = return_values
+        mock_el.side_effect = [[
+            self.mock_event('stack', 'aaa', 'Stack CREATE started',
+                            'CREATE_IN_PROGRESS', '2015-10-14T02:25:21Z'),
+            self.mock_event('thing', 'bbb', 'state changed',
+                            'CREATE_IN_PROGRESS', '2015-10-14T02:25:21Z'),
+        ], [
+            self.mock_event('thing', 'ccc', 'state changed',
+                            'CREATE_COMPLETE', '2015-10-14T02:25:43Z'),
+            self.mock_event('stack', 'ddd',
+                            'Stack CREATE completed successfully',
+                            'CREATE_COMPLETE', '2015-10-14T02:25:43Z'),
+        ]]
 
         complete = utils.wait_for_stack_ready(self.mock_orchestration, 'stack')
 
@@ -136,27 +153,35 @@ class TestWaitForStackUtil(TestCase):
         sleep_mock.assert_called_once_with(mock.ANY)
 
     def test_wait_for_stack_ready_no_stack(self):
-        self.mock_orchestration.reset_mock()
-
         self.mock_orchestration.stacks.get.return_value = None
 
         complete = utils.wait_for_stack_ready(self.mock_orchestration, 'stack')
 
-        self.mock_orchestration.stacks.get.return_value = self.mock_stacks
-
         self.assertFalse(complete)
 
-    def test_wait_for_stack_ready_failed(self):
-        self.mock_orchestration.reset_mock()
-        self.mock_stacks.reset_mock()
-
-        return_values = ['CREATE_FAILED']
-
-        self.stack_status.side_effect = return_values
+    @mock.patch("heatclient.common.event_utils.get_events")
+    @mock.patch('time.sleep', return_value=None)
+    def test_wait_for_stack_ready_failed(self, sleep_mock, mock_el):
+        stack = mock.Mock()
+        stack.stack_name = 'stack'
+        self.mock_orchestration.stacks.get.return_value = stack
+        mock_el.side_effect = [[
+            self.mock_event('stack', 'aaa', 'Stack CREATE started',
+                            'CREATE_IN_PROGRESS', '2015-10-14T02:25:21Z'),
+            self.mock_event('thing', 'bbb', 'state changed',
+                            'CREATE_IN_PROGRESS', '2015-10-14T02:25:21Z'),
+        ], [
+            self.mock_event('thing', 'ccc', 'ouch',
+                            'CREATE_FAILED', '2015-10-14T02:25:43Z'),
+            self.mock_event('stack', 'ddd', 'ouch',
+                            'CREATE_FAILED', '2015-10-14T02:25:43Z'),
+        ]]
 
         complete = utils.wait_for_stack_ready(self.mock_orchestration, 'stack')
 
         self.assertFalse(complete)
+
+        sleep_mock.assert_called_once_with(mock.ANY)
 
 
 class TestWaitForIntrospection(TestCase):

@@ -26,6 +26,7 @@ import tempfile
 import uuid
 
 from cliff import command
+from heatclient.common import event_utils
 from heatclient.common import template_utils
 from openstackclient.common import exceptions as oscexc
 from openstackclient.common import utils as osc_utils
@@ -248,15 +249,26 @@ class DeployOvercloud(command.Command):
 
         if stack is None:
             self.log.info("Performing Heat stack create")
+            action = 'CREATE'
+            marker = None
             orchestration_client.stacks.create(**stack_args)
         else:
             self.log.info("Performing Heat stack update")
             # Make sure existing parameters for stack are reused
             stack_args['existing'] = 'true'
+            # Find the last top-level event to use for the first marker
+            events = event_utils.get_events(orchestration_client,
+                                            stack_id=stack_name,
+                                            event_args={'sort_dir': 'desc',
+                                                        'limit': 1})
+            marker = events[0].id if events else None
+            action = 'UPDATE'
+
             orchestration_client.stacks.update(stack.id, **stack_args)
 
+        verbose_events = self.app_args.verbose_level > 0
         create_result = utils.wait_for_stack_ready(
-            orchestration_client, stack_name)
+            orchestration_client, stack_name, marker, action, verbose_events)
         if not create_result:
             if stack is None:
                 raise Exception("Heat Stack create failed.")
