@@ -52,3 +52,7 @@ class InvalidConfiguration(ValueError):
 
 class IntrospectionError(RuntimeError):
     """Introspection failed"""
+
+
+class StateTransitionFailed(Exception):
+    """Ironic node state transition failed"""

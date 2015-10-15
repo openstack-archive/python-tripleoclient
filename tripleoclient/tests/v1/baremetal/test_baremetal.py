@@ -19,6 +19,8 @@ import json
 import mock
 import os
 
+import fixtures
+
 from tripleoclient import exceptions
 from tripleoclient.tests.v1.baremetal import fakes
 from tripleoclient.v1 import baremetal
@@ -453,11 +455,14 @@ class TestStartBaremetalIntrospectionBulk(fakes.TestBaremetal):
     @mock.patch.object(baremetal.inspector_client, 'get_status', autospec=True)
     @mock.patch.object(baremetal.inspector_client, 'introspect', autospec=True)
     def test_introspect_bulk_one(self, inspection_mock, get_status_mock):
-
         client = self.app.client_manager.tripleoclient.baremetal
-        client.node.list.return_value = [
-            mock.Mock(uuid="ABCDEFGH", provision_state="manageable")
-        ]
+        client.node = fakes.FakeBaremetalNodeClient(
+            states={"ABCDEFGH": "available"},
+            transitions={
+                ("ABCDEFGH", "manage"): "manageable",
+                ("ABCDEFGH", "provide"): "available",
+            }
+        )
         get_status_mock.return_value = {'finished': True, 'error': None}
 
         parsed_args = self.check_parser(self.cmd, [], [])
@@ -465,74 +470,159 @@ class TestStartBaremetalIntrospectionBulk(fakes.TestBaremetal):
 
         inspection_mock.assert_called_once_with(
             'ABCDEFGH', base_url=None, auth_token='TOKEN')
+        self.assertEqual(client.node.updates, [
+            ('ABCDEFGH', 'manage'),
+            ('ABCDEFGH', 'provide')
+        ])
 
     @mock.patch.object(baremetal.inspector_client, 'get_status', autospec=True)
     @mock.patch.object(baremetal.inspector_client, 'introspect', autospec=True)
-    def test_introspect_bulk_failed(self, inspection_mock, get_status_mock):
+    def test_introspect_bulk_failed(self, introspect_mock, get_status_mock):
 
         client = self.app.client_manager.tripleoclient.baremetal
-        client.node.list.return_value = [
-            mock.Mock(uuid="ABCDEFGH", provision_state="manageable")
-        ]
-        get_status_mock.return_value = {'finished': True,
-                                        'error': 'fake error'}
+        client.node = fakes.FakeBaremetalNodeClient(
+            states={"ABCDEFGH": "available", "IJKLMNOP": "available"},
+            transitions={
+                ("ABCDEFGH", "manage"): "manageable",
+                ("IJKLMNOP", "manage"): "manageable",
+                ("ABCDEFGH", "provide"): "available",
+            }
+        )
+        status_returns = {
+            "ABCDEFGH": {'finished': True, 'error': None},
+            "IJKLMNOP": {'finished': True, 'error': 'fake error'}
+        }
+        get_status_mock.side_effect = \
+            lambda uuid, *args, **kwargs: status_returns[uuid]
 
         parsed_args = self.check_parser(self.cmd, [], [])
         self.assertRaisesRegexp(exceptions.IntrospectionError,
-                                'ABCDEFGH: fake error',
+                                'IJKLMNOP: fake error',
                                 self.cmd.take_action, parsed_args)
 
-        inspection_mock.assert_called_once_with(
-            'ABCDEFGH', base_url=None, auth_token='TOKEN')
+        introspect_mock.assert_has_calls([
+            mock.call('ABCDEFGH', base_url=None, auth_token='TOKEN'),
+            mock.call('IJKLMNOP', base_url=None, auth_token='TOKEN')
+        ])
+        self.assertEqual({'ABCDEFGH': 'available', 'IJKLMNOP': 'manageable'},
+                         client.node.states)
 
-    @mock.patch('tripleoclient.utils.wait_for_node_introspection',
-                autospec=True)
-    @mock.patch('tripleoclient.utils.wait_for_provision_state',
-                autospec=True)
     @mock.patch.object(baremetal.inspector_client, 'get_status', autospec=True)
     @mock.patch.object(baremetal.inspector_client, 'introspect', autospec=True)
-    def test_introspect_bulk(self, introspect_mock, get_status_mock,
-                             wait_for_state_mock, wait_for_inspect_mock):
-
-        wait_for_inspect_mock.return_value = []
-        wait_for_state_mock.return_value = True
-
+    def test_introspect_bulk(self, introspect_mock, get_status_mock):
+        client = self.app.client_manager.tripleoclient.baremetal
+        client.node = fakes.FakeBaremetalNodeClient(
+            states={
+                "ABC": "available",
+                "DEF": "enroll",
+                "GHI": "manageable",
+                "JKL": "clean_wait"
+            },
+            transitions={
+                ("ABC", "manage"): "manageable",
+                ("DEF", "manage"): "manageable",
+                ("ABC", "provide"): "available",
+                ("DEF", "provide"): "available",
+                ("GHI", "provide"): "available"
+            }
+        )
         get_status_mock.return_value = {'finished': True, 'error': None}
 
-        client = self.app.client_manager.tripleoclient.baremetal
-        client.node.list.return_value = [
-            mock.Mock(uuid="ABCDEFGH", provision_state="available"),
-            mock.Mock(uuid="IJKLMNOP", provision_state="manageable"),
-            mock.Mock(uuid="QRSTUVWX", provision_state="available"),
-        ]
-
-        arglist = []
-        verifylist = []
-
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        parsed_args = self.check_parser(self.cmd, [], [])
         self.cmd.take_action(parsed_args)
 
         # The nodes that are available are set to "manageable" state.
-        client.node.set_provision_state.assert_has_calls([
-            mock.call('ABCDEFGH', 'manage'),
-            mock.call('QRSTUVWX', 'manage'),
+        # Then all manageable nodes are set to "available".
+        self.assertEqual(client.node.updates, [
+            ('ABC', 'manage'),
+            ('DEF', 'manage'),
+            ('ABC', 'provide'),
+            ('DEF', 'provide'),
+            ('GHI', 'provide')
         ])
 
-        # Since everything is mocked, the node states doesn't change.
-        # Therefore only the node originally in manageable state is
+        # Nodes which start in "enroll", "available" or "manageable" states are
         # introspected:
         introspect_mock.assert_has_calls([
-            mock.call('IJKLMNOP', base_url=None, auth_token='TOKEN'),
+            mock.call('ABC', base_url=None, auth_token='TOKEN'),
+            mock.call('DEF', base_url=None, auth_token='TOKEN'),
+            mock.call('GHI', base_url=None, auth_token='TOKEN')
         ])
 
-        wait_for_inspect_mock.assert_called_once_with(
-            baremetal.inspector_client, 'TOKEN', None,
-            ['IJKLMNOP'])
+        get_status_mock.assert_has_calls([
+            mock.call('ABC', base_url=None, auth_token='TOKEN'),
+            mock.call('DEF', base_url=None, auth_token='TOKEN'),
+            mock.call('GHI', base_url=None, auth_token='TOKEN')
+        ], any_order=True)
 
-        # And lastly it  will be set to available:
-        client.node.set_provision_state.assert_has_calls([
-            mock.call('IJKLMNOP', 'provide'),
-        ])
+    @mock.patch.object(baremetal.inspector_client, 'get_status', autospec=True)
+    @mock.patch.object(baremetal.inspector_client, 'introspect', autospec=True)
+    def test_introspect_bulk_timeout(self, introspect_mock, get_status_mock):
+        client = self.app.client_manager.tripleoclient.baremetal
+        client.node = fakes.FakeBaremetalNodeClient(
+            states={
+                "ABC": "available",
+                "DEF": "enroll",
+            },
+            transitions={
+                ("ABC", "manage"): "available",   # transition times out
+                ("DEF", "manage"): "manageable",
+                ("DEF", "provide"): "available"
+            }
+        )
+        get_status_mock.return_value = {'finished': True, 'error': None}
+        log_fixture = self.useFixture(fixtures.FakeLogger())
+
+        parsed_args = self.check_parser(self.cmd, [], [])
+        self.cmd.take_action(parsed_args)
+
+        self.assertIn("FAIL: Timeout waiting for Node ABC", log_fixture.output)
+        # Nodes that don't timeout are introspected
+        introspect_mock.assert_called_once_with(
+            'DEF', base_url=None, auth_token='TOKEN')
+        get_status_mock.assert_called_once_with(
+            'DEF', base_url=None, auth_token='TOKEN')
+        # Nodes that were successfully introspected are made available
+        self.assertEqual(
+            [("ABC", "manage"), ("DEF", "manage"), ("DEF", "provide")],
+            client.node.updates)
+
+    @mock.patch.object(baremetal.inspector_client, 'get_status', autospec=True)
+    @mock.patch.object(baremetal.inspector_client, 'introspect', autospec=True)
+    def test_introspect_bulk_transition_fails(self, introspect_mock,
+                                              get_status_mock):
+        client = self.app.client_manager.tripleoclient.baremetal
+        client.node = fakes.FakeBaremetalNodeClient(
+            states={
+                "ABC": "available",
+                "DEF": "enroll",
+            },
+            transitions={
+                ("ABC", "manage"): "manageable",
+                ("DEF", "manage"): "enroll",      # state transition fails
+                ("ABC", "provide"): "available"
+            },
+            transition_errors={
+                ("DEF", "manage"): "power credential verification failed"
+            }
+        )
+        get_status_mock.return_value = {'finished': True, 'error': None}
+        log_fixture = self.useFixture(fixtures.FakeLogger())
+
+        parsed_args = self.check_parser(self.cmd, [], [])
+        self.cmd.take_action(parsed_args)
+
+        self.assertIn("FAIL: State transition failed for Node DEF",
+                      log_fixture.output)
+        # Nodes that successfully transition are introspected
+        introspect_mock.assert_called_once_with(
+            'ABC', base_url=None, auth_token='TOKEN')
+        get_status_mock.assert_called_once_with(
+            'ABC', base_url=None, auth_token='TOKEN')
+        # Nodes that were successfully introspected are made available
+        self.assertEqual(
+            [("ABC", "manage"), ("DEF", "manage"), ("ABC", "provide")],
+            client.node.updates)
 
 
 class TestStatusBaremetalIntrospectionBulk(fakes.TestBaremetal):

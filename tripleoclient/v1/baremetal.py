@@ -210,19 +210,16 @@ class StartBaremetalIntrospectionBulk(IntrospectionParser, command.Command):
         auth_token = self.app.client_manager.auth_ref.auth_token
         node_uuids = []
 
-        print("Setting available nodes to manageable...")
-        self.log.debug("Moving available nodes to manageable state.")
-        available_nodes = [node for node in client.node.list(maintenance=False,
-                                                             associated=False)
-                           if node.provision_state == "available"]
+        print("Setting nodes for introspection to manageable...")
+        self.log.debug("Moving available/enroll nodes to manageable state.")
+        available_nodes = utils.nodes_in_states(client,
+                                                ("available", "enroll"))
         for uuid in utils.set_nodes_state(client, available_nodes, 'manage',
                                           'manageable'):
             self.log.debug("Node {0} has been set to manageable.".format(uuid))
 
-        for node in client.node.list(maintenance=False, associated=False):
-            if node.provision_state != "manageable":
-                continue
-
+        manageable_nodes = utils.nodes_in_states(client, ("manageable",))
+        for node in manageable_nodes:
             node_uuids.append(node.uuid)
 
             print("Starting introspection of node: {0}".format(node.uuid))
@@ -239,12 +236,14 @@ class StartBaremetalIntrospectionBulk(IntrospectionParser, command.Command):
 
         print("Waiting for introspection to finish...")
         errors = []
+        successful_node_uuids = set()
         for uuid, status in utils.wait_for_node_introspection(
                 inspector_client, auth_token, parsed_args.inspector_url,
                 node_uuids):
             if status['error'] is None:
                 print("Introspection for UUID {0} finished successfully."
                       .format(uuid))
+                successful_node_uuids.add(uuid)
             else:
                 print("Introspection for UUID {0} finished with error: {1}"
                       .format(uuid, status['error']))
@@ -253,11 +252,10 @@ class StartBaremetalIntrospectionBulk(IntrospectionParser, command.Command):
         print("Setting manageable nodes to available...")
 
         self.log.debug("Moving manageable nodes to available state.")
-        available_nodes = [node for node in client.node.list(maintenance=False,
-                                                             associated=False)
-                           if node.provision_state == "manageable"]
+        successful_nodes = [n for n in manageable_nodes
+                            if n.uuid in successful_node_uuids]
         for uuid in utils.set_nodes_state(
-                client, available_nodes, 'provide',
+                client, successful_nodes, 'provide',
                 'available', skipped_states=("available", "active")):
             print("Node {0} has been set to available.".format(uuid))
 
