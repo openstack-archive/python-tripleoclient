@@ -44,3 +44,7 @@ class DeploymentError(Exception):
 class RootUserExecution(Exception):
     """Command was executed by a root user"""
     pass
+
+
+class StateTransitionFailed(Exception):
+    """Ironic node state transition failed"""

@@ -17,6 +17,56 @@ import mock
 from openstackclient.tests import utils
 
 
+class FakeBaremetalNodeClient(object):
+    def __init__(self, states={}, transitions={}, transition_errors={}):
+        """Create a new test double for the "baremetal node" command.
+
+        :param states: dictionary of nodes' initial states. Keys are uuids and
+                       values are states, eg {"ABC: "available"}.
+        :param transitions: dictionary of expected state transitions.
+                            Keys are (uuid, transition) pairs, and values are
+                            the states nodes end up in after that transition,
+                            eg {("ABC", "manage"): "manageable"}.
+                            Updates which occur are stored in "updates" for
+                            later inspection.
+        :param transition_errors: dict of errors caused by state transitions.
+                                  Keys are (uuid, transition) pairs, and values
+                                  are the value of node.last_error after that
+                                  transition,
+                                  eg {("ABC", "manage"): "Node on fire."}.
+        """
+        self.states = states
+        self.transitions = transitions
+        self.transition_errors = transition_errors
+        self.last_errors = {}
+        self.updates = []  # inspect this to see which transitions occurred
+
+    def set_provision_state(self, node_uuid, transition):
+        key = (node_uuid, transition)
+        new_state = self.transitions[key]
+        self.states[node_uuid] = new_state
+        self.last_errors[node_uuid] = self.transition_errors.get(key, None)
+        self.updates.append(key)
+
+    def _get(self, uuid, detail=False, **kwargs):
+        mock_node = mock.Mock(uuid=uuid, provision_state=self.states[uuid])
+        if detail:
+            mock_node.last_error = self.last_errors.get(uuid, None)
+        else:
+            mock_node.mock_add_spec(
+                ('instance_uuid', 'maintenance', 'power_state',
+                 'provision_state', 'uuid', 'name'),
+                spec_set=True)
+        return mock_node
+
+    def get(self, uuid):
+        return self._get(uuid, detail=True)
+
+    def list(self, *args, **kwargs):
+        return [self._get(uuid, **kwargs)
+                for uuid in (sorted(self.states.keys()))]
+
+
 class FakeClientWrapper(object):
 
     def __init__(self):
