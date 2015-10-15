@@ -212,13 +212,14 @@ class StartBaremetalIntrospectionBulk(IntrospectionParser, command.Command):
 
         print("Setting available nodes to manageable...")
         self.log.debug("Moving available nodes to manageable state.")
-        available_nodes = [node for node in client.node.list()
+        available_nodes = [node for node in client.node.list(maintenance=False,
+                                                             associated=False)
                            if node.provision_state == "available"]
         for uuid in utils.set_nodes_state(client, available_nodes, 'manage',
                                           'manageable'):
             self.log.debug("Node {0} has been set to manageable.".format(uuid))
 
-        for node in client.node.list():
+        for node in client.node.list(maintenance=False, associated=False):
             if node.provision_state != "manageable":
                 continue
 
@@ -249,15 +250,14 @@ class StartBaremetalIntrospectionBulk(IntrospectionParser, command.Command):
                       .format(uuid, status['error']))
                 has_errors = True
 
-        clients = self.app.client_manager
-        baremetal_client = clients.tripleoclient.baremetal
         print("Setting manageable nodes to available...")
 
         self.log.debug("Moving manageable nodes to available state.")
-        available_nodes = [node for node in client.node.list()
+        available_nodes = [node for node in client.node.list(maintenance=False,
+                                                             associated=False)
                            if node.provision_state == "manageable"]
         for uuid in utils.set_nodes_state(
-                baremetal_client, baremetal_client.node.list(), 'provide',
+                client, available_nodes, 'provide',
                 'available', skipped_states=("available", "active")):
             print("Node {0} has been set to available.".format(uuid))
 
