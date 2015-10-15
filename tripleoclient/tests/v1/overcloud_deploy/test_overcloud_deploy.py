@@ -557,6 +557,20 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                           self.cmd._validate_args,
                           parsed_args)
 
+    def test_validate_args_no_tunnel_types(self):
+        arglist = ['--templates',
+                   '--neutron-tunnel-types', 'nettype']
+        verifylist = [
+            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
+            ('neutron_tunnel_types', 'nettype'),
+        ]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.assertRaises(oscexc.CommandError,
+                          self.cmd._validate_args,
+                          parsed_args)
+
     @mock.patch('tripleoclient.utils.check_hypervisor_stats',
                 autospec=True)
     def test_pre_heat_deploy_failed(self, mock_check_hypervisor_stats):

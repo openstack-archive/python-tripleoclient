@@ -515,6 +515,9 @@ class DeployOvercloud(command.Command):
         elif network_type and not tunnel_types:
             raise oscexc.CommandError("Neutron tunnel types must be specified "
                                       "when Neutron network type is specified")
+        elif tunnel_types and not network_type:
+            raise oscexc.CommandError("Neutron network type must be specified "
+                                      "when Neutron tunnel types is specified")
 
     def _predeploy_verify_capabilities(self, parsed_args):
         self.predeploy_errors = 0
