@@ -128,8 +128,52 @@ class TestOvercloudImageBuild(TestPluginV1):
             "openstack-neutron-bigswitch-lldp "
             "element-manifest network-gateway epel rdo-release "
             "undercloud-package-install "
-            "pip-and-virtualenv-override --min-tmpfs 5 2>&1 | "
+            "pip-and-virtualenv-override  --min-tmpfs 5 2>&1 | "
             "tee dib-overcloud-full.log")
+
+    @mock.patch('os.path.isfile', autospec=True)
+    def test_overcloud_image_build_overcloud_full_with_extra_args(
+            self,
+            mock_os_path_isfile):
+        """Test the --builder-extra-args argument.
+
+        Using the overcloud full as an example because it will be the
+        most common case
+        """
+        arglist = ['--type', 'overcloud-full',
+                   '--builder-extra-args', 'overcloud-network-midonet']
+        verifylist = [('image_types', ['overcloud-full'])]
+
+        def os_path_isfile_side_effect(arg):
+            return {
+                'overcloud-full.qcow2': False,
+            }[arg]
+
+        mock_os_path_isfile.side_effect = os_path_isfile_side_effect
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        mock_open_context = mock.mock_open()
+        mock_open_context().readline.return_value = "Red Hat Enterprise Linux"
+
+        with mock.patch('six.moves.builtins.open', mock_open_context):
+            self.cmd.take_action(parsed_args)
+
+        self.mock_disk_image_create.assert_called_once_with(
+            "-a amd64 -o "
+            "overcloud-full.qcow2 rhel7 overcloud-full overcloud-controller "
+            "overcloud-compute overcloud-ceph-storage ntp sysctl hosts "
+            "baremetal dhcp-all-interfaces os-collect-config "
+            "heat-config-puppet heat-config-script puppet-modules hiera "
+            "os-net-config stable-interface-names grub2-deprecated "
+            "-p python-psutil,python-debtcollector,plotnetcfg,sos,"
+            "python-networking-cisco,python-UcsSdk,"
+            "device-mapper-multipath,python-networking-bigswitch,"
+            "openstack-neutron-bigswitch-lldp "
+            "element-manifest network-gateway epel rdo-release "
+            "undercloud-package-install "
+            "pip-and-virtualenv-override overcloud-network-midonet "
+            "--min-tmpfs 5 2>&1 | tee dib-overcloud-full.log")
 
     @mock.patch('time.sleep')
     @mock.patch('os.path.isfile', autospec=True)
@@ -161,7 +205,7 @@ class TestOvercloudImageBuild(TestPluginV1):
             "dracut-ramdisk rhel7 deploy-ironic "
             "element-manifest network-gateway epel rdo-release "
             "undercloud-package-install "
-            "pip-and-virtualenv-override 2>&1 | tee dib-deploy.log")
+            "pip-and-virtualenv-override  2>&1 | tee dib-deploy.log")
 
     @mock.patch('os.path.isfile', autospec=True)
     def test_overcloud_image_build_deploy_ramdisk_agent(
@@ -190,7 +234,7 @@ class TestOvercloudImageBuild(TestPluginV1):
             "-a amd64 -o ironic-python-agent "
             "rhel7 ironic-agent element-manifest network-gateway epel "
             "rdo-release undercloud-package-install "
-            "pip-and-virtualenv-override 2>&1 | tee dib-agent-ramdisk.log")
+            "pip-and-virtualenv-override  2>&1 | tee dib-agent-ramdisk.log")
 
 
 class TestUploadOvercloudImage(TestPluginV1):
