@@ -51,6 +51,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         super(TestDeployOvercloud, self).tearDown()
         os.unlink(self.parameter_defaults_env_file)
 
+    @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_create_parameters_env')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
@@ -91,7 +92,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                        mock_generate_overcloud_passwords,
                        mock_create_tempest_deployer_input,
                        mock_deploy_postconfig,
-                       mock_create_parameters_env):
+                       mock_create_parameters_env,
+                       mock_breakpoints_cleanup):
 
         arglist = ['--templates', '--ceph-storage-scale', '3']
         verifylist = [
@@ -198,6 +200,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_process_multiple_env.assert_called_with(
             [self.parameter_defaults_env_file])
 
+    @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_validate_args')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
@@ -240,7 +243,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                         mock_generate_overcloud_passwords,
                         mock_create_tempest_deployer_input,
                         mock_deploy_postconfig,
-                        mock_create_parameters_env, mock_validate_args):
+                        mock_create_parameters_env, mock_validate_args,
+                        mock_breakpoints_cleanup):
 
         arglist = ['--templates', '--ceph-storage-scale', '3']
         verifylist = [
@@ -364,6 +368,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_validate_args.assert_called_once_with(parsed_args)
 
+    @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
@@ -400,7 +405,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                      mock_create_overcloudrc,
                                      mock_generate_overcloud_passwords,
                                      mock_create_tempest_deployer_input,
-                                     mock_deploy_postconfig):
+                                     mock_deploy_postconfig,
+                                     mock_breakpoints_cleanup):
 
         arglist = ['--templates', '/home/stack/tripleo-heat-templates']
         verifylist = [

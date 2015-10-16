@@ -34,6 +34,7 @@ from os_cloud_config import keystone
 from os_cloud_config import keystone_pki
 from os_cloud_config.utils import clients
 from six.moves import configparser
+from tripleo_common import update
 
 from tripleoclient import exceptions
 from tripleoclient import utils
@@ -267,6 +268,8 @@ class DeployOvercloud(command.Command):
         env_files, env = (
             template_utils.process_multiple_environments_and_files(
                 environments))
+        if stack:
+            update.add_breakpoints_cleanup_into_env(env)
 
         self.log.debug("Getting template contents")
         template_files, template = template_utils.get_template_contents(
