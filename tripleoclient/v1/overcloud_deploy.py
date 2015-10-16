@@ -27,6 +27,7 @@ import uuid
 
 from cliff import command
 from heatclient.common import template_utils
+from keystoneclient import exceptions as kscexc
 from openstackclient.common import exceptions as oscexc
 from openstackclient.common import utils as osc_utils
 from openstackclient.i18n import _
@@ -460,6 +461,9 @@ class DeployOvercloud(command.Command):
         if not keystone_ip:
             keystone_ip = overcloud_ip
 
+        # Note (spredzy): This was deprecated at the begining of
+        # the Mitaka cycle. Should be good to remove for the
+        # next N cycle.
         keystone.initialize(
             keystone_ip,
             utils.get_password('OVERCLOUD_ADMIN_TOKEN'),
@@ -488,16 +492,30 @@ class DeployOvercloud(command.Command):
                 service_data['internal_host'] = internal_vip
             services.update({service: service_data})
 
-        keystone_client = clients.get_keystone_client(
-            'admin',
-            utils.get_password('OVERCLOUD_ADMIN_PASSWORD'),
-            'admin',
-            overcloud_endpoint)
-        keystone.setup_endpoints(
-            services,
-            client=keystone_client,
-            os_auth_url=overcloud_endpoint,
-            public_host=overcloud_ip)
+        # Note (spredzy): This was deprecated at the begining of
+        # the Mitaka cycle. Should be good to remove for the
+        # next N cycle.
+        try:
+            keystone_client = clients.get_keystone_client(
+                'admin',
+                utils.get_password('OVERCLOUD_ADMIN_PASSWORD'),
+                'admin',
+                overcloud_endpoint)
+            keystone.setup_endpoints(
+                services,
+                client=keystone_client,
+                os_auth_url=overcloud_endpoint,
+                public_host=overcloud_ip)
+        except kscexc.Conflict:
+            pass
+        else:
+            self.log.warning("Setting up keystone endpoints via "
+                             "os-cloud-config. This behavior is "
+                             "deprecated and will be removed in "
+                             "a future release.  Please update "
+                             "your heat templates to a version "
+                             "that does Keystone initialization "
+                             "via Puppet.")
 
         compute_client = clients.get_nova_bm_client(
             'admin',
