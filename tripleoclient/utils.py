@@ -51,6 +51,21 @@ SERVICE_LIST = {
 
 
 _MIN_PASSWORD_SIZE = 25
+_PASSWORD_NAMES = (
+    "OVERCLOUD_ADMIN_PASSWORD",
+    "OVERCLOUD_ADMIN_TOKEN",
+    "OVERCLOUD_CEILOMETER_PASSWORD",
+    "OVERCLOUD_CEILOMETER_SECRET",
+    "OVERCLOUD_CINDER_PASSWORD",
+    "OVERCLOUD_DEMO_PASSWORD",
+    "OVERCLOUD_GLANCE_PASSWORD",
+    "OVERCLOUD_HEAT_PASSWORD",
+    "OVERCLOUD_HEAT_STACK_DOMAIN_PASSWORD",
+    "OVERCLOUD_NEUTRON_PASSWORD",
+    "OVERCLOUD_NOVA_PASSWORD",
+    "OVERCLOUD_SWIFT_HASH",
+    "OVERCLOUD_SWIFT_PASSWORD",
+)
 
 
 def generate_overcloud_passwords(output_file="tripleo-overcloud-passwords"):
@@ -61,28 +76,15 @@ def generate_overcloud_passwords(output_file="tripleo-overcloud-passwords"):
     file already exists the existing passwords will be returned instead,
     """
 
+    passwords = {}
     if os.path.isfile(output_file):
         with open(output_file) as f:
-            return dict(line.split('=') for line in f.read().splitlines())
+            passwords = dict(line.split('=') for line in f.read().splitlines())
 
-    password_names = (
-        "OVERCLOUD_ADMIN_PASSWORD",
-        "OVERCLOUD_ADMIN_TOKEN",
-        "OVERCLOUD_CEILOMETER_PASSWORD",
-        "OVERCLOUD_CEILOMETER_SECRET",
-        "OVERCLOUD_CINDER_PASSWORD",
-        "OVERCLOUD_DEMO_PASSWORD",
-        "OVERCLOUD_GLANCE_PASSWORD",
-        "OVERCLOUD_HEAT_PASSWORD",
-        "OVERCLOUD_HEAT_STACK_DOMAIN_PASSWORD",
-        "OVERCLOUD_NEUTRON_PASSWORD",
-        "OVERCLOUD_NOVA_PASSWORD",
-        "OVERCLOUD_SWIFT_HASH",
-        "OVERCLOUD_SWIFT_PASSWORD",
-    )
-
-    passwords = dict((p, passutils.generate_password(size=_MIN_PASSWORD_SIZE))
-                     for p in password_names)
+    for name in _PASSWORD_NAMES:
+        if not passwords.get(name):
+            passwords[name] = passutils.generate_password(
+                size=_MIN_PASSWORD_SIZE)
 
     with open(output_file, 'w') as f:
         for name, password in passwords.items():
