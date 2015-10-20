@@ -143,8 +143,9 @@ class DeployOvercloud(command.Command):
         number_controllers = int(parameters.get('ControllerCount', 0))
         if number_controllers > 1:
             if not args.ntp_server:
-                raise Exception('Specify --ntp-server when using multiple'
-                                ' controllers (with HA).')
+                raise exceptions.InvalidConfiguration(
+                    'Specify --ntp-server when using multiple controllers '
+                    '(with HA).')
 
             parameters.update({
                 'NeutronL3HA': True,
@@ -260,9 +261,9 @@ class DeployOvercloud(command.Command):
             orchestration_client, stack_name)
         if not create_result:
             if stack is None:
-                raise Exception("Heat Stack create failed.")
+                raise exceptions.DeploymentError("Heat Stack create failed.")
             else:
-                raise Exception("Heat Stack update failed.")
+                raise exceptions.DeploymentError("Heat Stack update failed.")
 
     def _pre_heat_deploy(self):
         """Setup before the Heat stack create or update has been done."""
