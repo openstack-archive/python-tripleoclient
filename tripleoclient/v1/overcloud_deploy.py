@@ -36,61 +36,9 @@ from os_cloud_config.utils import clients
 from six.moves import configparser
 from tripleo_common import update
 
+from tripleoclient import constants
 from tripleoclient import exceptions
 from tripleoclient import utils
-
-TRIPLEO_HEAT_TEMPLATES = "/usr/share/openstack-tripleo-heat-templates/"
-OVERCLOUD_YAML_NAME = "overcloud-without-mergepy.yaml"
-RESOURCE_REGISTRY_NAME = "overcloud-resource-registry-puppet.yaml"
-RHEL_REGISTRATION_EXTRACONFIG_NAME = (
-    "extraconfig/pre_deploy/rhel-registration/")
-
-PARAMETERS = {
-    'AdminPassword': None,
-    'AdminToken': None,
-    'CeilometerPassword': None,
-    'CeilometerMeteringSecret': None,
-    'CinderPassword': None,
-    'CinderISCSIHelper': 'lioadm',
-    'CloudName': 'overcloud',
-    'ExtraConfig': '{}',
-    'GlancePassword': None,
-    'HeatPassword': None,
-    'HeatStackDomainAdminPassword': None,
-    'NeutronControlPlaneID': None,
-    'NeutronDnsmasqOptions': 'dhcp-option-force=26,1400',
-    'NeutronPassword': None,
-    'NeutronPublicInterface': 'nic1',
-    'NeutronFlatNetworks': 'datacentre',
-    'HypervisorNeutronPhysicalBridge': 'br-ex',
-    'NeutronBridgeMappings': 'datacentre:br-ex',
-    'HypervisorNeutronPublicInterface': 'nic1',
-    'NovaPassword': None,
-    'SwiftHashSuffix': None,
-    'SwiftPassword': None,
-    'SnmpdReadonlyUserPassword': None,
-    'NtpServer': '',
-    'controllerImage': 'overcloud-full',
-    'NovaImage': 'overcloud-full',
-    'BlockStorageImage': 'overcloud-full',
-    'SwiftStorageImage': 'overcloud-full',
-    'CephStorageImage': 'overcloud-full',
-    'OvercloudControlFlavor': 'baremetal',
-    'OvercloudComputeFlavor': 'baremetal',
-    'OvercloudBlockStorageFlavor': 'baremetal',
-    'OvercloudSwiftStorageFlavor': 'baremetal',
-    'OvercloudCephStorageFlavor': 'baremetal',
-    'NeutronNetworkVLANRanges': 'datacentre:1:1000',
-}
-
-NEW_STACK_PARAMETERS = {
-    'NovaComputeLibvirtType': 'kvm',
-    'NeutronTunnelIdRanges': ['1:1000'],
-    'NeutronVniRanges': ['1:1000'],
-    'NeutronEnableTunnelling': 'True',
-    'NeutronNetworkType': 'gre',
-    'NeutronTunnelTypes': 'gre',
-}
 
 
 class DeployOvercloud(command.Command):
@@ -133,9 +81,9 @@ class DeployOvercloud(command.Command):
             undercloud_ceilometer_snmpd_password)
 
     def _update_paramaters(self, args, network_client, stack):
-        parameters = PARAMETERS.copy()
+        parameters = constants.PARAMETERS.copy()
         if stack is None:
-            parameters.update(NEW_STACK_PARAMETERS)
+            parameters.update(constants.NEW_STACK_PARAMETERS)
 
         self.log.debug("Generating overcloud passwords")
         self.set_overcloud_passwords(parameters, args)
@@ -227,14 +175,17 @@ class DeployOvercloud(command.Command):
         return parameters
 
     def _create_registration_env(self, args):
-
         tht_root = args.templates
 
-        environment = os.path.join(tht_root,
-                                   RHEL_REGISTRATION_EXTRACONFIG_NAME,
-                                   'environment-rhel-registration.yaml')
-        registry = os.path.join(tht_root, RHEL_REGISTRATION_EXTRACONFIG_NAME,
-                                'rhel-registration-resource-registry.yaml')
+        environment = os.path.join(
+            tht_root,
+            constants.RHEL_REGISTRATION_EXTRACONFIG_NAME,
+            'environment-rhel-registration.yaml')
+        registry = os.path.join(
+            tht_root,
+            constants.RHEL_REGISTRATION_EXTRACONFIG_NAME,
+            'rhel-registration-resource-registry.yaml')
+
         user_env = ("parameter_defaults:\n"
                     "  rhel_reg_method: \"%(method)s\"\n"
                     "  rhel_reg_org: \"%(org)s\"\n"
@@ -363,8 +314,8 @@ class DeployOvercloud(command.Command):
             # default resource registry file should be passed only
             # when creating a new stack, otherwise it might overwrite
             # resource_registries in existing stack
-            resource_registry_path = os.path.join(tht_root,
-                                                  RESOURCE_REGISTRY_NAME)
+            resource_registry_path = os.path.join(
+                tht_root, constants.RESOURCE_REGISTRY_NAME)
             environments.extend([resource_registry_path, env_path])
 
         environments.extend(self._create_parameters_env(parameters))
@@ -374,7 +325,7 @@ class DeployOvercloud(command.Command):
         if parsed_args.environment_files:
             environments.extend(parsed_args.environment_files)
 
-        overcloud_yaml = os.path.join(tht_root, OVERCLOUD_YAML_NAME)
+        overcloud_yaml = os.path.join(tht_root, constants.OVERCLOUD_YAML_NAME)
 
         self._heat_deploy(stack, parsed_args.stack, overcloud_yaml, parameters,
                           environments, parsed_args.timeout)
@@ -474,7 +425,7 @@ class DeployOvercloud(command.Command):
             data.pop('ssl_port', None)
 
         services = {}
-        for service, data in six.iteritems(utils.SERVICE_LIST):
+        for service, data in six.iteritems(constants.SERVICE_LIST):
             service_data = data.copy()
             service_data.pop('password_field', None)
             password_field = data.get('password_field')
@@ -778,7 +729,7 @@ class DeployOvercloud(command.Command):
             add_help=False
         )
         parser.add_argument(
-            '--templates', nargs='?', const=TRIPLEO_HEAT_TEMPLATES,
+            '--templates', nargs='?', const=constants.TRIPLEO_HEAT_TEMPLATES,
             help=_("The directory containing the Heat templates to deploy"),
             required=True
         )
