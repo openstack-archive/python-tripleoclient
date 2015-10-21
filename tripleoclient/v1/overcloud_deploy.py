@@ -33,7 +33,6 @@ from openstackclient.i18n import _
 from os_cloud_config import keystone
 from os_cloud_config import keystone_pki
 from os_cloud_config.utils import clients
-from six.moves import configparser
 from tripleo_common import update
 
 from tripleoclient import constants
@@ -58,7 +57,7 @@ class DeployOvercloud(command.Command):
         undercloud_ceilometer_snmpd_password = utils.get_config_value(
             "auth", "undercloud_ceilometer_snmpd_password")
 
-        self.passwords = passwords = utils.generate_overcloud_passwords()
+        passwords = utils.generate_overcloud_passwords()
         ceilometer_pass = passwords['OVERCLOUD_CEILOMETER_PASSWORD']
         ceilometer_secret = passwords['OVERCLOUD_CEILOMETER_SECRET']
         parameters['AdminPassword'] = passwords['OVERCLOUD_ADMIN_PASSWORD']
@@ -329,68 +328,6 @@ class DeployOvercloud(command.Command):
 
         self._heat_deploy(stack, parsed_args.stack, overcloud_yaml, parameters,
                           environments, parsed_args.timeout)
-
-    def _create_overcloudrc(self, stack, parsed_args):
-        overcloud_endpoint = utils.get_overcloud_endpoint(stack)
-        overcloud_ip = six.moves.urllib.parse.urlparse(
-            overcloud_endpoint).hostname
-
-        rc_params = {
-            'NOVA_VERSION': '1.1',
-            'COMPUTE_API_VERSION': '1.1',
-            'OS_USERNAME': 'admin',
-            'OS_TENANT_NAME': 'admin',
-            'OS_NO_CACHE': 'True',
-            'OS_CLOUDNAME': stack.stack_name,
-            'no_proxy': "%(no_proxy)s,%(overcloud_ip)s" % {
-                'no_proxy': parsed_args.no_proxy,
-                'overcloud_ip': overcloud_ip,
-            }
-        }
-        rc_params.update({
-            'OS_PASSWORD': utils.get_password('OVERCLOUD_ADMIN_PASSWORD'),
-            'OS_AUTH_URL': utils.get_overcloud_endpoint(stack),
-        })
-        with open('%src' % stack.stack_name, 'w') as f:
-            for key, value in rc_params.items():
-                f.write("export %(key)s=%(value)s\n" %
-                        {'key': key, 'value': value})
-
-    def _create_tempest_deployer_input(self):
-        config = configparser.ConfigParser()
-
-        config.add_section('compute-feature-enabled')
-        # Does the test environment support obtaining instance serial console
-        # output? (default: true)
-        # set in [nova.serial_console]->enabled
-        config.set('compute-feature-enabled', 'console_output', 'false')
-
-        config.add_section('object-storage')
-        # Role to add to users created for swift tests to enable creating
-        # containers (default: 'Member')
-        # keystone role-list returns this role
-        config.set('object-storage', 'operator_role', 'swiftoperator')
-
-        config.add_section('orchestration')
-        # Role required for users to be able to manage stacks
-        # (default: 'heat_stack_owner')
-        # keystone role-list returns this role
-        config.set('orchestration', 'stack_owner_role', 'heat_stack_owner')
-
-        config.add_section('volume')
-        # Name of the backend1 (must be declared in cinder.conf)
-        # (default: 'BACKEND_1')
-        # set in [cinder]->enabled_backends
-        config.set('volume', 'backend1_name', 'tripleo_iscsi')
-
-        config.add_section('volume-feature-enabled')
-        # Update bootable status of a volume Not implemented on icehouse
-        # (default: false)
-        # python-cinderclient supports set-bootable
-        config.set('volume-feature-enabled', 'bootable', 'true')
-
-        with open('tempest-deployer-input.conf', 'w+') as config_file:
-            config.write(config_file)
 
     def _deploy_postconfig(self, stack, parsed_args):
         self.log.debug("_deploy_postconfig(%s)" % parsed_args)
@@ -941,8 +878,8 @@ class DeployOvercloud(command.Command):
             # a create then the previous stack object would be None.
             stack = utils.get_stack(orchestration_client, parsed_args.stack)
 
-            self._create_overcloudrc(stack, parsed_args)
-            self._create_tempest_deployer_input()
+            utils.create_overcloudrc(stack, parsed_args.no_proxy)
+            utils.create_tempest_deployer_input()
 
             if stack_create:
                 self._deploy_postconfig(stack, parsed_args)
