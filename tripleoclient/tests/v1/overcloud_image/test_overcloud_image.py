@@ -54,7 +54,6 @@ class TestOvercloudImageBuild(TestPluginV1):
 
         self.assertEqual(1, self.mock_ramdisk_image_create.call_count)
         self.assertEqual(2, self.mock_disk_image_create.call_count)
-        self.assertEqual(1, mock_fedora_user.call_count)
 
     @mock.patch('subprocess.call', autospec=True)
     @mock.patch('os.path.isfile', autospec=True)
