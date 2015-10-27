@@ -177,7 +177,7 @@ class ImportBaremetal(command.Command):
         nodes.register_all_nodes(
             parsed_args.service_host,
             nodes_json,
-            client=self.app.client_manager.tripleoclient.baremetal(),
+            client=self.app.client_manager.tripleoclient.baremetal,
             keystone_client=self.app.client_manager.identity)
 
 
@@ -205,7 +205,7 @@ class StartBaremetalIntrospectionBulk(IntrospectionParser, command.Command):
     def take_action(self, parsed_args):
 
         self.log.debug("take_action(%s)" % parsed_args)
-        client = self.app.client_manager.tripleoclient.baremetal()
+        client = self.app.client_manager.tripleoclient.baremetal
 
         auth_token = self.app.client_manager.auth_ref.auth_token
         node_uuids = []
@@ -250,7 +250,7 @@ class StartBaremetalIntrospectionBulk(IntrospectionParser, command.Command):
                 has_errors = True
 
         clients = self.app.client_manager
-        baremetal_client = clients.tripleoclient.baremetal()
+        baremetal_client = clients.tripleoclient.baremetal
         print("Setting manageable nodes to available...")
 
         self.log.debug("Moving manageable nodes to available state.")
@@ -275,7 +275,7 @@ class StatusBaremetalIntrospectionBulk(IntrospectionParser, lister.Lister):
     def take_action(self, parsed_args):
 
         self.log.debug("take_action(%s)" % parsed_args)
-        client = self.app.client_manager.tripleoclient.baremetal()
+        client = self.app.client_manager.tripleoclient.baremetal
         auth_token = self.app.client_manager.auth_ref.auth_token
 
         statuses = []
@@ -423,7 +423,7 @@ class ConfigureReadyState(IntrospectionParser, command.Command):
         self.log.debug("take_action(%s)" % parsed_args)
 
         self.bm_client = (
-            self.app.client_manager.tripleoclient.baremetal())
+            self.app.client_manager.tripleoclient.baremetal)
         self.inspector_url = parsed_args.inspector_url
         drac_nodes = [node for node in self.bm_client.node.list(detail=True)
                       if 'drac' in node.driver]
@@ -467,7 +467,7 @@ class ConfigureBaremetalBoot(command.Command):
     def take_action(self, parsed_args):
 
         self.log.debug("take_action(%s)" % parsed_args)
-        bm_client = self.app.client_manager.tripleoclient.baremetal()
+        bm_client = self.app.client_manager.tripleoclient.baremetal
 
         image_client = self.app.client_manager.image
 
@@ -550,7 +550,7 @@ class ShowNodeCapabilities(lister.Lister):
     log = logging.getLogger(__name__ + ".ShowNodeProfile")
 
     def take_action(self, parsed_args):
-        bm_client = self.app.client_manager.tripleoclient.baremetal()
+        bm_client = self.app.client_manager.tripleoclient.baremetal
         rows = []
         for node in bm_client.node.list():
             node_detail = bm_client.node.get(node.uuid)

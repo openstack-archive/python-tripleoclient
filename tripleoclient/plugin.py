@@ -67,6 +67,7 @@ class ClientWrapper(object):
         self._baremetal = None
         self._orchestration = None
 
+    @property
     def baremetal(self):
         """Returns an baremetal service client"""
 
