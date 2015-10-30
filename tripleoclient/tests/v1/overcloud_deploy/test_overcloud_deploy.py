@@ -601,6 +601,20 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         # If this call does not raise an error, then call is validated
         self.cmd._validate_args(parsed_args)
 
+    def test_validate_args_vlan_as_network_type_no_vlan_range(self):
+        arglist = ['--templates',
+                   '--neutron-network-type', 'vlan']
+        verifylist = [
+            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
+            ('neutron_network_type', 'vlan')
+        ]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.assertRaises(oscexc.CommandError,
+                          self.cmd._validate_args,
+                          parsed_args)
+
     @mock.patch('tripleoclient.utils.check_hypervisor_stats',
                 autospec=True)
     def test_pre_heat_deploy_failed(self, mock_check_hypervisor_stats):

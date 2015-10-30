@@ -507,7 +507,12 @@ class DeployOvercloud(command.Command):
         network_type = parsed_args.neutron_network_type
         tunnel_types = parsed_args.neutron_tunnel_types
         tunnel_disabled = parsed_args.neutron_disable_tunneling
-        if network_type and tunnel_types:
+        neutron_network_vlan_ranges = parsed_args.neutron_network_vlan_ranges
+        if network_type == 'vlan' and not neutron_network_vlan_ranges:
+            raise oscexc.CommandError(
+                "Neutron network VLAN ranges must be specified when the "
+                "network type is set to VLAN")
+        elif network_type and tunnel_types:
             # Validate that neutron_network_type is in neutron_tunnel_types
             if network_type not in tunnel_types:
                 raise oscexc.CommandError("Neutron network type must be in "
