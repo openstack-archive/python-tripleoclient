@@ -39,3 +39,8 @@ class NotFound(Exception):
 class DeploymentError(Exception):
     """Deployment failed"""
     pass
+
+
+class RootUserExecution(Exception):
+    """Command was executed by a root user"""
+    pass
