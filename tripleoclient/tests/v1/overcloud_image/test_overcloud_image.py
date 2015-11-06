@@ -13,7 +13,6 @@
 #   under the License.
 #
 
-import io
 import mock
 import os
 
@@ -39,22 +38,23 @@ class TestOvercloudImageBuild(TestPluginV1):
         self.cmd = overcloud_image.BuildOvercloudImage(self.app, None)
         self.cmd._create_builder = _force_builder
 
+    @mock.patch('platform.linux_distribution')
     @mock.patch.object(overcloud_image.BuildOvercloudImage,
                        '_build_image_fedora_user', autospec=True)
-    def test_overcloud_image_build_all(self, mock_fedora_user):
+    def test_overcloud_image_build_all(self, mock_fedora_user,
+                                       mock_linux_distribution):
         arglist = ['--all']
         verifylist = [('all', True)]
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
-        redhat_release = io.StringIO(u'CentOS Fake Release')
-        with mock.patch('tripleoclient.v1.overcloud_image.open',
-                        return_value=redhat_release, create=True):
-            self.cmd.take_action(parsed_args)
+        mock_linux_distribution.return_value = ['CentOS Fake Release']
+        self.cmd.take_action(parsed_args)
 
         self.assertEqual(1, self.mock_ramdisk_image_create.call_count)
         self.assertEqual(2, self.mock_disk_image_create.call_count)
 
+    @mock.patch('platform.linux_distribution')
     @mock.patch('subprocess.call', autospec=True)
     @mock.patch('os.path.isfile', autospec=True)
     @mock.patch('os.chmod')
@@ -64,7 +64,8 @@ class TestOvercloudImageBuild(TestPluginV1):
             mock_requests_get,
             mock_os_chmod,
             mock_os_path_isfile,
-            mock_subprocess_call):
+            mock_subprocess_call,
+            mock_linux_distribution):
         arglist = ['--type', 'fedora-user']
         verifylist = [('image_types', ['fedora-user'])]
 
@@ -81,7 +82,8 @@ class TestOvercloudImageBuild(TestPluginV1):
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         mock_open_context = mock.mock_open()
-        mock_open_context().readline.return_value = "Red Hat Enterprise Linux"
+        mock_linux_distribution.return_value = [
+            'Red Hat Enterprise Linux Server 7.1']
 
         with mock.patch('six.moves.builtins.open', mock_open_context):
             self.cmd.take_action(parsed_args)
@@ -93,10 +95,12 @@ class TestOvercloudImageBuild(TestPluginV1):
         mock_open_context.assert_has_calls(
             [mock.call('fedora-user.qcow2', 'wb')])
 
+    @mock.patch('platform.linux_distribution')
     @mock.patch('os.path.isfile', autospec=True)
     def test_overcloud_image_build_overcloud_full(
             self,
-            mock_os_path_isfile):
+            mock_os_path_isfile,
+            mock_linux_distribution):
         arglist = ['--type', 'overcloud-full']
         verifylist = [('image_types', ['overcloud-full'])]
 
@@ -109,11 +113,10 @@ class TestOvercloudImageBuild(TestPluginV1):
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
-        mock_open_context = mock.mock_open()
-        mock_open_context().readline.return_value = "Red Hat Enterprise Linux"
+        mock_linux_distribution.return_value = [
+            'Red Hat Enterprise Linux Server 7.1']
 
-        with mock.patch('six.moves.builtins.open', mock_open_context):
-            self.cmd.take_action(parsed_args)
+        self.cmd.take_action(parsed_args)
 
         self.mock_disk_image_create.assert_called_once_with(
             "-a amd64 -o "
@@ -130,10 +133,12 @@ class TestOvercloudImageBuild(TestPluginV1):
             "pip-and-virtualenv-override --min-tmpfs 5 2>&1 | "
             "tee dib-overcloud-full.log")
 
+    @mock.patch('platform.linux_distribution')
     @mock.patch('os.path.isfile', autospec=True)
     def test_overcloud_image_build_deploy_ramdisk(
             self,
-            mock_os_path_isfile):
+            mock_os_path_isfile,
+            mock_linux_distribution):
         arglist = ['--type', 'deploy-ramdisk']
         verifylist = [('image_types', ['deploy-ramdisk'])]
 
@@ -147,11 +152,10 @@ class TestOvercloudImageBuild(TestPluginV1):
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
-        mock_open_context = mock.mock_open()
-        mock_open_context().readline.return_value = "Red Hat Enterprise Linux"
+        mock_linux_distribution.return_value = [
+            'Red Hat Enterprise Linux Server 7.1']
 
-        with mock.patch('six.moves.builtins.open', mock_open_context):
-            self.cmd.take_action(parsed_args)
+        self.cmd.take_action(parsed_args)
 
         self.mock_ramdisk_image_create.assert_called_once_with(
             "-a amd64 -o deploy-ramdisk-ironic --ramdisk-element "
@@ -160,10 +164,12 @@ class TestOvercloudImageBuild(TestPluginV1):
             "undercloud-package-install "
             "pip-and-virtualenv-override 2>&1 | tee dib-deploy.log")
 
+    @mock.patch('platform.linux_distribution')
     @mock.patch('os.path.isfile', autospec=True)
     def test_overcloud_image_build_deploy_ramdisk_agent(
             self,
-            mock_os_path_isfile):
+            mock_os_path_isfile,
+            mock_linux_distribution):
         arglist = ['--type', 'agent-ramdisk']
         verifylist = [('image_types', ['agent-ramdisk'])]
 
@@ -177,17 +183,23 @@ class TestOvercloudImageBuild(TestPluginV1):
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
-        mock_open_context = mock.mock_open()
-        mock_open_context().readline.return_value = "Red Hat Enterprise Linux"
+        mock_linux_distribution.return_value = [
+            'Red Hat Enterprise Linux Server 7.1']
 
-        with mock.patch('six.moves.builtins.open', mock_open_context):
-            self.cmd.take_action(parsed_args)
+        self.cmd.take_action(parsed_args)
 
         self.mock_disk_image_create.assert_called_once_with(
             "-a amd64 -o ironic-python-agent "
             "rhel7 ironic-agent element-manifest network-gateway epel "
             "rdo-release undercloud-package-install "
             "pip-and-virtualenv-override 2>&1 | tee dib-agent-ramdisk.log")
+
+    @mock.patch('platform.linux_distribution')
+    def test_unsupported_distro(self, mock_linux_distribution):
+        mock_linux_distribution.return_value = [
+            'Some Random Distro Eleventy.Infinity']
+        parsed_args = self.check_parser(self.cmd, ['--all'], [])
+        self.assertRaises(RuntimeError, self.cmd.take_action, parsed_args)
 
 
 class TestUploadOvercloudImage(TestPluginV1):
