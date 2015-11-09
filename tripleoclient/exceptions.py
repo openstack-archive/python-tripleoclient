@@ -36,11 +36,15 @@ class NotFound(Exception):
     pass
 
 
-class DeploymentError(Exception):
+class DeploymentError(RuntimeError):
     """Deployment failed"""
     pass
 
 
 class RootUserExecution(Exception):
     """Command was executed by a root user"""
+
+
+class InvalidConfiguration(ValueError):
+    """Invalid parameters were specified for the deployment"""
     pass
