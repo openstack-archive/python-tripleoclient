@@ -22,6 +22,7 @@ import re
 import six
 import sys
 import tempfile
+import time
 import uuid
 
 from cliff import command
@@ -90,6 +91,9 @@ class DeployOvercloud(command.Command):
 
         self.log.debug("Generating overcloud passwords")
         self.set_overcloud_passwords(parameters, args)
+
+        timestamp = int(time.time())
+        parameters['DeployIdentifier'] = timestamp
 
         param_args = (
             ('NeutronPublicInterface', 'neutron_public_interface'),
