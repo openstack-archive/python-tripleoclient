@@ -80,7 +80,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.create_cephx_key',
                 autospec=True)
     @mock.patch('uuid.uuid1', autospec=True)
-    def test_tht_scale(self, mock_uuid1, mock_create_cephx_key,
+    @mock.patch('time.time', autospec=True)
+    def test_tht_scale(self, mock_time, mock_uuid1, mock_create_cephx_key,
                        mock_check_hypervisor_stats, mock_get_key,
                        mock_create_env, generate_certs_mock,
                        mock_get_templte_contents, mock_process_multiple_env,
@@ -101,6 +102,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_create_cephx_key.return_value = "cephx_key"
         mock_uuid1.return_value = "uuid"
+        mock_time.return_value = 123456789
 
         mock_generate_overcloud_passwords.return_value = self._get_passwords()
 
@@ -167,6 +169,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'SwiftHashSuffix': 'password',
             'SwiftPassword': 'password',
             'SwiftStorageImage': 'overcloud-full',
+            'DeployIdentifier': 123456789,
         }
 
         def _custom_create_params_env(parameters):
@@ -230,7 +233,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.create_cephx_key',
                 autospec=True)
     @mock.patch('uuid.uuid1', autospec=True)
-    def test_tht_deploy(self, mock_uuid1, mock_create_cephx_key,
+    @mock.patch('time.time', autospec=True)
+    def test_tht_deploy(self, mock_time, mock_uuid1, mock_create_cephx_key,
                         mock_check_hypervisor_stats, mock_get_key,
                         mock_create_env, generate_certs_mock,
                         mock_get_templte_contents, mock_process_multiple_env,
@@ -251,6 +255,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_create_cephx_key.return_value = "cephx_key"
         mock_uuid1.return_value = "uuid"
+        mock_time.return_value = 123456789
 
         mock_generate_overcloud_passwords.return_value = self._get_passwords()
 
@@ -332,6 +337,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'SwiftHashSuffix': 'password',
             'SwiftPassword': 'password',
             'SwiftStorageImage': 'overcloud-full',
+            'DeployIdentifier': 123456789,
         }
 
         def _custom_create_params_env(parameters):
