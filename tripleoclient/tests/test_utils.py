@@ -80,10 +80,10 @@ class TestPasswordsUtil(TestCase):
         with mock.patch('six.moves.builtins.open', mock_open):
             passwords = utils.generate_overcloud_passwords()
 
-        mock_open().write.assert_not_called()
         generate_password_mock.assert_not_called()
-
         self.assertEqual(len(passwords), 13)
+        for name in utils._PASSWORD_NAMES:
+            self.assertEqual('PASSWORD', passwords[name])
 
 
 class TestCheckHypervisorUtil(TestCase):
