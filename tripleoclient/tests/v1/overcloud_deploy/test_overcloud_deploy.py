@@ -547,6 +547,52 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True)
     @mock.patch('tripleoclient.utils.create_overcloudrc', autospec=True)
     @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
+    @mock.patch('tripleoclient.utils.check_nodes_count', autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_deploy_postconfig', autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_update_parameters', autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_pre_heat_deploy', autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_heat_deploy', autospec=True)
+    def test_environment_dirs_env(self, mock_deploy_heat, mock_pre_heat,
+                                  mock_update_parameters, mock_post_config,
+                                  mock_utils_check_nodes, mock_utils_endpoint,
+                                  mock_utils_createrc, mock_utils_tempest):
+
+        mock_update_parameters.return_value = {}
+        mock_utils_endpoint.return_value = 'foo.bar'
+
+        tmp_dir = tempfile.NamedTemporaryFile(mode='w', delete=False).name
+        os.unlink(tmp_dir)
+        os.mkdir(tmp_dir)
+        test_env = os.path.join(tmp_dir, 'foo.yaml')
+        with open(test_env, 'w') as temp_file:
+            temp_file.write('#just a comment')
+
+        arglist = ['--templates']
+        verifylist = [
+            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
+        ]
+        os.environ['TRIPLEO_ENVIRONMENT_DIRECTORY'] = tmp_dir
+
+        def _fake_heat_deploy(self, stack, stack_name, template_path,
+                              parameters, environments, timeout):
+            assert test_env in environments
+
+        mock_deploy_heat.side_effect = _fake_heat_deploy
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        result = self.cmd.take_action(parsed_args)
+        self.assertTrue(result)
+        os.unlink(test_env)
+        os.rmdir(tmp_dir)
+
+    @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
+                autospec=True)
+    @mock.patch('tripleoclient.utils.create_overcloudrc', autospec=True)
+    @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_tripleo_heat_templates', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
