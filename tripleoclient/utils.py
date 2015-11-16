@@ -19,13 +19,13 @@ import json
 import logging
 import os
 import passlib.utils as passutils
-import re
 import six
 import struct
 import subprocess
 import sys
 import time
 
+from heatclient.common import event_utils
 from heatclient.exc import HTTPNotFound
 from six.moves import configparser
 from six.moves import urllib
@@ -176,7 +176,8 @@ def check_hypervisor_stats(compute_client, nodes=1, memory=0, vcpu=0):
         return None
 
 
-def wait_for_stack_ready(orchestration_client, stack_name):
+def wait_for_stack_ready(orchestration_client, stack_name, marker=None,
+                         action='CREATE', verbose=False):
     """Check the status of an orchestration stack
 
     Get the status of an orchestration stack and check whether it is complete
@@ -187,26 +188,63 @@ def wait_for_stack_ready(orchestration_client, stack_name):
 
     :param stack_name: Name or UUID of stack to retrieve
     :type  stack_name: string
+
+    :param marker: UUID of the last stack event before the current action
+    :type  marker: string
+
+    :param action: Current action to check the stack for COMPLETE
+    :type action: string
+
+    :param verbose: Whether to print events
+    :type verbose: boolean
     """
-    SUCCESSFUL_MATCH_OUTPUT = "(CREATE|UPDATE)_COMPLETE"
-    FAIL_MATCH_OUTPUT = "(CREATE|UPDATE)_FAILED"
+    stack = get_stack(orchestration_client, stack_name)
+    if not stack:
+        return False
+    stack_name = stack.stack_name
 
     while True:
-        stack = orchestration_client.stacks.get(stack_name)
+        events = event_utils.get_events(orchestration_client,
+                                        stack_id=stack_name, nested_depth=2,
+                                        event_args={'sort_dir': 'asc',
+                                                    'marker': marker})
 
-        if not stack:
-            return False
+        if len(events) >= 1:
+            # set marker to last event that was received.
+            marker = getattr(events[-1], 'id', None)
 
-        status = stack.stack_status
+            if verbose:
+                events_log = event_log_formatter(events)
+                print(events_log)
+            for event in events:
+                # check if stack event was also received
+                if getattr(event, 'resource_name', '') == stack_name:
+                    stack_status = getattr(event, 'resource_status', '')
+                    print("Stack %(name)s %(status)s" % dict(
+                        name=stack_name, status=stack_status))
+                    if stack_status == '%s_COMPLETE' % action:
+                        return True
+                    elif stack_status == '%s_FAILED' % action:
+                        return False
+        time.sleep(5)
 
-        if re.match(SUCCESSFUL_MATCH_OUTPUT, status):
-            return True
-        if re.match(FAIL_MATCH_OUTPUT, status):
-            print("Stack failed with status: {}".format(
-                stack.stack_status_reason, file=sys.stderr))
-            return False
 
-        time.sleep(10)
+def event_log_formatter(events):
+    """Return the events in log format."""
+    event_log = []
+    log_format = ("%(event_time)s "
+                  "[%(rsrc_name)s]: %(rsrc_status)s  %(rsrc_status_reason)s")
+    for event in events:
+        event_time = getattr(event, 'event_time', '')
+        log = log_format % {
+            'event_time': event_time.replace('T', ' '),
+            'rsrc_name': getattr(event, 'resource_name', ''),
+            'rsrc_status': getattr(event, 'resource_status', ''),
+            'rsrc_status_reason': getattr(event, 'resource_status_reason', '')
+        }
+        event_log.append(log)
+
+    return "\n".join(event_log)
 
 
 def wait_for_provision_state(baremetal_client, node_uuid, provision_state,
