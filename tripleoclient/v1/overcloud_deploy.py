@@ -23,6 +23,7 @@ import re
 import six
 import sys
 import tempfile
+import time
 import uuid
 
 from cliff import command
@@ -92,6 +93,8 @@ class DeployOvercloud(command.Command):
         self.log.debug("Getting ctlplane from Neutron")
         net = network_client.api.find_attr('networks', 'ctlplane')
         parameters['NeutronControlPlaneID'] = net['id']
+        timestamp = int(time.time())
+        parameters['DeployIdentifier'] = timestamp
 
         param_args = (
             ('NeutronPublicInterface', 'neutron_public_interface'),
