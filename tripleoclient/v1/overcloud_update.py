@@ -14,8 +14,10 @@
 #
 
 import logging
+import yaml
 
 from cliff import command
+from openstackclient.common import exceptions as oscexc
 from openstackclient.common import utils
 from openstackclient.i18n import _
 from tripleo_common import update
@@ -38,7 +40,6 @@ class UpdateOvercloud(command.Command):
         parser.add_argument(
             '--templates', nargs='?', const=constants.TRIPLEO_HEAT_TEMPLATES,
             help=_("The directory containing the Heat templates to deploy"),
-            required=True
         )
         parser.add_argument('-i', '--interactive', dest='interactive',
                             action='store_true')
@@ -51,9 +52,29 @@ class UpdateOvercloud(command.Command):
                    'or heat stack-update command. (Can be specified more than '
                    'once.)')
         )
+        parser.add_argument(
+            '--answers-file',
+            help=_('Path to a YAML file with arguments and parameters.')
+        )
         return parser
 
     def take_action(self, parsed_args):
+        if parsed_args.templates is None and parsed_args.answers_file is None:
+            raise oscexc.CommandError(
+                "You must specify either --templates or --answers-file")
+
+        if parsed_args.answers_file is not None:
+            with open(parsed_args.answers_file, 'r') as answers_file:
+                answers = yaml.load(answers_file)
+
+                if parsed_args.templates is None:
+                    parsed_args.templates = answers['templates']
+                if 'environments' in answers:
+                    if parsed_args.environment_files is not None:
+                        answers.environments.extend(
+                            parsed_args.environment_files)
+                    parsed_args.environment_files = answers['environments']
+
         self.log.debug("take_action(%s)" % parsed_args)
         osc_plugin = self.app.client_manager.tripleoclient
 
