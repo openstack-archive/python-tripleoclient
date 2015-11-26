@@ -13,6 +13,8 @@
 #   under the License.
 #
 
+from uuid import uuid4
+
 import mock
 import os.path
 import tempfile
@@ -456,3 +458,190 @@ class TestEnsureRunAsNormalUser(TestCase):
         os_geteuid_mock.return_value = 0
         self.assertRaises(exceptions.RootUserExecution,
                           utils.ensure_run_as_normal_user)
+
+
+class TestNodeGetCapabilities(TestCase):
+    def test_with_capabilities(self):
+        node = mock.Mock(properties={'capabilities': 'x:y,foo:bar'})
+        self.assertEqual({'x': 'y', 'foo': 'bar'},
+                         utils.node_get_capabilities(node))
+
+    def test_no_capabilities(self):
+        node = mock.Mock(properties={})
+        self.assertEqual({}, utils.node_get_capabilities(node))
+
+
+class TestNodeAddCapabilities(TestCase):
+    def test_add(self):
+        bm_client = mock.Mock()
+        node = mock.Mock(uuid='uuid1', properties={})
+        new_caps = utils.node_add_capabilities(bm_client, node, x='y')
+        bm_client.node.update.assert_called_once_with(
+            'uuid1', [{'op': 'add', 'path': '/properties/capabilities',
+                       'value': 'x:y'}])
+        self.assertEqual('x:y', node.properties['capabilities'])
+        self.assertEqual({'x': 'y'}, new_caps)
+
+
+class FakeFlavor(object):
+    def __init__(self, name):
+        self.name = name
+        self.profile = name
+
+    def get_keys(self):
+        return {
+            'capabilities:boot_option': 'local',
+            'capabilities:profile': self.profile
+        }
+
+
+class TestAssignVerifyProfiles(TestCase):
+    def setUp(self):
+
+        super(TestAssignVerifyProfiles, self).setUp()
+        self.bm_client = mock.Mock(spec=['node'],
+                                   node=mock.Mock(spec=['list', 'update']))
+        self.nodes = []
+        self.bm_client.node.list.return_value = self.nodes
+        self.flavors = {name: (FakeFlavor(name), 1)
+                        for name in ('compute', 'control')}
+
+    def _get_fake_node(self, profile=None, possible_profiles=[],
+                       provision_state='available'):
+        caps = {'%s_profile' % p: '1'
+                for p in possible_profiles}
+        if profile is not None:
+            caps['profile'] = profile
+        caps = utils.dict_to_capabilities(caps)
+        return mock.Mock(uuid=str(uuid4()),
+                         properties={'capabilities': caps},
+                         provision_state=provision_state,
+                         spec=['uuid', 'properties', 'provision_state'])
+
+    def _test(self, expected_errors, expected_warnings,
+              assign_profiles=True, dry_run=False):
+        errors, warnings = utils.assign_and_verify_profiles(self.bm_client,
+                                                            self.flavors,
+                                                            assign_profiles,
+                                                            dry_run)
+        self.assertEqual(errors, expected_errors)
+        self.assertEqual(warnings, expected_warnings)
+
+    def test_no_matching_without_scale(self):
+        self.flavors = {name: (object(), 0)
+                        for name in self.flavors}
+        self.nodes[:] = [self._get_fake_node(profile='fake'),
+                         self._get_fake_node(profile='fake')]
+
+        self._test(0, 0)
+        self.assertFalse(self.bm_client.node.update.called)
+
+    def test_exact_match(self):
+        self.nodes[:] = [self._get_fake_node(profile='compute'),
+                         self._get_fake_node(profile='control')]
+
+        self._test(0, 0)
+        self.assertFalse(self.bm_client.node.update.called)
+
+    def test_nodes_with_no_profiles_present(self):
+        self.nodes[:] = [self._get_fake_node(profile='compute'),
+                         self._get_fake_node(profile=None),
+                         self._get_fake_node(profile='foobar'),
+                         self._get_fake_node(profile='control')]
+
+        self._test(0, 1)
+        self.assertFalse(self.bm_client.node.update.called)
+
+    def test_more_nodes_with_profiles_present(self):
+        self.nodes[:] = [self._get_fake_node(profile='compute'),
+                         self._get_fake_node(profile='compute'),
+                         self._get_fake_node(profile='compute'),
+                         self._get_fake_node(profile='control')]
+
+        self._test(0, 1)
+        self.assertFalse(self.bm_client.node.update.called)
+
+    def test_no_nodes(self):
+        # One error per each flavor
+        self._test(2, 0)
+        self.assertFalse(self.bm_client.node.update.called)
+
+    def test_not_enough_nodes(self):
+        self.nodes[:] = [self._get_fake_node(profile='compute')]
+        self._test(1, 0)
+        self.assertFalse(self.bm_client.node.update.called)
+
+    def test_assign_profiles(self):
+        self.nodes[:] = [self._get_fake_node(possible_profiles=['compute']),
+                         self._get_fake_node(possible_profiles=['control']),
+                         self._get_fake_node(possible_profiles=['compute'])]
+
+        # one warning for a redundant node
+        self._test(0, 1, assign_profiles=True)
+        self.assertEqual(2, self.bm_client.node.update.call_count)
+
+        actual_profiles = [utils.node_get_capabilities(node).get('profile')
+                           for node in self.nodes]
+        actual_profiles.sort(key=lambda x: str(x))
+        self.assertEqual([None, 'compute', 'control'], actual_profiles)
+
+    def test_assign_profiles_multiple_options(self):
+        self.nodes[:] = [self._get_fake_node(possible_profiles=['compute',
+                                                                'control']),
+                         self._get_fake_node(possible_profiles=['compute',
+                                                                'control'])]
+
+        self._test(0, 0, assign_profiles=True)
+        self.assertEqual(2, self.bm_client.node.update.call_count)
+
+        actual_profiles = [utils.node_get_capabilities(node).get('profile')
+                           for node in self.nodes]
+        actual_profiles.sort(key=lambda x: str(x))
+        self.assertEqual(['compute', 'control'], actual_profiles)
+
+    def test_assign_profiles_not_enough(self):
+        self.nodes[:] = [self._get_fake_node(possible_profiles=['compute']),
+                         self._get_fake_node(possible_profiles=['compute']),
+                         self._get_fake_node(possible_profiles=['compute'])]
+
+        self._test(1, 1, assign_profiles=True)
+        # no node update for failed flavor
+        self.assertEqual(1, self.bm_client.node.update.call_count)
+
+        actual_profiles = [utils.node_get_capabilities(node).get('profile')
+                           for node in self.nodes]
+        actual_profiles.sort(key=lambda x: str(x))
+        self.assertEqual([None, None, 'compute'], actual_profiles)
+
+    def test_assign_profiles_dry_run(self):
+        self.nodes[:] = [self._get_fake_node(possible_profiles=['compute']),
+                         self._get_fake_node(possible_profiles=['control']),
+                         self._get_fake_node(possible_profiles=['compute'])]
+
+        self._test(0, 1, dry_run=True)
+        self.assertFalse(self.bm_client.node.update.called)
+
+        actual_profiles = [utils.node_get_capabilities(node).get('profile')
+                           for node in self.nodes]
+        self.assertEqual([None] * 3, actual_profiles)
+
+    def test_scale(self):
+        # active nodes with assigned profiles are fine
+        self.nodes[:] = [self._get_fake_node(profile='compute',
+                                             provision_state='active'),
+                         self._get_fake_node(profile='control')]
+
+        self._test(0, 0, assign_profiles=True)
+        self.assertFalse(self.bm_client.node.update.called)
+
+    def test_assign_profiles_wrong_state(self):
+        # active nodes are not considered for assigning profiles
+        self.nodes[:] = [self._get_fake_node(possible_profiles=['compute'],
+                                             provision_state='active'),
+                         self._get_fake_node(possible_profiles=['control'],
+                                             provision_state='cleaning'),
+                         self._get_fake_node(profile='compute',
+                                             provision_state='error')]
+
+        self._test(2, 1, assign_profiles=True)
+        self.assertFalse(self.bm_client.node.update.called)
