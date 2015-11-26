@@ -27,6 +27,7 @@ import time
 
 from heatclient.common import event_utils
 from heatclient.exc import HTTPNotFound
+from openstackclient.i18n import _
 from six.moves import configparser
 from six.moves import urllib
 
@@ -279,7 +280,7 @@ def wait_for_provision_state(baremetal_client, node_uuid, provision_state,
     :raises exceptions.StateTransitionFailed: if node.last_error is set
     """
 
-    for _ in range(0, loops):
+    for _l in range(0, loops):
 
         node = baremetal_client.node.get(node_uuid)
 
@@ -336,7 +337,7 @@ def wait_for_node_introspection(inspector_client, auth_token, inspector_url,
     log = logging.getLogger(__name__ + ".wait_for_node_introspection")
     node_uuids = node_uuids[:]
 
-    for _ in range(0, loops):
+    for _l in range(0, loops):
 
         for node_uuid in node_uuids:
             status = inspector_client.get_status(
@@ -605,3 +606,184 @@ def ensure_run_as_normal_user():
         raise exceptions.RootUserExecution(
             'This command cannot run under root user.'
             ' Switch to a normal user.')
+
+
+def capabilities_to_dict(caps):
+    """Convert the Node's capabilities into a dictionary."""
+    if not caps:
+        return {}
+    return dict([key.split(':', 1) for key in caps.split(',')])
+
+
+def dict_to_capabilities(caps_dict):
+    """Convert a dictionary into a string with the capabilities syntax."""
+    return ','.join(["%s:%s" % (key, value)
+                     for key, value in caps_dict.items()
+                     if value is not None])
+
+
+def node_get_capabilities(node):
+    """Get node capabilities."""
+    return capabilities_to_dict(node.properties.get('capabilities'))
+
+
+def node_add_capabilities(bm_client, node, **updated):
+    """Add or replace capabilities for a node."""
+    caps = node_get_capabilities(node)
+    caps.update(updated)
+    converted_caps = dict_to_capabilities(caps)
+    node.properties['capabilities'] = converted_caps
+    bm_client.node.update(node.uuid, [{'op': 'add',
+                                       'path': '/properties/capabilities',
+                                       'value': converted_caps}])
+    return caps
+
+
+def assign_and_verify_profiles(bm_client, flavors,
+                               assign_profiles=False, dry_run=False):
+    """Assign and verify profiles for given flavors.
+
+    :param bm_client: ironic client instance
+    :param flavors: map flavor name -> (flavor object, required count)
+    :param assign_profiles: whether to allow assigning profiles to nodes
+    :param dry_run: whether to skip applying actual changes (only makes sense
+                    if assign_profiles is True)
+    :returns: tuple (errors count, warnings count)
+    """
+    log = logging.getLogger(__name__ + ".assign_and_verify_profiles")
+    predeploy_errors = 0
+    predeploy_warnings = 0
+
+    # nodes available for deployment and scaling (including active)
+    bm_nodes = {node.uuid: node
+                for node in bm_client.node.list(maintenance=False,
+                                                detail=True)
+                if node.provision_state in ('available', 'active')}
+    # create a pool of unprocessed nodes and record their capabilities
+    free_node_caps = {uu: node_get_capabilities(node)
+                      for uu, node in bm_nodes.items()}
+
+    # TODO(dtantsur): use command-line arguments to specify the order in
+    # which profiles are processed (might matter for assigning profiles)
+    for flavor_name, (flavor, scale) in flavors.items():
+        if not scale:
+            log.debug("Skipping verification of flavor %s because "
+                      "none will be deployed", flavor_name)
+            continue
+
+        profile = flavor.get_keys().get('capabilities:profile')
+        if not profile:
+            predeploy_errors += 1
+            log.error(
+                'Error: The %s flavor has no profile associated', flavor_name)
+            log.error(
+                'Recommendation: assign a profile with openstack flavor '
+                'set --property "capabilities:profile"="PROFILE_NAME" %s',
+                flavor_name)
+            continue
+
+        # first collect nodes with known profiles
+        assigned_nodes = [uu for uu, caps in free_node_caps.items()
+                          if caps.get('profile') == profile]
+        required_count = scale - len(assigned_nodes)
+
+        if required_count < 0:
+            log.warning('%d nodes with profile %s won\'t be used '
+                        'for deployment now', -required_count, profile)
+            predeploy_warnings += 1
+            required_count = 0
+        elif required_count > 0 and assign_profiles:
+            # find more nodes by checking XXX_profile capabilities that are
+            # set by ironic-inspector or manually
+            capability = '%s_profile' % profile
+            more_nodes = [
+                uu for uu, caps in free_node_caps.items()
+                # use only nodes without a know profile
+                if not caps.get('profile')
+                and caps.get(capability, '').lower() in ('1', 'true')
+                # do not assign profiles for active nodes
+                and bm_nodes[uu].provision_state == 'available'
+            ][:required_count]
+            assigned_nodes.extend(more_nodes)
+            required_count -= len(more_nodes)
+
+        for uu in assigned_nodes:
+            # make sure these nodes are not reused for other profiles
+            node_caps = free_node_caps.pop(uu)
+            # save profile for newly assigned nodes, but only if we
+            # succeeded in finding enough of them
+            if not required_count and not node_caps.get('profile'):
+                node = bm_nodes[uu]
+                if not dry_run:
+                    node_add_capabilities(bm_client, node, profile=profile)
+                log.info('Node %s was assigned profile %s', uu, profile)
+            else:
+                log.debug('Node %s has profile %s', uu, profile)
+
+        if required_count > 0:
+            log.error(
+                "Error: only %s of %s requested ironic nodes are tagged "
+                "to profile %s (for flavor %s)",
+                scale - required_count, scale, profile, flavor_name
+            )
+            log.error(
+                "Recommendation: tag more nodes using ironic node-update "
+                "<NODE ID> replace properties/capabilities=profile:%s,"
+                "boot_option:local", profile)
+            predeploy_errors += 1
+
+    nodes_without_profile = [uu for uu, caps in free_node_caps.items()
+                             if not caps.get('profile')]
+    if nodes_without_profile:
+        predeploy_warnings += 1
+        log.warning(
+            "There are %d ironic nodes with no profile that will "
+            "not be used: %s", len(nodes_without_profile),
+            ', '.join(nodes_without_profile)
+        )
+
+    return predeploy_errors, predeploy_warnings
+
+
+def add_deployment_plan_arguments(parser):
+    """Add deployment plan arguments (flavors and scales) to a parser"""
+    parser.add_argument('--control-scale', type=int,
+                        help=_('New number of control nodes.'))
+    parser.add_argument('--compute-scale', type=int,
+                        help=_('New number of compute nodes.'))
+    parser.add_argument('--ceph-storage-scale', type=int,
+                        help=_('New number of ceph storage nodes.'))
+    parser.add_argument('--block-storage-scale', type=int,
+                        help=_('New number of cinder storage nodes.'))
+    parser.add_argument('--swift-storage-scale', type=int,
+                        help=_('New number of swift storage nodes.'))
+    parser.add_argument('--control-flavor',
+                        help=_("Nova flavor to use for control nodes."))
+    parser.add_argument('--compute-flavor',
+                        help=_("Nova flavor to use for compute nodes."))
+    parser.add_argument('--ceph-storage-flavor',
+                        help=_("Nova flavor to use for ceph storage "
+                               "nodes."))
+    parser.add_argument('--block-storage-flavor',
+                        help=_("Nova flavor to use for cinder storage "
+                               "nodes."))
+    parser.add_argument('--swift-storage-flavor',
+                        help=_("Nova flavor to use for swift storage "
+                               "nodes."))
+
+
+def get_roles_info(parsed_args):
+    """Get flavor name and scale for all deployment roles.
+
+    :returns: dict role name -> (flavor name, scale)
+    """
+    return {
+        'control': (parsed_args.control_flavor, parsed_args.control_scale),
+        'compute': (parsed_args.compute_flavor, parsed_args.compute_scale),
+        'ceph-storage': (parsed_args.ceph_storage_flavor,
+                         parsed_args.ceph_storage_scale),
+        'block-storage': (parsed_args.block_storage_flavor,
+                          parsed_args.block_storage_scale),
+        'swift-storage': (parsed_args.swift_storage_flavor,
+                          parsed_args.swift_storage_scale)
+    }

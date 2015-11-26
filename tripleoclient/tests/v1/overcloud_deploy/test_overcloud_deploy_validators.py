@@ -118,6 +118,9 @@ class TestDeployValidators(fakes.TestDeployOvercloud):
                 self.uuid = uuid4()
                 self.name = name
 
+            def get_keys(self):
+                return {'capabilities:boot_option': 'local'}
+
         arglist = [
             '--block-storage-flavor', 'block',
             '--block-storage-scale', '3',
@@ -136,49 +139,34 @@ class TestDeployValidators(fakes.TestDeployOvercloud):
         ]
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
+        expected_result = {
+            'block': (FakeFlavor('block'), 3),
+            'compute': (FakeFlavor('compute'), 3),
+            'control': (FakeFlavor('control'), 1),
+            'swift': (FakeFlavor('swift'), 2)
+        }
         mock_flavor_list = mock.Mock(
             return_value=[
-                FakeFlavor('block'),
-                FakeFlavor('compute'),
-                FakeFlavor('control'),
-                FakeFlavor('swift'),
+                flavor for flavor, scale in expected_result.values()
             ]
         )
         mock_flavors = mock.Mock()
         mock_flavors.attach_mock(mock_flavor_list, 'list')
         self.app.client_manager.compute.attach_mock(mock_flavors, 'flavors')
 
-        self.cmd._check_flavors_exist(parsed_args)
+        result = self.cmd._collect_flavors(parsed_args)
         self.assertEqual(self.cmd.predeploy_errors, 0)
         self.assertEqual(self.cmd.predeploy_warnings, 0)
+        self.assertEqual(expected_result, result)
 
+        del expected_result['swift']
         mock_flavor_list_no_swift = mock.Mock(
             return_value=[
-                FakeFlavor('block'),
-                FakeFlavor('compute'),
-                FakeFlavor('control'),
+                flavor for flavor, scale in expected_result.values()
             ]
         )
         mock_flavors.attach_mock(mock_flavor_list_no_swift, 'list')
-        self.cmd._check_flavors_exist(parsed_args)
+        result = self.cmd._collect_flavors(parsed_args)
         self.assertEqual(self.cmd.predeploy_errors, 1)
         self.assertEqual(self.cmd.predeploy_warnings, 0)
-
-    def test_check_profiles(self):
-        flavor_profile_map = {'ceph-flavor': 'ceph-profile'}
-        node_profile_map = {
-            None: ['e0e6a290-2321-4981-8a76-b230284119c2'],
-            'ceph-profile': ['ea7d8a81-5e7c-4696-bd1e-8ee83da5b816']
-        }
-
-        self.cmd._check_profiles('ceph-storage', 'ceph-flavor', 1,
-                                 flavor_profile_map,
-                                 node_profile_map)
-        self.assertEqual(self.cmd.predeploy_errors, 0)
-        self.assertEqual(self.cmd.predeploy_warnings, 0)
-
-        self.cmd._check_profiles('ceph-storage', 'ceph-flavor', 2,
-                                 flavor_profile_map,
-                                 node_profile_map)
-        self.assertEqual(self.cmd.predeploy_errors, 1)
-        self.assertEqual(self.cmd.predeploy_warnings, 0)
+        self.assertEqual(expected_result, result)
