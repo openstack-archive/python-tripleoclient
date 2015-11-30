@@ -370,20 +370,25 @@ class DeployOvercloud(command.Command):
 
         utils.remove_known_hosts(overcloud_ip)
 
-        keystone_ip = service_ips.get('KeystoneAdminVip')
-        if not keystone_ip:
-            keystone_ip = overcloud_ip
+        keystone_admin_ip = service_ips.get('KeystoneAdminVip')
+        keystone_internal_ip = service_ips.get('KeystoneInternalVip')
+        if not keystone_admin_ip:
+            keystone_admin_ip = overcloud_ip
+        if not keystone_internal_ip:
+            keystone_internal_ip = overcloud_ip
 
         # Note (spredzy): This was deprecated at the begining of
         # the Mitaka cycle. Should be good to remove for the
         # next N cycle.
         keystone.initialize(
-            keystone_ip,
+            keystone_admin_ip,
             utils.get_password('OVERCLOUD_ADMIN_TOKEN'),
             'admin@example.com',
             utils.get_password('OVERCLOUD_ADMIN_PASSWORD'),
             public=overcloud_ip,
-            user=parsed_args.overcloud_ssh_user)
+            user=parsed_args.overcloud_ssh_user,
+            admin=keystone_admin_ip,
+            internal=keystone_internal_ip)
 
         # NOTE(bcrochet): Bad hack. Remove the ssl_port info from the
         # os_cloud_config.SERVICES dictionary
