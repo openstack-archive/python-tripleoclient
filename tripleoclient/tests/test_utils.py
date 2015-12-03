@@ -18,6 +18,8 @@ import os.path
 import tempfile
 
 from tripleoclient import exceptions
+from tripleoclient.tests.v1.utils import (
+    generate_overcloud_passwords_mock)
 from tripleoclient import utils
 from unittest import TestCase
 
@@ -177,7 +179,8 @@ class TestWaitForStackUtil(TestCase):
                             'CREATE_FAILED', '2015-10-14T02:25:43Z'),
         ]]
 
-        complete = utils.wait_for_stack_ready(self.mock_orchestration, 'stack')
+        complete = utils.wait_for_stack_ready(self.mock_orchestration, 'stack',
+                                              verbose=True)
 
         self.assertFalse(complete)
 
@@ -452,3 +455,63 @@ class TestEnsureRunAsNormalUser(TestCase):
         os_geteuid_mock.return_value = 0
         self.assertRaises(exceptions.RootUserExecution,
                           utils.ensure_run_as_normal_user)
+
+
+class TestCreateOvercloudRC(TestCase):
+
+    @mock.patch('tripleoclient.utils.generate_overcloud_passwords',
+                new=generate_overcloud_passwords_mock)
+    def test_create_overcloudrc(self):
+        stack = mock.MagicMock()
+        stack.stack_name = 'teststack'
+        stack.to_dict.return_value = {
+            'outputs': [{'output_key': 'KeystoneURL',
+                         'output_value': 'http://foo:8000/'}]
+        }
+
+        tempdir = tempfile.mkdtemp()
+        rcfile = os.path.join(tempdir, 'teststackrc')
+        try:
+            utils.create_overcloudrc(stack=stack,
+                                     no_proxy='127.0.0.1',
+                                     config_directory=tempdir)
+            rc = open(rcfile, 'rt').read()
+            self.assertIn('export OS_AUTH_URL=http://foo:8000/', rc)
+            self.assertIn('export no_proxy=127.0.0.1', rc)
+            self.assertIn('export OS_CLOUDNAME=teststack', rc)
+        finally:
+            if os.path.exists(rcfile):
+                os.unlink(rcfile)
+            os.rmdir(tempdir)
+
+
+class TestCreateTempestDeployerInput(TestCase):
+
+    def test_create_tempest_deployer_input(self):
+        with tempfile.NamedTemporaryFile() as cfgfile:
+            filepath = cfgfile.name
+            utils.create_tempest_deployer_input(filepath)
+            cfg = open(filepath, 'rt').read()
+            # Just make a simple test, to make sure it created a proper file:
+            self.assertIn(
+                '[orchestration]\nstack_owner_role = heat_stack_user', cfg)
+
+
+class TestGetServiceIps(TestCase):
+
+    def test_get_service_ips(self):
+        stack = mock.MagicMock()
+        stack.to_dict.return_value = {
+            'outputs': [{'output_key': 'KeystoneURL',
+                         'output_value': 'http://foo:8000/'}]
+        }
+
+        ips = utils.get_service_ips(stack)
+        self.assertEqual(ips, {'KeystoneURL': 'http://foo:8000/'})
+
+
+class TestCreateCephxKey(TestCase):
+
+    def test_create_cephx_key(self):
+        key = utils.create_cephx_key()
+        self.assertEqual(len(key), 40)
