@@ -238,7 +238,7 @@ class StartBaremetalIntrospectionBulk(IntrospectionParser, command.Command):
             time.sleep(5)
 
         print("Waiting for introspection to finish...")
-        has_errors = False
+        errors = []
         for uuid, status in utils.wait_for_node_introspection(
                 inspector_client, auth_token, parsed_args.inspector_url,
                 node_uuids):
@@ -248,7 +248,7 @@ class StartBaremetalIntrospectionBulk(IntrospectionParser, command.Command):
             else:
                 print("Introspection for UUID {0} finished with error: {1}"
                       .format(uuid, status['error']))
-                has_errors = True
+                errors.append("%s: %s" % (uuid, status['error']))
 
         print("Setting manageable nodes to available...")
 
@@ -261,8 +261,9 @@ class StartBaremetalIntrospectionBulk(IntrospectionParser, command.Command):
                 'available', skipped_states=("available", "active")):
             print("Node {0} has been set to available.".format(uuid))
 
-        if has_errors:
-            print("Introspection completed with errors.")
+        if errors:
+            raise exceptions.IntrospectionError(
+                "Introspection completed with errors:\n%s" % '\n'.join(errors))
         else:
             print("Introspection completed.")
 

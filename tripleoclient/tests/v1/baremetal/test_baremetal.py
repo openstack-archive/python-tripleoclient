@@ -458,9 +458,29 @@ class TestStartBaremetalIntrospectionBulk(fakes.TestBaremetal):
         client.node.list.return_value = [
             mock.Mock(uuid="ABCDEFGH", provision_state="manageable")
         ]
+        get_status_mock.return_value = {'finished': True, 'error': None}
 
         parsed_args = self.check_parser(self.cmd, [], [])
         self.cmd.take_action(parsed_args)
+
+        inspection_mock.assert_called_once_with(
+            'ABCDEFGH', base_url=None, auth_token='TOKEN')
+
+    @mock.patch.object(baremetal.inspector_client, 'get_status', autospec=True)
+    @mock.patch.object(baremetal.inspector_client, 'introspect', autospec=True)
+    def test_introspect_bulk_failed(self, inspection_mock, get_status_mock):
+
+        client = self.app.client_manager.tripleoclient.baremetal
+        client.node.list.return_value = [
+            mock.Mock(uuid="ABCDEFGH", provision_state="manageable")
+        ]
+        get_status_mock.return_value = {'finished': True,
+                                        'error': 'fake error'}
+
+        parsed_args = self.check_parser(self.cmd, [], [])
+        self.assertRaisesRegexp(exceptions.IntrospectionError,
+                                'ABCDEFGH: fake error',
+                                self.cmd.take_action, parsed_args)
 
         inspection_mock.assert_called_once_with(
             'ABCDEFGH', base_url=None, auth_token='TOKEN')
