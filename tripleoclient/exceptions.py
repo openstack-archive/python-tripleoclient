@@ -48,3 +48,7 @@ class RootUserExecution(Exception):
 
 class StateTransitionFailed(Exception):
     """Ironic node state transition failed"""
+
+
+class IntrospectionError(RuntimeError):
+    """Introspection failed"""
