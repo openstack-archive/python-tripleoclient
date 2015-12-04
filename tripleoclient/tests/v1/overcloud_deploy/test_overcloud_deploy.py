@@ -22,6 +22,7 @@ import mock
 
 from openstackclient.common import exceptions as oscexc
 
+from tripleoclient import constants
 from tripleoclient import exceptions
 from tripleoclient.tests.v1.overcloud_deploy import fakes
 from tripleoclient.tests.v1.utils import (
@@ -203,8 +204,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertEqual(kwargs['stack_name'], 'overcloud')
 
         mock_get_templte_contents.assert_called_with(
-            ('/usr/share/openstack-tripleo-heat-templates/overcloud-without-'
-             'mergepy.yaml'))
+            '/usr/share/openstack-tripleo-heat-templates/' +
+            constants.OVERCLOUD_YAML_NAMES[0])
 
         mock_create_tempest_deployer_input.assert_called_with()
         mock_process_multiple_env.assert_called_with(
@@ -370,8 +371,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertEqual(kwargs['stack_name'], 'overcloud')
 
         mock_get_templte_contents.assert_called_with(
-            ('/usr/share/openstack-tripleo-heat-templates/overcloud-without-'
-             'mergepy.yaml'))
+            '/usr/share/openstack-tripleo-heat-templates/' +
+            constants.OVERCLOUD_YAML_NAMES[0])
 
         mock_create_tempest_deployer_input.assert_called_with()
         mock_process_multiple_env.assert_called_with(
@@ -471,8 +472,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertEqual(kwargs['stack_name'], 'overcloud')
 
         mock_get_templte_contents.assert_called_with(
-            '/home/stack/tripleo-heat-templates/overcloud-without-mergepy.yaml'
-        )
+            '/home/stack/tripleo-heat-templates/' +
+            constants.OVERCLOUD_YAML_NAMES[0])
 
         mock_create_tempest_deployer_input.assert_called_with()
         mock_process_multiple_env.assert_called_with(
@@ -652,3 +653,46 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertFalse(result)
         self.assertRaises(exceptions.DeploymentError,
                           self.cmd._pre_heat_deploy)
+
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_heat_deploy', autospec=True)
+    def test_try_overcloud_deploy_with_first_template_existing(
+            self, mock_heat_deploy_func):
+        result = self.cmd._try_overcloud_deploy_with_compat_yaml(
+            '/fake/path', {}, 'overcloud', {}, ['~/overcloud-env.json'], 1)
+        # If it returns None it succeeded
+        self.assertIsNone(result)
+        mock_heat_deploy_func.assert_called_once_with(
+            self.cmd, {}, 'overcloud',
+            '/fake/path/' + constants.OVERCLOUD_YAML_NAMES[0], {},
+            ['~/overcloud-env.json'], 1)
+
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_heat_deploy')
+    def test_try_overcloud_deploy_w_only_second_template_existing(
+            self, mock_heat_deploy_func):
+        mock_heat_deploy_func.side_effect = [
+            six.moves.urllib.error.URLError('error'), None]
+        result = self.cmd._try_overcloud_deploy_with_compat_yaml(
+            '/fake/path', {}, 'overcloud', {}, ['~/overcloud-env.json'], 1)
+        # If it returns None it succeeded
+        self.assertIsNone(result)
+        mock_heat_deploy_func.assert_has_calls(
+            [mock.call({}, 'overcloud',
+                       '/fake/path/' + constants.OVERCLOUD_YAML_NAMES[0], {},
+                       ['~/overcloud-env.json'], 1),
+             mock.call({}, 'overcloud',
+                       '/fake/path/' + constants.OVERCLOUD_YAML_NAMES[1], {},
+                       ['~/overcloud-env.json'], 1)])
+
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_heat_deploy', autospec=True)
+    def test_try_overcloud_deploy_with_no_templates_existing(
+            self, mock_heat_deploy_func):
+        mock_heat_deploy_func.side_effect = [
+            six.moves.urllib.error.URLError('error')
+            for stack_file in constants.OVERCLOUD_YAML_NAMES]
+        self.assertRaises(ValueError,
+                          self.cmd._try_overcloud_deploy_with_compat_yaml,
+                          '/fake/path', mock.ANY, mock.ANY, mock.ANY,
+                          mock.ANY, mock.ANY)
