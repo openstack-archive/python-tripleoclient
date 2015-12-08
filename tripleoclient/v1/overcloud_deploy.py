@@ -80,6 +80,8 @@ class DeployOvercloud(command.Command):
         parameters['SwiftPassword'] = passwords['OVERCLOUD_SWIFT_PASSWORD']
         parameters['SnmpdReadonlyUserPassword'] = (
             undercloud_ceilometer_snmpd_password)
+        parameters['NeutronMetadataProxySharedSecret'] = (
+            passwords['NEUTRON_METADATA_PROXY_SHARED_SECRET'])
 
     def _update_paramaters(self, args, network_client, stack):
         parameters = constants.PARAMETERS.copy()
