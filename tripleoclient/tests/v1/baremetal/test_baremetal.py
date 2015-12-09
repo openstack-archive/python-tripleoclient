@@ -18,6 +18,7 @@ import tempfile
 import json
 import mock
 import os
+import yaml
 
 import fixtures
 
@@ -279,15 +280,24 @@ class TestImportBaremetal(fakes.TestBaremetal):
         # Get the command object to test
         self.cmd = baremetal.ImportBaremetal(self.app, None)
 
-        self.csv_file = tempfile.NamedTemporaryFile(mode='w', delete=False)
-        self.json_file = tempfile.NamedTemporaryFile(mode='w', delete=False)
-        self.instack_json = tempfile.NamedTemporaryFile(mode='w', delete=False)
+        self.csv_file = tempfile.NamedTemporaryFile(
+            mode='w', delete=False, suffix='.csv')
+        self.json_file = tempfile.NamedTemporaryFile(
+            mode='w', delete=False, suffix='.json')
+        self.instack_json = tempfile.NamedTemporaryFile(
+            mode='w', delete=False, suffix='.json')
+        self.yaml_file = tempfile.NamedTemporaryFile(
+            mode='w', delete=False, suffix='.yaml')
+        self.instack_yaml = tempfile.NamedTemporaryFile(
+            mode='w', delete=False, suffix='.yaml')
+        self.unsupported_txt = tempfile.NamedTemporaryFile(
+            mode='w', delete=False, suffix='.txt')
 
         self.csv_file.write("""\
-pxe_ssh,192.168.122.1,root,"KEY1",00:d0:28:4c:e8:e8
-pxe_ssh,192.168.122.1,root,"KEY2",00:7c:ef:3d:eb:60""")
+pxe_ssh,192.168.122.1,stack,"KEY1",00:0b:d0:69:7e:59
+pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
 
-        json.dump([{
+        self.nodes_list = [{
             "pm_user": "stack",
             "pm_addr": "192.168.122.1",
             "pm_password": "KEY1",
@@ -296,7 +306,6 @@ pxe_ssh,192.168.122.1,root,"KEY2",00:7c:ef:3d:eb:60""")
                 "00:0b:d0:69:7e:59"
             ],
         }, {
-            "arch": "x86_64",
             "pm_user": "stack",
             "pm_addr": "192.168.122.2",
             "pm_password": "KEY2",
@@ -304,32 +313,19 @@ pxe_ssh,192.168.122.1,root,"KEY2",00:7c:ef:3d:eb:60""")
             "mac": [
                 "00:0b:d0:69:7e:58"
             ]
-        }], self.json_file)
+        }]
 
-        json.dump({
-            "nodes": [{
-                "pm_user": "stack",
-                "pm_addr": "192.168.122.1",
-                "pm_password": "KEY1",
-                "pm_type": "pxe_ssh",
-                "mac": [
-                    "00:0b:d0:69:7e:59"
-                ],
-            }, {
-                "arch": "x86_64",
-                "pm_user": "stack",
-                "pm_addr": "192.168.122.2",
-                "pm_password": "KEY2",
-                "pm_type": "pxe_ssh",
-                "mac": [
-                    "00:0b:d0:69:7e:58"
-                ]
-            }]
-        }, self.instack_json)
+        json.dump(self.nodes_list, self.json_file)
+        json.dump({"nodes": self.nodes_list}, self.instack_json)
+        self.yaml_file.write(yaml.safe_dump(self.nodes_list, indent=2))
+        self.instack_yaml.write(
+            yaml.safe_dump({"nodes": self.nodes_list}, indent=2))
 
         self.csv_file.close()
         self.json_file.close()
         self.instack_json.close()
+        self.yaml_file.close()
+        self.instack_yaml.close()
 
     def tearDown(self):
 
@@ -337,6 +333,8 @@ pxe_ssh,192.168.122.1,root,"KEY2",00:7c:ef:3d:eb:60""")
         os.unlink(self.csv_file.name)
         os.unlink(self.json_file.name)
         os.unlink(self.instack_json.name)
+        os.unlink(self.yaml_file.name)
+        os.unlink(self.instack_yaml.name)
 
     @mock.patch('os_cloud_config.nodes.register_all_nodes', autospec=True)
     def test_json_import(self, mock_register_nodes):
@@ -353,23 +351,26 @@ pxe_ssh,192.168.122.1,root,"KEY2",00:7c:ef:3d:eb:60""")
         self.cmd.take_action(parsed_args)
 
         mock_register_nodes.assert_called_with(
-            'http://localhost',
-            [
-                {
-                    'pm_password': 'KEY1',
-                    'pm_type': 'pxe_ssh',
-                    'pm_user': 'stack',
-                    'pm_addr': '192.168.122.1',
-                    'mac': ['00:0b:d0:69:7e:59']
-                }, {
-                    'pm_user': 'stack',
-                    'pm_password': 'KEY2',
-                    'pm_addr': '192.168.122.2',
-                    'arch': 'x86_64',
-                    'pm_type': 'pxe_ssh',
-                    'mac': ['00:0b:d0:69:7e:58']
-                }
-            ],
+            'http://localhost', self.nodes_list,
+            client=self.app.client_manager.baremetal,
+            keystone_client=None)
+
+    @mock.patch('os_cloud_config.nodes.register_all_nodes', autospec=True)
+    def test_json_import_detect_suffix(self, mock_register_nodes):
+
+        arglist = [self.json_file.name, '-s', 'http://localhost']
+
+        verifylist = [
+            ('csv', False),
+            ('json', False),
+        ]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
+
+        mock_register_nodes.assert_called_with(
+            'http://localhost', self.nodes_list,
             client=self.app.client_manager.baremetal,
             keystone_client=None)
 
@@ -388,23 +389,7 @@ pxe_ssh,192.168.122.1,root,"KEY2",00:7c:ef:3d:eb:60""")
         self.cmd.take_action(parsed_args)
 
         mock_register_nodes.assert_called_with(
-            'http://localhost',
-            [
-                {
-                    'pm_password': 'KEY1',
-                    'pm_type': 'pxe_ssh',
-                    'pm_user': 'stack',
-                    'pm_addr': '192.168.122.1',
-                    'mac': ['00:0b:d0:69:7e:59']
-                }, {
-                    'pm_user': 'stack',
-                    'pm_password': 'KEY2',
-                    'pm_addr': '192.168.122.2',
-                    'arch': 'x86_64',
-                    'pm_type': 'pxe_ssh',
-                    'mac': ['00:0b:d0:69:7e:58']
-                }
-            ],
+            'http://localhost', self.nodes_list,
             client=self.app.client_manager.baremetal,
             keystone_client=None)
 
@@ -423,22 +408,79 @@ pxe_ssh,192.168.122.1,root,"KEY2",00:7c:ef:3d:eb:60""")
         self.cmd.take_action(parsed_args)
 
         mock_register_nodes.assert_called_with(
-            'http://localhost',
-            [
-                {
-                    'pm_password': 'KEY1',
-                    'pm_user': 'root',
-                    'pm_type': 'pxe_ssh',
-                    'pm_addr': '192.168.122.1',
-                    'mac': ['00:d0:28:4c:e8:e8']
-                }, {
-                    'pm_password': 'KEY2',
-                    'pm_user': 'root',
-                    'pm_type': 'pxe_ssh',
-                    'pm_addr': '192.168.122.1',
-                    'mac': ['00:7c:ef:3d:eb:60']
-                }
-            ],
+            'http://localhost', self.nodes_list,
+            client=self.app.client_manager.baremetal,
+            keystone_client=None)
+
+    @mock.patch('os_cloud_config.nodes.register_all_nodes', autospec=True)
+    def test_csv_import_detect_suffix(self, mock_register_nodes):
+
+        arglist = [self.csv_file.name, '-s', 'http://localhost']
+
+        verifylist = [
+            ('csv', False),
+            ('json', False),
+        ]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
+
+        mock_register_nodes.assert_called_with(
+            'http://localhost', self.nodes_list,
+            client=self.app.client_manager.baremetal,
+            keystone_client=None)
+
+    @mock.patch('os_cloud_config.nodes.register_all_nodes', autospec=True)
+    def test_yaml_import(self, mock_register_nodes):
+
+        arglist = [self.yaml_file.name, '-s', 'http://localhost']
+
+        verifylist = [
+            ('csv', False),
+            ('json', False),
+        ]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
+
+        mock_register_nodes.assert_called_with(
+            'http://localhost', self.nodes_list,
+            client=self.app.client_manager.baremetal,
+            keystone_client=None)
+
+    def test_invalid_import_filetype(self):
+
+        arglist = [self.unsupported_txt.name, '-s', 'http://localhost']
+
+        verifylist = [
+            ('csv', False),
+            ('json', False),
+        ]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.assertRaisesRegexp(exceptions.InvalidConfiguration,
+                                'Invalid file extension',
+                                self.cmd.take_action, parsed_args)
+
+    @mock.patch('os_cloud_config.nodes.register_all_nodes', autospec=True)
+    def test_instack_yaml_import(self, mock_register_nodes):
+
+        arglist = [self.instack_yaml.name, '-s', 'http://localhost']
+
+        verifylist = [
+            ('csv', False),
+            ('json', False),
+        ]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
+
+        mock_register_nodes.assert_called_with(
+            'http://localhost', self.nodes_list,
             client=self.app.client_manager.baremetal,
             keystone_client=None)
 
