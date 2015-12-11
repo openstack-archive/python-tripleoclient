@@ -36,23 +36,3 @@ OVERCLOUD_YAML_NAME = "overcloud-without-mergepy.yaml"
 RESOURCE_REGISTRY_NAME = "overcloud-resource-registry-puppet.yaml"
 RHEL_REGISTRATION_EXTRACONFIG_NAME = (
     "extraconfig/post_deploy/rhel-registration/")
-
-PARAMETERS = {
-    'BlockStorageImage': 'overcloud-full',
-    'CephStorageImage': 'overcloud-full',
-    'CinderISCSIHelper': 'lioadm',
-    'CloudName': 'overcloud',
-    'controllerImage': 'overcloud-full',
-    'NeutronNetworkVLANRanges': 'datacentre:1:1000',
-    'NovaImage': 'overcloud-full',
-    'OvercloudControlFlavor': 'baremetal',
-    'OvercloudComputeFlavor': 'baremetal',
-    'OvercloudBlockStorageFlavor': 'baremetal',
-    'OvercloudSwiftStorageFlavor': 'baremetal',
-    'OvercloudCephStorageFlavor': 'baremetal',
-    'SwiftStorageImage': 'overcloud-full',
-}
-
-NEW_STACK_PARAMETERS = {
-    'NovaComputeLibvirtType': 'kvm',
-}
