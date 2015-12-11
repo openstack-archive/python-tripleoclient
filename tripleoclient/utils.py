@@ -715,10 +715,10 @@ def assign_and_verify_profiles(bm_client, flavors,
             more_nodes = [
                 uu for uu, caps in free_node_caps.items()
                 # use only nodes without a know profile
-                if not caps.get('profile')
-                and caps.get(capability, '').lower() in ('1', 'true')
+                if not caps.get('profile') and
+                caps.get(capability, '').lower() in ('1', 'true') and
                 # do not assign profiles for active nodes
-                and bm_nodes[uu].provision_state == 'available'
+                bm_nodes[uu].provision_state == 'available'
             ][:required_count]
             assigned_nodes.extend(more_nodes)
             required_count -= len(more_nodes)

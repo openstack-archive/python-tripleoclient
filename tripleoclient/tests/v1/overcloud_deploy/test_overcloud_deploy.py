@@ -105,6 +105,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         arglist = ['--templates', '--ceph-storage-scale', '3']
         verifylist = [
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
+            ('ceph_storage_scale', 3)
         ]
 
         mock_create_cephx_key.return_value = "cephx_key"
@@ -142,15 +143,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         expected_parameters = {
             'AdminPassword': 'password',
             'AdminToken': 'password',
-            'BlockStorageImage': 'overcloud-full',
             'CeilometerMeteringSecret': 'password',
             'CeilometerPassword': 'password',
             'CephStorageCount': 3,
-            'CephStorageImage': 'overcloud-full',
-            'CinderISCSIHelper': 'lioadm',
             'CinderPassword': 'password',
-            'CloudName': 'overcloud',
-            'controllerImage': 'overcloud-full',
             'ExtraConfig': '{}',
             'GlancePassword': 'password',
             'HeatPassword': 'password',
@@ -158,28 +154,19 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'HypervisorNeutronPhysicalBridge': 'br-ex',
             'HypervisorNeutronPublicInterface': 'nic1',
             'NeutronAllowL3AgentFailover': False,
-            'NeutronBridgeMappings': 'datacentre:br-ex',
             'NeutronDhcpAgentsPerNetwork': 1,
             'NeutronDnsmasqOptions': 'dhcp-option-force=26,1400',
             'NeutronFlatNetworks': 'datacentre',
             'NeutronL3HA': False,
             'NeutronMetadataProxySharedSecret': 'password',
-            'NeutronNetworkVLANRanges': 'datacentre:1:1000',
             'NeutronPassword': 'password',
             'NeutronPublicInterface': 'nic1',
-            'NovaImage': 'overcloud-full',
             'NovaPassword': 'password',
             'NtpServer': '',
-            'OvercloudBlockStorageFlavor': 'baremetal',
-            'OvercloudCephStorageFlavor': 'baremetal',
-            'OvercloudComputeFlavor': 'baremetal',
-            'OvercloudControlFlavor': 'baremetal',
-            'OvercloudSwiftStorageFlavor': 'baremetal',
             'SaharaPassword': 'password',
             'SnmpdReadonlyUserPassword': 'PASSWORD',
             'SwiftHashSuffix': 'password',
             'SwiftPassword': 'password',
-            'SwiftStorageImage': 'overcloud-full',
             'DeployIdentifier': 123456789,
         }
 
@@ -264,6 +251,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         arglist = ['--templates', '--ceph-storage-scale', '3']
         verifylist = [
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
+            ('ceph_storage_scale', 3)
         ]
 
         mock_create_cephx_key.return_value = "cephx_key"
@@ -304,18 +292,13 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         expected_parameters = {
             'AdminPassword': 'password',
             'AdminToken': 'password',
-            'BlockStorageImage': 'overcloud-full',
             'CeilometerMeteringSecret': 'password',
             'CeilometerPassword': 'password',
             'CephAdminKey': 'cephx_key',
             'CephClusterFSID': 'uuid',
             'CephMonKey': 'cephx_key',
             'CephStorageCount': 3,
-            'CephStorageImage': 'overcloud-full',
-            'CinderISCSIHelper': 'lioadm',
             'CinderPassword': 'password',
-            'CloudName': 'overcloud',
-            'controllerImage': 'overcloud-full',
             'ExtraConfig': '{}',
             'GlancePassword': 'password',
             'HeatPassword': 'password',
@@ -323,34 +306,22 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'HypervisorNeutronPhysicalBridge': 'br-ex',
             'HypervisorNeutronPublicInterface': 'nic1',
             'NeutronAllowL3AgentFailover': False,
-            'NeutronBridgeMappings': 'datacentre:br-ex',
             'NeutronDhcpAgentsPerNetwork': 1,
             'NeutronDnsmasqOptions': 'dhcp-option-force=26,1400',
             'NeutronEnableTunnelling': 'True',
             'NeutronFlatNetworks': 'datacentre',
             'NeutronL3HA': False,
             'NeutronNetworkType': 'gre',
-            'NeutronNetworkVLANRanges': 'datacentre:1:1000',
             'NeutronMetadataProxySharedSecret': 'password',
             'NeutronPassword': 'password',
             'NeutronPublicInterface': 'nic1',
-            'NeutronTunnelIdRanges': ['1:1000'],
             'NeutronTunnelTypes': 'gre',
-            'NeutronVniRanges': ['1:1000'],
-            'NovaComputeLibvirtType': 'kvm',
-            'NovaImage': 'overcloud-full',
             'NovaPassword': 'password',
             'NtpServer': '',
-            'OvercloudBlockStorageFlavor': 'baremetal',
-            'OvercloudCephStorageFlavor': 'baremetal',
-            'OvercloudComputeFlavor': 'baremetal',
-            'OvercloudControlFlavor': 'baremetal',
-            'OvercloudSwiftStorageFlavor': 'baremetal',
             'SaharaPassword': 'password',
             'SnmpdReadonlyUserPassword': 'PASSWORD',
             'SwiftHashSuffix': 'password',
             'SwiftPassword': 'password',
-            'SwiftStorageImage': 'overcloud-full',
             'DeployIdentifier': 123456789,
         }
 

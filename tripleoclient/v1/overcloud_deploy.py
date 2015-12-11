@@ -90,12 +90,9 @@ class DeployOvercloud(command.Command):
             passwords['NEUTRON_METADATA_PROXY_SHARED_SECRET'])
 
     def _update_parameters(self, args, network_client, stack):
-        parameters = constants.PARAMETERS.copy()
+        parameters = {}
 
         stack_is_new = stack is None
-
-        if stack_is_new:
-            parameters.update(constants.NEW_STACK_PARAMETERS)
 
         self.log.debug("Generating overcloud passwords")
         self.set_overcloud_passwords(stack_is_new, parameters)
@@ -265,7 +262,8 @@ class DeployOvercloud(command.Command):
             'stack_name': stack_name,
             'template': template,
             'environment': env,
-            'files': files
+            'files': files,
+            'clear_parameters': parameters.keys()
         }
 
         if timeout:
@@ -730,7 +728,6 @@ class DeployOvercloud(command.Command):
                             help=_('Deprecated.'))
         parser.add_argument('--neutron-bridge-mappings',
                             help=_('Comma separated list of bridge mappings. '
-                                   '(default: datacentre:br-ex) '
                                    '(DEPRECATED)'))
         parser.add_argument('--neutron-public-interface',
                             help=_('Deprecated.'))
@@ -742,12 +739,10 @@ class DeployOvercloud(command.Command):
                                    '(gre and/or vxlan). '
                                    '(DEPRECATED)'))
         parser.add_argument('--neutron-tunnel-id-ranges',
-                            default="1:1000",
                             help=_("Ranges of GRE tunnel IDs to make "
                                    "available for tenant network allocation "
                                    "(DEPRECATED)"),)
         parser.add_argument('--neutron-vni-ranges',
-                            default="1:1000",
                             help=_("Ranges of VXLAN VNI IDs to make "
                                    "available for tenant network allocation "
                                    "(DEPRECATED)"),)
@@ -770,9 +765,8 @@ class DeployOvercloud(command.Command):
                                    'neutron.ml2.extension_drivers namespace. '
                                    '(DEPRECATED)'))
         parser.add_argument('--libvirt-type',
-                            default='kvm',
                             choices=['kvm', 'qemu'],
-                            help=_('Libvirt domain type. (default: kvm)'))
+                            help=_('Libvirt domain type.'))
         parser.add_argument('--ntp-server',
                             help=_('The NTP for overcloud nodes. '))
         parser.add_argument(
