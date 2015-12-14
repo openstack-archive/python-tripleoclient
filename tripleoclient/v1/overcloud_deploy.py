@@ -867,6 +867,12 @@ class DeployOvercloud(command.Command):
             help=_('Exit if there are warnings from the configuration '
                    'pre-checks.')
         )
+        parser.add_argument(
+            '--dry-run',
+            action='store_true',
+            default=False,
+            help=_('Only run validations, but do not apply any changes.')
+        )
         reg_group = parser.add_argument_group('Registration Parameters')
         reg_group.add_argument(
             '--rhel-reg',
@@ -958,6 +964,10 @@ class DeployOvercloud(command.Command):
                             "ERROR: In order to use portal registration, you "
                             "must specify --reg-org, and "
                             "--reg-activation-key.")
+
+            if parsed_args.dry_run:
+                print("Validation Finished")
+                return True
 
             self._deploy_tripleo_heat_templates(stack, parsed_args)
 
