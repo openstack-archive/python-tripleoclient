@@ -48,3 +48,7 @@ class RootUserExecution(Exception):
 class InvalidConfiguration(ValueError):
     """Invalid parameters were specified for the deployment"""
     pass
+
+
+class IntrospectionError(RuntimeError):
+    """Introspection failed"""
