@@ -349,10 +349,25 @@ class DeployOvercloud(command.Command):
                 tht_root, constants.RESOURCE_REGISTRY_NAME)
             environments.insert(0, resource_registry_path)
 
-        overcloud_yaml = os.path.join(tht_root, constants.OVERCLOUD_YAML_NAME)
+        self._try_overcloud_deploy_with_compat_yaml(
+            tht_root, stack, parsed_args.stack, parameters, environments,
+            parsed_args.timeout)
 
-        self._heat_deploy(stack, parsed_args.stack, overcloud_yaml, parameters,
-                          environments, parsed_args.timeout)
+    def _try_overcloud_deploy_with_compat_yaml(self, tht_root, stack,
+                                               stack_name, parameters,
+                                               environments, timeout):
+        for overcloud_yaml_name in constants.OVERCLOUD_YAML_NAMES:
+            overcloud_yaml = os.path.join(tht_root, overcloud_yaml_name)
+            try:
+                self._heat_deploy(stack, stack_name, overcloud_yaml,
+                                  parameters, environments, timeout)
+            except six.moves.urllib.error.URLError:
+                pass
+            else:
+                return
+        message = "The files {0} not found in the {1} directory".format(
+            constants.OVERCLOUD_YAML_NAMES, tht_root)
+        raise ValueError(message)
 
     def _deploy_postconfig(self, stack, parsed_args):
         self.log.debug("_deploy_postconfig(%s)" % parsed_args)
