@@ -129,7 +129,8 @@ class TestOvercloudImageBuild(TestPluginV1):
             "openstack-neutron-bigswitch-lldp "
             "element-manifest network-gateway epel rdo-release "
             "undercloud-package-install "
-            "pip-and-virtualenv-override 2>&1 | tee dib-overcloud-full.log")
+            "pip-and-virtualenv-override --min-tmpfs 5 2>&1 | "
+            "tee dib-overcloud-full.log")
 
     @mock.patch('os.path.isfile', autospec=True)
     def test_overcloud_image_build_deploy_ramdisk(
