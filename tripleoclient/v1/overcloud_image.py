@@ -419,7 +419,7 @@ class BuildOvercloudImage(command.Command):
                 raise RuntimeError(
                     "Unsupported host distribution detected.")
 
-        dib_common_elements = []
+        dib_common_elements = ['dynamic-login']
         if re.match('rhel7', parsed_args.node_dist):
             env_vars['REG_METHOD'] = parsed_args.reg_method
 
