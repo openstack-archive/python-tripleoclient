@@ -369,27 +369,41 @@ class DeployOvercloud(command.Command):
             constants.OVERCLOUD_YAML_NAMES, tht_root)
         raise ValueError(message)
 
+    def _is_tls_enabled(self, overcloud_endpoint):
+        return overcloud_endpoint.startswith('https')
+
     def _deploy_postconfig(self, stack, parsed_args):
         self.log.debug("_deploy_postconfig(%s)" % parsed_args)
 
         overcloud_endpoint = utils.get_overcloud_endpoint(stack)
-        overcloud_ip = six.moves.urllib.parse.urlparse(
+        # NOTE(jaosorior): The overcloud endpoint can contain an IP address or
+        # an FQDN depending on how what it's configured to output in the
+        # tripleo-heat-templates. Such a configuration can be done by
+        # overriding the EndpointMap through parameter_defaults.
+        overcloud_ip_or_fqdn = six.moves.urllib.parse.urlparse(
             overcloud_endpoint).hostname
 
-        no_proxy = [os.environ.get('no_proxy'), overcloud_ip]
+        no_proxy = [os.environ.get('no_proxy'), overcloud_ip_or_fqdn]
         os.environ['no_proxy'] = ','.join(
             [x for x in no_proxy if x is not None])
 
         service_ips = utils.get_service_ips(stack)
 
-        utils.remove_known_hosts(overcloud_ip)
+        utils.remove_known_hosts(overcloud_ip_or_fqdn)
 
         keystone_admin_ip = service_ips.get('KeystoneAdminVip')
         keystone_internal_ip = service_ips.get('KeystoneInternalVip')
+        tls_enabled = self._is_tls_enabled(overcloud_endpoint)
+        keystone_tls_host = None
         if not keystone_admin_ip:
-            keystone_admin_ip = overcloud_ip
+            keystone_admin_ip = overcloud_ip_or_fqdn
         if not keystone_internal_ip:
-            keystone_internal_ip = overcloud_ip
+            keystone_internal_ip = overcloud_ip_or_fqdn
+        if tls_enabled:
+            # NOTE(jaosorior): This triggers set up the keystone endpoint with
+            # the https protocol and the required port set in
+            # keystone.initialize.
+            keystone_tls_host = overcloud_ip_or_fqdn
 
         # Note (spredzy): This was deprecated at the begining of
         # the Mitaka cycle. Should be good to remove for the
@@ -399,15 +413,17 @@ class DeployOvercloud(command.Command):
             utils.get_password('OVERCLOUD_ADMIN_TOKEN'),
             'admin@example.com',
             utils.get_password('OVERCLOUD_ADMIN_PASSWORD'),
-            public=overcloud_ip,
+            ssl=keystone_tls_host,
+            public=overcloud_ip_or_fqdn,
             user=parsed_args.overcloud_ssh_user,
             admin=keystone_admin_ip,
             internal=keystone_internal_ip)
 
-        # NOTE(bcrochet): Bad hack. Remove the ssl_port info from the
-        # os_cloud_config.SERVICES dictionary
-        for service_name, data in keystone.SERVICES.iteritems():
-            data.pop('ssl_port', None)
+        if not tls_enabled:
+            # NOTE(bcrochet): Bad hack. Remove the ssl_port info from the
+            # os_cloud_config.SERVICES dictionary
+            for service_name, data in keystone.SERVICES.iteritems():
+                data.pop('ssl_port', None)
 
         services = {}
         for service, data in six.iteritems(constants.SERVICE_LIST):
@@ -437,7 +453,7 @@ class DeployOvercloud(command.Command):
                 services,
                 client=keystone_client,
                 os_auth_url=overcloud_endpoint,
-                public_host=overcloud_ip)
+                public_host=overcloud_ip_or_fqdn)
         except kscexc.Conflict:
             pass
         else:
