@@ -319,12 +319,9 @@ class TestWaitForIntrospection(TestCase):
         baremetal_client = mock.Mock()
 
         baremetal_client.node.get.return_value = mock.Mock(
-            provision_state="available")
+            provision_state="available", last_error=None)
 
-        result = utils.wait_for_provision_state(baremetal_client, 'UUID',
-                                                "available")
-
-        self.assertEqual(result, True)
+        utils.wait_for_provision_state(baremetal_client, 'UUID', "available")
 
     def test_wait_for_provision_state_not_found(self):
 
@@ -332,23 +329,30 @@ class TestWaitForIntrospection(TestCase):
 
         baremetal_client.node.get.return_value = None
 
-        result = utils.wait_for_provision_state(baremetal_client, 'UUID',
-                                                "available")
+        utils.wait_for_provision_state(baremetal_client, 'UUID', "available")
 
-        self.assertEqual(result, True)
+    def test_wait_for_provision_state_timeout(self):
+
+        baremetal_client = mock.Mock()
+
+        baremetal_client.node.get.return_value = mock.Mock(
+            provision_state="not what we want", last_error=None)
+
+        with self.assertRaises(exceptions.Timeout):
+            utils.wait_for_provision_state(baremetal_client, 'UUID',
+                                           "available", loops=1, sleep=0.01)
 
     def test_wait_for_provision_state_fail(self):
 
         baremetal_client = mock.Mock()
 
         baremetal_client.node.get.return_value = mock.Mock(
-            provision_state="not what we want")
+            provision_state="enroll",
+            last_error="node on fire; returning to previous state.")
 
-        result = utils.wait_for_provision_state(baremetal_client, 'UUID',
-                                                "available", loops=1,
-                                                sleep=0.01)
-
-        self.assertEqual(result, False)
+        with self.assertRaises(exceptions.StateTransitionFailed):
+            utils.wait_for_provision_state(baremetal_client, 'UUID',
+                                           "available", loops=1, sleep=0.01)
 
     @mock.patch('subprocess.check_call')
     @mock.patch('os.path.exists')

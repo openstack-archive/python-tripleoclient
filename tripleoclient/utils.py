@@ -13,6 +13,7 @@
 #   under the License.
 #
 
+from __future__ import print_function
 import base64
 import hashlib
 import json
@@ -22,7 +23,6 @@ import passlib.utils as passutils
 import six
 import struct
 import subprocess
-import sys
 import time
 
 from heatclient.common import event_utils
@@ -248,6 +248,12 @@ def event_log_formatter(events):
     return "\n".join(event_log)
 
 
+def nodes_in_states(baremetal_client, states):
+    """List the introspectable nodes with the right provision_states."""
+    nodes = baremetal_client.node.list(maintenance=False, associated=False)
+    return [node for node in nodes if node.provision_state in states]
+
+
 def wait_for_provision_state(baremetal_client, node_uuid, provision_state,
                              loops=10, sleep=1):
     """Wait for a given Provisioning state in Ironic
@@ -269,6 +275,8 @@ def wait_for_provision_state(baremetal_client, node_uuid, provision_state,
 
     :param sleep: How long to sleep between loops
     :type sleep: int
+
+    :raises exceptions.StateTransitionFailed: if node.last_error is set
     """
 
     for _ in range(0, loops):
@@ -278,14 +286,32 @@ def wait_for_provision_state(baremetal_client, node_uuid, provision_state,
         if node is None:
             # The node can't be found in ironic, so we don't need to wait for
             # the provision state
-            return True
-
+            return
         if node.provision_state == provision_state:
-            return True
+            return
+
+        # node.last_error should be None after any successful operation
+        if node.last_error:
+            raise exceptions.StateTransitionFailed(
+                "Error transitioning node %(uuid)s to provision state "
+                "%(state)s: %(error)s. Now in state %(actual)s." % {
+                    'uuid': node_uuid,
+                    'state': provision_state,
+                    'error': node.last_error,
+                    'actual': node.provision_state
+                }
+            )
 
         time.sleep(sleep)
 
-    return False
+    raise exceptions.Timeout(
+        "Node %(uuid)s did not reach provision state %(state)s. "
+        "Now in state %(actual)s." % {
+            'uuid': node_uuid,
+            'state': provision_state,
+            'actual': node.provision_state
+        }
+    )
 
 
 def wait_for_node_introspection(inspector_client, auth_token, inspector_url,
@@ -313,7 +339,6 @@ def wait_for_node_introspection(inspector_client, auth_token, inspector_url,
     for _ in range(0, loops):
 
         for node_uuid in node_uuids:
-
             status = inspector_client.get_status(
                 node_uuid,
                 base_url=inspector_url,
@@ -398,6 +423,17 @@ def set_nodes_state(baremetal_client, nodes, transition, target_state,
                            are already deployed and the state can't always be
                            changed.
     :type  skipped_states: iterable of strings
+
+    :param error_states: Node states treated as error for this transition
+    :type error_states: collection of strings
+
+    :param error_message: Optional message to append to an error message
+    :param error_message: str
+
+    :raises exceptions.StateTransitionFailed: if a node enters any of the
+                                              states in error_states
+
+    :raises exceptions.Timeout: if a node takes too long to reach target state
     """
 
     log = logging.getLogger(__name__ + ".set_nodes_state")
@@ -412,13 +448,15 @@ def set_nodes_state(baremetal_client, nodes, transition, target_state,
             .format(node.provision_state, transition, node.uuid))
 
         baremetal_client.node.set_provision_state(node.uuid, transition)
-
-        if not wait_for_provision_state(baremetal_client, node.uuid,
-                                        target_state):
-            print("FAIL: State not updated for Node {0}".format(
-                  node.uuid, file=sys.stderr))
-        else:
-            yield node.uuid
+        try:
+            wait_for_provision_state(baremetal_client, node.uuid, target_state)
+        except exceptions.StateTransitionFailed as e:
+            log.error("FAIL: State transition failed for Node {0}. {1}"
+                      .format(node.uuid, e))
+        except exceptions.Timeout as e:
+            log.error("FAIL: Timeout waiting for Node {0}. {1}"
+                      .format(node.uuid, e))
+        yield node.uuid
 
 
 def get_hiera_key(key_name):
