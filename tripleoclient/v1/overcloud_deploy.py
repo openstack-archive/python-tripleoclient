@@ -16,6 +16,7 @@ from __future__ import print_function
 
 import argparse
 import collections
+import glob
 import json
 import logging
 import os
@@ -84,7 +85,7 @@ class DeployOvercloud(command.Command):
         parameters['NeutronMetadataProxySharedSecret'] = (
             passwords['NEUTRON_METADATA_PROXY_SHARED_SECRET'])
 
-    def _update_paramaters(self, args, network_client, stack):
+    def _update_parameters(self, args, network_client, stack):
         parameters = constants.PARAMETERS.copy()
 
         if stack is None:
@@ -291,12 +292,23 @@ class DeployOvercloud(command.Command):
                 "Expected hypervisor stats not met")
         return True
 
+    def _load_environment_directories(self, directories):
+        environments = []
+        for d in directories:
+            if os.path.exists(d) and d != '.':
+                self.log.debug("Environment directory: %s" % d)
+                for f in sorted(glob.glob(os.path.join(d, '*.yaml'))):
+                    self.log.debug("Environment directory file: %s" % f)
+                    if os.path.isfile(f):
+                        environments.append(f)
+        return environments
+
     def _deploy_tripleo_heat_templates(self, stack, parsed_args):
         """Deploy the fixed templates in TripleO Heat Templates"""
         clients = self.app.client_manager
         network_client = clients.network
 
-        parameters = self._update_paramaters(
+        parameters = self._update_parameters(
             parsed_args, network_client, stack)
 
         utils.check_nodes_count(
@@ -330,6 +342,10 @@ class DeployOvercloud(command.Command):
             keystone_pki.generate_certs_into_json(env_path, False)
             environments.append(env_path)
             add_registry = True
+
+        if parsed_args.environment_directories:
+            environments.extend(self._load_environment_directories(
+                parsed_args.environment_directories))
 
         environments.extend(self._create_parameters_env(parameters))
         if parsed_args.rhel_reg:
@@ -854,6 +870,16 @@ class DeployOvercloud(command.Command):
             help=_('Environment files to be passed to the heat stack-create '
                    'or heat stack-update command. (Can be specified more than '
                    'once.)')
+        )
+        parser.add_argument(
+            '--environment-directory', metavar='<HEAT ENVIRONMENT DIRECTORY>',
+            action='append', dest='environment_directories',
+            default=[os.path.join(os.environ.get('HOME', ''), '.tripleo',
+                     'environments')],
+            help=_('Environment file directories that are automatically '
+                   ' added to the heat stack-create or heat stack-update'
+                   ' commands. Can be specified more than once. Files in'
+                   ' directories are loaded in ascending sort order.')
         )
         parser.add_argument(
             '--validation-errors-fatal',

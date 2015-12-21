@@ -13,6 +13,7 @@
 #   under the License.
 #
 
+import fixtures
 import json
 import os
 import six
@@ -498,6 +499,48 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         result = self.cmd.take_action(parsed_args)
         self.assertFalse(result)
         self.assertFalse(mock_deploy_tht.called)
+
+    @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
+                autospec=True)
+    @mock.patch('tripleoclient.utils.create_overcloudrc', autospec=True)
+    @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
+    @mock.patch('tripleoclient.utils.check_nodes_count', autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_deploy_postconfig', autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_update_parameters', autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_pre_heat_deploy', autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_heat_deploy', autospec=True)
+    def test_environment_dirs(self, mock_deploy_heat, mock_pre_heat,
+                              mock_update_parameters, mock_post_config,
+                              mock_utils_check_nodes, mock_utils_endpoint,
+                              mock_utils_createrc, mock_utils_tempest):
+
+        mock_update_parameters.return_value = {}
+        mock_utils_endpoint.return_value = 'foo.bar'
+
+        tmp_dir = self.useFixture(fixtures.TempDir())
+        test_env = os.path.join(tmp_dir.path, 'foo.yaml')
+
+        with open(test_env, 'w') as temp_file:
+            temp_file.write('#just a comment')
+
+        arglist = ['--templates', '--environment-directory', tmp_dir.path]
+        verifylist = [
+            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
+        ]
+
+        def _fake_heat_deploy(self, stack, stack_name, template_path,
+                              parameters, environments, timeout):
+            assert test_env in environments
+
+        mock_deploy_heat.side_effect = _fake_heat_deploy
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        result = self.cmd.take_action(parsed_args)
+        self.assertTrue(result)
 
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
