@@ -52,7 +52,6 @@ class TestOvercloudImageBuild(TestPluginV1):
                         return_value=redhat_release, create=True):
             self.cmd.take_action(parsed_args)
 
-        self.assertEqual(1, self.mock_ramdisk_image_create.call_count)
         self.assertEqual(2, self.mock_disk_image_create.call_count)
         self.assertEqual(1, mock_fedora_user.call_count)
 
@@ -132,10 +131,12 @@ class TestOvercloudImageBuild(TestPluginV1):
             "pip-and-virtualenv-override --min-tmpfs 5 2>&1 | "
             "tee dib-overcloud-full.log")
 
+    @mock.patch('time.sleep')
     @mock.patch('os.path.isfile', autospec=True)
     def test_overcloud_image_build_deploy_ramdisk(
             self,
-            mock_os_path_isfile):
+            mock_os_path_isfile,
+            mock_sleep):
         arglist = ['--type', 'deploy-ramdisk']
         verifylist = [('image_types', ['deploy-ramdisk'])]
 

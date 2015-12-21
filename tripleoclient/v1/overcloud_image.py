@@ -25,6 +25,7 @@ import six
 import stat
 import subprocess
 import sys
+import time
 
 from cliff import command
 from openstackclient.common import exceptions
@@ -39,7 +40,10 @@ class ImageBuilder(object):
 
     @abc.abstractmethod
     def build_ramdisk(self, parsed_args, ramdisk_type):
-        """Build a ramdisk"""
+        """Build a ramdisk
+
+        DEPRECATED: Use build_ramdisk_agent instead.
+        """
         pass
 
     @abc.abstractmethod
@@ -68,6 +72,15 @@ class DibImageBuilder(ImageBuilder):
                               shell=True)
 
     def build_ramdisk(self, parsed_args, ramdisk_type):
+        deprecation_message = (
+            'DEPRECATED: The old bash-based ramdisks are no longer '
+            'supported.  You should move to the agent-based ramdisk as '
+            'soon as possible.'
+        )
+        print(deprecation_message)
+        # Give users time to see this message before we spam the console
+        # with image build output.
+        time.sleep(10)
         image_name = vars(parsed_args)["%s_name" % ramdisk_type]
         args = ("-a %(arch)s -o %(name)s "
                 "--ramdisk-element dracut-ramdisk %(node_dist)s "
@@ -86,6 +99,8 @@ class DibImageBuilder(ImageBuilder):
                 })
         os.environ.update(parsed_args.dib_env_vars)
         self._ramdisk_image_create(args)
+        # Print it again so users have another chance to see it.
+        print(deprecation_message)
 
     def build_ramdisk_agent(self, parsed_args):
         # The ironic-agent element builds the ramdisk internally,
@@ -313,13 +328,17 @@ class BuildOvercloudImage(command.Command):
             "--deploy-name",
             dest="deploy_name",
             default=os.environ.get('DEPLOY_NAME', 'deploy-ramdisk-ironic'),
-            help="Name of deployment ramdisk image",
+            help=("DEPRECATED: Name of deployment ramdisk image.  This image "
+                  "has been replaced by the Ironic Python Agent ramdisk, so "
+                  "you should switch to that as soon as possible."),
         )
         parser.add_argument(
             "--discovery-name",
             dest="discovery_name",
             default=os.environ.get('DISCOVERY_NAME', 'discovery-ramdisk'),
-            help="Name of discovery ramdisk image",
+            help=("DEPRECATED: Name of discovery ramdisk image.  This image "
+                  "has been replaced by the Ironic Python Agent ramdisk, so "
+                  "you should switch to that as soon as possible."),
         )
         parser.add_argument(
             "--agent-image-element",
@@ -450,7 +469,7 @@ class BuildOvercloudImage(command.Command):
     def _build_image_ramdisk_agent(self, parsed_args):
         image_name = vars(parsed_args)["agent_name"]
         if (not os.path.isfile("%s.initramfs" % image_name) or
-           not os.path.isfile("%s.vmlinuz" % image_name)):
+           not os.path.isfile("%s.kernel" % image_name)):
             parsed_args._builder.build_ramdisk_agent(parsed_args)
 
     def _build_image_ramdisk_deploy(self, parsed_args):
@@ -506,7 +525,6 @@ class BuildOvercloudImage(command.Command):
         self.log.debug("Environment: %s" % parsed_args.dib_env_vars)
 
         if parsed_args.all:
-            self._build_image_ramdisk_deploy(parsed_args)
             self._build_image_ramdisk_agent(parsed_args)
             self._build_image_overcloud_full(parsed_args)
             self._build_image_fedora_user(parsed_args)
@@ -654,14 +672,11 @@ class UploadOvercloudImage(command.Command):
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
 
-        self._env_variable_or_set('DEPLOY_NAME', 'deploy-ramdisk-ironic')
         self._env_variable_or_set('AGENT_NAME', 'ironic-python-agent')
 
         self.log.debug("checking if image files exist")
 
         image_files = [
-            '%s.initramfs' % os.environ['DEPLOY_NAME'],
-            '%s.kernel' % os.environ['DEPLOY_NAME'],
             '%s.initramfs' % os.environ['AGENT_NAME'],
             '%s.kernel' % os.environ['AGENT_NAME'],
             parsed_args.os_image
@@ -726,7 +741,7 @@ class UploadOvercloudImage(command.Command):
         self.log.debug("uploading bm images to glance")
 
         deploy_kernel_name = 'bm-deploy-kernel'
-        deploy_kernel_file = '%s.kernel' % os.environ['DEPLOY_NAME']
+        deploy_kernel_file = '%s.kernel' % os.environ['AGENT_NAME']
         self._image_try_update(deploy_kernel_name, deploy_kernel_file,
                                parsed_args) or self._upload_image(
             name=deploy_kernel_name,
@@ -738,7 +753,7 @@ class UploadOvercloudImage(command.Command):
         )
 
         deploy_ramdisk_name = 'bm-deploy-ramdisk'
-        deploy_ramdisk_file = '%s.initramfs' % os.environ['DEPLOY_NAME']
+        deploy_ramdisk_file = '%s.initramfs' % os.environ['AGENT_NAME']
         self._image_try_update(deploy_ramdisk_name, deploy_ramdisk_file,
                                parsed_args) or self._upload_image(
             name=deploy_ramdisk_name,
