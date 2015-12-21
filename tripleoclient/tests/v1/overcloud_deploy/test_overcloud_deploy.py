@@ -525,12 +525,16 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         tmp_dir = self.useFixture(fixtures.TempDir())
         test_env = os.path.join(tmp_dir.path, 'foo.yaml')
 
+        env_dirs = [os.path.join(os.environ.get('HOME', ''), '.tripleo',
+                    'environments'), tmp_dir.path]
+
         with open(test_env, 'w') as temp_file:
             temp_file.write('#just a comment')
 
         arglist = ['--templates', '--environment-directory', tmp_dir.path]
         verifylist = [
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
+            ('environment_directories', env_dirs),
         ]
 
         def _fake_heat_deploy(self, stack, stack_name, template_path,
