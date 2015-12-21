@@ -293,6 +293,9 @@ class DeployOvercloud(command.Command):
         return True
 
     def _load_environment_directories(self, directories):
+        if os.environ.get('TRIPLEO_ENVIRONMENT_DIRECTORY'):
+            directories.append(os.environ.get('TRIPLEO_ENVIRONMENT_DIRECTORY'))
+
         environments = []
         for d in directories:
             if os.path.exists(d) and d != '.':
