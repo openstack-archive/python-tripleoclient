@@ -783,3 +783,30 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                           self.cmd._try_overcloud_deploy_with_compat_yaml,
                           '/fake/path', mock.ANY, mock.ANY, mock.ANY,
                           mock.ANY, mock.ANY)
+
+    @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
+                autospec=True)
+    @mock.patch('tripleoclient.utils.create_overcloudrc', autospec=True)
+    @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_deploy_tripleo_heat_templates', autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_pre_heat_deploy', autospec=True)
+    def test_dry_run(self, mock_pre_deploy, mock_deploy_tht,
+                     mock_oc_endpoint,
+                     mock_create_ocrc,
+                     mock_create_tempest_deployer_input):
+
+        arglist = ['--templates', '--dry-run']
+        verifylist = [
+            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
+            ('dry_run', True),
+        ]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        result = self.cmd.take_action(parsed_args)
+        self.assertTrue(result)
+        self.assertFalse(mock_deploy_tht.called)
+        self.assertFalse(mock_oc_endpoint.called)
+        self.assertFalse(mock_create_ocrc.called)
+        self.assertFalse(mock_create_tempest_deployer_input.called)
