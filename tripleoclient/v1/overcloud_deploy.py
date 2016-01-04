@@ -93,6 +93,8 @@ class DeployOvercloud(command.Command):
         parameters['SwiftPassword'] = passwords['OVERCLOUD_SWIFT_PASSWORD']
         parameters['SnmpdReadonlyUserPassword'] = (
             undercloud_ceilometer_snmpd_password)
+        parameters['TrovePassword'] = (
+            passwords['OVERCLOUD_TROVE_PASSWORD'])
         parameters['NeutronMetadataProxySharedSecret'] = (
             passwords['NEUTRON_METADATA_PROXY_SHARED_SECRET'])
 

@@ -59,6 +59,7 @@ class TestPasswordsUtil(TestCase):
             mock.call('OVERCLOUD_SAHARA_PASSWORD=PASSWORD\n'),
             mock.call('OVERCLOUD_SWIFT_HASH=PASSWORD\n'),
             mock.call('OVERCLOUD_SWIFT_PASSWORD=PASSWORD\n'),
+            mock.call('OVERCLOUD_TROVE_PASSWORD=PASSWORD\n'),
         ]
         self.assertEqual(sorted(mock_open().write.mock_calls), mock_calls)
         self.assertEqual(generate_password_mock.call_count, len(mock_calls))
@@ -97,6 +98,7 @@ class TestPasswordsUtil(TestCase):
             'OVERCLOUD_SAHARA_PASSWORD=PASSWORD\n',
             'OVERCLOUD_SWIFT_HASH=PASSWORD\n',
             'OVERCLOUD_SWIFT_PASSWORD=PASSWORD\n',
+            'OVERCLOUD_TROVE_PASSWORD=PASSWORD\n',
             'NEUTRON_METADATA_PROXY_SHARED_SECRET=PASSWORD\n',
         ]
 
