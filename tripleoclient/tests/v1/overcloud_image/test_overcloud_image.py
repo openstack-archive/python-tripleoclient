@@ -239,7 +239,9 @@ class TestOvercloudImageBuild(TestPluginV1):
             "-a amd64 -o ironic-python-agent "
             "rhel7 ironic-agent dynamic-login element-manifest "
             "network-gateway epel undercloud-package-install "
-            "pip-and-virtualenv-override  2>&1 | tee dib-agent-ramdisk.log")
+            "pip-and-virtualenv-override  "
+            "-p python-hardware "
+            "2>&1 | tee dib-agent-ramdisk.log")
 
     @mock.patch('platform.linux_distribution')
     def test_unsupported_distro(self, mock_linux_distribution):
