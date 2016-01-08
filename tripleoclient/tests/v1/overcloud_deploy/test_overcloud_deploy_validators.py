@@ -36,7 +36,7 @@ class TestDeployValidators(fakes.TestDeployOvercloud):
             def __init__(self, uuid):
                 self.uuid = uuid
 
-        bm_client = fakes.FakeClientWrapper().baremetal
+        bm_client = self.app.client_manager.baremetal
         mock_node = mock.Mock()
         bm_client.attach_mock(mock_node, 'node')
 

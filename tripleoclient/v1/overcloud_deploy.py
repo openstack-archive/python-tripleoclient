@@ -329,7 +329,7 @@ class DeployOvercloud(command.Command):
             parsed_args, network_client, stack)
 
         utils.check_nodes_count(
-            self.app.client_manager.tripleoclient.baremetal,
+            self.app.client_manager.baremetal,
             stack,
             parameters,
             {
@@ -539,7 +539,7 @@ class DeployOvercloud(command.Command):
         self.predeploy_warnings = 0
         self.log.debug("Starting _pre_verify_capabilities")
 
-        bm_client = self.app.client_manager.tripleoclient.baremetal
+        bm_client = self.app.client_manager.baremetal
 
         self._check_boot_images()
 

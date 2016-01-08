@@ -67,22 +67,11 @@ class FakeBaremetalNodeClient(object):
                 for uuid in (sorted(self.states.keys()))]
 
 
-class FakeClientWrapper(object):
-
-    def __init__(self):
-        self._instance = mock.Mock()
-        self._baremetal = mock.Mock()
-
-    @property
-    def baremetal(self):
-        return self._baremetal
-
-
 class TestBaremetal(utils.TestCommand):
 
     def setUp(self):
         super(TestBaremetal, self).setUp()
 
         self.app.client_manager.auth_ref = mock.Mock(auth_token="TOKEN")
-        self.app.client_manager.tripleoclient = FakeClientWrapper()
+        self.app.client_manager.baremetal = mock.Mock()
         self.app.client_manager.image = mock.Mock()
