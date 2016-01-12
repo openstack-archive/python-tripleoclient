@@ -110,9 +110,9 @@ class DibImageBuilder(ImageBuilder):
         # so we use disk image create instead of ramdisk image create.
         image_name = vars(parsed_args)["agent_name"]
         args = ("-a %(arch)s -o %(name)s "
-                "%(node_dist)s %(image_element)s "
-                "%(dib_common_elements)s %(builder_extra_args)s 2>&1 | "
-                "tee dib-agent-ramdisk.log" %
+                "%(node_dist)s %(image_element)s %(dib_common_elements)s "
+                "%(builder_extra_args)s %(agent_dib_extra_args)s "
+                "2>&1 | tee dib-agent-ramdisk.log" %
                 {
                     'arch': parsed_args.node_arch,
                     'name': image_name,
@@ -122,6 +122,7 @@ class DibImageBuilder(ImageBuilder):
                     'dib_common_elements':
                         parsed_args.dib_common_elements,
                     'builder_extra_args': parsed_args.builder_extra_args,
+                    'agent_dib_extra_args': parsed_args.agent_dib_extra_args,
                 })
         os.environ.update(parsed_args.dib_env_vars)
         self._disk_image_create(args)
@@ -183,6 +184,10 @@ class BuildOvercloudImage(command.Command):
         'overcloud-ceph-storage',
         'ntp',
     ] + PUPPET_COMMON_ELEMENTS
+
+    AGENT_DIB_EXTRA_ARGS = [
+        '-p python-hardware'
+    ]
 
     DISCOVERY_IMAGE_ELEMENT = [
         'ironic-discoverd-ramdisk-instack',
@@ -311,6 +316,14 @@ class BuildOvercloudImage(command.Command):
                 "OVERCLOUD_FULL_DIB_EXTRA_ARGS",
                 " ".join(self.OVERCLOUD_FULL_DIB_EXTRA_ARGS)),
             help="Extra args for Overcloud Full",
+        )
+        parser.add_argument(
+            "--agent-dib-extra-args",
+            dest="agent_dib_extra_args",
+            default=os.environ.get(
+                "AGENT_DIB_EXTRA_ARGS",
+                " ".join(self.AGENT_DIB_EXTRA_ARGS)),
+            help="Extra args for the IPA image",
         )
         parser.add_argument(
             "--overcloud-full-name",
