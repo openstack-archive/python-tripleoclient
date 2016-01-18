@@ -65,6 +65,8 @@ class ImageBuilder(object):
 class DibImageBuilder(ImageBuilder):
     """Build images using diskimage-builder"""
 
+    _min_tmpfs = 5
+
     def _disk_image_create(self, args):
         subprocess.check_call('disk-image-create {0}'.format(args), shell=True)
 
@@ -112,7 +114,7 @@ class DibImageBuilder(ImageBuilder):
         args = ("-a %(arch)s -o %(name)s "
                 "%(node_dist)s %(image_element)s %(dib_common_elements)s "
                 "%(builder_extra_args)s %(agent_dib_extra_args)s "
-                "2>&1 | tee dib-agent-ramdisk.log" %
+                "--min-tmpfs %(min_tmpfs)d 2>&1 | tee dib-agent-ramdisk.log" %
                 {
                     'arch': parsed_args.node_arch,
                     'name': image_name,
@@ -123,6 +125,7 @@ class DibImageBuilder(ImageBuilder):
                         parsed_args.dib_common_elements,
                     'builder_extra_args': parsed_args.builder_extra_args,
                     'agent_dib_extra_args': parsed_args.agent_dib_extra_args,
+                    'min_tmpfs': self._min_tmpfs,
                 })
         os.environ.update(parsed_args.dib_env_vars)
         self._disk_image_create(args)
@@ -135,7 +138,7 @@ class DibImageBuilder(ImageBuilder):
         args = ("-a %(arch)s -o %(name)s "
                 "%(node_dist)s %(overcloud_dib_extra_args)s "
                 "%(dib_common_elements)s %(builder_extra_args)s "
-                "--min-tmpfs 5 2>&1 | "
+                "--min-tmpfs %(min_tmpfs)d 2>&1 | "
                 "tee dib-overcloud-%(image_type)s.log" %
                 {
                     'arch': parsed_args.node_arch,
@@ -146,6 +149,7 @@ class DibImageBuilder(ImageBuilder):
                         parsed_args.dib_common_elements,
                     'builder_extra_args': parsed_args.builder_extra_args,
                     'image_type': node_type,
+                    'min_tmpfs': self._min_tmpfs,
                 })
         os.environ.update(parsed_args.dib_env_vars)
         self._disk_image_create(args)
