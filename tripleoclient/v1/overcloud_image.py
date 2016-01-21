@@ -169,7 +169,6 @@ class BuildOvercloudImage(command.Command):
         'overcloud-controller',
         'overcloud-compute',
         'overcloud-ceph-storage',
-        'ntp',
     ] + PUPPET_COMMON_ELEMENTS
 
     AGENT_DIB_EXTRA_ARGS = [

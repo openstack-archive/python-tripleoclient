@@ -118,7 +118,7 @@ class TestOvercloudImageBuild(TestPluginV1):
         self.mock_disk_image_create.assert_called_once_with(
             "-a amd64 -o "
             "overcloud-full.qcow2 rhel7 overcloud-full overcloud-controller "
-            "overcloud-compute overcloud-ceph-storage ntp sysctl hosts "
+            "overcloud-compute overcloud-ceph-storage sysctl hosts "
             "baremetal dhcp-all-interfaces os-collect-config "
             "heat-config-puppet heat-config-script puppet-modules hiera "
             "os-net-config stable-interface-names grub2-deprecated "
@@ -162,7 +162,7 @@ class TestOvercloudImageBuild(TestPluginV1):
         self.mock_disk_image_create.assert_called_once_with(
             "-a amd64 -o "
             "overcloud-full.qcow2 rhel7 overcloud-full overcloud-controller "
-            "overcloud-compute overcloud-ceph-storage ntp sysctl hosts "
+            "overcloud-compute overcloud-ceph-storage sysctl hosts "
             "baremetal dhcp-all-interfaces os-collect-config "
             "heat-config-puppet heat-config-script puppet-modules hiera "
             "os-net-config stable-interface-names grub2-deprecated "
