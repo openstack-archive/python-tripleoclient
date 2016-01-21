@@ -29,6 +29,7 @@ SERVICE_LIST = {
         'port': '80',
         'path': WEBROOT,
         'admin_path': '%sadmin' % WEBROOT},
+    'sahara': {'password_field': 'OVERCLOUD_SAHARA_PASSWORD'},
 }
 
 TRIPLEO_HEAT_TEMPLATES = "/usr/share/openstack-tripleo-heat-templates/"
