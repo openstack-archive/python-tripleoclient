@@ -56,3 +56,7 @@ class IntrospectionError(RuntimeError):
 
 class StateTransitionFailed(Exception):
     """Ironic node state transition failed"""
+
+
+class ProfileMatchingError(Exception):
+    """Failed to validate or assign node profiles"""
