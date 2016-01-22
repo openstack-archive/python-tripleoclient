@@ -96,7 +96,9 @@ def create_overcloudrc(stack, no_proxy, config_directory='.'):
         'no_proxy': "%(no_proxy)s,%(overcloud_ip)s" % {
             'no_proxy': no_proxy,
             'overcloud_ip': overcloud_ip,
-        }
+        },
+        'PYTHONWARNINGS': ('"ignore:Certificate has no, ignore:A true '
+                           'SSLContext object is not available"'),
     }
     rc_params.update({
         'OS_PASSWORD': get_password('OVERCLOUD_ADMIN_PASSWORD'),

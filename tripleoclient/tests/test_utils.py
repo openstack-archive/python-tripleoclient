@@ -487,6 +487,9 @@ class TestCreateOvercloudRC(TestCase):
             self.assertIn('export OS_AUTH_URL=http://foo:8000/', rc)
             self.assertIn('export no_proxy=127.0.0.1', rc)
             self.assertIn('export OS_CLOUDNAME=teststack', rc)
+            self.assertIn('export PYTHONWARNINGS="ignore:Certificate has no, '
+                          'ignore:A true SSLContext object is not available"',
+                          rc)
         finally:
             if os.path.exists(rcfile):
                 os.unlink(rcfile)
