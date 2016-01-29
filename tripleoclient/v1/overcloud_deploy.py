@@ -90,10 +90,6 @@ class DeployOvercloud(command.Command):
         self.log.debug("Generating overcloud passwords")
         self.set_overcloud_passwords(parameters, args)
 
-        self.log.debug("Getting ctlplane from Neutron")
-        net = network_client.api.find_attr('networks', 'ctlplane')
-        parameters['NeutronControlPlaneID'] = net['id']
-
         param_args = (
             ('NeutronPublicInterface', 'neutron_public_interface'),
             ('NeutronBridgeMappings', 'neutron_bridge_mappings'),
