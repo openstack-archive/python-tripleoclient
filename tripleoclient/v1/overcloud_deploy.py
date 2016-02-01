@@ -455,7 +455,7 @@ class DeployOvercloud(command.Command):
         if not tls_enabled:
             # NOTE(bcrochet): Bad hack. Remove the ssl_port info from the
             # os_cloud_config.SERVICES dictionary
-            for service_name, data in keystone.SERVICES.iteritems():
+            for service_name, data in keystone.SERVICES.items():
                 data.pop('ssl_port', None)
 
         services = {}

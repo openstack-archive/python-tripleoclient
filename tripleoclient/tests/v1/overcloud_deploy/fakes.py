@@ -36,7 +36,7 @@ def create_tht_stack(**kwargs):
         'stack_name': 'overcloud',
         'outputs': [{
             'output_key': 'KeystoneURL',
-            'output_value': 'Overcloud endpoint',
+            'output_value': 'http://0.0.0.0:8000',
         }]
     }
     stack.update(kwargs)
@@ -69,3 +69,4 @@ class TestDeployOvercloud(utils.TestCommand):
         self.app.client_manager.network = mock.Mock()
         self.app.client_manager.compute = mock.Mock()
         self.app.client_manager.identity = mock.Mock()
+        self.app.client_manager.image = mock.Mock()

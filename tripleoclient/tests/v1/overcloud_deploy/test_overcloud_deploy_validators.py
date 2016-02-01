@@ -55,6 +55,22 @@ class TestDeployValidators(fakes.TestDeployOvercloud):
         mock_maint_nodes.assert_called_once_with(detail=True,
                                                  maintenance=False)
 
+    def test_image_ids(self):
+        image_client = self.app.client_manager.image
+        image_client.images = {}
+        image_ids = self.cmd._image_ids()
+
+        image_client.images = {
+            'bm-deploy-kernel':
+            mock.Mock(id='fb7a98fb-acb9-43ec-9b93-525d1286f9d8'),
+            'bm-deploy-ramdisk':
+            mock.Mock(id='8558de2e-1b72-4654-8ba9-cceb89e9194e'),
+        }
+
+        image_ids = self.cmd._image_ids()
+        self.assertEqual(image_ids, ('fb7a98fb-acb9-43ec-9b93-525d1286f9d8',
+                                     '8558de2e-1b72-4654-8ba9-cceb89e9194e'))
+
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_image_ids',
                 return_value=('fb7a98fb-acb9-43ec-9b93-525d1286f9d8',
