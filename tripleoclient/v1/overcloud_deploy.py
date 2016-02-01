@@ -25,6 +25,7 @@ import sys
 import tempfile
 import time
 import uuid
+import yaml
 
 from cliff import command
 from heatclient.common import event_utils
@@ -97,6 +98,18 @@ class DeployOvercloud(command.Command):
 
         timestamp = int(time.time())
         parameters['DeployIdentifier'] = timestamp
+
+        # Update parameters from answers file:
+        if args.answers_file is not None:
+            with open(args.answers_file, 'r') as answers_file:
+                answers = yaml.load(answers_file)
+
+            if args.templates is None:
+                args.templates = answers['templates']
+            if 'environments' in answers:
+                if args.environment_files is not None:
+                    answers['environments'].extend(args.environment_files)
+                args.environment_files = answers['environments']
 
         param_args = (
             ('NeutronPublicInterface', 'neutron_public_interface'),
@@ -493,6 +506,10 @@ class DeployOvercloud(command.Command):
         compute_client.flavors.create('m1.demo', 512, 1, 10, 'auto')
 
     def _validate_args(self, parsed_args):
+        if parsed_args.templates is None and parsed_args.answers_file is None:
+            raise oscexc.CommandError(
+                "You must specify either --templates or --answers-file")
+
         network_type = parsed_args.neutron_network_type
         tunnel_types = parsed_args.neutron_tunnel_types
         tunnel_disabled = parsed_args.neutron_disable_tunneling
@@ -678,7 +695,6 @@ class DeployOvercloud(command.Command):
         parser.add_argument(
             '--templates', nargs='?', const=constants.TRIPLEO_HEAT_TEMPLATES,
             help=_("The directory containing the Heat templates to deploy"),
-            required=True
         )
         parser.add_argument('--stack',
                             help=_("Stack name to create or update"),
@@ -823,6 +839,10 @@ class DeployOvercloud(command.Command):
             '--reg-activation-key',
             default='',
             help=_('Activation key to use for registration.')
+        )
+        parser.add_argument(
+            '--answers-file',
+            help=_('Path to a YAML file with arguments and parameters.')
         )
 
         return parser

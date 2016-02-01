@@ -14,6 +14,7 @@
 #
 
 import mock
+import tempfile
 
 from tripleoclient.tests.v1.overcloud_update import fakes
 from tripleoclient.v1 import overcloud_update
@@ -35,9 +36,41 @@ class TestOvercloudUpdate(fakes.TestOvercloudUpdate):
         verifylist = [
             ('stack', 'overcloud'),
             ('interactive', True),
+            ('templates', '/usr/share/openstack-tripleo-heat-templates/')
         ]
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
         self.cmd.take_action(parsed_args)
         update_manager.get_status.called_once()
         update_manager.update.called_once()
         update_manager.do_interactive_update.called_once()
+
+    @mock.patch('tripleo_common.update.PackageUpdateManager')
+    def test_update_answerfile(self, update_manager):
+        answers = ("templates: {templates}\n"
+                   "environments:\n"
+                   "  - {environment}\n")
+
+        with tempfile.NamedTemporaryFile(mode="w+t") as answerfile:
+            answerfile.write(answers.format(
+                templates='/dev/null',
+                environment='/dev/null'))
+            answerfile.flush()
+
+            update_manager.return_value.get_status.return_value = (
+                'UPDATE_COMPLETE', {})
+            argslist = ['overcloud', '-i', '--answers-file', answerfile.name]
+            verifylist = [
+                ('stack', 'overcloud'),
+                ('interactive', True),
+                ('answers_file', answerfile.name)
+            ]
+            parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+            self.cmd.take_action(parsed_args)
+
+        update_manager.get_status.called_once()
+        update_manager.update.called_once()
+        update_manager.do_interactive_update.called_once()
+
+        called_args = update_manager.call_args[1]
+        self.assertEqual(called_args['tht_dir'], '/dev/null')
+        self.assertEqual(called_args['environment_files'], ['/dev/null'])

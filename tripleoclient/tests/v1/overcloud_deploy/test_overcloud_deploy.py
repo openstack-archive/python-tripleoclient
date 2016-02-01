@@ -18,6 +18,7 @@ import json
 import os
 import six
 import tempfile
+import yaml
 
 import mock
 
@@ -816,3 +817,67 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertFalse(mock_oc_endpoint.called)
         self.assertFalse(mock_create_ocrc.called)
         self.assertFalse(mock_create_tempest_deployer_input.called)
+
+    @mock.patch('tripleoclient.utils.check_nodes_count',
+                autospec=True)
+    @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
+                autospec=True)
+    @mock.patch('tripleoclient.utils.create_overcloudrc', autospec=True)
+    @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_heat_deploy', autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                'set_overcloud_passwords', autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_pre_heat_deploy', autospec=True)
+    def test_answers_file(self,
+                          mock_pre_deploy,
+                          mock_set_overcloud_passwords,
+                          mock_heat_deploy,
+                          mock_oc_endpoint,
+                          mock_create_ocrc,
+                          mock_create_tempest_deployer_input,
+                          mock_check_nodes_count):
+        clients = self.app.client_manager
+        network_client = clients.network
+        network_client.stacks.get.return_value = None
+        net = network_client.api.find_attr('networks', 'ctlplane')
+        net.configure_mock(__getitem__=lambda x, y: 'testnet')
+
+        with tempfile.NamedTemporaryFile(mode="w+t") as answerfile:
+            yaml.dump(
+                {'templates': '/dev/null',
+                 'environments': ['/tmp/foo.yaml']
+                 },
+                answerfile
+            )
+            answerfile.flush()
+
+            arglist = ['--answers-file', answerfile.name,
+                       '--environment-file', '/tmp/environment.yaml',
+                       '--block-storage-scale', '3']
+            verifylist = [
+                ('answers_file', answerfile.name),
+                ('environment_files', ['/tmp/environment.yaml']),
+                ('block_storage_scale', 3)
+            ]
+            parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+            result = self.cmd.take_action(parsed_args)
+        self.assertTrue(result)
+        self.assertTrue(mock_heat_deploy.called)
+        self.assertTrue(mock_oc_endpoint.called)
+        self.assertTrue(mock_create_ocrc.called)
+        self.assertTrue(mock_create_tempest_deployer_input.called)
+
+        # Check that Heat was called with correct parameters:
+        call_args = mock_heat_deploy.call_args[0]
+        self.assertEqual(call_args[3],
+                         '/dev/null/overcloud-without-mergepy.yaml')
+        self.assertIn('/tmp/foo.yaml', call_args[5])
+        self.assertIn('/tmp/environment.yaml', call_args[5])
+        foo_index = call_args[5].index('/tmp/foo.yaml')
+        env_index = call_args[5].index('/tmp/environment.yaml')
+        self.assertGreater(env_index, foo_index)
+
+        mock_create_tempest_deployer_input.assert_called_with()

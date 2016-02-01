@@ -43,6 +43,7 @@ Deploy an overcloud stack
         [--reg-org REG_ORG] [--reg-force]
         [--reg-sat-url REG_SAT_URL]
         [--reg-activation-key REG_ACTIVATION_KEY]
+        [--answers-file <ANSWERS FILE>]
 
 .. option:: --stack <stack_name>
 
@@ -193,3 +194,14 @@ Deploy an overcloud stack
 .. option:: --reg-activation-key <key>
 
     Activation key to use for registration.
+
+.. option:: --answers-file <file>
+
+    Point to a file that specifies a templates directory and a list
+    of environment files in YAML format::
+
+        templates: ~/templates
+        environments:
+          - ~/test-env1.yaml
+          - ~/test-env2.yaml
+          - ~/test-env3.yaml
