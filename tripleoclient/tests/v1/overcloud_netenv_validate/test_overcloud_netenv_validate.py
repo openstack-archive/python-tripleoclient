@@ -22,6 +22,14 @@ from tripleoclient.tests.v1.overcloud_netenv_validate import fakes
 from tripleoclient.v1 import overcloud_netenv_validate
 
 
+EMPTY_NETENV = """resource_registry:
+  OS::TripleO::BlockStorage::Net::SoftwareConfig: /tmp/foo
+
+parameter_defaults:
+  NeutronExternalNetworkBridge: "''"
+"""
+
+
 class TestValidateOvercloudNetenv(fakes.TestValidateOvercloudNetenv):
 
     def setUp(self):
@@ -248,3 +256,18 @@ class TestValidateOvercloudNetenv(fakes.TestValidateOvercloudNetenv):
             'OS::TripleO::Controller::Net::SoftwareConfig', tmp)
         os.unlink(tmp)
         self.assertEqual(1, self.cmd.error_count)
+
+    def test_command(self):
+        """Testing the command with a minimal file that will fail"""
+        with tempfile.NamedTemporaryFile('wt') as net_file:
+                net_file.write(EMPTY_NETENV)
+                net_file.flush()
+
+                arglist = ['--file', net_file.name]
+                verifylist = [
+                    ('netenv', net_file.name),
+                ]
+
+                parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+                # Validating a minimal file shouldn't raise errors.
+                self.cmd.take_action(parsed_args)
