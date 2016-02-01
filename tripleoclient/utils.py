@@ -131,15 +131,21 @@ def wait_for_stack_ready(orchestration_client, stack_name, marker=None,
         return False
     stack_name = stack.stack_name
 
+    current_marker = marker
     while True:
         events = event_utils.get_events(orchestration_client,
                                         stack_id=stack_name, nested_depth=2,
                                         event_args={'sort_dir': 'asc',
-                                                    'marker': marker})
+                                                    'marker': current_marker})
 
         if len(events) >= 1:
             # set marker to last event that was received.
-            marker = getattr(events[-1], 'id', None)
+            new_marker = getattr(events[-1], 'id', None)
+            if new_marker == current_marker:
+                # We got the same marker twice, wrap around
+                current_marker = marker
+            else:
+                current_marker = new_marker
 
             if verbose:
                 events_log = event_log_formatter(events)
