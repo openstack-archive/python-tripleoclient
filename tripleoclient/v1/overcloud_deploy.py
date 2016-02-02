@@ -318,23 +318,31 @@ class DeployOvercloud(command.Command):
         # parameters and keystone cert is generated on create only
         env_path = utils.create_environment_file()
         environments = []
+        add_registry = False
 
         if stack is None:
             self.log.debug("Creating Keystone certificates")
             keystone_pki.generate_certs_into_json(env_path, False)
-            # default resource registry file should be passed only
-            # when creating a new stack, otherwise it might overwrite
-            # resource_registries in existing stack
-            resource_registry_path = os.path.join(
-                tht_root, constants.RESOURCE_REGISTRY_NAME)
-            environments.extend([resource_registry_path, env_path])
+            environments.append(env_path)
+            add_registry = True
 
         environments.extend(self._create_parameters_env(parameters))
         if parsed_args.rhel_reg:
             reg_env = self._create_registration_env(parsed_args)
             environments.extend(reg_env)
+            add_registry = True
         if parsed_args.environment_files:
             environments.extend(parsed_args.environment_files)
+            add_registry = True
+
+        if add_registry:
+            # default resource registry file should be passed only
+            # when creating a new stack, or when custom environments are
+            # specified, otherwise it might overwrite
+            # resource_registries in existing stack
+            resource_registry_path = os.path.join(
+                tht_root, constants.RESOURCE_REGISTRY_NAME)
+            environments.insert(0, resource_registry_path)
 
         overcloud_yaml = os.path.join(tht_root, constants.OVERCLOUD_YAML_NAME)
 
