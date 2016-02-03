@@ -60,3 +60,7 @@ class StateTransitionFailed(Exception):
 
 class ProfileMatchingError(Exception):
     """Failed to validate or assign node profiles"""
+
+
+class PasswordFileNotFound(Exception):
+    """Password file for the Heat stack not found in the current working dir"""

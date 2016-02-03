@@ -19,6 +19,7 @@ import hashlib
 import json
 import logging
 import os
+import os.path
 import passlib.utils as passutils
 import six
 import struct
@@ -53,7 +54,8 @@ _PASSWORD_NAMES = (
 )
 
 
-def generate_overcloud_passwords(output_file="tripleo-overcloud-passwords"):
+def generate_overcloud_passwords(output_file="tripleo-overcloud-passwords",
+                                 create_password_file=False):
     """Create the passwords needed for the overcloud
 
     This will create the set of passwords required by the overcloud, store
@@ -61,10 +63,17 @@ def generate_overcloud_passwords(output_file="tripleo-overcloud-passwords"):
     file already exists the existing passwords will be returned instead,
     """
 
+    log = logging.getLogger(__name__ + ".generate_overcloud_passwords")
+
+    log.debug("Using password file: {0}".format(os.path.abspath(output_file)))
+
     passwords = {}
     if os.path.isfile(output_file):
         with open(output_file) as f:
             passwords = dict(line.split('=') for line in f.read().splitlines())
+    elif not create_password_file:
+        raise exceptions.PasswordFileNotFound(
+            "The password file could not be found!")
 
     for name in _PASSWORD_NAMES:
         if not passwords.get(name):
