@@ -207,35 +207,32 @@ def wait_for_stack_ready(orchestration_client, stack_name, marker=None,
         return False
     stack_name = stack.stack_name
 
-    current_marker = marker
     while True:
+
         events = event_utils.get_events(orchestration_client,
                                         stack_id=stack_name, nested_depth=2,
                                         event_args={'sort_dir': 'asc',
-                                                    'marker': current_marker})
+                                                    'marker': marker})
 
         if len(events) >= 1:
             # set marker to last event that was received.
-            new_marker = getattr(events[-1], 'id', None)
-            if new_marker == current_marker:
-                # We got the same marker twice, wrap around
-                current_marker = marker
-            else:
-                current_marker = new_marker
+            marker = getattr(events[-1], 'id', None)
 
             if verbose:
                 events_log = event_log_formatter(events)
                 print(events_log)
-            for event in events:
-                # check if stack event was also received
-                if getattr(event, 'resource_name', '') == stack_name:
-                    stack_status = getattr(event, 'resource_status', '')
-                    print("Stack %(name)s %(status)s" % dict(
-                        name=stack_name, status=stack_status))
-                    if stack_status == '%s_COMPLETE' % action:
-                        return True
-                    elif stack_status == '%s_FAILED' % action:
-                        return False
+
+        stack = get_stack(orchestration_client, stack_name)
+        stack_status = stack.stack_status
+        if stack_status == '%s_COMPLETE' % action:
+            print("Stack %(name)s %(status)s" % dict(
+                name=stack_name, status=stack_status))
+            return True
+        elif stack_status == '%s_FAILED' % action:
+            print("Stack %(name)s %(status)s" % dict(
+                name=stack_name, status=stack_status))
+            return False
+
         time.sleep(5)
 
 

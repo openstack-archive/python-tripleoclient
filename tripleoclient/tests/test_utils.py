@@ -139,26 +139,12 @@ class TestWaitForStackUtil(TestCase):
     def test_wait_for_stack_ready(self, sleep_mock, mock_el):
         stack = mock.Mock()
         stack.stack_name = 'stack'
+        stack.stack_status = "CREATE_COMPLETE"
         self.mock_orchestration.stacks.get.return_value = stack
 
-        mock_el.side_effect = [[
-            self.mock_event('stack', 'aaa', 'Stack CREATE started',
-                            'CREATE_IN_PROGRESS', '2015-10-14T02:25:21Z'),
-            self.mock_event('thing', 'bbb', 'state changed',
-                            'CREATE_IN_PROGRESS', '2015-10-14T02:25:21Z'),
-        ], [
-            self.mock_event('thing', 'ccc', 'state changed',
-                            'CREATE_COMPLETE', '2015-10-14T02:25:43Z'),
-            self.mock_event('stack', 'ddd',
-                            'Stack CREATE completed successfully',
-                            'CREATE_COMPLETE', '2015-10-14T02:25:43Z'),
-        ]]
-
         complete = utils.wait_for_stack_ready(self.mock_orchestration, 'stack')
-
         self.assertTrue(complete)
-
-        sleep_mock.assert_called_once_with(mock.ANY)
+        sleep_mock.assert_not_called()
 
     def test_wait_for_stack_ready_no_stack(self):
         self.mock_orchestration.stacks.get.return_value = None
@@ -172,25 +158,44 @@ class TestWaitForStackUtil(TestCase):
     def test_wait_for_stack_ready_failed(self, sleep_mock, mock_el):
         stack = mock.Mock()
         stack.stack_name = 'stack'
+        stack.stack_status = "CREATE_FAILED"
         self.mock_orchestration.stacks.get.return_value = stack
+
+        complete = utils.wait_for_stack_ready(self.mock_orchestration, 'stack')
+
+        self.assertFalse(complete)
+
+        sleep_mock.assert_not_called()
+
+    @mock.patch("heatclient.common.event_utils.get_events")
+    @mock.patch('time.sleep', return_value=None)
+    def test_wait_for_stack_in_progress(self, sleep_mock, mock_el):
+
         mock_el.side_effect = [[
             self.mock_event('stack', 'aaa', 'Stack CREATE started',
                             'CREATE_IN_PROGRESS', '2015-10-14T02:25:21Z'),
             self.mock_event('thing', 'bbb', 'state changed',
                             'CREATE_IN_PROGRESS', '2015-10-14T02:25:21Z'),
         ], [
-            self.mock_event('thing', 'ccc', 'ouch',
-                            'CREATE_FAILED', '2015-10-14T02:25:43Z'),
-            self.mock_event('stack', 'ddd', 'ouch',
-                            'CREATE_FAILED', '2015-10-14T02:25:43Z'),
-        ]]
+            self.mock_event('thing', 'ccc', 'state changed',
+                            'CREATE_COMPLETE', '2015-10-14T02:25:43Z'),
+            self.mock_event('stack', 'ddd',
+                            'Stack CREATE completed successfully',
+                            'CREATE_COMPLETE', '2015-10-14T02:25:43Z'),
+        ], [], []]
 
-        complete = utils.wait_for_stack_ready(self.mock_orchestration, 'stack',
-                                              verbose=True)
+        stack = mock.Mock()
+        stack.stack_name = 'stack'
+        stack.stack_status = 'CREATE_IN_PROGRESS'
+        complete_stack = mock.Mock()
+        complete_stack.stack_name = 'stack'
+        complete_stack.stack_status = 'CREATE_COMPLETE'
+        self.mock_orchestration.stacks.get.side_effect = [
+            stack, stack, stack, complete_stack]
 
-        self.assertFalse(complete)
+        utils.wait_for_stack_ready(self.mock_orchestration, 'stack')
 
-        sleep_mock.assert_called_once_with(mock.ANY)
+        self.assertEqual(2, sleep_mock.call_count)
 
 
 class TestWaitForIntrospection(TestCase):
