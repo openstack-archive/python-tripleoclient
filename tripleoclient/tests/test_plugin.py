@@ -21,22 +21,19 @@ import mock
 
 class TestPlugin(base.TestCase):
 
-    @mock.patch('ironicclient.client.get_client')
-    def test_make_client(self, ironic_get_client):
+    def test_make_client(self):
         clientmgr = mock.MagicMock()
         clientmgr._api_version.__getitem__.return_value = '1'
         clientmgr.get_endpoint_for_service_type.return_value = fakes.AUTH_URL
 
         client = plugin.make_client(clientmgr)
 
-        # The client should have a baremetal property. Accessing it should
+        # The client should have an orchestration property. Accessing it should
         # fetch it from the clientmanager:
-        baremetal = client.baremetal
         orchestration = client.orchestration
-        # The second access should return the same clients:
-        self.assertIs(client.baremetal, baremetal)
+        # The second access should return the same client:
         self.assertIs(client.orchestration, orchestration)
 
-        # And the functions should only be called per property:
-        self.assertEqual(clientmgr.get_endpoint_for_service_type.call_count, 2)
-        self.assertEqual(clientmgr.auth.get_token.call_count, 2)
+        # And the functions should only be called when the client is created:
+        self.assertEqual(clientmgr.get_endpoint_for_service_type.call_count, 1)
+        self.assertEqual(clientmgr.auth.get_token.call_count, 1)

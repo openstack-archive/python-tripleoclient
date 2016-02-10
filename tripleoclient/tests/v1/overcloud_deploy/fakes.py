@@ -48,15 +48,10 @@ class FakeClientWrapper(object):
     def __init__(self):
         self._instance = mock.Mock()
         self._orchestration = mock.Mock()
-        self._baremetal = mock.Mock()
 
     @property
     def orchestration(self):
         return self._orchestration
-
-    @property
-    def baremetal(self):
-        return self._baremetal
 
 
 class TestDeployOvercloud(utils.TestCommand):
@@ -66,6 +61,7 @@ class TestDeployOvercloud(utils.TestCommand):
 
         self.app.client_manager.auth_ref = mock.Mock(auth_token="TOKEN")
         self.app.client_manager.tripleoclient = FakeClientWrapper()
+        self.app.client_manager.baremetal = mock.Mock()
         self.app.client_manager.network = mock.Mock()
         self.app.client_manager.compute = mock.Mock()
         self.app.client_manager.identity = mock.Mock()

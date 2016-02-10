@@ -17,7 +17,6 @@
 
 import logging
 
-from ironicclient import client as ironic_client
 from openstackclient.common import utils
 
 
@@ -64,32 +63,7 @@ class ClientWrapper(object):
 
     def __init__(self, instance):
         self._instance = instance
-        self._baremetal = None
         self._orchestration = None
-
-    @property
-    def baremetal(self):
-        """Returns an baremetal service client"""
-
-        # TODO(d0ugal): When the ironicclient has it's own OSC plugin, the
-        # following client handling code should be removed in favor of the
-        # upstream version.
-
-        if self._baremetal is not None:
-            return self._baremetal
-
-        endpoint = self._instance.get_endpoint_for_service_type(
-            "baremetal",
-            region_name=self._instance._region_name,
-        )
-
-        token = self._instance.auth.get_token(self._instance.session)
-
-        self._baremetal = ironic_client.get_client(
-            1, os_auth_token=token, ironic_url=endpoint,
-            ca_file=self._instance._cli_options.os_cacert)
-
-        return self._baremetal
 
     @property
     def orchestration(self):
