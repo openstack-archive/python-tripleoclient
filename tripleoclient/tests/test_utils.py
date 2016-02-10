@@ -18,12 +18,12 @@ from uuid import uuid4
 import mock
 import os.path
 import tempfile
+from unittest import TestCase
 
 from tripleoclient import exceptions
 from tripleoclient.tests.v1.utils import (
     generate_overcloud_passwords_mock)
 from tripleoclient import utils
-from unittest import TestCase
 
 
 class TestPasswordsUtil(TestCase):
@@ -36,7 +36,8 @@ class TestPasswordsUtil(TestCase):
         mock_open = mock.mock_open()
 
         with mock.patch('six.moves.builtins.open', mock_open):
-            passwords = utils.generate_overcloud_passwords()
+            passwords = utils.generate_overcloud_passwords(
+                create_password_file=True)
 
         self.assertEqual(sorted(mock_open().write.mock_calls), [
             mock.call('NEUTRON_METADATA_PROXY_SHARED_SECRET=PASSWORD\n'),
@@ -58,6 +59,14 @@ class TestPasswordsUtil(TestCase):
         self.assertEqual(generate_password_mock.call_count, 15)
 
         self.assertEqual(len(passwords), 15)
+
+    def test_generate_passwords_update(self):
+
+        mock_open = mock.mock_open()
+
+        with mock.patch('six.moves.builtins.open', mock_open):
+            with self.assertRaises(exceptions.PasswordFileNotFound):
+                utils.generate_overcloud_passwords()
 
     @mock.patch("os.path.isfile", return_value=True)
     @mock.patch("passlib.utils.generate_password",

@@ -51,7 +51,7 @@ class DeployOvercloud(command.Command):
     predeploy_errors = 0
     predeploy_warnings = 0
 
-    def set_overcloud_passwords(self, parameters, parsed_args):
+    def set_overcloud_passwords(self, stack_is_new, parameters):
         """Add passwords to the parameters dictionary
 
         :param parameters: A dictionary for the passwords to be added to
@@ -61,7 +61,9 @@ class DeployOvercloud(command.Command):
         undercloud_ceilometer_snmpd_password = utils.get_config_value(
             "auth", "undercloud_ceilometer_snmpd_password")
 
-        passwords = utils.generate_overcloud_passwords()
+        passwords = utils.generate_overcloud_passwords(
+            create_password_file=stack_is_new)
+
         ceilometer_pass = passwords['OVERCLOUD_CEILOMETER_PASSWORD']
         ceilometer_secret = passwords['OVERCLOUD_CEILOMETER_SECRET']
         parameters['AdminPassword'] = passwords['OVERCLOUD_ADMIN_PASSWORD']
@@ -90,11 +92,13 @@ class DeployOvercloud(command.Command):
     def _update_parameters(self, args, network_client, stack):
         parameters = constants.PARAMETERS.copy()
 
-        if stack is None:
+        stack_is_new = stack is None
+
+        if stack_is_new:
             parameters.update(constants.NEW_STACK_PARAMETERS)
 
         self.log.debug("Generating overcloud passwords")
-        self.set_overcloud_passwords(parameters, args)
+        self.set_overcloud_passwords(stack_is_new, parameters)
 
         timestamp = int(time.time())
         parameters['DeployIdentifier'] = timestamp
@@ -131,7 +135,7 @@ class DeployOvercloud(command.Command):
             ('NeutronMechanismDrivers', 'neutron_mechanism_drivers')
         )
 
-        if stack is None:
+        if stack_is_new:
             new_stack_args = (
                 ('NeutronNetworkType', 'neutron_network_type'),
                 ('NeutronTunnelIdRanges', 'neutron_tunnel_id_ranges'),
@@ -185,7 +189,7 @@ class DeployOvercloud(command.Command):
 
         if int(parameters.get('CephStorageCount', 0)) > 0:
 
-            if stack is None:
+            if stack_is_new:
                 parameters.update({
                     'CephClusterFSID': six.text_type(uuid.uuid1()),
                     'CephMonKey': utils.create_cephx_key(),
