@@ -234,7 +234,9 @@ class TestOvercloudImageBuild(TestPluginV1):
             "-a amd64 -o ironic-python-agent "
             "rhel7 ironic-agent element-manifest network-gateway epel "
             "rdo-release undercloud-package-install "
-            "pip-and-virtualenv-override  2>&1 | tee dib-agent-ramdisk.log")
+            "pip-and-virtualenv-override  "
+            "-p python-hardware "
+            "2>&1 | tee dib-agent-ramdisk.log")
 
 
 class TestUploadOvercloudImage(TestPluginV1):
