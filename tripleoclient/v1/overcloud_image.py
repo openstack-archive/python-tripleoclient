@@ -75,6 +75,7 @@ class DibImageBuilder(ImageBuilder):
         args = ("-a %(arch)s -o %(name)s "
                 "--ramdisk-element dracut-ramdisk %(node_dist)s "
                 "%(image_element)s %(dib_common_elements)s "
+                "%(builder_extra_args)s "
                 "2>&1 | tee dib-%(ramdisk_type)s.log" %
                 {
                     'arch': parsed_args.node_arch,
@@ -85,6 +86,7 @@ class DibImageBuilder(ImageBuilder):
                                           ramdisk_type],
                     'dib_common_elements':
                         parsed_args.dib_common_elements,
+                    'builder_extra_args': parsed_args.builder_extra_args,
                     'ramdisk_type': ramdisk_type,
                 })
         os.environ.update(parsed_args.dib_env_vars)
@@ -96,7 +98,7 @@ class DibImageBuilder(ImageBuilder):
         image_name = vars(parsed_args)["agent_name"]
         args = ("-a %(arch)s -o %(name)s "
                 "%(node_dist)s %(image_element)s "
-                "%(dib_common_elements)s 2>&1 | "
+                "%(dib_common_elements)s %(builder_extra_args)s 2>&1 | "
                 "tee dib-agent-ramdisk.log" %
                 {
                     'arch': parsed_args.node_arch,
@@ -106,6 +108,7 @@ class DibImageBuilder(ImageBuilder):
                         vars(parsed_args)["agent_image_element"],
                     'dib_common_elements':
                         parsed_args.dib_common_elements,
+                    'builder_extra_args': parsed_args.builder_extra_args,
                 })
         os.environ.update(parsed_args.dib_env_vars)
         self._disk_image_create(args)
@@ -117,7 +120,8 @@ class DibImageBuilder(ImageBuilder):
                                        node_type]
         args = ("-a %(arch)s -o %(name)s "
                 "%(node_dist)s %(overcloud_dib_extra_args)s "
-                "%(dib_common_elements)s --min-tmpfs 5 2>&1 | "
+                "%(dib_common_elements)s %(builder_extra_args)s "
+                "--min-tmpfs 5 2>&1 | "
                 "tee dib-overcloud-%(image_type)s.log" %
                 {
                     'arch': parsed_args.node_arch,
@@ -126,6 +130,7 @@ class DibImageBuilder(ImageBuilder):
                     'overcloud_dib_extra_args': extra_args,
                     'dib_common_elements':
                         parsed_args.dib_common_elements,
+                    'builder_extra_args': parsed_args.builder_extra_args,
                     'image_type': node_type,
                 })
         os.environ.update(parsed_args.dib_env_vars)
@@ -351,6 +356,12 @@ class BuildOvercloudImage(command.Command):
                 'DISCOVERY_IMAGE_ELEMENT',
                 " ".join(self.DISCOVERY_IMAGE_ELEMENT)),
             help="DIB elements for discovery image",
+        )
+        parser.add_argument(
+            "--builder-extra-args",
+            dest="builder_extra_args",
+            default='',
+            help="Extra arguments for the image builder",
         )
         image_group.add_argument(
             "--builder",
