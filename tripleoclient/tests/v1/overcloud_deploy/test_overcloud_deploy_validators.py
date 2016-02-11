@@ -109,19 +109,24 @@ class TestDeployValidators(fakes.TestDeployOvercloud):
         self.assertEqual(self.cmd.predeploy_errors, 2)
         self.assertEqual(self.cmd.predeploy_warnings, 0)
 
-    def test_flavor_existence_check(self):
-        class FakeFlavor(object):
-            name = ''
-            uuid = ''
 
-            def __init__(self, name):
-                self.uuid = uuid4()
-                self.name = name
+class FakeFlavor(object):
+    name = ''
+    uuid = ''
 
-            def get_keys(self):
-                return {'capabilities:boot_option': 'local'}
+    def __init__(self, name):
+        self.uuid = uuid4()
+        self.name = name
 
-        arglist = [
+    def get_keys(self):
+        return {'capabilities:boot_option': 'local'}
+
+
+class TestCollectFlavors(fakes.TestDeployOvercloud):
+    def setUp(self):
+        super(TestCollectFlavors, self).setUp()
+        self.cmd = overcloud_deploy.DeployOvercloud(self.app, None)
+        self.arglist = [
             '--block-storage-flavor', 'block',
             '--block-storage-scale', '3',
             '--ceph-storage-flavor', 'ceph',
@@ -134,10 +139,17 @@ class TestDeployValidators(fakes.TestDeployOvercloud):
             '--swift-storage-scale', '2',
             '--templates'
         ]
-        verifylist = [
+        self.verifylist = [
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
         ]
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.mock_flavors = mock.Mock()
+        self.app.client_manager.compute.attach_mock(self.mock_flavors,
+                                                    'flavors')
+
+    def test_ok(self):
+        parsed_args = self.check_parser(self.cmd, self.arglist,
+                                        self.verifylist)
 
         expected_result = {
             'block': (FakeFlavor('block'), 3),
@@ -150,23 +162,55 @@ class TestDeployValidators(fakes.TestDeployOvercloud):
                 flavor for flavor, scale in expected_result.values()
             ]
         )
-        mock_flavors = mock.Mock()
-        mock_flavors.attach_mock(mock_flavor_list, 'list')
-        self.app.client_manager.compute.attach_mock(mock_flavors, 'flavors')
+        self.mock_flavors.attach_mock(mock_flavor_list, 'list')
 
         result = self.cmd._collect_flavors(parsed_args)
         self.assertEqual(self.cmd.predeploy_errors, 0)
         self.assertEqual(self.cmd.predeploy_warnings, 0)
         self.assertEqual(expected_result, result)
 
-        del expected_result['swift']
-        mock_flavor_list_no_swift = mock.Mock(
+    def test_flavor_not_found(self):
+        parsed_args = self.check_parser(self.cmd, self.arglist,
+                                        self.verifylist)
+
+        expected_result = {
+            'block': (FakeFlavor('block'), 3),
+            'compute': (FakeFlavor('compute'), 3),
+            'control': (FakeFlavor('control'), 1),
+        }
+        mock_flavor_list = mock.Mock(
             return_value=[
                 flavor for flavor, scale in expected_result.values()
             ]
         )
-        mock_flavors.attach_mock(mock_flavor_list_no_swift, 'list')
+        self.mock_flavors.attach_mock(mock_flavor_list, 'list')
         result = self.cmd._collect_flavors(parsed_args)
         self.assertEqual(self.cmd.predeploy_errors, 1)
+        self.assertEqual(self.cmd.predeploy_warnings, 0)
+        self.assertEqual(expected_result, result)
+
+    def test_same_flavor(self):
+        self.arglist = [
+            '--compute-flavor', 'baremetal',
+            '--compute-scale', '3',
+            '--control-flavor', 'baremetal',
+            '--control-scale', '1',
+            '--templates'
+        ]
+        parsed_args = self.check_parser(self.cmd, self.arglist,
+                                        self.verifylist)
+
+        expected_result = {
+            'baremetal': (FakeFlavor('baremetal'), 4),
+        }
+        mock_flavor_list = mock.Mock(
+            return_value=[
+                flavor for flavor, scale in expected_result.values()
+            ]
+        )
+        self.mock_flavors.attach_mock(mock_flavor_list, 'list')
+
+        result = self.cmd._collect_flavors(parsed_args)
+        self.assertEqual(self.cmd.predeploy_errors, 0)
         self.assertEqual(self.cmd.predeploy_warnings, 0)
         self.assertEqual(expected_result, result)
