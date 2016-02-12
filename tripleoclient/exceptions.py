@@ -52,3 +52,7 @@ class StateTransitionFailed(Exception):
 
 class IntrospectionError(RuntimeError):
     """Introspection failed"""
+
+
+class ProfileMatchingError(Exception):
+    """Failed to validate or assign node profiles"""

@@ -15,7 +15,6 @@
 from __future__ import print_function
 
 import argparse
-import collections
 import json
 import logging
 import os
@@ -526,53 +525,17 @@ class DeployOvercloud(command.Command):
 
         self._check_boot_images()
 
-        self._check_flavors_exist(parsed_args)
+        flavors = self._collect_flavors(parsed_args)
 
         self._check_ironic_boot_configuration(bm_client)
 
-        flavor_profile_map = self._collect_flavor_profiles([
-            parsed_args.control_flavor,
-            parsed_args.compute_flavor,
-            parsed_args.ceph_storage_flavor,
-            parsed_args.block_storage_flavor,
-            parsed_args.swift_storage_flavor,
-        ])
-        node_profile_map = self._collect_node_profiles()
-
-        for target, flavor, scale in [
-            ('control', parsed_args.control_flavor,
-                parsed_args.control_scale),
-            ('compute', parsed_args.compute_flavor,
-                parsed_args.compute_scale),
-            ('ceph-storage', parsed_args.ceph_storage_flavor,
-                parsed_args.ceph_storage_scale),
-            ('block-storage', parsed_args.block_storage_flavor,
-                parsed_args.block_storage_scale),
-            ('swift-storage', parsed_args.swift_storage_flavor,
-                parsed_args.swift_storage_scale),
-        ]:
-            if scale == 0 or flavor is None:
-                self.log.debug("Skipping verification of %s profiles because "
-                               "none will be deployed", flavor)
-                continue
-            self._check_profiles(
-                target, flavor, scale,
-                flavor_profile_map,
-                node_profile_map)
-
-        if (node_profile_map.get(None) and
-            any([parsed_args.block_storage_flavor,
-                 parsed_args.ceph_storage_flavor,
-                 parsed_args.compute_flavor,
-                 parsed_args.control_flavor,
-                 parsed_args.swift_storage_flavor])):
-            self.predeploy_warnings += 1
-            self.log.warning(
-                "There are %d ironic nodes with no profile that will "
-                "not be used: %s",
-                len(node_profile_map[None]),
-                ', '.join(node_profile_map[None])
-            )
+        errors, warnings = utils.assign_and_verify_profiles(
+            bm_client, flavors,
+            assign_profiles=False,
+            dry_run=parsed_args.dry_run
+        )
+        self.predeploy_errors += errors
+        self.predeploy_warnings += warnings
 
         return self.predeploy_errors, self.predeploy_warnings
 
@@ -616,82 +579,6 @@ class DeployOvercloud(command.Command):
         self.__ramdisk_id = ramdisk_id
         return kernel_id, ramdisk_id
 
-    def _collect_node_profiles(self):
-        """Gather a map of profile -> [node_uuid] for ironic boot profiles"""
-        bm_client = self.app.client_manager.tripleoclient.baremetal()
-
-        # map of profile capability -> [node_uuid, ...]
-        profile_map = collections.defaultdict(list)
-
-        for node in bm_client.node.list(maintenance=False):
-            node = bm_client.node.get(node.uuid)
-            profiles = re.findall(r'profile:(.*?)(?:,|$)',
-                                  node.properties.get('capabilities', ''))
-            if not profiles:
-                profile_map[None].append(node.uuid)
-            for p in profiles:
-                profile_map[p].append(node.uuid)
-
-        return dict(profile_map)
-
-    def _collect_flavor_profiles(self, flavors):
-        compute_client = self.app.client_manager.compute
-
-        flavor_profiles = {}
-
-        for flavor in compute_client.flavors.list():
-            if flavor.name not in flavors:
-                self.log.debug("Flavor {} isn't used in this deployment, "
-                               "skipping it".format(flavor.name))
-                continue
-
-            profile = flavor.get_keys().get('capabilities:profile')
-            if profile == '':
-                flavor_profiles[flavor.name] = None
-            else:
-                flavor_profiles[flavor.name] = profile
-
-            if flavor.get_keys().get('capabilities:boot_option', '') \
-                    != 'local':
-                self.predeploy_warnings += 1
-                self.log.error(
-                    'Flavor %s "capabilities:boot_option" is not set to '
-                    '"local". Nodes must have ability to PXE boot from '
-                    'deploy image.', flavor.name)
-                self.log.error(
-                    'Recommended solution: openstack flavor set --property '
-                    '"cpu_arch"="x86_64" --property '
-                    '"capabilities:boot_option"="local" ' + flavor.name)
-
-        return flavor_profiles
-
-    def _check_profiles(self, target, flavor, scale,
-                        flavor_profile_map,
-                        node_profile_map):
-        if flavor_profile_map.get(flavor) is None:
-            self.predeploy_errors += 1
-            self.log.error(
-                'Warning: The flavor selected for --%s-flavor "%s" has no '
-                'profile associated', target, flavor)
-            self.log.error(
-                'Recommendation: assign a profile with openstack flavor set '
-                '--property "capabilities:profile"="PROFILE_NAME" %s',
-                flavor)
-            return
-
-        if len(node_profile_map.get(flavor_profile_map[flavor], [])) < scale:
-            self.predeploy_errors += 1
-            self.log.error(
-                "Error: %s of %s requested ironic nodes tagged to profile %s "
-                "(for flavor %s)",
-                len(node_profile_map.get(flavor_profile_map[flavor], [])),
-                scale, flavor_profile_map[flavor], flavor
-            )
-            self.log.error(
-                "Recommendation: tag more nodes using ironic node-update "
-                "<NODE ID> replace properties/capabilities=profile:%s,"
-                "boot_option:local", flavor_profile_map[flavor])
-
     def _check_boot_images(self):
         kernel_id, ramdisk_id = self._image_ids()
         message = ("No image with the name '{}' found - make "
@@ -703,31 +590,50 @@ class DeployOvercloud(command.Command):
             self.predeploy_errors += 1
             self.log.error(message.format('bm-deploy-ramdisk'))
 
-    def _check_flavors_exist(self, parsed_args):
-        """Ensure that selected flavors (--ROLE-flavor) exist in nova."""
+    def _collect_flavors(self, parsed_args):
+        """Validate and collect nova flavors in use.
+
+        Ensure that selected flavors (--ROLE-flavor) are valid in nova.
+        Issue a warning of local boot is not set for a flavor.
+
+        :returns: dictionary flavor name -> (flavor object, scale)
+        """
         compute_client = self.app.client_manager.compute
 
         flavors = {f.name: f for f in compute_client.flavors.list()}
+        result = {}
 
         message = "Provided --{}-flavor, '{}', does not exist"
 
-        for target, flavor, scale in (
-            ('control', parsed_args.control_flavor,
-                parsed_args.control_scale),
-            ('compute', parsed_args.compute_flavor,
-                parsed_args.compute_scale),
-            ('ceph-storage', parsed_args.ceph_storage_flavor,
-                parsed_args.ceph_storage_scale),
-            ('block-storage', parsed_args.block_storage_flavor,
-                parsed_args.block_storage_scale),
-            ('swift-storage', parsed_args.swift_storage_flavor,
-                parsed_args.swift_storage_scale),
+        for target, (flavor_name, scale) in (
+            utils.get_roles_info(parsed_args).items()
         ):
-            if flavor is None or scale == 0:
+            if flavor_name is None or not scale:
                 self.log.debug("--{}-flavor not used".format(target))
-            elif flavor not in flavors:
+                continue
+
+            try:
+                flavor = flavors[flavor_name]
+            except KeyError:
                 self.predeploy_errors += 1
-                self.log.error(message.format(target, flavor))
+                self.log.error(message.format(target, flavor_name))
+                continue
+
+            if flavor.get_keys().get('capabilities:boot_option', '') \
+                    != 'local':
+                self.predeploy_warnings += 1
+                self.log.warning(
+                    'Flavor %s "capabilities:boot_option" is not set to '
+                    '"local". Nodes must have ability to PXE boot from '
+                    'deploy image.', flavor_name)
+                self.log.warning(
+                    'Recommended solution: openstack flavor set --property '
+                    '"cpu_arch"="x86_64" --property '
+                    '"capabilities:boot_option"="local" ' + flavor_name)
+
+            result[flavor_name] = (flavor, scale)
+
+        return result
 
     def _check_ironic_boot_configuration(self, bm_client):
         for node in bm_client.node.list(detail=True, maintenance=False):
@@ -783,29 +689,7 @@ class DeployOvercloud(command.Command):
         parser.add_argument('-t', '--timeout', metavar='<TIMEOUT>',
                             type=int, default=240,
                             help=_('Deployment timeout in minutes.'))
-        parser.add_argument('--control-scale', type=int,
-                            help=_('New number of control nodes.'))
-        parser.add_argument('--compute-scale', type=int,
-                            help=_('New number of compute nodes.'))
-        parser.add_argument('--ceph-storage-scale', type=int,
-                            help=_('New number of ceph storage nodes.'))
-        parser.add_argument('--block-storage-scale', type=int,
-                            help=_('New number of cinder storage nodes.'))
-        parser.add_argument('--swift-storage-scale', type=int,
-                            help=_('New number of swift storage nodes.'))
-        parser.add_argument('--control-flavor',
-                            help=_("Nova flavor to use for control nodes."))
-        parser.add_argument('--compute-flavor',
-                            help=_("Nova flavor to use for compute nodes."))
-        parser.add_argument('--ceph-storage-flavor',
-                            help=_("Nova flavor to use for ceph storage "
-                                   "nodes."))
-        parser.add_argument('--block-storage-flavor',
-                            help=_("Nova flavor to use for cinder storage "
-                                   "nodes."))
-        parser.add_argument('--swift-storage-flavor',
-                            help=_("Nova flavor to use for swift storage "
-                                   "nodes."))
+        utils.add_deployment_plan_arguments(parser)
         parser.add_argument('--neutron-flat-networks',
                             help=_('Comma separated list of physical_network '
                                    'names with which flat networks can be '
