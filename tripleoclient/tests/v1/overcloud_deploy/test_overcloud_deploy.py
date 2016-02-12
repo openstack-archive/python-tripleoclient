@@ -19,7 +19,6 @@ import six
 import tempfile
 
 import mock
-
 from openstackclient.common import exceptions as oscexc
 
 from tripleoclient import exceptions
@@ -747,3 +746,21 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertFalse(mock_oc_endpoint.called)
         self.assertFalse(mock_create_ocrc.called)
         self.assertFalse(mock_create_tempest_deployer_input.called)
+
+    @mock.patch('tripleoclient.utils.get_password')
+    @mock.patch('tripleoclient.constants.SERVICE_LIST',
+                {'nova': {'password_field': 'OVERCLOUD_NOVA_PASSWORD'}})
+    @mock.patch('os_cloud_config.keystone.initialize')
+    @mock.patch('os_cloud_config.utils.clients.get_keystone_client')
+    @mock.patch('os_cloud_config.keystone.setup_endpoints')
+    def test_keystone_init(self, mock_gkc, mock_init, mock_gp, mock_setup_end):
+        mock_ksc = mock.Mock()
+        mock_gkc.return_value = mock_ksc
+        stack = mock.MagicMock()
+        parsed_args = mock.MagicMock()
+        stack.to_dict.return_value = fakes.FAKE_STACK
+        ip = '192.0.2.1'
+        overcloud_deploy.DeployOvercloud(None, None)._keystone_init(
+            ip, ip, parsed_args, stack)
+        self.assertTrue(mock_init.called)
+        self.assertTrue(mock_setup_end.called)

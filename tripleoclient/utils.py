@@ -426,6 +426,23 @@ def get_service_ips(stack):
     return service_ips
 
 
+def get_endpoint_map(stack):
+    endpoint_map = {}
+    for output in stack.to_dict().get('outputs', {}):
+        if output['output_key'] == 'EndpointMap':
+            endpoint_map = output['output_value']
+            break
+    return endpoint_map
+
+
+def get_endpoint(key, stack):
+    endpoint_map = get_endpoint_map(stack)
+    if endpoint_map:
+        return endpoint_map[key]['host']
+    else:
+        return get_service_ips(stack).get(key + 'Vip')
+
+
 __password_cache = None
 
 

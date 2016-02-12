@@ -474,6 +474,21 @@ class TestEnsureRunAsNormalUser(TestCase):
                           utils.ensure_run_as_normal_user)
 
 
+class TestGetEndpointMap(TestCase):
+
+    def test_get_endpoint_map(self):
+        stack = mock.MagicMock()
+        emap = {'KeystonePublic': {'uri': 'http://foo:8000/'}}
+        stack.to_dict.return_value = {
+            'outputs': [{'output_key': 'EndpointMap',
+                         'output_value': emap}]
+        }
+
+        endpoint_map = utils.get_endpoint_map(stack)
+        self.assertEqual(endpoint_map,
+                         {'KeystonePublic': {'uri': 'http://foo:8000/'}})
+
+
 class TestNodeGetCapabilities(TestCase):
     def test_with_capabilities(self):
         node = mock.Mock(properties={'capabilities': 'x:y,foo:bar'})
