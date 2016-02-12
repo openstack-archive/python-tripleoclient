@@ -189,7 +189,7 @@ class BuildOvercloudImage(command.Command):
     ] + PUPPET_COMMON_ELEMENTS
 
     AGENT_DIB_EXTRA_ARGS = [
-        '-p python-hardware'
+        '-p python-hardware-detect'
     ]
 
     DISCOVERY_IMAGE_ELEMENT = [

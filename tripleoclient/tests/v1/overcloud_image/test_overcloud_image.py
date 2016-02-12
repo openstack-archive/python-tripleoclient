@@ -240,7 +240,7 @@ class TestOvercloudImageBuild(TestPluginV1):
             "rhel7 ironic-agent dynamic-login element-manifest "
             "network-gateway epel undercloud-package-install "
             "pip-and-virtualenv-override  "
-            "-p python-hardware --min-tmpfs 5 "
+            "-p python-hardware-detect --min-tmpfs 5 "
             "2>&1 | tee dib-agent-ramdisk.log")
 
     @mock.patch('platform.linux_distribution')
