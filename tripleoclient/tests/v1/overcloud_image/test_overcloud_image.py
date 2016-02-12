@@ -237,7 +237,7 @@ class TestOvercloudImageBuild(TestPluginV1):
             "rhel7 ironic-agent element-manifest network-gateway epel "
             "rdo-release undercloud-package-install "
             "pip-and-virtualenv-override  "
-            "-p python-hardware "
+            "-p python-hardware-detect "
             "2>&1 | tee dib-agent-ramdisk.log")
 
 
