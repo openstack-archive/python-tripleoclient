@@ -249,7 +249,7 @@ def event_log_formatter(events):
     """Return the events in log format."""
     event_log = []
     log_format = ("%(event_time)s "
-                  "[%(rsrc_name)s]: %(rsrc_status)s  %(rsrc_status_reason)s")
+                  "[%(rsrc_name)s]: %(rsrc_status)s %(rsrc_status_reason)s")
     for event in events:
         event_time = getattr(event, 'event_time', '')
         log = log_format % {
