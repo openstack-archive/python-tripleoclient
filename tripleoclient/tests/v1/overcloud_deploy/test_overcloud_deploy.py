@@ -20,8 +20,8 @@ import six
 import tempfile
 import yaml
 
+from keystoneclient import exceptions as kscexc
 import mock
-
 from openstackclient.common import exceptions as oscexc
 
 from tripleoclient import constants
@@ -982,3 +982,33 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertGreater(env_index, foo_index)
 
         mock_create_tempest_deployer_input.assert_called_with()
+
+    @mock.patch('tripleoclient.utils.get_password')
+    @mock.patch('os_cloud_config.keystone.initialize')
+    @mock.patch('os_cloud_config.utils.clients.get_keystone_client')
+    def test_keystone_init(self, mock_gkc, mock_init, mock_gp):
+        mock_ksc = mock.Mock()
+        mock_gkc.return_value = mock_ksc
+        mock_ksc.users.find.return_value = True
+        sips = mock.Mock()
+        sips.get.return_value = None
+        ip = '192.0.2.1'
+        overcloud_deploy.DeployOvercloud(None, None)._keystone_init(ip, ip,
+                                                                    None, sips)
+        self.assertFalse(mock_init.called)
+
+    @mock.patch('tripleoclient.utils.get_password')
+    @mock.patch('os_cloud_config.keystone.setup_endpoints')
+    @mock.patch('os_cloud_config.keystone.initialize')
+    @mock.patch('os_cloud_config.utils.clients.get_keystone_client')
+    def test_keystone_init_occ(self, mock_gkc, mock_init, mock_se, mock_gp):
+        mock_ksc = mock.Mock()
+        mock_gkc.return_value = mock_ksc
+        mock_ksc.users.find.side_effect = kscexc.NotFound()
+        sips = mock.Mock()
+        sips.get.return_value = None
+        ip = '192.0.2.1'
+        args = mock.Mock()
+        overcloud_deploy.DeployOvercloud(None, None)._keystone_init(ip, ip,
+                                                                    args, sips)
+        self.assertTrue(mock_init.called)
