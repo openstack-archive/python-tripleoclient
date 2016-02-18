@@ -679,6 +679,7 @@ def assign_and_verify_profiles(bm_client, flavors,
 
     # TODO(dtantsur): use command-line arguments to specify the order in
     # which profiles are processed (might matter for assigning profiles)
+    profile_flavor_used = False
     for flavor_name, (flavor, scale) in flavors.items():
         if not scale:
             log.debug("Skipping verification of flavor %s because "
@@ -686,7 +687,9 @@ def assign_and_verify_profiles(bm_client, flavors,
             continue
 
         profile = flavor.get_keys().get('capabilities:profile')
-        if not profile:
+        # If there's only a single flavor, then it's expected for it to have
+        # no profile assigned.
+        if not profile and len(flavors) > 1:
             predeploy_errors += 1
             log.error(
                 'Error: The %s flavor has no profile associated', flavor_name)
@@ -695,6 +698,8 @@ def assign_and_verify_profiles(bm_client, flavors,
                 'set --property "capabilities:profile"="PROFILE_NAME" %s',
                 flavor_name)
             continue
+
+        profile_flavor_used = True
 
         # first collect nodes with known profiles
         assigned_nodes = [uu for uu, caps in free_node_caps.items()
@@ -748,7 +753,7 @@ def assign_and_verify_profiles(bm_client, flavors,
 
     nodes_without_profile = [uu for uu, caps in free_node_caps.items()
                              if not caps.get('profile')]
-    if nodes_without_profile:
+    if nodes_without_profile and profile_flavor_used:
         predeploy_warnings += 1
         log.warning(
             "There are %d ironic nodes with no profile that will "

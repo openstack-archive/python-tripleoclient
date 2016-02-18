@@ -568,9 +568,11 @@ class TestNodeAddCapabilities(TestCase):
 
 
 class FakeFlavor(object):
-    def __init__(self, name):
+    def __init__(self, name, profile=''):
         self.name = name
         self.profile = name
+        if profile != '':
+            self.profile = profile
 
     def get_keys(self):
         return {
@@ -729,3 +731,8 @@ class TestAssignVerifyProfiles(TestCase):
 
         self._test(2, 1, assign_profiles=True)
         self.assertFalse(self.bm_client.node.update.called)
+
+    def test_no_spurious_warnings(self):
+        self.nodes[:] = [self._get_fake_node(profile=None)]
+        self.flavors = {'baremetal': (FakeFlavor('baremetal', None), 1)}
+        self._test(0, 0)
