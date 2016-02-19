@@ -161,7 +161,8 @@ class BuildOvercloudImage(command.Command):
         'grub2-deprecated',
         '-p python-psutil,python-debtcollector,plotnetcfg,sos,'
         'python-networking-cisco,python-UcsSdk,device-mapper-multipath,'
-        'python-networking-bigswitch,openstack-neutron-bigswitch-lldp'
+        'python-networking-bigswitch,openstack-neutron-bigswitch-lldp,'
+        'openstack-neutron-bigswitch-agent'
     ]
 
     OVERCLOUD_FULL_DIB_EXTRA_ARGS = [
