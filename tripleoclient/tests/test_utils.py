@@ -42,6 +42,7 @@ class TestPasswordsUtil(TestCase):
             mock.call('NEUTRON_METADATA_PROXY_SHARED_SECRET=PASSWORD\n'),
             mock.call('OVERCLOUD_ADMIN_PASSWORD=PASSWORD\n'),
             mock.call('OVERCLOUD_ADMIN_TOKEN=PASSWORD\n'),
+            mock.call('OVERCLOUD_AODH_PASSWORD=PASSWORD\n'),
             mock.call('OVERCLOUD_CEILOMETER_PASSWORD=PASSWORD\n'),
             mock.call('OVERCLOUD_CEILOMETER_SECRET=PASSWORD\n'),
             mock.call('OVERCLOUD_CINDER_PASSWORD=PASSWORD\n'),
@@ -77,6 +78,7 @@ class TestPasswordsUtil(TestCase):
         PASSWORDS = [
             'OVERCLOUD_ADMIN_PASSWORD=PASSWORD\n',
             'OVERCLOUD_ADMIN_TOKEN=PASSWORD\n',
+            'OVERCLOUD_AODH_PASSWORD=PASSWORD\n',
             'OVERCLOUD_CEILOMETER_PASSWORD=PASSWORD\n',
             'OVERCLOUD_CEILOMETER_SECRET=PASSWORD\n',
             'OVERCLOUD_CINDER_PASSWORD=PASSWORD\n',
