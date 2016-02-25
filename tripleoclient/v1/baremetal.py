@@ -24,7 +24,6 @@ import time
 
 from cliff import command
 from cliff import lister
-from ironic_inspector_client import client as inspector_client
 from openstackclient.common import utils as osc_utils
 from os_cloud_config import nodes
 
@@ -181,33 +180,17 @@ class ImportBaremetal(command.Command):
             keystone_client=self.app.client_manager.identity)
 
 
-class IntrospectionParser(object):
-
-    def get_parser(self, prog_name):
-        parser = super(IntrospectionParser, self).get_parser(prog_name)
-        parser.add_argument(
-            '--inspector-url',
-            default=osc_utils.env('INSPECTOR_URL', default=None),
-            help='inspector URL, defaults to localhost (env: INSPECTOR_URL).')
-        return parser
-
-
-class StartBaremetalIntrospectionBulk(IntrospectionParser, command.Command):
+class StartBaremetalIntrospectionBulk(command.Command):
     """Start bulk introspection on all baremetal nodes"""
 
     log = logging.getLogger(__name__ + ".StartBaremetalIntrospectionBulk")
-
-    def get_parser(self, prog_name):
-        parser = super(
-            StartBaremetalIntrospectionBulk, self).get_parser(prog_name)
-        return parser
 
     def take_action(self, parsed_args):
 
         self.log.debug("take_action(%s)" % parsed_args)
         client = self.app.client_manager.baremetal
+        inspector_client = self.app.client_manager.baremetal_introspection
 
-        auth_token = self.app.client_manager.auth_ref.auth_token
         node_uuids = []
 
         print("Setting nodes for introspection to manageable...")
@@ -223,10 +206,7 @@ class StartBaremetalIntrospectionBulk(IntrospectionParser, command.Command):
             node_uuids.append(node.uuid)
 
             print("Starting introspection of node: {0}".format(node.uuid))
-            inspector_client.introspect(
-                node.uuid,
-                base_url=parsed_args.inspector_url,
-                auth_token=auth_token)
+            inspector_client.introspect(node.uuid)
 
             # NOTE(dtantsur): PXE firmware on virtual machines misbehaves when
             # a lot of nodes start DHCPing simultaneously: it ignores NACK from
@@ -238,8 +218,7 @@ class StartBaremetalIntrospectionBulk(IntrospectionParser, command.Command):
         errors = []
         successful_node_uuids = set()
         for uuid, status in utils.wait_for_node_introspection(
-                inspector_client, auth_token, parsed_args.inspector_url,
-                node_uuids):
+                inspector_client, node_uuids):
             if status['error'] is None:
                 print("Introspection for UUID {0} finished successfully."
                       .format(uuid))
@@ -266,7 +245,7 @@ class StartBaremetalIntrospectionBulk(IntrospectionParser, command.Command):
             print("Introspection completed.")
 
 
-class StatusBaremetalIntrospectionBulk(IntrospectionParser, lister.Lister):
+class StatusBaremetalIntrospectionBulk(lister.Lister):
     """Get the status of all baremetal nodes"""
 
     log = logging.getLogger(__name__ + ".StatusBaremetalIntrospectionBulk")
@@ -275,7 +254,7 @@ class StatusBaremetalIntrospectionBulk(IntrospectionParser, lister.Lister):
 
         self.log.debug("take_action(%s)" % parsed_args)
         client = self.app.client_manager.baremetal
-        auth_token = self.app.client_manager.auth_ref.auth_token
+        inspector_client = self.app.client_manager.baremetal_introspection
 
         statuses = []
 
@@ -283,10 +262,8 @@ class StatusBaremetalIntrospectionBulk(IntrospectionParser, lister.Lister):
             self.log.debug("Getting introspection status of Ironic node {0}"
                            .format(node.uuid))
 
-            statuses.append((node.uuid, inspector_client.get_status(
-                node.uuid,
-                base_url=parsed_args.inspector_url,
-                auth_token=auth_token)))
+            statuses.append((node.uuid,
+                             inspector_client.get_status(node.uuid)))
 
         return (
             ("Node UUID", "Finished", "Error"),
@@ -295,7 +272,7 @@ class StatusBaremetalIntrospectionBulk(IntrospectionParser, lister.Lister):
         )
 
 
-class ConfigureReadyState(IntrospectionParser, command.Command):
+class ConfigureReadyState(command.Command):
     """Configure all baremetal nodes for enrollment"""
 
     log = logging.getLogger(__name__ + ".ConfigureReadyState")
@@ -389,21 +366,17 @@ class ConfigureReadyState(IntrospectionParser, command.Command):
             self.bm_client.node.set_power_state(node.uuid, target_power_state)
 
     def _run_introspection(self, nodes):
-        auth_token = self.app.client_manager.auth_ref.auth_token
+        inspector_client = self.app.client_manager.baremetal_introspection
         node_uuids = []
 
         for node in nodes:
             print("Starting introspection on node {0}".format(node.uuid))
-            inspector_client.introspect(
-                node.uuid,
-                base_url=self.inspector_url,
-                auth_token=auth_token)
+            inspector_client.introspect(node.uuid)
             node_uuids.append(node.uuid)
 
         print("Waiting for introspection to finish")
         for uuid, status in utils.wait_for_node_introspection(
-                inspector_client, auth_token, self.inspector_url,
-                node_uuids):
+                inspector_client, node_uuids):
             if status['error'] is None:
                 print("Introspection for node {0} finished successfully."
                       .format(uuid))
@@ -422,7 +395,6 @@ class ConfigureReadyState(IntrospectionParser, command.Command):
         self.log.debug("take_action(%s)" % parsed_args)
 
         self.bm_client = self.app.client_manager.baremetal
-        self.inspector_url = parsed_args.inspector_url
         drac_nodes = [node for node in self.bm_client.node.list(detail=True)
                       if 'drac' in node.driver]
 
