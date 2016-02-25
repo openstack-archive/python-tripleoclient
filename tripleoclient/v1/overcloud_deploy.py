@@ -613,6 +613,14 @@ class DeployOvercloud(command.Command):
                 continue
 
             try:
+                flavor, old_scale = result[flavor_name]
+            except KeyError:
+                pass
+            else:
+                result[flavor_name] = (flavor, old_scale + scale)
+                continue
+
+            try:
                 flavor = flavors[flavor_name]
             except KeyError:
                 self.predeploy_errors += 1
