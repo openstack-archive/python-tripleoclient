@@ -693,142 +693,88 @@ class TestConfigureReadyState(fakes.TestBaremetal):
     def setUp(self):
         super(TestConfigureReadyState, self).setUp()
         self.cmd = baremetal.ConfigureReadyState(self.app, None)
+        self.node = mock.Mock(uuid='foo')
+        self.ready_state_data = """{
+    "compute" :{
+        "bios_settings": {"ProcVirtualization": "Enabled"}
+    },
+    "storage" :{
+        "bios_settings": {"ProcVirtualization": "Disabled"}
+    }
+}
+"""
+        self.ready_state_config = {
+            "compute": {
+                "bios_settings": {"ProcVirtualization": "Enabled"}
+            },
+            "storage": {
+                "bios_settings": {"ProcVirtualization": "Disabled"},
+            }
+        }
 
+    @mock.patch('tripleoclient.utils.node_get_capabilities')
+    @mock.patch('tripleoclient.v1.baremetal.ConfigureReadyState.'
+                '_apply_changes')
     @mock.patch('tripleoclient.v1.baremetal.ConfigureReadyState.'
                 '_configure_bios')
     @mock.patch('tripleoclient.v1.baremetal.ConfigureReadyState.'
-                '_configure_root_raid_volumes')
-    @mock.patch('tripleoclient.v1.baremetal.ConfigureReadyState.'
-                '_configure_nonroot_raid_volumes')
-    @mock.patch('tripleoclient.v1.baremetal.ConfigureReadyState.'
-                '_wait_for_drac_config_jobs')
-    @mock.patch('tripleoclient.v1.baremetal.ConfigureReadyState.'
-                '_delete_raid_volumes')
-    @mock.patch('tripleoclient.v1.baremetal.ConfigureReadyState.'
                 '_change_power_state')
-    @mock.patch('tripleoclient.v1.baremetal.ConfigureReadyState.'
-                '_run_introspection')
-    def test_configure_ready_state(self, mock_run_introspection,
-                                   mock_change_power_state,
-                                   mock_delete_raid_volumes,
-                                   mock_wait_for_drac_config_jobs,
-                                   mock_configure_nonroot_raid_volumes,
-                                   mock_configure_root_raid_volumes,
-                                   mock_configure_bios):
+    def test_configure_ready_state(
+            self, mock_change_power_state, mock_configure_bios,
+            mock_apply_changes, mock_node_get_capabilities):
 
         nodes = [mock.Mock(uuid='foo', driver='drac'),
                  mock.Mock(uuid='bar', driver='ilo'),
                  mock.Mock(uuid='baz', driver='drac')]
+        drac_nodes = [node for node in nodes if 'drac' in node.driver]
+        drac_nodes_with_profiles = [(drac_nodes[0], 'compute'),
+                                    (drac_nodes[1], 'storage')]
+
         bm_client = self.app.client_manager.baremetal
         bm_client.node.list.return_value = nodes
 
-        argslist = ['--delete-existing-raid-volumes']
-        verifylist = [('delete_raid_volumes', True)]
-        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
-        self.cmd.take_action(parsed_args)
+        mock_node_get_capabilities.side_effect = [
+            {'profile': 'compute'}, {'profile': 'storage'}]
+        mock_configure_bios.return_value = set([nodes[0]])
 
-        drac_nodes = [node for node in nodes if 'drac' in node.driver]
-        mock_configure_bios.assert_called_once_with(drac_nodes)
-        mock_configure_root_raid_volumes.assert_called_once_with(drac_nodes)
-        mock_configure_nonroot_raid_volumes.assert_called_once_with(drac_nodes)
-        mock_wait_for_drac_config_jobs.assert_called_with(drac_nodes)
-        mock_delete_raid_volumes.assert_called_with(drac_nodes)
-        mock_change_power_state.assert_has_calls(([
-            mock.call(drac_nodes, 'reboot'),
-            mock.call(drac_nodes, 'reboot'),
-            mock.call(drac_nodes, 'off'),
-        ]))
-        mock_run_introspection.assert_called_once_with(drac_nodes)
+        arglist = ['ready-state.json']
+        verifylist = [('file', 'ready-state.json')]
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
-    @mock.patch('tripleoclient.v1.baremetal.ConfigureReadyState.'
-                '_configure_bios')
-    @mock.patch('tripleoclient.v1.baremetal.ConfigureReadyState.'
-                '_configure_root_raid_volumes')
-    @mock.patch('tripleoclient.v1.baremetal.ConfigureReadyState.'
-                '_configure_nonroot_raid_volumes')
-    @mock.patch('tripleoclient.v1.baremetal.ConfigureReadyState.'
-                '_wait_for_drac_config_jobs')
-    @mock.patch('tripleoclient.v1.baremetal.ConfigureReadyState.'
-                '_change_power_state')
-    @mock.patch('tripleoclient.v1.baremetal.ConfigureReadyState.'
-                '_run_introspection')
-    def test_configure_ready_state_with_delete_existing_raid_volumes(
-            self, mock_run_introspection, mock_change_power_state,
-            mock_wait_for_drac_config_jobs,
-            mock_configure_nonroot_raid_volumes,
-            mock_configure_root_raid_volumes, mock_configure_bios):
+        with mock.patch('six.moves.builtins.open',
+                        mock.mock_open(read_data=self.ready_state_data)):
+            self.cmd.take_action(parsed_args)
 
-        nodes = [mock.Mock(uuid='foo', driver='drac'),
-                 mock.Mock(uuid='bar', driver='ilo'),
-                 mock.Mock(uuid='baz', driver='drac')]
-        bm_client = self.app.client_manager.baremetal
-        bm_client.node.list.return_value = nodes
-
-        parsed_args = self.check_parser(self.cmd, [], [])
-        self.cmd.take_action(parsed_args)
-
-        drac_nodes = [node for node in nodes if 'drac' in node.driver]
-        mock_configure_bios.assert_called_once_with(drac_nodes)
-        mock_configure_root_raid_volumes.assert_called_once_with(drac_nodes)
-        mock_configure_nonroot_raid_volumes.assert_called_once_with(drac_nodes)
-        mock_wait_for_drac_config_jobs.assert_called_with(drac_nodes)
-        mock_change_power_state.assert_has_calls(([
-            mock.call(drac_nodes, 'reboot'),
-            mock.call(drac_nodes, 'reboot'),
-            mock.call(drac_nodes, 'off'),
-        ]))
-        mock_run_introspection.assert_called_once_with(drac_nodes)
+        mock_node_get_capabilities.assert_has_calls(
+            [mock.call(nodes[0]), mock.call(nodes[2])])
+        mock_configure_bios.assert_called_once_with(drac_nodes_with_profiles)
+        mock_apply_changes.assert_has_calls([
+            # configure BIOS
+            mock.call(set([nodes[0]]))])
+        mock_change_power_state.assert_called_once_with(drac_nodes, 'off')
 
     @mock.patch.object(baremetal.ConfigureReadyState, 'sleep_time',
                        new_callable=mock.PropertyMock,
                        return_value=0)
     def test__configure_bios(self, mock_sleep_time):
-        nodes = [mock.Mock(uuid='foo')]
+        nodes = [(self.node, 'compute')]
         bm_client = self.app.client_manager.baremetal
         self.cmd.bm_client = bm_client
+        self.cmd.ready_state_config = self.ready_state_config
 
         self.cmd._configure_bios(nodes)
 
-        bm_client.node.vendor_passthru.assert_called_once_with(
-            'foo', 'configure_bios_settings', http_method='POST')
-
-    @mock.patch.object(baremetal.ConfigureReadyState, 'sleep_time',
-                       new_callable=mock.PropertyMock,
-                       return_value=0)
-    def test__configure_root_raid_volumes(self, mock_sleep_time):
-        nodes = [mock.Mock(uuid='foo')]
-        bm_client = self.app.client_manager.baremetal
-        self.cmd.bm_client = bm_client
-
-        self.cmd._configure_root_raid_volumes(nodes)
-
-        bm_client.node.vendor_passthru.assert_called_once_with(
-            'foo', 'create_raid_configuration',
-            {'create_nonroot_volumes': False,
-             'create_root_volume': True},
-            'POST')
-
-    @mock.patch.object(baremetal.ConfigureReadyState, 'sleep_time',
-                       new_callable=mock.PropertyMock,
-                       return_value=0)
-    def test__configure_nonroot_raid_volumes(self, mock_sleep_time):
-        nodes = [mock.Mock(uuid='foo')]
-        bm_client = self.app.client_manager.baremetal
-        self.cmd.bm_client = bm_client
-
-        self.cmd._configure_nonroot_raid_volumes(nodes)
-
-        bm_client.node.vendor_passthru.assert_called_once_with(
-            'foo', 'create_raid_configuration',
-            {'create_nonroot_volumes': True,
-             'create_root_volume': False},
-            'POST')
+        bm_client.node.vendor_passthru.assert_has_calls([
+            mock.call('foo', 'set_bios_config',
+                      args={'ProcVirtualization': 'Enabled'},
+                      http_method='POST'),
+            mock.call('foo', 'commit_bios_config', http_method='POST')])
 
     @mock.patch.object(baremetal.ConfigureReadyState, 'sleep_time',
                        new_callable=mock.PropertyMock,
                        return_value=0)
     def test__wait_for_drac_config_jobs(self, mock_sleep_time):
-        nodes = [mock.Mock(uuid='foo')]
+        nodes = [self.node]
         bm_client = self.app.client_manager.baremetal
         bm_client.node.vendor_passthru.side_effect = [
             mock.Mock(unfinished_jobs={'percent_complete': '34',
@@ -849,7 +795,7 @@ class TestConfigureReadyState(fakes.TestBaremetal):
                        new_callable=mock.PropertyMock,
                        return_value=0)
     def test__wait_for_drac_config_jobs_times_out(self, mock_sleep_time):
-        nodes = [mock.Mock(uuid='foo')]
+        nodes = [self.node]
         bm_client = self.app.client_manager.baremetal
         bm_client.node.vendor_passthru.return_value = mock.Mock(
             unfinished_jobs={'percent_complete': '34',
@@ -861,41 +807,8 @@ class TestConfigureReadyState(fakes.TestBaremetal):
                           self.cmd._wait_for_drac_config_jobs,
                           nodes)
 
-    @mock.patch.object(baremetal.ConfigureReadyState, 'sleep_time',
-                       new_callable=mock.PropertyMock,
-                       return_value=0)
-    def test__delete_raid_volumes(self, mock_sleep_time):
-        node_with_raid_volume = mock.Mock(uuid='foo')
-        nodes = [node_with_raid_volume, mock.Mock(uuid='bar')]
-        bm_client = self.app.client_manager.baremetal
-        bm_client.node.vendor_passthru.side_effect = [
-            mock.Mock(virtual_disks=[
-                {'controller': 'RAID.Integrated.1-1',
-                 'id': 'Disk.Virtual.0:RAID.Integrated.1-1'},
-                {'controller': 'RAID.Integrated.1-1',
-                 'id': 'Disk.Virtual.0:RAID.Integrated.1-2'}]),
-            True, True, True,
-            mock.Mock(virtual_disks=[])
-        ]
-        self.cmd.bm_client = bm_client
-
-        nodes_to_restart = self.cmd._delete_raid_volumes(nodes)
-
-        bm_client.node.vendor_passthru.assert_has_calls([
-            mock.call('foo', 'list_virtual_disks', http_method='GET'),
-            mock.call('foo', 'delete_virtual_disk',
-                      {'virtual_disk': 'Disk.Virtual.0:RAID.Integrated.1-1'},
-                      'POST'),
-            mock.call('foo', 'delete_virtual_disk',
-                      {'virtual_disk': 'Disk.Virtual.0:RAID.Integrated.1-2'},
-                      'POST'),
-            mock.call('foo', 'apply_pending_raid_config',
-                      {'raid_controller': 'RAID.Integrated.1-1'}, 'POST'),
-        ])
-        self.assertEqual(set([node_with_raid_volume]), nodes_to_restart)
-
     def test__change_power_state(self):
-        nodes = [mock.Mock(uuid='foo')]
+        nodes = [self.node]
         bm_client = self.app.client_manager.baremetal
         self.cmd.bm_client = bm_client
 
@@ -903,19 +816,20 @@ class TestConfigureReadyState(fakes.TestBaremetal):
 
         bm_client.node.set_power_state.assert_called_once_with('foo', 'reboot')
 
-    @mock.patch('tripleoclient.utils.wait_for_node_introspection',
-                autospec=True)
-    def test__run_introspection(self, mock_wait_for_node_introspection):
-        nodes = [mock.Mock(uuid='foo')]
+    @mock.patch('tripleoclient.v1.baremetal.ConfigureReadyState.'
+                '_change_power_state')
+    @mock.patch('tripleoclient.v1.baremetal.ConfigureReadyState.'
+                '_wait_for_drac_config_jobs')
+    def test__apply_changes(self, mock_wait_for_drac_config_jobs,
+                            mock_change_power_state):
+        nodes = [self.node]
         bm_client = self.app.client_manager.baremetal
-        inspector_client = self.app.client_manager.baremetal_introspection
         self.cmd.bm_client = bm_client
 
-        self.cmd._run_introspection(nodes)
+        self.cmd._apply_changes(nodes)
 
-        self.assertEqual(['foo'], inspector_client.on_introspection)
-        mock_wait_for_node_introspection.assert_called_once_with(
-            mock.ANY, ['foo'])
+        mock_change_power_state.assert_called_once_with(nodes, 'reboot')
+        mock_wait_for_drac_config_jobs.assert_called_once_with(nodes)
 
 
 class TestConfigureBaremetalBoot(fakes.TestBaremetal):
