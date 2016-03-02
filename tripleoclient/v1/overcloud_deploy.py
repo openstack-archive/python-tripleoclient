@@ -409,6 +409,82 @@ class DeployOvercloud(command.Command):
     def _is_tls_enabled(self, overcloud_endpoint):
         return overcloud_endpoint.startswith('https')
 
+    def _keystone_init(self, overcloud_endpoint, overcloud_ip_or_fqdn,
+                       parsed_args, service_ips):
+        keystone_admin_ip = service_ips.get('KeystoneAdminVip')
+        keystone_internal_ip = service_ips.get('KeystoneInternalVip')
+        tls_enabled = self._is_tls_enabled(overcloud_endpoint)
+        keystone_tls_host = None
+        if not keystone_admin_ip:
+            keystone_admin_ip = overcloud_ip_or_fqdn
+        if not keystone_internal_ip:
+            keystone_internal_ip = overcloud_ip_or_fqdn
+        if tls_enabled:
+            # NOTE(jaosorior): This triggers set up the keystone endpoint with
+            # the https protocol and the required port set in
+            # keystone.initialize.
+            keystone_tls_host = overcloud_ip_or_fqdn
+
+        keystone_client = clients.get_keystone_client(
+            'admin',
+            utils.get_password('OVERCLOUD_ADMIN_PASSWORD'),
+            'admin',
+            overcloud_endpoint)
+        try:
+            # NOTE(bnemec): This assumes Nova will always be deployed, which
+            # in the future may not be true.  However, hopefully by that time
+            # we'll be able to just remove os-cloud-config-based Keystone
+            # init anyway.
+            keystone_client.users.find(name='nova')
+        except kscexc.NotFound:
+            self.log.warning('DEPRECATED: '
+                             'It appears Keystone was not initialized by '
+                             'Puppet. Will do initialization via '
+                             'os-cloud-config, but this behavior is '
+                             'deprecated. Please update your templates to a '
+                             'version that has Puppet initialization of '
+                             'Keystone.'
+                             )
+            keystone.initialize(
+                keystone_admin_ip,
+                utils.get_password('OVERCLOUD_ADMIN_TOKEN'),
+                'admin@example.com',
+                utils.get_password('OVERCLOUD_ADMIN_PASSWORD'),
+                ssl=keystone_tls_host,
+                public=overcloud_ip_or_fqdn,
+                user=parsed_args.overcloud_ssh_user,
+                admin=keystone_admin_ip,
+                internal=keystone_internal_ip)
+
+            if not tls_enabled:
+                # NOTE(bcrochet): Bad hack. Remove the ssl_port info from the
+                # os_cloud_config.SERVICES dictionary
+                for service_name, data in keystone.SERVICES.items():
+                    data.pop('ssl_port', None)
+
+            services = {}
+            for service, data in six.iteritems(constants.SERVICE_LIST):
+                service_data = data.copy()
+                service_data.pop('password_field', None)
+                password_field = data.get('password_field')
+                if password_field:
+                    service_data['password'] = utils.get_password(
+                        password_field)
+
+                service_name = re.sub('v[0-9]+', '',
+                                      service.capitalize() + 'InternalVip')
+                internal_vip = service_ips.get(service_name)
+                if internal_vip:
+                    service_data['internal_host'] = internal_vip
+                services.update({service: service_data})
+
+            keystone.setup_endpoints(
+                services,
+                client=keystone_client,
+                os_auth_url=overcloud_endpoint,
+                public_host=overcloud_ip_or_fqdn)
+            # End of deprecated Keystone init
+
     def _deploy_postconfig(self, stack, parsed_args):
         self.log.debug("_deploy_postconfig(%s)" % parsed_args)
 
@@ -428,79 +504,8 @@ class DeployOvercloud(command.Command):
 
         utils.remove_known_hosts(overcloud_ip_or_fqdn)
 
-        keystone_admin_ip = service_ips.get('KeystoneAdminVip')
-        keystone_internal_ip = service_ips.get('KeystoneInternalVip')
-        tls_enabled = self._is_tls_enabled(overcloud_endpoint)
-        keystone_tls_host = None
-        if not keystone_admin_ip:
-            keystone_admin_ip = overcloud_ip_or_fqdn
-        if not keystone_internal_ip:
-            keystone_internal_ip = overcloud_ip_or_fqdn
-        if tls_enabled:
-            # NOTE(jaosorior): This triggers set up the keystone endpoint with
-            # the https protocol and the required port set in
-            # keystone.initialize.
-            keystone_tls_host = overcloud_ip_or_fqdn
-
-        # Note (spredzy): This was deprecated at the begining of
-        # the Mitaka cycle. Should be good to remove for the
-        # next N cycle.
-        keystone.initialize(
-            keystone_admin_ip,
-            utils.get_password('OVERCLOUD_ADMIN_TOKEN'),
-            'admin@example.com',
-            utils.get_password('OVERCLOUD_ADMIN_PASSWORD'),
-            ssl=keystone_tls_host,
-            public=overcloud_ip_or_fqdn,
-            user=parsed_args.overcloud_ssh_user,
-            admin=keystone_admin_ip,
-            internal=keystone_internal_ip)
-
-        if not tls_enabled:
-            # NOTE(bcrochet): Bad hack. Remove the ssl_port info from the
-            # os_cloud_config.SERVICES dictionary
-            for service_name, data in keystone.SERVICES.items():
-                data.pop('ssl_port', None)
-
-        services = {}
-        for service, data in six.iteritems(constants.SERVICE_LIST):
-            service_data = data.copy()
-            service_data.pop('password_field', None)
-            password_field = data.get('password_field')
-            if password_field:
-                service_data['password'] = utils.get_password(password_field)
-
-            service_name = re.sub('v[0-9]+', '',
-                                  service.capitalize() + 'InternalVip')
-            internal_vip = service_ips.get(service_name)
-            if internal_vip:
-                service_data['internal_host'] = internal_vip
-            services.update({service: service_data})
-
-        # Note (spredzy): This was deprecated at the begining of
-        # the Mitaka cycle. Should be good to remove for the
-        # next N cycle.
-        try:
-            keystone_client = clients.get_keystone_client(
-                'admin',
-                utils.get_password('OVERCLOUD_ADMIN_PASSWORD'),
-                'admin',
-                overcloud_endpoint)
-            keystone.setup_endpoints(
-                services,
-                client=keystone_client,
-                os_auth_url=overcloud_endpoint,
-                public_host=overcloud_ip_or_fqdn)
-        except kscexc.Conflict:
-            pass
-        else:
-            self.log.warning("Setting up keystone endpoints via "
-                             "os-cloud-config. This behavior is "
-                             "deprecated and will be removed in "
-                             "a future release.  Please update "
-                             "your heat templates to a version "
-                             "that does Keystone initialization "
-                             "via Puppet.")
+        self._keystone_init(overcloud_endpoint, overcloud_ip_or_fqdn,
+                            parsed_args, service_ips)
 
         compute_client = clients.get_nova_bm_client(
             'admin',
