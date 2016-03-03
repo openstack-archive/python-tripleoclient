@@ -493,16 +493,19 @@ class ConfigureBaremetalBoot(command.Command):
         for node in bm_client.node.list(maintenance=False):
             # NOTE(bnemec): Ironic won't let us update the node while the
             # power_state is transitioning.
-            if node.power_state is None:
+            # Make sure we have the current node state, and not a cached one
+            # from the list call above, which may have happened minutes ago.
+            node_detail = bm_client.node.get(node.uuid)
+            if node_detail.power_state is None:
                 self.log.warning('Node %s power state is in transition. '
                                  'Waiting up to %d seconds for it to '
                                  'complete.',
-                                 node.uuid,
+                                 node_detail.uuid,
                                  self.loops * self.sleep_time)
                 for _ in range(self.loops):
                     time.sleep(self.sleep_time)
-                    node = bm_client.node.get(node.uuid)
-                    if node.power_state is not None:
+                    node_detail = bm_client.node.get(node.uuid)
+                    if node_detail.power_state is not None:
                         break
                 else:
                     msg = ('Timed out waiting for node %s power state.' %
@@ -510,7 +513,6 @@ class ConfigureBaremetalBoot(command.Command):
                     raise exceptions.Timeout(msg)
 
             # Get the full node info
-            node_detail = bm_client.node.get(node.uuid)
             capabilities = node_detail.properties.get('capabilities', None)
 
             # Only update capabilities to add boot_option if it doesn't exist.
