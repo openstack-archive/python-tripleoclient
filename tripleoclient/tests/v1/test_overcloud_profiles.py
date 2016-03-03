@@ -49,7 +49,7 @@ class TestMatchProfiles(test_plugin.TestPluginV1):
         self.cmd.take_action(parsed_args)
 
         mock_assign.assert_called_once_with(
-            self.app.client_manager.tripleoclient.baremetal,
+            self.app.client_manager.tripleoclient.baremetal.return_value,
             {'compute': (self.flavors[0], 3),
              'control': (self.flavors[1], 1)},
             assign_profiles=True, dry_run=False)
@@ -69,7 +69,7 @@ class TestMatchProfiles(test_plugin.TestPluginV1):
                           self.cmd.take_action, parsed_args)
 
         mock_assign.assert_called_once_with(
-            self.app.client_manager.tripleoclient.baremetal,
+            self.app.client_manager.tripleoclient.baremetal.return_value,
             {'compute': (self.flavors[0], 3),
              'control': (self.flavors[1], 1)},
             assign_profiles=True, dry_run=False)
@@ -89,7 +89,7 @@ class TestMatchProfiles(test_plugin.TestPluginV1):
         self.cmd.take_action(parsed_args)
 
         mock_assign.assert_called_once_with(
-            self.app.client_manager.tripleoclient.baremetal,
+            self.app.client_manager.tripleoclient.baremetal.return_value,
             {'compute': (self.flavors[0], 3),
              'control': (self.flavors[1], 1)},
             assign_profiles=True, dry_run=True)
@@ -112,7 +112,8 @@ class TestListProfiles(test_plugin.TestPluginV1):
                       properties={'capabilities': 'profile:compute,'
                                   'compute_profile:0'}),
         ]
-        self.bm_client = self.app.client_manager.tripleoclient.baremetal
+        self.bm_client = (
+            self.app.client_manager.tripleoclient.baremetal.return_value)
         self.bm_client.node.list.return_value = self.nodes
 
     def test_list(self):

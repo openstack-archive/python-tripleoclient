@@ -40,7 +40,7 @@ class MatchProfiles(command.Command):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
-        bm_client = self.app.client_manager.tripleoclient.baremetal
+        bm_client = self.app.client_manager.tripleoclient.baremetal()
 
         flavors = self._collect_flavors(parsed_args)
 
@@ -93,7 +93,7 @@ class ListProfiles(lister.Lister):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
-        client = self.app.client_manager.tripleoclient.baremetal
+        client = self.app.client_manager.tripleoclient.baremetal()
 
         result = []
 
