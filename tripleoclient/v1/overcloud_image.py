@@ -193,10 +193,6 @@ class BuildOvercloudImage(command.Command):
         '-p python-hardware-detect'
     ]
 
-    DISCOVERY_IMAGE_ELEMENT = [
-        'ironic-discoverd-ramdisk-instack',
-    ]
-
     AGENT_IMAGE_ELEMENT = [
         'ironic-agent',
     ]
@@ -208,7 +204,6 @@ class BuildOvercloudImage(command.Command):
     IMAGE_TYPES = [
         'agent-ramdisk',
         'deploy-ramdisk',
-        'discovery-ramdisk',
         'fedora-user',
         'overcloud-full',
     ]
@@ -356,14 +351,6 @@ class BuildOvercloudImage(command.Command):
                   "you should switch to that as soon as possible."),
         )
         parser.add_argument(
-            "--discovery-name",
-            dest="discovery_name",
-            default=os.environ.get('DISCOVERY_NAME', 'discovery-ramdisk'),
-            help=("DEPRECATED: Name of discovery ramdisk image.  This image "
-                  "has been replaced by the Ironic Python Agent ramdisk, so "
-                  "you should switch to that as soon as possible."),
-        )
-        parser.add_argument(
             "--agent-image-element",
             dest="agent_image_element",
             default=os.environ.get(
@@ -378,14 +365,6 @@ class BuildOvercloudImage(command.Command):
                 'DEPLOY_IMAGE_ELEMENT',
                 " ".join(self.DEPLOY_IMAGE_ELEMENT)),
             help="DIB elements for deploy image",
-        )
-        parser.add_argument(
-            "--discovery-image-element",
-            dest="discovery_image_element",
-            default=os.environ.get(
-                'DISCOVERY_IMAGE_ELEMENT',
-                " ".join(self.DISCOVERY_IMAGE_ELEMENT)),
-            help="DIB elements for discovery image",
         )
         parser.add_argument(
             "--builder-extra-args",
@@ -448,11 +427,6 @@ class BuildOvercloudImage(command.Command):
                 'centos-cloud-repo',
             ])
 
-            parsed_args.discovery_image_element = " ".join([
-                'ironic-discoverd-ramdisk-instack',
-                'centos-cr',
-            ])
-
         dib_common_elements.extend([
             'element-manifest',
             'network-gateway',
@@ -487,10 +461,6 @@ class BuildOvercloudImage(command.Command):
            not os.path.isfile("%s.kernel" % image_name)):
             parsed_args._builder.build_ramdisk(parsed_args, ramdisk_type)
 
-    def _build_image_ramdisks(self, parsed_args):
-        self._build_image_ramdisk_deploy(parsed_args)
-        self._build_image_ramdisk_discovery(parsed_args)
-
     def _build_image_ramdisk_agent(self, parsed_args):
         image_name = vars(parsed_args)["agent_name"]
         if (not os.path.isfile("%s.initramfs" % image_name) or
@@ -499,9 +469,6 @@ class BuildOvercloudImage(command.Command):
 
     def _build_image_ramdisk_deploy(self, parsed_args):
         self._build_image_ramdisk(parsed_args, 'deploy')
-
-    def _build_image_ramdisk_discovery(self, parsed_args):
-        self._build_image_ramdisk(parsed_args, 'discovery')
 
     def _build_image_overcloud(self, parsed_args, node_type):
         image_name = "%s.qcow2" % vars(parsed_args)['overcloud_%s_name' %
@@ -557,7 +524,6 @@ class BuildOvercloudImage(command.Command):
                 {
                     'agent-ramdisk': self._build_image_ramdisk_agent,
                     'deploy-ramdisk': self._build_image_ramdisk_deploy,
-                    'discovery-ramdisk': self._build_image_ramdisk_discovery,
                     'fedora-user': self._build_image_fedora_user,
                     'overcloud-full': self._build_image_overcloud_full,
                 }[image_type](parsed_args)
@@ -683,7 +649,7 @@ class UploadOvercloudImage(command.Command):
         parser.add_argument(
             "--http-boot",
             default=os.environ.get('HTTP_BOOT', '/httpboot'),
-            help="Root directory for discovery images",
+            help="Root directory for the introspection image",
         )
         parser.add_argument(
             "--update-existing",
