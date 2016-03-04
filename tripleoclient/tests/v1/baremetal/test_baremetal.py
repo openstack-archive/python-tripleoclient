@@ -452,9 +452,7 @@ class TestStartBaremetalIntrospectionBulk(fakes.TestBaremetal):
         # Get the command object to test
         self.cmd = baremetal.StartBaremetalIntrospectionBulk(self.app, None)
 
-    @mock.patch.object(baremetal.inspector_client, 'get_status', autospec=True)
-    @mock.patch.object(baremetal.inspector_client, 'introspect', autospec=True)
-    def test_introspect_bulk_one(self, inspection_mock, get_status_mock):
+    def test_introspect_bulk_one(self):
         client = self.app.client_manager.baremetal
         client.node = fakes.FakeBaremetalNodeClient(
             states={"ABCDEFGH": "available"},
@@ -463,22 +461,19 @@ class TestStartBaremetalIntrospectionBulk(fakes.TestBaremetal):
                 ("ABCDEFGH", "provide"): "available",
             }
         )
-        get_status_mock.return_value = {'finished': True, 'error': None}
+        inspector_client = self.app.client_manager.baremetal_introspection
+        inspector_client.states['ABCDEFGH'] = {'finished': True, 'error': None}
 
         parsed_args = self.check_parser(self.cmd, [], [])
         self.cmd.take_action(parsed_args)
 
-        inspection_mock.assert_called_once_with(
-            'ABCDEFGH', base_url=None, auth_token='TOKEN')
         self.assertEqual(client.node.updates, [
             ('ABCDEFGH', 'manage'),
             ('ABCDEFGH', 'provide')
         ])
+        self.assertEqual(['ABCDEFGH'], inspector_client.on_introspection)
 
-    @mock.patch.object(baremetal.inspector_client, 'get_status', autospec=True)
-    @mock.patch.object(baremetal.inspector_client, 'introspect', autospec=True)
-    def test_introspect_bulk_failed(self, introspect_mock, get_status_mock):
-
+    def test_introspect_bulk_failed(self):
         client = self.app.client_manager.baremetal
         client.node = fakes.FakeBaremetalNodeClient(
             states={"ABCDEFGH": "available", "IJKLMNOP": "available"},
@@ -488,28 +483,23 @@ class TestStartBaremetalIntrospectionBulk(fakes.TestBaremetal):
                 ("ABCDEFGH", "provide"): "available",
             }
         )
-        status_returns = {
-            "ABCDEFGH": {'finished': True, 'error': None},
-            "IJKLMNOP": {'finished': True, 'error': 'fake error'}
-        }
-        get_status_mock.side_effect = \
-            lambda uuid, *args, **kwargs: status_returns[uuid]
+        inspector_client = self.app.client_manager.baremetal_introspection
+        inspector_client.states['ABCDEFGH'] = {'finished': True,
+                                               'error': None}
+        inspector_client.states['IJKLMNOP'] = {'finished': True,
+                                               'error': 'fake error'}
 
         parsed_args = self.check_parser(self.cmd, [], [])
         self.assertRaisesRegexp(exceptions.IntrospectionError,
                                 'IJKLMNOP: fake error',
                                 self.cmd.take_action, parsed_args)
 
-        introspect_mock.assert_has_calls([
-            mock.call('ABCDEFGH', base_url=None, auth_token='TOKEN'),
-            mock.call('IJKLMNOP', base_url=None, auth_token='TOKEN')
-        ])
         self.assertEqual({'ABCDEFGH': 'available', 'IJKLMNOP': 'manageable'},
                          client.node.states)
+        self.assertEqual(['ABCDEFGH', 'IJKLMNOP'],
+                         inspector_client.on_introspection)
 
-    @mock.patch.object(baremetal.inspector_client, 'get_status', autospec=True)
-    @mock.patch.object(baremetal.inspector_client, 'introspect', autospec=True)
-    def test_introspect_bulk(self, introspect_mock, get_status_mock):
+    def test_introspect_bulk(self):
         client = self.app.client_manager.baremetal
         client.node = fakes.FakeBaremetalNodeClient(
             states={
@@ -526,7 +516,9 @@ class TestStartBaremetalIntrospectionBulk(fakes.TestBaremetal):
                 ("GHI", "provide"): "available"
             }
         )
-        get_status_mock.return_value = {'finished': True, 'error': None}
+        inspector_client = self.app.client_manager.baremetal_introspection
+        for uuid in ('ABC', 'DEF', 'GHI'):
+            inspector_client.states[uuid] = {'finished': True, 'error': None}
 
         parsed_args = self.check_parser(self.cmd, [], [])
         self.cmd.take_action(parsed_args)
@@ -543,21 +535,10 @@ class TestStartBaremetalIntrospectionBulk(fakes.TestBaremetal):
 
         # Nodes which start in "enroll", "available" or "manageable" states are
         # introspected:
-        introspect_mock.assert_has_calls([
-            mock.call('ABC', base_url=None, auth_token='TOKEN'),
-            mock.call('DEF', base_url=None, auth_token='TOKEN'),
-            mock.call('GHI', base_url=None, auth_token='TOKEN')
-        ])
+        self.assertEqual(['ABC', 'DEF', 'GHI'],
+                         sorted(inspector_client.on_introspection))
 
-        get_status_mock.assert_has_calls([
-            mock.call('ABC', base_url=None, auth_token='TOKEN'),
-            mock.call('DEF', base_url=None, auth_token='TOKEN'),
-            mock.call('GHI', base_url=None, auth_token='TOKEN')
-        ], any_order=True)
-
-    @mock.patch.object(baremetal.inspector_client, 'get_status', autospec=True)
-    @mock.patch.object(baremetal.inspector_client, 'introspect', autospec=True)
-    def test_introspect_bulk_timeout(self, introspect_mock, get_status_mock):
+    def test_introspect_bulk_timeout(self):
         client = self.app.client_manager.baremetal
         client.node = fakes.FakeBaremetalNodeClient(
             states={
@@ -570,27 +551,21 @@ class TestStartBaremetalIntrospectionBulk(fakes.TestBaremetal):
                 ("DEF", "provide"): "available"
             }
         )
-        get_status_mock.return_value = {'finished': True, 'error': None}
+        inspector_client = self.app.client_manager.baremetal_introspection
+        inspector_client.states['ABC'] = {'finished': False, 'error': None}
+        inspector_client.states['DEF'] = {'finished': True, 'error': None}
         log_fixture = self.useFixture(fixtures.FakeLogger())
 
         parsed_args = self.check_parser(self.cmd, [], [])
         self.cmd.take_action(parsed_args)
 
         self.assertIn("FAIL: Timeout waiting for Node ABC", log_fixture.output)
-        # Nodes that don't timeout are introspected
-        introspect_mock.assert_called_once_with(
-            'DEF', base_url=None, auth_token='TOKEN')
-        get_status_mock.assert_called_once_with(
-            'DEF', base_url=None, auth_token='TOKEN')
         # Nodes that were successfully introspected are made available
         self.assertEqual(
             [("ABC", "manage"), ("DEF", "manage"), ("DEF", "provide")],
             client.node.updates)
 
-    @mock.patch.object(baremetal.inspector_client, 'get_status', autospec=True)
-    @mock.patch.object(baremetal.inspector_client, 'introspect', autospec=True)
-    def test_introspect_bulk_transition_fails(self, introspect_mock,
-                                              get_status_mock):
+    def test_introspect_bulk_transition_fails(self):
         client = self.app.client_manager.baremetal
         client.node = fakes.FakeBaremetalNodeClient(
             states={
@@ -606,7 +581,9 @@ class TestStartBaremetalIntrospectionBulk(fakes.TestBaremetal):
                 ("DEF", "manage"): "power credential verification failed"
             }
         )
-        get_status_mock.return_value = {'finished': True, 'error': None}
+        inspector_client = self.app.client_manager.baremetal_introspection
+        for uuid in ('ABC', 'DEF'):
+            inspector_client.states[uuid] = {'finished': True, 'error': None}
         log_fixture = self.useFixture(fixtures.FakeLogger())
 
         parsed_args = self.check_parser(self.cmd, [], [])
@@ -614,11 +591,6 @@ class TestStartBaremetalIntrospectionBulk(fakes.TestBaremetal):
 
         self.assertIn("FAIL: State transition failed for Node DEF",
                       log_fixture.output)
-        # Nodes that successfully transition are introspected
-        introspect_mock.assert_called_once_with(
-            'ABC', base_url=None, auth_token='TOKEN')
-        get_status_mock.assert_called_once_with(
-            'ABC', base_url=None, auth_token='TOKEN')
         # Nodes that were successfully introspected are made available
         self.assertEqual(
             [("ABC", "manage"), ("DEF", "manage"), ("ABC", "provide")],
@@ -633,50 +605,36 @@ class TestStatusBaremetalIntrospectionBulk(fakes.TestBaremetal):
         # Get the command object to test
         self.cmd = baremetal.StatusBaremetalIntrospectionBulk(self.app, None)
 
-    @mock.patch.object(baremetal.inspector_client, 'get_status', autospec=True)
-    def test_status_bulk_one(self, get_status_mock):
-
+    def test_status_bulk_one(self):
         client = self.app.client_manager.baremetal
         client.node.list.return_value = [
             mock.Mock(uuid="ABCDEFGH")
         ]
-
-        get_status_mock.return_value = {
-            'finished': False, 'error': None
-        }
+        inspector_client = self.app.client_manager.baremetal_introspection
+        inspector_client.states['ABCDEFGH'] = {'finished': False,
+                                               'error': None}
 
         parsed_args = self.check_parser(self.cmd, [], [])
         result = self.cmd.take_action(parsed_args)
-
-        get_status_mock.assert_called_once_with(
-            'ABCDEFGH', base_url=None, auth_token='TOKEN')
 
         self.assertEqual(result, (
             ('Node UUID', 'Finished', 'Error'),
             [('ABCDEFGH', False, None)]))
 
-    @mock.patch.object(baremetal.inspector_client, 'get_status', autospec=True)
-    def test_status_bulk(self, get_status_mock):
-
+    def test_status_bulk(self):
         client = self.app.client_manager.baremetal
         client.node.list.return_value = [
             mock.Mock(uuid="ABCDEFGH"),
             mock.Mock(uuid="IJKLMNOP"),
             mock.Mock(uuid="QRSTUVWX"),
         ]
-
-        get_status_mock.return_value = {
-            'finished': False, 'error': None
-        }
+        inspector_client = self.app.client_manager.baremetal_introspection
+        for node in client.node.list.return_value:
+            inspector_client.states[node.uuid] = {'finished': False,
+                                                  'error': None}
 
         parsed_args = self.check_parser(self.cmd, [], [])
         result = self.cmd.take_action(parsed_args)
-
-        get_status_mock.assert_has_calls([
-            mock.call('ABCDEFGH', base_url=None, auth_token='TOKEN'),
-            mock.call('IJKLMNOP', base_url=None, auth_token='TOKEN'),
-            mock.call('QRSTUVWX', base_url=None, auth_token='TOKEN'),
-        ])
 
         self.assertEqual(result, (
             ('Node UUID', 'Finished', 'Error'),
@@ -903,22 +861,19 @@ class TestConfigureReadyState(fakes.TestBaremetal):
 
         bm_client.node.set_power_state.assert_called_once_with('foo', 'reboot')
 
-    @mock.patch.object(baremetal.inspector_client, 'introspect', autospec=True)
     @mock.patch('tripleoclient.utils.wait_for_node_introspection',
                 autospec=True)
-    def test__run_introspection(self, mock_wait_for_node_introspection,
-                                mock_introspect):
+    def test__run_introspection(self, mock_wait_for_node_introspection):
         nodes = [mock.Mock(uuid='foo')]
         bm_client = self.app.client_manager.baremetal
+        inspector_client = self.app.client_manager.baremetal_introspection
         self.cmd.bm_client = bm_client
-        self.cmd.inspector_url = None
 
         self.cmd._run_introspection(nodes)
 
-        mock_introspect.assert_called_once_with('foo', base_url=None,
-                                                auth_token='TOKEN')
+        self.assertEqual(['foo'], inspector_client.on_introspection)
         mock_wait_for_node_introspection.assert_called_once_with(
-            mock.ANY, 'TOKEN', None, ['foo'])
+            mock.ANY, ['foo'])
 
 
 class TestConfigureBaremetalBoot(fakes.TestBaremetal):

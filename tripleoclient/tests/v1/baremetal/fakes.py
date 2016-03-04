@@ -67,6 +67,18 @@ class FakeBaremetalNodeClient(object):
                 for uuid in (sorted(self.states.keys()))]
 
 
+class FakeInspectorClient(object):
+    def __init__(self, states=None):
+        self.states = states or {}
+        self.on_introspection = []
+
+    def introspect(self, uuid):
+        self.on_introspection.append(uuid)
+
+    def get_status(self, uuid):
+        return self.states[uuid]
+
+
 class TestBaremetal(utils.TestCommand):
 
     def setUp(self):
@@ -75,3 +87,4 @@ class TestBaremetal(utils.TestCommand):
         self.app.client_manager.auth_ref = mock.Mock(auth_token="TOKEN")
         self.app.client_manager.baremetal = mock.Mock()
         self.app.client_manager.image = mock.Mock()
+        self.app.client_manager.baremetal_introspection = FakeInspectorClient()

@@ -329,8 +329,8 @@ def wait_for_provision_state(baremetal_client, node_uuid, provision_state,
     )
 
 
-def wait_for_node_introspection(inspector_client, auth_token, inspector_url,
-                                node_uuids, loops=220, sleep=10):
+def wait_for_node_introspection(inspector_client, node_uuids,
+                                loops=220, sleep=10):
     """Check the status of Node introspection in Ironic inspector
 
     Gets the status and waits for them to complete.
@@ -354,10 +354,7 @@ def wait_for_node_introspection(inspector_client, auth_token, inspector_url,
     for _l in range(0, loops):
 
         for node_uuid in node_uuids:
-            status = inspector_client.get_status(
-                node_uuid,
-                base_url=inspector_url,
-                auth_token=auth_token)
+            status = inspector_client.get_status(node_uuid)
 
             if status['finished']:
                 log.debug("Introspection finished for node {0} "

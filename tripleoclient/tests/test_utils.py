@@ -222,8 +222,8 @@ class TestWaitForIntrospection(TestCase):
             'error': None
         }
 
-        result = utils.wait_for_node_introspection(mock_inspector, "TOKEN",
-                                                   "URL", self.node_uuids,
+        result = utils.wait_for_node_introspection(mock_inspector,
+                                                   self.node_uuids,
                                                    loops=4, sleep=0.01)
 
         self.assertEqual(list(result), [
@@ -247,8 +247,8 @@ class TestWaitForIntrospection(TestCase):
             'error': "Failed"
         }]
 
-        result = utils.wait_for_node_introspection(mock_inspector, "TOKEN",
-                                                   "URL", self.node_uuids,
+        result = utils.wait_for_node_introspection(mock_inspector,
+                                                   self.node_uuids,
                                                    loops=4, sleep=0.01)
 
         self.assertEqual(list(result), [
@@ -269,8 +269,8 @@ class TestWaitForIntrospection(TestCase):
             'error': None
         }
 
-        result = utils.wait_for_node_introspection(mock_inspector, "TOKEN",
-                                                   "URL", self.node_uuids,
+        result = utils.wait_for_node_introspection(mock_inspector,
+                                                   self.node_uuids,
                                                    loops=4, sleep=0.01)
 
         self.assertEqual(list(result), [])
