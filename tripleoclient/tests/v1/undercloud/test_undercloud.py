@@ -33,7 +33,7 @@ class TestUndercloudInstall(TestPluginV1):
         super(TestUndercloudInstall, self).setUp()
 
         # Get the command object to test
-        self.cmd = undercloud.InstallPlugin(self.app, None)
+        self.cmd = undercloud.InstallUndercloud(self.app, None)
 
     @mock.patch('subprocess.check_call', autospec=True)
     def test_undercloud_install(self, mock_subprocess):
@@ -45,3 +45,27 @@ class TestUndercloudInstall(TestPluginV1):
         self.cmd.take_action(parsed_args)
 
         mock_subprocess.assert_called_with('instack-install-undercloud')
+
+
+class TestUndercloudUpgrade(TestPluginV1):
+    def setUp(self):
+        super(TestUndercloudUpgrade, self).setUp()
+
+        # Get the command object to test
+        self.cmd = undercloud.UpgradeUndercloud(self.app, None)
+
+    @mock.patch('subprocess.check_call', autospec=True)
+    def test_undercloud_upgrade(self, mock_subprocess):
+        arglist = []
+        verifylist = []
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        # DisplayCommandBase.take_action() returns two tuples
+        self.cmd.take_action(parsed_args)
+
+        mock_subprocess.assert_has_calls(
+            [
+                mock.call(['sudo', 'yum', 'update', '-y']),
+                mock.call('instack-install-undercloud')
+            ]
+        )
