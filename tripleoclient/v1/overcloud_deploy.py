@@ -492,13 +492,6 @@ class DeployOvercloud(command.Command):
             os_auth_url=overcloud_endpoint,
             public_host=overcloud_ip_or_fqdn)
 
-        compute_client = clients.get_nova_bm_client(
-            'admin',
-            utils.get_password('OVERCLOUD_ADMIN_PASSWORD'),
-            'admin',
-            overcloud_endpoint)
-        compute_client.flavors.create('m1.demo', 512, 1, 10, 'auto')
-
     def _validate_args(self, parsed_args):
         network_type = parsed_args.neutron_network_type
         tunnel_types = parsed_args.neutron_tunnel_types
