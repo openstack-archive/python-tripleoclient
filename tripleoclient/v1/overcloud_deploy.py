@@ -76,6 +76,7 @@ class DeployOvercloud(command.Command):
         parameters['NeutronPassword'] = passwords[
             'OVERCLOUD_NEUTRON_PASSWORD']
         parameters['NovaPassword'] = passwords['OVERCLOUD_NOVA_PASSWORD']
+        parameters['RedisPassword'] = passwords['OVERCLOUD_REDIS_PASSWORD']
         parameters['SwiftHashSuffix'] = passwords['OVERCLOUD_SWIFT_HASH']
         parameters['SwiftPassword'] = passwords['OVERCLOUD_SWIFT_PASSWORD']
         parameters['SnmpdReadonlyUserPassword'] = (
