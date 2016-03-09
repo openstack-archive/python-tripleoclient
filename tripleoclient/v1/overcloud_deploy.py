@@ -437,14 +437,6 @@ class DeployOvercloud(command.Command):
             # init anyway.
             keystone_client.users.find(name='nova')
         except kscexc.NotFound:
-            self.log.warning('DEPRECATED: '
-                             'It appears Keystone was not initialized by '
-                             'Puppet. Will do initialization via '
-                             'os-cloud-config, but this behavior is '
-                             'deprecated. Please update your templates to a '
-                             'version that has Puppet initialization of '
-                             'Keystone.'
-                             )
             keystone.initialize(
                 keystone_admin_ip,
                 utils.get_password('OVERCLOUD_ADMIN_TOKEN'),
