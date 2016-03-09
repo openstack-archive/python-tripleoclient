@@ -523,6 +523,18 @@ class DeployOvercloud(command.Command):
                     services.update({service: service_data})
 
         if services:
+            # This was deprecated in Newton.  The deprecation message and
+            # os-cloud-config keystone init should remain until at least the
+            # Pike release to ensure users have a chance to update their
+            # templates, including ones for the previous release.
+            self.log.warning('DEPRECATED: '
+                             'It appears Keystone was not initialized by '
+                             'Puppet. Will do initialization via '
+                             'os-cloud-config, but this behavior is '
+                             'deprecated. Please update your templates to a '
+                             'version that has Puppet initialization of '
+                             'Keystone.'
+                             )
             # NOTE(jaosorior): These ports will be None if the templates
             # don't support the EndpointMap as an output yet. And so the
             # default values will be taken.
@@ -535,7 +547,6 @@ class DeployOvercloud(command.Command):
                 admin_port = endpoint_map.get('KeystoneAdmin').get('port')
                 internal_port = endpoint_map.get(
                     'KeystoneInternal').get('port')
-
             keystone.initialize(
                 keystone_admin_ip,
                 utils.get_password('OVERCLOUD_ADMIN_TOKEN'),
