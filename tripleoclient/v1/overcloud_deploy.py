@@ -70,6 +70,8 @@ class DeployOvercloud(command.Command):
             'OVERCLOUD_CINDER_PASSWORD']
         parameters['GlancePassword'] = passwords[
             'OVERCLOUD_GLANCE_PASSWORD']
+        parameters['HAProxyStatsPassword'] = passwords[
+            'OVERCLOUD_HAPROXY_STATS_PASSWORD']
         parameters['HeatPassword'] = passwords['OVERCLOUD_HEAT_PASSWORD']
         parameters['HeatStackDomainAdminPassword'] = passwords[
             'OVERCLOUD_HEAT_STACK_DOMAIN_PASSWORD']
