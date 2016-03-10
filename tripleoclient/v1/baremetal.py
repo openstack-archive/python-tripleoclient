@@ -208,12 +208,6 @@ class StartBaremetalIntrospectionBulk(command.Command):
             print("Starting introspection of node: {0}".format(node.uuid))
             inspector_client.introspect(node.uuid)
 
-            # NOTE(dtantsur): PXE firmware on virtual machines misbehaves when
-            # a lot of nodes start DHCPing simultaneously: it ignores NACK from
-            # DHCP server, tries to get the same address, then times out. Work
-            # around it by using sleep, anyway introspection takes much longer.
-            time.sleep(5)
-
         print("Waiting for introspection to finish...")
         errors = []
         successful_node_uuids = set()
