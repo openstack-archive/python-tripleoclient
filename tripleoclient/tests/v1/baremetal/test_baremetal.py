@@ -336,7 +336,7 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
         os.unlink(self.yaml_file.name)
         os.unlink(self.instack_yaml.name)
 
-    @mock.patch('os_cloud_config.nodes.register_all_nodes', autospec=True)
+    @mock.patch('tripleo_common.utils.nodes.register_all_nodes', autospec=True)
     def test_json_import(self, mock_register_nodes):
 
         arglist = [self.json_file.name, '--json', '-s', 'http://localhost']
@@ -355,7 +355,7 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
             client=self.app.client_manager.baremetal,
             keystone_client=None)
 
-    @mock.patch('os_cloud_config.nodes.register_all_nodes', autospec=True)
+    @mock.patch('tripleo_common.utils.nodes.register_all_nodes', autospec=True)
     def test_json_import_detect_suffix(self, mock_register_nodes):
 
         arglist = [self.json_file.name, '-s', 'http://localhost']
@@ -374,7 +374,7 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
             client=self.app.client_manager.baremetal,
             keystone_client=None)
 
-    @mock.patch('os_cloud_config.nodes.register_all_nodes', autospec=True)
+    @mock.patch('tripleo_common.utils.nodes.register_all_nodes', autospec=True)
     def test_instack_json_import(self, mock_register_nodes):
 
         arglist = [self.instack_json.name, '--json', '-s', 'http://localhost']
@@ -393,7 +393,7 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
             client=self.app.client_manager.baremetal,
             keystone_client=None)
 
-    @mock.patch('os_cloud_config.nodes.register_all_nodes', autospec=True)
+    @mock.patch('tripleo_common.utils.nodes.register_all_nodes', autospec=True)
     def test_csv_import(self, mock_register_nodes):
 
         arglist = [self.csv_file.name, '--csv', '-s', 'http://localhost']
@@ -412,7 +412,7 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
             client=self.app.client_manager.baremetal,
             keystone_client=None)
 
-    @mock.patch('os_cloud_config.nodes.register_all_nodes', autospec=True)
+    @mock.patch('tripleo_common.utils.nodes.register_all_nodes', autospec=True)
     def test_csv_import_detect_suffix(self, mock_register_nodes):
 
         arglist = [self.csv_file.name, '-s', 'http://localhost']
@@ -431,7 +431,7 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
             client=self.app.client_manager.baremetal,
             keystone_client=None)
 
-    @mock.patch('os_cloud_config.nodes.register_all_nodes', autospec=True)
+    @mock.patch('tripleo_common.utils.nodes.register_all_nodes', autospec=True)
     def test_yaml_import(self, mock_register_nodes):
 
         arglist = [self.yaml_file.name, '-s', 'http://localhost']
@@ -465,7 +465,7 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
                                 'Invalid file extension',
                                 self.cmd.take_action, parsed_args)
 
-    @mock.patch('os_cloud_config.nodes.register_all_nodes', autospec=True)
+    @mock.patch('tripleo_common.utils.nodes.register_all_nodes', autospec=True)
     def test_instack_yaml_import(self, mock_register_nodes):
 
         arglist = [self.instack_yaml.name, '-s', 'http://localhost']

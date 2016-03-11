@@ -26,7 +26,7 @@ from cliff import command
 from cliff import lister
 from openstackclient.common import utils as osc_utils
 from openstackclient.i18n import _
-from os_cloud_config import nodes
+from tripleo_common.utils import nodes
 
 from tripleoclient import exceptions
 from tripleoclient import utils
