@@ -52,13 +52,14 @@ class TestPasswordsUtil(TestCase):
             mock.call('OVERCLOUD_HEAT_STACK_DOMAIN_PASSWORD=PASSWORD\n'),
             mock.call('OVERCLOUD_NEUTRON_PASSWORD=PASSWORD\n'),
             mock.call('OVERCLOUD_NOVA_PASSWORD=PASSWORD\n'),
+            mock.call('OVERCLOUD_REDIS_PASSWORD=PASSWORD\n'),
             mock.call('OVERCLOUD_SAHARA_PASSWORD=PASSWORD\n'),
             mock.call('OVERCLOUD_SWIFT_HASH=PASSWORD\n'),
             mock.call('OVERCLOUD_SWIFT_PASSWORD=PASSWORD\n'),
         ])
-        self.assertEqual(generate_password_mock.call_count, 15)
+        self.assertEqual(generate_password_mock.call_count, 16)
 
-        self.assertEqual(len(passwords), 15)
+        self.assertEqual(len(passwords), 16)
 
     def test_generate_passwords_update(self):
 
@@ -84,6 +85,7 @@ class TestPasswordsUtil(TestCase):
             'OVERCLOUD_HEAT_STACK_DOMAIN_PASSWORD=PASSWORD\n',
             'OVERCLOUD_NEUTRON_PASSWORD=PASSWORD\n',
             'OVERCLOUD_NOVA_PASSWORD=PASSWORD\n',
+            'OVERCLOUD_REDIS_PASSWORD=PASSWORD\n',
             'OVERCLOUD_SAHARA_PASSWORD=PASSWORD\n',
             'OVERCLOUD_SWIFT_HASH=PASSWORD\n',
             'OVERCLOUD_SWIFT_PASSWORD=PASSWORD\n',
@@ -98,7 +100,7 @@ class TestPasswordsUtil(TestCase):
             passwords = utils.generate_overcloud_passwords()
 
         generate_password_mock.assert_not_called()
-        self.assertEqual(len(passwords), 15)
+        self.assertEqual(len(passwords), 16)
         for name in utils._PASSWORD_NAMES:
             self.assertEqual('PASSWORD', passwords[name])
 
