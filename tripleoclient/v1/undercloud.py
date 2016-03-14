@@ -22,11 +22,11 @@ from cliff import command
 from tripleoclient import utils
 
 
-class InstallPlugin(command.Command):
+class InstallUndercloud(command.Command):
     """Install and setup the undercloud"""
 
     auth_required = False
-    log = logging.getLogger(__name__ + ".InstallPlugin")
+    log = logging.getLogger(__name__ + ".InstallUndercloud")
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
@@ -35,4 +35,17 @@ class InstallPlugin(command.Command):
 
         subprocess.check_call("instack-install-undercloud")
 
-        return
+
+class UpgradeUndercloud(command.Command):
+    """Upgrade undercloud"""
+
+    auth_required = False
+    log = logging.getLogger(__name__ + ".UpgradeUndercloud")
+
+    def take_action(self, parsed_args):
+        self.log.debug("take action(%s)" % parsed_args)
+
+        utils.ensure_run_as_normal_user()
+
+        subprocess.check_call(['sudo', 'yum', 'update', '-y'])
+        subprocess.check_call("instack-install-undercloud")
