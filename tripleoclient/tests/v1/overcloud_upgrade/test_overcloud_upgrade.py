@@ -43,6 +43,7 @@ class TestOvercloudUpgrade(fakes.TestOvercloudUpgrade):
         upgrade_manager.get_status.assert_called_once_with()
         upgrade_manager.upgrade.assert_called_once_with()
         upgrade_manager.upgrade_post.assert_not_called()
+        upgrade_manager.upgrade_pre.assert_not_called()
 
     @mock.patch('tripleo_common.upgrade.StackUpgradeManager', autospec=True)
     def test_upgrade_answerfile(self, mock_upgrade_manager):
@@ -74,6 +75,7 @@ class TestOvercloudUpgrade(fakes.TestOvercloudUpgrade):
         upgrade_manager.get_status.assert_called_once_with()
         upgrade_manager.upgrade.assert_called_once_with()
         upgrade_manager.upgrade_post.assert_not_called()
+        upgrade_manager.upgrade_pre.assert_not_called()
 
         called_args = mock_upgrade_manager.call_args[1]
         self.assertEqual('/tmp/tht', called_args['tht_dir'])
@@ -129,3 +131,26 @@ class TestOvercloudUpgrade(fakes.TestOvercloudUpgrade):
         upgrade_manager.get_status.assert_called_once_with()
         upgrade_manager.upgrade_post.assert_called_once_with()
         upgrade_manager.upgrade.assert_not_called()
+        upgrade_manager.upgrade_pre.assert_not_called()
+
+    @mock.patch('tripleo_common.upgrade.StackUpgradeManager')
+    def test_upgrade_perform_pre(self, mock_upgrade_manager):
+        upgrade_manager = mock_upgrade_manager.return_value
+        upgrade_manager.get_status.return_value = (
+            'UPDATE_COMPLETE', {})
+        argslist = [
+            'prepare',
+            '--stack', 'overcloud',
+            '--templates',
+        ]
+        verifylist = [
+            ('stage', 'prepare'),
+            ('stack', 'overcloud'),
+            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
+        ]
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+        self.cmd.take_action(parsed_args)
+        upgrade_manager.get_status.assert_called_once_with()
+        upgrade_manager.upgrade_pre.assert_called_once_with()
+        upgrade_manager.upgrade.assert_not_called()
+        upgrade_manager.upgrade_post.assert_not_called()
