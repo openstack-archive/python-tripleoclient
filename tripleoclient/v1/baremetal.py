@@ -19,12 +19,13 @@ import argparse
 import csv
 import json
 import logging
-import sys
 import time
+import yaml
 
 from cliff import command
 from cliff import lister
 from openstackclient.common import utils as osc_utils
+from openstackclient.i18n import _
 from os_cloud_config import nodes
 
 from tripleoclient import exceptions
@@ -35,7 +36,7 @@ def _csv_to_nodes_dict(nodes_csv):
     """Convert CSV to a list of dicts formatted for os_cloud_config
 
     Given a CSV file in the format below, convert it into the
-    structure expected by os_could_config JSON files.
+    structure expected by os_cloud_config JSON files.
 
     pm_type, pm_addr, pm_user, pm_password, mac
     """
@@ -142,7 +143,7 @@ class ValidateInstackEnv(command.Command):
 
 
 class ImportBaremetal(command.Command):
-    """Import baremetal nodes from a JSON or CSV file"""
+    """Import baremetal nodes from a JSON, YAML or CSV file"""
 
     log = logging.getLogger(__name__ + ".ImportBaremetal")
 
@@ -151,8 +152,12 @@ class ImportBaremetal(command.Command):
         parser.add_argument('-s', '--service-host', dest='service_host',
                             help='Nova compute service host to register nodes '
                             'with')
-        parser.add_argument('--json', dest='json', action='store_true')
-        parser.add_argument('--csv', dest='csv', action='store_true')
+        parser.add_argument(
+            '--json', dest='json', action='store_true',
+            help=_('Deprecated, now detected via file extension.'))
+        parser.add_argument(
+            '--csv', dest='csv', action='store_true',
+            help=_('Deprecated, now detected via file extension.'))
         parser.add_argument('file_in', type=argparse.FileType('r'))
         return parser
 
@@ -160,22 +165,23 @@ class ImportBaremetal(command.Command):
 
         self.log.debug("take_action(%s)" % parsed_args)
 
-        # We need JSON or CSV to be specified, not both.
-        if parsed_args.json == parsed_args.csv:
-            print("ERROR: Either --json or --csv needs to be specified.",
-                  file=sys.stderr)
-            return
-
-        if parsed_args.json is True:
-            nodes_json = json.load(parsed_args.file_in)
-            if 'nodes' in nodes_json:
-                nodes_json = nodes_json['nodes']
+        if parsed_args.json or parsed_args.file_in.name.endswith('.json'):
+            nodes_config = json.load(parsed_args.file_in)
+        elif parsed_args.csv or parsed_args.file_in.name.endswith('.csv'):
+            nodes_config = _csv_to_nodes_dict(parsed_args.file_in)
+        elif parsed_args.file_in.name.endswith('.yaml'):
+            nodes_config = yaml.safe_load(parsed_args.file_in)
         else:
-            nodes_json = _csv_to_nodes_dict(parsed_args.file_in)
+            raise exceptions.InvalidConfiguration(
+                _("Invalid file extension for %s, must be json, yaml or csv") %
+                parsed_args.file_in.name)
+
+        if 'nodes' in nodes_config:
+            nodes_config = nodes_config['nodes']
 
         nodes.register_all_nodes(
             parsed_args.service_host,
-            nodes_json,
+            nodes_config,
             client=self.app.client_manager.baremetal,
             keystone_client=self.app.client_manager.identity)
 
@@ -317,7 +323,7 @@ class ConfigureReadyState(command.Command):
             print("Waiting for DRAC config jobs to finish on node {0}"
                   .format(node.uuid))
 
-            for _ in range(self.loops):
+            for _r in range(self.loops):
                 resp = self.bm_client.node.vendor_passthru(
                     node.uuid, 'list_unfinished_jobs', http_method='GET')
                 if not resp.unfinished_jobs:
@@ -474,7 +480,7 @@ class ConfigureBaremetalBoot(command.Command):
                                  'complete.',
                                  node_detail.uuid,
                                  self.loops * self.sleep_time)
-                for _ in range(self.loops):
+                for _r in range(self.loops):
                     time.sleep(self.sleep_time)
                     node_detail = bm_client.node.get(node.uuid)
                     if node_detail.power_state is not None:
