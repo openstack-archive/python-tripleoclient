@@ -33,8 +33,8 @@ class UpgradeOvercloud(command.Command):
         parser = super(UpgradeOvercloud, self).get_parser(prog_name)
         parser.add_argument(
             'stage',
-            metavar="<start|finish>",
-            choices=['start', 'finish'],
+            metavar="<prepare|start|finish>",
+            choices=['prepare', 'start', 'finish'],
             help=_('Stage of upgrade to perform.')
         )
         parser.add_argument(
@@ -91,6 +91,7 @@ class UpgradeOvercloud(command.Command):
             print("Starting stack upgrade on stack {0}".format(
                 parsed_args.stack))
             stage_func = {
+                "prepare": upgrade_manager.upgrade_pre,
                 "start": upgrade_manager.upgrade,
                 "finish": upgrade_manager.upgrade_post,
             }
