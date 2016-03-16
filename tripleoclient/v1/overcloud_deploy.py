@@ -510,6 +510,16 @@ class DeployOvercloud(command.Command):
             raise oscexc.CommandError(
                 "You must specify either --templates or --answers-file")
 
+        if parsed_args.environment_files:
+            nonexisting_envs = []
+            for env_file in parsed_args.environment_files:
+                if not os.path.isfile(env_file):
+                    nonexisting_envs.append(env_file)
+            if nonexisting_envs:
+                raise oscexc.CommandError(
+                    "Error: The following files were not found: {0}".format(
+                        ", ".join(nonexisting_envs)))
+
         network_type = parsed_args.neutron_network_type
         tunnel_types = parsed_args.neutron_tunnel_types
         tunnel_disabled = parsed_args.neutron_disable_tunneling
