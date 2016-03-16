@@ -22,6 +22,7 @@ import os
 import os.path
 import passlib.utils as passutils
 import six
+import socket
 import struct
 import subprocess
 import time
@@ -89,6 +90,18 @@ def generate_overcloud_passwords(output_file="tripleo-overcloud-passwords",
     return passwords
 
 
+def bracket_ipv6(address):
+    """Put a bracket around address if it is valid IPv6
+
+    Return it unchanged if it is a hostname or IPv4 address.
+    """
+    try:
+        socket.inet_pton(socket.AF_INET6, address)
+        return "[%s]" % address
+    except socket.error:
+        return address
+
+
 def create_overcloudrc(stack, no_proxy, config_directory='.'):
     """Given proxy settings and stack, create the overcloudrc
 
@@ -96,7 +109,11 @@ def create_overcloudrc(stack, no_proxy, config_directory='.'):
     no_proxy: a comma-separated string of hosts that shouldn't be proxied
     """
     overcloud_endpoint = get_overcloud_endpoint(stack)
-    overcloud_ip = urllib.parse.urlparse(overcloud_endpoint).hostname
+    overcloud_host = urllib.parse.urlparse(overcloud_endpoint).hostname
+    overcloud_admin_vip = get_service_ips(stack).get('KeystoneAdminVip')
+
+    no_proxy_list = map(bracket_ipv6,
+                        [no_proxy, overcloud_host, overcloud_admin_vip])
 
     rc_params = {
         'NOVA_VERSION': '1.1',
@@ -105,10 +122,7 @@ def create_overcloudrc(stack, no_proxy, config_directory='.'):
         'OS_TENANT_NAME': 'admin',
         'OS_NO_CACHE': 'True',
         'OS_CLOUDNAME': stack.stack_name,
-        'no_proxy': "%(no_proxy)s,%(overcloud_ip)s" % {
-            'no_proxy': no_proxy,
-            'overcloud_ip': overcloud_ip,
-        },
+        'no_proxy': ','.join(no_proxy_list),
         'PYTHONWARNINGS': ('"ignore:Certificate has no, ignore:A true '
                            'SSLContext object is not available"'),
     }

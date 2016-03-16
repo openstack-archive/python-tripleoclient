@@ -494,7 +494,9 @@ class TestCreateOvercloudRC(TestCase):
         stack.stack_name = 'teststack'
         stack.to_dict.return_value = {
             'outputs': [{'output_key': 'KeystoneURL',
-                         'output_value': 'http://foo:8000/'}]
+                         'output_value': 'http://foo.com:8000/'},
+                        {'output_key': 'KeystoneAdminVip',
+                         'output_value': 'fd00::1'}]
         }
 
         tempdir = tempfile.mkdtemp()
@@ -504,8 +506,9 @@ class TestCreateOvercloudRC(TestCase):
                                      no_proxy='127.0.0.1',
                                      config_directory=tempdir)
             rc = open(rcfile, 'rt').read()
-            self.assertIn('export OS_AUTH_URL=http://foo:8000/', rc)
-            self.assertIn('export no_proxy=127.0.0.1', rc)
+            self.assertIn('export OS_AUTH_URL=http://foo.com:8000/', rc)
+            self.assertIn('export no_proxy=127.0.0.1,foo.com,[fd00::1]',
+                          rc)
             self.assertIn('export OS_CLOUDNAME=teststack', rc)
             self.assertIn('export PYTHONWARNINGS="ignore:Certificate has no, '
                           'ignore:A true SSLContext object is not available"',
