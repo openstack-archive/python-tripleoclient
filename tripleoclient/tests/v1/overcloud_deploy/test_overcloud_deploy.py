@@ -365,9 +365,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_get_keystone_client.assert_called_once_with('admin', 'password',
                                                          'admin',
                                                          'http://0.0.0.0:8000')
-        mock_get_nova_bm_client.assert_called_once_with('admin', 'password',
-                                                        'admin',
-                                                        'http://0.0.0.0:8000')
 
     @mock.patch("heatclient.common.event_utils.get_events")
     @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env')

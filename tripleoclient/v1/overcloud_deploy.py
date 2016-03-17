@@ -499,13 +499,6 @@ class DeployOvercloud(command.Command):
         self._keystone_init(overcloud_endpoint, overcloud_ip_or_fqdn,
                             parsed_args, service_ips)
 
-        compute_client = clients.get_nova_bm_client(
-            'admin',
-            utils.get_password('OVERCLOUD_ADMIN_PASSWORD'),
-            'admin',
-            overcloud_endpoint)
-        compute_client.flavors.create('m1.demo', 512, 1, 10, 'auto')
-
     def _validate_args(self, parsed_args):
         if parsed_args.templates is None and parsed_args.answers_file is None:
             raise oscexc.CommandError(
