@@ -60,6 +60,8 @@ class DeployOvercloud(command.Command):
 
         undercloud_ceilometer_snmpd_password = utils.get_config_value(
             "auth", "undercloud_ceilometer_snmpd_password")
+        if not undercloud_ceilometer_snmpd_password:
+            self.log.warning("Undercloud ceilometer SNMPd password missing!")
 
         passwords = utils.generate_overcloud_passwords(
             create_password_file=stack_is_new)

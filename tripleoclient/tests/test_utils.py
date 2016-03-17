@@ -328,13 +328,25 @@ class TestWaitForIntrospection(TestCase):
         self.assertEqual(value, "pa$$word")
 
     @mock.patch("six.moves.configparser")
-    def test_get_config_value(self, mock_config_parser):
+    @mock.patch("os.path.exists")
+    def test_get_config_value(self, mock_path_exists, mock_config_parser):
 
+        mock_path_exists.return_value = True
         mock_config_parser.ConfigParser().get.return_value = "pa$$word"
 
         value = utils.get_config_value('section', 'password_name')
 
         self.assertEqual(value, "pa$$word")
+
+    @mock.patch("six.moves.configparser")
+    @mock.patch("os.path.exists")
+    def test_get_config_value_no_file(self, mock_path_exists,
+                                      mock_config_parser):
+
+        mock_path_exists.return_value = False
+        self.assertRaises(exceptions.PasswordFileNotFound,
+                          utils.get_config_value, 'section',
+                          'password_name')
 
     def test_wait_for_provision_state(self):
 

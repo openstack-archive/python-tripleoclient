@@ -487,9 +487,17 @@ def get_hiera_key(key_name):
 
 
 def get_config_value(section, option):
-
+    # TODO(beagles): get_config_value is an odd name for this function as the
+    # hard coding of undercloud-passwords makes this a
+    # "get_undercloud_password" function. It appears to only be used in one
+    # place as well so the name.
     p = six.moves.configparser.ConfigParser()
-    p.read(os.path.expanduser("~/undercloud-passwords.conf"))
+    password_filename = os.path.expanduser("~/undercloud-passwords.conf")
+    if not os.path.exists(password_filename):
+        raise exceptions.PasswordFileNotFound(
+            "Undercloud password file (%s) not found" % password_filename)
+
+    p.read(password_filename)
     return p.get(section, option)
 
 
