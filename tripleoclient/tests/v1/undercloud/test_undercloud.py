@@ -66,6 +66,8 @@ class TestUndercloudUpgrade(TestPluginV1):
         mock_subprocess.assert_has_calls(
             [
                 mock.call(['sudo', 'yum', 'update', '-y']),
-                mock.call('instack-install-undercloud')
+                mock.call('instack-install-undercloud'),
+                mock.call(['sudo', 'systemctl', 'restart',
+                          'openstack-nova-api'])
             ]
         )
