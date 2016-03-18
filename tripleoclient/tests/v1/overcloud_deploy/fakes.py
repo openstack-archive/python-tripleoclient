@@ -43,6 +43,16 @@ def create_tht_stack(**kwargs):
     return create_to_dict_mock(**stack)
 
 
+def create_env(**kwargs):
+    env = {
+        'parameter_defaults': {
+            'CinderEnableRbdBackend': True,
+        },
+    }
+    env.update(kwargs)
+    return env
+
+
 class FakeClientWrapper(object):
 
     def __init__(self):

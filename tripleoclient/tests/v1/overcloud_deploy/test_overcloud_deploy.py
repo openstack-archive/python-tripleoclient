@@ -129,7 +129,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             "id": "network id"
         }
         mock_create_env.return_value = "/fake/path"
-        mock_process_multiple_env.return_value = [{}, "env"]
+        mock_env = fakes.create_env()
+        mock_process_multiple_env.return_value = [{}, mock_env]
         mock_get_templte_contents.return_value = [{}, "template"]
         wait_for_stack_ready_mock.return_value = True
 
@@ -189,8 +190,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         self.assertEqual(kwargs['files'], {})
         self.assertEqual(kwargs['template'], 'template')
-        self.assertEqual(kwargs['environment'], 'env')
+        self.assertEqual(kwargs['environment'], mock_env)
         self.assertEqual(kwargs['stack_name'], 'overcloud')
+        self.assertEqual(kwargs['clear_parameters'],
+                         mock_env['parameter_defaults'].keys())
 
         mock_get_templte_contents.assert_called_with(
             ('/usr/share/openstack-tripleo-heat-templates/overcloud-without-'
@@ -279,7 +282,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             "id": "network id"
         }
         mock_create_env.return_value = "/fake/path"
-        mock_process_multiple_env.return_value = [{}, "env"]
+        mock_env = fakes.create_env()
+        mock_process_multiple_env.return_value = [{}, mock_env]
         mock_get_templte_contents.return_value = [{}, "template"]
         wait_for_stack_ready_mock.return_value = True
 
@@ -343,8 +347,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         self.assertEqual(kwargs['files'], {})
         self.assertEqual(kwargs['template'], 'template')
-        self.assertEqual(kwargs['environment'], 'env')
+        self.assertEqual(kwargs['environment'], mock_env)
         self.assertEqual(kwargs['stack_name'], 'overcloud')
+        self.assertEqual(kwargs['clear_parameters'],
+                         mock_env['parameter_defaults'].keys())
 
         mock_get_templte_contents.assert_called_with(
             ('/usr/share/openstack-tripleo-heat-templates/overcloud-without-'
@@ -423,7 +429,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             "id": "network id"
         }
         mock_create_env.return_value = "/fake/path"
-        mock_process_multiple_env.return_value = [{}, "env"]
+        mock_env = fakes.create_env()
+        mock_process_multiple_env.return_value = [{}, mock_env]
         mock_get_templte_contents.return_value = [{}, "template"]
         wait_for_stack_ready_mock.return_value = True
 
@@ -445,8 +452,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         self.assertEqual(kwargs['files'], {})
         self.assertEqual(kwargs['template'], 'template')
-        self.assertEqual(kwargs['environment'], 'env')
+        self.assertEqual(kwargs['environment'], mock_env)
         self.assertEqual(kwargs['stack_name'], 'overcloud')
+        self.assertEqual(kwargs['clear_parameters'],
+                         mock_env['parameter_defaults'].keys())
 
         mock_get_templte_contents.assert_called_with(
             '/home/stack/tripleo-heat-templates/overcloud-without-mergepy.yaml'
