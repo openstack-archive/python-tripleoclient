@@ -143,6 +143,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         expected_parameters = {
             'AdminPassword': 'password',
             'AdminToken': 'password',
+            'AodhPassword': 'password',
             'CeilometerMeteringSecret': 'password',
             'CeilometerPassword': 'password',
             'CephStorageCount': 3,
@@ -294,6 +295,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         expected_parameters = {
             'AdminPassword': 'password',
             'AdminToken': 'password',
+            'AodhPassword': 'password',
             'CeilometerMeteringSecret': 'password',
             'CeilometerPassword': 'password',
             'CephAdminKey': 'cephx_key',

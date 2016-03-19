@@ -68,6 +68,7 @@ class DeployOvercloud(command.Command):
         ceilometer_secret = passwords['OVERCLOUD_CEILOMETER_SECRET']
         parameters['AdminPassword'] = passwords['OVERCLOUD_ADMIN_PASSWORD']
         parameters['AdminToken'] = passwords['OVERCLOUD_ADMIN_TOKEN']
+        parameters['AodhPassword'] = passwords['OVERCLOUD_AODH_PASSWORD']
         parameters['CeilometerPassword'] = ceilometer_pass
         parameters['CeilometerMeteringSecret'] = ceilometer_secret
         parameters['CinderPassword'] = passwords[

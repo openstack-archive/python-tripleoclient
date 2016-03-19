@@ -16,6 +16,7 @@
 WEBROOT = '/dashboard/'
 
 SERVICE_LIST = {
+    'aodh': {'password_field': 'OVERCLOUD_AODH_PASSWORD'},
     'ceilometer': {'password_field': 'OVERCLOUD_CEILOMETER_PASSWORD'},
     'cinder': {'password_field': 'OVERCLOUD_CINDER_PASSWORD'},
     'cinderv2': {'password_field': 'OVERCLOUD_CINDER_PASSWORD'},
