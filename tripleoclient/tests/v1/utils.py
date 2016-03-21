@@ -13,24 +13,10 @@
 #   under the License.
 #
 
+from tripleoclient import utils
+
 
 def generate_overcloud_passwords_mock():
-    passwords = (
-        "OVERCLOUD_ADMIN_PASSWORD",
-        "OVERCLOUD_ADMIN_TOKEN",
-        "OVERCLOUD_CEILOMETER_PASSWORD",
-        "OVERCLOUD_CEILOMETER_SECRET",
-        "OVERCLOUD_CINDER_PASSWORD",
-        "OVERCLOUD_DEMO_PASSWORD",
-        "OVERCLOUD_GLANCE_PASSWORD",
-        "OVERCLOUD_HEAT_PASSWORD",
-        "OVERCLOUD_HEAT_STACK_DOMAIN_PASSWORD",
-        "OVERCLOUD_NEUTRON_PASSWORD",
-        "OVERCLOUD_NOVA_PASSWORD",
-        "OVERCLOUD_REDIS_PASSWORD",
-        "OVERCLOUD_SWIFT_HASH",
-        "OVERCLOUD_SWIFT_PASSWORD",
-        "NEUTRON_METADATA_PROXY_SHARED_SECRET"
-    )
+    passwords = utils._PASSWORD_NAMES
 
     return dict((password, 'password') for password in passwords)

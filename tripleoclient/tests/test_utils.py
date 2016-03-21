@@ -36,7 +36,7 @@ class TestPasswordsUtil(TestCase):
         with mock.patch('six.moves.builtins.open', mock_open):
             passwords = utils.generate_overcloud_passwords()
 
-        self.assertEqual(sorted(mock_open().write.mock_calls), [
+        mock_calls = [
             mock.call('NEUTRON_METADATA_PROXY_SHARED_SECRET=PASSWORD\n'),
             mock.call('OVERCLOUD_ADMIN_PASSWORD=PASSWORD\n'),
             mock.call('OVERCLOUD_ADMIN_TOKEN=PASSWORD\n'),
@@ -49,13 +49,14 @@ class TestPasswordsUtil(TestCase):
             mock.call('OVERCLOUD_HEAT_STACK_DOMAIN_PASSWORD=PASSWORD\n'),
             mock.call('OVERCLOUD_NEUTRON_PASSWORD=PASSWORD\n'),
             mock.call('OVERCLOUD_NOVA_PASSWORD=PASSWORD\n'),
+            mock.call('OVERCLOUD_RABBITMQ_PASSWORD=PASSWORD\n'),
             mock.call('OVERCLOUD_REDIS_PASSWORD=PASSWORD\n'),
             mock.call('OVERCLOUD_SWIFT_HASH=PASSWORD\n'),
             mock.call('OVERCLOUD_SWIFT_PASSWORD=PASSWORD\n'),
-        ])
-        self.assertEqual(generate_password_mock.call_count, 15)
-
-        self.assertEqual(len(passwords), 15)
+        ]
+        self.assertEqual(sorted(mock_open().write.mock_calls), mock_calls)
+        self.assertEqual(generate_password_mock.call_count, len(mock_calls))
+        self.assertEqual(len(passwords), len(mock_calls))
 
     @mock.patch("os.path.isfile", return_value=True)
     @mock.patch("passlib.utils.generate_password",
@@ -74,6 +75,7 @@ class TestPasswordsUtil(TestCase):
             'OVERCLOUD_HEAT_STACK_DOMAIN_PASSWORD=PASSWORD\n',
             'OVERCLOUD_NEUTRON_PASSWORD=PASSWORD\n',
             'OVERCLOUD_NOVA_PASSWORD=PASSWORD\n',
+            'OVERCLOUD_RABBITMQ_PASSWORD=PASSWORD\n',
             'OVERCLOUD_REDIS_PASSWORD=PASSWORD\n',
             'OVERCLOUD_SWIFT_HASH=PASSWORD\n',
             'OVERCLOUD_SWIFT_PASSWORD=PASSWORD\n',
@@ -87,7 +89,7 @@ class TestPasswordsUtil(TestCase):
             passwords = utils.generate_overcloud_passwords()
 
         generate_password_mock.assert_not_called()
-        self.assertEqual(len(passwords), 15)
+        self.assertEqual(len(passwords), len(PASSWORDS))
         for name in utils._PASSWORD_NAMES:
             self.assertEqual('PASSWORD', passwords[name])
 
