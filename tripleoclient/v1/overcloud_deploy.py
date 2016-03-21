@@ -266,7 +266,7 @@ class DeployOvercloud(command.Command):
             'template': template,
             'environment': env,
             'files': files,
-            'clear_parameters': parameters.keys()
+            'clear_parameters': env['parameter_defaults'].keys(),
         }
 
         if timeout:
