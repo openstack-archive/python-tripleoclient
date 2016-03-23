@@ -708,11 +708,11 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         args, kwargs = mock_process_multiple_env.call_args
         self.assertIn(
-            '/usr/share/openstack-tripleo-heat-templates/extraconfig/post_dep'
+            '/usr/share/openstack-tripleo-heat-templates/extraconfig/pre_dep'
             'loy/rhel-registration/rhel-registration-resource-registry.yaml',
             args[0])
         self.assertIn(
-            '/usr/share/openstack-tripleo-heat-templates/extraconfig/post_dep'
+            '/usr/share/openstack-tripleo-heat-templates/extraconfig/pre_dep'
             'loy/rhel-registration/environment-rhel-registration.yaml',
             args[0])
 
