@@ -28,8 +28,9 @@ class TestOvercloudUpgrade(fakes.TestOvercloudUpgrade):
         self.cmd = overcloud_upgrade.UpgradeOvercloud(self.app, None)
 
     @mock.patch('tripleo_common.upgrade.StackUpgradeManager')
-    def test_upgrade_out(self, upgrade_manager):
-        upgrade_manager.return_value.get_status.return_value = (
+    def test_upgrade_out(self, mock_upgrade_manager):
+        upgrade_manager = mock_upgrade_manager.return_value
+        upgrade_manager.get_status.return_value = (
             'UPDATE_COMPLETE', {})
         argslist = ['start', '--stack', 'overcloud', '--templates']
         verifylist = [
@@ -39,11 +40,12 @@ class TestOvercloudUpgrade(fakes.TestOvercloudUpgrade):
         ]
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
         self.cmd.take_action(parsed_args)
-        upgrade_manager.get_status.called_once()
-        upgrade_manager.upgrade.called_once()
+        upgrade_manager.get_status.assert_called_once_with()
+        upgrade_manager.upgrade.assert_called_once_with()
+        upgrade_manager.upgrade_post.assert_not_called()
 
-    @mock.patch('tripleo_common.upgrade.StackUpgradeManager')
-    def test_upgrade_answerfile(self, upgrade_manager):
+    @mock.patch('tripleo_common.upgrade.StackUpgradeManager', autospec=True)
+    def test_upgrade_answerfile(self, mock_upgrade_manager):
         answers = ("templates: {templates}\n"
                    "environments:\n"
                    "  - {environment}\n")
@@ -51,8 +53,10 @@ class TestOvercloudUpgrade(fakes.TestOvercloudUpgrade):
         mock_open = mock.mock_open(read_data=answers.format(
             templates='/tmp/tht', environment='/tmp/env'))
 
+        upgrade_manager = mock_upgrade_manager.return_value
+
         with mock.patch('six.moves.builtins.open', mock_open):
-            upgrade_manager.return_value.get_status.return_value = (
+            upgrade_manager.get_status.return_value = (
                 'UPDATE_COMPLETE', {})
             arglist = [
                 'start',
@@ -67,19 +71,22 @@ class TestOvercloudUpgrade(fakes.TestOvercloudUpgrade):
             parsed_args = self.check_parser(self.cmd, arglist, verifylist)
             self.cmd.take_action(parsed_args)
 
-        upgrade_manager.get_status.called_once()
-        upgrade_manager.upgrade.called_once()
+        upgrade_manager.get_status.assert_called_once_with()
+        upgrade_manager.upgrade.assert_called_once_with()
+        upgrade_manager.upgrade_post.assert_not_called()
 
-        called_args = upgrade_manager.call_args[1]
+        called_args = mock_upgrade_manager.call_args[1]
         self.assertEqual('/tmp/tht', called_args['tht_dir'])
         self.assertEqual(['/tmp/env'], called_args['environment_files'])
 
     @mock.patch('tripleo_common.upgrade.StackUpgradeManager')
-    def test_upgrade_answerfile_just_environments(self, upgrade_manager):
+    def test_upgrade_answerfile_just_environments(self, mock_upgrade_manager):
         mock_open = mock.mock_open(read_data="environments:\n  - /tmp/env\n")
 
+        upgrade_manager = mock_upgrade_manager.return_value
+
         with mock.patch('six.moves.builtins.open', mock_open):
-            upgrade_manager.return_value.get_status.return_value = (
+            upgrade_manager.get_status.return_value = (
                 'UPDATE_COMPLETE', {})
             arglist = [
                 'start',
@@ -94,10 +101,31 @@ class TestOvercloudUpgrade(fakes.TestOvercloudUpgrade):
             parsed_args = self.check_parser(self.cmd, arglist, verifylist)
             self.cmd.take_action(parsed_args)
 
-        upgrade_manager.get_status.called_once()
-        upgrade_manager.upgrade.called_once()
+        upgrade_manager.get_status.assert_called_once_with()
+        upgrade_manager.upgrade.assert_called_once_with()
 
-        called_args = upgrade_manager.call_args[1]
+        called_args = mock_upgrade_manager.call_args[1]
         self.assertEqual('/usr/share/openstack-tripleo-heat-templates/',
                          called_args['tht_dir'])
         self.assertEqual(['/tmp/env'], called_args['environment_files'])
+
+    @mock.patch('tripleo_common.upgrade.StackUpgradeManager')
+    def test_upgrade_perform_post(self, mock_upgrade_manager):
+        upgrade_manager = mock_upgrade_manager.return_value
+        upgrade_manager.get_status.return_value = (
+            'UPDATE_COMPLETE', {})
+        argslist = [
+            'finish',
+            '--stack', 'overcloud',
+            '--templates',
+        ]
+        verifylist = [
+            ('stage', 'finish'),
+            ('stack', 'overcloud'),
+            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
+        ]
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+        self.cmd.take_action(parsed_args)
+        upgrade_manager.get_status.assert_called_once_with()
+        upgrade_manager.upgrade_post.assert_called_once_with()
+        upgrade_manager.upgrade.assert_not_called()
