@@ -523,6 +523,99 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_create_tempest_deployer_input.assert_called_with(self.cmd)
 
+    @mock.patch("heatclient.common.event_utils.get_events")
+    @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env')
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_deploy_postconfig')
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_create_tempest_deployer_input', autospec=True)
+    @mock.patch('tripleoclient.utils.generate_overcloud_passwords')
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_create_overcloudrc', autospec=True)
+    @mock.patch('os_cloud_config.keystone.setup_endpoints', autospec=True)
+    @mock.patch('time.sleep', return_value=None)
+    @mock.patch('os_cloud_config.keystone.initialize', autospec=True)
+    @mock.patch('tripleoclient.utils.remove_known_hosts', autospec=True)
+    @mock.patch('tripleoclient.utils.wait_for_stack_ready',
+                autospec=True)
+    @mock.patch('heatclient.common.template_utils.'
+                'process_multiple_environments_and_files', autospec=True)
+    @mock.patch('heatclient.common.template_utils.get_template_contents',
+                autospec=True)
+    @mock.patch('os_cloud_config.keystone_pki.generate_certs_into_json',
+                autospec=True)
+    @mock.patch('tripleoclient.utils.create_environment_file',
+                autospec=True)
+    @mock.patch('tripleoclient.utils.get_config_value', autospec=True)
+    @mock.patch('tripleoclient.utils.check_hypervisor_stats',
+                autospec=True)
+    def test_deploy_rhel_reg(self, mock_check_hypervisor_stats,
+                             mock_get_key,
+                             mock_create_env, generate_certs_mock,
+                             mock_get_templte_contents,
+                             mock_process_multiple_env,
+                             wait_for_stack_ready_mock,
+                             mock_remove_known_hosts,
+                             mock_keystone_initialize,
+                             mock_sleep, mock_setup_endpoints,
+                             mock_create_ocrc,
+                             mock_generate_overcloud_passwords,
+                             mock_create_tempest_deployer_input,
+                             mock_deploy_postconfig,
+                             mock_breakpoints_cleanup,
+                             mock_events):
+
+        arglist = ['--templates', '--rhel-reg',
+                   '--reg-sat-url', 'https://example.com',
+                   '--reg-method', 'satellite', '--reg-org', '123456789',
+                   '--reg-activation-key', 'super-awesome-key']
+        verifylist = [
+            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
+            ('rhel_reg', True),
+            ('reg_sat_url', 'https://example.com'),
+            ('reg_method', 'satellite'),
+            ('reg_org', '123456789'),
+            ('reg_activation_key', 'super-awesome-key')
+        ]
+
+        mock_generate_overcloud_passwords.return_value = self._get_passwords()
+        mock_process_multiple_env.return_value = [{}, fakes.create_env()]
+        mock_get_templte_contents.return_value = [{}, "template"]
+        wait_for_stack_ready_mock.return_value = True
+
+        clients = self.app.client_manager
+        orchestration_client = clients.tripleoclient.orchestration()
+        orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
+        mock_events.return_value = []
+
+        mock_check_hypervisor_stats.return_value = {
+            'count': 4,
+            'memory_mb': 4096,
+            'vcpus': 8,
+        }
+        mock_get_key.return_value = "PASSWORD"
+        clients.network.api.find_attr.return_value = {
+            "id": "network id"
+        }
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        baremetal = clients.tripleoclient.baremetal()
+        baremetal.node.list.return_value = range(10)
+
+        result = self.cmd.take_action(parsed_args)
+        self.assertTrue(result)
+
+        args, kwargs = mock_process_multiple_env.call_args
+        self.assertIn(
+            '/usr/share/openstack-tripleo-heat-templates/extraconfig/pre_dep'
+            'loy/rhel-registration/rhel-registration-resource-registry.yaml',
+            args[0])
+        self.assertIn(
+            '/usr/share/openstack-tripleo-heat-templates/extraconfig/pre_dep'
+            'loy/rhel-registration/environment-rhel-registration.yaml',
+            args[0])
+
     def test_validate_args_correct(self):
         arglist = ['--templates',
                    '--neutron-network-type', 'nettype',
