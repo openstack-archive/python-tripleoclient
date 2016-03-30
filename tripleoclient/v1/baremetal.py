@@ -528,6 +528,9 @@ class ShowNodeCapabilities(lister.Lister):
     log = logging.getLogger(__name__ + ".ShowNodeProfile")
 
     def take_action(self, parsed_args):
+        self.log.warning('This command is deprecated and will be removed soon '
+                         'please use "openstack overcloud profiles list" to '
+                         'get the list of all nodes and their profiles')
         bm_client = self.app.client_manager.baremetal
         rows = []
         for node in bm_client.node.list():
