@@ -219,8 +219,8 @@ class StartBaremetalIntrospectionBulk(command.Command):
         print("Waiting for introspection to finish...")
         errors = []
         successful_node_uuids = set()
-        for uuid, status in utils.wait_for_node_introspection(
-                inspector_client, node_uuids):
+        results = inspector_client.wait_for_finish(node_uuids)
+        for uuid, status in results.items():
             if status['error'] is None:
                 print("Introspection for UUID {0} finished successfully."
                       .format(uuid))
