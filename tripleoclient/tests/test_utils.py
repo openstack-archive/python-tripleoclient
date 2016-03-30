@@ -496,11 +496,12 @@ class TestCreateOvercloudRC(TestCase):
     def test_create_overcloudrc(self):
         stack = mock.MagicMock()
         stack.stack_name = 'teststack'
+        endpoint_map = {'KeystoneAdmin': {'host': 'fd00::1'}}
         stack.to_dict.return_value = {
             'outputs': [{'output_key': 'KeystoneURL',
                          'output_value': 'http://foo.com:8000/'},
-                        {'output_key': 'KeystoneAdminVip',
-                         'output_value': 'fd00::1'}]
+                        {'output_key': 'EndpointMap',
+                         'output_value': endpoint_map}]
         }
 
         tempdir = tempfile.mkdtemp()
@@ -535,17 +536,19 @@ class TestCreateTempestDeployerInput(TestCase):
                 '[orchestration]\nstack_owner_role = heat_stack_user', cfg)
 
 
-class TestGetServiceIps(TestCase):
+class TestGetEndpointMap(TestCase):
 
-    def test_get_service_ips(self):
+    def test_get_endpoint_map(self):
         stack = mock.MagicMock()
+        emap = {'KeystonePublic': {'uri': 'http://foo:8000/'}}
         stack.to_dict.return_value = {
-            'outputs': [{'output_key': 'KeystoneURL',
-                         'output_value': 'http://foo:8000/'}]
+            'outputs': [{'output_key': 'EndpointMap',
+                         'output_value': emap}]
         }
 
-        ips = utils.get_service_ips(stack)
-        self.assertEqual(ips, {'KeystoneURL': 'http://foo:8000/'})
+        endpoint_map = utils.get_endpoint_map(stack)
+        self.assertEqual(endpoint_map,
+                         {'KeystonePublic': {'uri': 'http://foo:8000/'}})
 
 
 class TestCreateCephxKey(TestCase):

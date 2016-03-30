@@ -17,6 +17,56 @@ import mock
 from openstackclient.tests import utils
 
 
+FAKE_STACK = {
+    'parameters': {
+        'ControllerCount': 1,
+        'ComputeCount': 1,
+        'ObjectStorageCount': 0,
+        'BlockStorageCount': 0,
+        'CephStorageCount': 0,
+    },
+    'stack_name': 'overcloud',
+    'outputs': [{
+        'output_key': 'KeystoneURL',
+        'output_value': 'http://0.0.0.0:8000',
+    }, {
+        'output_key': 'EndpointMap',
+        'output_value': {
+            'KeystoneAdmin': {
+                'host': '0.0.0.0',
+                'uri': 'http://0.0.0.0:35357',
+                'port': 35357,
+            },
+            'KeystoneInternal': {
+                'host': '0.0.0.0',
+                'uri': 'http://0.0.0.0:5000',
+                'port': 5000,
+            },
+            'KeystonePublic': {
+                'host': '0.0.0.0',
+                'uri': 'http://0.0.0.0:5000',
+                'port': 5000,
+            },
+            'NovaAdmin': {
+                'host': '0.0.0.0',
+                'uri': 'http://0.0.0.0:5000',
+                'port': 8774,
+            },
+            'NovaInternal': {
+                'host': '0.0.0.0',
+                'uri': 'http://0.0.0.0:5000',
+                'port': 8774,
+            },
+            'NovaPublic': {
+                'host': '0.0.0.0',
+                'uri': 'https://0.0.0.0:8774',
+                'port': 8774,
+            },
+        }
+    }]
+}
+
+
 def create_to_dict_mock(**kwargs):
     mock_with_to_dict = mock.Mock()
     mock_with_to_dict.configure_mock(**kwargs)
@@ -25,20 +75,7 @@ def create_to_dict_mock(**kwargs):
 
 
 def create_tht_stack(**kwargs):
-    stack = {
-        'parameters': {
-            'ControllerCount': 1,
-            'ComputeCount': 1,
-            'ObjectStorageCount': 0,
-            'BlockStorageCount': 0,
-            'CephStorageCount': 0,
-        },
-        'stack_name': 'overcloud',
-        'outputs': [{
-            'output_key': 'KeystoneURL',
-            'output_value': 'http://0.0.0.0:8000',
-        }]
-    }
+    stack = FAKE_STACK.copy()
     stack.update(kwargs)
     return create_to_dict_mock(**stack)
 

@@ -414,15 +414,11 @@ class DeployOvercloud(command.Command):
         return overcloud_endpoint.startswith('https')
 
     def _keystone_init(self, overcloud_endpoint, overcloud_ip_or_fqdn,
-                       parsed_args, service_ips):
-        keystone_admin_ip = service_ips.get('KeystoneAdminVip')
-        keystone_internal_ip = service_ips.get('KeystoneInternalVip')
+                       parsed_args, stack):
+        keystone_admin_ip = utils.get_endpoint('KeystoneAdmin', stack)
+        keystone_internal_ip = utils.get_endpoint('KeystoneInternal', stack)
         tls_enabled = self._is_tls_enabled(overcloud_endpoint)
         keystone_tls_host = None
-        if not keystone_admin_ip:
-            keystone_admin_ip = overcloud_ip_or_fqdn
-        if not keystone_internal_ip:
-            keystone_internal_ip = overcloud_ip_or_fqdn
         if tls_enabled:
             # NOTE(jaosorior): This triggers set up the keystone endpoint with
             # the https protocol and the required port set in
@@ -441,6 +437,18 @@ class DeployOvercloud(command.Command):
             # init anyway.
             keystone_client.users.find(name='nova')
         except kscexc.NotFound:
+            # NOTE(jaosorior): These ports will be None if the templates
+            # don't support the EndpointMap as an output yet. And so the
+            # default values will be taken.
+            public_port = None
+            admin_port = None
+            internal_port = None
+            endpoint_map = utils.get_endpoint_map(stack)
+            if endpoint_map:
+                public_port = endpoint_map.get('KeystonePublic').get('port')
+                admin_port = endpoint_map.get('KeystoneAdmin').get('port')
+                internal_port = endpoint_map.get(
+                    'KeystoneInternal').get('port')
             keystone.initialize(
                 keystone_admin_ip,
                 utils.get_password('OVERCLOUD_ADMIN_TOKEN'),
@@ -450,7 +458,10 @@ class DeployOvercloud(command.Command):
                 public=overcloud_ip_or_fqdn,
                 user=parsed_args.overcloud_ssh_user,
                 admin=keystone_admin_ip,
-                internal=keystone_internal_ip)
+                internal=keystone_internal_ip,
+                public_port=public_port,
+                admin_port=admin_port,
+                internal_port=internal_port)
 
             if not tls_enabled:
                 # NOTE(bcrochet): Bad hack. Remove the ssl_port info from the
@@ -460,19 +471,9 @@ class DeployOvercloud(command.Command):
 
             services = {}
             for service, data in six.iteritems(constants.SERVICE_LIST):
-                service_data = data.copy()
-                service_data.pop('password_field', None)
-                password_field = data.get('password_field')
-                if password_field:
-                    service_data['password'] = utils.get_password(
-                        password_field)
-
-                service_name = re.sub('v[0-9]+', '',
-                                      service.capitalize() + 'InternalVip')
-                internal_vip = service_ips.get(service_name)
-                if internal_vip:
-                    service_data['internal_host'] = internal_vip
-                services.update({service: service_data})
+                service_data = self._set_service_data(service, data, stack)
+                if service_data:
+                    services.update({service: service_data})
 
             keystone.setup_endpoints(
                 services,
@@ -480,6 +481,62 @@ class DeployOvercloud(command.Command):
                 os_auth_url=overcloud_endpoint,
                 public_host=overcloud_ip_or_fqdn)
             # End of deprecated Keystone init
+
+    def _set_service_data(self, service, data, stack):
+        self.log.debug("Setting data for service '%s'" % service)
+        service_data = data.copy()
+        service_data.pop('password_field', None)
+
+        endpoint_map = utils.get_endpoint_map(stack)
+        try:
+            service_data.update(
+                self._get_base_service_data(service, data, stack))
+        except KeyError:
+            output_source = "service IPs"
+            if endpoint_map:
+                output_source = "endpoint map"
+            self.log.warning(
+                ("Skipping \"{}\" postconfig because it wasn't found in the "
+                 "{} output").format(service, output_source))
+            return None
+        if not endpoint_map:
+            return service_data
+        service_data.update(self._get_endpoint_data(service, endpoint_map,
+                                                    stack))
+        return service_data
+
+    def _get_base_service_data(self, service, data, stack):
+        service_data = {}
+        password_field = data.get('password_field')
+        if password_field:
+            service_data['password'] = utils.get_password(
+                password_field)
+
+        # Set internal endpoint
+        service_name_internal = self._format_endpoint_name(service, 'internal')
+        service_data['internal_host'] = utils.get_endpoint(
+            service_name_internal, stack)
+        return service_data
+
+    def _get_endpoint_data(self, service, endpoint_map, stack):
+        endpoint_data = {}
+        # Set standard port
+        service_name_internal = self._format_endpoint_name(service, 'internal')
+        endpoint_data['port'] = endpoint_map[service_name_internal]['port']
+
+        # Set public endpoint
+        service_name_public = self._format_endpoint_name(service, 'public')
+        public_endpoint_data = endpoint_map.get(service_name_public)
+        endpoint_data['public_host'] = public_endpoint_data['host']
+
+        # Set SSL port
+        if public_endpoint_data['uri'].startswith('https'):
+            endpoint_data['ssl_port'] = public_endpoint_data['port']
+        return endpoint_data
+
+    def _format_endpoint_name(self, service, interface):
+        return re.sub('v[0-9]+', '',
+                      service.capitalize() + interface.capitalize())
 
     def _deploy_postconfig(self, stack, parsed_args):
         self.log.debug("_deploy_postconfig(%s)" % parsed_args)
@@ -496,12 +553,10 @@ class DeployOvercloud(command.Command):
         os.environ['no_proxy'] = ','.join(
             [x for x in no_proxy if x is not None])
 
-        service_ips = utils.get_service_ips(stack)
-
         utils.remove_known_hosts(overcloud_ip_or_fqdn)
 
         self._keystone_init(overcloud_endpoint, overcloud_ip_or_fqdn,
-                            parsed_args, service_ips)
+                            parsed_args, stack)
 
     def _validate_args(self, parsed_args):
         if parsed_args.templates is None and parsed_args.answers_file is None:
@@ -914,6 +969,8 @@ class DeployOvercloud(command.Command):
             # Get a new copy of the stack after stack update/create. If it was
             # a create then the previous stack object would be None.
             stack = utils.get_stack(orchestration_client, parsed_args.stack)
+            # Force fetching of attributes
+            stack.get()
 
             utils.create_overcloudrc(stack, parsed_args.no_proxy)
             utils.create_tempest_deployer_input()
