@@ -113,7 +113,7 @@ def create_overcloudrc(stack, no_proxy, config_directory='.'):
     """
     overcloud_endpoint = get_overcloud_endpoint(stack)
     overcloud_host = urllib.parse.urlparse(overcloud_endpoint).hostname
-    overcloud_admin_vip = get_service_ips(stack).get('KeystoneAdminVip')
+    overcloud_admin_vip = get_endpoint('KeystoneAdmin', stack)
 
     no_proxy_list = map(bracket_ipv6,
                         [no_proxy, overcloud_host, overcloud_admin_vip])
@@ -521,6 +521,23 @@ def get_service_ips(stack):
     for output in stack.to_dict().get('outputs', {}):
         service_ips[output['output_key']] = output['output_value']
     return service_ips
+
+
+def get_endpoint_map(stack):
+    endpoint_map = {}
+    for output in stack.to_dict().get('outputs', {}):
+        if output['output_key'] == 'EndpointMap':
+            endpoint_map = output['output_value']
+            break
+    return endpoint_map
+
+
+def get_endpoint(key, stack):
+    endpoint_map = get_endpoint_map(stack)
+    if endpoint_map:
+        return endpoint_map[key]['host']
+    else:
+        return get_service_ips(stack).get(key + 'Vip')
 
 
 __password_cache = None
