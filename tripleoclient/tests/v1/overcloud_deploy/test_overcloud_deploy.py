@@ -186,8 +186,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_create_parameters_env.side_effect = _custom_create_params_env
 
-        result = self.cmd.take_action(parsed_args)
-        self.assertTrue(result)
+        self.cmd.take_action(parsed_args)
 
         args, kwargs = orchestration_client.stacks.update.call_args
 
@@ -349,8 +348,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_create_parameters_env.side_effect = _custom_create_params_env
 
-        result = self.cmd.take_action(parsed_args)
-        self.assertTrue(result)
+        self.cmd.take_action(parsed_args)
 
         args, kwargs = orchestration_client.stacks.create.call_args
 
@@ -455,8 +453,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mkstemp.return_value = (os.open(self.parameter_defaults_env_file,
                                             os.O_RDWR),
                                     self.parameter_defaults_env_file)
-            result = self.cmd.take_action(parsed_args)
-        self.assertTrue(result)
+            self.cmd.take_action(parsed_args)
 
         args, kwargs = orchestration_client.stacks.update.call_args
 
@@ -495,8 +492,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         ]
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-        result = self.cmd.take_action(parsed_args)
-        self.assertFalse(result)
+        self.assertRaises(exceptions.DeploymentError,
+                          self.cmd.take_action,
+                          parsed_args)
         self.assertFalse(mock_deploy_tht.called)
 
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
@@ -542,8 +540,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_deploy_heat.side_effect = _fake_heat_deploy
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-        result = self.cmd.take_action(parsed_args)
-        self.assertTrue(result)
+        self.cmd.take_action(parsed_args)
 
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
@@ -586,8 +583,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_deploy_heat.side_effect = _fake_heat_deploy
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-        result = self.cmd.take_action(parsed_args)
-        self.assertTrue(result)
+        self.cmd.take_action(parsed_args)
         os.unlink(test_env)
         os.rmdir(tmp_dir)
 
@@ -618,8 +614,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         ]
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-        result = self.cmd.take_action(parsed_args)
-        self.assertTrue(result)
+        self.cmd.take_action(parsed_args)
         self.assertTrue(mock_deploy_tht.called)
         self.assertTrue(mock_oc_endpoint.called)
         self.assertTrue(mock_create_ocrc.called)
@@ -705,8 +700,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         baremetal = clients.baremetal
         baremetal.node.list.return_value = range(10)
 
-        result = self.cmd.take_action(parsed_args)
-        self.assertTrue(result)
+        self.cmd.take_action(parsed_args)
 
         args, kwargs = mock_process_multiple_env.call_args
         self.assertIn(
@@ -845,10 +839,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             ('templates', '/usr/share/openstack-tripleo-heat-templates/')
         ]
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-        result = self.cmd.take_action(parsed_args)
-        self.assertFalse(result)
         self.assertRaises(exceptions.DeploymentError,
-                          self.cmd._pre_heat_deploy)
+                          self.cmd.take_action,
+                          parsed_args)
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_heat_deploy', autospec=True)
@@ -913,8 +906,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         ]
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-        result = self.cmd.take_action(parsed_args)
-        self.assertTrue(result)
+        self.cmd.take_action(parsed_args)
         self.assertFalse(mock_deploy_tht.called)
         self.assertFalse(mock_oc_endpoint.called)
         self.assertFalse(mock_create_ocrc.called)
@@ -966,9 +958,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 ]
                 parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
-                result = self.cmd.take_action(parsed_args)
+                self.cmd.take_action(parsed_args)
 
-        self.assertTrue(result)
         self.assertTrue(mock_heat_deploy.called)
         self.assertTrue(mock_oc_endpoint.called)
         self.assertTrue(mock_create_ocrc.called)
