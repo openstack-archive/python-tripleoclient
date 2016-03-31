@@ -430,7 +430,6 @@ class BuildOvercloudImage(command.Command):
             env_vars['DELOREAN_REPO_URL'] = parsed_args.delorean_trunk_repo
             dib_common_elements.extend([
                 'selinux-permissive',
-                'centos-cloud-repo',
             ])
 
             parsed_args.discovery_image_element = " ".join([
