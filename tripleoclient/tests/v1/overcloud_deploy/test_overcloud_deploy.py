@@ -747,6 +747,20 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                           self.cmd._validate_args,
                           parsed_args)
 
+    def test_validate_args_missing_environment_files(self):
+        arglist = ['--templates',
+                   '-e', 'nonexistent.yaml']
+        verifylist = [
+            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
+            ('environment_files', ['nonexistent.yaml']),
+        ]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.assertRaises(oscexc.CommandError,
+                          self.cmd._validate_args,
+                          parsed_args)
+
     def test_validate_args_no_tunnel_type(self):
         arglist = ['--templates',
                    '--neutron-network-type', 'nettype']
@@ -933,25 +947,27 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         net.configure_mock(__getitem__=lambda x, y: 'testnet')
 
         with tempfile.NamedTemporaryFile(mode="w+t") as answerfile:
-            yaml.dump(
-                {'templates': '/dev/null',
-                 'environments': ['/tmp/foo.yaml']
-                 },
-                answerfile
-            )
-            answerfile.flush()
+            with open('/tmp/environment.yaml', "w+t") as environmentfile:
+                yaml.dump(
+                    {'templates': '/dev/null',
+                     'environments': ['/tmp/foo.yaml']
+                     },
+                    answerfile
+                )
+                answerfile.flush()
 
-            arglist = ['--answers-file', answerfile.name,
-                       '--environment-file', '/tmp/environment.yaml',
-                       '--block-storage-scale', '3']
-            verifylist = [
-                ('answers_file', answerfile.name),
-                ('environment_files', ['/tmp/environment.yaml']),
-                ('block_storage_scale', 3)
-            ]
-            parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+                arglist = ['--answers-file', answerfile.name,
+                           '--environment-file', environmentfile.name,
+                           '--block-storage-scale', '3']
+                verifylist = [
+                    ('answers_file', answerfile.name),
+                    ('environment_files', [environmentfile.name]),
+                    ('block_storage_scale', 3)
+                ]
+                parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
-            result = self.cmd.take_action(parsed_args)
+                result = self.cmd.take_action(parsed_args)
+
         self.assertTrue(result)
         self.assertTrue(mock_heat_deploy.called)
         self.assertTrue(mock_oc_endpoint.called)
