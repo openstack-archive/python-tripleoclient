@@ -305,6 +305,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'CeilometerMeteringSecret': 'password',
             'CeilometerPassword': 'password',
             'CephAdminKey': 'cephx_key',
+            'CephClientKey': 'cephx_key',
             'CephClusterFSID': 'uuid',
             'CephMonKey': 'cephx_key',
             'CephStorageCount': 3,
