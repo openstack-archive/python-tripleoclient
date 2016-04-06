@@ -21,6 +21,7 @@ import os
 import yaml
 
 import fixtures
+from oslo_utils import units
 
 from tripleoclient import exceptions
 from tripleoclient.tests.v1.baremetal import fakes
@@ -1168,6 +1169,219 @@ class TestConfigureBaremetalBoot(fakes.TestBaremetal):
                 'path': '/driver_info/deploy_kernel'
             }]),
         ])
+
+
+@mock.patch('openstackclient.common.utils.find_resource', autospec=True)
+class TestConfigureBaremetalBootRootDeviceDetection(fakes.TestBaremetal):
+
+    def setUp(self):
+        super(TestConfigureBaremetalBootRootDeviceDetection, self).setUp()
+
+        # Get the command object to test
+        self.cmd = baremetal.ConfigureBaremetalBoot(self.app, None)
+
+        self.disks = [
+            {'name': '/dev/sda', 'size': 11 * units.Gi},
+            {'name': '/dev/sdb', 'size': 2 * units.Gi},
+            {'name': '/dev/sdc', 'size': 5 * units.Gi},
+            {'name': '/dev/sdd', 'size': 21 * units.Gi},
+            {'name': '/dev/sde', 'size': 13 * units.Gi},
+        ]
+        for i, disk in enumerate(self.disks):
+            disk['wwn'] = 'wwn%d' % i
+            disk['serial'] = 'serial%d' % i
+
+        self.inspector_client = self.app.client_manager.baremetal_introspection
+        self.inspector_client.data['ABCDEFGH'] = {
+            'inventory': {'disks': self.disks}
+        }
+
+        self.bm_client = self.app.client_manager.baremetal
+        self.bm_client.node.list.return_value = [
+            mock.Mock(uuid="ABCDEFGH"),
+        ]
+
+        self.node = mock.Mock(uuid="ABCDEFGH", properties={})
+        self.bm_client.node.get.return_value = self.node
+
+    def test_smallest(self, find_resource_mock):
+        find_resource_mock.return_value = mock.Mock(id="IDIDID")
+
+        arglist = ['--root-device', 'smallest']
+        verifylist = [('root_device', 'smallest')]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        self.cmd.take_action(parsed_args)
+
+        self.assertEqual(self.bm_client.node.update.call_count, 2)
+        root_device_args = self.bm_client.node.update.call_args_list[1]
+        expected_patch = [{'op': 'add', 'path': '/properties/root_device',
+                           'value': {'wwn': 'wwn2'}},
+                          {'op': 'add', 'path': '/properties/local_gb',
+                           'value': 4}]
+        self.assertEqual(mock.call('ABCDEFGH', expected_patch),
+                         root_device_args)
+
+    def test_largest(self, find_resource_mock):
+        find_resource_mock.return_value = mock.Mock(id="IDIDID")
+
+        arglist = ['--root-device', 'largest']
+        verifylist = [('root_device', 'largest')]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        self.cmd.take_action(parsed_args)
+
+        self.assertEqual(self.bm_client.node.update.call_count, 2)
+        root_device_args = self.bm_client.node.update.call_args_list[1]
+        expected_patch = [{'op': 'add', 'path': '/properties/root_device',
+                           'value': {'wwn': 'wwn3'}},
+                          {'op': 'add', 'path': '/properties/local_gb',
+                           'value': 20}]
+        self.assertEqual(mock.call('ABCDEFGH', expected_patch),
+                         root_device_args)
+
+    def test_no_overwrite(self, find_resource_mock):
+        find_resource_mock.return_value = mock.Mock(id="IDIDID")
+        self.node.properties['root_device'] = {'foo': 'bar'}
+
+        arglist = ['--root-device', 'smallest']
+        verifylist = [('root_device', 'smallest')]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        self.cmd.take_action(parsed_args)
+
+        self.assertEqual(self.bm_client.node.update.call_count, 1)
+
+    def test_with_overwrite(self, find_resource_mock):
+        find_resource_mock.return_value = mock.Mock(id="IDIDID")
+        self.node.properties['root_device'] = {'foo': 'bar'}
+
+        arglist = ['--root-device', 'smallest',
+                   '--overwrite-root-device-hints']
+        verifylist = [('root_device', 'smallest'),
+                      ('overwrite_root_device_hints', True)]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        self.cmd.take_action(parsed_args)
+
+        self.assertEqual(self.bm_client.node.update.call_count, 2)
+        root_device_args = self.bm_client.node.update.call_args_list[1]
+        expected_patch = [{'op': 'add', 'path': '/properties/root_device',
+                           'value': {'wwn': 'wwn2'}},
+                          {'op': 'add', 'path': '/properties/local_gb',
+                           'value': 4}]
+        self.assertEqual(mock.call('ABCDEFGH', expected_patch),
+                         root_device_args)
+
+    def test_minimum_size(self, find_resource_mock):
+        find_resource_mock.return_value = mock.Mock(id="IDIDID")
+
+        arglist = ['--root-device', 'smallest',
+                   '--root-device-minimum-size', '10']
+        verifylist = [('root_device', 'smallest')]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        self.cmd.take_action(parsed_args)
+
+        self.assertEqual(self.bm_client.node.update.call_count, 2)
+        root_device_args = self.bm_client.node.update.call_args_list[1]
+        expected_patch = [{'op': 'add', 'path': '/properties/root_device',
+                           'value': {'wwn': 'wwn0'}},
+                          {'op': 'add', 'path': '/properties/local_gb',
+                           'value': 10}]
+        self.assertEqual(mock.call('ABCDEFGH', expected_patch),
+                         root_device_args)
+
+    def test_bad_inventory(self, find_resource_mock):
+        find_resource_mock.return_value = mock.Mock(id="IDIDID")
+        del self.inspector_client.data['ABCDEFGH']['inventory']
+
+        arglist = ['--root-device', 'smallest']
+        verifylist = [('root_device', 'smallest')]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        self.assertRaisesRegexp(exceptions.RootDeviceDetectionError,
+                                "Malformed introspection data",
+                                self.cmd.take_action, parsed_args)
+
+        self.assertEqual(self.bm_client.node.update.call_count, 1)
+
+    def test_no_disks(self, find_resource_mock):
+        find_resource_mock.return_value = mock.Mock(id="IDIDID")
+        self.inspector_client.data['ABCDEFGH']['inventory']['disks'] = [
+            {'name': '/dev/sda', 'size': 1 * units.Gi}
+        ]
+
+        arglist = ['--root-device', 'smallest']
+        verifylist = [('root_device', 'smallest')]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        self.assertRaisesRegexp(exceptions.RootDeviceDetectionError,
+                                "No suitable disks",
+                                self.cmd.take_action, parsed_args)
+
+        self.assertEqual(self.bm_client.node.update.call_count, 1)
+
+    def test_no_data(self, find_resource_mock):
+        find_resource_mock.return_value = mock.Mock(id="IDIDID")
+        del self.inspector_client.data['ABCDEFGH']
+
+        arglist = ['--root-device', 'smallest']
+        verifylist = [('root_device', 'smallest')]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        self.assertRaisesRegexp(exceptions.RootDeviceDetectionError,
+                                "No introspection data",
+                                self.cmd.take_action, parsed_args)
+
+        self.assertEqual(self.bm_client.node.update.call_count, 1)
+
+    def test_no_wwn_and_serial(self, find_resource_mock):
+        find_resource_mock.return_value = mock.Mock(id="IDIDID")
+        self.inspector_client.data['ABCDEFGH']['inventory']['disks'] = [
+            {'name': '/dev/sda', 'size': 10 * units.Gi}
+        ]
+
+        arglist = ['--root-device', 'smallest']
+        verifylist = [('root_device', 'smallest')]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        self.assertRaisesRegexp(exceptions.RootDeviceDetectionError,
+                                "Neither WWN nor serial number are known",
+                                self.cmd.take_action, parsed_args)
+
+        self.assertEqual(self.bm_client.node.update.call_count, 1)
+
+    def test_device_list(self, find_resource_mock):
+        find_resource_mock.return_value = mock.Mock(id="IDIDID")
+
+        arglist = ['--root-device', 'hda,sda,sdb,sdc']
+        verifylist = [('root_device', 'hda,sda,sdb,sdc')]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        self.cmd.take_action(parsed_args)
+
+        self.assertEqual(self.bm_client.node.update.call_count, 2)
+        root_device_args = self.bm_client.node.update.call_args_list[1]
+        expected_patch = [{'op': 'add', 'path': '/properties/root_device',
+                           'value': {'wwn': 'wwn0'}},
+                          {'op': 'add', 'path': '/properties/local_gb',
+                           'value': 10}]
+        self.assertEqual(mock.call('ABCDEFGH', expected_patch),
+                         root_device_args)
+
+    def test_device_list_not_found(self, find_resource_mock):
+        find_resource_mock.return_value = mock.Mock(id="IDIDID")
+
+        arglist = ['--root-device', 'hda']
+        verifylist = [('root_device', 'hda')]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        self.assertRaisesRegexp(exceptions.RootDeviceDetectionError,
+                                "Cannot find a disk",
+                                self.cmd.take_action, parsed_args)
+
+        self.assertEqual(self.bm_client.node.update.call_count, 1)
 
 
 class TestShowNodeCapabilities(fakes.TestBaremetal):

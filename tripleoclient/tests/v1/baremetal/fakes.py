@@ -13,6 +13,7 @@
 #   under the License.
 #
 
+import ironic_inspector_client
 import mock
 from openstackclient.tests import utils
 
@@ -68,8 +69,9 @@ class FakeBaremetalNodeClient(object):
 
 
 class FakeInspectorClient(object):
-    def __init__(self, states=None):
+    def __init__(self, states=None, data=None):
         self.states = states or {}
+        self.data = data or {}
         self.on_introspection = []
 
     def introspect(self, uuid):
@@ -77,6 +79,12 @@ class FakeInspectorClient(object):
 
     def get_status(self, uuid):
         return self.states[uuid]
+
+    def get_data(self, uuid):
+        try:
+            return self.data[uuid]
+        except KeyError:
+            raise ironic_inspector_client.ClientError(mock.Mock())
 
 
 class TestBaremetal(utils.TestCommand):

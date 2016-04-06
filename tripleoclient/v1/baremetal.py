@@ -24,8 +24,10 @@ import yaml
 
 from cliff import command
 from cliff import lister
+import ironic_inspector_client
 from openstackclient.common import utils as osc_utils
 from openstackclient.i18n import _
+from oslo_utils import units
 from tripleo_common.utils import nodes
 
 from tripleoclient import exceptions
@@ -438,6 +440,20 @@ class ConfigureBaremetalBoot(command.Command):
         parser.add_argument('--deploy-ramdisk',
                             default='bm-deploy-ramdisk',
                             help='Image with deploy ramdisk.')
+        parser.add_argument('--root-device',
+                            help='Define the root device for nodes. '
+                            'Can be either a list of device names (without '
+                            '/dev) to choose from or one of two strategies: '
+                            'largest or smallest. For it to work this command '
+                            'should be run after the introspection.')
+        parser.add_argument('--root-device-minimum-size',
+                            type=int, default=4,
+                            help='Minimum size (in GiB) of the detected '
+                            'root device. Used with --detect-root-device.')
+        parser.add_argument('--overwrite-root-device-hints',
+                            action='store_true',
+                            help='Whether to overwrite existing root device '
+                            'hints when --detect-root-device is used.')
         return parser
 
     def take_action(self, parsed_args):
@@ -520,6 +536,106 @@ class ConfigureBaremetalBoot(command.Command):
                     'value': kernel_id,
                 },
             ])
+
+            self._apply_root_device_strategy(
+                node_detail, parsed_args.root_device,
+                parsed_args.root_device_minimum_size,
+                parsed_args.overwrite_root_device_hints)
+
+    def _apply_root_device_strategy(self, node, strategy, minimum_size,
+                                    overwrite=False):
+        if not strategy:
+            return
+
+        if node.properties.get('root_device') and not overwrite:
+            # This is a correct situation, we still want to allow people to
+            # fine-tune the root device setting for a subset of nodes.
+            # However, issue a warning, so that they know which nodes were not
+            # updated during this run.
+            self.log.warning('Root device hints are already set for node %s '
+                             'and overwriting is not requested, skipping',
+                             node.uuid)
+            self.log.warning('You may unset them by running $ ironic '
+                             'node-update %s remove properties/root_device',
+                             node.uuid)
+            return
+
+        inspector_client = self.app.client_manager.baremetal_introspection
+        try:
+            data = inspector_client.get_data(node.uuid)
+        except ironic_inspector_client.ClientError:
+            raise exceptions.RootDeviceDetectionError(
+                'No introspection data found for node %s, '
+                'root device cannot be detected' % node.uuid)
+        except AttributeError:
+            raise RuntimeError('Ironic inspector client version 1.2.0 or '
+                               'newer is required for detecting root device')
+
+        try:
+            disks = data['inventory']['disks']
+        except KeyError:
+            raise exceptions.RootDeviceDetectionError(
+                'Malformed introspection data for node %s: '
+                'disks list is missing' % node.uuid)
+
+        minimum_size *= units.Gi
+        disks = [d for d in disks if d.get('size', 0) >= minimum_size]
+
+        if not disks:
+            raise exceptions.RootDeviceDetectionError(
+                'No suitable disks found for node %s' % node.uuid)
+
+        if strategy == 'smallest':
+            disks.sort(key=lambda d: d['size'])
+            root_device = disks[0]
+        elif strategy == 'largest':
+            disks.sort(key=lambda d: d['size'], reverse=True)
+            root_device = disks[0]
+        else:
+            disk_names = [x.strip() for x in strategy.split(',')]
+            disks = {d['name']: d for d in disks}
+            for candidate in disk_names:
+                try:
+                    root_device = disks['/dev/%s' % candidate]
+                except KeyError:
+                    continue
+                else:
+                    break
+            else:
+                raise exceptions.RootDeviceDetectionError(
+                    'Cannot find a disk with any of names %(strategy)s '
+                    'for node %(node)s' %
+                    {'strategy': strategy, 'node': node.uuid})
+
+        hint = None
+        for hint_name in ('wwn', 'serial'):
+            if root_device.get(hint_name):
+                hint = {hint_name: root_device[hint_name]}
+                break
+
+        if hint is None:
+            # I don't think it might actually happen, but just in case
+            raise exceptions.RootDeviceDetectionError(
+                'Neither WWN nor serial number are known for device %(dev)s '
+                'on node %(node)s; root device hints cannot be used' %
+                {'dev': root_device['name'], 'node': node.uuid})
+
+        # During the introspection process we got local_gb assigned according
+        # to the default strategy. Now we need to update it.
+        new_size = root_device['size'] / units.Gi
+        # This -1 is what we always do to account for partitioning
+        new_size -= 1
+
+        bm_client = self.app.client_manager.baremetal
+        bm_client.node.update(
+            node.uuid,
+            [{'op': 'add', 'path': '/properties/root_device', 'value': hint},
+             {'op': 'add', 'path': '/properties/local_gb', 'value': new_size}])
+
+        self.log.info('Updated root device for node %(node)s, new device '
+                      'is %(dev)s, new local_gb is %(local_gb)d',
+                      {'node': node.uuid, 'dev': root_device,
+                       'local_gb': new_size})
 
 
 class ShowNodeCapabilities(lister.Lister):
