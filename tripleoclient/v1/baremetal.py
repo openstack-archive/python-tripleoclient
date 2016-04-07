@@ -282,37 +282,27 @@ class ConfigureReadyState(command.Command):
     loops = 120
 
     def _configure_bios(self, nodes):
-        for node in nodes:
-            print("Configuring BIOS for node {0}".format(node.uuid))
-            self.bm_client.node.vendor_passthru(
-                node.uuid, 'configure_bios_settings', http_method='POST')
+        nodes_with_reboot_request = set()
+
+        for node, profile in nodes:
+            if (profile in self.ready_state_config and
+                    'bios_settings' in self.ready_state_config[profile]):
+
+                print("Configuring BIOS for node {0}".format(node.uuid))
+                settings = self.ready_state_config[profile]['bios_settings']
+                resp = self.bm_client.node.vendor_passthru(
+                    node.uuid, 'set_bios_config', http_method='POST',
+                    args=settings)
+
+                if resp.commit_required:
+                    nodes_with_reboot_request.add(node)
+                    self.bm_client.node.vendor_passthru(
+                        node.uuid, 'commit_bios_config', http_method='POST')
 
         # NOTE(ifarkas): give the DRAC card some time to process the job
         time.sleep(self.sleep_time)
 
-    def _configure_root_raid_volumes(self, nodes):
-        for node in nodes:
-            print("Configuring root RAID volume for node {0}"
-                  .format(node.uuid))
-            self.bm_client.node.vendor_passthru(
-                node.uuid, 'create_raid_configuration',
-                {'create_root_volume': True, 'create_nonroot_volumes': False},
-                'POST')
-
-        # NOTE(ifarkas): give the DRAC card some time to process the job
-        time.sleep(self.sleep_time)
-
-    def _configure_nonroot_raid_volumes(self, nodes):
-        for node in nodes:
-            print("Configuring non-root RAID volume for node {0}"
-                  .format(node.uuid))
-            self.bm_client.node.vendor_passthru(
-                node.uuid, 'create_raid_configuration',
-                {'create_root_volume': False, 'create_nonroot_volumes': True},
-                'POST')
-
-        # NOTE(ifarkas): give the DRAC card some time to process the job
-        time.sleep(self.sleep_time)
+        return nodes_with_reboot_request
 
     def _wait_for_drac_config_jobs(self, nodes):
         for node in nodes:
@@ -331,65 +321,20 @@ class ConfigureReadyState(command.Command):
                        .format(node.uuid))
                 raise exceptions.Timeout(msg)
 
-    def _delete_raid_volumes(self, nodes):
-        nodes_with_reboot_request = set()
-
-        for node in nodes:
-            print("Deleting RAID volumes on node {0}".format(node.uuid))
-
-            resp = self.bm_client.node.vendor_passthru(
-                node.uuid, 'list_virtual_disks', http_method='GET')
-            virtual_disks = resp.virtual_disks
-
-            changed_raid_controllers = set()
-            for disk in virtual_disks:
-                self.bm_client.node.vendor_passthru(
-                    node.uuid, 'delete_virtual_disk',
-                    {'virtual_disk': disk['id']}, 'POST')
-                changed_raid_controllers.add(disk['controller'])
-
-            if changed_raid_controllers:
-                nodes_with_reboot_request.add(node)
-
-            for controller in changed_raid_controllers:
-                self.bm_client.node.vendor_passthru(
-                    node.uuid, 'apply_pending_raid_config',
-                    {'raid_controller': controller}, 'POST')
-
-        # NOTE(ifarkas): give the DRAC card some time to process the job
-        time.sleep(self.sleep_time)
-
-        return nodes_with_reboot_request
-
     def _change_power_state(self, nodes, target_power_state):
         for node in nodes:
             print("Changing power state on "
                   "node {0} to {1}".format(node.uuid, target_power_state))
             self.bm_client.node.set_power_state(node.uuid, target_power_state)
 
-    def _run_introspection(self, nodes):
-        inspector_client = self.app.client_manager.baremetal_introspection
-        node_uuids = []
-
-        for node in nodes:
-            print("Starting introspection on node {0}".format(node.uuid))
-            inspector_client.introspect(node.uuid)
-            node_uuids.append(node.uuid)
-
-        print("Waiting for introspection to finish")
-        for uuid, status in utils.wait_for_node_introspection(
-                inspector_client, node_uuids):
-            if status['error'] is None:
-                print("Introspection for node {0} finished successfully."
-                      .format(uuid))
-            else:
-                print("Introspection for node {0} finished with error: {1}"
-                      .format(uuid, status['error']))
+    def _apply_changes(self, nodes):
+        self._change_power_state(nodes, 'reboot')
+        self._wait_for_drac_config_jobs(nodes)
 
     def get_parser(self, prog_name):
         parser = super(ConfigureReadyState, self).get_parser(prog_name)
-        parser.add_argument('--delete-existing-raid-volumes',
-                            dest='delete_raid_volumes', action='store_true')
+        parser.add_argument('file', help='JSON file containing the '
+                            'ready-state configuration for each profile')
 
         return parser
 
@@ -397,26 +342,25 @@ class ConfigureReadyState(command.Command):
         self.log.debug("take_action(%s)" % parsed_args)
 
         self.bm_client = self.app.client_manager.baremetal
-        drac_nodes = [node for node in self.bm_client.node.list(detail=True)
-                      if 'drac' in node.driver]
 
-        if parsed_args.delete_raid_volumes:
-            changed_nodes = self._delete_raid_volumes(drac_nodes)
-            self._change_power_state(changed_nodes, 'reboot')
-            self._wait_for_drac_config_jobs(changed_nodes)
+        with open(parsed_args.file, 'r') as fp:
+            self.ready_state_config = json.load(fp)
 
-        self._configure_root_raid_volumes(drac_nodes)
-        self._configure_bios(drac_nodes)
-        self._change_power_state(drac_nodes, 'reboot')
-        self._wait_for_drac_config_jobs(drac_nodes)
+        drac_nodes = []
+        for node in self.bm_client.node.list(detail=True):
+            if 'drac' not in node.driver:
+                continue
 
-        self._run_introspection(drac_nodes)
+            selected_profile = utils.node_get_capabilities(node).get('profile')
+            if selected_profile is None:
+                continue
 
-        self._configure_nonroot_raid_volumes(drac_nodes)
-        self._change_power_state(drac_nodes, 'reboot')
-        self._wait_for_drac_config_jobs(drac_nodes)
+            drac_nodes.append((node, selected_profile))
 
-        self._change_power_state(drac_nodes, 'off')
+        changed_nodes = self._configure_bios(drac_nodes)
+        self._apply_changes(changed_nodes)
+
+        self._change_power_state([node for node, profile in drac_nodes], 'off')
 
 
 class ConfigureBaremetalBoot(command.Command):
