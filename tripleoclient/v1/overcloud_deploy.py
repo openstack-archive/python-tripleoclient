@@ -21,7 +21,6 @@ import logging
 import os
 import re
 import six
-import sys
 import tempfile
 import time
 import uuid
@@ -893,48 +892,43 @@ class DeployOvercloud(command.Command):
         else:
             self.log.info("Stack found, will be doing a stack update")
 
-        try:
-            self._pre_heat_deploy()
+        self._pre_heat_deploy()
 
-            if parsed_args.rhel_reg:
-                if parsed_args.reg_method == 'satellite':
-                    sat_required_args = (parsed_args.reg_org and
-                                         parsed_args.reg_sat_url and
-                                         parsed_args.reg_activation_key)
-                    if not sat_required_args:
-                        raise exceptions.DeploymentError(
-                            "ERROR: In order to use satellite registration, "
-                            "you must specify --reg-org, --reg-sat-url, and "
-                            "--reg-activation-key.")
-                else:
-                    portal_required_args = (parsed_args.reg_org and
-                                            parsed_args.reg_activation_key)
-                    if not portal_required_args:
-                        raise exceptions.DeploymentError(
-                            "ERROR: In order to use portal registration, you "
-                            "must specify --reg-org, and "
-                            "--reg-activation-key.")
+        if parsed_args.rhel_reg:
+            if parsed_args.reg_method == 'satellite':
+                sat_required_args = (parsed_args.reg_org and
+                                     parsed_args.reg_sat_url and
+                                     parsed_args.reg_activation_key)
+                if not sat_required_args:
+                    raise exceptions.DeploymentError(
+                        "ERROR: In order to use satellite registration, "
+                        "you must specify --reg-org, --reg-sat-url, and "
+                        "--reg-activation-key.")
+            else:
+                portal_required_args = (parsed_args.reg_org and
+                                        parsed_args.reg_activation_key)
+                if not portal_required_args:
+                    raise exceptions.DeploymentError(
+                        "ERROR: In order to use portal registration, you "
+                        "must specify --reg-org, and "
+                        "--reg-activation-key.")
 
-            if parsed_args.dry_run:
-                print("Validation Finished")
-                return True
+        if parsed_args.dry_run:
+            print("Validation Finished")
+            return
 
-            self._deploy_tripleo_heat_templates(stack, parsed_args)
+        self._deploy_tripleo_heat_templates(stack, parsed_args)
 
-            # Get a new copy of the stack after stack update/create. If it was
-            # a create then the previous stack object would be None.
-            stack = utils.get_stack(orchestration_client, parsed_args.stack)
+        # Get a new copy of the stack after stack update/create. If it was
+        # a create then the previous stack object would be None.
+        stack = utils.get_stack(orchestration_client, parsed_args.stack)
 
-            utils.create_overcloudrc(stack, parsed_args.no_proxy)
-            utils.create_tempest_deployer_input()
+        utils.create_overcloudrc(stack, parsed_args.no_proxy)
+        utils.create_tempest_deployer_input()
 
-            if stack_create:
-                self._deploy_postconfig(stack, parsed_args)
+        if stack_create:
+            self._deploy_postconfig(stack, parsed_args)
 
-            overcloud_endpoint = utils.get_overcloud_endpoint(stack)
-            print("Overcloud Endpoint: {0}".format(overcloud_endpoint))
-            print("Overcloud Deployed")
-            return True
-        except exceptions.DeploymentError as err:
-            print("Deployment failed: ", err, file=sys.stderr)
-            return False
+        overcloud_endpoint = utils.get_overcloud_endpoint(stack)
+        print("Overcloud Endpoint: {0}".format(overcloud_endpoint))
+        print("Overcloud Deployed")
