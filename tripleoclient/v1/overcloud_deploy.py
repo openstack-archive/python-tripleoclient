@@ -195,7 +195,8 @@ class DeployOvercloud(command.Command):
                 parameters.update({
                     'CephClusterFSID': six.text_type(uuid.uuid1()),
                     'CephMonKey': utils.create_cephx_key(),
-                    'CephAdminKey': utils.create_cephx_key()
+                    'CephAdminKey': utils.create_cephx_key(),
+                    'CephClientKey': utils.create_cephx_key()
                 })
 
         return parameters
