@@ -174,6 +174,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'SwiftHashSuffix': 'password',
             'SwiftPassword': 'password',
             'DeployIdentifier': 123456789,
+            'UpdateIdentifier': None,
+            'StackAction': 'UPDATE',
         }
 
         def _custom_create_params_env(parameters):
@@ -337,6 +339,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'SwiftHashSuffix': 'password',
             'SwiftPassword': 'password',
             'DeployIdentifier': 123456789,
+            'UpdateIdentifier': None,
+            'StackAction': 'CREATE',
         }
 
         def _custom_create_params_env(parameters):
