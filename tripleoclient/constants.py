@@ -21,6 +21,7 @@ SERVICE_LIST = {
     'cinder': {'password_field': 'OVERCLOUD_CINDER_PASSWORD'},
     'cinderv2': {'password_field': 'OVERCLOUD_CINDER_PASSWORD'},
     'glance': {'password_field': 'OVERCLOUD_GLANCE_PASSWORD'},
+    'gnocchi': {'password_field': 'OVERCLOUD_GNOCCHI_PASSWORD'},
     'heat': {'password_field': 'OVERCLOUD_HEAT_PASSWORD'},
     'neutron': {'password_field': 'OVERCLOUD_NEUTRON_PASSWORD'},
     'nova': {'password_field': 'OVERCLOUD_NOVA_PASSWORD'},
