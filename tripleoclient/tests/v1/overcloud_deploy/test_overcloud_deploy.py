@@ -972,20 +972,25 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_create_tempest_deployer_input.assert_called_with()
 
     @mock.patch('tripleoclient.utils.get_password')
+    @mock.patch('tripleoclient.constants.SERVICE_LIST',
+                {'nova': {'password_field': 'OVERCLOUD_NOVA_PASSWORD'}})
     @mock.patch('os_cloud_config.keystone.initialize')
     @mock.patch('os_cloud_config.utils.clients.get_keystone_client')
     def test_keystone_init(self, mock_gkc, mock_init, mock_gp):
         mock_ksc = mock.Mock()
         mock_gkc.return_value = mock_ksc
         mock_ksc.users.find.return_value = True
-        sips = mock.Mock()
-        sips.get.return_value = None
+        stack = mock.MagicMock()
+        stack.to_dict.return_value = fakes.FAKE_STACK
         ip = '192.0.2.1'
         overcloud_deploy.DeployOvercloud(None, None)._keystone_init(ip, ip,
-                                                                    None, sips)
+                                                                    None,
+                                                                    stack)
         self.assertFalse(mock_init.called)
 
     @mock.patch('tripleoclient.utils.get_password')
+    @mock.patch('tripleoclient.constants.SERVICE_LIST',
+                {'nova': {'password_field': 'OVERCLOUD_NOVA_PASSWORD'}})
     @mock.patch('os_cloud_config.keystone.setup_endpoints')
     @mock.patch('os_cloud_config.keystone.initialize')
     @mock.patch('os_cloud_config.utils.clients.get_keystone_client')
@@ -993,10 +998,32 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_ksc = mock.Mock()
         mock_gkc.return_value = mock_ksc
         mock_ksc.users.find.side_effect = kscexc.NotFound()
-        sips = mock.Mock()
-        sips.get.return_value = None
+        stack = mock.Mock()
+        stack.to_dict.return_value = fakes.FAKE_STACK
         ip = '192.0.2.1'
         args = mock.Mock()
         overcloud_deploy.DeployOvercloud(None, None)._keystone_init(ip, ip,
-                                                                    args, sips)
+                                                                    args,
+                                                                    stack)
+        self.assertTrue(mock_init.called)
+
+    @mock.patch('tripleoclient.utils.get_password')
+    @mock.patch('tripleoclient.constants.SERVICE_LIST',
+                {'nova': {'password_field': 'OVERCLOUD_NOVA_PASSWORD'},
+                 'unexistent': {'password_field': 'OVERCLOUD_NOVA_PASSWORD'}})
+    @mock.patch('os_cloud_config.keystone.setup_endpoints')
+    @mock.patch('os_cloud_config.keystone.initialize')
+    @mock.patch('os_cloud_config.utils.clients.get_keystone_client')
+    def test_keystone_init_occ_w_entry_not_in_endpoint_map(
+            self, mock_gkc, mock_init, mock_se, mock_gp):
+        mock_ksc = mock.Mock()
+        mock_gkc.return_value = mock_ksc
+        mock_ksc.users.find.side_effect = kscexc.NotFound()
+        stack = mock.Mock()
+        stack.to_dict.return_value = fakes.FAKE_STACK
+        ip = '192.0.2.1'
+        args = mock.Mock()
+        overcloud_deploy.DeployOvercloud(None, None)._keystone_init(ip, ip,
+                                                                    args,
+                                                                    stack)
         self.assertTrue(mock_init.called)
