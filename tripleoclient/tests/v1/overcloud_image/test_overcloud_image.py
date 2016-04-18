@@ -130,7 +130,7 @@ class TestOvercloudImageBuild(TestPluginV1):
             "openstack-neutron-bigswitch-lldp,"
             "openstack-neutron-bigswitch-agent "
             "dynamic-login element-manifest network-gateway epel "
-            "undercloud-package-install "
+            "enable-packages-install "
             "pip-and-virtualenv-override  --min-tmpfs 5 2>&1 | "
             "tee dib-overcloud-full.log")
 
@@ -176,7 +176,7 @@ class TestOvercloudImageBuild(TestPluginV1):
             "openstack-neutron-bigswitch-lldp,"
             "openstack-neutron-bigswitch-agent "
             "dynamic-login element-manifest network-gateway epel "
-            "undercloud-package-install "
+            "enable-packages-install "
             "pip-and-virtualenv-override overcloud-network-midonet "
             "--min-tmpfs 5 2>&1 | tee dib-overcloud-full.log")
 
@@ -210,7 +210,7 @@ class TestOvercloudImageBuild(TestPluginV1):
             "-a amd64 -o deploy-ramdisk-ironic --ramdisk-element "
             "dracut-ramdisk rhel7 deploy-ironic dynamic-login "
             "element-manifest network-gateway epel "
-            "undercloud-package-install "
+            "enable-packages-install "
             "pip-and-virtualenv-override  2>&1 | tee dib-deploy.log")
 
     @mock.patch('platform.linux_distribution')
@@ -240,7 +240,7 @@ class TestOvercloudImageBuild(TestPluginV1):
         self.mock_disk_image_create.assert_called_once_with(
             "-a amd64 -o ironic-python-agent "
             "rhel7 ironic-agent dynamic-login element-manifest "
-            "network-gateway epel undercloud-package-install "
+            "network-gateway epel enable-packages-install "
             "pip-and-virtualenv-override  "
             "-p python-hardware-detect --min-tmpfs 5 "
             "2>&1 | tee dib-agent-ramdisk.log")

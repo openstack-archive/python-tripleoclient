@@ -444,7 +444,7 @@ class BuildOvercloudImage(command.Command):
         self._set_env_var(env_vars, 'PACKAGES', '1')
         if env_vars.get('PACKAGES') == '1':
             dib_common_elements.extend([
-                'undercloud-package-install',
+                'enable-packages-install',
                 'pip-and-virtualenv-override',
             ])
 
