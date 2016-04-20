@@ -327,6 +327,22 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
         self.instack_json.close()
         self.yaml_file.close()
         self.instack_yaml.close()
+        self.baremetal = self.app.client_manager.baremetal
+        self.baremetal.http_client.os_ironic_api_version = '1.11'
+        self.baremetal.node = fakes.FakeBaremetalNodeClient(
+            states={"ABCDEFGH": "enroll", "IJKLMNOP": "enroll"},
+            transitions={
+                ("ABCDEFGH", "manage"): "manageable",
+                ("IJKLMNOP", "manage"): "manageable",
+                ("ABCDEFGH", "provide"): "available",
+                ("IJKLMNOP", "provide"): "available",
+
+            }
+        )
+        self.mock_initial_nodes = {
+            mock.Mock(uuid="ABCDEFGH", provision_state="enroll"),
+            mock.Mock(uuid="IJKLMNOP", provision_state="enroll")
+        }
 
     def tearDown(self):
 
@@ -348,13 +364,85 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
         ]
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        mock_register_nodes.return_value = self.mock_initial_nodes
 
         self.cmd.take_action(parsed_args)
 
         mock_register_nodes.assert_called_with(
             'http://localhost', self.nodes_list,
-            client=self.app.client_manager.baremetal,
+            client=self.baremetal,
             keystone_client=None)
+        self.assertEqual(sorted([
+            ('ABCDEFGH', 'manage'), ('IJKLMNOP', 'manage'),
+            ('ABCDEFGH', 'provide'), ('IJKLMNOP', 'provide')
+        ]), sorted(self.baremetal.node.updates))
+
+    @mock.patch('tripleo_common.utils.nodes.register_all_nodes', autospec=True)
+    def test_json_import_initial_state_enroll(self, mock_register_nodes):
+
+        arglist = [
+            self.json_file.name,
+            '--json',
+            '-s', 'http://localhost',
+            '--initial-state', 'enroll'
+        ]
+
+        verifylist = [
+            ('csv', False),
+            ('json', True),
+        ]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        mock_register_nodes.return_value = self.mock_initial_nodes
+
+        self.cmd.take_action(parsed_args)
+
+        mock_register_nodes.assert_called_with(
+            'http://localhost', self.nodes_list,
+            client=self.baremetal,
+            keystone_client=None)
+        self.assertEqual([], self.baremetal.node.updates)
+
+    @mock.patch('tripleo_common.utils.nodes.register_all_nodes', autospec=True)
+    def test_available_does_not_require_api_1_11(self, mock_register_nodes):
+        arglist = [self.json_file.name, '--json', '-s', 'http://localhost']
+
+        verifylist = [
+            ('csv', False),
+            ('json', True),
+        ]
+        self.baremetal.http_client.os_ironic_api_version = '1.6'
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        mock_register_nodes.return_value = self.mock_initial_nodes
+
+        self.cmd.take_action(parsed_args)
+
+        mock_register_nodes.assert_called_with(
+            'http://localhost', self.nodes_list,
+            client=self.baremetal,
+            keystone_client=None)
+        self.assertEqual(sorted([
+            ('ABCDEFGH', 'manage'), ('IJKLMNOP', 'manage'),
+            ('ABCDEFGH', 'provide'), ('IJKLMNOP', 'provide')
+        ]), sorted(self.baremetal.node.updates))
+
+    def test_enroll_requires_api_1_11(self):
+        arglist = [
+            self.json_file.name,
+            '--json',
+            '-s', 'http://localhost',
+            '--initial-state', 'enroll'
+        ]
+
+        verifylist = [
+            ('csv', False),
+            ('json', True),
+        ]
+        self.baremetal.http_client.os_ironic_api_version = '1.6'
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        self.assertRaisesRegexp(exceptions.InvalidConfiguration,
+                                'OS_BAREMETAL_API_VERSION',
+                                self.cmd.take_action, parsed_args)
 
     @mock.patch('tripleo_common.utils.nodes.register_all_nodes', autospec=True)
     def test_json_import_detect_suffix(self, mock_register_nodes):
@@ -372,7 +460,7 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
 
         mock_register_nodes.assert_called_with(
             'http://localhost', self.nodes_list,
-            client=self.app.client_manager.baremetal,
+            client=self.baremetal,
             keystone_client=None)
 
     @mock.patch('tripleo_common.utils.nodes.register_all_nodes', autospec=True)
@@ -386,13 +474,18 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
         ]
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        mock_register_nodes.return_value = self.mock_initial_nodes
 
         self.cmd.take_action(parsed_args)
 
         mock_register_nodes.assert_called_with(
             'http://localhost', self.nodes_list,
-            client=self.app.client_manager.baremetal,
+            client=self.baremetal,
             keystone_client=None)
+        self.assertEqual(sorted([
+            ('ABCDEFGH', 'manage'), ('IJKLMNOP', 'manage'),
+            ('ABCDEFGH', 'provide'), ('IJKLMNOP', 'provide')
+        ]), sorted(self.baremetal.node.updates))
 
     @mock.patch('tripleo_common.utils.nodes.register_all_nodes', autospec=True)
     def test_csv_import(self, mock_register_nodes):
@@ -405,12 +498,13 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
         ]
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        mock_register_nodes.return_value = self.mock_initial_nodes
 
         self.cmd.take_action(parsed_args)
 
         mock_register_nodes.assert_called_with(
             'http://localhost', self.nodes_list,
-            client=self.app.client_manager.baremetal,
+            client=self.baremetal,
             keystone_client=None)
 
     @mock.patch('tripleo_common.utils.nodes.register_all_nodes', autospec=True)
@@ -429,7 +523,7 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
 
         mock_register_nodes.assert_called_with(
             'http://localhost', self.nodes_list,
-            client=self.app.client_manager.baremetal,
+            client=self.baremetal,
             keystone_client=None)
 
     @mock.patch('tripleo_common.utils.nodes.register_all_nodes', autospec=True)
@@ -448,7 +542,7 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
 
         mock_register_nodes.assert_called_with(
             'http://localhost', self.nodes_list,
-            client=self.app.client_manager.baremetal,
+            client=self.baremetal,
             keystone_client=None)
 
     def test_invalid_import_filetype(self):
@@ -477,13 +571,18 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
         ]
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        mock_register_nodes.return_value = self.mock_initial_nodes
 
         self.cmd.take_action(parsed_args)
 
         mock_register_nodes.assert_called_with(
             'http://localhost', self.nodes_list,
-            client=self.app.client_manager.baremetal,
+            client=self.baremetal,
             keystone_client=None)
+        self.assertEqual(sorted([
+            ('ABCDEFGH', 'manage'), ('IJKLMNOP', 'manage'),
+            ('ABCDEFGH', 'provide'), ('IJKLMNOP', 'provide')
+        ]), sorted(self.baremetal.node.updates))
 
 
 class TestStartBaremetalIntrospectionBulk(fakes.TestBaremetal):

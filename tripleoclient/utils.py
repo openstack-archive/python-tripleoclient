@@ -475,7 +475,7 @@ def set_nodes_state(baremetal_client, nodes, transition, target_state,
             continue
 
         log.debug(
-            "Setting provision state from {0} to '{1} for Node {2}"
+            "Setting provision state from '{0}' to '{1}' for Node {2}"
             .format(node.provision_state, transition, node.uuid))
 
         baremetal_client.node.set_provision_state(node.uuid, transition)

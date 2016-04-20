@@ -161,6 +161,13 @@ class ImportBaremetal(command.Command):
             '--csv', dest='csv', action='store_true',
             help=_('Deprecated, now detected via file extension.'))
         parser.add_argument('file_in', type=argparse.FileType('r'))
+        parser.add_argument(
+            '--initial-state',
+            choices=['enroll', 'available'],
+            default='available',
+            help='Provision state for newly-enrolled nodes.'
+        )
+
         return parser
 
     def take_action(self, parsed_args):
@@ -181,11 +188,31 @@ class ImportBaremetal(command.Command):
         if 'nodes' in nodes_config:
             nodes_config = nodes_config['nodes']
 
-        nodes.register_all_nodes(
+        client = self.app.client_manager.baremetal
+        if parsed_args.initial_state == "enroll":
+            api_version = client.http_client.os_ironic_api_version
+            if [int(part) for part in api_version.split('.')] < [1, 11]:
+                raise exceptions.InvalidConfiguration(
+                    _("OS_BAREMETAL_API_VERSION must be >=1.11 for use of "
+                      "'enroll' provision state; currently %s") % api_version)
+        new_nodes = nodes.register_all_nodes(
             parsed_args.service_host,
             nodes_config,
-            client=self.app.client_manager.baremetal,
+            client=client,
             keystone_client=self.app.client_manager.identity)
+
+        if parsed_args.initial_state == "available":
+            manageable_node_uuids = list(utils.set_nodes_state(
+                client, new_nodes, "manage", "manageable",
+                skipped_states={'manageable', 'available'}
+            ))
+            manageable_nodes = [
+                n for n in new_nodes if n.uuid in manageable_node_uuids
+            ]
+            list(utils.set_nodes_state(
+                client, manageable_nodes, "provide", "available",
+                skipped_states={'available'}
+            ))
 
 
 class StartBaremetalIntrospectionBulk(command.Command):
