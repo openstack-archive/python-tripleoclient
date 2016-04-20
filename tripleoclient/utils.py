@@ -348,48 +348,6 @@ def wait_for_provision_state(baremetal_client, node_uuid, provision_state,
     )
 
 
-def wait_for_node_introspection(inspector_client, node_uuids,
-                                loops=220, sleep=10):
-    """Check the status of Node introspection in Ironic inspector
-
-    Gets the status and waits for them to complete.
-
-    :param inspector_client: Ironic inspector client
-    :type  inspector_client: ironic_inspector_client
-
-    :param node_uuids: List of Node UUID's to wait for introspection
-    :type node_uuids: [string, ]
-
-    :param loops: How many times to loop
-    :type loops: int
-
-    :param sleep: How long to sleep between loops
-    :type sleep: int
-    """
-
-    log = logging.getLogger(__name__ + ".wait_for_node_introspection")
-    node_uuids = node_uuids[:]
-
-    for _l in range(0, loops):
-
-        for node_uuid in node_uuids:
-            status = inspector_client.get_status(node_uuid)
-
-            if status['finished']:
-                log.debug("Introspection finished for node {0} "
-                          "(Error: {1})".format(node_uuid, status['error']))
-                node_uuids.remove(node_uuid)
-                yield node_uuid, status
-
-        if not len(node_uuids):
-            raise StopIteration
-        time.sleep(sleep)
-
-    if len(node_uuids):
-        log.error("Introspection didn't finish for nodes {0}".format(
-            ','.join(node_uuids)))
-
-
 def create_environment_file(path="~/overcloud-env.json",
                             control_scale=1, compute_scale=1,
                             ceph_storage_scale=0, block_storage_scale=0,

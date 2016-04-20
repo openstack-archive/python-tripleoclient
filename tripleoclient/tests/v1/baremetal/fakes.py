@@ -86,6 +86,9 @@ class FakeInspectorClient(object):
         except KeyError:
             raise ironic_inspector_client.ClientError(mock.Mock())
 
+    def wait_for_finish(self, uuids):
+        return {uuid: self.states[uuid] for uuid in uuids}
+
 
 class TestBaremetal(utils.TestCommand):
 
