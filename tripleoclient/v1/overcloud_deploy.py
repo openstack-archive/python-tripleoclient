@@ -878,6 +878,12 @@ class DeployOvercloud(command.Command):
             default=False,
             help=_('Only run validations, but do not apply any changes.')
         )
+        parser.add_argument(
+            '--skip-postconfig',
+            action='store_true',
+            default=False,
+            help=_('Skip the overcloud post-deployment configuration.')
+        )
         reg_group = parser.add_argument_group('Registration Parameters')
         reg_group.add_argument(
             '--rhel-reg',
@@ -988,7 +994,7 @@ class DeployOvercloud(command.Command):
         utils.create_overcloudrc(stack, parsed_args.no_proxy)
         utils.create_tempest_deployer_input()
 
-        if stack_create:
+        if stack_create and not parsed_args.skip_postconfig:
             self._deploy_postconfig(stack, parsed_args)
 
         overcloud_endpoint = utils.get_overcloud_endpoint(stack)
