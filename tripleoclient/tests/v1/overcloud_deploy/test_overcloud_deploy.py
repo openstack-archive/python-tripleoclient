@@ -45,6 +45,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         # mock validations for all deploy tests
         # for validator tests, see test_overcloud_deploy_validators.py
         validator_mock = mock.Mock(return_value=(0, 0))
+        self.real_predeploy_verify_capabilities = \
+            self.cmd._predeploy_verify_capabilities
         self.cmd._predeploy_verify_capabilities = validator_mock
 
         self._get_passwords = generate_overcloud_passwords_mock
@@ -481,9 +483,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_tripleo_heat_templates', autospec=True)
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_pre_heat_deploy', autospec=True)
-    def test_missing_sat_url(self, mock_pre_deploy, mock_deploy_tht):
+    def test_missing_sat_url(self, mock_deploy_tht):
 
         arglist = ['--templates', '--rhel-reg',
                    '--reg-method', 'satellite', '--reg-org', '123456789',
@@ -512,10 +512,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_update_parameters', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_pre_heat_deploy', autospec=True)
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_heat_deploy', autospec=True)
-    def test_environment_dirs(self, mock_deploy_heat, mock_pre_heat,
+    def test_environment_dirs(self, mock_deploy_heat,
                               mock_update_parameters, mock_post_config,
                               mock_utils_check_nodes, mock_utils_endpoint,
                               mock_utils_createrc, mock_utils_tempest):
@@ -557,10 +555,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_update_parameters', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_pre_heat_deploy', autospec=True)
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_heat_deploy', autospec=True)
-    def test_environment_dirs_env(self, mock_deploy_heat, mock_pre_heat,
+    def test_environment_dirs_env(self, mock_deploy_heat,
                                   mock_update_parameters, mock_post_config,
                                   mock_utils_check_nodes, mock_utils_endpoint,
                                   mock_utils_createrc, mock_utils_tempest):
@@ -598,9 +594,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_tripleo_heat_templates', autospec=True)
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_pre_heat_deploy', autospec=True)
-    def test_rhel_reg_params_provided(self, mock_pre_deploy, mock_deploy_tht,
+    def test_rhel_reg_params_provided(self, mock_deploy_tht,
                                       mock_oc_endpoint,
                                       mock_create_ocrc,
                                       mock_create_tempest_deployer_input):
@@ -832,22 +826,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                           self.cmd._validate_args,
                           parsed_args)
 
-    @mock.patch('tripleoclient.utils.check_hypervisor_stats',
-                autospec=True)
-    def test_pre_heat_deploy_failed(self, mock_check_hypervisor_stats):
-        clients = self.app.client_manager
-        orchestration_client = clients.tripleoclient.orchestration
-        orchestration_client.stacks.get.return_value = None
-        mock_check_hypervisor_stats.return_value = None
-        arglist = ['--templates']
-        verifylist = [
-            ('templates', '/usr/share/openstack-tripleo-heat-templates/')
-        ]
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-        self.assertRaises(exceptions.DeploymentError,
-                          self.cmd.take_action,
-                          parsed_args)
-
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_heat_deploy', autospec=True)
     def test_try_overcloud_deploy_with_first_template_existing(
@@ -897,9 +875,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_tripleo_heat_templates', autospec=True)
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_pre_heat_deploy', autospec=True)
-    def test_dry_run(self, mock_pre_deploy, mock_deploy_tht,
+    def test_dry_run(self, mock_deploy_tht,
                      mock_oc_endpoint,
                      mock_create_ocrc,
                      mock_create_tempest_deployer_input):
@@ -927,10 +903,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 '_heat_deploy', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 'set_overcloud_passwords', autospec=True)
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_pre_heat_deploy', autospec=True)
     def test_answers_file(self,
-                          mock_pre_deploy,
                           mock_set_overcloud_passwords,
                           mock_heat_deploy,
                           mock_oc_endpoint,
@@ -1038,3 +1011,28 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                                                     args,
                                                                     stack)
         self.assertTrue(mock_init.called)
+
+    @mock.patch('tripleoclient.utils.check_nodes_count')
+    @mock.patch('tripleoclient.utils.check_hypervisor_stats')
+    @mock.patch('tripleoclient.utils.assign_and_verify_profiles')
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_check_ironic_boot_configuration')
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_collect_flavors')
+    def test_predeploy_verify_capabilities_hypervisor_stats(
+            self, mock_collect_flavors,
+            mock_check_ironic_boot_configuration,
+            mock_assign_and_verify_profiles,
+            mock_check_hypervisor_stats,
+            mock_check_nodes_count):
+        self.cmd._predeploy_verify_capabilities = \
+            self.real_predeploy_verify_capabilities
+
+        parsed_args = mock.Mock()
+        mock_assign_and_verify_profiles.return_value = (0, 0)
+        mock_check_nodes_count.return_value = (True, 0, 0)
+
+        # A None return value here indicates an error
+        mock_check_hypervisor_stats.return_value = None
+        self.cmd._predeploy_verify_capabilities(parsed_args)
+        self.assertEqual(1, self.cmd.predeploy_errors)

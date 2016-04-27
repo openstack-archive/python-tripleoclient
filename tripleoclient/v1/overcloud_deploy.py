@@ -307,17 +307,6 @@ class DeployOvercloud(command.Command):
             else:
                 raise exceptions.DeploymentError("Heat Stack update failed.")
 
-    def _pre_heat_deploy(self):
-        """Setup before the Heat stack create or update has been done."""
-        clients = self.app.client_manager
-        compute_client = clients.compute
-
-        self.log.debug("Checking hypervisor stats")
-        if utils.check_hypervisor_stats(compute_client) is None:
-            raise exceptions.DeploymentError(
-                "Expected hypervisor stats not met")
-        return True
-
     def _load_environment_directories(self, directories):
         if os.environ.get('TRIPLEO_ENVIRONMENT_DIRECTORY'):
             directories.append(os.environ.get('TRIPLEO_ENVIRONMENT_DIRECTORY'))
@@ -621,6 +610,13 @@ class DeployOvercloud(command.Command):
         )
         self.predeploy_errors += errors
         self.predeploy_warnings += warnings
+
+        compute_client = self.app.client_manager.compute
+
+        self.log.debug("Checking hypervisor stats")
+        if utils.check_hypervisor_stats(compute_client) is None:
+            self.log.error("Expected hypervisor stats not met")
+            self.predeploy_errors += 1
 
         return self.predeploy_errors, self.predeploy_warnings
 
@@ -957,8 +953,6 @@ class DeployOvercloud(command.Command):
             self.log.info("No stack found, will be doing a stack create")
         else:
             self.log.info("Stack found, will be doing a stack update")
-
-        self._pre_heat_deploy()
 
         if parsed_args.rhel_reg:
             if parsed_args.reg_method == 'satellite':
