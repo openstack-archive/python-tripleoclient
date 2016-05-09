@@ -15,10 +15,13 @@
 
 """OpenStackClient Plugin interface"""
 
+import json
 import logging
+import uuid
+import websocket
 
 from openstackclient.common import utils
-
+from openstackclient.identity import common as identity_common
 
 LOG = logging.getLogger(__name__)
 
@@ -59,7 +62,76 @@ def build_option_parser(parser):
     return parser
 
 
+class WebsocketClient(object):
+
+    def __init__(self, instance, queue_name):
+        self._project_id = None
+        self._ws = None
+        self._websocket_client_id = None
+        self._queue_name = queue_name
+
+        endpoint = instance.get_endpoint_for_service_type(
+            'messaging')
+        token = instance.auth.get_token(instance.session)
+
+        self._project_id = identity_common.find_project(
+            instance.identity,
+            instance._project_name).id
+
+        self._websocket_client_id = str(uuid.uuid4())
+
+        # FIXME(dprince): add messaging-websocket to the keystone catalog
+        ws_url = endpoint.replace('http', 'ws').replace('8888', '9000')
+        LOG.debug('Instantiating messaging websocket client: %s', ws_url)
+        self._ws = websocket.create_connection(ws_url)
+
+        self.send('authenticate', extra_headers={'X-Auth-Token': token})
+
+        # create and subscribe to a queue
+        # NOTE: if the queue exists it will 204
+        self.send('queue_create', {'queue_name': queue_name})
+        self.send('subscription_create', {
+            'queue_name': queue_name,
+            'ttl': 10000
+        })
+
+    def cleanup(self):
+        self.send('queue_delete', {'queue_name': self._queue_name})
+        self._ws.close()
+
+    def send(self, action, body=None, extra_headers=None):
+
+        headers = {
+            'Client-ID': self._websocket_client_id,
+            'X-Project-ID': self._project_id
+        }
+
+        if extra_headers is not None:
+            headers.update(extra_headers)
+
+        msg = {'action': action, 'headers': headers}
+        if body:
+            msg['body'] = body
+        self._ws.send(json.dumps(msg))
+        data = self.recv()
+        if data['headers']['status'] not in (200, 201, 204):
+            raise RuntimeError(data)
+        return data
+
+    def recv(self):
+        return json.loads(self._ws.recv())
+
+
 class ClientWrapper(object):
 
     def __init__(self, instance):
         self._instance = instance
+        self._messaging_websocket = None
+
+    def messaging_websocket(self, queue_name='tripleo'):
+        """Returns a websocket for the messaging service"""
+
+        if self._messaging_websocket is not None:
+            return self._messaging_websocket
+        self._messaging_websocket = WebsocketClient(self._instance, queue_name)
+        return self._messaging_websocket
