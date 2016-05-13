@@ -24,6 +24,7 @@ SERVICE_LIST = {
     'gnocchi': {'password_field': 'OVERCLOUD_GNOCCHI_PASSWORD'},
     'heat': {'password_field': 'OVERCLOUD_HEAT_PASSWORD'},
     'heatcfn': {},
+    'ironic': {'password_field': 'OVERCLOUD_IRONIC_PASSWORD'},
     'neutron': {'password_field': 'OVERCLOUD_NEUTRON_PASSWORD'},
     'nova': {'password_field': 'OVERCLOUD_NOVA_PASSWORD'},
     'swift': {'password_field': 'OVERCLOUD_SWIFT_PASSWORD'},
