@@ -160,6 +160,18 @@ class ImportBaremetal(command.Command):
         parser.add_argument(
             '--csv', dest='csv', action='store_true',
             help=_('Deprecated, now detected via file extension.'))
+        parser.add_argument('--deploy-kernel',
+                            default='bm-deploy-kernel',
+                            help='Image with deploy kernel.')
+        parser.add_argument('--deploy-ramdisk',
+                            default='bm-deploy-ramdisk',
+                            help='Image with deploy ramdisk.')
+        parser.add_argument('--no-deploy-image', action='store_true',
+                            help='Skip setting the deploy kernel and ramdisk.')
+        parser.add_argument('--instance-boot-option',
+                            choices=['local', 'netboot'], default='local',
+                            help='Whether to set instances for booting from '
+                            'local hard drive (local) or network (netboot).')
         parser.add_argument('file_in', type=argparse.FileType('r'))
         parser.add_argument(
             '--initial-state',
@@ -195,11 +207,22 @@ class ImportBaremetal(command.Command):
                 raise exceptions.InvalidConfiguration(
                     _("OS_BAREMETAL_API_VERSION must be >=1.11 for use of "
                       "'enroll' provision state; currently %s") % api_version)
+
+        for node in nodes_config:
+            caps = utils.capabilities_to_dict(node.get('capabilities', {}))
+            caps.setdefault('boot_option', parsed_args.instance_boot_option)
+            node['capabilities'] = utils.dict_to_capabilities(caps)
+
         new_nodes = nodes.register_all_nodes(
             parsed_args.service_host,
             nodes_config,
             client=client,
-            keystone_client=self.app.client_manager.identity)
+            keystone_client=self.app.client_manager.identity,
+            glance_client=self.app.client_manager.image,
+            kernel_name=(parsed_args.deploy_kernel if not
+                         parsed_args.no_deploy_image else None),
+            ramdisk_name=(parsed_args.deploy_ramdisk if not
+                          parsed_args.no_deploy_image else None))
 
         if parsed_args.initial_state == "available":
             manageable_node_uuids = list(utils.set_nodes_state(
