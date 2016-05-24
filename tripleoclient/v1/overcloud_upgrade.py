@@ -78,11 +78,10 @@ class UpgradeOvercloud(command.Command):
                             parsed_args.environment_files)
                     parsed_args.environment_files = answers['environments']
 
-        osc_plugin = self.app.client_manager.tripleoclient
+        clients = self.app.client_manager
 
-        orchestration = osc_plugin.orchestration
         upgrade_manager = upgrade.StackUpgradeManager(
-            heatclient=orchestration,
+            heatclient=clients.orchestration,
             stack_id=parsed_args.stack,
             tht_dir=parsed_args.templates,
             environment_files=parsed_args.environment_files)

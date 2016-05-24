@@ -76,12 +76,11 @@ class UpdateOvercloud(command.Command):
                     parsed_args.environment_files = answers['environments']
 
         self.log.debug("take_action(%s)" % parsed_args)
-        osc_plugin = self.app.client_manager.tripleoclient
+        clients = self.app.client_manager
 
-        orchestration = osc_plugin.orchestration
         update_manager = update.PackageUpdateManager(
-            heatclient=orchestration,
-            novaclient=self.app.client_manager.compute,
+            heatclient=clients.orchestration,
+            novaclient=clients.compute,
             stack_id=parsed_args.stack,
             tht_dir=parsed_args.templates,
             environment_files=parsed_args.environment_files)

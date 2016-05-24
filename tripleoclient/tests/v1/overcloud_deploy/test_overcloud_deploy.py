@@ -117,7 +117,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_generate_overcloud_passwords.return_value = self._get_passwords()
 
         clients = self.app.client_manager
-        orchestration_client = clients.tripleoclient.orchestration
+        orchestration_client = clients.orchestration
         orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
         mock_event = mock.Mock()
         mock_event.id = '1234'
@@ -274,7 +274,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_generate_overcloud_passwords.return_value = self._get_passwords()
 
         clients = self.app.client_manager
-        orchestration_client = clients.tripleoclient.orchestration
+        orchestration_client = clients.orchestration
         mock_stack = fakes.create_tht_stack()
         orchestration_client.stacks.get.return_value = None
 
@@ -436,7 +436,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_generate_overcloud_passwords.return_value = self._get_passwords()
 
         clients = self.app.client_manager
-        orchestration_client = clients.tripleoclient.orchestration
+        orchestration_client = clients.orchestration
         orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
         mock_events.return_value = []
 
@@ -684,7 +684,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         wait_for_stack_ready_mock.return_value = True
 
         clients = self.app.client_manager
-        orchestration_client = clients.tripleoclient.orchestration
+        orchestration_client = clients.orchestration
         orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
         mock_events.return_value = []
 

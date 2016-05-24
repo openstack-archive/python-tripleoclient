@@ -26,14 +26,7 @@ class TestPlugin(base.TestCase):
         clientmgr._api_version.__getitem__.return_value = '1'
         clientmgr.get_endpoint_for_service_type.return_value = fakes.AUTH_URL
 
-        client = plugin.make_client(clientmgr)
-
-        # The client should have an orchestration property. Accessing it should
-        # fetch it from the clientmanager:
-        orchestration = client.orchestration
-        # The second access should return the same client:
-        self.assertIs(client.orchestration, orchestration)
+        plugin.make_client(clientmgr)
 
         # And the functions should only be called when the client is created:
-        self.assertEqual(clientmgr.get_endpoint_for_service_type.call_count, 1)
-        self.assertEqual(clientmgr.auth.get_token.call_count, 1)
+        self.assertEqual(clientmgr.auth.get_token.call_count, 0)
