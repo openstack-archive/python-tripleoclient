@@ -29,6 +29,11 @@ Import baremetal nodes
 
     Input file is in csv format
 
+.. option:: --initial-state [enroll|available]
+
+    Provision state to set on newly-enrolled nodes. To use "enroll" state,
+    OS_BAREMETAL_API_VERSION must be at least 1.11. (default: "available")
+
 .. _baremetal_import-file_in:
 .. describe:: <file_in>
 
