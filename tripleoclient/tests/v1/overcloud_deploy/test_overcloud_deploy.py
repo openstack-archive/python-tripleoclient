@@ -873,6 +873,20 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                           '/fake/path', mock.ANY, mock.ANY, mock.ANY,
                           mock.ANY, mock.ANY)
 
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_heat_deploy', autospec=True)
+    def test_try_overcloud_deploy_show_missing_file(
+            self, mock_heat_deploy_func):
+        mock_heat_deploy_func.side_effect = [
+            six.moves.urllib.error.URLError('/fake/path not found')
+            for stack_file in constants.OVERCLOUD_YAML_NAMES]
+        try:
+            self.cmd._try_overcloud_deploy_with_compat_yaml(
+                '/fake/path', mock.ANY, mock.ANY, mock.ANY,
+                mock.ANY, mock.ANY)
+        except ValueError as value_error:
+            self.assertIn('/fake/path', str(value_error))
+
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
     @mock.patch('tripleoclient.utils.create_overcloudrc', autospec=True)

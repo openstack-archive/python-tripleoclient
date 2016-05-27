@@ -394,18 +394,17 @@ class DeployOvercloud(command.Command):
     def _try_overcloud_deploy_with_compat_yaml(self, tht_root, stack,
                                                stack_name, parameters,
                                                environments, timeout):
+        messages = ['The following errors occurred:']
         for overcloud_yaml_name in constants.OVERCLOUD_YAML_NAMES:
             overcloud_yaml = os.path.join(tht_root, overcloud_yaml_name)
             try:
                 self._heat_deploy(stack, stack_name, overcloud_yaml,
                                   parameters, environments, timeout)
-            except six.moves.urllib.error.URLError:
-                pass
+            except six.moves.urllib.error.URLError as e:
+                messages.append(str(e.reason))
             else:
                 return
-        message = "The files {0} not found in the {1} directory".format(
-            constants.OVERCLOUD_YAML_NAMES, tht_root)
-        raise ValueError(message)
+        raise ValueError('\n'.join(messages))
 
     def _is_tls_enabled(self, overcloud_endpoint):
         return overcloud_endpoint.startswith('https')
