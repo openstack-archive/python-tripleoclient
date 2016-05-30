@@ -339,10 +339,24 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
 
             }
         )
-        self.mock_initial_nodes = {
-            mock.Mock(uuid="ABCDEFGH", provision_state="enroll"),
-            mock.Mock(uuid="IJKLMNOP", provision_state="enroll")
-        }
+        self.mock_websocket_success = [{
+            "status": "SUCCESS",
+            "registered_nodes": [{
+                "uuid": "MOCK_NODE_UUID"
+            }],
+        }, {
+            "status": "SUCCESS"
+        }]
+
+        self.workflow = self.app.client_manager.workflow_engine
+        tripleoclient = self.app.client_manager.tripleoclient
+        websocket = tripleoclient.messaging_websocket()
+        websocket.wait_for_message.side_effect = self.mock_websocket_success
+        self.websocket = websocket
+
+        uuid4_patcher = mock.patch('uuid.uuid4', return_value="UUID4")
+        self.mock_uuid4 = uuid4_patcher.start()
+        self.addCleanup(self.mock_uuid4.stop)
 
     def tearDown(self):
 
@@ -353,25 +367,38 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
         os.unlink(self.yaml_file.name)
         os.unlink(self.instack_yaml.name)
 
-    def _check_register_call(self, mock_register_nodes, local=True, **kwargs):
+    def _check_workflow_call(self, local=True, provide=True,
+                             kernel_name='bm-deploy-kernel',
+                             ramdisk_name='bm-deploy-ramdisk'):
         nodes_list = copy.deepcopy(self.nodes_list)
         for node in nodes_list:
             if local:
                 node['capabilities'] = 'boot_option:local'
             else:
                 node['capabilities'] = 'boot_option:netboot'
-        kwargs.setdefault('kernel_name', 'bm-deploy-kernel')
-        kwargs.setdefault('ramdisk_name', 'bm-deploy-ramdisk')
 
-        mock_register_nodes.assert_called_with(
-            'http://localhost', nodes_list,
-            client=self.app.client_manager.baremetal,
-            keystone_client=None,
-            glance_client=self.app.client_manager.image,
-            **kwargs)
+        call_list = [mock.call(
+            'tripleo.baremetal.v1.register_or_update', workflow_input={
+                'kernel_name': kernel_name,
+                'nodes_json': nodes_list,
+                'queue_name': 'UUID4',
+                'ramdisk_name': ramdisk_name}
+        )]
 
-    @mock.patch('tripleo_common.utils.nodes.register_all_nodes', autospec=True)
-    def test_json_import(self, mock_register_nodes):
+        if provide:
+            call_list.append(mock.call(
+                'tripleo.baremetal.v1.provide', workflow_input={
+                    'node_uuids': ['MOCK_NODE_UUID', ],
+                    'queue_name': 'UUID4'
+                }
+            ))
+
+        self.workflow.executions.create.assert_has_calls(call_list)
+
+        self.assertEqual(self.workflow.executions.create.call_count,
+                         2 if provide else 1)
+
+    def test_json_import(self):
 
         arglist = [self.json_file.name, '--json', '-s', 'http://localhost']
 
@@ -381,18 +408,12 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
         ]
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-        mock_register_nodes.return_value = self.mock_initial_nodes
 
         self.cmd.take_action(parsed_args)
 
-        self._check_register_call(mock_register_nodes)
-        self.assertEqual(sorted([
-            ('ABCDEFGH', 'manage'), ('IJKLMNOP', 'manage'),
-            ('ABCDEFGH', 'provide'), ('IJKLMNOP', 'provide')
-        ]), sorted(self.baremetal.node.updates))
+        self._check_workflow_call()
 
-    @mock.patch('tripleo_common.utils.nodes.register_all_nodes', autospec=True)
-    def test_json_import_initial_state_enroll(self, mock_register_nodes):
+    def test_json_import_initial_state_enroll(self):
 
         arglist = [
             self.json_file.name,
@@ -407,14 +428,12 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
         ]
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-        mock_register_nodes.return_value = self.mock_initial_nodes
 
         self.cmd.take_action(parsed_args)
-        self._check_register_call(mock_register_nodes)
+        self._check_workflow_call(provide=False)
         self.assertEqual([], self.baremetal.node.updates)
 
-    @mock.patch('tripleo_common.utils.nodes.register_all_nodes', autospec=True)
-    def test_available_does_not_require_api_1_11(self, mock_register_nodes):
+    def test_available_does_not_require_api_1_11(self):
         arglist = [self.json_file.name, '--json', '-s', 'http://localhost']
 
         verifylist = [
@@ -423,15 +442,9 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
         ]
         self.baremetal.http_client.os_ironic_api_version = '1.6'
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-        mock_register_nodes.return_value = self.mock_initial_nodes
 
         self.cmd.take_action(parsed_args)
-        self._check_register_call(mock_register_nodes)
-
-        self.assertEqual(sorted([
-            ('ABCDEFGH', 'manage'), ('IJKLMNOP', 'manage'),
-            ('ABCDEFGH', 'provide'), ('IJKLMNOP', 'provide')
-        ]), sorted(self.baremetal.node.updates))
+        self._check_workflow_call()
 
     def test_enroll_requires_api_1_11(self):
         arglist = [
@@ -450,9 +463,9 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
         self.assertRaisesRegexp(exceptions.InvalidConfiguration,
                                 'OS_BAREMETAL_API_VERSION',
                                 self.cmd.take_action, parsed_args)
+        self.workflow.executions.create.assert_not_called()
 
-    @mock.patch('tripleo_common.utils.nodes.register_all_nodes', autospec=True)
-    def test_json_import_detect_suffix(self, mock_register_nodes):
+    def test_json_import_detect_suffix(self):
 
         arglist = [self.json_file.name, '-s', 'http://localhost']
 
@@ -465,10 +478,9 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
 
         self.cmd.take_action(parsed_args)
 
-        self._check_register_call(mock_register_nodes)
+        self._check_workflow_call()
 
-    @mock.patch('tripleo_common.utils.nodes.register_all_nodes', autospec=True)
-    def test_instack_json_import(self, mock_register_nodes):
+    def test_instack_json_import(self):
 
         arglist = [self.instack_json.name, '--json', '-s', 'http://localhost']
 
@@ -478,18 +490,12 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
         ]
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-        mock_register_nodes.return_value = self.mock_initial_nodes
 
         self.cmd.take_action(parsed_args)
 
-        self._check_register_call(mock_register_nodes)
-        self.assertEqual(sorted([
-            ('ABCDEFGH', 'manage'), ('IJKLMNOP', 'manage'),
-            ('ABCDEFGH', 'provide'), ('IJKLMNOP', 'provide')
-        ]), sorted(self.baremetal.node.updates))
+        self._check_workflow_call()
 
-    @mock.patch('tripleo_common.utils.nodes.register_all_nodes', autospec=True)
-    def test_csv_import(self, mock_register_nodes):
+    def test_csv_import(self):
 
         arglist = [self.csv_file.name, '--csv', '-s', 'http://localhost']
 
@@ -499,14 +505,12 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
         ]
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-        mock_register_nodes.return_value = self.mock_initial_nodes
 
         self.cmd.take_action(parsed_args)
 
-        self._check_register_call(mock_register_nodes)
+        self._check_workflow_call()
 
-    @mock.patch('tripleo_common.utils.nodes.register_all_nodes', autospec=True)
-    def test_csv_import_detect_suffix(self, mock_register_nodes):
+    def test_csv_import_detect_suffix(self):
 
         arglist = [self.csv_file.name, '-s', 'http://localhost']
 
@@ -519,10 +523,9 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
 
         self.cmd.take_action(parsed_args)
 
-        self._check_register_call(mock_register_nodes)
+        self._check_workflow_call()
 
-    @mock.patch('tripleo_common.utils.nodes.register_all_nodes', autospec=True)
-    def test_yaml_import(self, mock_register_nodes):
+    def test_yaml_import(self):
 
         arglist = [self.yaml_file.name, '-s', 'http://localhost']
 
@@ -535,7 +538,7 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
 
         self.cmd.take_action(parsed_args)
 
-        self._check_register_call(mock_register_nodes)
+        self._check_workflow_call()
 
     def test_invalid_import_filetype(self):
 
@@ -552,8 +555,7 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
                                 'Invalid file extension',
                                 self.cmd.take_action, parsed_args)
 
-    @mock.patch('tripleo_common.utils.nodes.register_all_nodes', autospec=True)
-    def test_instack_yaml_import(self, mock_register_nodes):
+    def test_instack_yaml_import(self):
 
         arglist = [self.instack_yaml.name, '-s', 'http://localhost']
 
@@ -563,18 +565,12 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
         ]
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-        mock_register_nodes.return_value = self.mock_initial_nodes
 
         self.cmd.take_action(parsed_args)
 
-        self._check_register_call(mock_register_nodes)
-        self.assertEqual(sorted([
-            ('ABCDEFGH', 'manage'), ('IJKLMNOP', 'manage'),
-            ('ABCDEFGH', 'provide'), ('IJKLMNOP', 'provide')
-        ]), sorted(self.baremetal.node.updates))
+        self._check_workflow_call()
 
-    @mock.patch('tripleo_common.utils.nodes.register_all_nodes', autospec=True)
-    def test_netboot(self, mock_register_nodes):
+    def test_netboot(self):
 
         arglist = [self.json_file.name, '-s', 'http://localhost',
                    '--instance-boot-option', 'netboot']
@@ -587,10 +583,9 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
 
         self.cmd.take_action(parsed_args)
 
-        self._check_register_call(mock_register_nodes, local=False)
+        self._check_workflow_call(local=False)
 
-    @mock.patch('tripleo_common.utils.nodes.register_all_nodes', autospec=True)
-    def test_custom_image(self, mock_register_nodes):
+    def test_custom_image(self):
 
         arglist = [self.json_file.name, '-s', 'http://localhost',
                    '--deploy-kernel', 'k', '--deploy-ramdisk', 'r']
@@ -604,11 +599,9 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
 
         self.cmd.take_action(parsed_args)
 
-        self._check_register_call(mock_register_nodes, kernel_name='k',
-                                  ramdisk_name='r')
+        self._check_workflow_call(kernel_name='k', ramdisk_name='r')
 
-    @mock.patch('tripleo_common.utils.nodes.register_all_nodes', autospec=True)
-    def test_no_image(self, mock_register_nodes):
+    def test_no_image(self):
 
         arglist = [self.json_file.name, '-s', 'http://localhost',
                    '--no-deploy-image']
@@ -621,8 +614,7 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
 
         self.cmd.take_action(parsed_args)
 
-        self._check_register_call(mock_register_nodes, kernel_name=None,
-                                  ramdisk_name=None)
+        self._check_workflow_call(kernel_name=None, ramdisk_name=None)
 
 
 class TestStartBaremetalIntrospectionBulk(fakes.TestBaremetal):

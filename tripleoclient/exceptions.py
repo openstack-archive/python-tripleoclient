@@ -31,6 +31,11 @@ class UnknownService(Exception):
     pass
 
 
+class WorkflowServiceError(Exception):
+    """The service type is unknown"""
+    pass
+
+
 class NotFound(Exception):
     """Resource not found"""
     pass
@@ -52,6 +57,14 @@ class InvalidConfiguration(ValueError):
 
 class IntrospectionError(RuntimeError):
     """Introspection failed"""
+
+
+class RegisterOrUpdateError(WorkflowServiceError):
+    """Introspection failed"""
+
+
+class NodeProvideError(WorkflowServiceError):
+    """Node Provide failed."""
 
 
 class StateTransitionFailed(Exception):

@@ -13,8 +13,9 @@
 #   under the License.
 #
 
-import ironic_inspector_client
 import mock
+
+import ironic_inspector_client
 from openstackclient.tests import utils
 
 
@@ -90,6 +91,19 @@ class FakeInspectorClient(object):
         return {uuid: self.states[uuid] for uuid in uuids}
 
 
+class ClientWrapper(object):
+
+    def __init__(self):
+        self._instance = None
+        self._mock_websocket = mock.Mock()
+        self._mock_websocket.__enter__ = mock.Mock(
+            return_value=self._mock_websocket)
+        self._mock_websocket.__exit__ = mock.Mock()
+
+    def messaging_websocket(self, queue_name='tripleo'):
+        return self._mock_websocket
+
+
 class TestBaremetal(utils.TestCommand):
 
     def setUp(self):
@@ -101,3 +115,10 @@ class TestBaremetal(utils.TestCommand):
         self.app.client_manager.baremetal_introspection = FakeInspectorClient()
         self.app.client_manager._region_name = "Arcadia"
         self.app.client_manager.session = mock.Mock()
+        self.app.client_manager.workflow_engine = mock.Mock()
+        self.app.client_manager.tripleoclient = ClientWrapper()
+
+    def tearDown(self):
+        super(TestBaremetal, self).tearDown()
+
+        mock.patch.stopall()

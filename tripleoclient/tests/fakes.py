@@ -34,6 +34,8 @@ class FakeApp(object):
 class FakeClientManager(object):
     def __init__(self):
         self.identity = None
+        self.workflow_engine = None
+        self.tripleoclient = None
         self.auth_ref = None
         self.tripleoclient = FakeClientWrapper()
 

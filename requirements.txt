@@ -10,6 +10,7 @@ passlib>=1.6 # BSD
 python-ironic-inspector-client>=1.5.0 # Apache-2.0
 python-heatclient>=1.1.0 # Apache-2.0
 python-ironicclient>=1.1.0 # Apache-2.0
+python-mistralclient>=2.0.0  # Apache-2.0
 python-openstackclient>=2.1.0 # Apache-2.0
 six>=1.9.0 # MIT
 os-cloud-config # Apache-2.0

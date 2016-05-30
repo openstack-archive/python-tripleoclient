@@ -20,6 +20,7 @@ import csv
 import json
 import logging
 import time
+import uuid
 import yaml
 
 from cliff import command
@@ -28,10 +29,10 @@ import ironic_inspector_client
 from openstackclient.common import utils as osc_utils
 from openstackclient.i18n import _
 from oslo_utils import units
-from tripleo_common.utils import nodes
 
 from tripleoclient import exceptions
 from tripleoclient import utils
+from tripleoclient.workflows import baremetal
 
 
 def _csv_to_nodes_dict(nodes_csv):
@@ -152,8 +153,7 @@ class ImportBaremetal(command.Command):
     def get_parser(self, prog_name):
         parser = super(ImportBaremetal, self).get_parser(prog_name)
         parser.add_argument('-s', '--service-host', dest='service_host',
-                            help=_('Nova compute service host to register '
-                                   'nodes with'))
+                            help=_('Deprecated, this argument has no impact.'))
         parser.add_argument(
             '--json', dest='json', action='store_true',
             help=_('Deprecated, now detected via file extension.'))
@@ -210,34 +210,34 @@ class ImportBaremetal(command.Command):
                     _("OS_BAREMETAL_API_VERSION must be >=1.11 for use of "
                       "'enroll' provision state; currently %s") % api_version)
 
+        # NOTE (dprince) move this to tripleo-common?
         for node in nodes_config:
             caps = utils.capabilities_to_dict(node.get('capabilities', {}))
             caps.setdefault('boot_option', parsed_args.instance_boot_option)
             node['capabilities'] = utils.dict_to_capabilities(caps)
 
-        new_nodes = nodes.register_all_nodes(
-            parsed_args.service_host,
-            nodes_config,
-            client=client,
-            keystone_client=self.app.client_manager.identity,
-            glance_client=self.app.client_manager.image,
-            kernel_name=(parsed_args.deploy_kernel if not
-                         parsed_args.no_deploy_image else None),
-            ramdisk_name=(parsed_args.deploy_ramdisk if not
-                          parsed_args.no_deploy_image else None))
+        queue_name = str(uuid.uuid4())
+
+        if parsed_args.no_deploy_image:
+            deploy_kernel = None
+            deploy_ramdisk = None
+        else:
+            deploy_kernel = parsed_args.deploy_kernel
+            deploy_ramdisk = parsed_args.deploy_ramdisk
+
+        nodes = baremetal.register_or_update(
+            self.app.client_manager,
+            nodes_json=nodes_config,
+            queue_name=queue_name,
+            kernel_name=deploy_kernel,
+            ramdisk_name=deploy_ramdisk
+        )
+
+        node_uuids = [node['uuid'] for node in nodes]
 
         if parsed_args.initial_state == "available":
-            manageable_node_uuids = list(utils.set_nodes_state(
-                client, new_nodes, "manage", "manageable",
-                skipped_states={'manageable', 'available'}
-            ))
-            manageable_nodes = [
-                n for n in new_nodes if n.uuid in manageable_node_uuids
-            ]
-            list(utils.set_nodes_state(
-                client, manageable_nodes, "provide", "available",
-                skipped_states={'available'}
-            ))
+            baremetal.provide(self.app.client_manager, node_uuids=node_uuids,
+                              queue_name=queue_name)
 
 
 class StartBaremetalIntrospectionBulk(command.Command):
@@ -257,9 +257,9 @@ class StartBaremetalIntrospectionBulk(command.Command):
         self.log.debug("Moving available/enroll nodes to manageable state.")
         available_nodes = utils.nodes_in_states(client,
                                                 ("available", "enroll"))
-        for uuid in utils.set_nodes_state(client, available_nodes, 'manage',
-                                          'manageable'):
-            self.log.debug("Node {0} has been set to manageable.".format(uuid))
+        for uu in utils.set_nodes_state(client, available_nodes, 'manage',
+                                        'manageable'):
+            self.log.debug("Node {0} has been set to manageable.".format(uu))
 
         manageable_nodes = utils.nodes_in_states(client, ("manageable",))
         for node in manageable_nodes:
@@ -272,25 +272,25 @@ class StartBaremetalIntrospectionBulk(command.Command):
         errors = []
         successful_node_uuids = set()
         results = inspector_client.wait_for_finish(node_uuids)
-        for uuid, status in results.items():
+        for uu, status in results.items():
             if status['error'] is None:
                 print("Introspection for UUID {0} finished successfully."
-                      .format(uuid))
-                successful_node_uuids.add(uuid)
+                      .format(uu))
+                successful_node_uuids.add(uu)
             else:
                 print("Introspection for UUID {0} finished with error: {1}"
-                      .format(uuid, status['error']))
-                errors.append("%s: %s" % (uuid, status['error']))
+                      .format(uu, status['error']))
+                errors.append("%s: %s" % (uu, status['error']))
 
         print("Setting manageable nodes to available...")
 
         self.log.debug("Moving manageable nodes to available state.")
         successful_nodes = [n for n in manageable_nodes
                             if n.uuid in successful_node_uuids]
-        for uuid in utils.set_nodes_state(
+        for uu in utils.set_nodes_state(
                 client, successful_nodes, 'provide',
                 'available', skipped_states=("available", "active")):
-            print("Node {0} has been set to available.".format(uuid))
+            print("Node {0} has been set to available.".format(uu))
 
         if errors:
             raise exceptions.IntrospectionError(
