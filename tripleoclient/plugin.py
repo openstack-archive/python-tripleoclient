@@ -121,6 +121,28 @@ class WebsocketClient(object):
     def recv(self):
         return json.loads(self._ws.recv())
 
+    def wait_for_message(self, execution_id):
+        """Wait for a message for a mistral execution ID
+
+        This blocks until a message is received on the provided queue name
+        with the execution ID.
+
+        TODO(d0ugal): Add a timeout/break for the case when a message is
+                      never arrives.
+        """
+        while True:
+            body = self.recv()['body']
+            if body['payload']['execution']['id'] == execution_id:
+                return body['payload']
+
+    def __enter__(self):
+        """Return self to allow usage as a context manager"""
+        return self
+
+    def __exit__(self, *exc):
+        """Call cleanup when exiting the context manager"""
+        self.cleanup()
+
 
 class ClientWrapper(object):
 
@@ -130,7 +152,6 @@ class ClientWrapper(object):
 
     def messaging_websocket(self, queue_name='tripleo'):
         """Returns a websocket for the messaging service"""
-
         if self._messaging_websocket is not None:
             return self._messaging_websocket
         self._messaging_websocket = WebsocketClient(self._instance, queue_name)
