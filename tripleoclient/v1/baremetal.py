@@ -437,11 +437,11 @@ class ConfigureBaremetalBoot(command.Command):
         parser.add_argument('--root-device-minimum-size',
                             type=int, default=4,
                             help='Minimum size (in GiB) of the detected '
-                            'root device. Used with --detect-root-device.')
+                            'root device. Used with --root-device.')
         parser.add_argument('--overwrite-root-device-hints',
                             action='store_true',
                             help='Whether to overwrite existing root device '
-                            'hints when --detect-root-device is used.')
+                            'hints when --root-device is used.')
         return parser
 
     def take_action(self, parsed_args):
