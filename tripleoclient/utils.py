@@ -608,11 +608,9 @@ def check_nodes_count(baremetal_client, stack, parameters, defaults):
     ironic_nodes_count = associated + available
 
     if count > ironic_nodes_count:
-        raise exceptions.DeploymentError(
-            "Not enough nodes - available: {0}, requested: {1}".format(
-                ironic_nodes_count, count))
+        return False, count, ironic_nodes_count
     else:
-        return True
+        return True, count, ironic_nodes_count
 
 
 def ensure_run_as_normal_user():

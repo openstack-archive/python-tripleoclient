@@ -394,26 +394,27 @@ class TestCheckNodesCount(TestCase):
 
     def test_check_nodes_count_deploy_enough_nodes(self):
         user_params = {'ControllerCount': 2}
-        self.assertEqual(True,
+        self.assertEqual((True, 3, 3),
                          utils.check_nodes_count(self.baremetal, None,
                                                  user_params, self.defaults))
 
     def test_check_nodes_count_deploy_too_much(self):
         user_params = {'ControllerCount': 3}
-        self.assertRaises(exceptions.DeploymentError, utils.check_nodes_count,
-                          self.baremetal, None, user_params, self.defaults)
+        self.assertEqual((False, 4, 3),
+                         utils.check_nodes_count(self.baremetal, None,
+                                                 user_params, self.defaults))
 
     def test_check_nodes_count_scale_enough_nodes(self):
         user_params = {'ControllerCount': 2}
-        self.assertEqual(True,
-                         utils.check_nodes_count(self.baremetal, None,
+        self.assertEqual((True, 3, 3),
+                         utils.check_nodes_count(self.baremetal, self.stack,
                                                  user_params, self.defaults))
 
     def test_check_nodes_count_scale_too_much(self):
         user_params = {'ControllerCount': 3}
-        self.assertRaises(exceptions.DeploymentError, utils.check_nodes_count,
-                          self.baremetal, self.stack, user_params,
-                          self.defaults)
+        self.assertEqual((False, 4, 3),
+                         utils.check_nodes_count(self.baremetal, self.stack,
+                                                 user_params, self.defaults))
 
     def test_check_default_param_not_in_stack(self):
         missing_param = 'CephStorageCount'

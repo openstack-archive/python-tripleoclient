@@ -486,8 +486,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             [self.parameter_defaults_env_file])
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                'set_overcloud_passwords', autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_tripleo_heat_templates', autospec=True)
-    def test_missing_sat_url(self, mock_deploy_tht):
+    def test_missing_sat_url(self, mock_deploy_tht, mock_set_ov_passwords):
 
         arglist = ['--templates', '--rhel-reg',
                    '--reg-method', 'satellite', '--reg-org', '123456789',
@@ -594,6 +596,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                'set_overcloud_passwords', autospec=True)
     @mock.patch('tripleoclient.utils.create_overcloudrc', autospec=True)
     @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
@@ -601,6 +605,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_rhel_reg_params_provided(self, mock_deploy_tht,
                                       mock_oc_endpoint,
                                       mock_create_ocrc,
+                                      mock_set_oc_passwords,
                                       mock_create_tempest_deployer_input):
 
         arglist = ['--templates', '--rhel-reg',
@@ -889,6 +894,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                'set_overcloud_passwords', autospec=True)
     @mock.patch('tripleoclient.utils.create_overcloudrc', autospec=True)
     @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
@@ -896,6 +903,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_dry_run(self, mock_deploy_tht,
                      mock_oc_endpoint,
                      mock_create_ocrc,
+                     mock_set_ov_passwords,
                      mock_create_tempest_deployer_input):
 
         arglist = ['--templates', '--dry-run']
@@ -1046,11 +1054,14 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.cmd._predeploy_verify_capabilities = \
             self.real_predeploy_verify_capabilities
 
+        stack = None
+        parameters = {}
         parsed_args = mock.Mock()
         mock_assign_and_verify_profiles.return_value = (0, 0)
         mock_check_nodes_count.return_value = (True, 0, 0)
 
         # A None return value here indicates an error
         mock_check_hypervisor_stats.return_value = None
-        self.cmd._predeploy_verify_capabilities(parsed_args)
+        self.cmd._predeploy_verify_capabilities(
+            stack, parameters, parsed_args)
         self.assertEqual(1, self.cmd.predeploy_errors)

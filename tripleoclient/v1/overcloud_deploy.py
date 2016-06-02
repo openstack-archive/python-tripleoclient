@@ -333,19 +333,6 @@ class DeployOvercloud(command.Command):
         parameters = self._update_parameters(
             parsed_args, network_client, stack)
 
-        utils.check_nodes_count(
-            self.app.client_manager.baremetal,
-            stack,
-            parameters,
-            {
-                'ControllerCount': 1,
-                'ComputeCount': 1,
-                'ObjectStorageCount': 0,
-                'BlockStorageCount': 0,
-                'CephStorageCount': 0,
-            }
-        )
-
         tht_root = parsed_args.templates
 
         print("Deploying templates in the directory {0}".format(
@@ -593,7 +580,7 @@ class DeployOvercloud(command.Command):
                                           "specified when Neutron tunnel "
                                           "types is specified")
 
-    def _predeploy_verify_capabilities(self, parsed_args):
+    def _predeploy_verify_capabilities(self, stack, parameters, parsed_args):
         self.predeploy_errors = 0
         self.predeploy_warnings = 0
         self.log.debug("Starting _pre_verify_capabilities")
@@ -619,6 +606,25 @@ class DeployOvercloud(command.Command):
         self.log.debug("Checking hypervisor stats")
         if utils.check_hypervisor_stats(compute_client) is None:
             self.log.error("Expected hypervisor stats not met")
+            self.predeploy_errors += 1
+
+        self.log.debug("Checking nodes count")
+        enough_nodes, count, ironic_nodes_count = utils.check_nodes_count(
+            bm_client,
+            stack,
+            parameters,
+            {
+                'ControllerCount': 1,
+                'ComputeCount': 1,
+                'ObjectStorageCount': 0,
+                'BlockStorageCount': 0,
+                'CephStorageCount': 0,
+            }
+        )
+        if not enough_nodes:
+            self.log.error(
+                "Not enough nodes - available: {0}, requested: {1}".format(
+                    ironic_nodes_count, count))
             self.predeploy_errors += 1
 
         return self.predeploy_errors, self.predeploy_warnings
@@ -928,7 +934,15 @@ class DeployOvercloud(command.Command):
 
         self._validate_args(parsed_args)
 
-        errors, warnings = self._predeploy_verify_capabilities(parsed_args)
+        clients = self.app.client_manager
+        orchestration_client = clients.orchestration
+
+        stack = utils.get_stack(orchestration_client, parsed_args.stack)
+        parameters = self._update_parameters(
+            parsed_args, clients.network, stack)
+
+        errors, warnings = self._predeploy_verify_capabilities(
+            stack, parameters, parsed_args)
         if errors > 0:
             self.log.error(
                 "Configuration has %d errors, fix them before proceeding. "
@@ -947,10 +961,6 @@ class DeployOvercloud(command.Command):
             self.log.info("SUCCESS: No warnings or errors in deploy "
                           "configuration, proceeding.")
 
-        clients = self.app.client_manager
-        orchestration_client = clients.orchestration
-
-        stack = utils.get_stack(orchestration_client, parsed_args.stack)
         stack_create = stack is None
         if stack_create:
             self.log.info("No stack found, will be doing a stack create")
