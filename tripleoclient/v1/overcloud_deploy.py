@@ -82,6 +82,7 @@ class DeployOvercloud(command.Command):
         parameters['HeatPassword'] = passwords['OVERCLOUD_HEAT_PASSWORD']
         parameters['HeatStackDomainAdminPassword'] = passwords[
             'OVERCLOUD_HEAT_STACK_DOMAIN_PASSWORD']
+        parameters['IronicPassword'] = passwords['OVERCLOUD_IRONIC_PASSWORD']
         parameters['MysqlClustercheckPassword'] = passwords[
             'OVERCLOUD_MYSQL_CLUSTERCHECK_PASSWORD']
         parameters['NeutronPassword'] = passwords[
