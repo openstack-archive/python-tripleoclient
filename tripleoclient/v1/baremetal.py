@@ -248,55 +248,29 @@ class StartBaremetalIntrospectionBulk(command.Command):
     def take_action(self, parsed_args):
 
         self.log.debug("take_action(%s)" % parsed_args)
+
+        queue_name = str(uuid.uuid4())
+        clients = self.app.client_manager
         client = self.app.client_manager.baremetal
-        inspector_client = self.app.client_manager.baremetal_introspection
 
-        node_uuids = []
-
+        # TODO(d0ugal): We don't yet have a workflow to move from available
+        # or enroll to manageable. Once we do, this should be switched over.
         print("Setting nodes for introspection to manageable...")
         self.log.debug("Moving available/enroll nodes to manageable state.")
-        available_nodes = utils.nodes_in_states(client,
-                                                ("available", "enroll"))
-        for uu in utils.set_nodes_state(client, available_nodes, 'manage',
-                                        'manageable'):
-            self.log.debug("Node {0} has been set to manageable.".format(uu))
+        available_nodes = utils.nodes_in_states(client, ("available",
+                                                         "enroll"))
+        for node_uuid in utils.set_nodes_state(client, available_nodes,
+                                               'manage', 'manageable'):
+            self.log.debug(
+                "Node {0} has been set to manageable.".format(node_uuid))
 
-        manageable_nodes = utils.nodes_in_states(client, ("manageable",))
-        for node in manageable_nodes:
-            node_uuids.append(node.uuid)
-
-            print("Starting introspection of node: {0}".format(node.uuid))
-            inspector_client.introspect(node.uuid)
-
-        print("Waiting for introspection to finish...")
-        errors = []
-        successful_node_uuids = set()
-        results = inspector_client.wait_for_finish(node_uuids)
-        for uu, status in results.items():
-            if status['error'] is None:
-                print("Introspection for UUID {0} finished successfully."
-                      .format(uu))
-                successful_node_uuids.add(uu)
-            else:
-                print("Introspection for UUID {0} finished with error: {1}"
-                      .format(uu, status['error']))
-                errors.append("%s: %s" % (uu, status['error']))
+        print("Starting introspection of manageable nodes")
+        baremetal.introspect_manageable_nodes(clients, queue_name=queue_name)
 
         print("Setting manageable nodes to available...")
-
         self.log.debug("Moving manageable nodes to available state.")
-        successful_nodes = [n for n in manageable_nodes
-                            if n.uuid in successful_node_uuids]
-        for uu in utils.set_nodes_state(
-                client, successful_nodes, 'provide',
-                'available', skipped_states=("available", "active")):
-            print("Node {0} has been set to available.".format(uu))
 
-        if errors:
-            raise exceptions.IntrospectionError(
-                "Introspection completed with errors:\n%s" % '\n'.join(errors))
-        else:
-            print("Introspection completed.")
+        baremetal.provide_manageable_nodes(clients, queue_name=queue_name)
 
 
 class StatusBaremetalIntrospectionBulk(lister.Lister):

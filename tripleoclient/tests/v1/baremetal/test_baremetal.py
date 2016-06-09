@@ -18,7 +18,6 @@ import json
 import os
 import tempfile
 
-import fixtures
 import mock
 from oslo_utils import units
 import yaml
@@ -622,10 +621,37 @@ class TestStartBaremetalIntrospectionBulk(fakes.TestBaremetal):
     def setUp(self):
         super(TestStartBaremetalIntrospectionBulk, self).setUp()
 
+        self.workflow = self.app.client_manager.workflow_engine
+        tripleoclients = self.app.client_manager.tripleoclient
+        websocket = tripleoclients.messaging_websocket()
+        self.websocket = websocket
+
+        uuid4_patcher = mock.patch('uuid.uuid4', return_value="UUID4")
+        self.mock_uuid4 = uuid4_patcher.start()
+        self.addCleanup(self.mock_uuid4.stop)
+
         # Get the command object to test
         self.cmd = baremetal.StartBaremetalIntrospectionBulk(self.app, None)
 
-    def test_introspect_bulk_one(self):
+    def _check_workflow_call(self, provide=True):
+
+        call_list = [mock.call(
+            'tripleo.baremetal.v1.introspect_manageable_nodes',
+            workflow_input={'queue_name': 'UUID4'}
+        )]
+
+        if provide:
+            call_list.append(mock.call(
+                'tripleo.baremetal.v1.provide_manageable_nodes',
+                workflow_input={'queue_name': 'UUID4'}
+            ))
+
+        self.workflow.executions.create.assert_has_calls(call_list)
+
+        self.assertEqual(self.workflow.executions.create.call_count,
+                         2 if provide else 1)
+
+    def test_introspect_bulk(self):
         client = self.app.client_manager.baremetal
         client.node = fakes.FakeBaremetalNodeClient(
             states={"ABCDEFGH": "available"},
@@ -634,140 +660,40 @@ class TestStartBaremetalIntrospectionBulk(fakes.TestBaremetal):
                 ("ABCDEFGH", "provide"): "available",
             }
         )
-        inspector_client = self.app.client_manager.baremetal_introspection
-        inspector_client.states['ABCDEFGH'] = {'finished': True, 'error': None}
+
+        self.websocket.wait_for_message.return_value = {
+            "status": "SUCCESS",
+            "message": "Success",
+            "introspected_nodes": {},
+        }
 
         parsed_args = self.check_parser(self.cmd, [], [])
         self.cmd.take_action(parsed_args)
 
-        self.assertEqual(client.node.updates, [
-            ('ABCDEFGH', 'manage'),
-            ('ABCDEFGH', 'provide')
-        ])
-        self.assertEqual(['ABCDEFGH'], inspector_client.on_introspection)
+        self._check_workflow_call()
 
     def test_introspect_bulk_failed(self):
         client = self.app.client_manager.baremetal
         client.node = fakes.FakeBaremetalNodeClient(
-            states={"ABCDEFGH": "available", "IJKLMNOP": "available"},
+            states={"ABCDEFGH": "available"},
             transitions={
                 ("ABCDEFGH", "manage"): "manageable",
-                ("IJKLMNOP", "manage"): "manageable",
                 ("ABCDEFGH", "provide"): "available",
             }
         )
-        inspector_client = self.app.client_manager.baremetal_introspection
-        inspector_client.states['ABCDEFGH'] = {'finished': True,
-                                               'error': None}
-        inspector_client.states['IJKLMNOP'] = {'finished': True,
-                                               'error': 'fake error'}
+
+        self.websocket.wait_for_message.return_value = {
+            "status": "ERROR",
+            "message": "Failed",
+        }
 
         parsed_args = self.check_parser(self.cmd, [], [])
-        self.assertRaisesRegexp(exceptions.IntrospectionError,
-                                'IJKLMNOP: fake error',
-                                self.cmd.take_action, parsed_args)
 
-        self.assertEqual({'ABCDEFGH': 'available', 'IJKLMNOP': 'manageable'},
-                         client.node.states)
-        self.assertEqual(['ABCDEFGH', 'IJKLMNOP'],
-                         inspector_client.on_introspection)
+        self.assertRaises(
+            exceptions.IntrospectionError,
+            self.cmd.take_action, parsed_args)
 
-    def test_introspect_bulk(self):
-        client = self.app.client_manager.baremetal
-        client.node = fakes.FakeBaremetalNodeClient(
-            states={
-                "ABC": "available",
-                "DEF": "enroll",
-                "GHI": "manageable",
-                "JKL": "clean_wait"
-            },
-            transitions={
-                ("ABC", "manage"): "manageable",
-                ("DEF", "manage"): "manageable",
-                ("ABC", "provide"): "available",
-                ("DEF", "provide"): "available",
-                ("GHI", "provide"): "available"
-            }
-        )
-        inspector_client = self.app.client_manager.baremetal_introspection
-        for uuid in ('ABC', 'DEF', 'GHI'):
-            inspector_client.states[uuid] = {'finished': True, 'error': None}
-
-        parsed_args = self.check_parser(self.cmd, [], [])
-        self.cmd.take_action(parsed_args)
-
-        # The nodes that are available are set to "manageable" state.
-        # Then all manageable nodes are set to "available".
-        self.assertEqual(client.node.updates, [
-            ('ABC', 'manage'),
-            ('DEF', 'manage'),
-            ('ABC', 'provide'),
-            ('DEF', 'provide'),
-            ('GHI', 'provide')
-        ])
-
-        # Nodes which start in "enroll", "available" or "manageable" states are
-        # introspected:
-        self.assertEqual(['ABC', 'DEF', 'GHI'],
-                         sorted(inspector_client.on_introspection))
-
-    def test_introspect_bulk_timeout(self):
-        client = self.app.client_manager.baremetal
-        client.node = fakes.FakeBaremetalNodeClient(
-            states={
-                "ABC": "available",
-                "DEF": "enroll",
-            },
-            transitions={
-                ("ABC", "manage"): "available",   # transition times out
-                ("DEF", "manage"): "manageable",
-                ("DEF", "provide"): "available"
-            }
-        )
-        inspector_client = self.app.client_manager.baremetal_introspection
-        inspector_client.states['ABC'] = {'finished': False, 'error': None}
-        inspector_client.states['DEF'] = {'finished': True, 'error': None}
-        log_fixture = self.useFixture(fixtures.FakeLogger())
-
-        parsed_args = self.check_parser(self.cmd, [], [])
-        self.cmd.take_action(parsed_args)
-
-        self.assertIn("FAIL: Timeout waiting for Node ABC", log_fixture.output)
-        # Nodes that were successfully introspected are made available
-        self.assertEqual(
-            [("ABC", "manage"), ("DEF", "manage"), ("DEF", "provide")],
-            client.node.updates)
-
-    def test_introspect_bulk_transition_fails(self):
-        client = self.app.client_manager.baremetal
-        client.node = fakes.FakeBaremetalNodeClient(
-            states={
-                "ABC": "available",
-                "DEF": "enroll",
-            },
-            transitions={
-                ("ABC", "manage"): "manageable",
-                ("DEF", "manage"): "enroll",      # state transition fails
-                ("ABC", "provide"): "available"
-            },
-            transition_errors={
-                ("DEF", "manage"): "power credential verification failed"
-            }
-        )
-        inspector_client = self.app.client_manager.baremetal_introspection
-        for uuid in ('ABC', 'DEF'):
-            inspector_client.states[uuid] = {'finished': True, 'error': None}
-        log_fixture = self.useFixture(fixtures.FakeLogger())
-
-        parsed_args = self.check_parser(self.cmd, [], [])
-        self.cmd.take_action(parsed_args)
-
-        self.assertIn("FAIL: State transition failed for Node DEF",
-                      log_fixture.output)
-        # Nodes that were successfully introspected are made available
-        self.assertEqual(
-            [("ABC", "manage"), ("DEF", "manage"), ("ABC", "provide")],
-            client.node.updates)
+        self._check_workflow_call(provide=False)
 
 
 class TestStatusBaremetalIntrospectionBulk(fakes.TestBaremetal):
