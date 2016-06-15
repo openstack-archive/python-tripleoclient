@@ -434,13 +434,17 @@ class DeployOvercloud(command.Command):
             utils.get_password('OVERCLOUD_ADMIN_PASSWORD'),
             'admin',
             overcloud_endpoint)
-        try:
-            # NOTE(bnemec): This assumes Nova will always be deployed, which
-            # in the future may not be true.  However, hopefully by that time
-            # we'll be able to just remove os-cloud-config-based Keystone
-            # init anyway.
-            keystone_client.users.find(name='nova')
-        except kscexc.NotFound:
+
+        services = {}
+        for service, data in six.iteritems(constants.SERVICE_LIST):
+            try:
+                keystone_client.services.find(name=service)
+            except kscexc.NotFound:
+                service_data = self._set_service_data(service, data, stack)
+                if service_data:
+                    services.update({service: service_data})
+
+        if services:
             # NOTE(jaosorior): These ports will be None if the templates
             # don't support the EndpointMap as an output yet. And so the
             # default values will be taken.
@@ -453,6 +457,7 @@ class DeployOvercloud(command.Command):
                 admin_port = endpoint_map.get('KeystoneAdmin').get('port')
                 internal_port = endpoint_map.get(
                     'KeystoneInternal').get('port')
+
             keystone.initialize(
                 keystone_admin_ip,
                 utils.get_password('OVERCLOUD_ADMIN_TOKEN'),
@@ -473,18 +478,12 @@ class DeployOvercloud(command.Command):
                 for service_name, data in keystone.SERVICES.items():
                     data.pop('ssl_port', None)
 
-            services = {}
-            for service, data in six.iteritems(constants.SERVICE_LIST):
-                service_data = self._set_service_data(service, data, stack)
-                if service_data:
-                    services.update({service: service_data})
-
             keystone.setup_endpoints(
                 services,
                 client=keystone_client,
                 os_auth_url=overcloud_endpoint,
                 public_host=overcloud_ip_or_fqdn)
-            # End of deprecated Keystone init
+        # End of deprecated Keystone init
 
     def _set_service_data(self, service, data, stack):
         self.log.debug("Setting data for service '%s'" % service)
@@ -868,6 +867,12 @@ class DeployOvercloud(command.Command):
             default=False,
             help=_('Only run validations, but do not apply any changes.')
         )
+        parser.add_argument(
+            '--force-postconfig',
+            action='store_true',
+            default=False,
+            help=_('Force the overcloud post-deployment configuration.')
+        )
         reg_group = parser.add_argument_group('Registration Parameters')
         reg_group.add_argument(
             '--rhel-reg',
@@ -979,7 +984,7 @@ class DeployOvercloud(command.Command):
             utils.create_overcloudrc(stack, parsed_args.no_proxy)
             utils.create_tempest_deployer_input()
 
-            if stack_create:
+            if (stack_create or parsed_args.force_postconfig):
                 self._deploy_postconfig(stack, parsed_args)
 
             overcloud_endpoint = utils.get_overcloud_endpoint(stack)
