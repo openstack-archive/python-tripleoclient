@@ -98,6 +98,7 @@ class DeployOvercloud(command.Command):
             undercloud_ceilometer_snmpd_password)
         parameters['TrovePassword'] = (
             passwords['OVERCLOUD_TROVE_PASSWORD'])
+        parameters['ZaqarPassword'] = passwords['OVERCLOUD_ZAQAR_PASSWORD']
         parameters['NeutronMetadataProxySharedSecret'] = (
             passwords['NEUTRON_METADATA_PROXY_SHARED_SECRET'])
 
