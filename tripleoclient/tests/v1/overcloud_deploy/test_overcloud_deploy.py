@@ -14,7 +14,6 @@
 #
 
 import fixtures
-import json
 import os
 import shutil
 import six
@@ -209,9 +208,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             for key, value in six.iteritems(parameters):
                 testcase.assertEqual(value, expected_parameters[key])
             parameter_defaults = {"parameter_defaults": parameters}
-            with open(testcase.parameter_defaults_env_file, 'w') as temp_file:
-                temp_file.write(json.dumps(parameter_defaults))
-            return [testcase.parameter_defaults_env_file]
+            return parameter_defaults
 
         mock_create_parameters_env.side_effect = _custom_create_params_env
 
@@ -224,8 +221,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             template_object=constants.OVERCLOUD_YAML_NAMES[0])
 
         mock_create_tempest_deployer_input.assert_called_with()
-        mock_process_multiple_env.assert_called_with(
-            [self.parameter_defaults_env_file])
+        mock_process_multiple_env.assert_called_with([])
 
     @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
@@ -387,9 +383,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             for key, value in six.iteritems(parameters):
                 testcase.assertEqual(value, expected_parameters[key])
             parameter_defaults = {"parameter_defaults": parameters}
-            with open(testcase.parameter_defaults_env_file, 'w') as temp_file:
-                temp_file.write(json.dumps(parameter_defaults))
-            return [testcase.parameter_defaults_env_file]
+            return parameter_defaults
 
         mock_create_parameters_env.side_effect = _custom_create_params_env
 
@@ -402,8 +396,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             template_object=constants.OVERCLOUD_YAML_NAMES[0])
 
         mock_create_tempest_deployer_input.assert_called_with()
-        mock_process_multiple_env.assert_called_with(
-            ['/fake/path', self.parameter_defaults_env_file])
+        mock_process_multiple_env.assert_called_with(['/fake/path'])
 
         mock_validate_args.assert_called_once_with(parsed_args)
 
@@ -508,8 +501,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             template_object=constants.OVERCLOUD_YAML_NAMES[0])
 
         mock_create_tempest_deployer_input.assert_called_with()
-        mock_process_multiple_env.assert_called_with(
-            [self.parameter_defaults_env_file])
+        mock_process_multiple_env.assert_called_with([])
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 'set_overcloud_passwords', autospec=True)
@@ -577,7 +569,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         ]
 
         def _fake_heat_deploy(self, stack, stack_name, template_path,
-                              parameters, environments, timeout, tht_root):
+                              parameters, environments, timeout, tht_root,
+                              env):
             assert test_env in environments
 
         mock_deploy_heat.side_effect = _fake_heat_deploy
@@ -626,7 +619,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         os.environ['TRIPLEO_ENVIRONMENT_DIRECTORY'] = tmp_dir
 
         def _fake_heat_deploy(self, stack, stack_name, template_path,
-                              parameters, environments, timeout, tht_root):
+                              parameters, environments, timeout, tht_root,
+                              env):
             assert test_env in environments
 
         mock_deploy_heat.side_effect = _fake_heat_deploy
@@ -889,13 +883,13 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_try_overcloud_deploy_with_first_template_existing(
             self, mock_heat_deploy_func):
         result = self.cmd._try_overcloud_deploy_with_compat_yaml(
-            '/fake/path', {}, 'overcloud', {}, ['~/overcloud-env.json'], 1)
+            '/fake/path', {}, 'overcloud', {}, ['~/overcloud-env.json'], 1, {})
         # If it returns None it succeeded
         self.assertIsNone(result)
         mock_heat_deploy_func.assert_called_once_with(
             self.cmd, {}, 'overcloud',
             '/fake/path/' + constants.OVERCLOUD_YAML_NAMES[0], {},
-            ['~/overcloud-env.json'], 1, '/fake/path')
+            ['~/overcloud-env.json'], 1, '/fake/path', {})
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_heat_deploy')
@@ -904,16 +898,16 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_heat_deploy_func.side_effect = [
             ObjectClientException('error'), None]
         result = self.cmd._try_overcloud_deploy_with_compat_yaml(
-            '/fake/path', {}, 'overcloud', {}, ['~/overcloud-env.json'], 1)
+            '/fake/path', {}, 'overcloud', {}, ['~/overcloud-env.json'], 1, {})
         # If it returns None it succeeded
         self.assertIsNone(result)
         mock_heat_deploy_func.assert_has_calls(
             [mock.call({}, 'overcloud',
                        '/fake/path/' + constants.OVERCLOUD_YAML_NAMES[0], {},
-                       ['~/overcloud-env.json'], 1, '/fake/path'),
+                       ['~/overcloud-env.json'], 1, '/fake/path', {}),
              mock.call({}, 'overcloud',
                        '/fake/path/' + constants.OVERCLOUD_YAML_NAMES[1], {},
-                       ['~/overcloud-env.json'], 1, '/fake/path')])
+                       ['~/overcloud-env.json'], 1, '/fake/path', {})])
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_heat_deploy', autospec=True)
@@ -925,7 +919,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertRaises(ValueError,
                           self.cmd._try_overcloud_deploy_with_compat_yaml,
                           '/fake/path', mock.ANY, mock.ANY, mock.ANY,
-                          mock.ANY, mock.ANY)
+                          mock.ANY, mock.ANY, mock.ANY)
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_heat_deploy', autospec=True)
@@ -937,7 +931,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         try:
             self.cmd._try_overcloud_deploy_with_compat_yaml(
                 '/fake/path', mock.ANY, mock.ANY, mock.ANY,
-                mock.ANY, mock.ANY)
+                mock.ANY, mock.ANY, mock.ANY)
         except ValueError as value_error:
             self.assertIn('/fake/path', str(value_error))
 
@@ -1161,6 +1155,12 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_generate_overcloud_passwords.return_value = self._get_passwords()
 
+        def _custom_create_params_env(parameters):
+            parameter_defaults = {"parameter_defaults": parameters}
+            return parameter_defaults
+
+        mock_create_parameters_env.side_effect = _custom_create_params_env
+
         mock_create_env.return_value = "/fake/path"
         mock_env = fakes.create_env()
         mock_process_multiple_env.return_value = [{}, mock_env]
@@ -1339,9 +1339,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             for key, value in six.iteritems(parameters):
                 self.assertEqual(value, expected_parameters[key])
             parameter_defaults = {"parameter_defaults": parameters}
-            with open(self.parameter_defaults_env_file, 'w') as temp_file:
-                temp_file.write(json.dumps(parameter_defaults))
-            return [self.parameter_defaults_env_file]
+            return parameter_defaults
 
         mock_create_parameters_env.side_effect = _custom_create_params_env
 
@@ -1352,7 +1350,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             template_object=constants.OVERCLOUD_YAML_NAMES[0])
 
         mock_create_tempest_deployer_input.assert_called_with()
-        mock_process_multiple_env.assert_called_with(
-            ['/fake/path', self.parameter_defaults_env_file])
+        mock_process_multiple_env.assert_called_with(['/fake/path'])
 
         mock_validate_args.assert_called_once_with(parsed_args)
