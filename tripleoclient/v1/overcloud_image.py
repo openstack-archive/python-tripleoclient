@@ -35,6 +35,12 @@ from prettytable import PrettyTable
 from tripleoclient import utils as plugin_utils
 
 
+class ImageBuildError(Exception):
+    def __init__(self, image_name):
+        msg = 'Failed to build image "%s"' % image_name
+        super(ImageBuildError, self).__init__(msg)
+
+
 @six.add_metaclass(abc.ABCMeta)
 class ImageBuilder(object):
     """Base representation of an image building method"""
@@ -454,17 +460,23 @@ class BuildOvercloudImage(command.Command):
         parsed_args.dib_common_elements = " ".join(dib_common_elements)
         parsed_args.dib_env_vars = env_vars
 
+    def _image_files_exist(self, image_name):
+        return (os.path.isfile("%s.initramfs" % image_name) and
+                os.path.isfile("%s.kernel" % image_name))
+
     def _build_image_ramdisk(self, parsed_args, ramdisk_type):
         image_name = vars(parsed_args)["%s_name" % ramdisk_type]
-        if (not os.path.isfile("%s.initramfs" % image_name) or
-           not os.path.isfile("%s.kernel" % image_name)):
+        if not self._image_files_exist(image_name):
             parsed_args._builder.build_ramdisk(parsed_args, ramdisk_type)
+        if not self._image_files_exist(image_name):
+            raise ImageBuildError(image_name)
 
     def _build_image_ramdisk_agent(self, parsed_args):
         image_name = vars(parsed_args)["agent_name"]
-        if (not os.path.isfile("%s.initramfs" % image_name) or
-           not os.path.isfile("%s.kernel" % image_name)):
+        if not self._image_files_exist(image_name):
             parsed_args._builder.build_ramdisk_agent(parsed_args)
+        if not self._image_files_exist(image_name):
+            raise ImageBuildError(image_name)
 
     def _build_image_ramdisk_deploy(self, parsed_args):
         self._build_image_ramdisk(parsed_args, 'deploy')
@@ -474,6 +486,8 @@ class BuildOvercloudImage(command.Command):
                                                     node_type]
         if not os.path.isfile(image_name):
             parsed_args._builder.build_image(parsed_args, node_type)
+        if not os.path.isfile(image_name):
+            raise ImageBuildError(image_name)
 
     def _build_image_overcloud_full(self, parsed_args):
         self._build_image_overcloud(parsed_args, 'full')
@@ -526,6 +540,7 @@ class BuildOvercloudImage(command.Command):
                     'fedora-user': self._build_image_fedora_user,
                     'overcloud-full': self._build_image_overcloud_full,
                 }[image_type](parsed_args)
+        print('Successfully built all requested images')
 
 
 class UploadOvercloudImage(command.Command):
