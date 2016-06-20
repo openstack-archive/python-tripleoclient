@@ -38,15 +38,15 @@ class TestPlugin(base.TestCase):
         client = plugin.make_client(clientmgr)
 
         websocket = client.messaging_websocket()
-        # The second access should return the same client:
-        self.assertIs(client.messaging_websocket(), websocket)
+        # The second access should not return the same client:
+        self.assertIsNot(client.messaging_websocket(), websocket)
 
         plugin.make_client(clientmgr)
 
         # And the functions should only be called when the client is created:
-        self.assertEqual(clientmgr.auth.get_token.call_count, 1)
-        self.assertEqual(clientmgr.get_endpoint_for_service_type.call_count, 1)
-        ws_create_connection.assert_called_once_with("ws://0.0.0.0")
+        self.assertEqual(clientmgr.auth.get_token.call_count, 2)
+        self.assertEqual(clientmgr.get_endpoint_for_service_type.call_count, 2)
+        ws_create_connection.assert_called_with("ws://0.0.0.0")
 
     @mock.patch.object(plugin.WebsocketClient, "recv")
     @mock.patch("websocket.create_connection")
