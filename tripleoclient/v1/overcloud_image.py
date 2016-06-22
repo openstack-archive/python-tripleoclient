@@ -372,7 +372,7 @@ class BuildOvercloudImage(command.Command):
             default='',
             help="Extra arguments for the image builder",
         )
-        image_group.add_argument(
+        parser.add_argument(
             "--builder",
             dest="builder",
             metavar='<builder>',
