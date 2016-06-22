@@ -16,6 +16,8 @@
 import mock
 from openstackclient.tests import utils
 
+from tripleoclient.tests import fakes
+
 
 FAKE_STACK = {
     'parameters': {
@@ -80,6 +82,17 @@ def create_tht_stack(**kwargs):
     return create_to_dict_mock(**stack)
 
 
+def create_env_with_ntp(**kwargs):
+    env = {
+        'parameter_defaults': {
+            'CinderEnableRbdBackend': True,
+            'NtpServer': 'ntp.local',
+        },
+    }
+    env.update(kwargs)
+    return env
+
+
 def create_env(**kwargs):
     env = {
         'parameter_defaults': {
@@ -94,6 +107,10 @@ class FakeClientWrapper(object):
 
     def __init__(self):
         self._instance = mock.Mock()
+        self.object_store = mock.Mock()
+
+    def messaging_websocket(self, queue_name):
+        return fakes.FakeWebSocket()
 
 
 class TestDeployOvercloud(utils.TestCommand):
@@ -108,4 +125,5 @@ class TestDeployOvercloud(utils.TestCommand):
         self.app.client_manager.image = mock.Mock()
         self.app.client_manager.network = mock.Mock()
         self.app.client_manager.orchestration = mock.Mock()
+        self.app.client_manager.workflow_engine = mock.Mock()
         self.app.client_manager.tripleoclient = FakeClientWrapper()

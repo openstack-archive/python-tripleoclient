@@ -14,6 +14,7 @@ import mock
 
 from openstackclient.tests import utils
 
+from tripleoclient import exceptions
 from tripleoclient.v1 import overcloud_plan
 
 
@@ -84,3 +85,143 @@ class TestOvercloudDeletePlan(utils.TestCommand):
                        input={'container': 'test-plan1'}),
              mock.call('tripleo.delete_plan',
                        input={'container': 'test-plan2'})])
+
+
+class TestOvercloudCreatePlan(utils.TestCommand):
+
+    def setUp(self):
+        super(TestOvercloudCreatePlan, self).setUp()
+
+        self.cmd = overcloud_plan.CreatePlan(self.app, None)
+        self.app.client_manager.workflow_engine = mock.Mock()
+        self.tripleoclient = mock.Mock()
+
+        self.websocket = mock.Mock()
+        self.websocket.__enter__ = lambda s: self.websocket
+        self.websocket.__exit__ = lambda s, *exc: None
+        self.tripleoclient = mock.Mock()
+        self.tripleoclient.messaging_websocket.return_value = self.websocket
+        self.app.client_manager.tripleoclient = self.tripleoclient
+
+        self.workflow = self.app.client_manager.workflow_engine
+
+        # Mock UUID4 generation for every test
+        uuid4_patcher = mock.patch('uuid.uuid4', return_value="UUID4")
+        self.mock_uuid4 = uuid4_patcher.start()
+        self.addCleanup(self.mock_uuid4.stop)
+
+    def test_create_default_plan(self):
+
+        # Setup
+        arglist = ['overcast']
+        verifylist = [
+            ('name', 'overcast'),
+            ('templates', None)
+        ]
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.websocket.wait_for_message.return_value = {
+            "status": "SUCCESS"
+        }
+
+        # Run
+        self.cmd.take_action(parsed_args)
+
+        # Verify
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.plan_management.v1.create_default_deployment_plan',
+            workflow_input={
+                'container': 'overcast',
+                'queue_name': 'UUID4'
+            })
+
+    def test_create_default_plan_failed(self):
+
+        # Setup
+        arglist = ['overcast']
+        verifylist = [
+            ('name', 'overcast'),
+            ('templates', None)
+        ]
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.websocket.wait_for_message.return_value = {
+            "status": "ERROR", "message": "failed"
+        }
+
+        # Run
+        self.assertRaises(exceptions.WorkflowServiceError,
+                          self.cmd.take_action, parsed_args)
+
+        # Verify
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.plan_management.v1.create_default_deployment_plan',
+            workflow_input={
+                'container': 'overcast',
+                'queue_name': 'UUID4'
+            })
+
+    @mock.patch("tripleoclient.workflows.plan_management.tarball")
+    def test_create_custom_plan(self, mock_tarball):
+
+        # Setup
+        arglist = ['overcast', '--templates', '/fake/path']
+        verifylist = [
+            ('name', 'overcast'),
+            ('templates', '/fake/path')
+        ]
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.websocket.wait_for_message.return_value = {
+            "status": "SUCCESS"
+        }
+        mock_result = mock.Mock(output='{"result": null}')
+        self.workflow.action_executions.create.return_value = mock_result
+
+        # Run
+        self.cmd.take_action(parsed_args)
+
+        # Verify
+        self.workflow.action_executions.create.assert_called_once_with(
+            'tripleo.create_container', {"container": "overcast"}
+        )
+
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.plan_management.v1.create_deployment_plan',
+            workflow_input={
+                'container': 'overcast',
+                'queue_name': 'UUID4'
+            })
+
+    @mock.patch("tripleoclient.workflows.plan_management.tarball")
+    def test_create_custom_plan_failed(self, mock_tarball):
+
+        # Setup
+        arglist = ['overcast', '--templates', '/fake/path']
+        verifylist = [
+            ('name', 'overcast'),
+            ('templates', '/fake/path')
+        ]
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.websocket.wait_for_message.return_value = {
+            "status": "ERROR", "message": "failed"
+        }
+        mock_result = mock.Mock(output='{"result": null}')
+        self.workflow.action_executions.create.return_value = mock_result
+
+        # Run
+        self.assertRaises(exceptions.WorkflowServiceError,
+                          self.cmd.take_action, parsed_args)
+
+        # Verify
+        self.workflow.action_executions.create.assert_called_once_with(
+            'tripleo.create_container', {"container": "overcast"}
+        )
+
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.plan_management.v1.create_deployment_plan',
+            workflow_input={
+                'container': 'overcast',
+                'queue_name': 'UUID4'
+            })

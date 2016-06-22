@@ -16,9 +16,11 @@ from __future__ import print_function
 
 import argparse
 import glob
+import hashlib
 import json
 import logging
 import os
+import os.path
 import re
 import six
 import tempfile
@@ -36,11 +38,15 @@ from openstackclient.i18n import _
 from os_cloud_config import keystone
 from os_cloud_config import keystone_pki
 from os_cloud_config.utils import clients
+from swiftclient.exceptions import ClientException
 from tripleo_common import update
 
 from tripleoclient import constants
 from tripleoclient import exceptions
 from tripleoclient import utils
+from tripleoclient.workflows import deployment
+from tripleoclient.workflows import parameters as workflow_params
+from tripleoclient.workflows import plan_management
 
 
 class DeployOvercloud(command.Command):
@@ -177,12 +183,6 @@ class DeployOvercloud(command.Command):
 
         # Scaling needs extra parameters
         number_controllers = int(parameters.get('ControllerCount', 0))
-        if number_controllers > 1:
-            if not args.ntp_server:
-                raise exceptions.InvalidConfiguration(
-                    'Specify --ntp-server when using multiple controllers '
-                    '(with HA).')
-
         dhcp_agents_per_network = (min(number_controllers, 3) if
                                    number_controllers else 1)
 
@@ -234,64 +234,84 @@ class DeployOvercloud(command.Command):
         return [parameter_defaults_env_file]
 
     def _heat_deploy(self, stack, stack_name, template_path, parameters,
-                     environments, timeout):
+                     environments, timeout, tht_root):
         """Verify the Baremetal nodes are available and do a stack update"""
 
-        self.log.debug("Processing environment files")
+        clients = self.app.client_manager
+        workflow_client = clients.workflow_engine
+
+        self.log.debug("Processing environment files %s" % environments)
         env_files, env = (
             template_utils.process_multiple_environments_and_files(
                 environments))
         if stack:
             update.add_breakpoints_cleanup_into_env(env)
 
-        self.log.debug("Getting template contents")
+        self.log.debug("Getting template contents from plan %s" % stack_name)
+        # We need to reference the plan here, not the local
+        # tht root, as we need template_object to refer to
+        # the rendered overcloud.yaml, not the tht_root overcloud.j2.yaml
+        # FIXME(shardy) we need to move more of this into mistral actions
+        plan_yaml_path = os.path.relpath(template_path, tht_root)
+
+        # heatclient template_utils needs a function that can
+        # retrieve objects from a container by name/path
+        objectclient = clients.tripleoclient.object_store
+
+        def do_object_request(method='GET', object_path=None):
+            obj = objectclient.get_object(stack_name, object_path)
+            return obj and obj[1]
+
         template_files, template = template_utils.get_template_contents(
-            template_path)
+            template_object=plan_yaml_path,
+            object_request=do_object_request)
 
         files = dict(list(template_files.items()) + list(env_files.items()))
 
+        number_controllers = int(parameters.get('ControllerCount', 0))
+        if number_controllers > 1:
+            if not env.get('parameter_defaults').get('NtpServer'):
+                raise exceptions.InvalidConfiguration(
+                    'Specify --ntp-server as parameter or NtpServer in '
+                    'environments when using multiple controllers '
+                    '(with HA).')
+
         clients = self.app.client_manager
+
+        moved_files = self._upload_missing_files(
+            stack_name, objectclient, files, tht_root)
+        self._process_and_upload_environment(
+            stack_name, objectclient, env, moved_files, tht_root,
+            workflow_client)
+
+        self._start_mistral_deploy(clients, stack, stack_name)
+
+    def _start_mistral_deploy(self, clients, stack, plan_name):
+
+        deployment.deploy(clients, container=plan_name,
+                          queue_name=str(uuid.uuid4()))
+
         orchestration_client = clients.orchestration
-
-        self.log.debug("Deploying stack: %s", stack_name)
-        self.log.debug("Deploying template: %s", template)
-        self.log.debug("Deploying parameters: %s", parameters)
-        self.log.debug("Deploying environment: %s", env)
-        self.log.debug("Deploying files: %s", files)
-
-        stack_args = {
-            'stack_name': stack_name,
-            'template': template,
-            'environment': env,
-            'files': files,
-            'clear_parameters': env['parameter_defaults'].keys(),
-        }
-
-        if timeout:
-            stack_args['timeout_mins'] = timeout
 
         if stack is None:
             self.log.info("Performing Heat stack create")
             action = 'CREATE'
             marker = None
-            orchestration_client.stacks.create(**stack_args)
         else:
             self.log.info("Performing Heat stack update")
             # Make sure existing parameters for stack are reused
-            stack_args['existing'] = 'true'
             # Find the last top-level event to use for the first marker
             events = event_utils.get_events(orchestration_client,
-                                            stack_id=stack_name,
+                                            stack_id=plan_name,
                                             event_args={'sort_dir': 'desc',
                                                         'limit': 1})
             marker = events[0].id if events else None
             action = 'UPDATE'
 
-            orchestration_client.stacks.update(stack.id, **stack_args)
-
+        time.sleep(10)
         verbose_events = self.app_args.verbose_level > 0
         create_result = utils.wait_for_stack_ready(
-            orchestration_client, stack_name, marker, action, verbose_events)
+            orchestration_client, plan_name, marker, action, verbose_events)
         if not create_result:
             if stack is None:
                 raise exceptions.DeploymentError("Heat Stack create failed.")
@@ -312,15 +332,116 @@ class DeployOvercloud(command.Command):
                         environments.append(f)
         return environments
 
+    def _process_and_upload_environment(self, container_name, swift_client,
+                                        env, moved_files, tht_root, mistral):
+        """Process the environment and upload to Swift
+
+        The environment at this point should be the result of the merged
+        custom user environments. We need to look at the paths in the
+        environment and update any that changed when they were uploaded to
+        swift.
+        """
+
+        file_prefix = "file://"
+
+        if 'resource_registry' in env:
+            for name, path in env['resource_registry'].items():
+                if not isinstance(path, six.string_types):
+                    continue
+                if path in moved_files:
+                    new_path = moved_files[path]
+                    env['resource_registry'][name] = new_path
+                elif path.startswith(file_prefix):
+                    path = path[len(file_prefix):]
+                    if path.startswith(tht_root):
+                        path = path[len(tht_root):]
+                    # We want to make sure all the paths are relative.
+                    if path.startswith("/"):
+                        path = path[1:]
+                    env['resource_registry'][name] = path
+
+        # Parameters are removed from the environment and sent to the update
+        # parameters action, this stores them in the Mistral environment and
+        # means the UI can find them.
+        if 'parameter_defaults' in env:
+            params = env.pop('parameter_defaults')
+            workflow_params.update_parameters(
+                mistral, container=container_name, parameters=params)
+
+        contents = yaml.safe_dump(env)
+
+        swift_path = "user-environment.yaml"
+        swift_client.put_object(container_name, swift_path, contents)
+
+        mistral_env = mistral.environments.get(container_name)
+        user_env = {'path': swift_path}
+        if user_env not in mistral_env.variables['environments']:
+            mistral_env.variables['environments'].append(user_env)
+            mistral.environments.update(
+                name=container_name,
+                variables=mistral_env.variables
+            )
+
+    def _upload_missing_files(self, container_name, swift_client, files_dict,
+                              tht_root):
+        """Find the files referenced in custom environments and upload them
+
+        Heat environments can be passed to be included in the deployment, these
+        files can include references to other files anywhere on the local
+        file system. These need to be discovered and uploaded to Swift. When
+        they have been uploaded to Swift the path to them will be different,
+        the new paths are store din the file_relocation dict, which is returned
+        and used by _process_and_upload_environment which will merge the
+        environment and update paths to the relative Swift path.
+        """
+
+        file_relocation = {}
+        file_prefix = "file://"
+
+        for fullpath, contents in files_dict.items():
+
+            if not fullpath.startswith(file_prefix):
+                continue
+
+            path = fullpath[len(file_prefix):]
+
+            if path.startswith(tht_root):
+                # This should already be uploaded.
+                continue
+
+            filename = os.path.basename(path)
+            checksum = hashlib.md5()
+            checksum.update(filename)
+            digest = checksum.hexdigest()
+            swift_path = "user-files/{}-{}".format(digest, filename)
+            swift_client.put_object(container_name, swift_path, contents)
+            file_relocation[fullpath] = swift_path
+
+        return file_relocation
+
     def _deploy_tripleo_heat_templates(self, stack, parsed_args):
         """Deploy the fixed templates in TripleO Heat Templates"""
         clients = self.app.client_manager
         network_client = clients.network
+        workflow_client = clients.workflow_engine
 
         parameters = self._update_parameters(
             parsed_args, network_client, stack)
 
         tht_root = parsed_args.templates
+
+        plans = plan_management.list_deployment_plans(workflow_client)
+
+        # TODO(d0ugal): We need to put a more robust strategy in place here to
+        #               handle updating plans.
+        if parsed_args.stack in plans:
+            # Upload the new plan templates to swift to replace the existing
+            # templates.
+            plan_management.update_plan_from_templates(
+                clients, parsed_args.stack, tht_root)
+        else:
+            plan_management.create_plan_from_templates(
+                clients, parsed_args.stack, tht_root)
 
         print("Deploying templates in the directory {0}".format(
             os.path.abspath(tht_root)))
@@ -331,13 +452,11 @@ class DeployOvercloud(command.Command):
         # parameters and keystone cert is generated on create only
         env_path = utils.create_environment_file()
         environments = []
-        add_registry = False
 
         if stack is None:
             self.log.debug("Creating Keystone certificates")
             keystone_pki.generate_certs_into_json(env_path, False)
             environments.append(env_path)
-            add_registry = True
 
         if parsed_args.environment_directories:
             environments.extend(self._load_environment_directories(
@@ -347,19 +466,8 @@ class DeployOvercloud(command.Command):
         if parsed_args.rhel_reg:
             reg_env = self._create_registration_env(parsed_args)
             environments.extend(reg_env)
-            add_registry = True
         if parsed_args.environment_files:
             environments.extend(parsed_args.environment_files)
-            add_registry = True
-
-        if add_registry:
-            # default resource registry file should be passed only
-            # when creating a new stack, or when custom environments are
-            # specified, otherwise it might overwrite
-            # resource_registries in existing stack
-            resource_registry_path = os.path.join(
-                tht_root, constants.RESOURCE_REGISTRY_NAME)
-            environments.insert(0, resource_registry_path)
 
         self._try_overcloud_deploy_with_compat_yaml(
             tht_root, stack, parsed_args.stack, parameters, environments,
@@ -373,9 +481,9 @@ class DeployOvercloud(command.Command):
             overcloud_yaml = os.path.join(tht_root, overcloud_yaml_name)
             try:
                 self._heat_deploy(stack, stack_name, overcloud_yaml,
-                                  parameters, environments, timeout)
-            except six.moves.urllib.error.URLError as e:
-                messages.append(str(e.reason))
+                                  parameters, environments, timeout, tht_root)
+            except ClientException as e:
+                messages.append(str(e))
             else:
                 return
         raise ValueError('\n'.join(messages))
