@@ -993,7 +993,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_keystone_init(self, mock_gkc, mock_init, mock_gp):
         mock_ksc = mock.Mock()
         mock_gkc.return_value = mock_ksc
-        mock_ksc.users.find.return_value = True
+        mock_ksc.services.find.return_value = True
         stack = mock.MagicMock()
         stack.to_dict.return_value = fakes.FAKE_STACK
         ip = '192.0.2.1'
@@ -1011,7 +1011,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_keystone_init_occ(self, mock_gkc, mock_init, mock_se, mock_gp):
         mock_ksc = mock.Mock()
         mock_gkc.return_value = mock_ksc
-        mock_ksc.users.find.side_effect = kscexc.NotFound()
+        mock_ksc.services.find.side_effect = kscexc.NotFound()
         stack = mock.Mock()
         stack.to_dict.return_value = fakes.FAKE_STACK
         ip = '192.0.2.1'
@@ -1032,7 +1032,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             self, mock_gkc, mock_init, mock_se, mock_gp):
         mock_ksc = mock.Mock()
         mock_gkc.return_value = mock_ksc
-        mock_ksc.users.find.side_effect = kscexc.NotFound()
+        mock_ksc.services.find.side_effect = kscexc.NotFound()
         stack = mock.Mock()
         stack.to_dict.return_value = fakes.FAKE_STACK
         ip = '192.0.2.1'
