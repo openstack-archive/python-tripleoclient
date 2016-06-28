@@ -421,11 +421,6 @@ class DeployOvercloud(command.Command):
             try:
                 keystone_client.services.find(name=service)
             except kscexc.NotFound:
-                if not tls_enabled:
-                    # NOTE(bcrochet): Bad hack. Remove the ssl_port info from
-                    # the os_cloud_config.SERVICES dictionary
-                    data.pop('ssl_port', None)
-
                 service_data = self._set_service_data(service, data, stack)
                 if service_data:
                     services.update({service: service_data})
@@ -457,6 +452,12 @@ class DeployOvercloud(command.Command):
                 public_port=public_port,
                 admin_port=admin_port,
                 internal_port=internal_port)
+
+            if not tls_enabled:
+                # NOTE(bcrochet): Bad hack. Remove the ssl_port info from the
+                # os_cloud_config.SERVICES dictionary
+                for service_name, data in keystone.SERVICES.items():
+                    data.pop('ssl_port', None)
 
             keystone.setup_endpoints(
                 services,
