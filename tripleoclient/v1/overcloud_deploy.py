@@ -157,13 +157,6 @@ class DeployOvercloud(command.Command):
             )
             param_args = param_args + new_stack_args
 
-            if args.neutron_disable_tunneling is not None:
-                neutron_enable_tunneling = (
-                    not args.neutron_disable_tunneling)
-                parameters.update({
-                    'NeutronEnableTunnelling': neutron_enable_tunneling,
-                })
-
         # Update parameters from commandline
         for param, arg in param_args:
             if getattr(args, arg, None) is not None:
