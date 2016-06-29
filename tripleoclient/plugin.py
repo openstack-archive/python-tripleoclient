@@ -20,7 +20,7 @@ import logging
 import uuid
 import websocket
 
-from openstackclient.common import utils
+from osc_lib import utils
 from swiftclient import client as swift_client
 
 LOG = logging.getLogger(__name__)

@@ -16,9 +16,9 @@
 import logging
 import yaml
 
-from cliff import command
-from openstackclient.common import utils
-from openstackclient.i18n import _
+from osc_lib.command import command
+from osc_lib.i18n import _
+from osc_lib import utils
 from tripleo_common import upgrade
 
 from tripleoclient import constants

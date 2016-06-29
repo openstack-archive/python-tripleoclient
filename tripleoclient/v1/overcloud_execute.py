@@ -19,7 +19,7 @@ import os.path
 import re
 import uuid
 
-from cliff import command
+from osc_lib.command import command
 
 
 class RemoteExecute(command.Command):

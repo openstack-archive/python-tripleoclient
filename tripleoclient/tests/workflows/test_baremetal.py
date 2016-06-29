@@ -14,7 +14,7 @@
 
 import mock
 
-from openstackclient.tests import utils
+from osc_lib.tests import utils
 
 from tripleoclient import exceptions
 from tripleoclient.workflows import baremetal

@@ -14,14 +14,13 @@ import json
 import logging
 import uuid
 
-from cliff import command
-from cliff import lister
-from openstackclient.i18n import _
+from osc_lib.command import command
+from osc_lib.i18n import _
 
 from tripleoclient.workflows import plan_management
 
 
-class ListPlans(lister.Lister):
+class ListPlans(command.Lister):
     """List overcloud deployment plans."""
 
     log = logging.getLogger(__name__ + ".ListPlans")

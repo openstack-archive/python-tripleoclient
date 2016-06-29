@@ -28,16 +28,16 @@ import time
 import uuid
 import yaml
 
-from cliff import command
 from heatclient.common import event_utils
 from heatclient.common import template_utils
 from keystoneclient import exceptions as kscexc
-from openstackclient.common import exceptions as oscexc
-from openstackclient.common import utils as osc_utils
-from openstackclient.i18n import _
 from os_cloud_config import keystone
 from os_cloud_config import keystone_pki
 from os_cloud_config.utils import clients
+from osc_lib.command import command
+from osc_lib import exceptions as oscexc
+from osc_lib.i18n import _
+from osc_lib import utils as osc_utils
 from swiftclient.exceptions import ClientException
 from tripleo_common import update
 

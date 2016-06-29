@@ -21,9 +21,8 @@ import logging
 import time
 import uuid
 
-from cliff import command
-from cliff import lister
-from openstackclient.i18n import _
+from osc_lib.command import command
+from osc_lib.i18n import _
 
 from tripleoclient import exceptions
 from tripleoclient import utils
@@ -237,7 +236,7 @@ class StartBaremetalIntrospectionBulk(command.Command):
         baremetal.provide_manageable_nodes(clients, queue_name=queue_name)
 
 
-class StatusBaremetalIntrospectionBulk(lister.Lister):
+class StatusBaremetalIntrospectionBulk(command.Lister):
     """Get the status of all baremetal nodes"""
 
     log = logging.getLogger(__name__ + ".StatusBaremetalIntrospectionBulk")
@@ -427,7 +426,7 @@ class ConfigureBaremetalBoot(command.Command):
             )
 
 
-class ShowNodeCapabilities(lister.Lister):
+class ShowNodeCapabilities(command.Lister):
     """List the capabilities for all Nodes"""
 
     log = logging.getLogger(__name__ + ".ShowNodeProfile")
