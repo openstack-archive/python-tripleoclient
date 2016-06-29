@@ -38,17 +38,20 @@ class TestOvercloudImageBuild(TestPluginV1):
         self.cmd = overcloud_image.BuildOvercloudImage(self.app, None)
         self.cmd._create_builder = _force_builder
 
+    @mock.patch('os.path.isfile', autospec=True)
     @mock.patch('platform.linux_distribution')
     @mock.patch.object(overcloud_image.BuildOvercloudImage,
                        '_build_image_fedora_user', autospec=True)
     def test_overcloud_image_build_all(self, mock_fedora_user,
-                                       mock_linux_distribution):
+                                       mock_linux_distribution,
+                                       mock_os_path_isfile):
         arglist = ['--all']
         verifylist = [('all', True)]
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         mock_linux_distribution.return_value = ['CentOS Fake Release']
+        mock_os_path_isfile.side_effect = [False, True, True, False, True]
         self.cmd.take_action(parsed_args)
 
         self.assertEqual(2, self.mock_disk_image_create.call_count)
@@ -103,12 +106,7 @@ class TestOvercloudImageBuild(TestPluginV1):
         arglist = ['--type', 'overcloud-full']
         verifylist = [('image_types', ['overcloud-full'])]
 
-        def os_path_isfile_side_effect(arg):
-            return {
-                'overcloud-full.qcow2': False,
-            }[arg]
-
-        mock_os_path_isfile.side_effect = os_path_isfile_side_effect
+        mock_os_path_isfile.side_effect = [False, True]
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
@@ -133,6 +131,9 @@ class TestOvercloudImageBuild(TestPluginV1):
             "enable-packages-install "
             "pip-and-virtualenv-override  --min-tmpfs 5 2>&1 | "
             "tee dib-overcloud-full.log")
+        self.assertEqual([mock.call('overcloud-full.qcow2'),
+                          mock.call('overcloud-full.qcow2')],
+                         mock_os_path_isfile.mock_calls)
 
     @mock.patch('platform.linux_distribution')
     @mock.patch('os.path.isfile', autospec=True)
@@ -149,12 +150,7 @@ class TestOvercloudImageBuild(TestPluginV1):
                    '--builder-extra-args', 'overcloud-network-midonet']
         verifylist = [('image_types', ['overcloud-full'])]
 
-        def os_path_isfile_side_effect(arg):
-            return {
-                'overcloud-full.qcow2': False,
-            }[arg]
-
-        mock_os_path_isfile.side_effect = os_path_isfile_side_effect
+        mock_os_path_isfile.side_effect = [False, True]
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
@@ -179,6 +175,9 @@ class TestOvercloudImageBuild(TestPluginV1):
             "enable-packages-install "
             "pip-and-virtualenv-override overcloud-network-midonet "
             "--min-tmpfs 5 2>&1 | tee dib-overcloud-full.log")
+        self.assertEqual([mock.call('overcloud-full.qcow2'),
+                          mock.call('overcloud-full.qcow2')],
+                         mock_os_path_isfile.mock_calls)
 
     @mock.patch('time.sleep')
     @mock.patch('platform.linux_distribution')
@@ -191,13 +190,8 @@ class TestOvercloudImageBuild(TestPluginV1):
         arglist = ['--type', 'deploy-ramdisk']
         verifylist = [('image_types', ['deploy-ramdisk'])]
 
-        def os_path_isfile_side_effect(arg):
-            return {
-                'deploy-ramdisk-ironic.initramfs': False,
-                'deploy-ramdisk-ironic.kernel': False,
-            }[arg]
-
-        mock_os_path_isfile.side_effect = os_path_isfile_side_effect
+        # Short-circuit logic means this only gets called once the first time
+        mock_os_path_isfile.side_effect = [False, True, True]
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
@@ -212,6 +206,10 @@ class TestOvercloudImageBuild(TestPluginV1):
             "element-manifest network-gateway epel "
             "enable-packages-install "
             "pip-and-virtualenv-override  2>&1 | tee dib-deploy.log")
+        self.assertEqual([mock.call('deploy-ramdisk-ironic.initramfs'),
+                          mock.call('deploy-ramdisk-ironic.initramfs'),
+                          mock.call('deploy-ramdisk-ironic.kernel')],
+                         mock_os_path_isfile.mock_calls)
 
     @mock.patch('platform.linux_distribution')
     @mock.patch('os.path.isfile', autospec=True)
@@ -222,13 +220,8 @@ class TestOvercloudImageBuild(TestPluginV1):
         arglist = ['--type', 'agent-ramdisk']
         verifylist = [('image_types', ['agent-ramdisk'])]
 
-        def os_path_isfile_side_effect(arg):
-            return {
-                'ironic-python-agent.initramfs': False,
-                'ironic-python-agent.vmlinuz': False,
-            }[arg]
-
-        mock_os_path_isfile.side_effect = os_path_isfile_side_effect
+        # Short-circuit logic means this only gets called once the first time
+        mock_os_path_isfile.side_effect = [False, True, True]
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
@@ -244,6 +237,41 @@ class TestOvercloudImageBuild(TestPluginV1):
             "pip-and-virtualenv-override  "
             "-p python-hardware-detect --min-tmpfs 5 "
             "2>&1 | tee dib-agent-ramdisk.log")
+        self.assertEqual([mock.call('ironic-python-agent.initramfs'),
+                          mock.call('ironic-python-agent.initramfs'),
+                          mock.call('ironic-python-agent.kernel')],
+                         mock_os_path_isfile.mock_calls)
+
+    @mock.patch('platform.linux_distribution')
+    @mock.patch('os.path.isfile', autospec=True)
+    def test_overcloud_image_build_deploy_ramdisk_agent_fails(
+            self,
+            mock_os_path_isfile,
+            mock_linux_distribution):
+        arglist = ['--type', 'agent-ramdisk']
+        verifylist = [('image_types', ['agent-ramdisk'])]
+
+        # Short-circuit logic means this only gets called once the first time
+        mock_os_path_isfile.side_effect = [False, False]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        mock_linux_distribution.return_value = [
+            'Red Hat Enterprise Linux Server 7.1']
+
+        self.assertRaises(overcloud_image.ImageBuildError,
+                          self.cmd.take_action, parsed_args)
+
+        self.mock_disk_image_create.assert_called_once_with(
+            "-a amd64 -o ironic-python-agent "
+            "rhel7 ironic-agent dynamic-login element-manifest "
+            "network-gateway epel enable-packages-install "
+            "pip-and-virtualenv-override  "
+            "-p python-hardware-detect --min-tmpfs 5 "
+            "2>&1 | tee dib-agent-ramdisk.log")
+        self.assertEqual([mock.call('ironic-python-agent.initramfs'),
+                          mock.call('ironic-python-agent.initramfs')],
+                         mock_os_path_isfile.mock_calls)
 
     @mock.patch('platform.linux_distribution')
     def test_unsupported_distro(self, mock_linux_distribution):
