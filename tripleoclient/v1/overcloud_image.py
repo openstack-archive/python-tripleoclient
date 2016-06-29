@@ -29,11 +29,12 @@ import sys
 import time
 import warnings
 
-from cliff import command
-from openstackclient.common import exceptions
-from openstackclient.common import utils
-from openstackclient.i18n import _
+from osc_lib.command import command
+from osc_lib import exceptions
+from osc_lib.i18n import _
+from osc_lib import utils
 from prettytable import PrettyTable
+
 from tripleoclient import utils as plugin_utils
 
 

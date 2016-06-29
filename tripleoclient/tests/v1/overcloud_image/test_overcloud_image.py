@@ -16,7 +16,7 @@
 import mock
 import os
 
-from openstackclient.common import exceptions
+from osc_lib import exceptions
 from tripleoclient.tests.v1.test_plugin import TestPluginV1
 from tripleoclient.v1 import overcloud_image
 
@@ -304,13 +304,13 @@ class TestUploadOvercloudImage(TestPluginV1):
         self.cmd._read_image_file_pointer = mock.Mock(return_value=b'IMGDATA')
         self.cmd._check_file_exists = mock.Mock(return_value=True)
 
-    @mock.patch('openstackclient.common.utils.find_resource')
+    @mock.patch('osc_lib.utils.find_resource')
     def test_get_image_exists(self, mock_find_resource):
         image_mock = mock.Mock(name='imagename')
         mock_find_resource.return_value = image_mock
         self.assertEqual(self.cmd._get_image('imagename'), image_mock)
 
-    @mock.patch('openstackclient.common.utils.find_resource')
+    @mock.patch('osc_lib.utils.find_resource')
     def test_get_image_none(self, mock_find_resource):
         mock_find_resource.side_effect = exceptions.CommandError('')
         self.assertEqual(self.cmd._get_image('noimagename'), None)

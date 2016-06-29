@@ -19,7 +19,7 @@ import mock
 import os
 import tempfile
 
-from openstackclient.tests import utils as test_utils
+from osc_lib.tests import utils as test_utils
 
 from tripleoclient import exceptions
 from tripleoclient.tests.v1.overcloud_node import fakes

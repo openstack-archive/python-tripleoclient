@@ -16,7 +16,7 @@
 import mock
 from uuid import uuid4
 
-from openstackclient.tests import utils
+from osc_lib.tests import utils
 
 from tripleoclient.tests.v1.overcloud_deploy import fakes
 from tripleoclient.v1 import overcloud_deploy

@@ -32,7 +32,7 @@ import yaml
 
 from heatclient.common import event_utils
 from heatclient.exc import HTTPNotFound
-from openstackclient.i18n import _
+from osc_lib.i18n import _
 from six.moves import configparser
 from six.moves import urllib
 

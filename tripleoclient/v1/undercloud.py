@@ -18,7 +18,7 @@
 import logging
 import subprocess
 
-from cliff import command
+from osc_lib.command import command
 from tripleoclient import utils
 
 

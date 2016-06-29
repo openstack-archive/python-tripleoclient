@@ -14,9 +14,8 @@
 
 import logging
 
-from cliff import command
-from cliff import lister
-from openstackclient.i18n import _
+from osc_lib.command import command
+from osc_lib.i18n import _
 
 from tripleoclient import exceptions
 from tripleoclient import utils
@@ -86,7 +85,7 @@ class MatchProfiles(command.Command):
 POSTFIX = '_profile'
 
 
-class ListProfiles(lister.Lister):
+class ListProfiles(command.Lister):
     """List overcloud node profiles"""
 
     log = logging.getLogger(__name__ + ".ListProfiles")

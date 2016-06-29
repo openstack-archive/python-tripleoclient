@@ -16,7 +16,7 @@
 import mock
 
 import ironic_inspector_client
-from openstackclient.tests import utils
+from osc_lib.tests import utils
 
 
 class FakeBaremetalNodeClient(object):

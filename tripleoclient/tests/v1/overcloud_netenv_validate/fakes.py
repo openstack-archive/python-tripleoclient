@@ -13,7 +13,7 @@
 #   under the License.
 #
 
-from openstackclient.tests import utils
+from osc_lib.tests import utils
 
 
 class TestValidateOvercloudNetenv(utils.TestCommand):

@@ -23,7 +23,7 @@ import yaml
 
 from keystoneclient import exceptions as kscexc
 import mock
-from openstackclient.common import exceptions as oscexc
+from osc_lib import exceptions as oscexc
 from swiftclient.exceptions import ClientException as ObjectClientException
 
 from tripleoclient import constants

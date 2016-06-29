@@ -17,9 +17,9 @@ import argparse
 import logging
 import uuid
 
-from cliff import command
-from openstackclient.common import utils
-from openstackclient.i18n import _
+from osc_lib.command import command
+from osc_lib.i18n import _
+from osc_lib import utils
 from tripleo_common import scale
 
 from tripleoclient import constants
