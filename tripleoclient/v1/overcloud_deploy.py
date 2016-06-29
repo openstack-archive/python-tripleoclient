@@ -755,7 +755,7 @@ class DeployOvercloud(command.Command):
             self.log.error(message.format(
                 uuid=node.uuid,
                 property='driver_info/deploy_kernel',
-                expected=ramdisk_id,
+                expected=kernel_id,
                 actual=node.driver_info.get('deploy_kernel')
             ))
         if 'boot_option:local' not in node.properties.get('capabilities', ''):
