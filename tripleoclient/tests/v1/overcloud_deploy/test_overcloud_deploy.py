@@ -315,6 +315,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'CephClientKey': 'cephx_key',
             'CephClusterFSID': 'uuid',
             'CephMonKey': 'cephx_key',
+            'CephRgwKey': 'cephx_key',
             'CephStorageCount': 3,
             'CinderPassword': 'password',
             'ExtraConfig': '{}',
