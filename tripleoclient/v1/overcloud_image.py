@@ -170,7 +170,6 @@ class BuildOvercloudImage(command.Command):
     TRIPLEOPUPPETELEMENTS = "/usr/share/tripleo-puppet-elements"
     INSTACKUNDERCLOUDELEMENTS = "/usr/share/instack-undercloud"
     PUPPET_COMMON_ELEMENTS = [
-        'sysctl',
         'hosts',
         'baremetal',
         'dhcp-all-interfaces',
