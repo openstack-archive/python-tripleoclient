@@ -180,7 +180,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'TrovePassword': 'password',
             'ZaqarPassword': 'password',
             'DeployIdentifier': 123456789,
-            'UpdateIdentifier': None,
             'StackAction': 'UPDATE',
         }
 
@@ -350,7 +349,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'TrovePassword': 'password',
             'ZaqarPassword': 'password',
             'DeployIdentifier': 123456789,
-            'UpdateIdentifier': None,
             'StackAction': 'CREATE',
         }
 

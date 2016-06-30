@@ -112,7 +112,6 @@ class DeployOvercloud(command.Command):
 
         timestamp = int(time.time())
         parameters['DeployIdentifier'] = timestamp
-        parameters['UpdateIdentifier'] = None
         parameters['StackAction'] = 'CREATE' if stack_is_new else 'UPDATE'
 
         # Update parameters from answers file:
