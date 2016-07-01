@@ -70,6 +70,37 @@ def provide(clients, **workflow_input):
                     payload['message']))
 
 
+def introspect(clients, **workflow_input):
+    """Introspect Baremetal Nodes
+
+    Run the tripleo.baremetal.v1.introspect Mistral workflow.
+    """
+
+    workflow_client = clients.workflow_engine
+    tripleoclients = clients.tripleoclient
+    queue_name = workflow_input['queue_name']
+
+    execution = workflow_client.executions.create(
+        'tripleo.baremetal.v1.introspect',
+        workflow_input={'node_uuids': workflow_input['node_uuids'],
+                        'queue_name': queue_name}
+    )
+
+    print("Waiting for introspection to finish...")
+
+    with tripleoclients.messaging_websocket(queue_name) as ws:
+        payload = ws.wait_for_message(execution.id)
+
+        if payload['status'] == 'SUCCESS':
+            print('Successfully introspected all nodes.')
+        else:
+            raise exceptions.IntrospectionError(
+                "Introspection completed with errors:\n%s" % '\n'
+                .join(msg for msg in payload['message'] if msg))
+
+    print("Introspection completed.")
+
+
 def introspect_manageable_nodes(clients, **workflow_input):
     """Introspect all manageable nodes
 

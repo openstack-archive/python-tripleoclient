@@ -128,3 +128,109 @@ class TestProvideNode(fakes.TestOvercloudNode):
         self.assertRaises(test_utils.ParserException,
                           self.check_parser,
                           self.cmd, argslist, verifylist)
+
+
+class TestIntrospectNode(fakes.TestOvercloudNode):
+
+    def setUp(self):
+        super(TestIntrospectNode, self).setUp()
+
+        self.workflow = self.app.client_manager.workflow_engine
+        client = self.app.client_manager.tripleoclient
+        self.websocket = client.messaging_websocket()
+
+        # Get the command object to test
+        self.cmd = overcloud_node.IntrospectNode(self.app, None)
+
+    def _check_introspect_all_manageable(self, parsed_args, provide=False):
+        self.websocket.wait_for_message.return_value = {
+            "status": "SUCCESS",
+            "message": "Success",
+            "introspected_nodes": {}
+        }
+
+        self.cmd.take_action(parsed_args)
+
+        call_list = [mock.call(
+            'tripleo.baremetal.v1.introspect_manageable_nodes',
+            workflow_input={'queue_name': 'UUID4'}
+        )]
+
+        if provide:
+            call_list.append(mock.call(
+                'tripleo.baremetal.v1.provide_manageable_nodes',
+                workflow_input={'queue_name': 'UUID4'}
+            ))
+
+        self.workflow.executions.create.assert_has_calls(call_list)
+        self.assertEqual(self.workflow.executions.create.call_count,
+                         2 if provide else 1)
+
+    def _check_introspect_nodes(self, parsed_args, nodes, provide=False):
+        self.websocket.wait_for_message.return_value = {
+            "status": "SUCCESS",
+            "message": "Success",
+            "introspected_nodes": {}
+        }
+
+        self.cmd.take_action(parsed_args)
+
+        call_list = [mock.call(
+            'tripleo.baremetal.v1.introspect', workflow_input={
+                'node_uuids': nodes,
+                'queue_name': 'UUID4'}
+        )]
+
+        if provide:
+            call_list.append(mock.call(
+                'tripleo.baremetal.v1.provide', workflow_input={
+                    'node_uuids': nodes,
+                    'queue_name': 'UUID4'}
+            ))
+
+        self.workflow.executions.create.assert_has_calls(call_list)
+        self.assertEqual(self.workflow.executions.create.call_count,
+                         2 if provide else 1)
+
+    def test_introspect_all_manageable_nodes_without_provide(self):
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--all-manageable'],
+                                        [('all_manageable', True)])
+        self._check_introspect_all_manageable(parsed_args, provide=False)
+
+    def test_introspect_all_manageable_nodes_with_provide(self):
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--all-manageable', '--provide'],
+                                        [('all_manageable', True),
+                                         ('provide', True)])
+        self._check_introspect_all_manageable(parsed_args, provide=True)
+
+    def test_introspect_nodes_without_provide(self):
+        nodes = ['node_uuid1', 'node_uuid2']
+        parsed_args = self.check_parser(self.cmd,
+                                        nodes,
+                                        [('node_uuids', nodes)])
+        self._check_introspect_nodes(parsed_args, nodes, provide=False)
+
+    def test_introspect_nodes_with_provide(self):
+        nodes = ['node_uuid1', 'node_uuid2']
+        argslist = nodes + ['--provide']
+
+        parsed_args = self.check_parser(self.cmd,
+                                        argslist,
+                                        [('node_uuids', nodes),
+                                         ('provide', True)])
+        self._check_introspect_nodes(parsed_args, nodes, provide=True)
+
+    def test_introspect_no_node_or_flag_specified(self):
+        self.assertRaises(test_utils.ParserException,
+                          self.check_parser,
+                          self.cmd, [], [])
+
+    def test_introspect_uuids_and_all_both_specified(self):
+        argslist = ['node_id1', 'node_id2', '--all-manageable']
+        verifylist = [('node_uuids', ['node_id1', 'node_id2']),
+                      ('all_manageable', True)]
+        self.assertRaises(test_utils.ParserException,
+                          self.check_parser,
+                          self.cmd, argslist, verifylist)

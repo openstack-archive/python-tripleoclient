@@ -120,6 +120,45 @@ class TestBaremetalWorkflows(utils.TestCommand):
                 'queue_name': "QUEUE_NAME"
             })
 
+    def test_introspect_success(self):
+
+        self.websocket.wait_for_message.return_value = {
+            "status": "SUCCESS",
+            "introspected_nodes": {}
+        }
+
+        baremetal.introspect(self.app.client_manager, node_uuids=[],
+                             queue_name="QUEUE_NAME")
+
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.baremetal.v1.introspect',
+            workflow_input={
+                'node_uuids': [],
+                'queue_name': "QUEUE_NAME"
+            })
+
+    def test_introspect_error(self):
+
+        self.websocket.wait_for_message.return_value = {
+            "status": "FAIL",
+            "message": "Failed",
+            "introspected_nodes": {}
+        }
+
+        self.assertRaises(
+            exceptions.IntrospectionError,
+            baremetal.introspect,
+            self.app.client_manager,
+            node_uuids=[],
+            queue_name="QUEUE_NAME")
+
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.baremetal.v1.introspect',
+            workflow_input={
+                'node_uuids': [],
+                'queue_name': "QUEUE_NAME"
+            })
+
     def test_introspect_manageable_nodes_success(self):
 
         self.websocket.wait_for_message.return_value = {
