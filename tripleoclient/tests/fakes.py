@@ -40,8 +40,5 @@ class FakeClientManager(object):
 
 class FakeClientWrapper(object):
 
-    def __init__(self):
-        self._messaging_websocket = mock.MagicMock()
-
     def messaging_websocket(self, queue_name='tripleo'):
-        return self._messaging_websocket
+        return mock.MagicMock()
