@@ -20,6 +20,7 @@ import os
 
 from cliff import command
 import ipaddress
+from openstackclient.i18n import _
 import six
 import yaml
 
@@ -34,7 +35,7 @@ class ValidateOvercloudNetenv(command.Command):
         parser = super(ValidateOvercloudNetenv, self).get_parser(prog_name)
         parser.add_argument(
             '-f', '--file', dest='netenv',
-            help="Path to the network environment file",
+            help=_("Path to the network environment file"),
             default='network-environment.yaml')
         return parser
 

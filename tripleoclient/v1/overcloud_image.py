@@ -31,6 +31,7 @@ import time
 from cliff import command
 from openstackclient.common import exceptions
 from openstackclient.common import utils
+from openstackclient.i18n import _
 from prettytable import PrettyTable
 from tripleoclient import utils as plugin_utils
 
@@ -224,7 +225,7 @@ class BuildOvercloudImage(command.Command):
             "--all",
             dest="all",
             action="store_true",
-            help="Build all images",
+            help=_("Build all images"),
         )
         image_group.add_argument(
             "--type",
@@ -232,26 +233,26 @@ class BuildOvercloudImage(command.Command):
             metavar='<image type>',
             choices=self.IMAGE_TYPES,
             action="append",
-            help="Build image by name. One of "
-                 "%s" % ", ".join(self.IMAGE_TYPES),
+            help=_("Build image by name. One of "
+                   "%s") % ", ".join(self.IMAGE_TYPES),
         )
         parser.add_argument(
             "--base-image",
-            help="Image file to use as a base for new images",
+            help=_("Image file to use as a base for new images"),
         )
         parser.add_argument(
             "--instack-undercloud-elements",
             dest="instack_undercloud_elements",
             default=os.environ.get(
                 "INSTACKUNDERCLOUDELEMENTS", self.INSTACKUNDERCLOUDELEMENTS),
-            help="Path to Instack Undercloud elements",
+            help=_("Path to Instack Undercloud elements"),
         )
         parser.add_argument(
             "--tripleo-puppet-elements",
             dest="tripleo_puppet_elements",
             default=os.environ.get(
                 "TRIPLEOPUPPETELEMENTS", self.TRIPLEOPUPPETELEMENTS),
-            help="Path to TripleO Puppet elements",
+            help=_("Path to TripleO Puppet elements"),
         )
         parser.add_argument(
             "--elements-path",
@@ -265,38 +266,38 @@ class BuildOvercloudImage(command.Command):
                     '/usr/share/openstack-heat-templates/'
                     'software-config/elements',
                 ])),
-            help="Full elements path, separated by %s" % os.pathsep,
+            help=_("Full elements path, separated by %s") % os.pathsep,
         )
         parser.add_argument(
             "--tmp-dir",
             dest="tmp_dir",
             default=os.environ.get("TMP_DIR", "/var/tmp"),
-            help="Path to a temporary directory for creating images",
+            help=_("Path to a temporary directory for creating images"),
         )
         parser.add_argument(
             "--node-arch",
             dest="node_arch",
             default=os.environ.get("NODE_ARCH", "amd64"),
-            help="Architecture of image to build",
+            help=_("Architecture of image to build"),
         )
         parser.add_argument(
             "--node-dist",
             dest="node_dist",
             default=os.environ.get("NODE_DIST", ""),
-            help="Distribution of image to build",
+            help=_("Distribution of image to build"),
         )
         parser.add_argument(
             "--registration-method",
             dest="reg_method",
             default=os.environ.get("REG_METHOD", "disable"),
-            help="Registration method",
+            help=_("Registration method"),
         )
         parser.add_argument(
             "--use-delorean-trunk",
             dest="use_delorean_trunk",
             action='store_true',
             default=(os.environ.get('USE_DELOREAN_TRUNK', '0') == '1'),
-            help="Use Delorean trunk repo",
+            help=_("Use Delorean trunk repo"),
         )
         parser.add_argument(
             "--delorean-trunk-repo",
@@ -305,13 +306,13 @@ class BuildOvercloudImage(command.Command):
                 'DELOREAN_TRUNK_REPO',
                 'http://trunk.rdoproject.org/kilo/centos7/latest-RDO-kilo-CI/'
             ),
-            help="URL to Delorean trunk repo",
+            help=_("URL to Delorean trunk repo"),
         )
         parser.add_argument(
             "--delorean-repo-file",
             dest="delorean_repo_file",
             default=os.environ.get('DELOREAN_REPO_FILE', 'delorean-kilo.repo'),
-            help="Filename for delorean repo config file",
+            help=_("Filename for delorean repo config file"),
         )
         parser.add_argument(
             "--overcloud-full-dib-extra-args",
@@ -319,7 +320,7 @@ class BuildOvercloudImage(command.Command):
             default=os.environ.get(
                 "OVERCLOUD_FULL_DIB_EXTRA_ARGS",
                 " ".join(self.OVERCLOUD_FULL_DIB_EXTRA_ARGS)),
-            help="Extra args for Overcloud Full",
+            help=_("Extra args for Overcloud Full"),
         )
         parser.add_argument(
             "--agent-dib-extra-args",
@@ -327,33 +328,33 @@ class BuildOvercloudImage(command.Command):
             default=os.environ.get(
                 "AGENT_DIB_EXTRA_ARGS",
                 " ".join(self.AGENT_DIB_EXTRA_ARGS)),
-            help="Extra args for the IPA image",
+            help=_("Extra args for the IPA image"),
         )
         parser.add_argument(
             "--overcloud-full-name",
             dest="overcloud_full_name",
             default=os.environ.get('OVERCLOUD_FULL_NAME', 'overcloud-full'),
-            help="Name of overcloud full image",
+            help=_("Name of overcloud full image"),
         )
         parser.add_argument(
             "--fedora-user-name",
             dest="fedora_user_name",
             default=os.environ.get('FEDORA_USER_NAME', 'fedora-user'),
-            help="Name of Fedora user image",
+            help=_("Name of Fedora user image"),
         )
         parser.add_argument(
             "--agent-name",
             dest="agent_name",
             default=os.environ.get('AGENT_NAME', 'ironic-python-agent'),
-            help="Name of the IPA ramdisk image",
+            help=_("Name of the IPA ramdisk image"),
         )
         parser.add_argument(
             "--deploy-name",
             dest="deploy_name",
             default=os.environ.get('DEPLOY_NAME', 'deploy-ramdisk-ironic'),
-            help=("DEPRECATED: Name of deployment ramdisk image.  This image "
-                  "has been replaced by the Ironic Python Agent ramdisk, so "
-                  "you should switch to that as soon as possible."),
+            help=_("DEPRECATED: Name of deployment ramdisk image.  This image "
+                   "has been replaced by the Ironic Python Agent ramdisk, so "
+                   "you should switch to that as soon as possible."),
         )
         parser.add_argument(
             "--agent-image-element",
@@ -361,7 +362,7 @@ class BuildOvercloudImage(command.Command):
             default=os.environ.get(
                 'AGENT_IMAGE_ELEMENT',
                 " ".join(self.AGENT_IMAGE_ELEMENT)),
-            help="DIB elements for the IPA image",
+            help=_("DIB elements for the IPA image"),
         )
         parser.add_argument(
             "--deploy-image-element",
@@ -369,13 +370,13 @@ class BuildOvercloudImage(command.Command):
             default=os.environ.get(
                 'DEPLOY_IMAGE_ELEMENT',
                 " ".join(self.DEPLOY_IMAGE_ELEMENT)),
-            help="DIB elements for deploy image",
+            help=_("DIB elements for deploy image"),
         )
         parser.add_argument(
             "--builder-extra-args",
             dest="builder_extra_args",
             default='',
-            help="Extra arguments for the image builder",
+            help=_("Extra arguments for the image builder"),
         )
         image_group.add_argument(
             "--builder",
@@ -383,8 +384,8 @@ class BuildOvercloudImage(command.Command):
             metavar='<builder>',
             choices=self._BUILDERS,
             default='dib',
-            help="Image builder. One of "
-                 "%s" % ", ".join(self._BUILDERS),
+            help=_("Image builder. One of "
+                   "%s") % ", ".join(self._BUILDERS),
         )
         return parser
 
@@ -652,23 +653,23 @@ class UploadOvercloudImage(command.Command):
         parser.add_argument(
             "--image-path",
             default=os.environ.get('IMAGE_PATH', './'),
-            help="Path to directory containing image files",
+            help=_("Path to directory containing image files"),
         )
         parser.add_argument(
             "--os-image",
             default=os.environ.get('OS_IMAGE', 'overcloud-full.qcow2'),
-            help="OpenStack disk image filename",
+            help=_("OpenStack disk image filename"),
         )
         parser.add_argument(
             "--http-boot",
             default=os.environ.get('HTTP_BOOT', '/httpboot'),
-            help="Root directory for the introspection image",
+            help=_("Root directory for the introspection image")
         )
         parser.add_argument(
             "--update-existing",
             dest="update_existing",
             action="store_true",
-            help="Update images if already exist",
+            help=_("Update images if already exist"),
         )
         return parser
 

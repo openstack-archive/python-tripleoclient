@@ -70,7 +70,7 @@ class ValidateInstackEnv(command.Command):
         parser = super(ValidateInstackEnv, self).get_parser(prog_name)
         parser.add_argument(
             '-f', '--file', dest='instackenv',
-            help="Path to the instackenv.json file.",
+            help=_("Path to the instackenv.json file."),
             default='instackenv.json')
         return parser
 
@@ -152,8 +152,8 @@ class ImportBaremetal(command.Command):
     def get_parser(self, prog_name):
         parser = super(ImportBaremetal, self).get_parser(prog_name)
         parser.add_argument('-s', '--service-host', dest='service_host',
-                            help='Nova compute service host to register nodes '
-                            'with')
+                            help=_('Nova compute service host to register '
+                                   'nodes with'))
         parser.add_argument(
             '--json', dest='json', action='store_true',
             help=_('Deprecated, now detected via file extension.'))
@@ -162,22 +162,24 @@ class ImportBaremetal(command.Command):
             help=_('Deprecated, now detected via file extension.'))
         parser.add_argument('--deploy-kernel',
                             default='bm-deploy-kernel',
-                            help='Image with deploy kernel.')
+                            help=_('Image with deploy kernel.'))
         parser.add_argument('--deploy-ramdisk',
                             default='bm-deploy-ramdisk',
-                            help='Image with deploy ramdisk.')
+                            help=_('Image with deploy ramdisk.'))
         parser.add_argument('--no-deploy-image', action='store_true',
-                            help='Skip setting the deploy kernel and ramdisk.')
+                            help=_('Skip setting the deploy kernel and '
+                                   'ramdisk.'))
         parser.add_argument('--instance-boot-option',
                             choices=['local', 'netboot'], default='local',
-                            help='Whether to set instances for booting from '
-                            'local hard drive (local) or network (netboot).')
+                            help=_('Whether to set instances for booting from '
+                                   'local hard drive (local) or network '
+                                   '(netboot).'))
         parser.add_argument('file_in', type=argparse.FileType('r'))
         parser.add_argument(
             '--initial-state',
             choices=['enroll', 'available'],
             default='available',
-            help='Provision state for newly-enrolled nodes.'
+            help=_('Provision state for newly-enrolled nodes.')
         )
 
         return parser
@@ -383,8 +385,8 @@ class ConfigureReadyState(command.Command):
 
     def get_parser(self, prog_name):
         parser = super(ConfigureReadyState, self).get_parser(prog_name)
-        parser.add_argument('file', help='JSON file containing the '
-                            'ready-state configuration for each profile')
+        parser.add_argument('file', help=_('JSON file containing the '
+                            'ready-state configuration for each profile'))
 
         return parser
 
@@ -424,24 +426,25 @@ class ConfigureBaremetalBoot(command.Command):
         parser = super(ConfigureBaremetalBoot, self).get_parser(prog_name)
         parser.add_argument('--deploy-kernel',
                             default='bm-deploy-kernel',
-                            help='Image with deploy kernel.')
+                            help=_('Image with deploy kernel.'))
         parser.add_argument('--deploy-ramdisk',
                             default='bm-deploy-ramdisk',
-                            help='Image with deploy ramdisk.')
+                            help=_('Image with deploy ramdisk.'))
         parser.add_argument('--root-device',
-                            help='Define the root device for nodes. '
-                            'Can be either a list of device names (without '
-                            '/dev) to choose from or one of two strategies: '
-                            'largest or smallest. For it to work this command '
-                            'should be run after the introspection.')
+                            help=_('Define the root device for nodes. '
+                                   'Can be either a list of device names '
+                                   '(without /dev) to choose from or one of '
+                                   'two strategies: largest or smallest. For '
+                                   'it to work this command should be run '
+                                   'after the introspection.'))
         parser.add_argument('--root-device-minimum-size',
                             type=int, default=4,
-                            help='Minimum size (in GiB) of the detected '
-                            'root device. Used with --root-device.')
+                            help=_('Minimum size (in GiB) of the detected '
+                                   'root device. Used with --root-device.'))
         parser.add_argument('--overwrite-root-device-hints',
                             action='store_true',
-                            help='Whether to overwrite existing root device '
-                            'hints when --root-device is used.')
+                            help=_('Whether to overwrite existing root device '
+                                   'hints when --root-device is used.'))
         return parser
 
     def take_action(self, parsed_args):
