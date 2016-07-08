@@ -13,6 +13,7 @@
 #   under the License.
 #
 
+import argparse
 import logging
 import uuid
 
@@ -22,6 +23,7 @@ from openstackclient.i18n import _
 from tripleo_common import scale
 
 from tripleoclient import constants
+from tripleoclient import utils as oooutils
 from tripleoclient.workflows import baremetal
 
 
@@ -146,3 +148,66 @@ class IntrospectNode(command.Command):
             else:
                 baremetal.provide_manageable_nodes(self.app.client_manager,
                                                    queue_name=queue_name)
+
+
+class ImportNode(command.Command):
+    """Import baremetal nodes from a JSON, YAML or CSV file.
+
+    The node status will be set to 'manageable' by default.
+    """
+
+    log = logging.getLogger(__name__ + ".ImportNode")
+
+    def get_parser(self, prog_name):
+        parser = super(ImportNode, self).get_parser(prog_name)
+        parser.add_argument('--introspect',
+                            action='store_true',
+                            help=_('Introspect the imported nodes'))
+        parser.add_argument('--provide',
+                            action='store_true',
+                            help=_('Provide (make available) the nodes'))
+        parser.add_argument('--no-deploy-image', action='store_true',
+                            help=_('Skip setting the deploy kernel and '
+                                   'ramdisk.'))
+        parser.add_argument('--instance-boot-option',
+                            choices=['local', 'netboot'], default='local',
+                            help=_('Whether to set instances for booting from '
+                                   'local hard drive (local) or network '
+                                   '(netboot).'))
+        parser.add_argument('env_file', type=argparse.FileType('r'))
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)" % parsed_args)
+
+        nodes_config = oooutils.parse_env_file(parsed_args.env_file)
+
+        queue_name = str(uuid.uuid4())
+
+        if parsed_args.no_deploy_image:
+            deploy_kernel = None
+            deploy_ramdisk = None
+        else:
+            deploy_kernel = 'bm-deploy-kernel'
+            deploy_ramdisk = 'bm-deploy-ramdisk'
+
+        nodes = baremetal.register_or_update(
+            self.app.client_manager,
+            nodes_json=nodes_config,
+            queue_name=queue_name,
+            kernel_name=deploy_kernel,
+            ramdisk_name=deploy_ramdisk,
+            instance_boot_option=parsed_args.instance_boot_option
+        )
+
+        nodes_uuids = [node['uuid'] for node in nodes]
+
+        if parsed_args.introspect:
+            baremetal.introspect(self.app.client_manager,
+                                 node_uuids=nodes_uuids,
+                                 queue_name=queue_name)
+
+        if parsed_args.provide:
+            baremetal.provide(self.app.client_manager,
+                              node_uuids=nodes_uuids,
+                              queue_name=queue_name)

@@ -16,12 +16,10 @@
 from __future__ import print_function
 
 import argparse
-import csv
 import json
 import logging
 import time
 import uuid
-import yaml
 
 from cliff import command
 from cliff import lister
@@ -33,32 +31,6 @@ from oslo_utils import units
 from tripleoclient import exceptions
 from tripleoclient import utils
 from tripleoclient.workflows import baremetal
-
-
-def _csv_to_nodes_dict(nodes_csv):
-    """Convert CSV to a list of dicts formatted for os_cloud_config
-
-    Given a CSV file in the format below, convert it into the
-    structure expected by os_cloud_config JSON files.
-
-    pm_type, pm_addr, pm_user, pm_password, mac
-    """
-
-    data = []
-
-    for row in csv.reader(nodes_csv):
-        node = {
-            "pm_user": row[2],
-            "pm_addr": row[1],
-            "pm_password": row[3],
-            "pm_type": row[0],
-            "mac": [
-                row[4]
-            ]
-        }
-        data.append(node)
-
-    return data
 
 
 class ValidateInstackEnv(command.Command):
@@ -188,19 +160,13 @@ class ImportBaremetal(command.Command):
 
         self.log.debug("take_action(%s)" % parsed_args)
 
-        if parsed_args.json or parsed_args.file_in.name.endswith('.json'):
-            nodes_config = json.load(parsed_args.file_in)
-        elif parsed_args.csv or parsed_args.file_in.name.endswith('.csv'):
-            nodes_config = _csv_to_nodes_dict(parsed_args.file_in)
-        elif parsed_args.file_in.name.endswith('.yaml'):
-            nodes_config = yaml.safe_load(parsed_args.file_in)
-        else:
-            raise exceptions.InvalidConfiguration(
-                _("Invalid file extension for %s, must be json, yaml or csv") %
-                parsed_args.file_in.name)
+        file_type = None
+        if parsed_args.json:
+            file_type = 'json'
+        elif parsed_args.csv:
+            file_type = 'csv'
 
-        if 'nodes' in nodes_config:
-            nodes_config = nodes_config['nodes']
+        nodes_config = utils.parse_env_file(parsed_args.file_in, file_type)
 
         client = self.app.client_manager.baremetal
         if parsed_args.initial_state == "enroll":
@@ -209,14 +175,6 @@ class ImportBaremetal(command.Command):
                 raise exceptions.InvalidConfiguration(
                     _("OS_BAREMETAL_API_VERSION must be >=1.11 for use of "
                       "'enroll' provision state; currently %s") % api_version)
-
-        # NOTE (dprince) move this to tripleo-common?
-        for node in nodes_config:
-            caps = node.get('capabilities', {})
-            if not isinstance(caps, dict):
-                caps = utils.capabilities_to_dict(caps)
-            caps.setdefault('boot_option', parsed_args.instance_boot_option)
-            node['capabilities'] = caps
 
         queue_name = str(uuid.uuid4())
 
@@ -232,7 +190,8 @@ class ImportBaremetal(command.Command):
             nodes_json=nodes_config,
             queue_name=queue_name,
             kernel_name=deploy_kernel,
-            ramdisk_name=deploy_ramdisk
+            ramdisk_name=deploy_ramdisk,
+            instance_boot_option=parsed_args.instance_boot_option
         )
 
         node_uuids = [node['uuid'] for node in nodes]

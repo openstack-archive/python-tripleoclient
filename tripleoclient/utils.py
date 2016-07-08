@@ -15,6 +15,7 @@
 
 from __future__ import print_function
 import base64
+import csv
 import hashlib
 import json
 import logging
@@ -26,6 +27,7 @@ import socket
 import struct
 import subprocess
 import time
+import yaml
 
 from heatclient.common import event_utils
 from heatclient.exc import HTTPNotFound
@@ -837,3 +839,47 @@ def get_roles_info(parsed_args):
         'swift-storage': (parsed_args.swift_storage_flavor,
                           parsed_args.swift_storage_scale)
     }
+
+
+def _csv_to_nodes_dict(nodes_csv):
+    """Convert CSV to a list of dicts formatted for os_cloud_config
+
+    Given a CSV file in the format below, convert it into the
+    structure expected by os_cloud_config JSON files.
+
+    pm_type, pm_addr, pm_user, pm_password, mac
+    """
+
+    data = []
+
+    for row in csv.reader(nodes_csv):
+        node = {
+            "pm_user": row[2],
+            "pm_addr": row[1],
+            "pm_password": row[3],
+            "pm_type": row[0],
+            "mac": [
+                row[4]
+            ]
+        }
+        data.append(node)
+
+    return data
+
+
+def parse_env_file(env_file, file_type=None):
+    if file_type == 'json' or env_file.name.endswith('.json'):
+        nodes_config = json.load(env_file)
+    elif file_type == 'csv' or env_file.name.endswith('.csv'):
+        nodes_config = _csv_to_nodes_dict(env_file)
+    elif env_file.name.endswith('.yaml'):
+        nodes_config = yaml.safe_load(env_file)
+    else:
+        raise exceptions.InvalidConfiguration(
+            _("Invalid file extension for %s, must be json, yaml or csv") %
+            env_file.name)
+
+    if 'nodes' in nodes_config:
+        nodes_config = nodes_config['nodes']
+
+    return nodes_config
