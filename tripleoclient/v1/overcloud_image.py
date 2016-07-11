@@ -27,6 +27,7 @@ import stat
 import subprocess
 import sys
 import time
+import warnings
 
 from cliff import command
 from openstackclient.common import exceptions
@@ -207,6 +208,7 @@ class BuildOvercloudImage(command.Command):
         'deploy-ironic'
     ]
 
+    # TODO(bnemec): Remove fedora-user in Ocata
     IMAGE_TYPES = [
         'agent-ramdisk',
         'deploy-ramdisk',
@@ -234,7 +236,10 @@ class BuildOvercloudImage(command.Command):
             choices=self.IMAGE_TYPES,
             action="append",
             help=_("Build image by name. One of "
-                   "%s") % ", ".join(self.IMAGE_TYPES),
+                   "%s. fedora-user is DEPRECATED. Download the latest Fedora "
+                   "cloud image directly from "
+                   "https://getfedora.org/en/cloud/download/ instead.") %
+                 ", ".join(self.IMAGE_TYPES),
         )
         parser.add_argument(
             "--base-image",
@@ -340,7 +345,9 @@ class BuildOvercloudImage(command.Command):
             "--fedora-user-name",
             dest="fedora_user_name",
             default=os.environ.get('FEDORA_USER_NAME', 'fedora-user'),
-            help=_("Name of Fedora user image"),
+            help=_("DEPRECATED: Downloading the Fedora image through "
+                   "tripleoclient is deprecated in favor of downloading the "
+                   "latest Fedora image directly from getfedora.org."),
         )
         parser.add_argument(
             "--agent-name",
@@ -493,6 +500,9 @@ class BuildOvercloudImage(command.Command):
         self._build_image_overcloud(parsed_args, 'full')
 
     def _build_image_fedora_user(self, parsed_args):
+        warnings.warn('Downloading a Fedora user image with tripleoclient is '
+                      'deprecated. Get the latest Fedora cloud image from '
+                      'https://getfedora.org/en/cloud/download/ instead.')
         image_name = "%s.qcow2" % parsed_args.fedora_user_name
         if not os.path.isfile(image_name):
             if os.path.isfile('~/.cache/image-create/fedora-21.x86_64.qcow2'):
