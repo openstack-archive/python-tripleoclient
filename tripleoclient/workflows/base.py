@@ -19,3 +19,16 @@ def call_action(workflow_client, action, **input_):
 
     # Parse the JSON output. Mistral client should do this for us really.
     return json.loads(result.output)['result']
+
+
+def start_workflow(workflow_client, identifier, workflow_input):
+
+    execution = workflow_client.executions.create(
+        identifier,
+        workflow_input=workflow_input
+    )
+
+    print("Started Mistral Workflow. Execution ID: {}".format(
+          execution.id))
+
+    return execution
