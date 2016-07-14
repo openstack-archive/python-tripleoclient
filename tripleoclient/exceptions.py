@@ -16,19 +16,8 @@
 """Exception definitions"""
 
 
-class UnsupportedVersion(Exception):
-    """The user is trying to use an unsupported version of the API"""
-    pass
-
-
 class Timeout(Exception):
     """An operation timed out"""
-    pass
-
-
-class UnknownService(Exception):
-    """The service type is unknown"""
-    pass
 
 
 class WorkflowServiceError(Exception):
@@ -38,12 +27,10 @@ class WorkflowServiceError(Exception):
 
 class NotFound(Exception):
     """Resource not found"""
-    pass
 
 
 class DeploymentError(RuntimeError):
     """Deployment failed"""
-    pass
 
 
 class RootUserExecution(Exception):
@@ -52,7 +39,6 @@ class RootUserExecution(Exception):
 
 class InvalidConfiguration(ValueError):
     """Invalid parameters were specified for the deployment"""
-    pass
 
 
 class IntrospectionError(RuntimeError):
