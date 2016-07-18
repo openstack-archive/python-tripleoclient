@@ -200,16 +200,14 @@ class DeployOvercloud(command.Command):
             'NeutronDhcpAgentsPerNetwork': dhcp_agents_per_network,
         })
 
-        if int(parameters.get('CephStorageCount', 0)) > 0:
-
-            if stack_is_new:
-                parameters.update({
-                    'CephClusterFSID': six.text_type(uuid.uuid1()),
-                    'CephMonKey': utils.create_cephx_key(),
-                    'CephAdminKey': utils.create_cephx_key(),
-                    'CephClientKey': utils.create_cephx_key(),
-                    'CephRgwKey': utils.create_cephx_key()
-                })
+        if stack_is_new:
+            parameters.update({
+                'CephClusterFSID': six.text_type(uuid.uuid1()),
+                'CephMonKey': utils.create_cephx_key(),
+                'CephAdminKey': utils.create_cephx_key(),
+                'CephClientKey': utils.create_cephx_key(),
+                'CephRgwKey': utils.create_cephx_key()
+            })
 
         return parameters
 
