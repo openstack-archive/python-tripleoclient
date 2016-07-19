@@ -25,7 +25,7 @@ class TestPlugin(base.TestCase):
     @mock.patch("websocket.create_connection")
     def test_make_client(self, ws_create_connection):
         clientmgr = mock.MagicMock()
-        clientmgr.get_endpoint_for_service_type.return_value = fakes.AUTH_URL
+        clientmgr.get_endpoint_for_service_type.return_value = fakes.WS_URL
 
         clientmgr.auth.get_token.return_value = "TOKEN"
         clientmgr.auth_ref.project_id = "ID"
@@ -70,7 +70,7 @@ class TestPlugin(base.TestCase):
         }, send_ack]
 
         clientmgr = mock.MagicMock()
-        clientmgr.get_endpoint_for_service_type.return_value = fakes.AUTH_URL
+        clientmgr.get_endpoint_for_service_type.return_value = fakes.WS_URL
         clientmgr.auth.get_token.return_value = "TOKEN"
         clientmgr.auth_ref.project_id = "ID"
 

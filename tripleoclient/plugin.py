@@ -70,17 +70,15 @@ class WebsocketClient(object):
         self._queue_name = queue_name
 
         endpoint = instance.get_endpoint_for_service_type(
-            'messaging')
+            'messaging-websocket')
         token = instance.auth.get_token(instance.session)
 
         self._project_id = instance.auth_ref.project_id
 
         self._websocket_client_id = str(uuid.uuid4())
 
-        # FIXME(dprince): add messaging-websocket to the keystone catalog
-        ws_url = endpoint.replace('http', 'ws').replace('8888', '9000')
-        LOG.debug('Instantiating messaging websocket client: %s', ws_url)
-        self._ws = websocket.create_connection(ws_url)
+        LOG.debug('Instantiating messaging websocket client: %s', endpoint)
+        self._ws = websocket.create_connection(endpoint)
 
         self.send('authenticate', extra_headers={'X-Auth-Token': token})
 

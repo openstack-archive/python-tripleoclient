@@ -19,6 +19,7 @@ import sys
 
 AUTH_TOKEN = "foobar"
 AUTH_URL = "http://0.0.0.0"
+WS_URL = "ws://0.0.0.0"
 
 
 class FakeApp(object):
