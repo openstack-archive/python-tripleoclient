@@ -94,7 +94,7 @@ def introspect_manageable_nodes(clients, **workflow_input):
         payload = ws.wait_for_message(execution.id)
 
     if payload['status'] == 'SUCCESS':
-        introspected_nodes = payload['introspected_nodes']
+        introspected_nodes = payload['introspected_nodes'] or {}
         for node_uuid, status in introspected_nodes.items():
             if status['error'] is None:
                 print(("Introspection for UUID {0} finished "
@@ -104,6 +104,8 @@ def introspect_manageable_nodes(clients, **workflow_input):
                 print(("Introspection for UUID {0} finished with error"
                        ": {1}").format(node_uuid, status['error']))
                 errors.append("%s: %s" % (node_uuid, status['error']))
+        else:
+            print("No nodes in manageable state found for introspection.")
     else:
         raise exceptions.IntrospectionError(
             'Exception introspecting nodes: {}'.format(payload['message']))
