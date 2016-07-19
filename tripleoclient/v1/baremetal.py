@@ -212,9 +212,11 @@ class ImportBaremetal(command.Command):
 
         # NOTE (dprince) move this to tripleo-common?
         for node in nodes_config:
-            caps = utils.capabilities_to_dict(node.get('capabilities', {}))
+            caps = node.get('capabilities', {})
+            if not isinstance(caps, dict):
+                caps = utils.capabilities_to_dict(caps)
             caps.setdefault('boot_option', parsed_args.instance_boot_option)
-            node['capabilities'] = utils.dict_to_capabilities(caps)
+            node['capabilities'] = caps
 
         queue_name = str(uuid.uuid4())
 

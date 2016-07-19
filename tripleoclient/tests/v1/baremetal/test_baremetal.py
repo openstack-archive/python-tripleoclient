@@ -372,9 +372,9 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
         nodes_list = copy.deepcopy(self.nodes_list)
         for node in nodes_list:
             if local:
-                node['capabilities'] = 'boot_option:local'
+                node['capabilities'] = {'boot_option': 'local'}
             else:
-                node['capabilities'] = 'boot_option:netboot'
+                node['capabilities'] = {'boot_option': 'netboot'}
 
         call_list = [mock.call(
             'tripleo.baremetal.v1.register_or_update', workflow_input={
