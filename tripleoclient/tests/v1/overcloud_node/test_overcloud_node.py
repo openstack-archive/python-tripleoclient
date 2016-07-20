@@ -21,6 +21,7 @@ import tempfile
 
 from openstackclient.tests import utils as test_utils
 
+from tripleoclient import exceptions
 from tripleoclient.tests.v1.overcloud_node import fakes
 from tripleoclient.v1 import overcloud_node
 
@@ -367,3 +368,176 @@ class TestImportNode(fakes.TestOvercloudNode):
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         self._check_workflow_call(parsed_args, no_deploy_image=True)
+
+
+class TestConfigureNode(fakes.TestOvercloudNode):
+
+    def setUp(self):
+        super(TestConfigureNode, self).setUp()
+
+        self.workflow = self.app.client_manager.workflow_engine
+        client = self.app.client_manager.tripleoclient
+        self.websocket = client.messaging_websocket()
+        self.websocket.wait_for_message.return_value = {
+            "status": "SUCCESS",
+            "message": ""
+        }
+
+        # Get the command object to test
+        self.cmd = overcloud_node.ConfigureNode(self.app, None)
+
+        self.workflow_input = {'queue_name': 'UUID4',
+                               'kernel_name': 'bm-deploy-kernel',
+                               'ramdisk_name': 'bm-deploy-ramdisk',
+                               'instance_boot_option': None,
+                               'root_device': None,
+                               'root_device_minimum_size': 4,
+                               'overwrite_root_device_hints': False}
+
+    def test_configure_all_manageable_nodes(self):
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--all-manageable'],
+                                        [('all_manageable', True)])
+        self.cmd.take_action(parsed_args)
+
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.baremetal.v1.configure_manageable_nodes',
+            workflow_input=self.workflow_input
+        )
+
+    def test_failed_to_configure_all_manageable_nodes(self):
+        self.websocket.wait_for_message.return_value = {
+            "status": "FAILED",
+            "message": "Test failure."
+        }
+
+        parsed_args = self.check_parser(self.cmd, ['--all-manageable'], [])
+        self.assertRaises(exceptions.NodeConfigurationError,
+                          self.cmd.take_action, parsed_args)
+
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.baremetal.v1.configure_manageable_nodes',
+            workflow_input=self.workflow_input
+        )
+
+    def test_configure_specified_nodes(self):
+        argslist = ['node_uuid1', 'node_uuid2']
+        verifylist = [('node_uuids', ['node_uuid1', 'node_uuid2'])]
+
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+        self.cmd.take_action(parsed_args)
+
+        self.workflow_input['node_uuids'] = ['node_uuid1', 'node_uuid2']
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.baremetal.v1.configure',
+            workflow_input=self.workflow_input
+        )
+
+    def test_failed_to_configure_specified_nodes(self):
+        self.websocket.wait_for_message.return_value = {
+            "status": "FAILED",
+            "message": "Test failure."
+        }
+
+        parsed_args = self.check_parser(self.cmd, ['node_uuid1'], [])
+        self.assertRaises(exceptions.NodeConfigurationError,
+                          self.cmd.take_action, parsed_args)
+
+        self.workflow_input['node_uuids'] = ['node_uuid1']
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.baremetal.v1.configure',
+            workflow_input=self.workflow_input
+        )
+
+    def test_configure_no_node_or_flag_specified(self):
+        self.assertRaises(test_utils.ParserException,
+                          self.check_parser,
+                          self.cmd, [], [])
+
+    def test_configure_uuids_and_all_both_specified(self):
+        argslist = ['node_id1', 'node_id2', '--all-manageable']
+        verifylist = [('node_uuids', ['node_id1', 'node_id2']),
+                      ('all_manageable', True)]
+        self.assertRaises(test_utils.ParserException,
+                          self.check_parser,
+                          self.cmd, argslist, verifylist)
+
+    def test_configure_kernel_and_ram(self):
+        argslist = ['--all-manageable', '--deploy-ramdisk', 'test_ramdisk',
+                    '--deploy-kernel', 'test_kernel']
+        verifylist = [('deploy_kernel', 'test_kernel'),
+                      ('deploy_ramdisk', 'test_ramdisk')]
+
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+        self.cmd.take_action(parsed_args)
+
+        self.workflow_input['kernel_name'] = 'test_kernel'
+        self.workflow_input['ramdisk_name'] = 'test_ramdisk'
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.baremetal.v1.configure_manageable_nodes',
+            workflow_input=self.workflow_input
+        )
+
+    def test_configure_instance_boot_option(self):
+        argslist = ['--all-manageable', '--instance-boot-option', 'netboot']
+        verifylist = [('instance_boot_option', 'netboot')]
+
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+        self.cmd.take_action(parsed_args)
+
+        self.workflow_input['instance_boot_option'] = 'netboot'
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.baremetal.v1.configure_manageable_nodes',
+            workflow_input=self.workflow_input
+        )
+
+    def test_configure_root_device(self):
+        argslist = ['--all-manageable',
+                    '--root-device', 'smallest',
+                    '--root-device-minimum-size', '2',
+                    '--overwrite-root-device-hints']
+        verifylist = [('root_device', 'smallest'),
+                      ('root_device_minimum_size', 2),
+                      ('overwrite_root_device_hints', True)]
+
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+        self.cmd.take_action(parsed_args)
+
+        self.workflow_input['root_device'] = 'smallest'
+        self.workflow_input['root_device_minimum_size'] = 2
+        self.workflow_input['overwrite_root_device_hints'] = True
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.baremetal.v1.configure_manageable_nodes',
+            workflow_input=self.workflow_input
+        )
+
+    def test_configure_specified_node_with_all_arguments(self):
+        argslist = ['node_id',
+                    '--deploy-kernel', 'test_kernel',
+                    '--deploy-ramdisk', 'test_ramdisk',
+                    '--instance-boot-option', 'netboot',
+                    '--root-device', 'smallest',
+                    '--root-device-minimum-size', '2',
+                    '--overwrite-root-device-hints']
+        verifylist = [('node_uuids', ['node_id']),
+                      ('deploy_kernel', 'test_kernel'),
+                      ('deploy_ramdisk', 'test_ramdisk'),
+                      ('instance_boot_option', 'netboot'),
+                      ('root_device', 'smallest'),
+                      ('root_device_minimum_size', 2),
+                      ('overwrite_root_device_hints', True)]
+
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+        self.cmd.take_action(parsed_args)
+
+        self.workflow_input.update({'node_uuids': ['node_id'],
+                                    'kernel_name': 'test_kernel',
+                                    'ramdisk_name': 'test_ramdisk',
+                                   'instance_boot_option': 'netboot',
+                                    'root_device': 'smallest',
+                                    'root_device_minimum_size': 2,
+                                    'overwrite_root_device_hints': True})
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.baremetal.v1.configure',
+            workflow_input=self.workflow_input
+        )
