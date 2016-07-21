@@ -280,6 +280,15 @@ class TestOvercloudImageBuild(TestPluginV1):
         parsed_args = self.check_parser(self.cmd, ['--all'], [])
         self.assertRaises(RuntimeError, self.cmd.take_action, parsed_args)
 
+    def test_pass_builder(self):
+        argslist = ['--builder', 'foo', '--all']
+        verifylist = [('builder', 'foo'), ('all', True)]
+        # NOTE(bnemec): At this time there is only one allowed option for
+        # --builder, so to verify that it actually parses we have to patch
+        # another one in.
+        with mock.patch.object(self.cmd, '_BUILDERS', ['dib', 'foo']):
+            self.check_parser(self.cmd, argslist, verifylist)
+
 
 class TestUploadOvercloudImage(TestPluginV1):
     def setUp(self):
