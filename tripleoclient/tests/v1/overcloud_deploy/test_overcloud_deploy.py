@@ -335,7 +335,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'NeutronAllowL3AgentFailover': False,
             'NeutronDhcpAgentsPerNetwork': 1,
             'NeutronDnsmasqOptions': 'dhcp-option-force=26,1400',
-            'NeutronEnableTunnelling': 'True',
             'NeutronFlatNetworks': 'datacentre',
             'NeutronL3HA': False,
             'NeutronNetworkType': 'gre',
