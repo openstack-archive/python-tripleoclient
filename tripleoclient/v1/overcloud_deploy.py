@@ -100,6 +100,7 @@ class DeployOvercloud(command.Command):
         parameters['TrovePassword'] = (
             passwords['OVERCLOUD_TROVE_PASSWORD'])
         parameters['ZaqarPassword'] = passwords['OVERCLOUD_ZAQAR_PASSWORD']
+        parameters['ManilaPassword'] = passwords['OVERCLOUD_MANILA_PASSWORD']
         parameters['NeutronMetadataProxySharedSecret'] = (
             passwords['NEUTRON_METADATA_PROXY_SHARED_SECRET'])
 
