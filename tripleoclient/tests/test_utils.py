@@ -458,6 +458,8 @@ class TestCreateOvercloudRC(TestCase):
 
         tempdir = tempfile.mkdtemp()
         rcfile = os.path.join(tempdir, 'teststackrc')
+        rcfile_v3 = os.path.join(tempdir, 'teststackrc.v3')
+
         try:
             utils.create_overcloudrc(stack=stack,
                                      no_proxy='127.0.0.1',
@@ -470,9 +472,16 @@ class TestCreateOvercloudRC(TestCase):
             self.assertIn('export PYTHONWARNINGS="ignore:Certificate has no, '
                           'ignore:A true SSLContext object is not available"',
                           rc)
+            rc_v3 = open(rcfile_v3, 'rt').read()
+            self.assertIn('export OS_USER_DOMAIN_NAME=Default', rc_v3)
+            self.assertIn('export OS_PROJECT_DOMAIN_NAME=Default', rc_v3)
+            self.assertIn('export OS_IDENTITY_API_VERSION=3', rc_v3)
         finally:
             if os.path.exists(rcfile):
                 os.unlink(rcfile)
+            if os.path.exists(rcfile_v3):
+                os.unlink(rcfile_v3)
+
             os.rmdir(tempdir)
 
 

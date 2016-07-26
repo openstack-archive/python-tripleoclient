@@ -168,7 +168,7 @@ def create_overcloudrc(stack, no_proxy, config_directory='.'):
         'NOVA_VERSION': '1.1',
         'COMPUTE_API_VERSION': '1.1',
         'OS_USERNAME': 'admin',
-        'OS_TENANT_NAME': 'admin',
+        'OS_PROJECT_NAME': 'admin',
         'OS_NO_CACHE': 'True',
         'OS_CLOUDNAME': stack.stack_name,
         'no_proxy': ','.join(no_proxy_list),
@@ -181,6 +181,23 @@ def create_overcloudrc(stack, no_proxy, config_directory='.'):
     })
 
     config_path = os.path.join(config_directory, '%src' % stack.stack_name)
+
+    with open(config_path, 'w') as f:
+        f.write("# Clear any old environment that may conflict.\n")
+        f.write("for key in $( set | awk '{FS=\"=\"}  /^OS_/ {print $1}' );"
+                "do unset $key ; done\n")
+        for key, value in rc_params.items():
+            f.write("export %(key)s=%(value)s\n" %
+                    {'key': key, 'value': value})
+
+    rc_params.update({
+        'OS_AUTH_URL': overcloud_endpoint.replace('/v2.0', '') + '/v3',
+        'OS_USER_DOMAIN_NAME': 'Default',
+        'OS_PROJECT_DOMAIN_NAME': 'Default',
+        'OS_IDENTITY_API_VERSION': '3'
+    })
+
+    config_path = os.path.join(config_directory, '%src.v3' % stack.stack_name)
 
     with open(config_path, 'w') as f:
         f.write("# Clear any old environment that may conflict.\n")
