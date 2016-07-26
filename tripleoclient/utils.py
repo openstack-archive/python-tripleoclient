@@ -174,6 +174,9 @@ def create_overcloudrc(stack, no_proxy, config_directory='.'):
     config_path = os.path.join(config_directory, '%src' % stack.stack_name)
 
     with open(config_path, 'w') as f:
+        f.write("# Clear any old environment that may conflict.\n")
+        f.write("for key in $( set | awk '{FS=\"=\"}  /^OS_/ {print $1}' );"
+                "do unset $key ; done\n")
         for key, value in rc_params.items():
             f.write("export %(key)s=%(value)s\n" %
                     {'key': key, 'value': value})
