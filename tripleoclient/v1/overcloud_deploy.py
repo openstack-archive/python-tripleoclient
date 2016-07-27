@@ -774,7 +774,7 @@ class DeployOvercloud(command.Command):
         parser.add_argument('--stack',
                             help=_("Stack name to create or update"),
                             default='overcloud')
-        parser.add_argument('-t', '--timeout', metavar='<TIMEOUT>',
+        parser.add_argument('--timeout', '-t', metavar='<TIMEOUT>',
                             type=int, default=240,
                             help=_('Deployment timeout in minutes.'))
         utils.add_deployment_plan_arguments(parser)
@@ -841,7 +841,7 @@ class DeployOvercloud(command.Command):
             help=_('User for ssh access to overcloud nodes')
         )
         parser.add_argument(
-            '-e', '--environment-file', metavar='<HEAT ENVIRONMENT FILE>',
+            '--environment-file', '-e', metavar='<HEAT ENVIRONMENT FILE>',
             action='append', dest='environment_files',
             help=_('Environment files to be passed to the heat stack-create '
                    'or heat stack-update command. (Can be specified more than '
