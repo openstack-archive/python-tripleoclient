@@ -64,6 +64,12 @@ _PASSWORD_NAMES = (
     "OVERCLOUD_ZAQAR_PASSWORD",
     "NEUTRON_METADATA_PROXY_SHARED_SECRET"
 )
+_CEPH_PASSWORD_NAMES = (
+    "OVERCLOUD_CEPH_MON_KEY",
+    "OVERCLOUD_CEPH_ADMIN_KEY",
+    "OVERCLOUD_CEPH_CLIENT_KEY",
+    "OVERCLOUD_CEPH_RGW_KEY"
+)
 
 
 def generate_overcloud_passwords(output_file="tripleo-overcloud-passwords",
@@ -82,7 +88,8 @@ def generate_overcloud_passwords(output_file="tripleo-overcloud-passwords",
     passwords = {}
     if os.path.isfile(output_file):
         with open(output_file) as f:
-            passwords = dict(line.split('=') for line in f.read().splitlines())
+            passwords = dict(line.split('=', 1)
+                             for line in f.read().splitlines())
     elif not create_password_file:
         raise exceptions.PasswordFileNotFound(
             "The password file could not be found!")
@@ -91,6 +98,11 @@ def generate_overcloud_passwords(output_file="tripleo-overcloud-passwords",
         if not passwords.get(name):
             passwords[name] = passutils.generate_password(
                 size=_MIN_PASSWORD_SIZE)
+
+    # CephX keys aren't random strings
+    for name in _CEPH_PASSWORD_NAMES:
+        if not passwords.get(name):
+            passwords[name] = create_cephx_key()
 
     with open(output_file, 'w') as f:
         for name, password in passwords.items():
