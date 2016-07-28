@@ -21,7 +21,6 @@ import uuid
 import websocket
 
 from openstackclient.common import utils
-from openstackclient.identity import common as identity_common
 
 LOG = logging.getLogger(__name__)
 
@@ -74,9 +73,7 @@ class WebsocketClient(object):
             'messaging')
         token = instance.auth.get_token(instance.session)
 
-        self._project_id = identity_common.find_project(
-            instance.identity,
-            instance._project_name).id
+        self._project_id = instance.auth_ref.project_id
 
         self._websocket_client_id = str(uuid.uuid4())
 
