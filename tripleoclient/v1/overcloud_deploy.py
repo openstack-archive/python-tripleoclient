@@ -177,16 +177,6 @@ class DeployOvercloud(command.Command):
                     'Specify --ntp-server when using multiple controllers '
                     '(with HA).')
 
-            parameters.update({
-                'NeutronL3HA': True,
-                'NeutronAllowL3AgentFailover': False,
-            })
-        else:
-            parameters.update({
-                'NeutronL3HA': False,
-                'NeutronAllowL3AgentFailover': False,
-            })
-
         dhcp_agents_per_network = (min(number_controllers, 3) if
                                    number_controllers else 1)
 
