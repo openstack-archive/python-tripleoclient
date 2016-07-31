@@ -166,6 +166,35 @@ class ClientWrapper(object):
     def __init__(self, instance):
         self._instance = instance
         self._object_store = None
+        self._local_orchestration = None
+
+    def local_orchestration(self, api_port, keystone_port):
+        """Returns an local_orchestration service client"""
+
+        if self._local_orchestration is not None:
+            return self._local_orchestration
+
+        API_VERSIONS = {
+            '1': 'heatclient.v1.client.Client',
+        }
+
+        heat_client = utils.get_client_class(
+            API_NAME,
+            '1',
+            API_VERSIONS)
+        LOG.debug('Instantiating local_orchestration client: %s', heat_client)
+
+        client = heat_client(
+            endpoint='http://127.0.0.1:%s/v1/admin' % api_port,
+            auth_url='http://127.0.0.1:%s/v3' % keystone_port,
+            username='admin',
+            password='fake',
+            region_name='regionOne',
+            token='fake',
+        )
+
+        self._local_orchestration = client
+        return self._local_orchestration
 
     def messaging_websocket(self, queue_name='tripleo'):
         """Returns a websocket for the messaging service"""
