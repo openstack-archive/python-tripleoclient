@@ -14,6 +14,7 @@
 #
 
 import logging
+import uuid
 
 from cliff import command
 from openstackclient.common import utils
@@ -21,6 +22,7 @@ from openstackclient.i18n import _
 from tripleo_common import scale
 
 from tripleoclient import constants
+from tripleoclient.workflows import baremetal
 
 
 class DeleteNode(command.Command):
@@ -62,3 +64,37 @@ class DeleteNode(command.Command):
         print("deleting nodes {0} from stack {1}".format(parsed_args.nodes,
                                                          parsed_args.stack))
         scale_manager.scaledown(parsed_args.nodes)
+
+
+class ProvideNode(command.Command):
+    """Mark nodes as available based on UUIDs or current 'manageable' state."""
+
+    log = logging.getLogger(__name__ + ".ProvideNode")
+
+    def get_parser(self, prog_name):
+        parser = super(ProvideNode, self).get_parser(prog_name)
+        group = parser.add_mutually_exclusive_group(required=True)
+        group.add_argument('node_uuids',
+                           nargs="*",
+                           metavar="<node_uuid>",
+                           default=[],
+                           help=_('Ironic UUIDs for the node(s) to be '
+                                  'provided'))
+        group.add_argument("--all-manageable",
+                           action='store_true',
+                           help=_("Provide all nodes currently in 'manageable'"
+                                  " state"))
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)" % parsed_args)
+
+        queue_name = str(uuid.uuid4())
+
+        if parsed_args.node_uuids:
+            baremetal.provide(self.app.client_manager,
+                              node_uuids=parsed_args.node_uuids,
+                              queue_name=queue_name)
+        else:
+            baremetal.provide_manageable_nodes(self.app.client_manager,
+                                               queue_name=queue_name)
