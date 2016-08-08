@@ -85,11 +85,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.get_config_value', autospec=True)
     @mock.patch('tripleoclient.utils.check_hypervisor_stats',
                 autospec=True)
-    @mock.patch('tripleoclient.utils.create_cephx_key',
-                autospec=True)
     @mock.patch('uuid.uuid1', autospec=True)
     @mock.patch('time.time', autospec=True)
-    def test_tht_scale(self, mock_time, mock_uuid1, mock_create_cephx_key,
+    def test_tht_scale(self, mock_time, mock_uuid1,
                        mock_check_hypervisor_stats, mock_get_key,
                        mock_create_env, generate_certs_mock,
                        mock_get_templte_contents, mock_process_multiple_env,
@@ -110,7 +108,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             ('ceph_storage_scale', 3)
         ]
 
-        mock_create_cephx_key.return_value = "cephx_key"
         mock_uuid1.return_value = "uuid"
         mock_time.return_value = 123456789
 
@@ -149,6 +146,11 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'AodhPassword': 'password',
             'CeilometerMeteringSecret': 'password',
             'CeilometerPassword': 'password',
+            'CephAdminKey': 'password',
+            'CephClientKey': 'password',
+            'CephClusterFSID': 'uuid',
+            'CephMonKey': 'password',
+            'CephRgwKey': 'password',
             'CephStorageCount': 3,
             'CinderPassword': 'password',
             'ExtraConfig': '{}',
@@ -245,11 +247,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.get_config_value', autospec=True)
     @mock.patch('tripleoclient.utils.check_hypervisor_stats',
                 autospec=True)
-    @mock.patch('tripleoclient.utils.create_cephx_key',
-                autospec=True)
     @mock.patch('uuid.uuid1', autospec=True)
     @mock.patch('time.time', autospec=True)
-    def test_tht_deploy(self, mock_time, mock_uuid1, mock_create_cephx_key,
+    def test_tht_deploy(self, mock_time, mock_uuid1,
                         mock_check_hypervisor_stats, mock_get_key,
                         mock_create_env, generate_certs_mock,
                         mock_get_templte_contents, mock_process_multiple_env,
@@ -269,7 +269,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             ('ceph_storage_scale', 3)
         ]
 
-        mock_create_cephx_key.return_value = "cephx_key"
         mock_uuid1.return_value = "uuid"
         mock_time.return_value = 123456789
 
@@ -311,11 +310,11 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'AodhPassword': 'password',
             'CeilometerMeteringSecret': 'password',
             'CeilometerPassword': 'password',
-            'CephAdminKey': 'cephx_key',
-            'CephClientKey': 'cephx_key',
+            'CephAdminKey': 'password',
+            'CephClientKey': 'password',
             'CephClusterFSID': 'uuid',
-            'CephMonKey': 'cephx_key',
-            'CephRgwKey': 'cephx_key',
+            'CephMonKey': 'password',
+            'CephRgwKey': 'password',
             'CephStorageCount': 3,
             'CinderPassword': 'password',
             'ExtraConfig': '{}',

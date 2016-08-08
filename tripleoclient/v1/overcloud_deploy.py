@@ -103,6 +103,10 @@ class DeployOvercloud(command.Command):
         parameters['ManilaPassword'] = passwords['OVERCLOUD_MANILA_PASSWORD']
         parameters['NeutronMetadataProxySharedSecret'] = (
             passwords['NEUTRON_METADATA_PROXY_SHARED_SECRET'])
+        parameters['CephMonKey'] = passwords['OVERCLOUD_CEPH_MON_KEY']
+        parameters['CephAdminKey'] = passwords['OVERCLOUD_CEPH_ADMIN_KEY']
+        parameters['CephClientKey'] = passwords['OVERCLOUD_CEPH_CLIENT_KEY']
+        parameters['CephRgwKey'] = passwords['OVERCLOUD_CEPH_RGW_KEY']
 
     def _update_parameters(self, args, network_client, stack):
         parameters = {}
@@ -186,12 +190,7 @@ class DeployOvercloud(command.Command):
 
         if stack_is_new:
             parameters.update({
-                'CephClusterFSID': six.text_type(uuid.uuid1()),
-                'CephMonKey': utils.create_cephx_key(),
-                'CephAdminKey': utils.create_cephx_key(),
-                'CephClientKey': utils.create_cephx_key(),
-                'CephRgwKey': utils.create_cephx_key()
-            })
+                'CephClusterFSID': six.text_type(uuid.uuid1())})
 
         return parameters
 

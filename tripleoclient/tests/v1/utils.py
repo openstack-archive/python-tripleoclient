@@ -17,6 +17,6 @@ from tripleoclient import utils
 
 
 def generate_overcloud_passwords_mock():
-    passwords = utils._PASSWORD_NAMES
+    passwords = utils._PASSWORD_NAMES + utils._CEPH_PASSWORD_NAMES
 
     return dict((password, 'password') for password in passwords)

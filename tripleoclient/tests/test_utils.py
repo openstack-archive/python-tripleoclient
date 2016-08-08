@@ -31,7 +31,10 @@ class TestPasswordsUtil(TestCase):
     @mock.patch("os.path.isfile", return_value=False)
     @mock.patch("passlib.utils.generate_password",
                 return_value="PASSWORD")
-    def test_generate_passwords(self, generate_password_mock, isfile_mock):
+    @mock.patch("tripleoclient.utils.create_cephx_key",
+                return_value="CEPHX_KEY")
+    def test_generate_passwords(self, create_cephx_key_mock,
+                                generate_password_mock, isfile_mock):
 
         mock_open = mock.mock_open()
 
@@ -45,6 +48,10 @@ class TestPasswordsUtil(TestCase):
             mock.call('OVERCLOUD_AODH_PASSWORD=PASSWORD\n'),
             mock.call('OVERCLOUD_CEILOMETER_PASSWORD=PASSWORD\n'),
             mock.call('OVERCLOUD_CEILOMETER_SECRET=PASSWORD\n'),
+            mock.call('OVERCLOUD_CEPH_ADMIN_KEY=CEPHX_KEY\n'),
+            mock.call('OVERCLOUD_CEPH_CLIENT_KEY=CEPHX_KEY\n'),
+            mock.call('OVERCLOUD_CEPH_MON_KEY=CEPHX_KEY\n'),
+            mock.call('OVERCLOUD_CEPH_RGW_KEY=CEPHX_KEY\n'),
             mock.call('OVERCLOUD_CINDER_PASSWORD=PASSWORD\n'),
             mock.call('OVERCLOUD_DEMO_PASSWORD=PASSWORD\n'),
             mock.call('OVERCLOUD_GLANCE_PASSWORD=PASSWORD\n'),
@@ -67,7 +74,8 @@ class TestPasswordsUtil(TestCase):
             mock.call('OVERCLOUD_ZAQAR_PASSWORD=PASSWORD\n'),
         ]
         self.assertEqual(sorted(mock_open().write.mock_calls), mock_calls)
-        self.assertEqual(generate_password_mock.call_count, len(mock_calls))
+        self.assertEqual(generate_password_mock.call_count +
+                         create_cephx_key_mock.call_count, len(mock_calls))
 
         self.assertEqual(len(passwords), len(mock_calls))
 
@@ -82,13 +90,20 @@ class TestPasswordsUtil(TestCase):
     @mock.patch("os.path.isfile", return_value=True)
     @mock.patch("passlib.utils.generate_password",
                 return_value="PASSWORD")
-    def test_load_passwords(self, generate_password_mock, isfile_mock):
+    @mock.patch("tripleoclient.utils.create_cephx_key",
+                return_value="CEPHX_KEY")
+    def test_load_passwords(self, create_cephx_key_mock,
+                            generate_password_mock, isfile_mock):
         PASSWORDS = [
             'OVERCLOUD_ADMIN_PASSWORD=PASSWORD\n',
             'OVERCLOUD_ADMIN_TOKEN=PASSWORD\n',
             'OVERCLOUD_AODH_PASSWORD=PASSWORD\n',
             'OVERCLOUD_CEILOMETER_PASSWORD=PASSWORD\n',
             'OVERCLOUD_CEILOMETER_SECRET=PASSWORD\n',
+            'OVERCLOUD_CEPH_ADMIN_KEY=CEPHX_KEY\n',
+            'OVERCLOUD_CEPH_CLIENT_KEY=CEPHX_KEY\n',
+            'OVERCLOUD_CEPH_MON_KEY=CEPHX_KEY\n',
+            'OVERCLOUD_CEPH_RGW_KEY=CEPHX_KEY\n',
             'OVERCLOUD_CINDER_PASSWORD=PASSWORD\n',
             'OVERCLOUD_DEMO_PASSWORD=PASSWORD\n',
             'OVERCLOUD_GLANCE_PASSWORD=PASSWORD\n',
@@ -111,7 +126,6 @@ class TestPasswordsUtil(TestCase):
             'OVERCLOUD_ZAQAR_PASSWORD=PASSWORD\n',
             'NEUTRON_METADATA_PROXY_SHARED_SECRET=PASSWORD\n',
         ]
-
         mock_open = mock.mock_open(read_data=''.join(PASSWORDS))
         mock_open.return_value.__iter__ = lambda self: self
         mock_open.return_value.__next__ = lambda self: self.readline()
