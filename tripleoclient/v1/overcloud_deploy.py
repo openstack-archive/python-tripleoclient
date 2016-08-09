@@ -846,13 +846,24 @@ class DeployOvercloud(command.Command):
                    ' commands. Can be specified more than once. Files in'
                    ' directories are loaded in ascending sort order.')
         )
-        parser.add_argument(
+        # TODO(bnemec): In Ocata or later, remove this group and just leave
+        # --validation-errors-nonfatal
+        error_group = parser.add_mutually_exclusive_group()
+        error_group.add_argument(
             '--validation-errors-fatal',
             action='store_true',
-            default=False,
-            help=_('Exit if there are errors from the configuration '
-                   'pre-checks. Ignoring these errors will likely cause your '
-                   'deploy to fail.')
+            default=True,
+            help=_('DEPRECATED: Validation errors are now fatal by default. '
+                   'This option will be removed in the future.')
+        )
+        error_group.add_argument(
+            '--validation-errors-nonfatal',
+            dest='validation_errors_fatal',
+            action='store_false',
+            default=True,
+            help=_('Allow the deployment to continue in spite of validation '
+                   'errors. Note that attempting deployment while errors '
+                   'exist is likely to fail.')
         )
         parser.add_argument(
             '--validation-warnings-fatal',

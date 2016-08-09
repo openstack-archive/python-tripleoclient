@@ -16,6 +16,8 @@
 import mock
 from uuid import uuid4
 
+from openstackclient.tests import utils
+
 from tripleoclient.tests.v1.overcloud_deploy import fakes
 from tripleoclient.v1 import overcloud_deploy
 
@@ -230,3 +232,23 @@ class TestCollectFlavors(fakes.TestDeployOvercloud):
         self.assertEqual(self.cmd.predeploy_errors, 0)
         self.assertEqual(self.cmd.predeploy_warnings, 0)
         self.assertEqual(expected_result, result)
+
+    def test_error_default(self):
+        self.check_parser(self.cmd, ['--templates'],
+                          [('validation_errors_fatal', True)])
+
+    def test_error_deprecated(self):
+        self.check_parser(self.cmd,
+                          ['--templates', '--validation-errors-fatal'],
+                          [('validation_errors_fatal', True)])
+
+    def test_error_nonfatal(self):
+        self.check_parser(self.cmd,
+                          ['--templates', '--validation-errors-nonfatal'],
+                          [('validation_errors_fatal', False)])
+
+    def test_error_exclusive(self):
+        self.assertRaises(utils.ParserException,
+                          self.check_parser, self.cmd,
+                          ['--templates', '--validation-errors-nonfatal',
+                           '--validation-errors-fatal'], [])
