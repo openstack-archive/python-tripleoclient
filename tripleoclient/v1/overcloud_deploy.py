@@ -505,6 +505,14 @@ class DeployOvercloud(command.Command):
         return re.sub('v[0-9]+', '',
                       service.capitalize() + interface.capitalize())
 
+    def _endpoints_managed(self, stack):
+        for output in stack.to_dict().get('outputs', {}):
+            if output['output_key'] == 'ManagedEndpoints':
+                # NOTE(jaosorior): We don't really care about the value as
+                # long as the key is there.
+                return output['output_value']
+        return False
+
     def _deploy_postconfig(self, stack, parsed_args):
         self.log.debug("_deploy_postconfig(%s)" % parsed_args)
 
@@ -522,8 +530,12 @@ class DeployOvercloud(command.Command):
 
         utils.remove_known_hosts(overcloud_ip_or_fqdn)
 
-        self._keystone_init(overcloud_endpoint, overcloud_ip_or_fqdn,
-                            parsed_args, stack)
+        if not self._endpoints_managed(stack):
+            self._keystone_init(overcloud_endpoint, overcloud_ip_or_fqdn,
+                                parsed_args, stack)
+        else:
+            self.log.debug("Keystone endpoints and services are managed by "
+                           "puppet. Skipping post-config.")
 
     def _validate_args(self, parsed_args):
         if parsed_args.templates is None and parsed_args.answers_file is None:
