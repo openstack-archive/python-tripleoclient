@@ -386,7 +386,9 @@ class DeployOvercloud(command.Command):
     def _keystone_init(self, overcloud_endpoint, overcloud_ip_or_fqdn,
                        parsed_args, stack):
         keystone_admin_ip = utils.get_endpoint('KeystoneAdmin', stack)
+        keystone_admin_ip = utils.unbracket_ipv6(keystone_admin_ip)
         keystone_internal_ip = utils.get_endpoint('KeystoneInternal', stack)
+        keystone_internal_ip = utils.unbracket_ipv6(keystone_internal_ip)
         tls_enabled = self._is_tls_enabled(overcloud_endpoint)
         keystone_tls_host = None
         if tls_enabled:
