@@ -21,6 +21,7 @@ import logging
 import os
 import passlib.utils as passutils
 import six
+import socket
 import struct
 import subprocess
 import time
@@ -78,6 +79,21 @@ def generate_overcloud_passwords(output_file="tripleo-overcloud-passwords"):
             f.write("{0}={1}\n".format(name, password))
 
     return passwords
+
+
+def unbracket_ipv6(address):
+    """Remove a bracket around addresses if it is valid IPv6
+
+    Return it unchanged if it is a hostname or IPv4 address.
+    """
+    if '[' and ']' in address:
+        s = address[address.find("[") + 1:address.find("]")]
+        try:
+            socket.inet_pton(socket.AF_INET6, s)
+            return s
+        except socket.error:
+            pass
+    return address
 
 
 def check_hypervisor_stats(compute_client, nodes=1, memory=0, vcpu=0):
