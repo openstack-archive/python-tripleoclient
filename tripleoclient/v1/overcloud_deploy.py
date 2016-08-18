@@ -464,7 +464,7 @@ class DeployOvercloud(command.Command):
             output_source = "service IPs"
             if endpoint_map:
                 output_source = "endpoint map"
-            self.log.warning(
+            self.log.debug(
                 ("Skipping \"{}\" postconfig because it wasn't found in the "
                  "{} output").format(service, output_source))
             return None
