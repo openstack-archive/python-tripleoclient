@@ -13,8 +13,6 @@
 #   under the License.
 #
 
-WEBROOT = '/dashboard/'
-
 SERVICE_LIST = {
     'aodh': {'password_field': 'OVERCLOUD_AODH_PASSWORD'},
     'ceilometer': {'password_field': 'OVERCLOUD_CEILOMETER_PASSWORD'},
@@ -28,10 +26,6 @@ SERVICE_LIST = {
     'neutron': {'password_field': 'OVERCLOUD_NEUTRON_PASSWORD'},
     'nova': {'password_field': 'OVERCLOUD_NOVA_PASSWORD'},
     'swift': {'password_field': 'OVERCLOUD_SWIFT_PASSWORD'},
-    'horizon': {
-        'port': '80',
-        'path': WEBROOT,
-        'admin_path': '%sadmin' % WEBROOT},
     'sahara': {'password_field': 'OVERCLOUD_SAHARA_PASSWORD'},
     'trove': {'password_field': 'OVERCLOUD_TROVE_PASSWORD'},
 }
