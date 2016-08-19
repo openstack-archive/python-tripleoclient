@@ -12,13 +12,12 @@
 #   License for the specific language governing permissions and limitations
 #   under the License.
 #
-
+import copy
 import json
 import os
 import tempfile
 
 import mock
-from oslo_utils import units
 import yaml
 
 from tripleoclient import exceptions
@@ -892,17 +891,42 @@ class TestConfigureBaremetalBoot(fakes.TestBaremetal):
         # Get the command object to test
         self.cmd = baremetal.ConfigureBaremetalBoot(self.app, None)
 
-    @mock.patch('openstackclient.common.utils.find_resource', autospec=True)
-    def test_configure_boot(self, find_resource_mock):
+        # Mistral-related mocks
+        self.workflow = self.app.client_manager.workflow_engine
+        client = self.app.client_manager.tripleoclient
+        self.websocket = client.messaging_websocket()
+        self.websocket.wait_for_message.return_value = {
+            "status": "SUCCESS",
+            "message": ""
+        }
 
-        find_resource_mock.return_value = mock.Mock(id="IDIDID")
-        bm_client = self.app.client_manager.baremetal
-        bm_client.node.list.return_value = [
+        uuid4_patcher = mock.patch('uuid.uuid4', return_value="UUID4")
+        self.mock_uuid4 = uuid4_patcher.start()
+        self.addCleanup(self.mock_uuid4.stop)
+
+        self.workflow_input = {'queue_name': 'UUID4',
+                               'node_uuids': ['ABCDEFGH'],
+                               'kernel_name': 'bm-deploy-kernel',
+                               'ramdisk_name': 'bm-deploy-ramdisk',
+                               'root_device': None,
+                               'root_device_minimum_size': 4,
+                               'overwrite_root_device_hints': False}
+        # Ironic mocks
+        self.bm_client = self.app.client_manager.baremetal
+        self.bm_client.node.list.return_value = [
+            mock.Mock(uuid="ABCDEFGH"),
+        ]
+
+        self.node = mock.Mock(uuid="ABCDEFGH", properties={})
+        self.bm_client.node.get.return_value = self.node
+
+    def test_configure_boot(self):
+        self.bm_client.node.list.return_value = [
             mock.Mock(uuid="ABCDEFGH"),
             mock.Mock(uuid="IJKLMNOP"),
         ]
 
-        bm_client.node.get.side_effect = [
+        self.bm_client.node.get.side_effect = [
             mock.Mock(uuid="ABCDEFGH", properties={}),
             mock.Mock(uuid="IJKLMNOP", properties={}),
         ]
@@ -910,47 +934,23 @@ class TestConfigureBaremetalBoot(fakes.TestBaremetal):
         parsed_args = self.check_parser(self.cmd, [], [])
         self.cmd.take_action(parsed_args)
 
-        self.assertEqual(find_resource_mock.call_count, 2)
-        self.assertEqual(find_resource_mock.mock_calls, [
-            mock.call(mock.ANY, 'bm-deploy-kernel'),
-            mock.call(mock.ANY, 'bm-deploy-ramdisk')
-        ])
+        call_list = [mock.call('tripleo.baremetal.v1.configure',
+                               workflow_input=self.workflow_input)]
 
-        self.assertEqual(bm_client.node.update.call_count, 2)
-        self.assertEqual(bm_client.node.update.mock_calls, [
-            mock.call('ABCDEFGH', [{
-                'op': 'add', 'value': 'boot_option:local',
-                'path': '/properties/capabilities'
-            }, {
-                'op': 'add', 'value': 'IDIDID',
-                'path': '/driver_info/deploy_ramdisk'
-            }, {
-                'op': 'add', 'value': 'IDIDID',
-                'path': '/driver_info/deploy_kernel'
-            }]),
-            mock.call('IJKLMNOP', [{
-                'op': 'add', 'value': 'boot_option:local',
-                'path': '/properties/capabilities'
-            }, {
-                'op': 'add', 'value': 'IDIDID',
-                'path': '/driver_info/deploy_ramdisk'
-            }, {
-                'op': 'add', 'value': 'IDIDID',
-                'path': '/driver_info/deploy_kernel'
-            }])
-        ])
+        workflow_input = copy.copy(self.workflow_input)
+        workflow_input['node_uuids'] = ["IJKLMNOP"]
+        call_list.append(mock.call('tripleo.baremetal.v1.configure',
+                                   workflow_input=workflow_input))
 
-    @mock.patch('openstackclient.common.utils.find_resource', autospec=True)
-    def test_configure_boot_with_suffix(self, find_resource_mock):
+        self.workflow.executions.create.assert_has_calls(call_list)
 
-        find_resource_mock.return_value = mock.Mock(id="IDIDID")
-        bm_client = self.app.client_manager.baremetal
-        bm_client.node.list.return_value = [
+    def test_configure_boot_with_suffix(self):
+        self.bm_client.node.list.return_value = [
             mock.Mock(uuid="ABCDEFGH"),
             mock.Mock(uuid="IJKLMNOP"),
         ]
 
-        bm_client.node.get.side_effect = [
+        self.bm_client.node.get.side_effect = [
             mock.Mock(uuid="ABCDEFGH", properties={}),
             mock.Mock(uuid="IJKLMNOP", properties={}),
         ]
@@ -963,390 +963,86 @@ class TestConfigureBaremetalBoot(fakes.TestBaremetal):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         self.cmd.take_action(parsed_args)
 
-        self.assertEqual(find_resource_mock.call_count, 2)
-        self.assertEqual(find_resource_mock.mock_calls, [
-            mock.call(mock.ANY, 'bm-deploy-kernel_20150101T100620'),
-            mock.call(mock.ANY, 'bm-deploy-ramdisk_20150101T100620')
-        ])
+        self.workflow_input['kernel_name'] = 'bm-deploy-kernel_20150101T100620'
+        self.workflow_input['ramdisk_name'] = (
+            'bm-deploy-ramdisk_20150101T100620')
 
-        self.assertEqual(bm_client.node.update.call_count, 2)
-        self.assertEqual(bm_client.node.update.mock_calls, [
-            mock.call('ABCDEFGH', [{
-                'op': 'add', 'value': 'boot_option:local',
-                'path': '/properties/capabilities'
-            }, {
-                'op': 'add', 'value': 'IDIDID',
-                'path': '/driver_info/deploy_ramdisk'
-            }, {
-                'op': 'add', 'value': 'IDIDID',
-                'path': '/driver_info/deploy_kernel'
-            }]),
-            mock.call('IJKLMNOP', [{
-                'op': 'add', 'value': 'boot_option:local',
-                'path': '/properties/capabilities'
-            }, {
-                'op': 'add', 'value': 'IDIDID',
-                'path': '/driver_info/deploy_ramdisk'
-            }, {
-                'op': 'add', 'value': 'IDIDID',
-                'path': '/driver_info/deploy_kernel'
-            }])
-        ])
+        call_list = [mock.call('tripleo.baremetal.v1.configure',
+                               workflow_input=self.workflow_input)]
 
-    @mock.patch('openstackclient.common.utils.find_resource', autospec=True)
+        workflow_input = copy.copy(self.workflow_input)
+        workflow_input['node_uuids'] = ["IJKLMNOP"]
+        call_list.append(mock.call('tripleo.baremetal.v1.configure',
+                                   workflow_input=workflow_input))
+
+        self.workflow.executions.create.assert_has_calls(call_list)
+
     @mock.patch.object(baremetal.ConfigureBaremetalBoot, 'sleep_time',
                        new_callable=mock.PropertyMock,
                        return_value=0)
-    def test_configure_boot_in_transition(self, _, find_resource_mock):
-        find_resource_mock.return_value = mock.Mock(id="IDIDID")
+    def test_configure_boot_in_transition(self, _):
+        self.bm_client.node.list.return_value = [mock.Mock(uuid="ABCDEFGH",
+                                                           power_state=None)]
 
-        bm_client = self.app.client_manager.baremetal
-        bm_client.node.list.return_value = [mock.Mock(uuid="ABCDEFGH",
-                                                      power_state=None),
-                                            ]
-        bm_client.node.get.side_effect = [mock.Mock(uuid="ABCDEFGH",
-                                                    power_state=None,
-                                                    properties={}),
-                                          mock.Mock(uuid="ABCDEFGH",
-                                                    power_state=None,
-                                                    properties={}),
-                                          mock.Mock(uuid="ABCDEFGH",
-                                                    power_state='available',
-                                                    properties={}),
-                                          mock.Mock(uuid="ABCDEFGH",
-                                                    power_state='available',
-                                                    properties={}),
-                                          ]
+        self.bm_client.node.get.side_effect = [
+            mock.Mock(uuid="ABCDEFGH", power_state=None, properties={}),
+            mock.Mock(uuid="ABCDEFGH", power_state=None, properties={}),
+            mock.Mock(uuid="ABCDEFGH", power_state='available', properties={}),
+            mock.Mock(uuid="ABCDEFGH", power_state='available', properties={}),
+        ]
+
         parsed_args = self.check_parser(self.cmd, [], [])
         self.cmd.take_action(parsed_args)
 
-        self.assertEqual(1, bm_client.node.list.call_count)
-        self.assertEqual(3, bm_client.node.get.call_count)
-        self.assertEqual(1, bm_client.node.update.call_count)
+        self.assertEqual(1, self.bm_client.node.list.call_count)
+        self.assertEqual(3, self.bm_client.node.get.call_count)
+        self.assertEqual(1, self.workflow.executions.create.call_count)
 
-    @mock.patch('openstackclient.common.utils.find_resource', autospec=True)
     @mock.patch.object(baremetal.ConfigureBaremetalBoot, 'sleep_time',
                        new_callable=mock.PropertyMock,
                        return_value=0)
-    def test_configure_boot_timeout(self, _, find_resource_mock):
-        find_resource_mock.return_value = mock.Mock(id="IDIDID")
-
-        bm_client = self.app.client_manager.baremetal
-        bm_client.node.list.return_value = [mock.Mock(uuid="ABCDEFGH",
-                                                      power_state=None),
-                                            ]
-        bm_client.node.get.return_value = mock.Mock(uuid="ABCDEFGH",
-                                                    power_state=None)
+    def test_configure_boot_timeout(self, _):
+        self.bm_client.node.list.return_value = [mock.Mock(uuid="ABCDEFGH",
+                                                           power_state=None)]
+        self.bm_client.node.get.return_value = mock.Mock(uuid="ABCDEFGH",
+                                                         power_state=None)
         parsed_args = self.check_parser(self.cmd, [], [])
         self.assertRaises(exceptions.Timeout,
                           self.cmd.take_action,
                           parsed_args)
 
-    @mock.patch('openstackclient.common.utils.find_resource', autospec=True)
-    def test_configure_boot_skip_maintenance(self, find_resource_mock):
-
-        find_resource_mock.return_value = mock.Mock(id="IDIDID")
-        bm_client = self.app.client_manager.baremetal
-        bm_client.node.list.return_value = [
+    def test_configure_boot_skip_maintenance(self):
+        self.bm_client.node.list.return_value = [
             mock.Mock(uuid="ABCDEFGH", maintenance=False),
         ]
 
-        bm_client.node.get.return_value = mock.Mock(uuid="ABCDEFGH",
-                                                    maintenance=False,
-                                                    properties={})
+        self.bm_client.node.get.return_value = mock.Mock(uuid="ABCDEFGH",
+                                                         maintenance=False,
+                                                         properties={})
 
         parsed_args = self.check_parser(self.cmd, [], [])
         self.cmd.take_action(parsed_args)
 
-        self.assertEqual(bm_client.node.list.mock_calls, [mock.call(
+        self.assertEqual(self.bm_client.node.list.mock_calls, [mock.call(
             maintenance=False)])
 
-    @mock.patch('openstackclient.common.utils.find_resource', autospec=True)
-    def test_configure_boot_existing_properties(self, find_resource_mock):
-
-        find_resource_mock.return_value = mock.Mock(id="IDIDID")
-        bm_client = self.app.client_manager.baremetal
-        bm_client.node.list.return_value = [
-            mock.Mock(uuid="ABCDEFGH"),
-            mock.Mock(uuid="IJKLMNOP"),
-            mock.Mock(uuid="QRSTUVWX"),
-            mock.Mock(uuid="YZABCDEF"),
-        ]
-
-        bm_client.node.get.side_effect = [
-            mock.Mock(uuid="ABCDEFGH", properties={
-                'capabilities': 'existing:cap'
-            }),
-            mock.Mock(uuid="IJKLMNOP", properties={
-                'capabilities': 'boot_option:local'
-            }),
-            mock.Mock(uuid="QRSTUVWX", properties={
-                'capabilities': 'boot_option:remote'
-            }),
-            mock.Mock(uuid="YZABCDEF", properties={}),
-        ]
-
-        parsed_args = self.check_parser(self.cmd, [], [])
-        self.cmd.take_action(parsed_args)
-
-        self.assertEqual(find_resource_mock.call_count, 2)
-
-        self.assertEqual(bm_client.node.update.call_count, 4)
-        self.assertEqual(bm_client.node.update.mock_calls, [
-            mock.call('ABCDEFGH', [{
-                'op': 'add', 'value': 'boot_option:local,existing:cap',
-                'path': '/properties/capabilities'
-            }, {
-                'op': 'add', 'value': 'IDIDID',
-                'path': '/driver_info/deploy_ramdisk'
-            }, {
-                'op': 'add', 'value': 'IDIDID',
-                'path': '/driver_info/deploy_kernel'
-            }]),
-            mock.call('IJKLMNOP', [{
-                'op': 'add', 'value': 'boot_option:local',
-                'path': '/properties/capabilities'
-            }, {
-                'op': 'add', 'value': 'IDIDID',
-                'path': '/driver_info/deploy_ramdisk'
-            }, {
-                'op': 'add', 'value': 'IDIDID',
-                'path': '/driver_info/deploy_kernel'
-            }]),
-            mock.call('QRSTUVWX', [{
-                'op': 'add', 'value': 'boot_option:remote',
-                'path': '/properties/capabilities'
-            }, {
-                'op': 'add', 'value': 'IDIDID',
-                'path': '/driver_info/deploy_ramdisk'
-            }, {
-                'op': 'add', 'value': 'IDIDID',
-                'path': '/driver_info/deploy_kernel'
-            }]),
-            mock.call('YZABCDEF', [{
-                'op': 'add', 'value': 'boot_option:local',
-                'path': '/properties/capabilities'
-            }, {
-                'op': 'add', 'value': 'IDIDID',
-                'path': '/driver_info/deploy_ramdisk'
-            }, {
-                'op': 'add', 'value': 'IDIDID',
-                'path': '/driver_info/deploy_kernel'
-            }]),
-        ])
-
-
-@mock.patch('openstackclient.common.utils.find_resource', autospec=True)
-class TestConfigureBaremetalBootRootDeviceDetection(fakes.TestBaremetal):
-
-    def setUp(self):
-        super(TestConfigureBaremetalBootRootDeviceDetection, self).setUp()
-
-        # Get the command object to test
-        self.cmd = baremetal.ConfigureBaremetalBoot(self.app, None)
-
-        self.disks = [
-            {'name': '/dev/sda', 'size': 11 * units.Gi},
-            {'name': '/dev/sdb', 'size': 2 * units.Gi},
-            {'name': '/dev/sdc', 'size': 5 * units.Gi},
-            {'name': '/dev/sdd', 'size': 21 * units.Gi},
-            {'name': '/dev/sde', 'size': 13 * units.Gi},
-        ]
-        for i, disk in enumerate(self.disks):
-            disk['wwn'] = 'wwn%d' % i
-            disk['serial'] = 'serial%d' % i
-
-        self.inspector_client = self.app.client_manager.baremetal_introspection
-        self.inspector_client.data['ABCDEFGH'] = {
-            'inventory': {'disks': self.disks}
-        }
-
-        self.bm_client = self.app.client_manager.baremetal
-        self.bm_client.node.list.return_value = [
-            mock.Mock(uuid="ABCDEFGH"),
-        ]
-
-        self.node = mock.Mock(uuid="ABCDEFGH", properties={})
-        self.bm_client.node.get.return_value = self.node
-
-    def test_smallest(self, find_resource_mock):
-        find_resource_mock.return_value = mock.Mock(id="IDIDID")
-
-        arglist = ['--root-device', 'smallest']
-        verifylist = [('root_device', 'smallest')]
-
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-        self.cmd.take_action(parsed_args)
-
-        self.assertEqual(self.bm_client.node.update.call_count, 2)
-        root_device_args = self.bm_client.node.update.call_args_list[1]
-        expected_patch = [{'op': 'add', 'path': '/properties/root_device',
-                           'value': {'wwn': 'wwn2'}},
-                          {'op': 'add', 'path': '/properties/local_gb',
-                           'value': 4}]
-        self.assertEqual(mock.call('ABCDEFGH', expected_patch),
-                         root_device_args)
-
-    def test_largest(self, find_resource_mock):
-        find_resource_mock.return_value = mock.Mock(id="IDIDID")
-
-        arglist = ['--root-device', 'largest']
-        verifylist = [('root_device', 'largest')]
-
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-        self.cmd.take_action(parsed_args)
-
-        self.assertEqual(self.bm_client.node.update.call_count, 2)
-        root_device_args = self.bm_client.node.update.call_args_list[1]
-        expected_patch = [{'op': 'add', 'path': '/properties/root_device',
-                           'value': {'wwn': 'wwn3'}},
-                          {'op': 'add', 'path': '/properties/local_gb',
-                           'value': 20}]
-        self.assertEqual(mock.call('ABCDEFGH', expected_patch),
-                         root_device_args)
-
-    def test_no_overwrite(self, find_resource_mock):
-        find_resource_mock.return_value = mock.Mock(id="IDIDID")
-        self.node.properties['root_device'] = {'foo': 'bar'}
-
-        arglist = ['--root-device', 'smallest']
-        verifylist = [('root_device', 'smallest')]
-
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-        self.cmd.take_action(parsed_args)
-
-        self.assertEqual(self.bm_client.node.update.call_count, 1)
-
-    def test_with_overwrite(self, find_resource_mock):
-        find_resource_mock.return_value = mock.Mock(id="IDIDID")
-        self.node.properties['root_device'] = {'foo': 'bar'}
-
-        arglist = ['--root-device', 'smallest',
-                   '--overwrite-root-device-hints']
+    def test_root_device_options(self):
+        argslist = ['--root-device', 'smallest',
+                    '--root-device-minimum-size', '2',
+                    '--overwrite-root-device-hints']
         verifylist = [('root_device', 'smallest'),
+                      ('root_device_minimum_size', 2),
                       ('overwrite_root_device_hints', True)]
-
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
         self.cmd.take_action(parsed_args)
 
-        self.assertEqual(self.bm_client.node.update.call_count, 2)
-        root_device_args = self.bm_client.node.update.call_args_list[1]
-        expected_patch = [{'op': 'add', 'path': '/properties/root_device',
-                           'value': {'wwn': 'wwn2'}},
-                          {'op': 'add', 'path': '/properties/local_gb',
-                           'value': 4}]
-        self.assertEqual(mock.call('ABCDEFGH', expected_patch),
-                         root_device_args)
-
-    def test_minimum_size(self, find_resource_mock):
-        find_resource_mock.return_value = mock.Mock(id="IDIDID")
-
-        arglist = ['--root-device', 'smallest',
-                   '--root-device-minimum-size', '10']
-        verifylist = [('root_device', 'smallest')]
-
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-        self.cmd.take_action(parsed_args)
-
-        self.assertEqual(self.bm_client.node.update.call_count, 2)
-        root_device_args = self.bm_client.node.update.call_args_list[1]
-        expected_patch = [{'op': 'add', 'path': '/properties/root_device',
-                           'value': {'wwn': 'wwn0'}},
-                          {'op': 'add', 'path': '/properties/local_gb',
-                           'value': 10}]
-        self.assertEqual(mock.call('ABCDEFGH', expected_patch),
-                         root_device_args)
-
-    def test_bad_inventory(self, find_resource_mock):
-        find_resource_mock.return_value = mock.Mock(id="IDIDID")
-        del self.inspector_client.data['ABCDEFGH']['inventory']
-
-        arglist = ['--root-device', 'smallest']
-        verifylist = [('root_device', 'smallest')]
-
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-        self.assertRaisesRegexp(exceptions.RootDeviceDetectionError,
-                                "Malformed introspection data",
-                                self.cmd.take_action, parsed_args)
-
-        self.assertEqual(self.bm_client.node.update.call_count, 1)
-
-    def test_no_disks(self, find_resource_mock):
-        find_resource_mock.return_value = mock.Mock(id="IDIDID")
-        self.inspector_client.data['ABCDEFGH']['inventory']['disks'] = [
-            {'name': '/dev/sda', 'size': 1 * units.Gi}
-        ]
-
-        arglist = ['--root-device', 'smallest']
-        verifylist = [('root_device', 'smallest')]
-
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-        self.assertRaisesRegexp(exceptions.RootDeviceDetectionError,
-                                "No suitable disks",
-                                self.cmd.take_action, parsed_args)
-
-        self.assertEqual(self.bm_client.node.update.call_count, 1)
-
-    def test_no_data(self, find_resource_mock):
-        find_resource_mock.return_value = mock.Mock(id="IDIDID")
-        del self.inspector_client.data['ABCDEFGH']
-
-        arglist = ['--root-device', 'smallest']
-        verifylist = [('root_device', 'smallest')]
-
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-        self.assertRaisesRegexp(exceptions.RootDeviceDetectionError,
-                                "No introspection data",
-                                self.cmd.take_action, parsed_args)
-
-        self.assertEqual(self.bm_client.node.update.call_count, 1)
-
-    def test_no_wwn_and_serial(self, find_resource_mock):
-        find_resource_mock.return_value = mock.Mock(id="IDIDID")
-        self.inspector_client.data['ABCDEFGH']['inventory']['disks'] = [
-            {'name': '/dev/sda', 'size': 10 * units.Gi}
-        ]
-
-        arglist = ['--root-device', 'smallest']
-        verifylist = [('root_device', 'smallest')]
-
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-        self.assertRaisesRegexp(exceptions.RootDeviceDetectionError,
-                                "Neither WWN nor serial number are known",
-                                self.cmd.take_action, parsed_args)
-
-        self.assertEqual(self.bm_client.node.update.call_count, 1)
-
-    def test_device_list(self, find_resource_mock):
-        find_resource_mock.return_value = mock.Mock(id="IDIDID")
-
-        arglist = ['--root-device', 'hda,sda,sdb,sdc']
-        verifylist = [('root_device', 'hda,sda,sdb,sdc')]
-
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-        self.cmd.take_action(parsed_args)
-
-        self.assertEqual(self.bm_client.node.update.call_count, 2)
-        root_device_args = self.bm_client.node.update.call_args_list[1]
-        expected_patch = [{'op': 'add', 'path': '/properties/root_device',
-                           'value': {'wwn': 'wwn0'}},
-                          {'op': 'add', 'path': '/properties/local_gb',
-                           'value': 10}]
-        self.assertEqual(mock.call('ABCDEFGH', expected_patch),
-                         root_device_args)
-
-    def test_device_list_not_found(self, find_resource_mock):
-        find_resource_mock.return_value = mock.Mock(id="IDIDID")
-
-        arglist = ['--root-device', 'hda']
-        verifylist = [('root_device', 'hda')]
-
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-        self.assertRaisesRegexp(exceptions.RootDeviceDetectionError,
-                                "Cannot find a disk",
-                                self.cmd.take_action, parsed_args)
-
-        self.assertEqual(self.bm_client.node.update.call_count, 1)
+        self.workflow_input['root_device'] = 'smallest'
+        self.workflow_input['root_device_minimum_size'] = 2
+        self.workflow_input['overwrite_root_device_hints'] = True
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.baremetal.v1.configure',
+            workflow_input=self.workflow_input
+        )
 
 
 class TestShowNodeCapabilities(fakes.TestBaremetal):
