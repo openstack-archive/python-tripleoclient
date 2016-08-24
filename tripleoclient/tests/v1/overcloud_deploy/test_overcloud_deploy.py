@@ -16,6 +16,7 @@
 import fixtures
 import json
 import os
+import shutil
 import six
 import tempfile
 import yaml
@@ -58,16 +59,20 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         super(TestDeployOvercloud, self).tearDown()
         os.unlink(self.parameter_defaults_env_file)
 
+    @mock.patch('tripleoclient.workflows.plan_management.tarball',
+                autospec=True)
     @mock.patch("heatclient.common.event_utils.get_events")
-    @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env')
+    @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env',
+                autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_create_parameters_env')
+                '_create_parameters_env', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_deploy_postconfig')
+                '_deploy_postconfig', autospec=True)
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
-    @mock.patch('tripleoclient.utils.generate_overcloud_passwords')
-    @mock.patch('tripleoclient.utils.create_overcloudrc')
+    @mock.patch('tripleoclient.utils.generate_overcloud_passwords',
+                autospec=True)
+    @mock.patch('tripleoclient.utils.create_overcloudrc', autospec=True)
     @mock.patch('os_cloud_config.keystone.setup_endpoints', autospec=True)
     @mock.patch('time.sleep', return_value=None)
     @mock.patch('os_cloud_config.keystone.initialize', autospec=True)
@@ -100,7 +105,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                        mock_deploy_postconfig,
                        mock_create_parameters_env,
                        mock_breakpoints_cleanupm,
-                       mock_events):
+                       mock_events, mock_tarball):
 
         arglist = ['--templates', '--ceph-storage-scale', '3']
         verifylist = [
@@ -119,6 +124,11 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_event = mock.Mock()
         mock_event.id = '1234'
         mock_events.return_value = [mock_events]
+        workflow_client = clients.workflow_engine
+        workflow_client.environments.get.return_value = mock.MagicMock(
+            variables={'environments': []})
+        workflow_client.action_executions.create.return_value = mock.MagicMock(
+            output='{"result":[]}')
 
         mock_check_hypervisor_stats.return_value = {
             'count': 4,
@@ -187,28 +197,21 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'StackAction': 'UPDATE',
         }
 
-        def _custom_create_params_env(parameters):
+        testcase = self
+
+        def _custom_create_params_env(self, parameters):
             for key, value in six.iteritems(parameters):
-                self.assertEqual(value, expected_parameters[key])
+                testcase.assertEqual(value, expected_parameters[key])
             parameter_defaults = {"parameter_defaults": parameters}
-            with open(self.parameter_defaults_env_file, 'w') as temp_file:
+            with open(testcase.parameter_defaults_env_file, 'w') as temp_file:
                 temp_file.write(json.dumps(parameter_defaults))
-            return [self.parameter_defaults_env_file]
+            return [testcase.parameter_defaults_env_file]
 
         mock_create_parameters_env.side_effect = _custom_create_params_env
 
         self.cmd.take_action(parsed_args)
 
-        args, kwargs = orchestration_client.stacks.update.call_args
-
-        self.assertEqual(args, (orchestration_client.stacks.get().id, ))
-
-        self.assertEqual(kwargs['files'], {})
-        self.assertEqual(kwargs['template'], 'template')
-        self.assertEqual(kwargs['environment'], mock_env)
-        self.assertEqual(kwargs['stack_name'], 'overcloud')
-        self.assertEqual(kwargs['clear_parameters'],
-                         mock_env['parameter_defaults'].keys())
+        self.assertFalse(orchestration_client.stacks.update.called)
 
         mock_get_templte_contents.assert_called_with(
             '/usr/share/openstack-tripleo-heat-templates/' +
@@ -218,15 +221,22 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_process_multiple_env.assert_called_with(
             [self.parameter_defaults_env_file])
 
-    @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env')
+    @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_deploy_postconfig', autospec=True)
+    @mock.patch('tripleoclient.workflows.plan_management.tarball',
+                autospec=True)
+    @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env',
+                autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_validate_args')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_create_parameters_env')
+                '_create_parameters_env', autospec=True)
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
-    @mock.patch('tripleoclient.utils.generate_overcloud_passwords')
-    @mock.patch('tripleoclient.utils.create_overcloudrc')
+    @mock.patch('tripleoclient.utils.generate_overcloud_passwords',
+                autospec=True)
+    @mock.patch('tripleoclient.utils.create_overcloudrc', autospec=True)
     @mock.patch('os_cloud_config.utils.clients.get_nova_bm_client',
                 autospec=True)
     @mock.patch('os_cloud_config.utils.clients.get_keystone_client',
@@ -262,7 +272,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                         mock_generate_overcloud_passwords,
                         mock_create_tempest_deployer_input,
                         mock_create_parameters_env, mock_validate_args,
-                        mock_breakpoints_cleanup):
+                        mock_breakpoints_cleanup, mock_tarball,
+                        mock_postconfig, mock_get_overcloud_endpoint):
 
         arglist = ['--templates', '--ceph-storage-scale', '3']
         verifylist = [
@@ -278,7 +289,12 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
         mock_stack = fakes.create_tht_stack()
-        orchestration_client.stacks.get.return_value = None
+        orchestration_client.stacks.get.side_effect = [None, mock.Mock()]
+        workflow_client = clients.workflow_engine
+        workflow_client.environments.get.return_value = mock.MagicMock(
+            variables={'environments': []})
+        workflow_client.action_executions.create.return_value = mock.MagicMock(
+            output='{"result":[]}')
 
         def _orch_clt_create(**kwargs):
             orchestration_client.stacks.get.return_value = mock_stack
@@ -354,26 +370,21 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'StackAction': 'CREATE',
         }
 
-        def _custom_create_params_env(parameters):
+        testcase = self
+
+        def _custom_create_params_env(self, parameters):
             for key, value in six.iteritems(parameters):
-                self.assertEqual(value, expected_parameters[key])
+                testcase.assertEqual(value, expected_parameters[key])
             parameter_defaults = {"parameter_defaults": parameters}
-            with open(self.parameter_defaults_env_file, 'w') as temp_file:
+            with open(testcase.parameter_defaults_env_file, 'w') as temp_file:
                 temp_file.write(json.dumps(parameter_defaults))
-            return [self.parameter_defaults_env_file]
+            return [testcase.parameter_defaults_env_file]
 
         mock_create_parameters_env.side_effect = _custom_create_params_env
 
         self.cmd.take_action(parsed_args)
 
-        args, kwargs = orchestration_client.stacks.create.call_args
-
-        self.assertEqual(kwargs['files'], {})
-        self.assertEqual(kwargs['template'], 'template')
-        self.assertEqual(kwargs['environment'], mock_env)
-        self.assertEqual(kwargs['stack_name'], 'overcloud')
-        self.assertEqual(kwargs['clear_parameters'],
-                         mock_env['parameter_defaults'].keys())
+        self.assertFalse(orchestration_client.stacks.create.called)
 
         mock_get_templte_contents.assert_called_with(
             '/usr/share/openstack-tripleo-heat-templates/' +
@@ -381,25 +392,27 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_create_tempest_deployer_input.assert_called_with()
         mock_process_multiple_env.assert_called_with(
-            ['/usr/share/openstack-tripleo-heat-templates/overcloud-resource-'
-             'registry-puppet.yaml', '/fake/path',
-             self.parameter_defaults_env_file])
+            ['/fake/path', self.parameter_defaults_env_file])
 
         mock_validate_args.assert_called_once_with(parsed_args)
 
-        mock_remove_known_hosts.assert_called_once_with('0.0.0.0')
-        mock_get_keystone_client.assert_called_once_with('admin', 'password',
-                                                         'admin',
-                                                         'http://0.0.0.0:8000')
+        mock_tarball.create_tarball.assert_called_with(
+            '/usr/share/openstack-tripleo-heat-templates/', mock.ANY)
+        mock_tarball.tarball_extract_to_swift_container.assert_called_with(
+            clients.tripleoclient.object_store, mock.ANY, 'overcloud')
 
-    @mock.patch("heatclient.common.event_utils.get_events")
-    @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env')
+    @mock.patch('tripleoclient.workflows.plan_management.tarball',
+                autospec=True)
+    @mock.patch("heatclient.common.event_utils.get_events", autospec=True)
+    @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env',
+                autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_deploy_postconfig')
+                '_deploy_postconfig', autospec=True)
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
-    @mock.patch('tripleoclient.utils.generate_overcloud_passwords')
-    @mock.patch('tripleoclient.utils.create_overcloudrc')
+    @mock.patch('tripleoclient.utils.generate_overcloud_passwords',
+                autospec=True)
+    @mock.patch('tripleoclient.utils.create_overcloudrc', autospec=True)
     @mock.patch('os_cloud_config.keystone.setup_endpoints', autospec=True)
     @mock.patch('time.sleep', return_value=None)
     @mock.patch('os_cloud_config.keystone.initialize', autospec=True)
@@ -431,7 +444,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                      mock_create_tempest_deployer_input,
                                      mock_deploy_postconfig,
                                      mock_breakpoints_cleanup,
-                                     mock_events):
+                                     mock_events, mock_tarball):
 
         arglist = ['--templates', '/home/stack/tripleo-heat-templates']
         verifylist = [
@@ -465,22 +478,19 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         baremetal = clients.baremetal
         baremetal.node.list.return_value = range(10)
 
+        workflow_client = clients.workflow_engine
+        workflow_client.environments.get.return_value = mock.MagicMock(
+            variables={'environments': []})
+        workflow_client.action_executions.create.return_value = mock.MagicMock(
+            output='{"result":[]}')
+
         with mock.patch('tempfile.mkstemp') as mkstemp:
             mkstemp.return_value = (os.open(self.parameter_defaults_env_file,
                                             os.O_RDWR),
                                     self.parameter_defaults_env_file)
             self.cmd.take_action(parsed_args)
 
-        args, kwargs = orchestration_client.stacks.update.call_args
-
-        self.assertEqual(args, (orchestration_client.stacks.get().id, ))
-
-        self.assertEqual(kwargs['files'], {})
-        self.assertEqual(kwargs['template'], 'template')
-        self.assertEqual(kwargs['environment'], mock_env)
-        self.assertEqual(kwargs['stack_name'], 'overcloud')
-        self.assertEqual(kwargs['clear_parameters'],
-                         mock_env['parameter_defaults'].keys())
+        self.assertFalse(orchestration_client.stacks.update.called)
 
         mock_get_templte_contents.assert_called_with(
             '/home/stack/tripleo-heat-templates/' +
@@ -513,6 +523,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                           parsed_args)
         self.assertFalse(mock_deploy_tht.called)
 
+    @mock.patch('tripleoclient.workflows.plan_management.tarball',
+                autospec=True)
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
     @mock.patch('tripleoclient.utils.create_overcloudrc', autospec=True)
@@ -527,13 +539,19 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_environment_dirs(self, mock_deploy_heat,
                               mock_update_parameters, mock_post_config,
                               mock_utils_check_nodes, mock_utils_endpoint,
-                              mock_utils_createrc, mock_utils_tempest):
+                              mock_utils_createrc, mock_utils_tempest,
+                              mock_tarball):
+
+        clients = self.app.client_manager
+        workflow_client = clients.workflow_engine
+        workflow_client.action_executions.create.return_value = mock.MagicMock(
+            output='{"result":[]}')
 
         mock_update_parameters.return_value = {}
         mock_utils_endpoint.return_value = 'foo.bar'
 
         tmp_dir = self.useFixture(fixtures.TempDir())
-        test_env = os.path.join(tmp_dir.path, 'foo.yaml')
+        test_env = os.path.join(tmp_dir.path, 'foo1.yaml')
 
         env_dirs = [os.path.join(os.environ.get('HOME', ''), '.tripleo',
                     'environments'), tmp_dir.path]
@@ -548,7 +566,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         ]
 
         def _fake_heat_deploy(self, stack, stack_name, template_path,
-                              parameters, environments, timeout):
+                              parameters, environments, timeout, tht_root):
             assert test_env in environments
 
         mock_deploy_heat.side_effect = _fake_heat_deploy
@@ -556,6 +574,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         self.cmd.take_action(parsed_args)
 
+    @mock.patch('tripleoclient.workflows.plan_management.tarball',
+                autospec=True)
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
     @mock.patch('tripleoclient.utils.create_overcloudrc', autospec=True)
@@ -570,15 +590,21 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_environment_dirs_env(self, mock_deploy_heat,
                                   mock_update_parameters, mock_post_config,
                                   mock_utils_check_nodes, mock_utils_endpoint,
-                                  mock_utils_createrc, mock_utils_tempest):
+                                  mock_utils_createrc, mock_utils_tempest,
+                                  mock_tarball):
+
+        clients = self.app.client_manager
+        workflow_client = clients.workflow_engine
+        workflow_client.action_executions.create.return_value = mock.MagicMock(
+            output='{"result":[]}')
 
         mock_update_parameters.return_value = {}
         mock_utils_endpoint.return_value = 'foo.bar'
 
-        tmp_dir = tempfile.NamedTemporaryFile(mode='w', delete=False).name
-        os.unlink(tmp_dir)
-        os.mkdir(tmp_dir)
-        test_env = os.path.join(tmp_dir, 'foo.yaml')
+        tmp_dir = tempfile.mkdtemp()
+        test_env = os.path.join(tmp_dir, 'foo2.yaml')
+        self.addCleanup(shutil.rmtree, tmp_dir)
+
         with open(test_env, 'w') as temp_file:
             temp_file.write('#just a comment')
 
@@ -589,15 +615,13 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         os.environ['TRIPLEO_ENVIRONMENT_DIRECTORY'] = tmp_dir
 
         def _fake_heat_deploy(self, stack, stack_name, template_path,
-                              parameters, environments, timeout):
+                              parameters, environments, timeout, tht_root):
             assert test_env in environments
 
         mock_deploy_heat.side_effect = _fake_heat_deploy
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         self.cmd.take_action(parsed_args)
-        os.unlink(test_env)
-        os.rmdir(tmp_dir)
 
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
@@ -634,14 +658,18 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_create_tempest_deployer_input.assert_called_with()
 
-    @mock.patch("heatclient.common.event_utils.get_events")
-    @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env')
+    @mock.patch('tripleoclient.workflows.plan_management.tarball',
+                autospec=True)
+    @mock.patch("heatclient.common.event_utils.get_events", autospec=True)
+    @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env',
+                autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_deploy_postconfig')
+                '_deploy_postconfig', autospec=True)
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
-    @mock.patch('tripleoclient.utils.generate_overcloud_passwords')
-    @mock.patch('tripleoclient.utils.create_overcloudrc')
+    @mock.patch('tripleoclient.utils.generate_overcloud_passwords',
+                autospec=True)
+    @mock.patch('tripleoclient.utils.create_overcloudrc', autospec=True)
     @mock.patch('os_cloud_config.keystone.setup_endpoints', autospec=True)
     @mock.patch('time.sleep', return_value=None)
     @mock.patch('os_cloud_config.keystone.initialize', autospec=True)
@@ -673,7 +701,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                              mock_create_tempest_deployer_input,
                              mock_deploy_postconfig,
                              mock_breakpoints_cleanup,
-                             mock_events):
+                             mock_events, mock_tarball):
 
         arglist = ['--templates', '--rhel-reg',
                    '--reg-sat-url', 'https://example.com',
@@ -697,6 +725,11 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         orchestration_client = clients.orchestration
         orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
         mock_events.return_value = []
+        workflow_client = clients.workflow_engine
+        workflow_client.environments.get.return_value = mock.MagicMock(
+            variables={'environments': []})
+        workflow_client.action_executions.create.return_value = mock.MagicMock(
+            output='{"result":[]}')
 
         mock_check_hypervisor_stats.return_value = {
             'count': 4,
@@ -851,7 +884,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_heat_deploy_func.assert_called_once_with(
             self.cmd, {}, 'overcloud',
             '/fake/path/' + constants.OVERCLOUD_YAML_NAMES[0], {},
-            ['~/overcloud-env.json'], 1)
+            ['~/overcloud-env.json'], 1, '/fake/path')
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_heat_deploy')
@@ -866,10 +899,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_heat_deploy_func.assert_has_calls(
             [mock.call({}, 'overcloud',
                        '/fake/path/' + constants.OVERCLOUD_YAML_NAMES[0], {},
-                       ['~/overcloud-env.json'], 1),
+                       ['~/overcloud-env.json'], 1, '/fake/path'),
              mock.call({}, 'overcloud',
                        '/fake/path/' + constants.OVERCLOUD_YAML_NAMES[1], {},
-                       ['~/overcloud-env.json'], 1)])
+                       ['~/overcloud-env.json'], 1, '/fake/path')])
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_heat_deploy', autospec=True)
@@ -924,6 +957,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertFalse(mock_create_ocrc.called)
         self.assertFalse(mock_create_tempest_deployer_input.called)
 
+    @mock.patch('tripleoclient.workflows.plan_management.tarball',
+                autospec=True)
     @mock.patch('tripleoclient.utils.check_nodes_count',
                 autospec=True)
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
@@ -940,8 +975,13 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                           mock_oc_endpoint,
                           mock_create_ocrc,
                           mock_create_tempest_deployer_input,
-                          mock_check_nodes_count):
+                          mock_check_nodes_count, mock_tarball):
         clients = self.app.client_manager
+
+        workflow_client = clients.workflow_engine
+        workflow_client.action_executions.create.return_value = mock.MagicMock(
+            output='{"result":[]}')
+
         network_client = clients.network
         network_client.stacks.get.return_value = None
         net = network_client.api.find_attr('networks', 'ctlplane')
@@ -951,7 +991,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             with open('/tmp/environment.yaml', "w+t") as environmentfile:
                 yaml.dump(
                     {'templates': '/dev/null',
-                     'environments': ['/tmp/foo.yaml']
+                     'environments': ['/tmp/foo3.yaml']
                      },
                     answerfile
                 )
@@ -978,9 +1018,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         call_args = mock_heat_deploy.call_args[0]
         self.assertEqual(call_args[3],
                          '/dev/null/overcloud-without-mergepy.yaml')
-        self.assertIn('/tmp/foo.yaml', call_args[5])
+        self.assertIn('/tmp/foo3.yaml', call_args[5])
         self.assertIn('/tmp/environment.yaml', call_args[5])
-        foo_index = call_args[5].index('/tmp/foo.yaml')
+        foo_index = call_args[5].index('/tmp/foo3.yaml')
         env_index = call_args[5].index('/tmp/environment.yaml')
         self.assertGreater(env_index, foo_index)
 
@@ -1071,6 +1111,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             stack, parameters, parsed_args)
         self.assertEqual(1, self.cmd.predeploy_errors)
 
+    @mock.patch('tripleoclient.workflows.plan_management.tarball',
+                autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_create_parameters_env')
     @mock.patch('tripleoclient.utils.generate_overcloud_passwords')
@@ -1088,7 +1130,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                   mock_process_multiple_env,
                                   mock_create_overcloudrc,
                                   mock_generate_overcloud_passwords,
-                                  mock_create_parameters_env):
+                                  mock_create_parameters_env,
+                                  mock_tarball):
 
         arglist = ['--templates', '--control-scale', '3']
         verifylist = [
@@ -1097,6 +1140,13 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         ]
 
         mock_get_key.return_value = "PASSWORD"
+
+        clients = self.app.client_manager
+        workflow_client = clients.workflow_engine
+        workflow_client.environments.get.return_value = mock.MagicMock(
+            variables={'environments': []})
+        workflow_client.action_executions.create.return_value = mock.MagicMock(
+            output='{"result":[]}')
 
         mock_generate_overcloud_passwords.return_value = self._get_passwords()
 
@@ -1111,6 +1161,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                           self.cmd.take_action,
                           parsed_args)
 
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_deploy_postconfig', autospec=True)
+    @mock.patch('tripleoclient.workflows.plan_management.tarball',
+                autospec=True)
     @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_validate_args')
@@ -1160,7 +1214,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                  mock_create_tempest_deployer_input,
                                  mock_create_parameters_env,
                                  mock_validate_args,
-                                 mock_breakpoints_cleanup):
+                                 mock_breakpoints_cleanup,
+                                 mock_tarball,
+                                 mock_deploy_post_config):
 
         arglist = ['--templates', '--ceph-storage-scale', '3',
                    '--control-scale', '3']
@@ -1178,12 +1234,21 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
         mock_stack = fakes.create_tht_stack()
-        orchestration_client.stacks.get.return_value = None
+        orchestration_client.stacks.get.side_effect = [
+            None,
+            mock.MagicMock()
+        ]
 
         def _orch_clt_create(**kwargs):
             orchestration_client.stacks.get.return_value = mock_stack
 
         orchestration_client.stacks.create.side_effect = _orch_clt_create
+
+        workflow_client = clients.workflow_engine
+        workflow_client.environments.get.return_value = mock.MagicMock(
+            variables={'environments': []})
+        workflow_client.action_executions.create.return_value = mock.MagicMock(
+            output='{"result":[]}')
 
         mock_check_hypervisor_stats.return_value = {
             'count': 4,
@@ -1266,28 +1331,12 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         self.cmd.take_action(parsed_args)
 
-        args, kwargs = orchestration_client.stacks.create.call_args
-
-        self.assertEqual(kwargs['files'], {})
-        self.assertEqual(kwargs['template'], 'template')
-        self.assertEqual(kwargs['environment'], mock_env)
-        self.assertEqual(kwargs['stack_name'], 'overcloud')
-        self.assertEqual(kwargs['clear_parameters'],
-                         mock_env['parameter_defaults'].keys())
-
         mock_get_templte_contents.assert_called_with(
             '/usr/share/openstack-tripleo-heat-templates/' +
             constants.OVERCLOUD_YAML_NAMES[0])
 
         mock_create_tempest_deployer_input.assert_called_with()
         mock_process_multiple_env.assert_called_with(
-            ['/usr/share/openstack-tripleo-heat-templates/overcloud-resource-'
-             'registry-puppet.yaml', '/fake/path',
-             self.parameter_defaults_env_file])
+            ['/fake/path', self.parameter_defaults_env_file])
 
         mock_validate_args.assert_called_once_with(parsed_args)
-
-        mock_remove_known_hosts.assert_called_once_with('0.0.0.0')
-        mock_get_keystone_client.assert_called_once_with('admin', 'password',
-                                                         'admin',
-                                                         'http://0.0.0.0:8000')
