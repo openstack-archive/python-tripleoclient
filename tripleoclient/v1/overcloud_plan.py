@@ -12,10 +12,13 @@
 
 import json
 import logging
+import uuid
 
 from cliff import command
 from cliff import lister
 from openstackclient.i18n import _
+
+from tripleoclient.workflows import plan_management
 
 
 class ListPlans(lister.Lister):
@@ -74,3 +77,38 @@ class DeletePlan(command.Command):
             except Exception:
                 self.log.exception(
                     "Error parsing action result %s", execution.output)
+
+
+class CreatePlan(command.Command):
+    """Create a deployment plan"""
+
+    log = logging.getLogger(__name__ + ".CreatePlan")
+
+    def get_parser(self, prog_name):
+        parser = super(CreatePlan, self).get_parser(prog_name)
+        parser.add_argument(
+            'name',
+            help=_('The name of the plan, which is used for the object '
+                   'storage container, workflow environment and orchestration '
+                   'stack names.'))
+        parser.add_argument(
+            '--templates',
+            help=_('The directory containing the Heat templates to deploy. '
+                   'If this isn\'t provided, the templates packaged on the '
+                   'Undercloud will be used.'),
+        )
+
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)" % parsed_args)
+        clients = self.app.client_manager
+
+        name = parsed_args.name
+
+        if parsed_args.templates:
+            plan_management.create_plan_from_templates(
+                clients, name, parsed_args.templates)
+        else:
+            plan_management.create_default_plan(
+                clients, container=name, queue_name=str(uuid.uuid4()))
