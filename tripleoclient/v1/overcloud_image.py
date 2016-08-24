@@ -432,9 +432,6 @@ class BuildOvercloudImage(command.Command):
             env_vars['DELOREAN_REPO_URL'] = parsed_args.delorean_trunk_repo
         elif re.match('centos7', parsed_args.node_dist):
             env_vars['DELOREAN_REPO_URL'] = parsed_args.delorean_trunk_repo
-            dib_common_elements.extend([
-                'selinux-permissive',
-            ])
 
         dib_common_elements.extend([
             'element-manifest',
