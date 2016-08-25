@@ -135,7 +135,7 @@ def introspect_manageable_nodes(clients, **workflow_input):
                 print(("Introspection for UUID {0} finished with error"
                        ": {1}").format(node_uuid, status['error']))
                 errors.append("%s: %s" % (node_uuid, status['error']))
-        else:
+        if not introspected_nodes:
             print("No nodes in manageable state found for introspection.")
     else:
         raise exceptions.IntrospectionError(
