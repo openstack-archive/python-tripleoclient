@@ -78,7 +78,7 @@ class ProvideNode(command.Command):
                            nargs="*",
                            metavar="<node_uuid>",
                            default=[],
-                           help=_('Ironic UUIDs for the node(s) to be '
+                           help=_('Baremetal Node UUIDs for the node(s) to be '
                                   'provided'))
         group.add_argument("--all-manageable",
                            action='store_true',
@@ -112,7 +112,7 @@ class IntrospectNode(command.Command):
                            nargs="*",
                            metavar="<node_uuid>",
                            default=[],
-                           help=_('Ironic UUIDs for the node(s) to be '
+                           help=_('Baremetal Node UUIDs for the node(s) to be '
                                   'introspected'))
         group.add_argument("--all-manageable",
                            action='store_true',
