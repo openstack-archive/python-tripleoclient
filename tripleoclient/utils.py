@@ -26,6 +26,7 @@ import six
 import socket
 import struct
 import subprocess
+import sys
 import time
 import yaml
 
@@ -271,51 +272,15 @@ def wait_for_stack_ready(orchestration_client, stack_name, marker=None,
         return False
     stack_name = stack.stack_name
 
-    while True:
-
-        events = event_utils.get_events(orchestration_client,
-                                        stack_id=stack_name, nested_depth=2,
-                                        event_args={'sort_dir': 'asc',
-                                                    'marker': marker})
-
-        if len(events) >= 1:
-            # set marker to last event that was received.
-            marker = getattr(events[-1], 'id', None)
-
-            if verbose:
-                events_log = event_log_formatter(events)
-                print(events_log)
-
-        stack = get_stack(orchestration_client, stack_name)
-        stack_status = stack.stack_status
-        if stack_status == '%s_COMPLETE' % action:
-            print("Stack %(name)s %(status)s" % dict(
-                name=stack_name, status=stack_status))
-            return True
-        elif stack_status == '%s_FAILED' % action:
-            print("Stack %(name)s %(status)s" % dict(
-                name=stack_name, status=stack_status))
-            return False
-
-        time.sleep(5)
-
-
-def event_log_formatter(events):
-    """Return the events in log format."""
-    event_log = []
-    log_format = ("%(event_time)s "
-                  "[%(rsrc_name)s]: %(rsrc_status)s %(rsrc_status_reason)s")
-    for event in events:
-        event_time = getattr(event, 'event_time', '')
-        log = log_format % {
-            'event_time': event_time.replace('T', ' '),
-            'rsrc_name': getattr(event, 'resource_name', ''),
-            'rsrc_status': getattr(event, 'resource_status', ''),
-            'rsrc_status_reason': getattr(event, 'resource_status_reason', '')
-        }
-        event_log.append(log)
-
-    return "\n".join(event_log)
+    if verbose:
+        out = sys.stdout
+    else:
+        out = open(os.devnull, "w")
+    stack_status, msg = event_utils.poll_for_events(
+        orchestration_client, stack_name, action=action,
+        poll_period=5, marker=marker, out=out, nested_depth=2)
+    print(msg)
+    return stack_status == '%s_COMPLETE' % action
 
 
 def nodes_in_states(baremetal_client, states):
