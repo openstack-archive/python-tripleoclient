@@ -12,6 +12,13 @@
 from __future__ import print_function
 
 import pprint
+import time
+import uuid
+
+from heatclient.common import event_utils
+
+from tripleoclient import exceptions
+from tripleoclient import utils
 
 
 def deploy(clients, **workflow_input):
@@ -28,3 +35,36 @@ def deploy(clients, **workflow_input):
     with tripleoclients.messaging_websocket(queue_name) as ws:
         message = ws.wait_for_message(execution.id)
         assert message['status'] == "SUCCESS", pprint.pformat(message)
+
+
+def deploy_and_wait(log, clients, stack, plan_name, verbose_level):
+    """Start the deploy and wait for it to finish"""
+
+    deploy(clients, container=plan_name, queue_name=str(uuid.uuid4()))
+
+    orchestration_client = clients.orchestration
+
+    if stack is None:
+        log.info("Performing Heat stack create")
+        action = 'CREATE'
+        marker = None
+    else:
+        log.info("Performing Heat stack update")
+        # Make sure existing parameters for stack are reused
+        # Find the last top-level event to use for the first marker
+        events = event_utils.get_events(orchestration_client,
+                                        stack_id=plan_name,
+                                        event_args={'sort_dir': 'desc',
+                                                    'limit': 1})
+        marker = events[0].id if events else None
+        action = 'UPDATE'
+
+    time.sleep(10)
+    verbose_events = verbose_level > 0
+    create_result = utils.wait_for_stack_ready(
+        orchestration_client, plan_name, marker, action, verbose_events)
+    if not create_result:
+        if stack is None:
+            raise exceptions.DeploymentError("Heat Stack create failed.")
+        else:
+            raise exceptions.DeploymentError("Heat Stack update failed.")
