@@ -13,7 +13,6 @@
 #   under the License.
 #
 
-import copy
 import json
 import os
 import tempfile
@@ -369,19 +368,15 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
     def _check_workflow_call(self, local=True, provide=True,
                              kernel_name='bm-deploy-kernel',
                              ramdisk_name='bm-deploy-ramdisk'):
-        nodes_list = copy.deepcopy(self.nodes_list)
-        for node in nodes_list:
-            if local:
-                node['capabilities'] = {'boot_option': 'local'}
-            else:
-                node['capabilities'] = {'boot_option': 'netboot'}
 
         call_list = [mock.call(
             'tripleo.baremetal.v1.register_or_update', workflow_input={
                 'kernel_name': kernel_name,
-                'nodes_json': nodes_list,
+                'nodes_json': self.nodes_list,
                 'queue_name': 'UUID4',
-                'ramdisk_name': ramdisk_name}
+                'ramdisk_name': ramdisk_name,
+                'instance_boot_option': 'local' if local else 'netboot'
+            }
         )]
 
         if provide:

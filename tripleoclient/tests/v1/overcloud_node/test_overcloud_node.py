@@ -13,10 +13,13 @@
 #   under the License.
 #
 
+import copy
+import json
 import mock
+import os
+import tempfile
 
 from openstackclient.tests import utils as test_utils
-
 
 from tripleoclient.tests.v1.overcloud_node import fakes
 from tripleoclient.v1 import overcloud_node
@@ -234,3 +237,133 @@ class TestIntrospectNode(fakes.TestOvercloudNode):
         self.assertRaises(test_utils.ParserException,
                           self.check_parser,
                           self.cmd, argslist, verifylist)
+
+
+class TestImportNode(fakes.TestOvercloudNode):
+
+    def setUp(self):
+        super(TestImportNode, self).setUp()
+
+        self.nodes_list = [{
+            "pm_user": "stack",
+            "pm_addr": "192.168.122.1",
+            "pm_password": "KEY1",
+            "pm_type": "pxe_ssh",
+            "mac": [
+                "00:0b:d0:69:7e:59"
+            ],
+        }, {
+            "pm_user": "stack",
+            "pm_addr": "192.168.122.2",
+            "pm_password": "KEY2",
+            "pm_type": "pxe_ssh",
+            "mac": [
+                "00:0b:d0:69:7e:58"
+            ]
+        }]
+
+        self.json_file = tempfile.NamedTemporaryFile(
+            mode='w', delete=False, suffix='.json')
+        json.dump(self.nodes_list, self.json_file)
+        self.json_file.close()
+        self.addCleanup(os.unlink, self.json_file.name)
+
+        self.workflow = self.app.client_manager.workflow_engine
+        client = self.app.client_manager.tripleoclient
+        self.websocket = client.messaging_websocket()
+
+        # Get the command object to test
+        self.cmd = overcloud_node.ImportNode(self.app, None)
+
+    def _check_workflow_call(self, parsed_args, introspect=False,
+                             provide=False, local=True, no_deploy_image=False):
+        self.websocket.wait_for_message.return_value = {
+            "status": "SUCCESS",
+            "message": "Success",
+            "registered_nodes": [{
+                "uuid": "MOCK_NODE_UUID"
+            }]
+        }
+
+        self.cmd.take_action(parsed_args)
+
+        nodes_list = copy.deepcopy(self.nodes_list)
+
+        call_count = 1
+        call_list = [mock.call(
+            'tripleo.baremetal.v1.register_or_update', workflow_input={
+                'nodes_json': nodes_list,
+                'queue_name': 'UUID4',
+                'kernel_name': None if no_deploy_image else 'bm-deploy-kernel',
+                'ramdisk_name': (None
+                                 if no_deploy_image else 'bm-deploy-ramdisk'),
+                'instance_boot_option': 'local' if local else 'netboot'
+            }
+        )]
+
+        if introspect:
+            call_count += 1
+            call_list.append(mock.call(
+                'tripleo.baremetal.v1.introspect', workflow_input={
+                    'node_uuids': ['MOCK_NODE_UUID'],
+                    'queue_name': 'UUID4'}
+            ))
+
+        if provide:
+            call_count += 1
+            call_list.append(mock.call(
+                'tripleo.baremetal.v1.provide', workflow_input={
+                    'node_uuids': ['MOCK_NODE_UUID'],
+                    'queue_name': 'UUID4'
+                }
+            ))
+
+        self.workflow.executions.create.assert_has_calls(call_list)
+        self.assertEqual(self.workflow.executions.create.call_count,
+                         call_count)
+
+    def test_import_only(self):
+        argslist = [self.json_file.name]
+        verifylist = [('introspect', False),
+                      ('provide', False)]
+
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+        self._check_workflow_call(parsed_args)
+
+    def test_import_and_introspect(self):
+        argslist = [self.json_file.name, '--introspect']
+        verifylist = [('introspect', True),
+                      ('provide', False)]
+
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+        self._check_workflow_call(parsed_args, introspect=True)
+
+    def test_import_and_provide(self):
+        argslist = [self.json_file.name, '--provide']
+        verifylist = [('introspect', False),
+                      ('provide', True)]
+
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+        self._check_workflow_call(parsed_args, provide=True)
+
+    def test_import_and_introspect_and_provide(self):
+        argslist = [self.json_file.name, '--introspect', '--provide']
+        verifylist = [('introspect', True),
+                      ('provide', True)]
+
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+        self._check_workflow_call(parsed_args, introspect=True, provide=True)
+
+    def test_import_with_netboot(self):
+        arglist = [self.json_file.name, '--instance-boot-option', 'netboot']
+        verifylist = [('instance_boot_option', 'netboot')]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        self._check_workflow_call(parsed_args, local=False)
+
+    def test_import_with_no_deployed_image(self):
+        arglist = [self.json_file.name, '--no-deploy-image']
+        verifylist = [('no_deploy_image', True)]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        self._check_workflow_call(parsed_args, no_deploy_image=True)
