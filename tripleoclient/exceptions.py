@@ -53,6 +53,10 @@ class NodeProvideError(WorkflowServiceError):
     """Node Provide failed."""
 
 
+class NodeConfigurationError(WorkflowServiceError):
+    """Node Configuration failed."""
+
+
 class StateTransitionFailed(Exception):
     """Ironic node state transition failed"""
 

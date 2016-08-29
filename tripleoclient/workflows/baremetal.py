@@ -172,3 +172,53 @@ def provide_manageable_nodes(clients, **workflow_input):
             'Exception providing nodes:{}'.format(payload['message']))
 
     print(payload['message'])
+
+
+def configure(clients, **workflow_input):
+    """Configure Node boot options.
+
+    Run the tripleo.baremetal.v1.configure Mistral workflow.
+    """
+
+    workflow_client = clients.workflow_engine
+    ooo_client = clients.tripleoclient
+    queue_name = workflow_input['queue_name']
+
+    execution = workflow_client.executions.create(
+        'tripleo.baremetal.v1.configure',
+        workflow_input=workflow_input
+    )
+
+    with ooo_client.messaging_websocket(queue_name) as ws:
+        payload = ws.wait_for_message(execution.id)
+
+    if payload['status'] == 'SUCCESS':
+        print('Successfully configured all nodes.')
+    else:
+        raise exceptions.NodeConfigurationError(
+            'Failed to configure nodes: {}'.format(payload['message']))
+
+
+def configure_manageable_nodes(clients, **workflow_input):
+    """Configure all manageable Nodes.
+
+    Run the tripleo.baremetal.v1.configure_manageable_nodes Mistral workflow.
+    """
+
+    workflow_client = clients.workflow_engine
+    ooo_client = clients.tripleoclient
+    queue_name = workflow_input['queue_name']
+
+    execution = workflow_client.executions.create(
+        'tripleo.baremetal.v1.configure_manageable_nodes',
+        workflow_input=workflow_input
+    )
+
+    with ooo_client.messaging_websocket(queue_name) as ws:
+        payload = ws.wait_for_message(execution.id)
+
+    if payload['status'] != 'SUCCESS':
+        raise exceptions.NodeConfigurationError(
+            'Exception configuring nodes: {}'.format(payload['message']))
+
+    print(payload['message'])

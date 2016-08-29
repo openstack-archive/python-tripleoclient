@@ -211,3 +211,81 @@ class ImportNode(command.Command):
             baremetal.provide(self.app.client_manager,
                               node_uuids=nodes_uuids,
                               queue_name=queue_name)
+
+
+class ConfigureNode(command.Command):
+    """Configure Node boot options."""
+
+    log = logging.getLogger(__name__ + ".ConfigureNode")
+
+    def get_parser(self, prog_name):
+        parser = super(ConfigureNode, self).get_parser(prog_name)
+        group = parser.add_mutually_exclusive_group(required=True)
+        group.add_argument('node_uuids',
+                           nargs="*",
+                           metavar="<node_uuid>",
+                           default=[],
+                           help=_('Baremetal Node UUIDs for the node(s) to be '
+                                  'configured'))
+        group.add_argument("--all-manageable",
+                           action='store_true',
+                           help=_("Configure all nodes currently in "
+                                  "'manageable' state"))
+        parser.add_argument('--deploy-kernel',
+                            default='bm-deploy-kernel',
+                            help=_('Image with deploy kernel.'))
+        parser.add_argument('--deploy-ramdisk',
+                            default='bm-deploy-ramdisk',
+                            help=_('Image with deploy ramdisk.'))
+        parser.add_argument('--instance-boot-option',
+                            choices=['local', 'netboot'],
+                            help=_('Whether to set instances for booting from '
+                                   'local hard drive (local) or network '
+                                   '(netboot).'))
+        parser.add_argument('--root-device',
+                            help=_('Define the root device for nodes. '
+                                   'Can be either a list of device names '
+                                   '(without /dev) to choose from or one of '
+                                   'two strategies: largest or smallest. For '
+                                   'it to work this command should be run '
+                                   'after the introspection.'))
+        parser.add_argument('--root-device-minimum-size',
+                            type=int, default=4,
+                            help=_('Minimum size (in GiB) of the detected '
+                                   'root device. Used with --root-device.'))
+        parser.add_argument('--overwrite-root-device-hints',
+                            action='store_true',
+                            help=_('Whether to overwrite existing root device '
+                                   'hints when --root-device is used.'))
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)" % parsed_args)
+
+        queue_name = str(uuid.uuid4())
+
+        if parsed_args.node_uuids:
+            baremetal.configure(
+                self.app.client_manager,
+                node_uuids=parsed_args.node_uuids,
+                queue_name=queue_name,
+                kernel_name=parsed_args.deploy_kernel,
+                ramdisk_name=parsed_args.deploy_ramdisk,
+                instance_boot_option=parsed_args.instance_boot_option,
+                root_device=parsed_args.root_device,
+                root_device_minimum_size=parsed_args.root_device_minimum_size,
+                overwrite_root_device_hints=(
+                    parsed_args.overwrite_root_device_hints)
+            )
+        else:
+            baremetal.configure_manageable_nodes(
+                self.app.client_manager,
+                queue_name=queue_name,
+                kernel_name=parsed_args.deploy_kernel,
+                ramdisk_name=parsed_args.deploy_ramdisk,
+                instance_boot_option=parsed_args.instance_boot_option,
+                root_device=parsed_args.root_device,
+                root_device_minimum_size=parsed_args.root_device_minimum_size,
+                overwrite_root_device_hints=(
+                    parsed_args.overwrite_root_device_hints)
+            )
