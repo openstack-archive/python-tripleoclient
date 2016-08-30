@@ -4,15 +4,15 @@ overcloud
 
 Overcloud v1
 
-overcloud deploy stack
-----------------------
+overcloud deploy
+----------------
 
 Deploy an overcloud stack
 
-.. program:: overcloud deploy stack
+.. program:: overcloud deploy
 .. code:: bash
 
-    openstack overcloud deploy
+    os overcloud deploy
         --stack [STACK_NAME]
         --templates [TEMPLATES]
         [-t <TIMEOUT>]
