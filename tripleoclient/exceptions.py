@@ -22,7 +22,10 @@ class Timeout(Exception):
 
 class WorkflowServiceError(Exception):
     """The service type is unknown"""
-    pass
+
+
+class WebSocketTimeout(Exception):
+    """Timed out waiting for messages on the websocket"""
 
 
 class NotFound(Exception):

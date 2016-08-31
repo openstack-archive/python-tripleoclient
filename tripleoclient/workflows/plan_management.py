@@ -19,6 +19,13 @@ from tripleoclient import exceptions
 from tripleoclient.workflows import base
 
 
+# Plan management workflows should generally be quick. However, the creation
+# of the default plan in instack has demonstrated that sometimes it can take
+# several minutes. This timeout value of 6 minutes is the same as the timeout
+# used in Instack.
+_WORKFLOW_TIMEOUT = 360  # 6 * 60 seconds
+
+
 def _upload_templates(swift_client, container_name, tht_root, roles_file=None):
     """tarball up a given directory and upload it to Swift to be extracted"""
 
@@ -47,7 +54,8 @@ def create_default_plan(clients, **workflow_input):
     )
 
     with tripleoclients.messaging_websocket(queue_name) as ws:
-        payload = ws.wait_for_message(execution.id)
+        payload = base.wait_for_message(workflow_client, ws, execution,
+                                        _WORKFLOW_TIMEOUT)
 
     if payload['status'] == 'SUCCESS':
         print ("Default plan created")
@@ -67,7 +75,8 @@ def _create_update_deployment_plan(clients, workflow, **workflow_input):
     )
 
     with tripleoclients.messaging_websocket(queue_name) as ws:
-        return ws.wait_for_message(execution.id)
+        return base.wait_for_message(workflow_client, ws, execution,
+                                     _WORKFLOW_TIMEOUT)
 
 
 def create_deployment_plan(clients, **workflow_input):

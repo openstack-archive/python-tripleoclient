@@ -24,6 +24,8 @@ from osc_lib import utils
 from swiftclient import client as swift_client
 import websocket
 
+from tripleoclient import exceptions
+
 LOG = logging.getLogger(__name__)
 
 DEFAULT_TRIPLEOCLIENT_API_VERSION = '1'
@@ -124,17 +126,29 @@ class WebsocketClient(object):
     def recv(self):
         return json.loads(self._ws.recv())
 
-    def wait_for_message(self, execution_id):
+    def wait_for_message(self, execution_id, timeout=None):
         """Wait for a message for a mistral execution ID
 
-        This blocks until a message is received on the provided queue name
-        with the execution ID.
+        This method blocks until a message is received on the message queue
+        with the execution ID passed in.
 
-        TODO(d0ugal): Add a timeout/break for the case when a message is
-                      never arrives.
+        A timeout can be provided in seconds, if no timeout is provided it
+        will block forever until a message is received. If no message is
+        received (for example, Zaqar is down) then it will block until manually
+        killed.
         """
+
+        if timeout is None:
+            LOG.warning("Waiting for messages on queue '{}' with no timeout."
+                        .format(self._queue_name))
+
+        self._ws.settimeout(timeout)
+
         while True:
-            body = self.recv()['body']
+            try:
+                body = self.recv()['body']
+            except websocket.WebSocketTimeoutException:
+                raise exceptions.WebSocketTimeout()
             if body['payload']['execution']['id'] == execution_id:
                 return body['payload']
 
