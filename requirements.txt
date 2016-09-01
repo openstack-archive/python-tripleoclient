@@ -15,6 +15,4 @@ six>=1.9.0 # MIT
 os-cloud-config # Apache-2.0
 osc-lib>=1.0.2 # Apache-2.0
 websocket-client>=0.32.0 # LGPLv2+
-
-# tripleoclient is tied to tripleo-common and expects to use the latest code.
--e git://github.com/openstack/tripleo-common.git#egg=tripleo_common
+tripleo-common>=5.0.0  # Apache-2.0
