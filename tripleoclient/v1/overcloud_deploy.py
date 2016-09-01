@@ -177,12 +177,6 @@ class DeployOvercloud(command.Command):
 
         # Scaling needs extra parameters
         number_controllers = int(parameters.get('ControllerCount', 0))
-        if number_controllers > 1:
-            if not args.ntp_server:
-                raise exceptions.InvalidConfiguration(
-                    'Specify --ntp-server when using multiple controllers '
-                    '(with HA).')
-
         dhcp_agents_per_network = (min(number_controllers, 3) if
                                    number_controllers else 1)
 
@@ -249,6 +243,14 @@ class DeployOvercloud(command.Command):
             template_path)
 
         files = dict(list(template_files.items()) + list(env_files.items()))
+
+        number_controllers = int(parameters.get('ControllerCount', 0))
+        if number_controllers > 1:
+            if not env.get('parameter_defaults').get('NtpServer'):
+                raise exceptions.InvalidConfiguration(
+                    'Specify --ntp-server as parameter or NtpServer in '
+                    'environments when using multiple controllers '
+                    '(with HA).')
 
         clients = self.app.client_manager
         orchestration_client = clients.orchestration

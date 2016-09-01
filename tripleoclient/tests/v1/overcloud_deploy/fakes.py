@@ -80,6 +80,17 @@ def create_tht_stack(**kwargs):
     return create_to_dict_mock(**stack)
 
 
+def create_env_with_ntp(**kwargs):
+    env = {
+        'parameter_defaults': {
+            'CinderEnableRbdBackend': True,
+            'NtpServer': 'ntp.local',
+        },
+    }
+    env.update(kwargs)
+    return env
+
+
 def create_env(**kwargs):
     env = {
         'parameter_defaults': {

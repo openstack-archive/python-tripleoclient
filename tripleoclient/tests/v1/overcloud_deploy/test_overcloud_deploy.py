@@ -1070,3 +1070,224 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.cmd._predeploy_verify_capabilities(
             stack, parameters, parsed_args)
         self.assertEqual(1, self.cmd.predeploy_errors)
+
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_create_parameters_env')
+    @mock.patch('tripleoclient.utils.generate_overcloud_passwords')
+    @mock.patch('tripleoclient.utils.create_overcloudrc')
+    @mock.patch('heatclient.common.template_utils.'
+                'process_multiple_environments_and_files', autospec=True)
+    @mock.patch('heatclient.common.template_utils.get_template_contents',
+                autospec=True)
+    @mock.patch('tripleoclient.utils.create_environment_file',
+                autospec=True)
+    @mock.patch('tripleoclient.utils.get_config_value', autospec=True)
+    def test_ntp_server_mandatory(self, mock_get_key,
+                                  mock_create_env,
+                                  mock_get_template_contents,
+                                  mock_process_multiple_env,
+                                  mock_create_overcloudrc,
+                                  mock_generate_overcloud_passwords,
+                                  mock_create_parameters_env):
+
+        arglist = ['--templates', '--control-scale', '3']
+        verifylist = [
+            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
+            ('control_scale', 3)
+        ]
+
+        mock_get_key.return_value = "PASSWORD"
+
+        mock_generate_overcloud_passwords.return_value = self._get_passwords()
+
+        mock_create_env.return_value = "/fake/path"
+        mock_env = fakes.create_env()
+        mock_process_multiple_env.return_value = [{}, mock_env]
+        mock_get_template_contents.return_value = [{}, "template"]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.assertRaises(exceptions.InvalidConfiguration,
+                          self.cmd.take_action,
+                          parsed_args)
+
+    @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env')
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_validate_args')
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_create_parameters_env')
+    @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
+                autospec=True)
+    @mock.patch('tripleoclient.utils.generate_overcloud_passwords')
+    @mock.patch('tripleoclient.utils.create_overcloudrc')
+    @mock.patch('os_cloud_config.utils.clients.get_nova_bm_client',
+                autospec=True)
+    @mock.patch('os_cloud_config.utils.clients.get_keystone_client',
+                autospec=True)
+    @mock.patch('os_cloud_config.keystone.setup_endpoints', autospec=True)
+    @mock.patch('time.sleep', return_value=None)
+    @mock.patch('os_cloud_config.keystone.initialize', autospec=True)
+    @mock.patch('tripleoclient.utils.remove_known_hosts', autospec=True)
+    @mock.patch('tripleoclient.utils.wait_for_stack_ready',
+                autospec=True)
+    @mock.patch('heatclient.common.template_utils.'
+                'process_multiple_environments_and_files', autospec=True)
+    @mock.patch('heatclient.common.template_utils.get_template_contents',
+                autospec=True)
+    @mock.patch('os_cloud_config.keystone_pki.generate_certs_into_json',
+                autospec=True)
+    @mock.patch('tripleoclient.utils.create_environment_file',
+                autospec=True)
+    @mock.patch('tripleoclient.utils.get_config_value', autospec=True)
+    @mock.patch('tripleoclient.utils.check_hypervisor_stats',
+                autospec=True)
+    @mock.patch('uuid.uuid1', autospec=True)
+    @mock.patch('time.time', autospec=True)
+    def test_tht_deploy_with_ntp(self, mock_time, mock_uuid1,
+                                 mock_check_hypervisor_stats,
+                                 mock_get_key, mock_create_env,
+                                 generate_certs_mock,
+                                 mock_get_templte_contents,
+                                 mock_process_multiple_env,
+                                 wait_for_stack_ready_mock,
+                                 mock_remove_known_hosts,
+                                 mock_keystone_initialize,
+                                 mock_sleep, mock_setup_endpoints,
+                                 mock_get_keystone_client,
+                                 mock_get_nova_bm_client,
+                                 mock_create_overcloudrc,
+                                 mock_generate_overcloud_passwords,
+                                 mock_create_tempest_deployer_input,
+                                 mock_create_parameters_env,
+                                 mock_validate_args,
+                                 mock_breakpoints_cleanup):
+
+        arglist = ['--templates', '--ceph-storage-scale', '3',
+                   '--control-scale', '3']
+        verifylist = [
+            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
+            ('ceph_storage_scale', 3),
+            ('control_scale', 3),
+        ]
+
+        mock_uuid1.return_value = "uuid"
+        mock_time.return_value = 123456789
+
+        mock_generate_overcloud_passwords.return_value = self._get_passwords()
+
+        clients = self.app.client_manager
+        orchestration_client = clients.orchestration
+        mock_stack = fakes.create_tht_stack()
+        orchestration_client.stacks.get.return_value = None
+
+        def _orch_clt_create(**kwargs):
+            orchestration_client.stacks.get.return_value = mock_stack
+
+        orchestration_client.stacks.create.side_effect = _orch_clt_create
+
+        mock_check_hypervisor_stats.return_value = {
+            'count': 4,
+            'memory_mb': 4096,
+            'vcpus': 8,
+        }
+        mock_get_key.return_value = "PASSWORD"
+        clients.network.api.find_attr.return_value = {
+            "id": "network id"
+        }
+        mock_create_env.return_value = "/fake/path"
+        mock_env = fakes.create_env_with_ntp()
+        mock_process_multiple_env.return_value = [{}, mock_env]
+        mock_get_templte_contents.return_value = [{}, "template"]
+        wait_for_stack_ready_mock.return_value = True
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        baremetal = clients.baremetal
+        baremetal.node.list.return_value = range(10)
+
+        expected_parameters = {
+            'AdminPassword': 'password',
+            'AdminToken': 'password',
+            'AodhPassword': 'password',
+            'BarbicanPassword': 'password',
+            'CeilometerMeteringSecret': 'password',
+            'CeilometerPassword': 'password',
+            'CephAdminKey': 'password',
+            'CephClientKey': 'password',
+            'CephClusterFSID': 'uuid',
+            'CephMonKey': 'password',
+            'CephRgwKey': 'password',
+            'CephStorageCount': 3,
+            'ControllerCount': 3,
+            'CinderPassword': 'password',
+            'ExtraConfig': '{}',
+            'GlancePassword': 'password',
+            'GnocchiPassword': 'password',
+            'HAProxyStatsPassword': 'password',
+            'HeatPassword': 'password',
+            'HeatStackDomainAdminPassword': 'password',
+            'HypervisorNeutronPhysicalBridge': 'br-ex',
+            'HypervisorNeutronPublicInterface': 'nic1',
+            'IronicPassword': 'password',
+            'ManilaPassword': 'password',
+            'MistralPassword': 'password',
+            'MysqlClustercheckPassword': 'password',
+            'NeutronDhcpAgentsPerNetwork': 3,
+            'NeutronDnsmasqOptions': 'dhcp-option-force=26,1400',
+            'NeutronFlatNetworks': 'datacentre',
+            'NeutronNetworkType': 'gre',
+            'NeutronMetadataProxySharedSecret': 'password',
+            'NeutronPassword': 'password',
+            'NeutronPublicInterface': 'nic1',
+            'NeutronTunnelTypes': 'gre',
+            'NovaPassword': 'password',
+            'RabbitPassword': 'password',
+            'RedisPassword': 'password',
+            'SaharaPassword': 'password',
+            'SnmpdReadonlyUserPassword': 'PASSWORD',
+            'SwiftHashSuffix': 'password',
+            'SwiftPassword': 'password',
+            'TrovePassword': 'password',
+            'ZaqarPassword': 'password',
+            'DeployIdentifier': 123456789,
+            'UpdateIdentifier': '',
+            'StackAction': 'CREATE',
+        }
+
+        def _custom_create_params_env(parameters):
+            for key, value in six.iteritems(parameters):
+                self.assertEqual(value, expected_parameters[key])
+            parameter_defaults = {"parameter_defaults": parameters}
+            with open(self.parameter_defaults_env_file, 'w') as temp_file:
+                temp_file.write(json.dumps(parameter_defaults))
+            return [self.parameter_defaults_env_file]
+
+        mock_create_parameters_env.side_effect = _custom_create_params_env
+
+        self.cmd.take_action(parsed_args)
+
+        args, kwargs = orchestration_client.stacks.create.call_args
+
+        self.assertEqual(kwargs['files'], {})
+        self.assertEqual(kwargs['template'], 'template')
+        self.assertEqual(kwargs['environment'], mock_env)
+        self.assertEqual(kwargs['stack_name'], 'overcloud')
+        self.assertEqual(kwargs['clear_parameters'],
+                         mock_env['parameter_defaults'].keys())
+
+        mock_get_templte_contents.assert_called_with(
+            '/usr/share/openstack-tripleo-heat-templates/' +
+            constants.OVERCLOUD_YAML_NAMES[0])
+
+        mock_create_tempest_deployer_input.assert_called_with()
+        mock_process_multiple_env.assert_called_with(
+            ['/usr/share/openstack-tripleo-heat-templates/overcloud-resource-'
+             'registry-puppet.yaml', '/fake/path',
+             self.parameter_defaults_env_file])
+
+        mock_validate_args.assert_called_once_with(parsed_args)
+
+        mock_remove_known_hosts.assert_called_once_with('0.0.0.0')
+        mock_get_keystone_client.assert_called_once_with('admin', 'password',
+                                                         'admin',
+                                                         'http://0.0.0.0:8000')
