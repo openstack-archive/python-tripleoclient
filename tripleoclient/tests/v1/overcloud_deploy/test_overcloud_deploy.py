@@ -24,6 +24,7 @@ import yaml
 from keystoneclient import exceptions as kscexc
 import mock
 from openstackclient.common import exceptions as oscexc
+from swiftclient.exceptions import ClientException as ObjectClientException
 
 from tripleoclient import constants
 from tripleoclient import exceptions
@@ -97,7 +98,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_tht_scale(self, mock_time, mock_creds, mock_uuid1,
                        mock_check_hypervisor_stats, mock_get_key,
                        mock_create_env, generate_certs_mock,
-                       mock_get_templte_contents, mock_process_multiple_env,
+                       mock_get_template_contents, mock_process_multiple_env,
                        wait_for_stack_ready_mock,
                        mock_remove_known_hosts, mock_keystone_initialize,
                        mock_sleep, mock_setup_endpoints,
@@ -145,7 +146,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_create_env.return_value = "/fake/path"
         mock_env = fakes.create_env()
         mock_process_multiple_env.return_value = [{}, mock_env]
-        mock_get_templte_contents.return_value = [{}, "template"]
+        mock_get_template_contents.return_value = [{}, "template"]
         wait_for_stack_ready_mock.return_value = True
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
@@ -218,9 +219,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         self.assertFalse(orchestration_client.stacks.update.called)
 
-        mock_get_templte_contents.assert_called_with(
-            '/usr/share/openstack-tripleo-heat-templates/' +
-            constants.OVERCLOUD_YAML_NAMES[0])
+        mock_get_template_contents.assert_called_with(
+            object_request=mock.ANY,
+            template_object=constants.OVERCLOUD_YAML_NAMES[0])
 
         mock_create_tempest_deployer_input.assert_called_with()
         mock_process_multiple_env.assert_called_with(
@@ -270,7 +271,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_tht_deploy(self, mock_time, mock_creds, mock_uuid1,
                         mock_check_hypervisor_stats, mock_get_key,
                         mock_create_env, generate_certs_mock,
-                        mock_get_templte_contents, mock_process_multiple_env,
+                        mock_get_template_contents, mock_process_multiple_env,
                         wait_for_stack_ready_mock,
                         mock_remove_known_hosts, mock_keystone_initialize,
                         mock_sleep, mock_setup_endpoints,
@@ -321,7 +322,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_create_env.return_value = "/fake/path"
         mock_env = fakes.create_env()
         mock_process_multiple_env.return_value = [{}, mock_env]
-        mock_get_templte_contents.return_value = [{}, "template"]
+        mock_get_template_contents.return_value = [{}, "template"]
         wait_for_stack_ready_mock.return_value = True
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
@@ -396,9 +397,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         self.assertFalse(orchestration_client.stacks.create.called)
 
-        mock_get_templte_contents.assert_called_with(
-            '/usr/share/openstack-tripleo-heat-templates/' +
-            constants.OVERCLOUD_YAML_NAMES[0])
+        mock_get_template_contents.assert_called_with(
+            object_request=mock.ANY,
+            template_object=constants.OVERCLOUD_YAML_NAMES[0])
 
         mock_create_tempest_deployer_input.assert_called_with()
         mock_process_multiple_env.assert_called_with(
@@ -443,7 +444,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_deploy_custom_templates(self, mock_check_hypervisor_stats,
                                      mock_get_key,
                                      mock_create_env, generate_certs_mock,
-                                     mock_get_templte_contents,
+                                     mock_get_template_contents,
                                      mock_process_multiple_env,
                                      wait_for_stack_ready_mock,
                                      mock_remove_known_hosts,
@@ -480,7 +481,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_create_env.return_value = "/fake/path"
         mock_env = fakes.create_env()
         mock_process_multiple_env.return_value = [{}, mock_env]
-        mock_get_templte_contents.return_value = [{}, "template"]
+        mock_get_template_contents.return_value = [{}, "template"]
         wait_for_stack_ready_mock.return_value = True
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
@@ -502,9 +503,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         self.assertFalse(orchestration_client.stacks.update.called)
 
-        mock_get_templte_contents.assert_called_with(
-            '/home/stack/tripleo-heat-templates/' +
-            constants.OVERCLOUD_YAML_NAMES[0])
+        mock_get_template_contents.assert_called_with(
+            object_request=mock.ANY,
+            template_object=constants.OVERCLOUD_YAML_NAMES[0])
 
         mock_create_tempest_deployer_input.assert_called_with()
         mock_process_multiple_env.assert_called_with(
@@ -700,7 +701,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_deploy_rhel_reg(self, mock_check_hypervisor_stats,
                              mock_get_key,
                              mock_create_env, generate_certs_mock,
-                             mock_get_templte_contents,
+                             mock_get_template_contents,
                              mock_process_multiple_env,
                              wait_for_stack_ready_mock,
                              mock_remove_known_hosts,
@@ -728,7 +729,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_generate_overcloud_passwords.return_value = self._get_passwords()
         mock_process_multiple_env.return_value = [{}, fakes.create_env()]
-        mock_get_templte_contents.return_value = [{}, "template"]
+        mock_get_template_contents.return_value = [{}, "template"]
         wait_for_stack_ready_mock.return_value = True
 
         clients = self.app.client_manager
@@ -901,7 +902,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_try_overcloud_deploy_w_only_second_template_existing(
             self, mock_heat_deploy_func):
         mock_heat_deploy_func.side_effect = [
-            six.moves.urllib.error.URLError('error'), None]
+            ObjectClientException('error'), None]
         result = self.cmd._try_overcloud_deploy_with_compat_yaml(
             '/fake/path', {}, 'overcloud', {}, ['~/overcloud-env.json'], 1)
         # If it returns None it succeeded
@@ -919,7 +920,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_try_overcloud_deploy_with_no_templates_existing(
             self, mock_heat_deploy_func):
         mock_heat_deploy_func.side_effect = [
-            six.moves.urllib.error.URLError('error')
+            ObjectClientException('error')
             for stack_file in constants.OVERCLOUD_YAML_NAMES]
         self.assertRaises(ValueError,
                           self.cmd._try_overcloud_deploy_with_compat_yaml,
@@ -931,7 +932,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_try_overcloud_deploy_show_missing_file(
             self, mock_heat_deploy_func):
         mock_heat_deploy_func.side_effect = [
-            six.moves.urllib.error.URLError('/fake/path not found')
+            ObjectClientException('/fake/path not found')
             for stack_file in constants.OVERCLOUD_YAML_NAMES]
         try:
             self.cmd._try_overcloud_deploy_with_compat_yaml(
@@ -1213,7 +1214,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                  mock_check_hypervisor_stats,
                                  mock_get_key, mock_create_env,
                                  generate_certs_mock,
-                                 mock_get_templte_contents,
+                                 mock_get_template_contents,
                                  mock_process_multiple_env,
                                  wait_for_stack_ready_mock,
                                  mock_remove_known_hosts,
@@ -1275,7 +1276,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_create_env.return_value = "/fake/path"
         mock_env = fakes.create_env_with_ntp()
         mock_process_multiple_env.return_value = [{}, mock_env]
-        mock_get_templte_contents.return_value = [{}, "template"]
+        mock_get_template_contents.return_value = [{}, "template"]
         wait_for_stack_ready_mock.return_value = True
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
@@ -1346,9 +1347,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         self.cmd.take_action(parsed_args)
 
-        mock_get_templte_contents.assert_called_with(
-            '/usr/share/openstack-tripleo-heat-templates/' +
-            constants.OVERCLOUD_YAML_NAMES[0])
+        mock_get_template_contents.assert_called_with(
+            object_request=mock.ANY,
+            template_object=constants.OVERCLOUD_YAML_NAMES[0])
 
         mock_create_tempest_deployer_input.assert_called_with()
         mock_process_multiple_env.assert_called_with(

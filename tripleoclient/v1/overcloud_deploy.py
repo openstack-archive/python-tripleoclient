@@ -38,6 +38,7 @@ from openstackclient.i18n import _
 from os_cloud_config import keystone
 from os_cloud_config import keystone_pki
 from os_cloud_config.utils import clients
+from swiftclient.exceptions import ClientException
 from tripleo_common import update
 
 from tripleoclient import constants
@@ -248,9 +249,24 @@ class DeployOvercloud(command.Command):
         if stack:
             update.add_breakpoints_cleanup_into_env(env)
 
-        self.log.debug("Getting template contents")
+        self.log.debug("Getting template contents from plan %s" % stack_name)
+        # We need to reference the plan here, not the local
+        # tht root, as we need template_object to refer to
+        # the rendered overcloud.yaml, not the tht_root overcloud.j2.yaml
+        # FIXME(shardy) we need to move more of this into mistral actions
+        plan_yaml_path = os.path.relpath(template_path, tht_root)
+
+        # heatclient template_utils needs a function that can
+        # retrieve objects from a container by name/path
+        objectclient = clients.tripleoclient.object_store
+
+        def do_object_request(method='GET', object_path=None):
+            obj = objectclient.get_object(stack_name, object_path)
+            return obj and obj[1]
+
         template_files, template = template_utils.get_template_contents(
-            template_path)
+            template_object=plan_yaml_path,
+            object_request=do_object_request)
 
         files = dict(list(template_files.items()) + list(env_files.items()))
 
@@ -263,7 +279,6 @@ class DeployOvercloud(command.Command):
                     '(with HA).')
 
         clients = self.app.client_manager
-        objectclient = clients.tripleoclient.object_store
 
         moved_files = self._upload_missing_files(
             stack_name, objectclient, files, tht_root)
@@ -459,8 +474,8 @@ class DeployOvercloud(command.Command):
             try:
                 self._heat_deploy(stack, stack_name, overcloud_yaml,
                                   parameters, environments, timeout, tht_root)
-            except six.moves.urllib.error.URLError as e:
-                messages.append(str(e.reason))
+            except ClientException as e:
+                messages.append(str(e))
             else:
                 return
         raise ValueError('\n'.join(messages))
