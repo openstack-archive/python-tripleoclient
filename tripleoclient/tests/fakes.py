@@ -39,9 +39,24 @@ class FakeClientManager(object):
         self.tripleoclient = None
         self.auth_ref = None
         self.tripleoclient = FakeClientWrapper()
+        self.workflow_engine = mock.Mock()
+
+
+class FakeWebSocket(object):
+
+    def wait_for_message(self, execution_id):
+        return {
+            'status': 'SUCCESS'
+        }
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return
 
 
 class FakeClientWrapper(object):
 
-    def messaging_websocket(self, queue_name='tripleo'):
-        return mock.MagicMock()
+    def messaging_websocket(self, queue_name):
+        return FakeWebSocket()
