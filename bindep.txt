@@ -3,3 +3,5 @@
 
 xfsprogs [platform:rpm test]
 qemu-img [platform:rpm test]
+libffi-dev [platform:dpkg]
+libffi-devel [platform:rpm]
