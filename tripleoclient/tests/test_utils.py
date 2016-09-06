@@ -524,6 +524,13 @@ class TestCreateCephxKey(TestCase):
         self.assertEqual(len(key), 40)
 
 
+class TestCreateKeystoneCredential(TestCase):
+
+    def test_create_keystone_credential(self):
+        key = utils.create_keystone_credential()
+        self.assertEqual(len(key), 44)
+
+
 class TestNodeGetCapabilities(TestCase):
     def test_with_capabilities(self):
         node = mock.Mock(properties={'capabilities': 'x:y,foo:bar'})

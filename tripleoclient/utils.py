@@ -552,6 +552,10 @@ def create_cephx_key():
     return base64.b64encode(header + key)
 
 
+def create_keystone_credential():
+    return base64.urlsafe_b64encode(os.urandom(32))
+
+
 def run_shell(cmd):
     return subprocess.call([cmd], shell=True)
 
