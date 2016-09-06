@@ -176,8 +176,6 @@ class BuildOvercloudImage(command.Command):
         'baremetal',
         'dhcp-all-interfaces',
         'os-collect-config',
-        'heat-config-puppet',
-        'heat-config-script',
         'puppet-modules',
         'hiera',
         'os-net-config',
@@ -186,7 +184,7 @@ class BuildOvercloudImage(command.Command):
         '-p python-psutil,python-debtcollector,plotnetcfg,sos,'
         'python-networking-cisco,python-UcsSdk,device-mapper-multipath,'
         'python-networking-bigswitch,openstack-neutron-bigswitch-lldp,'
-        'openstack-neutron-bigswitch-agent'
+        'openstack-neutron-bigswitch-agent,python-heat-agent-puppet'
     ]
 
     OVERCLOUD_FULL_DIB_EXTRA_ARGS = [
@@ -268,7 +266,6 @@ class BuildOvercloudImage(command.Command):
                     self.TRIPLEOPUPPETELEMENTS,
                     self.INSTACKUNDERCLOUDELEMENTS,
                     '/usr/share/tripleo-image-elements',
-                    '/usr/share/openstack-heat-templates/'
                     'software-config/elements',
                 ])),
             help=_("Full elements path, separated by %s") % os.pathsep,
