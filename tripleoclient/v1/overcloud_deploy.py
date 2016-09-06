@@ -192,7 +192,9 @@ class DeployOvercloud(command.Command):
 
         if stack_is_new:
             parameters.update({
-                'CephClusterFSID': six.text_type(uuid.uuid1())})
+                'CephClusterFSID': six.text_type(uuid.uuid1()),
+                'KeystoneCredential0': utils.create_keystone_credential(),
+                'KeystoneCredential1': utils.create_keystone_credential()})
 
         return parameters
 

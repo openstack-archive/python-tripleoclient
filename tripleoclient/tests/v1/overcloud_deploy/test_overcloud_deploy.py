@@ -92,8 +92,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.check_hypervisor_stats',
                 autospec=True)
     @mock.patch('uuid.uuid1', autospec=True)
+    @mock.patch('tripleoclient.utils.create_keystone_credential',
+                autospec=True)
     @mock.patch('time.time', autospec=True)
-    def test_tht_scale(self, mock_time, mock_uuid1,
+    def test_tht_scale(self, mock_time, mock_creds, mock_uuid1,
                        mock_check_hypervisor_stats, mock_get_key,
                        mock_create_env, generate_certs_mock,
                        mock_get_template_contents, mock_process_multiple_env,
@@ -115,6 +117,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         ]
 
         mock_uuid1.return_value = "uuid"
+        mock_creds.return_value = "key"
         mock_time.return_value = 123456789
 
         mock_generate_overcloud_passwords.return_value = self._get_passwords()
@@ -174,6 +177,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'HypervisorNeutronPhysicalBridge': 'br-ex',
             'HypervisorNeutronPublicInterface': 'nic1',
             'IronicPassword': 'password',
+            'KeystoneCredential0': 'key',
+            'KeystoneCredential1': 'key',
             'ManilaPassword': 'password',
             'MistralPassword': 'password',
             'MysqlClustercheckPassword': 'password',
@@ -260,8 +265,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.check_hypervisor_stats',
                 autospec=True)
     @mock.patch('uuid.uuid1', autospec=True)
+    @mock.patch('tripleoclient.utils.create_keystone_credential',
+                autospec=True)
     @mock.patch('time.time', autospec=True)
-    def test_tht_deploy(self, mock_time, mock_uuid1,
+    def test_tht_deploy(self, mock_time, mock_creds, mock_uuid1,
                         mock_check_hypervisor_stats, mock_get_key,
                         mock_create_env, generate_certs_mock,
                         mock_get_template_contents, mock_process_multiple_env,
@@ -283,6 +290,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         ]
 
         mock_uuid1.return_value = "uuid"
+        mock_creds.return_value = "key"
         mock_time.return_value = 123456789
 
         mock_generate_overcloud_passwords.return_value = self._get_passwords()
@@ -345,6 +353,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'HypervisorNeutronPhysicalBridge': 'br-ex',
             'HypervisorNeutronPublicInterface': 'nic1',
             'IronicPassword': 'password',
+            'KeystoneCredential0': 'key',
+            'KeystoneCredential1': 'key',
             'ManilaPassword': 'password',
             'MistralPassword': 'password',
             'MysqlClustercheckPassword': 'password',
@@ -1197,8 +1207,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.check_hypervisor_stats',
                 autospec=True)
     @mock.patch('uuid.uuid1', autospec=True)
+    @mock.patch('tripleoclient.utils.create_keystone_credential',
+                autospec=True)
     @mock.patch('time.time', autospec=True)
-    def test_tht_deploy_with_ntp(self, mock_time, mock_uuid1,
+    def test_tht_deploy_with_ntp(self, mock_time, mock_creds, mock_uuid1,
                                  mock_check_hypervisor_stats,
                                  mock_get_key, mock_create_env,
                                  generate_certs_mock,
@@ -1228,6 +1240,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         ]
 
         mock_uuid1.return_value = "uuid"
+        mock_creds.return_value = "key"
         mock_time.return_value = 123456789
 
         mock_generate_overcloud_passwords.return_value = self._get_passwords()
@@ -1295,6 +1308,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'HypervisorNeutronPhysicalBridge': 'br-ex',
             'HypervisorNeutronPublicInterface': 'nic1',
             'IronicPassword': 'password',
+            'KeystoneCredential0': 'key',
+            'KeystoneCredential1': 'key',
             'ManilaPassword': 'password',
             'MistralPassword': 'password',
             'MysqlClustercheckPassword': 'password',
