@@ -192,9 +192,7 @@ def configure(clients, **workflow_input):
     with ooo_client.messaging_websocket(queue_name) as ws:
         payload = ws.wait_for_message(execution.id)
 
-    if payload['status'] == 'SUCCESS':
-        print('Successfully configured all nodes.')
-    else:
+    if payload['status'] != 'SUCCESS':
         raise exceptions.NodeConfigurationError(
             'Failed to configure nodes: {}'.format(payload['message']))
 
