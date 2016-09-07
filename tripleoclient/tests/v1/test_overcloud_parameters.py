@@ -57,7 +57,7 @@ class TestSetParameters(utils.TestCommand):
 
         # Verify
         self.workflow.action_executions.create.assert_called_once_with(
-            'tripleo.update_parameters',
+            'tripleo.parameters.update',
             {
                 'container': 'overcast',
                 'parameters': data.get('parameter_defaults', data)
