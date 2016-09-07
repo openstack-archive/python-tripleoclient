@@ -47,25 +47,43 @@ def create_default_plan(clients, **workflow_input):
             'Exception creating plan: {}'.format(payload['message']))
 
 
-def create_deployment_plan(clients, **workflow_input):
+def _create_update_deployment_plan(clients, workflow, **workflow_input):
 
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
     queue_name = workflow_input['queue_name']
 
     execution = workflow_client.executions.create(
-        'tripleo.plan_management.v1.create_deployment_plan',
+        workflow,
         workflow_input=workflow_input
     )
 
     with tripleoclients.messaging_websocket(queue_name) as ws:
-        payload = ws.wait_for_message(execution.id)
+        return ws.wait_for_message(execution.id)
+
+
+def create_deployment_plan(clients, **workflow_input):
+    payload = _create_update_deployment_plan(
+        clients, 'tripleo.plan_management.v1.create_deployment_plan',
+        **workflow_input)
 
     if payload['status'] == 'SUCCESS':
         print ("Plan created")
     else:
         raise exceptions.WorkflowServiceError(
             'Exception creating plan: {}'.format(payload['message']))
+
+
+def update_deployment_plan(clients, **workflow_input):
+    payload = _create_update_deployment_plan(
+        clients, 'tripleo.plan_management.v1.update_deployment_plan',
+        **workflow_input)
+
+    if payload['status'] == 'SUCCESS':
+        print ("Plan updated")
+    else:
+        raise exceptions.WorkflowServiceError(
+            'Exception updating plan: {}'.format(payload['message']))
 
 
 def list_deployment_plans(workflow_client, **input_):
@@ -86,4 +104,20 @@ def create_plan_from_templates(clients, name, tht_root):
     print("Creating plan from template files in: {}".format(tht_root))
     _upload_templates(swift_client, name, tht_root)
     create_deployment_plan(clients, container=name,
+                           queue_name=str(uuid.uuid4()))
+
+
+def update_plan_from_templates(clients, name, tht_root):
+    swift_client = clients.tripleoclient.object_store
+
+    # TODO(dmatthews): Remvoing the exisitng plan files should probably be
+    #                  a Mistral action.
+    print("Removing the current plan files")
+    headers, objects = swift_client.get_container(name)
+    for object_ in objects:
+        swift_client.delete_object(name, object_['name'])
+
+    print("Uploading new plan files")
+    _upload_templates(swift_client, name, tht_root)
+    update_deployment_plan(clients, container=name,
                            queue_name=str(uuid.uuid4()))

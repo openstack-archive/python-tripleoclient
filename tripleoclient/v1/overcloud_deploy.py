@@ -44,7 +44,7 @@ from tripleoclient import constants
 from tripleoclient import exceptions
 from tripleoclient import utils
 from tripleoclient.workflows import deployment
-from tripleoclient.workflows import parameters
+from tripleoclient.workflows import parameters as workflow_params
 from tripleoclient.workflows import plan_management
 
 
@@ -352,8 +352,8 @@ class DeployOvercloud(command.Command):
         # means the UI can find them.
         if 'parameter_defaults' in env:
             params = env.pop('parameter_defaults')
-            parameters.update_parameters(mistral, container=container_name,
-                                         parameters=params)
+            workflow_params.update_parameters(
+                mistral, container=container_name, parameters=params)
 
         contents = yaml.safe_dump(env)
 
@@ -361,11 +361,13 @@ class DeployOvercloud(command.Command):
         swift_client.put_object(container_name, swift_path, contents)
 
         mistral_env = mistral.environments.get(container_name)
-        mistral_env.variables['environments'].append({'path': swift_path})
-        mistral.environments.update(
-            name=container_name,
-            variables=mistral_env.variables
-        )
+        user_env = {'path': swift_path}
+        if user_env not in mistral_env.variables['environments']:
+            mistral_env.variables['environments'].append(user_env)
+            mistral.environments.update(
+                name=container_name,
+                variables=mistral_env.variables
+            )
 
     def _upload_missing_files(self, container_name, swift_client, files_dict,
                               tht_root):
@@ -416,7 +418,15 @@ class DeployOvercloud(command.Command):
         tht_root = parsed_args.templates
 
         plans = plan_management.list_deployment_plans(workflow_client)
-        if parsed_args.stack not in plans:
+
+        # TODO(d0ugal): We need to put a more robust strategy in place here to
+        #               handle updating plans.
+        if parsed_args.stack in plans:
+            # Upload the new plan templates to swift to replace the existing
+            # templates.
+            plan_management.update_plan_from_templates(
+                clients, parsed_args.stack, tht_root)
+        else:
             plan_management.create_plan_from_templates(
                 clients, parsed_args.stack, tht_root)
 
