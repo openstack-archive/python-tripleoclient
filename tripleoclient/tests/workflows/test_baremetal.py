@@ -120,6 +120,27 @@ class TestBaremetalWorkflows(utils.TestCommand):
                 'queue_name': "QUEUE_NAME"
             })
 
+    def test_format_provide_errors(self):
+        payload = {'message': [{'result': 'Error1a\nError1b'},
+                               {'result': 'Error2a\nError2b\n'}]}
+
+        error_string = baremetal._format_provide_errors(payload)
+        self.assertEqual(error_string, "Error1b\nError2b")
+
+    def test_provide_error_with_format_message(self):
+
+        self.websocket.wait_for_message.return_value = {
+            "status": "FAIL",
+            "message": ['Error1', 'Error2']
+        }
+
+        self.assertRaises(
+            exceptions.NodeProvideError,
+            baremetal.provide,
+            self.app.client_manager,
+            node_uuids=[],
+            queue_name="QUEUE_NAME")
+
     def test_introspect_success(self):
 
         self.websocket.wait_for_message.return_value = {
