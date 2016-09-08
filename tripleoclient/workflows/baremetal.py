@@ -43,6 +43,21 @@ def register_or_update(clients, **workflow_input):
             'Exception registering nodes: {}'.format(payload['message']))
 
 
+def _format_provide_errors(payload):
+    errors = []
+    messages = payload.get('message', [])
+    for msg in messages:
+        try:
+            # With multiple workflows, the error message can become
+            # quite large and unreadable as it gets passed from task to
+            # task. This attempts to keep only the last, and hopefully
+            # useful part.
+            errors.append(msg.get('result', '').rstrip('\n').split('\n')[-1])
+        except Exception:
+            errors.append(msg.get('result', ''))
+    return '\n'.join(errors)
+
+
 def provide(clients, **workflow_input):
     """Provide Baremetal Nodes
 
@@ -62,12 +77,15 @@ def provide(clients, **workflow_input):
     with tripleoclients.messaging_websocket(queue_name) as ws:
         payload = ws.wait_for_message(execution.id)
 
-        if payload['status'] == 'SUCCESS':
-            print('Successfully set all nodes to available.')
-        else:
-            raise exceptions.NodeProvideError(
-                'Failed to set nodes to available state: {}'.format(
-                    payload['message']))
+    if payload['status'] == 'SUCCESS':
+        print('Successfully set all nodes to available.')
+    else:
+        try:
+            message = _format_provide_errors(payload)
+        except Exception:
+            message = 'Failed.'
+        raise exceptions.NodeProvideError(
+            'Failed to set nodes to available state: {}'.format(message))
 
 
 def introspect(clients, **workflow_input):
