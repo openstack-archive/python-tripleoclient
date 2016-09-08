@@ -259,17 +259,6 @@ class TestWaitForStackUtil(TestCase):
 
         self.assertEqual(uuids, ['IJKLMNOP', ])
 
-    @mock.patch("subprocess.Popen")
-    def test_get_hiera_key(self, mock_popen):
-
-        process_mock = mock.Mock()
-        process_mock.communicate.return_value = ["pa$$word", ""]
-        mock_popen.return_value = process_mock
-
-        value = utils.get_hiera_key('password_name')
-
-        self.assertEqual(value, "pa$$word")
-
     @mock.patch("six.moves.configparser")
     @mock.patch("os.path.exists")
     def test_get_config_value(self, mock_path_exists, mock_config_parser):
