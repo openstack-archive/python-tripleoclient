@@ -449,19 +449,6 @@ def set_nodes_state(baremetal_client, nodes, transition, target_state,
         yield node.uuid
 
 
-def get_hiera_key(key_name):
-    """Retrieve a key from the hiera store
-
-    :param password_name: Name of the key to retrieve
-    :type  password_name: type
-
-    """
-    command = ["hiera", key_name]
-    p = subprocess.Popen(command, stdout=subprocess.PIPE)
-    out, err = p.communicate()
-    return out
-
-
 def get_config_value(section, option):
     # TODO(beagles): get_config_value is an odd name for this function as the
     # hard coding of undercloud-passwords makes this a
