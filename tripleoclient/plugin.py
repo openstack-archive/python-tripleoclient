@@ -17,11 +17,12 @@
 
 import json
 import logging
+import socket
 import uuid
-import websocket
 
 from osc_lib import utils
 from swiftclient import client as swift_client
+import websocket
 
 LOG = logging.getLogger(__name__)
 
@@ -79,7 +80,13 @@ class WebsocketClient(object):
         self._websocket_client_id = str(uuid.uuid4())
 
         LOG.debug('Instantiating messaging websocket client: %s', endpoint)
-        self._ws = websocket.create_connection(endpoint)
+        try:
+            self._ws = websocket.create_connection(endpoint)
+        except socket.error:
+            LOG.error("Could not establish a connection to the Zaqar "
+                      "websocket. The command was sent but the answer "
+                      "could not be read.")
+            raise
 
         self.send('authenticate', extra_headers={'X-Auth-Token': token})
 
