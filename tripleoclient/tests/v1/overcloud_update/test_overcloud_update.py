@@ -16,6 +16,7 @@
 import mock
 import tempfile
 
+from tripleoclient import exceptions
 from tripleoclient.tests.v1.overcloud_update import fakes
 from tripleoclient.v1 import overcloud_update
 
@@ -31,7 +32,7 @@ class TestOvercloudUpdate(fakes.TestOvercloudUpdate):
     @mock.patch('tripleo_common.update.PackageUpdateManager')
     def test_update_out(self, update_manager):
         update_manager.return_value.get_status.return_value = (
-            'UPDATE_COMPLETE', {})
+            'COMPLETE', {})
         argslist = ['overcloud', '-i', '--templates']
         verifylist = [
             ('stack', 'overcloud'),
@@ -57,7 +58,7 @@ class TestOvercloudUpdate(fakes.TestOvercloudUpdate):
             answerfile.flush()
 
             update_manager.return_value.get_status.return_value = (
-                'UPDATE_COMPLETE', {})
+                'COMPLETE', {})
             argslist = ['overcloud', '-i', '--answers-file', answerfile.name]
             verifylist = [
                 ('stack', 'overcloud'),
@@ -74,3 +75,17 @@ class TestOvercloudUpdate(fakes.TestOvercloudUpdate):
         called_args = update_manager.call_args[1]
         self.assertEqual(called_args['tht_dir'], '/dev/null')
         self.assertEqual(called_args['environment_files'], ['/dev/null'])
+
+    @mock.patch('tripleo_common.update.PackageUpdateManager')
+    def test_update_failed(self, update_manager):
+        update_manager.return_value.get_status.return_value = (
+            'FAILED', {})
+        argslist = ['overcloud', '-i', '--templates']
+        verifylist = [
+            ('stack', 'overcloud'),
+            ('interactive', True),
+            ('templates', '/usr/share/openstack-tripleo-heat-templates/')
+        ]
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+        self.assertRaises(exceptions.DeploymentError,
+                          self.cmd.take_action, parsed_args)
