@@ -266,7 +266,6 @@ class BuildOvercloudImage(command.Command):
                     self.TRIPLEOPUPPETELEMENTS,
                     self.INSTACKUNDERCLOUDELEMENTS,
                     '/usr/share/tripleo-image-elements',
-                    'software-config/elements',
                 ])),
             help=_("Full elements path, separated by %s") % os.pathsep,
         )
