@@ -189,6 +189,23 @@ class TestBaremetalWorkflows(utils.TestCommand):
             'tripleo.baremetal.v1.introspect_manageable_nodes',
             workflow_input={'queue_name': "QUEUE_NAME"})
 
+    def test_introspect_manageable_nodes_mixed_status(self):
+
+        self.websocket.wait_for_message.return_value = {
+            "status": "SUCCESS",
+            "introspected_nodes": {'node1': {'error': None},
+                                   'node2': {'error': 'Error'}}
+        }
+
+        self.assertRaises(
+            exceptions.IntrospectionError,
+            baremetal.introspect_manageable_nodes,
+            self.app.client_manager, queue_name="QUEUE_NAME")
+
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.baremetal.v1.introspect_manageable_nodes',
+            workflow_input={'queue_name': "QUEUE_NAME"})
+
     def test_provide_manageable_nodes_success(self):
 
         self.websocket.wait_for_message.return_value = {
@@ -219,3 +236,75 @@ class TestBaremetalWorkflows(utils.TestCommand):
         self.workflow.executions.create.assert_called_once_with(
             'tripleo.baremetal.v1.provide_manageable_nodes',
             workflow_input={'queue_name': "QUEUE_NAME"})
+
+    def test_configure_success(self):
+
+        self.websocket.wait_for_message.return_value = {
+            "status": "SUCCESS",
+        }
+
+        baremetal.configure(self.app.client_manager, node_uuids=[],
+                            queue_name="QUEUE_NAME")
+
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.baremetal.v1.configure',
+            workflow_input={
+                'node_uuids': [],
+                'queue_name': "QUEUE_NAME"
+            })
+
+    def test_configure_error(self):
+
+        self.websocket.wait_for_message.return_value = {
+            "status": "FAIL",
+            "message": "Failed"
+        }
+
+        self.assertRaises(
+            exceptions.NodeConfigurationError,
+            baremetal.configure,
+            self.app.client_manager,
+            node_uuids=[],
+            queue_name="QUEUE_NAME")
+
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.baremetal.v1.configure',
+            workflow_input={
+                'node_uuids': [],
+                'queue_name': "QUEUE_NAME"
+            })
+
+    def test_configure_manageable_nodes_success(self):
+
+        self.websocket.wait_for_message.return_value = {
+            "status": "SUCCESS",
+            "message": "Success"
+        }
+
+        baremetal.configure_manageable_nodes(self.app.client_manager,
+                                             queue_name="QUEUE_NAME")
+
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.baremetal.v1.configure_manageable_nodes',
+            workflow_input={
+                'queue_name': "QUEUE_NAME"
+            })
+
+    def test_configure_manageable_nodes_error(self):
+
+        self.websocket.wait_for_message.return_value = {
+            "status": "FAIL",
+            "message": "Failed"
+        }
+
+        self.assertRaises(
+            exceptions.NodeConfigurationError,
+            baremetal.configure_manageable_nodes,
+            self.app.client_manager,
+            queue_name="QUEUE_NAME")
+
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.baremetal.v1.configure_manageable_nodes',
+            workflow_input={
+                'queue_name': "QUEUE_NAME"
+            })
