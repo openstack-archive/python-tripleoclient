@@ -127,7 +127,7 @@ class TestOvercloudImageBuild(TestPluginV1):
             "device-mapper-multipath,python-networking-bigswitch,"
             "openstack-neutron-bigswitch-lldp,"
             "openstack-neutron-bigswitch-agent,python-heat-agent-puppet "
-            "dynamic-login element-manifest network-gateway epel "
+            "dynamic-login element-manifest network-gateway "
             "enable-packages-install "
             "pip-and-virtualenv-override  --min-tmpfs 5 2>&1 | "
             "tee dib-overcloud-full.log")
@@ -171,7 +171,7 @@ class TestOvercloudImageBuild(TestPluginV1):
             "device-mapper-multipath,python-networking-bigswitch,"
             "openstack-neutron-bigswitch-lldp,"
             "openstack-neutron-bigswitch-agent,python-heat-agent-puppet "
-            "dynamic-login element-manifest network-gateway epel "
+            "dynamic-login element-manifest network-gateway "
             "enable-packages-install "
             "pip-and-virtualenv-override overcloud-network-midonet "
             "--min-tmpfs 5 2>&1 | tee dib-overcloud-full.log")
@@ -203,7 +203,7 @@ class TestOvercloudImageBuild(TestPluginV1):
         self.mock_ramdisk_image_create.assert_called_once_with(
             "-a amd64 -o deploy-ramdisk-ironic --ramdisk-element "
             "dracut-ramdisk rhel7 deploy-ironic dynamic-login "
-            "element-manifest network-gateway epel "
+            "element-manifest network-gateway "
             "enable-packages-install "
             "pip-and-virtualenv-override  2>&1 | tee dib-deploy.log")
         self.assertEqual([mock.call('deploy-ramdisk-ironic.initramfs'),
@@ -233,7 +233,7 @@ class TestOvercloudImageBuild(TestPluginV1):
         self.mock_disk_image_create.assert_called_once_with(
             "-a amd64 -o ironic-python-agent "
             "rhel7 ironic-agent dynamic-login element-manifest "
-            "network-gateway epel enable-packages-install "
+            "network-gateway enable-packages-install "
             "pip-and-virtualenv-override  "
             "-p python-hardware-detect --min-tmpfs 5 "
             "2>&1 | tee dib-agent-ramdisk.log")
@@ -265,7 +265,7 @@ class TestOvercloudImageBuild(TestPluginV1):
         self.mock_disk_image_create.assert_called_once_with(
             "-a amd64 -o ironic-python-agent "
             "rhel7 ironic-agent dynamic-login element-manifest "
-            "network-gateway epel enable-packages-install "
+            "network-gateway enable-packages-install "
             "pip-and-virtualenv-override  "
             "-p python-hardware-detect --min-tmpfs 5 "
             "2>&1 | tee dib-agent-ramdisk.log")

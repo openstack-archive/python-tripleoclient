@@ -441,15 +441,8 @@ class BuildOvercloudImage(command.Command):
             'network-gateway',
         ])
 
-        self._set_env_var(env_vars, 'RHOS', '0')
-
         if parsed_args.node_dist in ['rhel7', 'centos7']:
             self._set_env_var(env_vars, 'FS_TYPE', 'xfs')
-
-            if env_vars.get('RHOS') == '0':
-                dib_common_elements.extend([
-                    'epel',
-                ])
 
         self._set_env_var(env_vars, 'PACKAGES', '1')
         if env_vars.get('PACKAGES') == '1':
