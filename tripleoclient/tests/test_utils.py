@@ -182,8 +182,7 @@ class TestWaitForStackUtil(TestCase):
         return e
 
     @mock.patch("heatclient.common.event_utils.get_events")
-    @mock.patch('time.sleep', return_value=None)
-    def test_wait_for_stack_ready(self, sleep_mock, mock_el):
+    def test_wait_for_stack_ready(self, mock_el):
         stack = mock.Mock()
         stack.stack_name = 'stack'
         stack.stack_status = "CREATE_COMPLETE"
@@ -191,7 +190,6 @@ class TestWaitForStackUtil(TestCase):
 
         complete = utils.wait_for_stack_ready(self.mock_orchestration, 'stack')
         self.assertTrue(complete)
-        sleep_mock.assert_not_called()
 
     def test_wait_for_stack_ready_no_stack(self):
         self.mock_orchestration.stacks.get.return_value = None
@@ -201,8 +199,7 @@ class TestWaitForStackUtil(TestCase):
         self.assertFalse(complete)
 
     @mock.patch("heatclient.common.event_utils.get_events")
-    @mock.patch('time.sleep', return_value=None)
-    def test_wait_for_stack_ready_failed(self, sleep_mock, mock_el):
+    def test_wait_for_stack_ready_failed(self, mock_el):
         stack = mock.Mock()
         stack.stack_name = 'stack'
         stack.stack_status = "CREATE_FAILED"
@@ -212,11 +209,8 @@ class TestWaitForStackUtil(TestCase):
 
         self.assertFalse(complete)
 
-        sleep_mock.assert_not_called()
-
     @mock.patch("heatclient.common.event_utils.get_events")
-    @mock.patch('time.sleep', return_value=None)
-    def test_wait_for_stack_in_progress(self, sleep_mock, mock_el):
+    def test_wait_for_stack_in_progress(self, mock_el):
 
         mock_el.side_effect = [[
             self.mock_event('stack', 'aaa', 'Stack CREATE started',
@@ -241,8 +235,6 @@ class TestWaitForStackUtil(TestCase):
             stack, stack, stack, complete_stack]
 
         utils.wait_for_stack_ready(self.mock_orchestration, 'stack')
-
-        self.assertEqual(2, sleep_mock.call_count)
 
     def test_create_environment_file(self):
 
