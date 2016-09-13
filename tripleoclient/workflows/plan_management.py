@@ -49,7 +49,6 @@ def create_default_plan(clients, **workflow_input):
 
 
 def _create_update_deployment_plan(clients, workflow, **workflow_input):
-
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
     queue_name = workflow_input['queue_name']
@@ -101,7 +100,13 @@ def create_plan_from_templates(clients, name, tht_root):
     swift_client = clients.tripleoclient.object_store
 
     print("Creating Swift container to store the plan")
-    create_container(workflow_client, container=name)
+    result = create_container(workflow_client, container=name)
+    if result:
+        # create_container returns 'None' on success and a string with
+        # the error message when failing.
+        raise exceptions.PlanCreationError(
+            "Unable to create plan. {}".format(result))
+
     print("Creating plan from template files in: {}".format(tht_root))
     _upload_templates(swift_client, name, tht_root)
     create_deployment_plan(clients, container=name,
@@ -111,7 +116,7 @@ def create_plan_from_templates(clients, name, tht_root):
 def update_plan_from_templates(clients, name, tht_root):
     swift_client = clients.tripleoclient.object_store
 
-    # TODO(dmatthews): Remvoing the exisitng plan files should probably be
+    # TODO(dmatthews): Removing the existing plan files should probably be
     #                  a Mistral action.
     print("Removing the current plan files")
     headers, objects = swift_client.get_container(name)
