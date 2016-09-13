@@ -117,6 +117,18 @@ def update_plan_from_templates(clients, name, tht_root):
     for object_ in objects:
         swift_client.delete_object(name, object_['name'])
 
+    # Until we have a well defined plan update workflow in tripleo-common we
+    # need to manually reset the environments here. This is to ensure that
+    # no environments are in the mistral environment but not in swift.
+    # See bug: https://bugs.launchpad.net/tripleo/+bug/1623431
+    mistral = clients.workflow_engine
+    mistral_env = mistral.environments.get(name)
+    mistral_env.variables['environments'] = []
+    mistral.environments.update(
+        name=name,
+        variables=mistral_env.variables
+    )
+
     print("Uploading new plan files")
     _upload_templates(swift_client, name, tht_root)
     update_deployment_plan(clients, container=name,

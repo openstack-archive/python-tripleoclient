@@ -372,6 +372,10 @@ class DeployOvercloud(command.Command):
 
         contents = yaml.safe_dump(env)
 
+        # Until we have a well defined plan update workflow in tripleo-common
+        # we need to manually add an environment in swift and mistral for users
+        # custom environments passed to the deploy command.
+        # See bug: https://bugs.launchpad.net/tripleo/+bug/1623431
         swift_path = "user-environment.yaml"
         swift_client.put_object(container_name, swift_path, contents)
 
