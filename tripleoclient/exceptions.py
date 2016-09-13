@@ -71,3 +71,7 @@ class PasswordFileNotFound(Exception):
 
 class RootDeviceDetectionError(Exception):
     """Failed to detect the root device"""
+
+
+class PlanCreationError(Exception):
+    """Plan creation failed"""
