@@ -27,132 +27,6 @@ from tripleoclient.tests.v1.utils import (
 from tripleoclient import utils
 
 
-class TestPasswordsUtil(TestCase):
-
-    @mock.patch("os.path.isfile", return_value=False)
-    @mock.patch("passlib.utils.generate_password",
-                return_value="PASSWORD")
-    @mock.patch("tripleoclient.utils.create_cephx_key",
-                return_value="CEPHX_KEY")
-    @mock.patch("tripleoclient.utils.create_keystone_credential",
-                return_value="PASSWORD")
-    def test_generate_passwords(self, create_keystone_creds_mock,
-                                create_cephx_key_mock, generate_password_mock,
-                                isfile_mock):
-
-        mock_open = mock.mock_open()
-
-        with mock.patch('six.moves.builtins.open', mock_open):
-            passwords = utils.generate_overcloud_passwords(
-                create_password_file=True)
-        mock_calls = [
-            mock.call('NEUTRON_METADATA_PROXY_SHARED_SECRET=PASSWORD\n'),
-            mock.call('OVERCLOUD_ADMIN_PASSWORD=PASSWORD\n'),
-            mock.call('OVERCLOUD_ADMIN_TOKEN=PASSWORD\n'),
-            mock.call('OVERCLOUD_AODH_PASSWORD=PASSWORD\n'),
-            mock.call('OVERCLOUD_BARBICAN_PASSWORD=PASSWORD\n'),
-            mock.call('OVERCLOUD_CEILOMETER_PASSWORD=PASSWORD\n'),
-            mock.call('OVERCLOUD_CEILOMETER_SECRET=PASSWORD\n'),
-            mock.call('OVERCLOUD_CEPH_ADMIN_KEY=CEPHX_KEY\n'),
-            mock.call('OVERCLOUD_CEPH_CLIENT_KEY=CEPHX_KEY\n'),
-            mock.call('OVERCLOUD_CEPH_MON_KEY=CEPHX_KEY\n'),
-            mock.call('OVERCLOUD_CEPH_RGW_KEY=CEPHX_KEY\n'),
-            mock.call('OVERCLOUD_CINDER_PASSWORD=PASSWORD\n'),
-            mock.call('OVERCLOUD_DEMO_PASSWORD=PASSWORD\n'),
-            mock.call('OVERCLOUD_GLANCE_PASSWORD=PASSWORD\n'),
-            mock.call('OVERCLOUD_GNOCCHI_PASSWORD=PASSWORD\n'),
-            mock.call('OVERCLOUD_HAPROXY_STATS_PASSWORD=PASSWORD\n'),
-            mock.call('OVERCLOUD_HEAT_PASSWORD=PASSWORD\n'),
-            mock.call('OVERCLOUD_HEAT_STACK_DOMAIN_PASSWORD=PASSWORD\n'),
-            mock.call('OVERCLOUD_IRONIC_PASSWORD=PASSWORD\n'),
-            mock.call('OVERCLOUD_KEYSTONE_CREDENTIALS_0=PASSWORD\n'),
-            mock.call('OVERCLOUD_KEYSTONE_CREDENTIALS_1=PASSWORD\n'),
-            mock.call('OVERCLOUD_MANILA_PASSWORD=PASSWORD\n'),
-            mock.call('OVERCLOUD_MISTRAL_PASSWORD=PASSWORD\n'),
-            mock.call('OVERCLOUD_MYSQL_CLUSTERCHECK_PASSWORD=PASSWORD\n'),
-            mock.call('OVERCLOUD_NEUTRON_PASSWORD=PASSWORD\n'),
-            mock.call('OVERCLOUD_NOVA_PASSWORD=PASSWORD\n'),
-            mock.call('OVERCLOUD_RABBITMQ_PASSWORD=PASSWORD\n'),
-            mock.call('OVERCLOUD_REDIS_PASSWORD=PASSWORD\n'),
-            mock.call('OVERCLOUD_SAHARA_PASSWORD=PASSWORD\n'),
-            mock.call('OVERCLOUD_SWIFT_HASH=PASSWORD\n'),
-            mock.call('OVERCLOUD_SWIFT_PASSWORD=PASSWORD\n'),
-            mock.call('OVERCLOUD_TROVE_PASSWORD=PASSWORD\n'),
-            mock.call('OVERCLOUD_ZAQAR_PASSWORD=PASSWORD\n'),
-        ]
-        self.assertEqual(sorted(mock_open().write.mock_calls), mock_calls)
-        self.assertEqual(generate_password_mock.call_count +
-                         create_keystone_creds_mock.call_count +
-                         create_cephx_key_mock.call_count, len(mock_calls))
-
-        self.assertEqual(len(passwords), len(mock_calls))
-
-    def test_generate_passwords_update(self):
-
-        mock_open = mock.mock_open()
-
-        with mock.patch('six.moves.builtins.open', mock_open):
-            with self.assertRaises(exceptions.PasswordFileNotFound):
-                utils.generate_overcloud_passwords()
-
-    @mock.patch("os.path.isfile", return_value=True)
-    @mock.patch("passlib.utils.generate_password",
-                return_value="PASSWORD")
-    @mock.patch("tripleoclient.utils.create_cephx_key",
-                return_value="CEPHX_KEY")
-    @mock.patch("tripleoclient.utils.create_keystone_credential",
-                return_value="PASSWORD")
-    def test_load_passwords(self, create_keystone_creds_mock,
-                            create_cephx_key_mock, generate_password_mock,
-                            isfile_mock):
-        PASSWORDS = [
-            'OVERCLOUD_ADMIN_PASSWORD=PASSWORD\n',
-            'OVERCLOUD_ADMIN_TOKEN=PASSWORD\n',
-            'OVERCLOUD_AODH_PASSWORD=PASSWORD\n',
-            'OVERCLOUD_BARBICAN_PASSWORD=PASSWORD\n',
-            'OVERCLOUD_CEILOMETER_PASSWORD=PASSWORD\n',
-            'OVERCLOUD_CEILOMETER_SECRET=PASSWORD\n',
-            'OVERCLOUD_CEPH_ADMIN_KEY=CEPHX_KEY\n',
-            'OVERCLOUD_CEPH_CLIENT_KEY=CEPHX_KEY\n',
-            'OVERCLOUD_CEPH_MON_KEY=CEPHX_KEY\n',
-            'OVERCLOUD_CEPH_RGW_KEY=CEPHX_KEY\n',
-            'OVERCLOUD_CINDER_PASSWORD=PASSWORD\n',
-            'OVERCLOUD_DEMO_PASSWORD=PASSWORD\n',
-            'OVERCLOUD_GLANCE_PASSWORD=PASSWORD\n',
-            'OVERCLOUD_GNOCCHI_PASSWORD=PASSWORD\n',
-            'OVERCLOUD_HAPROXY_STATS_PASSWORD=PASSWORD\n',
-            'OVERCLOUD_HEAT_PASSWORD=PASSWORD\n',
-            'OVERCLOUD_HEAT_STACK_DOMAIN_PASSWORD=PASSWORD\n',
-            'OVERCLOUD_IRONIC_PASSWORD=PASSWORD\n',
-            'OVERCLOUD_KEYSTONE_CREDENTIALS_0=PASSWORD\n',
-            'OVERCLOUD_KEYSTONE_CREDENTIALS_1=PASSWORD\n',
-            'OVERCLOUD_MANILA_PASSWORD=PASSWORD\n',
-            'OVERCLOUD_MISTRAL_PASSWORD=PASSWORD\n',
-            'OVERCLOUD_MYSQL_CLUSTERCHECK_PASSWORD=PASSWORD\n',
-            'OVERCLOUD_NEUTRON_PASSWORD=PASSWORD\n',
-            'OVERCLOUD_NOVA_PASSWORD=PASSWORD\n',
-            'OVERCLOUD_RABBITMQ_PASSWORD=PASSWORD\n',
-            'OVERCLOUD_REDIS_PASSWORD=PASSWORD\n',
-            'OVERCLOUD_SAHARA_PASSWORD=PASSWORD\n',
-            'OVERCLOUD_SWIFT_HASH=PASSWORD\n',
-            'OVERCLOUD_SWIFT_PASSWORD=PASSWORD\n',
-            'OVERCLOUD_TROVE_PASSWORD=PASSWORD\n',
-            'OVERCLOUD_ZAQAR_PASSWORD=PASSWORD\n',
-            'NEUTRON_METADATA_PROXY_SHARED_SECRET=PASSWORD\n',
-        ]
-        mock_open = mock.mock_open(read_data=''.join(PASSWORDS))
-        mock_open.return_value.__iter__ = lambda self: self
-        mock_open.return_value.__next__ = lambda self: self.readline()
-
-        with mock.patch('six.moves.builtins.open', mock_open):
-            passwords = utils.generate_overcloud_passwords()
-
-        generate_password_mock.assert_not_called()
-        self.assertEqual(len(passwords), len(PASSWORDS))
-        for name in utils._PASSWORD_NAMES:
-            self.assertEqual('PASSWORD', passwords[name])
-
-
 class TestCheckHypervisorUtil(TestCase):
     def test_check_hypervisor_stats(self):
 
@@ -459,8 +333,11 @@ class TestCreateOvercloudRC(TestCase):
 
         tempdir = tempfile.mkdtemp()
         rcfile = os.path.join(tempdir, 'teststackrc')
+        mock_clients = mock.Mock()
+
         try:
-            utils.create_overcloudrc(stack=stack,
+            utils.create_overcloudrc(clients=mock_clients,
+                                     stack=stack,
                                      no_proxy='127.0.0.1',
                                      config_directory=tempdir)
             rc = open(rcfile, 'rt').read()

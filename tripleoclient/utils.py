@@ -21,13 +21,13 @@ import json
 import logging
 import os
 import os.path
-import passlib.utils as passutils
 import six
 import socket
 import struct
 import subprocess
 import sys
 import time
+import uuid
 import yaml
 
 from heatclient.common import event_utils
@@ -37,91 +37,20 @@ from six.moves import configparser
 from six.moves import urllib
 
 from tripleoclient import exceptions
-
-_MIN_PASSWORD_SIZE = 25
-_PASSWORD_NAMES = (
-    "OVERCLOUD_ADMIN_PASSWORD",
-    "OVERCLOUD_ADMIN_TOKEN",
-    "OVERCLOUD_AODH_PASSWORD",
-    "OVERCLOUD_BARBICAN_PASSWORD",
-    "OVERCLOUD_CEILOMETER_PASSWORD",
-    "OVERCLOUD_CEILOMETER_SECRET",
-    "OVERCLOUD_CINDER_PASSWORD",
-    "OVERCLOUD_DEMO_PASSWORD",
-    "OVERCLOUD_GLANCE_PASSWORD",
-    "OVERCLOUD_GNOCCHI_PASSWORD",
-    "OVERCLOUD_HAPROXY_STATS_PASSWORD",
-    "OVERCLOUD_HEAT_PASSWORD",
-    "OVERCLOUD_HEAT_STACK_DOMAIN_PASSWORD",
-    "OVERCLOUD_IRONIC_PASSWORD",
-    "OVERCLOUD_MANILA_PASSWORD",
-    "OVERCLOUD_MISTRAL_PASSWORD",
-    "OVERCLOUD_MYSQL_CLUSTERCHECK_PASSWORD",
-    "OVERCLOUD_NEUTRON_PASSWORD",
-    "OVERCLOUD_NOVA_PASSWORD",
-    "OVERCLOUD_RABBITMQ_PASSWORD",
-    "OVERCLOUD_REDIS_PASSWORD",
-    "OVERCLOUD_SAHARA_PASSWORD",
-    "OVERCLOUD_SWIFT_HASH",
-    "OVERCLOUD_SWIFT_PASSWORD",
-    "OVERCLOUD_TROVE_PASSWORD",
-    "OVERCLOUD_ZAQAR_PASSWORD",
-    "NEUTRON_METADATA_PROXY_SHARED_SECRET"
-)
-_CEPH_PASSWORD_NAMES = (
-    "OVERCLOUD_CEPH_MON_KEY",
-    "OVERCLOUD_CEPH_ADMIN_KEY",
-    "OVERCLOUD_CEPH_CLIENT_KEY",
-    "OVERCLOUD_CEPH_RGW_KEY"
-)
-
-_KEYSTONE_CREDENTIALS_NAME = (
-    "OVERCLOUD_KEYSTONE_CREDENTIALS_0",
-    "OVERCLOUD_KEYSTONE_CREDENTIALS_1"
-)
+from tripleoclient.workflows import parameters
 
 
-def generate_overcloud_passwords(output_file="tripleo-overcloud-passwords",
-                                 create_password_file=False):
-    """Create the passwords needed for the overcloud
+def generate_overcloud_passwords(clients, plan_name):
+    """Retrieve passwords needed for the overcloud
 
-    This will create the set of passwords required by the overcloud, store
-    them in the output file path and return a dictionary of passwords. If the
-    file already exists the existing passwords will be returned instead,
+    This will retrieve the set of passwords required by the overcloud stored
+    in the deployment plan and accessible via a workflow.
     """
-
-    log = logging.getLogger(__name__ + ".generate_overcloud_passwords")
-
-    log.debug("Using password file: {0}".format(os.path.abspath(output_file)))
-
-    passwords = {}
-    if os.path.isfile(output_file):
-        with open(output_file) as f:
-            passwords = dict(line.split('=', 1)
-                             for line in f.read().splitlines())
-    elif not create_password_file:
-        raise exceptions.PasswordFileNotFound(
-            "The password file could not be found!")
-
-    for name in _PASSWORD_NAMES:
-        if not passwords.get(name):
-            passwords[name] = passutils.generate_password(
-                size=_MIN_PASSWORD_SIZE)
-
-    # CephX keys aren't random strings
-    for name in _CEPH_PASSWORD_NAMES:
-        if not passwords.get(name):
-            passwords[name] = create_cephx_key()
-
-    for name in _KEYSTONE_CREDENTIALS_NAME:
-        if not passwords.get(name):
-            passwords[name] = create_keystone_credential()
-
-    with open(output_file, 'w') as f:
-        for name, password in passwords.items():
-            f.write("{0}={1}\n".format(name, password))
-
-    return passwords
+    workflow_input = {
+        "container": plan_name,
+        "queue_name": str(uuid.uuid4()),
+    }
+    return parameters.get_overcloud_passwords(clients, **workflow_input)
 
 
 def bracket_ipv6(address):
@@ -151,7 +80,7 @@ def unbracket_ipv6(address):
     return address
 
 
-def create_overcloudrc(stack, no_proxy, config_directory='.'):
+def create_overcloudrc(clients, stack, no_proxy, config_directory='.'):
     """Given proxy settings and stack, create the overcloudrc
 
     stack: Heat stack containing the deployed overcloud
@@ -176,7 +105,8 @@ def create_overcloudrc(stack, no_proxy, config_directory='.'):
                            'SSLContext object is not available"'),
     }
     rc_params.update({
-        'OS_PASSWORD': get_password('OVERCLOUD_ADMIN_PASSWORD'),
+        'OS_PASSWORD': get_password(clients, stack.stack_name,
+                                    'AdminPassword'),
         'OS_AUTH_URL': overcloud_endpoint,
     })
 
@@ -482,14 +412,14 @@ def get_endpoint(key, stack):
 __password_cache = None
 
 
-def get_password(pass_name):
-    """Retrieve a password by name, such as 'OVERCLOUD_ADMIN_PASSWORD'.
+def get_password(clients, plan_name, pass_name):
+    """Retrieve a password by name, such as 'AdminPassword'.
 
     Raises KeyError if password does not exist.
     """
     global __password_cache
     if __password_cache is None:
-        __password_cache = generate_overcloud_passwords()
+        __password_cache = generate_overcloud_passwords(clients, plan_name)
     return __password_cache[pass_name]
 
 
