@@ -15,7 +15,7 @@ import mock
 import os
 import tempfile
 
-from openstackclient.tests import utils
+from osc_lib.tests import utils
 import yaml
 
 from tripleoclient import exceptions
