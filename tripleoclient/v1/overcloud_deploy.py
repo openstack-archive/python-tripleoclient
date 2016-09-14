@@ -413,7 +413,7 @@ class DeployOvercloud(command.Command):
 
             filename = os.path.basename(path)
             checksum = hashlib.md5()
-            checksum.update(filename)
+            checksum.update(path)
             digest = checksum.hexdigest()
             swift_path = "user-files/{}-{}".format(digest, filename)
             swift_client.put_object(container_name, swift_path, contents)
