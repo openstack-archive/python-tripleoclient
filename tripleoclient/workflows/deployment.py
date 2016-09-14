@@ -37,10 +37,19 @@ def deploy(clients, **workflow_input):
         assert message['status'] == "SUCCESS", pprint.pformat(message)
 
 
-def deploy_and_wait(log, clients, stack, plan_name, verbose_level):
+def deploy_and_wait(log, clients, stack, plan_name, verbose_level,
+                    timeout=None):
     """Start the deploy and wait for it to finish"""
 
-    deploy(clients, container=plan_name, queue_name=str(uuid.uuid4()))
+    workflow_input = {
+        "container": plan_name,
+        "queue_name": str(uuid.uuid4()),
+    }
+
+    if timeout is not None:
+        workflow_input['timeout'] = timeout
+
+    deploy(clients, **workflow_input)
 
     orchestration_client = clients.orchestration
 

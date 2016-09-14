@@ -123,6 +123,9 @@ class DeployPlan(command.Command):
     def get_parser(self, prog_name):
         parser = super(DeployPlan, self).get_parser(prog_name)
         parser.add_argument('name', help=_('The name of the plan to deploy.'))
+        parser.add_argument('--timeout', '-t', metavar='<TIMEOUT>',
+                            type=int,
+                            help=_('Deployment timeout in minutes.'))
         return parser
 
     def take_action(self, parsed_args):
@@ -134,4 +137,5 @@ class DeployPlan(command.Command):
 
         print("Starting to deploy plan: {}".format(parsed_args.name))
         deployment.deploy_and_wait(self.log, clients, stack, parsed_args.name,
-                                   self.app_args.verbose_level)
+                                   self.app_args.verbose_level,
+                                   timeout=parsed_args.timeout)
