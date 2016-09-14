@@ -500,10 +500,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_create_tempest_deployer_input.assert_called_with()
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                'set_overcloud_passwords', autospec=True)
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_tripleo_heat_templates', autospec=True)
-    def test_missing_sat_url(self, mock_deploy_tht, mock_set_ov_passwords):
+    def test_missing_sat_url(self, mock_deploy_tht):
 
         arglist = ['--templates', '--rhel-reg',
                    '--reg-method', 'satellite', '--reg-org', '123456789',
@@ -635,8 +633,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                'set_overcloud_passwords', autospec=True)
     @mock.patch('tripleoclient.utils.create_overcloudrc', autospec=True)
     @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
@@ -645,7 +641,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_rhel_reg_params_provided(self, mock_copytree, mock_deploy_tht,
                                       mock_oc_endpoint,
                                       mock_create_ocrc,
-                                      mock_set_oc_passwords,
                                       mock_create_tempest_deployer_input):
 
         arglist = ['--templates', '--rhel-reg',
@@ -950,8 +945,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                'set_overcloud_passwords', autospec=True)
     @mock.patch('tripleoclient.utils.create_overcloudrc', autospec=True)
     @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
@@ -959,7 +952,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_dry_run(self, mock_deploy_tht,
                      mock_oc_endpoint,
                      mock_create_ocrc,
-                     mock_set_ov_passwords,
                      mock_create_tempest_deployer_input):
 
         arglist = ['--templates', '--dry-run']
@@ -985,13 +977,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_heat_deploy', autospec=True)
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                'set_overcloud_passwords', autospec=True)
     @mock.patch('shutil.copytree', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True)
     @mock.patch('shutil.rmtree', autospec=True)
     def test_answers_file(self, mock_rmtree, mock_tmpdir, mock_copy,
-                          mock_set_overcloud_passwords,
                           mock_heat_deploy,
                           mock_oc_endpoint,
                           mock_create_ocrc,

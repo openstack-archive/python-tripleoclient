@@ -13,11 +13,40 @@
 #   under the License.
 #
 
-from tripleoclient import utils
+_EXISTING_PASSWORDS = (
+    'MistralPassword',
+    'BarbicanPassword',
+    'AdminPassword',
+    'CeilometerMeteringSecret',
+    'ZaqarPassword',
+    'NovaPassword',
+    'IronicPassword',
+    'RedisPassword',
+    'SaharaPassword',
+    'AdminToken',
+    'CinderPassword',
+    'GlancePassword',
+    'RabbitPassword',
+    'CephAdminKey',
+    'HAProxyStatsPassword',
+    'TrovePassword',
+    'CeilometerPassword',
+    'GnocchiPassword',
+    'HeatStackDomainAdminPassword',
+    'CephRgwKey',
+    'AodhPassword',
+    'ManilaPassword',
+    'NeutronMetadataProxySharedSecret',
+    'CephMonKey',
+    'SwiftHashSuffix',
+    'SnmpdReadonlyUserPassword',
+    'SwiftPassword',
+    'HeatPassword',
+    'MysqlClustercheckPassword',
+    'CephClientKey',
+    'NeutronPassword',
+)
 
 
-def generate_overcloud_passwords_mock():
-    passwords = utils._PASSWORD_NAMES + utils._CEPH_PASSWORD_NAMES + \
-        utils._KEYSTONE_CREDENTIALS_NAME
-
-    return dict((password, 'password') for password in passwords)
+def generate_overcloud_passwords_mock(*args):
+    return dict((password, 'password') for password in _EXISTING_PASSWORDS)
