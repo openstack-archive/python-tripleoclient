@@ -17,6 +17,8 @@ import uuid
 from osc_lib.command import command
 from osc_lib.i18n import _
 
+from tripleoclient import utils
+from tripleoclient.workflows import deployment
 from tripleoclient.workflows import plan_management
 
 
@@ -111,3 +113,25 @@ class CreatePlan(command.Command):
         else:
             plan_management.create_default_plan(
                 clients, container=name, queue_name=str(uuid.uuid4()))
+
+
+class DeployPlan(command.Command):
+    """Deploy a deployment plan"""
+
+    log = logging.getLogger(__name__ + ".DeployPlan")
+
+    def get_parser(self, prog_name):
+        parser = super(DeployPlan, self).get_parser(prog_name)
+        parser.add_argument('name', help=_('The name of the plan to deploy.'))
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)" % parsed_args)
+
+        clients = self.app.client_manager
+        orchestration_client = clients.orchestration
+        stack = utils.get_stack(orchestration_client, parsed_args.name)
+
+        print("Starting to deploy plan: {}".format(parsed_args.name))
+        deployment.deploy_and_wait(self.log, clients, stack, parsed_args.name,
+                                   self.app_args.verbose_level)

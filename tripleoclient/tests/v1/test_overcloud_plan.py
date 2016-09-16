@@ -225,3 +225,59 @@ class TestOvercloudCreatePlan(utils.TestCommand):
                 'container': 'overcast',
                 'queue_name': 'UUID4'
             })
+
+
+class TestOvercloudDeployPlan(utils.TestCommand):
+
+    def setUp(self):
+        super(TestOvercloudDeployPlan, self).setUp()
+
+        app_args = mock.Mock()
+        app_args.verbose_level = 1
+        self.cmd = overcloud_plan.DeployPlan(self.app, app_args)
+
+        self.workflow = self.app.client_manager.workflow_engine = mock.Mock()
+        self.orch = self.app.client_manager.orchestration = mock.Mock()
+
+        self.websocket = mock.Mock()
+        self.websocket.__enter__ = lambda s: self.websocket
+        self.websocket.__exit__ = lambda s, *exc: None
+        self.tripleoclient = mock.Mock()
+        self.tripleoclient.messaging_websocket.return_value = self.websocket
+        self.app.client_manager.tripleoclient = self.tripleoclient
+
+        # Mock UUID4 generation for every test
+        uuid4_patcher = mock.patch('uuid.uuid4', return_value="UUID4")
+        self.mock_uuid4 = uuid4_patcher.start()
+        self.addCleanup(self.mock_uuid4.stop)
+
+    @mock.patch('tripleoclient.utils.wait_for_stack_ready', autospec=True)
+    def test_overcloud_deploy_plan(self, mock_for_stack_ready):
+
+        # Setup
+        arglist = ['overcast']
+        verifylist = [
+            ('name', 'overcast')
+        ]
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        # No existing stack, this is a new deploy.
+        self.orch.stacks.get.return_value = None
+
+        self.websocket.wait_for_message.return_value = {
+            'status': 'SUCCESS'
+        }
+
+        mock_for_stack_ready.return_value = True
+
+        # Run
+        self.cmd.take_action(parsed_args)
+
+        # Verify
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.deployment.v1.deploy_plan',
+            workflow_input={
+                'container': 'overcast',
+                'queue_name': 'UUID4'
+            }
+        )
