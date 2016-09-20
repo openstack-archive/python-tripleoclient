@@ -28,7 +28,6 @@ import time
 import uuid
 import yaml
 
-from heatclient.common import event_utils
 from heatclient.common import template_utils
 from keystoneclient import exceptions as kscexc
 from os_cloud_config import keystone
@@ -286,39 +285,8 @@ class DeployOvercloud(command.Command):
             stack_name, objectclient, env, moved_files, tht_root,
             workflow_client)
 
-        self._start_mistral_deploy(clients, stack, stack_name)
-
-    def _start_mistral_deploy(self, clients, stack, plan_name):
-
-        deployment.deploy(clients, container=plan_name,
-                          queue_name=str(uuid.uuid4()))
-
-        orchestration_client = clients.orchestration
-
-        if stack is None:
-            self.log.info("Performing Heat stack create")
-            action = 'CREATE'
-            marker = None
-        else:
-            self.log.info("Performing Heat stack update")
-            # Make sure existing parameters for stack are reused
-            # Find the last top-level event to use for the first marker
-            events = event_utils.get_events(orchestration_client,
-                                            stack_id=plan_name,
-                                            event_args={'sort_dir': 'desc',
-                                                        'limit': 1})
-            marker = events[0].id if events else None
-            action = 'UPDATE'
-
-        time.sleep(10)
-        verbose_events = self.app_args.verbose_level > 0
-        create_result = utils.wait_for_stack_ready(
-            orchestration_client, plan_name, marker, action, verbose_events)
-        if not create_result:
-            if stack is None:
-                raise exceptions.DeploymentError("Heat Stack create failed.")
-            else:
-                raise exceptions.DeploymentError("Heat Stack update failed.")
+        deployment.deploy_and_wait(self.log, clients, stack, stack_name,
+                                   self.app_args.verbose_level)
 
     def _load_environment_directories(self, directories):
         if os.environ.get('TRIPLEO_ENVIRONMENT_DIRECTORY'):
@@ -1076,6 +1044,7 @@ class DeployOvercloud(command.Command):
         orchestration_client = clients.orchestration
 
         stack = utils.get_stack(orchestration_client, parsed_args.stack)
+
         parameters = self._update_parameters(
             parsed_args, clients.network, stack)
 
