@@ -272,7 +272,7 @@ class DeployOvercloud(command.Command):
             workflow_client)
 
         deployment.deploy_and_wait(self.log, clients, stack, stack_name,
-                                   self.app_args.verbose_level)
+                                   self.app_args.verbose_level, timeout)
 
     def _load_environment_directories(self, directories):
         if os.environ.get('TRIPLEO_ENVIRONMENT_DIRECTORY'):
