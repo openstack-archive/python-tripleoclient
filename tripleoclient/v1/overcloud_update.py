@@ -23,6 +23,7 @@ from osc_lib import utils
 from tripleo_common import update
 
 from tripleoclient import constants
+from tripleoclient import exceptions
 
 
 class UpdateOvercloud(command.Command):
@@ -97,5 +98,8 @@ class UpdateOvercloud(command.Command):
 
         if parsed_args.interactive:
             update_manager.do_interactive_update()
+            status, _ = update_manager.get_status()
+            if status not in ['COMPLETE']:
+                raise exceptions.DeploymentError("Stack update failed.")
         else:
             print("stack {0} status: {1}".format(parsed_args.stack, status))
