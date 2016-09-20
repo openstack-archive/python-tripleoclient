@@ -12,7 +12,10 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from __future__ import print_function
+
 from tripleoclient import exceptions
+from tripleoclient.workflows import base
 
 
 def register_or_update(clients, **workflow_input):
@@ -25,7 +28,8 @@ def register_or_update(clients, **workflow_input):
     tripleoclients = clients.tripleoclient
     queue_name = workflow_input['queue_name']
 
-    execution = workflow_client.executions.create(
+    execution = base.start_workflow(
+        workflow_client,
         'tripleo.baremetal.v1.register_or_update',
         workflow_input=workflow_input
     )
@@ -53,7 +57,8 @@ def provide(clients, **workflow_input):
     tripleoclients = clients.tripleoclient
     queue_name = workflow_input['queue_name']
 
-    execution = workflow_client.executions.create(
+    execution = base.start_workflow(
+        workflow_client,
         'tripleo.baremetal.v1.provide',
         workflow_input={'node_uuids': workflow_input['node_uuids'],
                         'queue_name': queue_name}
@@ -80,7 +85,8 @@ def introspect(clients, **workflow_input):
     tripleoclients = clients.tripleoclient
     queue_name = workflow_input['queue_name']
 
-    execution = workflow_client.executions.create(
+    execution = base.start_workflow(
+        workflow_client,
         'tripleo.baremetal.v1.introspect',
         workflow_input={'node_uuids': workflow_input['node_uuids'],
                         'queue_name': queue_name}
@@ -111,7 +117,8 @@ def introspect_manageable_nodes(clients, **workflow_input):
     tripleoclients = clients.tripleoclient
     queue_name = workflow_input['queue_name']
 
-    execution = workflow_client.executions.create(
+    execution = base.start_workflow(
+        workflow_client,
         'tripleo.baremetal.v1.introspect_manageable_nodes',
         workflow_input={"queue_name": queue_name, }
     )
@@ -159,7 +166,8 @@ def provide_manageable_nodes(clients, **workflow_input):
     tripleoclients = clients.tripleoclient
     queue_name = workflow_input['queue_name']
 
-    execution = workflow_client.executions.create(
+    execution = base.start_workflow(
+        workflow_client,
         'tripleo.baremetal.v1.provide_manageable_nodes',
         workflow_input={"queue_name": queue_name, }
     )

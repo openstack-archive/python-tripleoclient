@@ -20,6 +20,8 @@ from heatclient.common import event_utils
 from tripleoclient import exceptions
 from tripleoclient import utils
 
+from tripleoclient.workflows import base
+
 
 def deploy(clients, **workflow_input):
 
@@ -27,7 +29,8 @@ def deploy(clients, **workflow_input):
     tripleoclients = clients.tripleoclient
     queue_name = workflow_input['queue_name']
 
-    execution = workflow_client.executions.create(
+    execution = base.start_workflow(
+        workflow_client,
         'tripleo.deployment.v1.deploy_plan',
         workflow_input=workflow_input
     )
