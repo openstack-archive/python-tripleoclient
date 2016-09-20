@@ -430,7 +430,7 @@ class DeployOvercloud(command.Command):
         parameters = self._update_parameters(
             parsed_args, network_client, stack)
 
-        tht_root = parsed_args.templates
+        tht_root = os.path.abspath(parsed_args.templates)
 
         plans = plan_management.list_deployment_plans(workflow_client)
 

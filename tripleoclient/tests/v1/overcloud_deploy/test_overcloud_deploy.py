@@ -408,7 +408,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_validate_args.assert_called_once_with(parsed_args)
 
         mock_tarball.create_tarball.assert_called_with(
-            '/usr/share/openstack-tripleo-heat-templates/', mock.ANY)
+            '/usr/share/openstack-tripleo-heat-templates', mock.ANY)
         mock_tarball.tarball_extract_to_swift_container.assert_called_with(
             clients.tripleoclient.object_store, mock.ANY, 'overcloud')
 
