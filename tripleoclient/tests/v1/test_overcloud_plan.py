@@ -33,7 +33,7 @@ class TestOvercloudPlanList(utils.TestCommand):
 
         result = self.cmd.take_action(None)
         self.workflow.action_executions.create.assert_called_once_with(
-            'tripleo.list_plans')
+            'tripleo.plan.list')
 
         self.assertEqual(0, len(result[1]))
 
@@ -43,7 +43,7 @@ class TestOvercloudPlanList(utils.TestCommand):
 
         result = self.cmd.take_action(None)
         self.workflow.action_executions.create.assert_called_once_with(
-            'tripleo.list_plans')
+            'tripleo.plan.list')
 
         self.assertEqual(1, len(result[0]))
         self.assertEqual([('test-plan-1',), ('test-plan-2',)], result[1])
@@ -68,7 +68,7 @@ class TestOvercloudDeletePlan(utils.TestCommand):
         self.cmd.take_action(parsed_args)
 
         self.workflow.action_executions.create.assert_called_once_with(
-            'tripleo.delete_plan', input={'container': 'test-plan'})
+            'tripleo.plan.delete', input={'container': 'test-plan'})
 
     def test_delete_multiple_plans(self):
         argslist = ['test-plan1', 'test-plan2']
@@ -81,9 +81,9 @@ class TestOvercloudDeletePlan(utils.TestCommand):
         self.cmd.take_action(parsed_args)
 
         self.workflow.action_executions.create.assert_has_calls(
-            [mock.call('tripleo.delete_plan',
+            [mock.call('tripleo.plan.delete',
                        input={'container': 'test-plan1'}),
-             mock.call('tripleo.delete_plan',
+             mock.call('tripleo.plan.delete',
                        input={'container': 'test-plan2'})])
 
 
@@ -183,7 +183,7 @@ class TestOvercloudCreatePlan(utils.TestCommand):
 
         # Verify
         self.workflow.action_executions.create.assert_called_once_with(
-            'tripleo.create_container', {"container": "overcast"}
+            'tripleo.plan.create_container', {"container": "overcast"}
         )
 
         self.workflow.executions.create.assert_called_once_with(
@@ -216,7 +216,7 @@ class TestOvercloudCreatePlan(utils.TestCommand):
 
         # Verify
         self.workflow.action_executions.create.assert_called_once_with(
-            'tripleo.create_container', {"container": "overcast"}
+            'tripleo.plan.create_container', {"container": "overcast"}
         )
 
         self.workflow.executions.create.assert_called_once_with(
