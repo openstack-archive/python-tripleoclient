@@ -55,8 +55,7 @@ def _create_update_deployment_plan(clients, workflow, **workflow_input):
     queue_name = workflow_input['queue_name']
 
     execution = base.start_workflow(
-        workflow_client,
-        'tripleo.plan_management.v1.create_deployment_plan',
+        workflow_client, workflow,
         workflow_input=workflow_input
     )
 
