@@ -17,13 +17,11 @@ from __future__ import print_function
 import argparse
 import glob
 import hashlib
-import json
 import logging
 import os
 import os.path
 import re
 import six
-import tempfile
 import time
 import uuid
 import yaml
@@ -200,7 +198,7 @@ class DeployOvercloud(command.Command):
     def _create_registration_env(self, args):
         tht_root = args.templates
 
-        environment = os.path.join(
+        env_file = os.path.join(
             tht_root,
             constants.RHEL_REGISTRATION_EXTRACONFIG_NAME,
             'environment-rhel-registration.yaml')
@@ -208,45 +206,33 @@ class DeployOvercloud(command.Command):
             tht_root,
             constants.RHEL_REGISTRATION_EXTRACONFIG_NAME,
             'rhel-registration-resource-registry.yaml')
-
-        user_env = ("parameter_defaults:\n"
-                    "  rhel_reg_method: \"%(method)s\"\n"
-                    "  rhel_reg_org: \"%(org)s\"\n"
-                    "  rhel_reg_force: \"%(force)s\"\n"
-                    "  rhel_reg_sat_url: \"%(sat_url)s\"\n"
-                    "  rhel_reg_activation_key: \"%(activation_key)s\"\n"
-                    % {'method': args.reg_method,
-                       'org': args.reg_org,
-                       'force': args.reg_force,
-                       'sat_url': args.reg_sat_url,
-                       'activation_key': args.reg_activation_key})
-        handle, user_env_file = tempfile.mkstemp()
-        with open(user_env_file, 'w') as temp_file:
-            temp_file.write(user_env)
-        os.close(handle)
-        return [registry, environment, user_env_file]
+        user_env = {'rhel_reg_method': args.reg_method,
+                    'rhel_reg_org': args.reg_org,
+                    'rhel_reg_force': args.reg_force,
+                    'rhel_reg_sat_url': args.reg_sat_url,
+                    'rhel_reg_activation_key': args.reg_activation_key}
+        return [registry, env_file], {"parameter_defaults": user_env}
 
     def _create_parameters_env(self, parameters):
         parameter_defaults = {"parameter_defaults": parameters}
-        handle, parameter_defaults_env_file = tempfile.mkstemp()
-        with open(parameter_defaults_env_file, 'w') as temp_file:
-            temp_file.write(json.dumps(parameter_defaults))
-        os.close(handle)
-        return [parameter_defaults_env_file]
+        return parameter_defaults
 
     def _heat_deploy(self, stack, stack_name, template_path, parameters,
-                     environments, timeout, tht_root):
+                     created_env_files, timeout, tht_root, env):
         """Verify the Baremetal nodes are available and do a stack update"""
 
         clients = self.app.client_manager
         workflow_client = clients.workflow_engine
 
-        self.log.debug("Processing environment files %s" % environments)
-        env_files, env = (
+        self.log.debug("Processing environment files %s" % created_env_files)
+        env_files, localenv = (
             template_utils.process_multiple_environments_and_files(
-                environments))
+                created_env_files))
+        # Command line has more precedence than env files
+        template_utils.deep_update(localenv, env)
+
         if stack:
-            update.add_breakpoints_cleanup_into_env(env)
+            update.add_breakpoints_cleanup_into_env(localenv)
 
         self.log.debug("Getting template contents from plan %s" % stack_name)
         # We need to reference the plan here, not the local
@@ -271,7 +257,7 @@ class DeployOvercloud(command.Command):
 
         number_controllers = int(parameters.get('ControllerCount', 0))
         if number_controllers > 1:
-            if not env.get('parameter_defaults').get('NtpServer'):
+            if not localenv.get('parameter_defaults').get('NtpServer'):
                 raise exceptions.InvalidConfiguration(
                     'Specify --ntp-server as parameter or NtpServer in '
                     'environments when using multiple controllers '
@@ -282,7 +268,7 @@ class DeployOvercloud(command.Command):
         moved_files = self._upload_missing_files(
             stack_name, objectclient, files, tht_root)
         self._process_and_upload_environment(
-            stack_name, objectclient, env, moved_files, tht_root,
+            stack_name, objectclient, localenv, moved_files, tht_root,
             workflow_client)
 
         deployment.deploy_and_wait(self.log, clients, stack, stack_name,
@@ -425,37 +411,41 @@ class DeployOvercloud(command.Command):
         # is not very usable any more, scale params are included in
         # parameters and keystone cert is generated on create only
         env_path = utils.create_environment_file()
-        environments = []
+        env = {}
+        created_env_files = []
 
         if stack is None:
             self.log.debug("Creating Keystone certificates")
             keystone_pki.generate_certs_into_json(env_path, False)
-            environments.append(env_path)
+            created_env_files.append(env_path)
 
         if parsed_args.environment_directories:
-            environments.extend(self._load_environment_directories(
+            created_env_files.extend(self._load_environment_directories(
                 parsed_args.environment_directories))
+        env.update(self._create_parameters_env(parameters))
 
-        environments.extend(self._create_parameters_env(parameters))
         if parsed_args.rhel_reg:
-            reg_env = self._create_registration_env(parsed_args)
-            environments.extend(reg_env)
+            reg_env_files, reg_env = self._create_registration_env(parsed_args)
+            created_env_files.extend(reg_env_files)
+            template_utils.deep_update(env, reg_env)
         if parsed_args.environment_files:
-            environments.extend(parsed_args.environment_files)
+            created_env_files.extend(parsed_args.environment_files)
 
         self._try_overcloud_deploy_with_compat_yaml(
-            tht_root, stack, parsed_args.stack, parameters, environments,
-            parsed_args.timeout)
+            tht_root, stack, parsed_args.stack, parameters, created_env_files,
+            parsed_args.timeout, env)
 
     def _try_overcloud_deploy_with_compat_yaml(self, tht_root, stack,
                                                stack_name, parameters,
-                                               environments, timeout):
+                                               created_env_files, timeout,
+                                               env):
         messages = ['The following errors occurred:']
         for overcloud_yaml_name in constants.OVERCLOUD_YAML_NAMES:
             overcloud_yaml = os.path.join(tht_root, overcloud_yaml_name)
             try:
                 self._heat_deploy(stack, stack_name, overcloud_yaml,
-                                  parameters, environments, timeout, tht_root)
+                                  parameters, created_env_files, timeout,
+                                  tht_root, env)
             except ClientException as e:
                 messages.append(str(e))
             else:
