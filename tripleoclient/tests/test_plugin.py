@@ -14,6 +14,7 @@
 
 import json
 import mock
+import socket
 
 from tripleoclient import plugin
 from tripleoclient.tests import base
@@ -83,3 +84,21 @@ class TestPlugin(base.TestCase):
                 "message": "Result for IDID",
                 "execution": {"id": "IDID"},
             })
+
+    @mock.patch("websocket.create_connection")
+    def test_websocket_creation_error(self, ws_create_connection):
+
+        ws_create_connection.side_effect = socket.error
+
+        clientmgr = mock.MagicMock()
+        clientmgr.get_endpoint_for_service_type.return_value = fakes.WS_URL
+        clientmgr.auth.get_token.return_value = "TOKEN"
+        clientmgr.auth_ref.project_id = "ID"
+
+        client = plugin.make_client(clientmgr)
+
+        msg = ("Could not establish a connection to the Zaqar websocket. The "
+               "command was sent but the answer could not be read.")
+        with mock.patch('tripleoclient.plugin.LOG') as mock_log:
+            self.assertRaises(socket.error, client.messaging_websocket)
+            mock_log.error.assert_called_once_with(msg)
