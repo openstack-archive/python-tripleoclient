@@ -33,8 +33,8 @@ class UpgradeOvercloud(command.Command):
         parser = super(UpgradeOvercloud, self).get_parser(prog_name)
         parser.add_argument(
             'stage',
-            metavar="<start|finish>",
-            choices=['start', 'finish'],
+            metavar="<start>",
+            choices=['start'],
             help=_('Stage of upgrade to perform.')
         )
         parser.add_argument(
@@ -61,6 +61,7 @@ class UpgradeOvercloud(command.Command):
             help=_('Path to a YAML file with arguments and parameters. Cannot '
                    'be used with --templates.')
         )
+        parser.add_argument
         return parser
 
     def take_action(self, parsed_args):
@@ -90,8 +91,7 @@ class UpgradeOvercloud(command.Command):
             print("Starting stack upgrade on stack {0}".format(
                 parsed_args.stack))
             stage_func = {
-                "start": upgrade_manager.upgrade,
-                "finish": upgrade_manager.upgrade_post,
+                "start": upgrade_manager.upgrade
             }
             stage_func[parsed_args.stage]()
         else:
