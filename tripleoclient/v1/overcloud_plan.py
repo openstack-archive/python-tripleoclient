@@ -32,7 +32,7 @@ class ListPlans(command.Lister):
 
         workflow_client = self.app.client_manager.workflow_engine
         execution = workflow_client.action_executions.create(
-            'tripleo.list_plans')
+            'tripleo.plan.list')
 
         try:
             json_results = json.loads(execution.output)['result']
@@ -69,7 +69,7 @@ class DeletePlan(command.Command):
         for plan in parsed_args.plans:
             print("Deleting plan %s..." % plan)
             execution = workflow_client.action_executions.create(
-                'tripleo.delete_plan', input={'container': plan})
+                'tripleo.plan.delete', input={'container': plan})
 
             try:
                 json_results = json.loads(execution.output)['result']

@@ -14,7 +14,7 @@ from tripleoclient.workflows import base
 
 
 def update_parameters(workflow_client, **input_):
-    return base.call_action(workflow_client, 'tripleo.update_parameters',
+    return base.call_action(workflow_client, 'tripleo.parameters.update',
                             **input_)
 
 

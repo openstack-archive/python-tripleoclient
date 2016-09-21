@@ -89,11 +89,11 @@ def update_deployment_plan(clients, **workflow_input):
 
 
 def list_deployment_plans(workflow_client, **input_):
-    return base.call_action(workflow_client, 'tripleo.list_plans', **input_)
+    return base.call_action(workflow_client, 'tripleo.plan.list', **input_)
 
 
 def create_container(workflow_client, **input_):
-    return base.call_action(workflow_client, 'tripleo.create_container',
+    return base.call_action(workflow_client, 'tripleo.plan.create_container',
                             **input_)
 
 
