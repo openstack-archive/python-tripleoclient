@@ -209,32 +209,18 @@ class TestWaitForStackUtil(TestCase):
 
         self.assertFalse(complete)
 
-    @mock.patch("heatclient.common.event_utils.get_events")
-    def test_wait_for_stack_in_progress(self, mock_el):
+    @mock.patch("heatclient.common.event_utils.poll_for_events")
+    def test_wait_for_stack_in_progress(self, mock_poll_for_events):
 
-        mock_el.side_effect = [[
-            self.mock_event('stack', 'aaa', 'Stack CREATE started',
-                            'CREATE_IN_PROGRESS', '2015-10-14T02:25:21Z'),
-            self.mock_event('thing', 'bbb', 'state changed',
-                            'CREATE_IN_PROGRESS', '2015-10-14T02:25:21Z'),
-        ], [
-            self.mock_event('thing', 'ccc', 'state changed',
-                            'CREATE_COMPLETE', '2015-10-14T02:25:43Z'),
-            self.mock_event('stack', 'ddd',
-                            'Stack CREATE completed successfully',
-                            'CREATE_COMPLETE', '2015-10-14T02:25:43Z'),
-        ], [], []]
+        mock_poll_for_events.return_value = ("CREATE_IN_PROGRESS", "MESSAGE")
 
         stack = mock.Mock()
         stack.stack_name = 'stack'
         stack.stack_status = 'CREATE_IN_PROGRESS'
-        complete_stack = mock.Mock()
-        complete_stack.stack_name = 'stack'
-        complete_stack.stack_status = 'CREATE_COMPLETE'
-        self.mock_orchestration.stacks.get.side_effect = [
-            stack, stack, stack, complete_stack]
+        self.mock_orchestration.stacks.get.return_value = stack
 
-        utils.wait_for_stack_ready(self.mock_orchestration, 'stack')
+        result = utils.wait_for_stack_ready(self.mock_orchestration, 'stack')
+        self.assertEqual(False, result)
 
     def test_create_environment_file(self):
 
