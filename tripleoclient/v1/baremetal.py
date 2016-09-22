@@ -198,19 +198,13 @@ class ImportBaremetal(command.Command):
 
 
 class StartBaremetalIntrospectionBulk(command.Command):
-    """Start bulk introspection on all baremetal nodes (Deprecated).
-
-    Please use 'openstack overcloud node introspect' instead.
-    """
+    """Start bulk introspection on all baremetal nodes."""
 
     log = logging.getLogger(__name__ + ".StartBaremetalIntrospectionBulk")
 
     def take_action(self, parsed_args):
 
         self.log.debug("take_action(%s)" % parsed_args)
-        self.log.warning('This command is deprecated. Please use "openstack '
-                         'overcloud node introspect" to introspect manageable '
-                         'nodes instead.\n')
 
         queue_name = str(uuid.uuid4())
         clients = self.app.client_manager
