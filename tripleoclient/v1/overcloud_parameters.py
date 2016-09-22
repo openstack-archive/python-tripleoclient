@@ -15,8 +15,8 @@ import json
 import logging
 import yaml
 
-from cliff import command
-from openstackclient.i18n import _
+from osc_lib.command import command
+from osc_lib.i18n import _
 
 from tripleoclient import exceptions
 from tripleoclient.workflows import parameters
