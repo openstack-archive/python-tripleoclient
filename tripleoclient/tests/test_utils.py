@@ -33,8 +33,11 @@ class TestPasswordsUtil(TestCase):
                 return_value="PASSWORD")
     @mock.patch("tripleoclient.utils.create_cephx_key",
                 return_value="CEPHX_KEY")
-    def test_generate_passwords(self, create_cephx_key_mock,
-                                generate_password_mock, isfile_mock):
+    @mock.patch("tripleoclient.utils.create_keystone_credential",
+                return_value="PASSWORD")
+    def test_generate_passwords(self, create_keystone_creds_mock,
+                                create_cephx_key_mock, generate_password_mock,
+                                isfile_mock):
 
         mock_open = mock.mock_open()
 
@@ -61,6 +64,8 @@ class TestPasswordsUtil(TestCase):
             mock.call('OVERCLOUD_HEAT_PASSWORD=PASSWORD\n'),
             mock.call('OVERCLOUD_HEAT_STACK_DOMAIN_PASSWORD=PASSWORD\n'),
             mock.call('OVERCLOUD_IRONIC_PASSWORD=PASSWORD\n'),
+            mock.call('OVERCLOUD_KEYSTONE_CREDENTIALS_0=PASSWORD\n'),
+            mock.call('OVERCLOUD_KEYSTONE_CREDENTIALS_1=PASSWORD\n'),
             mock.call('OVERCLOUD_MANILA_PASSWORD=PASSWORD\n'),
             mock.call('OVERCLOUD_MISTRAL_PASSWORD=PASSWORD\n'),
             mock.call('OVERCLOUD_MYSQL_CLUSTERCHECK_PASSWORD=PASSWORD\n'),
@@ -76,6 +81,7 @@ class TestPasswordsUtil(TestCase):
         ]
         self.assertEqual(sorted(mock_open().write.mock_calls), mock_calls)
         self.assertEqual(generate_password_mock.call_count +
+                         create_keystone_creds_mock.call_count +
                          create_cephx_key_mock.call_count, len(mock_calls))
 
         self.assertEqual(len(passwords), len(mock_calls))
@@ -93,8 +99,11 @@ class TestPasswordsUtil(TestCase):
                 return_value="PASSWORD")
     @mock.patch("tripleoclient.utils.create_cephx_key",
                 return_value="CEPHX_KEY")
-    def test_load_passwords(self, create_cephx_key_mock,
-                            generate_password_mock, isfile_mock):
+    @mock.patch("tripleoclient.utils.create_keystone_credential",
+                return_value="PASSWORD")
+    def test_load_passwords(self, create_keystone_creds_mock,
+                            create_cephx_key_mock, generate_password_mock,
+                            isfile_mock):
         PASSWORDS = [
             'OVERCLOUD_ADMIN_PASSWORD=PASSWORD\n',
             'OVERCLOUD_ADMIN_TOKEN=PASSWORD\n',
@@ -114,6 +123,8 @@ class TestPasswordsUtil(TestCase):
             'OVERCLOUD_HEAT_PASSWORD=PASSWORD\n',
             'OVERCLOUD_HEAT_STACK_DOMAIN_PASSWORD=PASSWORD\n',
             'OVERCLOUD_IRONIC_PASSWORD=PASSWORD\n',
+            'OVERCLOUD_KEYSTONE_CREDENTIALS_0=PASSWORD\n',
+            'OVERCLOUD_KEYSTONE_CREDENTIALS_1=PASSWORD\n',
             'OVERCLOUD_MANILA_PASSWORD=PASSWORD\n',
             'OVERCLOUD_MISTRAL_PASSWORD=PASSWORD\n',
             'OVERCLOUD_MYSQL_CLUSTERCHECK_PASSWORD=PASSWORD\n',
