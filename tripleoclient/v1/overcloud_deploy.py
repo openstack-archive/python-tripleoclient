@@ -400,10 +400,10 @@ class DeployOvercloud(command.Command):
             # Upload the new plan templates to swift to replace the existing
             # templates.
             plan_management.update_plan_from_templates(
-                clients, parsed_args.stack, tht_root)
+                clients, parsed_args.stack, tht_root, parsed_args.roles_file)
         else:
             plan_management.create_plan_from_templates(
-                clients, parsed_args.stack, tht_root)
+                clients, parsed_args.stack, tht_root, parsed_args.roles_file)
 
         print("Deploying templates in the directory {0}".format(
             os.path.abspath(tht_root)))
@@ -942,6 +942,11 @@ class DeployOvercloud(command.Command):
                    ' added to the heat stack-create or heat stack-update'
                    ' commands. Can be specified more than once. Files in'
                    ' directories are loaded in ascending sort order.')
+        )
+        parser.add_argument(
+            '--roles-file', '-r', dest='roles_file',
+            help=_('Roles file, overrides the default %s in the --templates '
+                   'directory') % constants.OVERCLOUD_ROLES_FILE
         )
         # TODO(bnemec): In Ocata or later, remove this group and just leave
         # --validation-errors-nonfatal

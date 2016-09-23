@@ -14,17 +14,25 @@ import uuid
 
 from tripleo_common.utils import tarball
 
+from tripleoclient import constants
 from tripleoclient import exceptions
 from tripleoclient.workflows import base
 
 
-def _upload_templates(swift_client, container_name, tht_root):
+def _upload_templates(swift_client, container_name, tht_root, roles_file=None):
     """tarball up a given directory and upload it to Swift to be extracted"""
 
     with tempfile.NamedTemporaryFile() as tmp_tarball:
         tarball.create_tarball(tht_root, tmp_tarball.name)
         tarball.tarball_extract_to_swift_container(
             swift_client, tmp_tarball.name, container_name)
+
+    # Allow optional override of the roles_data.yaml file
+    if roles_file:
+        with open(roles_file) as rf:
+            swift_client.put_object(container_name,
+                                    constants.OVERCLOUD_ROLES_FILE,
+                                    rf)
 
 
 def create_default_plan(clients, **workflow_input):
@@ -95,7 +103,7 @@ def create_container(workflow_client, **input_):
                             **input_)
 
 
-def create_plan_from_templates(clients, name, tht_root):
+def create_plan_from_templates(clients, name, tht_root, roles_file=None):
     workflow_client = clients.workflow_engine
     swift_client = clients.tripleoclient.object_store
 
@@ -108,12 +116,12 @@ def create_plan_from_templates(clients, name, tht_root):
             "Unable to create plan. {}".format(result))
 
     print("Creating plan from template files in: {}".format(tht_root))
-    _upload_templates(swift_client, name, tht_root)
+    _upload_templates(swift_client, name, tht_root, roles_file)
     create_deployment_plan(clients, container=name,
                            queue_name=str(uuid.uuid4()))
 
 
-def update_plan_from_templates(clients, name, tht_root):
+def update_plan_from_templates(clients, name, tht_root, roles_file=None):
     swift_client = clients.tripleoclient.object_store
 
     # TODO(dmatthews): Removing the existing plan files should probably be
@@ -136,6 +144,6 @@ def update_plan_from_templates(clients, name, tht_root):
     )
 
     print("Uploading new plan files")
-    _upload_templates(swift_client, name, tht_root)
+    _upload_templates(swift_client, name, tht_root, roles_file)
     update_deployment_plan(clients, container=name,
                            queue_name=str(uuid.uuid4()))
