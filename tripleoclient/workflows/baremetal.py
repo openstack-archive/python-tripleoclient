@@ -210,7 +210,8 @@ def configure(clients, **workflow_input):
     ooo_client = clients.tripleoclient
     queue_name = workflow_input['queue_name']
 
-    execution = workflow_client.executions.create(
+    execution = base.start_workflow(
+        workflow_client,
         'tripleo.baremetal.v1.configure',
         workflow_input=workflow_input
     )
@@ -233,7 +234,8 @@ def configure_manageable_nodes(clients, **workflow_input):
     ooo_client = clients.tripleoclient
     queue_name = workflow_input['queue_name']
 
-    execution = workflow_client.executions.create(
+    execution = base.start_workflow(
+        workflow_client,
         'tripleo.baremetal.v1.configure_manageable_nodes',
         workflow_input=workflow_input
     )
