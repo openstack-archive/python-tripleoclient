@@ -24,7 +24,6 @@ class TestPlanCreationWorkflows(utils.TestCommand):
 
     def setUp(self):
         super(TestPlanCreationWorkflows, self).setUp()
-
         self.app.client_manager.workflow_engine = self.workflow = mock.Mock()
         self.tripleoclient = mock.Mock()
         self.websocket = mock.Mock()
@@ -78,3 +77,35 @@ class TestPlanCreationWorkflows(utils.TestCommand):
             {'container': 'test-overcloud'})
 
         self.workflow.executions.create.assert_not_called()
+
+    @mock.patch('tripleoclient.workflows.plan_management.tarball',
+                autospec=True)
+    def test_create_plan_from_templates_roles_data(self, mock_tarball):
+        output = mock.Mock(output='{"result": ""}')
+        self.workflow.action_executions.create.return_value = output
+        self.websocket.wait_for_message.return_value = {
+            "status": "SUCCESS",
+        }
+
+        mock_open_context = mock.mock_open()
+        with mock.patch('six.moves.builtins.open', mock_open_context):
+            plan_management.create_plan_from_templates(
+                self.app.client_manager,
+                'test-overcloud',
+                '/tht-root/',
+                'the_roles_file.yaml')
+
+        self.workflow.action_executions.create.assert_called_once_with(
+            'tripleo.plan.create_container',
+            {'container': 'test-overcloud'})
+
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.plan_management.v1.create_deployment_plan',
+            workflow_input={'queue_name': 'UUID4',
+                            'container': 'test-overcloud'})
+
+        mock_open_context.assert_has_calls(
+            [mock.call('the_roles_file.yaml')])
+
+        self.tripleoclient.object_store.put_object.assert_called_once_with(
+            'test-overcloud', 'roles_data.yaml', mock_open_context())
