@@ -112,6 +112,10 @@ class DeployOvercloud(command.Command):
         parameters['CephAdminKey'] = passwords['OVERCLOUD_CEPH_ADMIN_KEY']
         parameters['CephClientKey'] = passwords['OVERCLOUD_CEPH_CLIENT_KEY']
         parameters['CephRgwKey'] = passwords['OVERCLOUD_CEPH_RGW_KEY']
+        parameters['KeystoneCredential0'] = passwords[
+            'OVERCLOUD_KEYSTONE_CREDENTIALS_0']
+        parameters['KeystoneCredential1'] = passwords[
+            'OVERCLOUD_KEYSTONE_CREDENTIALS_1']
 
     def _update_parameters(self, args, network_client, stack):
         parameters = {}
@@ -189,9 +193,7 @@ class DeployOvercloud(command.Command):
 
         if stack_is_new:
             parameters.update({
-                'CephClusterFSID': six.text_type(uuid.uuid1()),
-                'KeystoneCredential0': utils.create_keystone_credential(),
-                'KeystoneCredential1': utils.create_keystone_credential()})
+                'CephClusterFSID': six.text_type(uuid.uuid1())})
 
         return parameters
 
