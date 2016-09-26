@@ -75,6 +75,11 @@ _CEPH_PASSWORD_NAMES = (
     "OVERCLOUD_CEPH_RGW_KEY"
 )
 
+_KEYSTONE_CREDENTIALS_NAME = (
+    "OVERCLOUD_KEYSTONE_CREDENTIALS_0",
+    "OVERCLOUD_KEYSTONE_CREDENTIALS_1"
+)
+
 
 def generate_overcloud_passwords(output_file="tripleo-overcloud-passwords",
                                  create_password_file=False):
@@ -107,6 +112,10 @@ def generate_overcloud_passwords(output_file="tripleo-overcloud-passwords",
     for name in _CEPH_PASSWORD_NAMES:
         if not passwords.get(name):
             passwords[name] = create_cephx_key()
+
+    for name in _KEYSTONE_CREDENTIALS_NAME:
+        if not passwords.get(name):
+            passwords[name] = create_keystone_credential()
 
     with open(output_file, 'w') as f:
         for name, password in passwords.items():
