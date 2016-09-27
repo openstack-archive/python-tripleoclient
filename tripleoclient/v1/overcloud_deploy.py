@@ -441,18 +441,14 @@ class DeployOvercloud(command.Command):
                                                stack_name, parameters,
                                                created_env_files, timeout,
                                                env):
-        messages = ['The following errors occurred:']
-        for overcloud_yaml_name in constants.OVERCLOUD_YAML_NAMES:
-            overcloud_yaml = os.path.join(tht_root, overcloud_yaml_name)
-            try:
-                self._heat_deploy(stack, stack_name, overcloud_yaml,
-                                  parameters, created_env_files, timeout,
-                                  tht_root, env)
-            except ClientException as e:
-                messages.append(str(e))
-            else:
-                return
-        raise ValueError('\n'.join(messages))
+        overcloud_yaml = os.path.join(tht_root, constants.OVERCLOUD_YAML_NAME)
+        try:
+            self._heat_deploy(stack, stack_name, overcloud_yaml,
+                              parameters, created_env_files, timeout,
+                              tht_root, env)
+        except ClientException as e:
+            messages = 'Failed to deploy: %s' % str(e)
+            raise ValueError(messages)
 
     def _is_tls_enabled(self, overcloud_endpoint):
         return overcloud_endpoint.startswith('https')
