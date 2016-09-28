@@ -764,29 +764,61 @@ def assign_and_verify_profiles(bm_client, flavors,
 
 def add_deployment_plan_arguments(parser):
     """Add deployment plan arguments (flavors and scales) to a parser"""
+
+    # TODO(d0ugal): Deprecated in Newton. Remove these in P.
     parser.add_argument('--control-scale', type=int,
-                        help=_('New number of control nodes.'))
+                        help=_('New number of control nodes. (DEPRECATED. Use '
+                               'an environment file and set the parameter '
+                               'ControllerCount. It will be removed after the '
+                               '"P" release.)'))
     parser.add_argument('--compute-scale', type=int,
-                        help=_('New number of compute nodes.'))
+                        help=_('New number of compute nodes. (DEPRECATED. Use '
+                               'an environment file and set the parameter '
+                               'ComputeCount. It will be removed after the '
+                               '"P" release.)'))
     parser.add_argument('--ceph-storage-scale', type=int,
-                        help=_('New number of ceph storage nodes.'))
+                        help=_('New number of ceph storage nodes. '
+                               '(DEPRECATED. Use an environment file and set '
+                               'the parameter CephStorageCount. It will be '
+                               'removed after the the "P" release.)'))
     parser.add_argument('--block-storage-scale', type=int,
-                        help=_('New number of cinder storage nodes.'))
+                        help=_('New number of cinder storage nodes. '
+                               '(DEPRECATED. Use an environment file and set '
+                               'the parameter BlockStorageCount. It will be '
+                               'removed after the "P" release.)'))
     parser.add_argument('--swift-storage-scale', type=int,
-                        help=_('New number of swift storage nodes.'))
+                        help=_('New number of swift storage nodes. '
+                               '(DEPRECATED. Use an environment file and set '
+                               'the parameter ObjectStorageCount. It will be '
+                               'removed after the "P" release.)'))
     parser.add_argument('--control-flavor',
-                        help=_("Nova flavor to use for control nodes."))
+                        help=_('Nova flavor to use for control nodes. '
+                               '(DEPRECATED. Use an environment file and set '
+                               'the parameter OvercloudControlFlavor. It will '
+                               'be removed after the "P" release.)'))
     parser.add_argument('--compute-flavor',
-                        help=_("Nova flavor to use for compute nodes."))
+                        help=_('Nova flavor to use for compute nodes. '
+                               '(DEPRECATED. Use an environment file and set '
+                               'the parameter OvercloudComputeFlavor. It will '
+                               'be removed after the "P" release.)'))
     parser.add_argument('--ceph-storage-flavor',
-                        help=_("Nova flavor to use for ceph storage "
-                               "nodes."))
+                        help=_('Nova flavor to use for ceph storage '
+                               'nodes. (DEPRECATED. Use '
+                               'an environment file and set the parameter '
+                               'OvercloudCephStorageFlavor. It will '
+                               'be removed after the "P" release.)'))
     parser.add_argument('--block-storage-flavor',
-                        help=_("Nova flavor to use for cinder storage "
-                               "nodes."))
+                        help=_('Nova flavor to use for cinder storage '
+                               'nodes. (DEPRECATED. Use '
+                               'an environment file and set the parameter '
+                               'OvercloudBlockStorageFlavor. It will '
+                               'be removed after the "P" release.)'))
     parser.add_argument('--swift-storage-flavor',
-                        help=_("Nova flavor to use for swift storage "
-                               "nodes."))
+                        help=_('Nova flavor to use for swift storage '
+                               'nodes. (DEPRECATED. Use '
+                               'an environment file and set the parameter '
+                               'OvercloudSwiftStorageFlavor. It will '
+                               'be removed after the "P" release.)'))
 
 
 def get_roles_info(parsed_args):
