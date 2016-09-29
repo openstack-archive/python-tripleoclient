@@ -21,12 +21,15 @@ import logging
 import os
 import os.path
 import re
+import shutil
 import six
+import tempfile
 import time
 import uuid
 import yaml
 
 from heatclient.common import template_utils
+from heatclient import exc as hc_exc
 from keystoneclient import exceptions as kscexc
 from os_cloud_config import keystone
 from os_cloud_config import keystone_pki
@@ -219,22 +222,46 @@ class DeployOvercloud(command.Command):
         parameter_defaults = {"parameter_defaults": parameters}
         return parameter_defaults
 
+    def _process_multiple_environments(self, created_env_files, added_files,
+                                       tht_root, user_tht_root):
+        env_files = {}
+        localenv = {}
+        for env_path in created_env_files:
+            self.log.debug("Processing environment files %s" % env_path)
+            abs_env_path = os.path.abspath(env_path)
+            if abs_env_path.startswith(user_tht_root):
+                new_env_path = abs_env_path.replace(user_tht_root, tht_root)
+                self.log.debug("Redirecting env file %s to %s"
+                               % (abs_env_path, new_env_path))
+                env_path = new_env_path
+            try:
+                files, env = template_utils.process_environment_and_files(
+                    env_path=env_path)
+            except hc_exc.CommandError as ex:
+                self.log.debug("Error %s processing environment file %s"
+                               % (six.text_type(ex), env_path))
+                # FIXME(shardy) We need logic here to handle the case described
+                # in https://bugs.launchpad.net/tripleo/+bug/1625783 so that
+                # resource_registry contents are redirected to tmpdir tht_root
+                raise
+            if files:
+                self.log.debug("Adding files %s for %s" % (files, env_path))
+                env_files.update(files)
+
+            # 'env' can be a deeply nested dictionary, so a simple update is
+            # not enough
+            localenv = template_utils.deep_update(localenv, env)
+        return env_files, localenv
+
     def _heat_deploy(self, stack, stack_name, template_path, parameters,
-                     created_env_files, timeout, tht_root, env):
+                     env_files, timeout, tht_root, env):
         """Verify the Baremetal nodes are available and do a stack update"""
 
         clients = self.app.client_manager
         workflow_client = clients.workflow_engine
 
-        self.log.debug("Processing environment files %s" % created_env_files)
-        env_files, localenv = (
-            template_utils.process_multiple_environments_and_files(
-                created_env_files))
-        # Command line has more precedence than env files
-        template_utils.deep_update(localenv, env)
-
         if stack:
-            update.add_breakpoints_cleanup_into_env(localenv)
+            update.add_breakpoints_cleanup_into_env(env)
 
         self.log.debug("Getting template contents from plan %s" % stack_name)
         # We need to reference the plan here, not the local
@@ -259,7 +286,7 @@ class DeployOvercloud(command.Command):
 
         number_controllers = int(parameters.get('ControllerCount', 0))
         if number_controllers > 1:
-            if not localenv.get('parameter_defaults').get('NtpServer'):
+            if not env.get('parameter_defaults').get('NtpServer'):
                 raise exceptions.InvalidConfiguration(
                     'Specify --ntp-server as parameter or NtpServer in '
                     'environments when using multiple controllers '
@@ -270,7 +297,7 @@ class DeployOvercloud(command.Command):
         moved_files = self._upload_missing_files(
             stack_name, objectclient, files, tht_root)
         self._process_and_upload_environment(
-            stack_name, objectclient, localenv, moved_files, tht_root,
+            stack_name, objectclient, env, moved_files, tht_root,
             workflow_client)
 
         deployment.deploy_and_wait(self.log, clients, stack, stack_name,
@@ -381,7 +408,47 @@ class DeployOvercloud(command.Command):
 
         return file_relocation
 
-    def _deploy_tripleo_heat_templates(self, stack, parsed_args):
+    def _download_missing_files_from_plan(self, tht_dir, plan_name):
+        # get and download missing files into tmp directory
+        clients = self.app.client_manager
+        objectclient = clients.tripleoclient.object_store
+        plan_list = objectclient.get_container(plan_name)
+        plan_filenames = [f['name'] for f in plan_list[1]]
+        added_files = {}
+        for pf in plan_filenames:
+            file_path = os.path.join(tht_dir, pf)
+            if not os.path.isfile(file_path):
+                self.log.debug("Missing in templates directory, downloading \
+                               %s from swift into %s" % (pf, file_path))
+                if not os.path.exists(os.path.dirname(file_path)):
+                    os.makedirs(os.path.dirname(file_path))
+                with open(file_path, 'w') as f:
+                    f.write(objectclient.get_object(plan_name, pf)[1])
+                added_files[pf] = file_path
+        self.log.debug("added_files = %s" % added_files)
+        return added_files
+
+    def _deploy_tripleo_heat_templates_tmpdir(self, stack, parsed_args):
+        # copy tht_root to temporary directory because we need to
+        # download any missing (e.g j2 rendered) files from the plan
+        tht_root = os.path.abspath(parsed_args.templates)
+        tht_tmp = tempfile.mkdtemp(prefix='tripleoclient-')
+        new_tht_root = "%s/tripleo-heat-templates" % tht_tmp
+        self.log.debug("Creating temporary templates tree in %s"
+                       % new_tht_root)
+        try:
+            shutil.copytree(tht_root, new_tht_root, symlinks=True)
+            self._deploy_tripleo_heat_templates(stack, parsed_args,
+                                                new_tht_root, tht_root)
+        finally:
+            if parsed_args.no_cleanup:
+                self.log.warning("Not cleaning temporary directory %s"
+                                 % tht_tmp)
+            else:
+                shutil.rmtree(tht_tmp)
+
+    def _deploy_tripleo_heat_templates(self, stack, parsed_args,
+                                       tht_root, user_tht_root):
         """Deploy the fixed templates in TripleO Heat Templates"""
         clients = self.app.client_manager
         network_client = clients.network
@@ -389,8 +456,6 @@ class DeployOvercloud(command.Command):
 
         parameters = self._update_parameters(
             parsed_args, network_client, stack)
-
-        tht_root = os.path.abspath(parsed_args.templates)
 
         plans = plan_management.list_deployment_plans(workflow_client)
 
@@ -404,6 +469,10 @@ class DeployOvercloud(command.Command):
         else:
             plan_management.create_plan_from_templates(
                 clients, parsed_args.stack, tht_root, parsed_args.roles_file)
+
+        # Get any missing (e.g j2 rendered) files from the plan to tht_root
+        added_files = self._download_missing_files_from_plan(
+            tht_root, parsed_args.stack)
 
         print("Deploying templates in the directory {0}".format(
             os.path.abspath(tht_root)))
@@ -433,18 +502,25 @@ class DeployOvercloud(command.Command):
         if parsed_args.environment_files:
             created_env_files.extend(parsed_args.environment_files)
 
+        self.log.debug("Processing environment files %s" % created_env_files)
+        env_files, localenv = self._process_multiple_environments(
+            created_env_files, added_files, tht_root, user_tht_root)
+
+        # Command line has more precedence than env files
+        template_utils.deep_update(localenv, env)
+
         self._try_overcloud_deploy_with_compat_yaml(
-            tht_root, stack, parsed_args.stack, parameters, created_env_files,
-            parsed_args.timeout, env)
+            tht_root, stack, parsed_args.stack, parameters, env_files,
+            parsed_args.timeout, localenv)
 
     def _try_overcloud_deploy_with_compat_yaml(self, tht_root, stack,
                                                stack_name, parameters,
-                                               created_env_files, timeout,
+                                               env_files, timeout,
                                                env):
         overcloud_yaml = os.path.join(tht_root, constants.OVERCLOUD_YAML_NAME)
         try:
             self._heat_deploy(stack, stack_name, overcloud_yaml,
-                              parameters, created_env_files, timeout,
+                              parameters, env_files, timeout,
                               tht_root, env)
         except ClientException as e:
             messages = 'Failed to deploy: %s' % str(e)
@@ -631,7 +707,11 @@ class DeployOvercloud(command.Command):
             nonexisting_envs = []
             for env_file in parsed_args.environment_files:
                 if not os.path.isfile(env_file):
-                    nonexisting_envs.append(env_file)
+                    # Tolerate missing file if there's a j2.yaml file that will
+                    # be rendered in the plan but not available locally (yet)
+                    if not os.path.isfile(env_file.replace(".yaml",
+                                                           ".j2.yaml")):
+                        nonexisting_envs.append(env_file)
             if nonexisting_envs:
                 raise oscexc.CommandError(
                     "Error: The following files were not found: {0}".format(
@@ -948,6 +1028,10 @@ class DeployOvercloud(command.Command):
             help=_('Roles file, overrides the default %s in the --templates '
                    'directory') % constants.OVERCLOUD_ROLES_FILE
         )
+        parser.add_argument(
+            '--no-cleanup', action='store_true',
+            help=_('Don\'t cleanup temporary files, just log their location')
+        )
         # TODO(bnemec): In Ocata or later, remove this group and just leave
         # --validation-errors-nonfatal
         error_group = parser.add_mutually_exclusive_group()
@@ -1101,7 +1185,7 @@ class DeployOvercloud(command.Command):
             print("Validation Finished")
             return
 
-        self._deploy_tripleo_heat_templates(stack, parsed_args)
+        self._deploy_tripleo_heat_templates_tmpdir(stack, parsed_args)
 
         # Get a new copy of the stack after stack update/create. If it was
         # a create then the previous stack object would be None.
