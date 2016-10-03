@@ -800,7 +800,7 @@ def add_deployment_plan_arguments(parser):
                         help=_('New number of ceph storage nodes. '
                                '(DEPRECATED. Use an environment file and set '
                                'the parameter CephStorageCount. It will be '
-                               'removed after the the "P" release.)'))
+                               'removed after the "P" release.)'))
     parser.add_argument('--block-storage-scale', type=int,
                         help=_('New number of cinder storage nodes. '
                                '(DEPRECATED. Use an environment file and set '
