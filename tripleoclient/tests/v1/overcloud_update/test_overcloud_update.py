@@ -26,14 +26,23 @@ class TestOvercloudUpdate(fakes.TestOvercloudUpdate):
         super(TestOvercloudUpdate, self).setUp()
 
         # Get the command object to test
-        self.cmd = overcloud_update.UpdateOvercloud(self.app, None)
+        app_args = mock.Mock()
+        app_args.verbose_level = 1
+        self.cmd = overcloud_update.UpdateOvercloud(self.app, app_args)
 
-    @mock.patch('tripleoclient.workflows.templates.process_templates',
+    @mock.patch('tripleoclient.utils.get_stack',
                 autospec=True)
-    @mock.patch('tripleo_common.update.PackageUpdateManager')
-    def test_update_out(self, update_manager, mock_process_templates):
-        update_manager.return_value.get_status.return_value = (
-            'COMPLETE', {})
+    @mock.patch('tripleoclient.v1.overcloud_update.UpdateOvercloud.log',
+                autospec=True)
+    @mock.patch('tripleoclient.workflows.package_update.update_and_wait',
+                autospec=True)
+    def test_update_out(self, mock_update_wait, mock_logger, mock_get_stack):
+        mock_update_wait.return_value = 'COMPLETE'
+        mock_stack = mock.Mock()
+        mock_stack.stack_name = 'mystack'
+        mock_get_stack.return_value = mock_stack
+        # mock_logger.return_value = mock.Mock()
+
         argslist = ['overcloud', '-i', '--templates']
         verifylist = [
             ('stack', 'overcloud'),
@@ -41,24 +50,17 @@ class TestOvercloudUpdate(fakes.TestOvercloudUpdate):
             ('templates', '/usr/share/openstack-tripleo-heat-templates/')
         ]
 
-        mock_process_templates.return_value = {
-            'stack_name': 'mystack',
-            'environment': {},
-            'files': {},
-            'templates': 'template body',
-        }
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
         self.cmd.take_action(parsed_args)
-        update_manager.get_status.called_once()
-        update_manager.update.called_once()
-        update_manager.do_interactive_update.called_once()
+        mock_update_wait.assert_called_once_with(
+            mock_logger,
+            self.app.client_manager,
+            mock_stack, 'mystack', 1, 0)
 
-    @mock.patch('tripleoclient.workflows.templates.process_templates',
+    @mock.patch('tripleoclient.workflows.package_update.update_and_wait',
                 autospec=True)
-    @mock.patch('tripleo_common.update.PackageUpdateManager')
-    def test_update_failed(self, update_manager, mock_process_templates):
-        update_manager.return_value.get_status.return_value = (
-            'FAILED', {})
+    def test_update_failed(self, mock_update_wait):
+        mock_update_wait.return_value = 'FAILED'
         argslist = ['overcloud', '-i', '--templates']
         verifylist = [
             ('stack', 'overcloud'),
@@ -66,12 +68,6 @@ class TestOvercloudUpdate(fakes.TestOvercloudUpdate):
             ('templates', '/usr/share/openstack-tripleo-heat-templates/')
         ]
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
-        mock_process_templates.return_value = {
-            'stack_name': 'mystack',
-            'environment': {},
-            'files': {},
-            'templates': 'template body',
-        }
 
         self.assertRaises(exceptions.DeploymentError,
                           self.cmd.take_action, parsed_args)

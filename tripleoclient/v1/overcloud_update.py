@@ -14,15 +14,16 @@
 #
 
 import logging
+import uuid
 
 from osc_lib.command import command
 from osc_lib.i18n import _
 from osc_lib import utils
-from tripleo_common import update
 
 from tripleoclient import constants
 from tripleoclient import exceptions
-from tripleoclient.workflows import templates
+from tripleoclient import utils as oooutils
+from tripleoclient.workflows import package_update
 
 
 class UpdateOvercloud(command.Command):
@@ -47,7 +48,9 @@ class UpdateOvercloud(command.Command):
         parser.add_argument('-i', '--interactive', dest='interactive',
                             action='store_true')
         parser.add_argument('-a', '--abort', dest='abort_update',
-                            action='store_true')
+                            action='store_true',
+                            help=_('DEPRECATED. Please use the command'
+                                   '"openstack overcloud update abort"'))
         parser.add_argument(
             '-e', '--environment-file', metavar='<HEAT ENVIRONMENT FILE>',
             action='append', dest='environment_files',
@@ -60,7 +63,9 @@ class UpdateOvercloud(command.Command):
         )
         parser.add_argument(
             '--answers-file',
-            help=_('Path to a YAML file with arguments and parameters.')
+            help=_('Path to a YAML file with arguments and parameters. '
+                   'DEPRECATED. Not necessary when used with a plan. Will '
+                   'be silently ignored, and removed in the "P" release.')
         )
         return parser
 
@@ -68,32 +73,75 @@ class UpdateOvercloud(command.Command):
         self.log.debug("take_action(%s)" % parsed_args)
         clients = self.app.client_manager
 
-        workflow = clients.workflow_engine
-        stack_fields = templates.process_templates(
-            workflow, container=parsed_args.stack)
+        stack = oooutils.get_stack(clients.orchestration,
+                                   parsed_args.stack)
 
-        update_manager = update.PackageUpdateManager(
-            heatclient=clients.orchestration,
-            novaclient=clients.compute,
-            stack_id=parsed_args.stack,
-            stack_fields=stack_fields)
-        if parsed_args.abort_update:
-            print("cancelling package update on stack {0}".format(
-                parsed_args.stack))
-            update_manager.cancel()
-        else:
-            status, resources = update_manager.get_status()
-            if status not in ['IN_PROGRESS', 'WAITING']:
-                print("starting package update on stack {0}".format(
-                    parsed_args.stack))
-                update_manager.update()
-
+        stack_name = stack.stack_name
         if parsed_args.interactive:
-            update_manager.do_interactive_update()
-            status, _ = update_manager.get_status()
+            timeout = 0
+
+            status = package_update.update_and_wait(
+                self.log, clients, stack, stack_name,
+                self.app_args.verbose_level, timeout)
             if status not in ['COMPLETE']:
                 raise exceptions.DeploymentError("Stack update failed.")
         else:
-            status, _ = update_manager.get_status()
-            print("stack {0} status: {1}".format(parsed_args.stack,
-                                                 status))
+            status = package_update.update(clients, container=stack_name,
+                                           queue_name=str(uuid.uuid4()))
+            print("stack {0} status: {1}".format(parsed_args.stack, status))
+
+
+class AbortUpdateOvercloud(command.Command):
+    """Aborts a package update on overcloud nodes"""
+
+    log = logging.getLogger(__name__ + ".AbortUpdateOvercloud")
+
+    def get_parser(self, prog_name):
+        parser = super(AbortUpdateOvercloud, self).get_parser(prog_name)
+        parser.add_argument('stack', nargs='?',
+                            help=_('Name or ID of heat stack to abort a '
+                                   'running update '
+                                   '(default=Env: OVERCLOUD_STACK_NAME)'),
+                            default=utils.env('OVERCLOUD_STACK_NAME'))
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)" % parsed_args)
+        clients = self.app.client_manager
+
+        heat = clients.orchestration
+
+        stack = oooutils.get_stack(heat, parsed_args.stack)
+
+        package_update.abort_update(clients, stack_id=stack.id)
+
+
+class ClearBreakpointsOvercloud(command.Command):
+    """Clears a set of breakpoints on a currently updating overcloud"""
+
+    log = logging.getLogger(__name__ + ".ClearBreakpointsOvercloud")
+
+    def get_parser(self, prog_name):
+        parser = super(ClearBreakpointsOvercloud, self).get_parser(prog_name)
+        parser.add_argument('stack', nargs='?',
+                            help=_('Name or ID of heat stack to clear a '
+                                   'breakpoint or set of breakpoints '
+                                   '(default=Env: OVERCLOUD_STACK_NAME)'),
+                            default=utils.env('OVERCLOUD_STACK_NAME'))
+        parser.add_argument('--ref',
+                            action='append',
+                            dest='refs',
+                            help=_('Breakpoint to clear'))
+
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)" % parsed_args)
+        clients = self.app.client_manager
+
+        heat = clients.orchestration
+
+        stack = oooutils.get_stack(heat, parsed_args.stack)
+
+        package_update.clear_breakpoints(clients, stack_id=stack.id,
+                                         refs=parsed_args.refs)
