@@ -11,3 +11,6 @@ sphinx!=1.3b1,<1.4,>=1.2.1 # BSD
 testrepository>=0.0.18 # Apache-2.0/BSD
 testtools>=1.4.0 # MIT
 requests-mock>=1.1 # Apache-2.0
+
+# releasenotes
+reno>=1.8.0 # Apache2
