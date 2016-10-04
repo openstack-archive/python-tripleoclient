@@ -183,7 +183,8 @@ class TestOvercloudCreatePlan(utils.TestCommand):
 
         # Verify
         self.workflow.action_executions.create.assert_called_once_with(
-            'tripleo.plan.create_container', {"container": "overcast"}
+            'tripleo.plan.create_container', {"container": "overcast"},
+            run_sync=True, save_result=True
         )
 
         self.workflow.executions.create.assert_called_once_with(
@@ -216,7 +217,8 @@ class TestOvercloudCreatePlan(utils.TestCommand):
 
         # Verify
         self.workflow.action_executions.create.assert_called_once_with(
-            'tripleo.plan.create_container', {"container": "overcast"}
+            'tripleo.plan.create_container', {"container": "overcast"},
+            run_sync=True, save_result=True
         )
 
         self.workflow.executions.create.assert_called_once_with(
