@@ -545,7 +545,6 @@ class BuildOvercloudImage(command.Command):
 
 class UploadOvercloudImage(command.Command):
     """Create overcloud glance images from existing image files."""
-    auth_required = False
     log = logging.getLogger(__name__ + ".UploadOvercloudImage")
 
     def _env_variable_or_set(self, key_name, default_value):
