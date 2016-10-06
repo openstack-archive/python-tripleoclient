@@ -20,11 +20,11 @@ import uuid
 from osc_lib.command import command
 from osc_lib.i18n import _
 from osc_lib import utils
-from tripleo_common import scale
 
 from tripleoclient import constants
 from tripleoclient import utils as oooutils
 from tripleoclient.workflows import baremetal
+from tripleoclient.workflows import scale
 
 
 class DeleteNode(command.Command):
@@ -42,14 +42,21 @@ class DeleteNode(command.Command):
                             default=utils.env('OVERCLOUD_STACK_NAME'))
         parser.add_argument(
             '--templates', nargs='?', const=constants.TRIPLEO_HEAT_TEMPLATES,
-            help=_("The directory containing the Heat templates to deploy")
+            help=_("The directory containing the Heat templates to deploy. "
+                   "This argument is deprecated. The command now utilizes "
+                   "a deployment plan, which should be updated prior to "
+                   "running this command, should that be required. Otherwise "
+                   "this argument will be silently ignored."),
         )
         parser.add_argument(
             '-e', '--environment-file', metavar='<HEAT ENVIRONMENT FILE>',
             action='append', dest='environment_files',
-            help=_('Environment files to be passed to the heat stack-create '
-                   'or heat stack-update command. (Can be specified more than '
-                   'once.)')
+            help=_("Environment files to be passed to the heat stack-create "
+                   "or heat stack-update command. (Can be specified more than "
+                   "once.) This argument is deprecated. The command now "
+                   "utilizes a deployment plan, which should be updated prior "
+                   "to running this command, should that be required. "
+                   "Otherwise this argument will be silently ignored."),
         )
 
         return parser
@@ -58,14 +65,10 @@ class DeleteNode(command.Command):
         self.log.debug("take_action(%s)" % parsed_args)
         clients = self.app.client_manager
 
-        scale_manager = scale.ScaleManager(
-            heatclient=clients.orchestration,
-            stack_id=parsed_args.stack,
-            tht_dir=parsed_args.templates,
-            environment_files=parsed_args.environment_files)
         print("deleting nodes {0} from stack {1}".format(parsed_args.nodes,
                                                          parsed_args.stack))
-        scale_manager.scaledown(parsed_args.nodes)
+
+        scale.scale_down(clients, parsed_args.stack, parsed_args.nodes)
 
 
 class ProvideNode(command.Command):
