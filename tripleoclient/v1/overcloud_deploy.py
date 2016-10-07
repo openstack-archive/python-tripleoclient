@@ -16,7 +16,6 @@ from __future__ import print_function
 
 import argparse
 import glob
-import hashlib
 import logging
 import os
 import os.path
@@ -387,7 +386,8 @@ class DeployOvercloud(command.Command):
         file_relocation = {}
         file_prefix = "file://"
 
-        for fullpath, contents in files_dict.items():
+        # select files files for relocation & upload
+        for fullpath in files_dict.keys():
 
             if not fullpath.startswith(file_prefix):
                 continue
@@ -398,13 +398,15 @@ class DeployOvercloud(command.Command):
                 # This should already be uploaded.
                 continue
 
-            filename = os.path.basename(path)
-            checksum = hashlib.md5()
-            checksum.update(path)
-            digest = checksum.hexdigest()
-            swift_path = "user-files/{}-{}".format(digest, filename)
-            swift_client.put_object(container_name, swift_path, contents)
-            file_relocation[fullpath] = swift_path
+            file_relocation[fullpath] = "user-files/{}".format(path[1:])
+
+        # make sure links within files point to new locations, and upload them
+        for orig_path, reloc_path in file_relocation.items():
+            link_replacement = utils.relative_link_replacement(
+                file_relocation, os.path.dirname(reloc_path))
+            contents = utils.replace_links_in_template_contents(
+                files_dict[orig_path], link_replacement)
+            swift_client.put_object(container_name, reloc_path, contents)
 
         return file_relocation
 
