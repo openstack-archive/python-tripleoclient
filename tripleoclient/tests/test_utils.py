@@ -494,7 +494,7 @@ class TestCreateTempestDeployerInput(TestCase):
             cfg = open(filepath, 'rt').read()
             # Just make a simple test, to make sure it created a proper file:
             self.assertIn(
-                '[orchestration]\nstack_owner_role = heat_stack_user', cfg)
+                '[volume-feature-enabled]\nbootable = true', cfg)
 
 
 class TestGetEndpointMap(TestCase):
