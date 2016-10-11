@@ -223,7 +223,7 @@ class DeployOvercloud(command.Command):
         return parameter_defaults
 
     def _process_multiple_environments(self, created_env_files, added_files,
-                                       tht_root, user_tht_root):
+                                       tht_root, user_tht_root, cleanup=True):
         env_files = {}
         localenv = {}
         for env_path in created_env_files:
@@ -238,12 +238,44 @@ class DeployOvercloud(command.Command):
                 files, env = template_utils.process_environment_and_files(
                     env_path=env_path)
             except hc_exc.CommandError as ex:
+                # This provides fallback logic so that we can reference files
+                # inside the resource_registry values that may be rendered via
+                # j2.yaml templates, where the above will fail because the
+                # file doesn't exist in user_tht_root, but it is in tht_root
+                # See bug https://bugs.launchpad.net/tripleo/+bug/1625783
+                # for details on why this is needed (backwards-compatibility)
                 self.log.debug("Error %s processing environment file %s"
                                % (six.text_type(ex), env_path))
-                # FIXME(shardy) We need logic here to handle the case described
-                # in https://bugs.launchpad.net/tripleo/+bug/1625783 so that
-                # resource_registry contents are redirected to tmpdir tht_root
-                raise
+                with open(abs_env_path, 'r') as f:
+                    env_map = yaml.safe_load(f)
+                env_registry = env_map.get('resource_registry', {})
+                env_dirname = os.path.dirname(os.path.abspath(env_path))
+                for rsrc, rsrc_path in six.iteritems(env_registry):
+                    # We need to calculate the absolute path relative to
+                    # env_path not cwd (which is what abspath uses).
+                    abs_rsrc_path = os.path.normpath(
+                        os.path.join(env_dirname, rsrc_path))
+                    # If the absolute path matches user_tht_root, rewrite
+                    # a temporary environment pointing at tht_root instead
+                    if abs_rsrc_path.startswith(user_tht_root):
+                        new_rsrc_path = abs_rsrc_path.replace(user_tht_root,
+                                                              tht_root)
+                        self.log.debug("Rewriting %s %s path to %s"
+                                       % (env_path, rsrc, new_rsrc_path))
+                        env_registry[rsrc] = new_rsrc_path
+                    else:
+                        env_registry[rsrc] = rsrc_path
+                env_map['resource_registry'] = env_registry
+                f_name = os.path.basename(os.path.splitext(abs_rsrc_path)[0])
+                with tempfile.NamedTemporaryFile(dir=tht_root,
+                                                 prefix="env-%s-" % f_name,
+                                                 suffix=".yaml",
+                                                 delete=cleanup) as f:
+                    self.log.debug("Rewriting %s environment to %s"
+                                   % (env_path, f.name))
+                    f.write(yaml.dump(env_map, default_flow_style=False))
+                    files, env = template_utils.process_environment_and_files(
+                        env_path=f.name)
             if files:
                 self.log.debug("Adding files %s for %s" % (files, env_path))
                 env_files.update(files)
@@ -504,7 +536,8 @@ class DeployOvercloud(command.Command):
 
         self.log.debug("Processing environment files %s" % created_env_files)
         env_files, localenv = self._process_multiple_environments(
-            created_env_files, added_files, tht_root, user_tht_root)
+            created_env_files, added_files, tht_root, user_tht_root,
+            cleanup=not parsed_args.no_cleanup)
 
         # Command line has more precedence than env files
         template_utils.deep_update(localenv, env)
