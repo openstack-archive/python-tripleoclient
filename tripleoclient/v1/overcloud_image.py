@@ -35,6 +35,7 @@ from osc_lib.i18n import _
 from osc_lib import utils
 from prettytable import PrettyTable
 
+from tripleo_common.image import build
 from tripleoclient import utils as plugin_utils
 
 
@@ -46,7 +47,10 @@ class ImageBuildError(Exception):
 
 @six.add_metaclass(abc.ABCMeta)
 class ImageBuilder(object):
-    """Base representation of an image building method"""
+    """Base representation of an image building method
+
+       DEPRECATED - Remove in P release
+    """
 
     @abc.abstractmethod
     def build_ramdisk(self, parsed_args, ramdisk_type):
@@ -72,7 +76,10 @@ class ImageBuilder(object):
 
 
 class DibImageBuilder(ImageBuilder):
-    """Build images using diskimage-builder"""
+    """Build images using diskimage-builder
+
+       DEPRECATED - Remove in P release
+    """
 
     _min_tmpfs = 5
 
@@ -226,7 +233,9 @@ class BuildOvercloudImage(command.Command):
             "--all",
             dest="all",
             action="store_true",
-            help=_("Build all images"),
+            help=_("Build all images "
+                   "DEPRECATED. Please use "
+                   "--config-file to specify YAML configuration files."),
         )
         image_group.add_argument(
             "--type",
@@ -237,28 +246,69 @@ class BuildOvercloudImage(command.Command):
             help=_("Build image by name. One of "
                    "%s. fedora-user is DEPRECATED. Download the latest Fedora "
                    "cloud image directly from "
-                   "https://getfedora.org/en/cloud/download/ instead.") %
+                   "https://getfedora.org/en/cloud/download/ instead."
+                   "DEPRECATED. Please use "
+                   "--config-file to specify YAML configuration files.") %
                  ", ".join(self.IMAGE_TYPES),
         )
+        image_group.add_argument(
+            "--config-file",
+            dest="config_files",
+            metavar='<yaml config file>',
+            default=[],
+            action="append",
+            help=_("YAML config file specifying the image build. May be "
+                   "specified multiple times. Order is preserved, and later "
+                   "files will override some options in previous files. "
+                   "Other options will append."),
+        )
         parser.add_argument(
+            "--image-name",
+            dest="image_names",
+            metavar='<image name>',
+            default=None,
+            help=_("Name of image to build. May be specified multiple "
+                   "times. If unspecified, will build all images in "
+                   "given YAML files."),
+        )
+        parser.add_argument(
+            "--no-skip",
+            dest="skip",
+            action="store_false",
+            default=True,
+            help=_("Skip build if cached image exists."),
+        )
+        parser.add_argument(
+            "--output-directory",
+            dest="output_directory",
+            default=os.environ.get('TRIPLEO_ROOT', '.'),
+            help=_("Output directory for images. Defaults to $TRIPLEO_ROOT,"
+                   "or current directory if unset."),
+        )
+        deprecated_group = parser.add_argument_group(
+            "DEPRECATED",
+            "These arguments are deprecated and will be removed in a future "
+            "(P) release. Instead, use the --config-file config.yaml "
+            "arguments.")
+        deprecated_group.add_argument(
             "--base-image",
             help=_("Image file to use as a base for new images"),
         )
-        parser.add_argument(
+        deprecated_group.add_argument(
             "--instack-undercloud-elements",
             dest="instack_undercloud_elements",
             default=os.environ.get(
                 "INSTACKUNDERCLOUDELEMENTS", self.INSTACKUNDERCLOUDELEMENTS),
             help=_("Path to Instack Undercloud elements"),
         )
-        parser.add_argument(
+        deprecated_group.add_argument(
             "--tripleo-puppet-elements",
             dest="tripleo_puppet_elements",
             default=os.environ.get(
                 "TRIPLEOPUPPETELEMENTS", self.TRIPLEOPUPPETELEMENTS),
             help=_("Path to TripleO Puppet elements"),
         )
-        parser.add_argument(
+        deprecated_group.add_argument(
             "--elements-path",
             dest="elements_path",
             default=os.environ.get(
@@ -270,38 +320,38 @@ class BuildOvercloudImage(command.Command):
                 ])),
             help=_("Full elements path, separated by %s") % os.pathsep,
         )
-        parser.add_argument(
+        deprecated_group.add_argument(
             "--tmp-dir",
             dest="tmp_dir",
             default=os.environ.get("TMP_DIR", "/var/tmp"),
             help=_("Path to a temporary directory for creating images"),
         )
-        parser.add_argument(
+        deprecated_group.add_argument(
             "--node-arch",
             dest="node_arch",
             default=os.environ.get("NODE_ARCH", "amd64"),
             help=_("Architecture of image to build"),
         )
-        parser.add_argument(
+        deprecated_group.add_argument(
             "--node-dist",
             dest="node_dist",
             default=os.environ.get("NODE_DIST", ""),
             help=_("Distribution of image to build"),
         )
-        parser.add_argument(
+        deprecated_group.add_argument(
             "--registration-method",
             dest="reg_method",
             default=os.environ.get("REG_METHOD", "disable"),
             help=_("Registration method"),
         )
-        parser.add_argument(
+        deprecated_group.add_argument(
             "--use-delorean-trunk",
             dest="use_delorean_trunk",
             action='store_true',
             default=(os.environ.get('USE_DELOREAN_TRUNK', '0') == '1'),
             help=_("Use Delorean trunk repo"),
         )
-        parser.add_argument(
+        deprecated_group.add_argument(
             "--delorean-trunk-repo",
             dest="delorean_trunk_repo",
             default=os.environ.get(
@@ -310,13 +360,13 @@ class BuildOvercloudImage(command.Command):
             ),
             help=_("URL to Delorean trunk repo"),
         )
-        parser.add_argument(
+        deprecated_group.add_argument(
             "--delorean-repo-file",
             dest="delorean_repo_file",
             default=os.environ.get('DELOREAN_REPO_FILE', 'delorean-kilo.repo'),
             help=_("Filename for delorean repo config file"),
         )
-        parser.add_argument(
+        deprecated_group.add_argument(
             "--overcloud-full-dib-extra-args",
             dest="overcloud_full_dib_extra_args",
             default=os.environ.get(
@@ -324,7 +374,7 @@ class BuildOvercloudImage(command.Command):
                 " ".join(self.OVERCLOUD_FULL_DIB_EXTRA_ARGS)),
             help=_("Extra args for Overcloud Full"),
         )
-        parser.add_argument(
+        deprecated_group.add_argument(
             "--agent-dib-extra-args",
             dest="agent_dib_extra_args",
             default=os.environ.get(
@@ -332,13 +382,13 @@ class BuildOvercloudImage(command.Command):
                 " ".join(self.AGENT_DIB_EXTRA_ARGS)),
             help=_("Extra args for the IPA image"),
         )
-        parser.add_argument(
+        deprecated_group.add_argument(
             "--overcloud-full-name",
             dest="overcloud_full_name",
             default=os.environ.get('OVERCLOUD_FULL_NAME', 'overcloud-full'),
             help=_("Name of overcloud full image"),
         )
-        parser.add_argument(
+        deprecated_group.add_argument(
             "--fedora-user-name",
             dest="fedora_user_name",
             default=os.environ.get('FEDORA_USER_NAME', 'fedora-user'),
@@ -346,13 +396,13 @@ class BuildOvercloudImage(command.Command):
                    "tripleoclient is deprecated in favor of downloading the "
                    "latest Fedora image directly from getfedora.org."),
         )
-        parser.add_argument(
+        deprecated_group.add_argument(
             "--agent-name",
             dest="agent_name",
             default=os.environ.get('AGENT_NAME', 'ironic-python-agent'),
             help=_("Name of the IPA ramdisk image"),
         )
-        parser.add_argument(
+        deprecated_group.add_argument(
             "--deploy-name",
             dest="deploy_name",
             default=os.environ.get('DEPLOY_NAME', 'deploy-ramdisk-ironic'),
@@ -360,7 +410,7 @@ class BuildOvercloudImage(command.Command):
                    "has been replaced by the Ironic Python Agent ramdisk, so "
                    "you should switch to that as soon as possible."),
         )
-        parser.add_argument(
+        deprecated_group.add_argument(
             "--agent-image-element",
             dest="agent_image_element",
             default=os.environ.get(
@@ -368,7 +418,7 @@ class BuildOvercloudImage(command.Command):
                 " ".join(self.AGENT_IMAGE_ELEMENT)),
             help=_("DIB elements for the IPA image"),
         )
-        parser.add_argument(
+        deprecated_group.add_argument(
             "--deploy-image-element",
             dest="deploy_image_element",
             default=os.environ.get(
@@ -376,20 +426,19 @@ class BuildOvercloudImage(command.Command):
                 " ".join(self.DEPLOY_IMAGE_ELEMENT)),
             help=_("DIB elements for deploy image"),
         )
-        parser.add_argument(
+        deprecated_group.add_argument(
             "--builder-extra-args",
             dest="builder_extra_args",
             default='',
             help=_("Extra arguments for the image builder"),
         )
-        parser.add_argument(
+        deprecated_group.add_argument(
             "--builder",
             dest="builder",
             metavar='<builder>',
             choices=self._BUILDERS,
             default='dib',
-            help=_("Image builder. One of "
-                   "%s") % ", ".join(self._BUILDERS),
+            help=_("Image builder. One of %s") % ", ".join(self._BUILDERS),
         )
         return parser
 
@@ -517,9 +566,7 @@ class BuildOvercloudImage(command.Command):
         # that the builder is one among a limited choice
         assert False, "unhandled builder in _create_builder"
 
-    def take_action(self, parsed_args):
-        self.log.debug("take_action(%s)" % parsed_args)
-
+    def _legacy_build(self, parsed_args):
         parsed_args._builder = self._create_builder(parsed_args.builder)
 
         self._prepare_env_variables(parsed_args)
@@ -537,7 +584,23 @@ class BuildOvercloudImage(command.Command):
                     'fedora-user': self._build_image_fedora_user,
                     'overcloud-full': self._build_image_overcloud_full,
                 }[image_type](parsed_args)
+        self.log.warn("Using deprecated image build arguments. Please use "
+                      "the YAML build by instead specifying --config-file "
+                      "arguments.")
         print('Successfully built all requested images')
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)" % parsed_args)
+
+        if not parsed_args.config_files:
+            return self._legacy_build(parsed_args)
+
+        manager = build.ImageBuildManager(
+            parsed_args.config_files,
+            output_directory=parsed_args.output_directory,
+            skip=parsed_args.skip,
+            images=parsed_args.image_names)
+        manager.build()
 
 
 class UploadOvercloudImage(command.Command):

@@ -38,6 +38,70 @@ class TestOvercloudImageBuild(TestPluginV1):
         self.cmd = overcloud_image.BuildOvercloudImage(self.app, None)
         self.cmd._create_builder = _force_builder
 
+    @mock.patch('tripleo_common.image.build.ImageBuildManager', autospec=True)
+    def test_overcloud_image_build_yaml(self, mock_manager):
+        arglist = ['--config-file', 'config.yaml']
+        verifylist = [('config_files', ['config.yaml'])]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
+
+        mock_manager.assert_called_once_with(
+            ['config.yaml'],
+            output_directory='.',
+            skip=True,
+            images=None)
+
+    @mock.patch('tripleo_common.image.build.ImageBuildManager', autospec=True)
+    def test_overcloud_image_build_multi_yaml(self, mock_manager):
+        arglist = ['--config-file', 'config1.yaml',
+                   '--config-file', 'config2.yaml']
+        verifylist = [('config_files', ['config1.yaml', 'config2.yaml'])]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
+
+        mock_manager.assert_called_once_with(
+            ['config1.yaml', 'config2.yaml'],
+            output_directory='.',
+            skip=True,
+            images=None)
+
+    @mock.patch('tripleo_common.image.build.ImageBuildManager', autospec=True)
+    def test_overcloud_image_build_with_no_skip(self, mock_manager):
+        arglist = ['--config-file', 'config.yaml', '--no-skip']
+        verifylist = [('config_files', ['config.yaml']),
+                      ('skip', False)]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
+
+        mock_manager.assert_called_once_with(
+            ['config.yaml'],
+            output_directory='.',
+            skip=False,
+            images=None)
+
+    @mock.patch('tripleo_common.image.build.ImageBuildManager', autospec=True)
+    def test_overcloud_image_build_with_output_directory(self, mock_manager):
+        arglist = ['--config-file', 'config.yaml',
+                   '--output-directory', '/tmp/abc']
+        verifylist = [('config_files', ['config.yaml']),
+                      ('output_directory', '/tmp/abc')]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
+
+        mock_manager.assert_called_once_with(
+            ['config.yaml'],
+            output_directory='/tmp/abc',
+            skip=True,
+            images=None)
+
     @mock.patch('os.path.isfile', autospec=True)
     @mock.patch('platform.linux_distribution')
     @mock.patch.object(overcloud_image.BuildOvercloudImage,
