@@ -19,6 +19,7 @@ import mock
 import os.path
 import tempfile
 from unittest import TestCase
+import yaml
 
 from tripleoclient import exceptions
 from tripleoclient.tests.v1.utils import (
@@ -718,3 +719,69 @@ class TestAssignVerifyProfiles(TestCase):
         self.nodes[:] = [self._get_fake_node(profile=None)]
         self.flavors = {'baremetal': (FakeFlavor('baremetal', None), 1)}
         self._test(0, 0)
+
+
+class TestReplaceLinks(TestCase):
+
+    def setUp(self):
+        super(TestReplaceLinks, self).setUp()
+        self.link_replacement = {
+            'file:///home/stack/test.sh':
+                'user-files/home/stack/test.sh',
+            'file:///usr/share/extra-templates/my.yml':
+                'user-files/usr/share/extra-templates/my.yml',
+        }
+
+    def test_replace_links(self):
+        source = (
+            'description: my template\n'
+            'heat_template_version: "2014-10-16"\n'
+            'resources:\n'
+            '  test_config:\n'
+            '    properties:\n'
+            '      config: {get_file: "file:///home/stack/test.sh"}\n'
+            '    type: OS::Heat::SoftwareConfig\n'
+        )
+        expected = (
+            'description: my template\n'
+            'heat_template_version: "2014-10-16"\n'
+            'resources:\n'
+            '  test_config:\n'
+            '    properties:\n'
+            '      config: {get_file: user-files/home/stack/test.sh}\n'
+            '    type: OS::Heat::SoftwareConfig\n'
+        )
+
+        # the yaml->string dumps aren't always character-precise, so
+        # we need to parse them into dicts for comparison
+        expected_dict = yaml.safe_load(expected)
+        result_dict = yaml.safe_load(utils.replace_links_in_template_contents(
+            source, self.link_replacement))
+        self.assertEqual(expected_dict, result_dict)
+
+    def test_replace_links_not_template(self):
+        # valid JSON/YAML, but doesn't have heat_template_version
+        source = '{"get_file": "file:///home/stack/test.sh"}'
+        self.assertEqual(
+            source,
+            utils.replace_links_in_template_contents(
+                source, self.link_replacement))
+
+    def test_replace_links_not_yaml(self):
+        # invalid JSON/YAML -- curly brace left open
+        source = '{"invalid JSON"'
+        self.assertEqual(
+            source,
+            utils.replace_links_in_template_contents(
+                source, self.link_replacement))
+
+    def test_relative_link_replacement(self):
+        current_dir = 'user-files/home/stack'
+        expected = {
+            'file:///home/stack/test.sh':
+                'test.sh',
+            'file:///usr/share/extra-templates/my.yml':
+                '../../usr/share/extra-templates/my.yml',
+        }
+        self.assertEqual(expected, utils.relative_link_replacement(
+            self.link_replacement, current_dir))

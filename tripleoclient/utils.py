@@ -900,3 +900,69 @@ def parse_env_file(env_file, file_type=None):
         nodes_config = nodes_config['nodes']
 
     return nodes_config
+
+
+def replace_links_in_template_contents(contents, link_replacement):
+    """Replace get_file and type file links in Heat template contents
+
+    If the string contents passed in is a Heat template, scan the
+    template for 'get_file' and 'type' occurences, and replace the
+    file paths according to link_replacement dict. (Key/value in
+    link_replacement are from/to, respectively.)
+
+    If the string contents don't look like a Heat template, return the
+    contents unmodified.
+    """
+
+    template = {}
+    try:
+        template = yaml.safe_load(contents)
+    except yaml.YAMLError:
+        return contents
+
+    if not (isinstance(template, dict) and
+            template.get('heat_template_version')):
+        return contents
+
+    template = replace_links_in_template(template, link_replacement)
+
+    return yaml.safe_dump(template)
+
+
+def replace_links_in_template(template_part, link_replacement):
+    """Replace get_file and type file links in a Heat template
+
+    Scan the template for 'get_file' and 'type' occurences, and
+    replace the file paths according to link_replacement
+    dict. (Key/value in link_replacement are from/to, respectively.)
+    """
+
+    def replaced_dict_value(key, value):
+        if ((key == 'get_file' or key == 'type') and
+                isinstance(value, six.string_types)):
+            return link_replacement.get(value, value)
+        else:
+            return replace_links_in_template(value, link_replacement)
+
+    def replaced_list_value(value):
+        return replace_links_in_template(value, link_replacement)
+
+    if isinstance(template_part, dict):
+        return {k: replaced_dict_value(k, v)
+                for k, v in six.iteritems(template_part)}
+    elif isinstance(template_part, list):
+        return map(replaced_list_value, template_part)
+    else:
+        return template_part
+
+
+def relative_link_replacement(link_replacement, current_dir):
+    """Generate a relative version of link_replacement dictionary.
+
+    Get a link_replacement dictionary (where key/value are from/to
+    respectively), and make the values in that dictionary relative
+    paths with respect to current_dir.
+    """
+
+    return {k: os.path.relpath(v, current_dir)
+            for k, v in six.iteritems(link_replacement)}
