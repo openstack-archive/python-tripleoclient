@@ -16,11 +16,27 @@
 import mock
 from osc_lib.tests import utils
 
+from tripleoclient.tests import fakes
+
 
 class FakeClientWrapper(object):
 
     def __init__(self):
         self._instance = mock.Mock()
+        self.object_store = FakeObjectClient()
+
+    def messaging_websocket(self, queue_name):
+        return fakes.FakeWebSocket()
+
+
+class FakeObjectClient(object):
+
+    def __init__(self):
+        self._instance = mock.Mock()
+        self.put_object = mock.Mock()
+
+    def get_object(self, *args):
+        return
 
 
 class TestOvercloudUpdate(utils.TestCommand):
@@ -31,3 +47,4 @@ class TestOvercloudUpdate(utils.TestCommand):
         self.app.client_manager.auth_ref = mock.Mock(auth_token="TOKEN")
         self.app.client_manager.orchestration = mock.Mock()
         self.app.client_manager.tripleoclient = FakeClientWrapper()
+        self.app.client_manager.workflow_engine = mock.Mock()
