@@ -14,22 +14,20 @@
 #
 
 import logging
-import yaml
 
 from osc_lib.command import command
-from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
 from osc_lib import utils
 from tripleo_common import update
 
 from tripleoclient import constants
 from tripleoclient import exceptions
+from tripleoclient.workflows import templates
 
 
 class UpdateOvercloud(command.Command):
     """Updates packages on overcloud nodes"""
 
-    auth_required = False
     log = logging.getLogger(__name__ + ".UpdateOvercloud")
 
     def get_parser(self, prog_name):
@@ -40,7 +38,11 @@ class UpdateOvercloud(command.Command):
                             default=utils.env('OVERCLOUD_STACK_NAME'))
         parser.add_argument(
             '--templates', nargs='?', const=constants.TRIPLEO_HEAT_TEMPLATES,
-            help=_("The directory containing the Heat templates to deploy"),
+            help=_("The directory containing the Heat templates to deploy. "
+                   "This argument is deprecated. The command now utilizes "
+                   "a deployment plan, which should be updated prior to "
+                   "running this command, should that be required. Otherwise "
+                   "this argument will be silently ignored."),
         )
         parser.add_argument('-i', '--interactive', dest='interactive',
                             action='store_true')
@@ -49,9 +51,12 @@ class UpdateOvercloud(command.Command):
         parser.add_argument(
             '-e', '--environment-file', metavar='<HEAT ENVIRONMENT FILE>',
             action='append', dest='environment_files',
-            help=_('Environment files to be passed to the heat stack-create '
-                   'or heat stack-update command. (Can be specified more than '
-                   'once.)')
+            help=_("Environment files to be passed to the heat stack-create "
+                   "or heat stack-update command. (Can be specified more than "
+                   "once.) This argument is deprecated. The command now "
+                   "utilizes a deployment plan, which should be updated prior "
+                   "to running this command, should that be required. "
+                   "Otherwise this argument will be silently ignored."),
         )
         parser.add_argument(
             '--answers-file',
@@ -60,31 +65,18 @@ class UpdateOvercloud(command.Command):
         return parser
 
     def take_action(self, parsed_args):
-        if parsed_args.templates is None and parsed_args.answers_file is None:
-            raise oscexc.CommandError(
-                "You must specify either --templates or --answers-file")
-
-        if parsed_args.answers_file is not None:
-            with open(parsed_args.answers_file, 'r') as answers_file:
-                answers = yaml.load(answers_file)
-
-                if parsed_args.templates is None:
-                    parsed_args.templates = answers['templates']
-                if 'environments' in answers:
-                    if parsed_args.environment_files is not None:
-                        answers.environments.extend(
-                            parsed_args.environment_files)
-                    parsed_args.environment_files = answers['environments']
-
         self.log.debug("take_action(%s)" % parsed_args)
         clients = self.app.client_manager
+
+        workflow = clients.workflow_engine
+        stack_fields = templates.process_templates(
+            workflow, container=parsed_args.stack)
 
         update_manager = update.PackageUpdateManager(
             heatclient=clients.orchestration,
             novaclient=clients.compute,
             stack_id=parsed_args.stack,
-            tht_dir=parsed_args.templates,
-            environment_files=parsed_args.environment_files)
+            stack_fields=stack_fields)
         if parsed_args.abort_update:
             print("cancelling package update on stack {0}".format(
                 parsed_args.stack))
@@ -102,4 +94,6 @@ class UpdateOvercloud(command.Command):
             if status not in ['COMPLETE']:
                 raise exceptions.DeploymentError("Stack update failed.")
         else:
-            print("stack {0} status: {1}".format(parsed_args.stack, status))
+            status, _ = update_manager.get_status()
+            print("stack {0} status: {1}".format(parsed_args.stack,
+                                                 status))
