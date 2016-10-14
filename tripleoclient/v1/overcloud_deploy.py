@@ -540,13 +540,11 @@ class DeployOvercloud(command.Command):
         env_files, localenv = self._process_multiple_environments(
             created_env_files, added_files, tht_root, user_tht_root,
             cleanup=not parsed_args.no_cleanup)
-
-        # Command line has more precedence than env files
-        template_utils.deep_update(localenv, env)
+        template_utils.deep_update(env, localenv)
 
         self._try_overcloud_deploy_with_compat_yaml(
             tht_root, stack, parsed_args.stack, parameters, env_files,
-            parsed_args.timeout, localenv)
+            parsed_args.timeout, env)
 
     def _try_overcloud_deploy_with_compat_yaml(self, tht_root, stack,
                                                stack_name, parameters,

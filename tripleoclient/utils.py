@@ -378,40 +378,16 @@ def wait_for_provision_state(baremetal_client, node_uuid, provision_state,
     )
 
 
-def create_environment_file(path="~/overcloud-env.json",
-                            control_scale=1, compute_scale=1,
-                            ceph_storage_scale=0, block_storage_scale=0,
-                            swift_storage_scale=0):
-    """Create a heat environment file
+def create_environment_file(path="~/overcloud-env.json"):
+    """Create a blank heat environment file
 
-    Create the heat environment file with the scale parameters.
-
-    :param control_scale: Scale value for control roles.
-    :type control_scale: int
-
-    :param compute_scale: Scale value for compute roles.
-    :type compute_scale: int
-
-    :param ceph_storage_scale: Scale value for ceph storage roles.
-    :type ceph_storage_scale: int
-
-    :param block_storage_scale: Scale value for block storage roles.
-    :type block_storage_scale: int
-
-    :param swift_storage_scale: Scale value for swift storage roles.
-    :type swift_storage_scale: int
+    Create a Heat environment file for supplying initial parameter
+    values when deploying overcloud
     """
 
     env_path = os.path.expanduser(path)
     with open(env_path, 'w+') as f:
-        f.write(json.dumps({
-            "parameter_defaults": {
-                "ControllerCount": control_scale,
-                "ComputeCount": compute_scale,
-                "CephStorageCount": ceph_storage_scale,
-                "BlockStorageCount": block_storage_scale,
-                "ObjectStorageCount": swift_storage_scale}
-        }))
+        f.write(json.dumps({"parameter_defaults": {}}))
 
     return env_path
 
