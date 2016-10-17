@@ -50,7 +50,7 @@ def create_default_plan(clients, **workflow_input):
         payload = ws.wait_for_message(execution.id)
 
     if payload['status'] == 'SUCCESS':
-        print ("Default plan created")
+        print("Default plan created")
     else:
         raise exceptions.WorkflowServiceError(
             'Exception creating plan: {}'.format(payload['message']))
@@ -76,7 +76,7 @@ def create_deployment_plan(clients, **workflow_input):
         **workflow_input)
 
     if payload['status'] == 'SUCCESS':
-        print ("Plan created")
+        print("Plan created")
     else:
         raise exceptions.WorkflowServiceError(
             'Exception creating plan: {}'.format(payload['message']))
@@ -88,7 +88,7 @@ def update_deployment_plan(clients, **workflow_input):
         **workflow_input)
 
     if payload['status'] == 'SUCCESS':
-        print ("Plan updated")
+        print("Plan updated")
     else:
         raise exceptions.WorkflowServiceError(
             'Exception updating plan: {}'.format(payload['message']))
