@@ -61,7 +61,8 @@ class TestSetParameters(utils.TestCommand):
             {
                 'container': 'overcast',
                 'parameters': data.get('parameter_defaults', data)
-            })
+            },
+            run_sync=True, save_result=True)
 
     def test_json_params_file(self):
         self._test_set_parameters(".json", json.dumps, {

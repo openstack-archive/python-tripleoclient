@@ -15,7 +15,9 @@ import json
 def call_action(workflow_client, action, **input_):
     """Trigger a Mistral action and parse the JSON response"""
 
-    result = workflow_client.action_executions.create(action, input_)
+    result = workflow_client.action_executions.create(
+        action, input_,
+        save_result=True, run_sync=True)
 
     # Parse the JSON output. Mistral client should do this for us really.
     return json.loads(result.output)['result']

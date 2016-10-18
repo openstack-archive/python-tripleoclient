@@ -52,7 +52,8 @@ class TestPlanCreationWorkflows(utils.TestCommand):
 
         self.workflow.action_executions.create.assert_called_once_with(
             'tripleo.plan.create_container',
-            {'container': 'test-overcloud'})
+            {'container': 'test-overcloud'},
+            run_sync=True, save_result=True)
 
         self.workflow.executions.create.assert_called_once_with(
             'tripleo.plan_management.v1.create_deployment_plan',
@@ -74,7 +75,8 @@ class TestPlanCreationWorkflows(utils.TestCommand):
 
         self.workflow.action_executions.create.assert_called_once_with(
             'tripleo.plan.create_container',
-            {'container': 'test-overcloud'})
+            {'container': 'test-overcloud'},
+            run_sync=True, save_result=True)
 
         self.workflow.executions.create.assert_not_called()
 
@@ -97,7 +99,8 @@ class TestPlanCreationWorkflows(utils.TestCommand):
 
         self.workflow.action_executions.create.assert_called_once_with(
             'tripleo.plan.create_container',
-            {'container': 'test-overcloud'})
+            {'container': 'test-overcloud'},
+            run_sync=True, save_result=True)
 
         self.workflow.executions.create.assert_called_once_with(
             'tripleo.plan_management.v1.create_deployment_plan',
