@@ -21,3 +21,27 @@ def update_parameters(workflow_client, **input_):
 def reset_parameters(workflow_client, **input_):
     return base.call_action(workflow_client, 'tripleo.parameters.reset',
                             **input_)
+
+
+def get_overcloud_passwords(clients, **workflow_input):
+    """Retrieves overcloud passwords from a plan via a workflow
+
+    :param clients:
+    :param workflow_input:
+    :return:
+    """
+
+    workflow_client = clients.workflow_engine
+    tripleoclients = clients.tripleoclient
+    queue_name = workflow_input['queue_name']
+
+    execution = base.start_workflow(
+        workflow_client,
+        'tripleo.plan_management.v1.get_passwords',
+        workflow_input=workflow_input
+    )
+
+    with tripleoclients.messaging_websocket(queue_name) as ws:
+        message = ws.wait_for_message(execution.id)
+        assert message['status'] == "SUCCESS"
+        return message['message']

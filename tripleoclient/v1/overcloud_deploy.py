@@ -55,77 +55,10 @@ class DeployOvercloud(command.Command):
     predeploy_errors = 0
     predeploy_warnings = 0
 
-    def set_overcloud_passwords(self, stack_is_new, parameters):
-        """Add passwords to the parameters dictionary
-
-        :param parameters: A dictionary for the passwords to be added to
-        :type parameters: dict
-        """
-
-        undercloud_ceilometer_snmpd_password = utils.get_config_value(
-            "auth", "undercloud_ceilometer_snmpd_password")
-        if not undercloud_ceilometer_snmpd_password:
-            self.log.warning("Undercloud ceilometer SNMPd password missing!")
-
-        passwords = utils.generate_overcloud_passwords(
-            create_password_file=stack_is_new)
-
-        ceilometer_pass = passwords['OVERCLOUD_CEILOMETER_PASSWORD']
-        ceilometer_secret = passwords['OVERCLOUD_CEILOMETER_SECRET']
-        parameters['AdminPassword'] = passwords['OVERCLOUD_ADMIN_PASSWORD']
-        parameters['AdminToken'] = passwords['OVERCLOUD_ADMIN_TOKEN']
-        parameters['AodhPassword'] = passwords['OVERCLOUD_AODH_PASSWORD']
-        parameters['BarbicanPassword'] = (
-            passwords['OVERCLOUD_BARBICAN_PASSWORD'])
-        parameters['CeilometerPassword'] = ceilometer_pass
-        parameters['CeilometerMeteringSecret'] = ceilometer_secret
-        parameters['CinderPassword'] = passwords[
-            'OVERCLOUD_CINDER_PASSWORD']
-        parameters['GlancePassword'] = passwords[
-            'OVERCLOUD_GLANCE_PASSWORD']
-        parameters['GnocchiPassword'] = passwords['OVERCLOUD_GNOCCHI_PASSWORD']
-        parameters['HAProxyStatsPassword'] = passwords[
-            'OVERCLOUD_HAPROXY_STATS_PASSWORD']
-        parameters['HeatPassword'] = passwords['OVERCLOUD_HEAT_PASSWORD']
-        parameters['HeatStackDomainAdminPassword'] = passwords[
-            'OVERCLOUD_HEAT_STACK_DOMAIN_PASSWORD']
-        parameters['IronicPassword'] = passwords['OVERCLOUD_IRONIC_PASSWORD']
-        parameters['MistralPassword'] = passwords['OVERCLOUD_MISTRAL_PASSWORD']
-        parameters['MysqlClustercheckPassword'] = passwords[
-            'OVERCLOUD_MYSQL_CLUSTERCHECK_PASSWORD']
-        parameters['NeutronPassword'] = passwords[
-            'OVERCLOUD_NEUTRON_PASSWORD']
-        parameters['NovaPassword'] = passwords['OVERCLOUD_NOVA_PASSWORD']
-        parameters['RabbitPassword'] = passwords['OVERCLOUD_RABBITMQ_PASSWORD']
-        parameters['RedisPassword'] = passwords['OVERCLOUD_REDIS_PASSWORD']
-        parameters['SaharaPassword'] = (
-            passwords['OVERCLOUD_SAHARA_PASSWORD'])
-        parameters['SwiftHashSuffix'] = passwords['OVERCLOUD_SWIFT_HASH']
-        parameters['SwiftPassword'] = passwords['OVERCLOUD_SWIFT_PASSWORD']
-        parameters['SnmpdReadonlyUserPassword'] = (
-            undercloud_ceilometer_snmpd_password)
-        parameters['TrovePassword'] = (
-            passwords['OVERCLOUD_TROVE_PASSWORD'])
-        parameters['ZaqarPassword'] = passwords['OVERCLOUD_ZAQAR_PASSWORD']
-        parameters['ManilaPassword'] = passwords['OVERCLOUD_MANILA_PASSWORD']
-        parameters['NeutronMetadataProxySharedSecret'] = (
-            passwords['NEUTRON_METADATA_PROXY_SHARED_SECRET'])
-        parameters['CephMonKey'] = passwords['OVERCLOUD_CEPH_MON_KEY']
-        parameters['CephAdminKey'] = passwords['OVERCLOUD_CEPH_ADMIN_KEY']
-        parameters['CephClientKey'] = passwords['OVERCLOUD_CEPH_CLIENT_KEY']
-        parameters['CephRgwKey'] = passwords['OVERCLOUD_CEPH_RGW_KEY']
-        parameters['KeystoneCredential0'] = passwords[
-            'OVERCLOUD_KEYSTONE_CREDENTIALS_0']
-        parameters['KeystoneCredential1'] = passwords[
-            'OVERCLOUD_KEYSTONE_CREDENTIALS_1']
-
     def _update_parameters(self, args, network_client, stack):
         parameters = {}
 
         stack_is_new = stack is None
-
-        self.log.debug("Generating overcloud passwords")
-        self.set_overcloud_passwords(stack_is_new, parameters)
 
         timestamp = int(time.time())
         parameters['DeployIdentifier'] = timestamp
@@ -578,7 +511,7 @@ class DeployOvercloud(command.Command):
 
         keystone_client = clients.get_keystone_client(
             'admin',
-            utils.get_password('OVERCLOUD_ADMIN_PASSWORD'),
+            utils.get_password(stack.stack_name, 'AdminPassword'),
             'admin',
             overcloud_endpoint)
 
@@ -616,11 +549,13 @@ class DeployOvercloud(command.Command):
                 admin_port = endpoint_map.get('KeystoneAdmin').get('port')
                 internal_port = endpoint_map.get(
                     'KeystoneInternal').get('port')
+
+            # TODO(rbrady): check usages of get_password
             keystone.initialize(
                 keystone_admin_ip,
-                utils.get_password('OVERCLOUD_ADMIN_TOKEN'),
+                utils.get_password(stack.stack_name, 'AdminToken'),
                 'admin@example.com',
-                utils.get_password('OVERCLOUD_ADMIN_PASSWORD'),
+                utils.get_password(stack.stack_name, 'AdminPassword'),
                 ssl=keystone_tls_host,
                 public=overcloud_ip_or_fqdn,
                 user=parsed_args.overcloud_ssh_user,
@@ -670,8 +605,8 @@ class DeployOvercloud(command.Command):
         service_data = {}
         password_field = data.get('password_field')
         if password_field:
-            service_data['password'] = utils.get_password(
-                password_field)
+            service_data['password'] = utils.get_password(stack.stack_name,
+                                                          password_field)
 
         # Set internal endpoint
         service_name_internal = self._format_endpoint_name(service, 'internal')
@@ -1226,7 +1161,7 @@ class DeployOvercloud(command.Command):
         # Force fetching of attributes
         stack.get()
 
-        utils.create_overcloudrc(stack, parsed_args.no_proxy)
+        utils.create_overcloudrc(clients, stack, parsed_args.no_proxy)
         utils.create_tempest_deployer_input()
 
         # Run postconfig on create or force. Use force to makes sure endpoints
