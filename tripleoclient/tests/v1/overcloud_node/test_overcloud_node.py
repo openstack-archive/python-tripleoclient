@@ -33,11 +33,26 @@ class TestDeleteNode(fakes.TestDeleteNode):
 
         # Get the command object to test
         self.cmd = overcloud_node.DeleteNode(self.app, None)
+        self.app.client_manager.workflow_engine = mock.Mock()
+        self.tripleoclient = mock.Mock()
+
+        self.websocket = mock.Mock()
+        self.websocket.__enter__ = lambda s: self.websocket
+        self.websocket.__exit__ = lambda s, *exc: None
+        self.tripleoclient = mock.Mock()
+        self.tripleoclient.messaging_websocket.return_value = self.websocket
+        self.app.client_manager.tripleoclient = self.tripleoclient
+
+        self.workflow = self.app.client_manager.workflow_engine
+
+        # Mock UUID4 generation for every test
+        uuid4_patcher = mock.patch('uuid.uuid4', return_value="UUID4")
+        self.mock_uuid4 = uuid4_patcher.start()
+        self.addCleanup(self.mock_uuid4.stop)
 
     # TODO(someone): This test does not pass with autospec=True, it should
     # probably be fixed so that it can pass with that.
-    @mock.patch('tripleo_common.scale.ScaleManager')
-    def test_node_delete(self, scale_manager):
+    def test_node_delete(self):
         argslist = ['instance1', 'instance2', '--templates',
                     '--stack', 'overcloud']
         verifylist = [
@@ -45,10 +60,21 @@ class TestDeleteNode(fakes.TestDeleteNode):
             ('nodes', ['instance1', 'instance2'])
         ]
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+
+        self.websocket.wait_for_message.return_value = {
+            "status": "SUCCESS"
+        }
+
         self.cmd.take_action(parsed_args)
-        scale_manager.scaledown(parsed_args.nodes)
-        scale_manager.scaledown.assert_called_once_with(['instance1',
-                                                         'instance2'])
+
+        # Verify
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.scale.v1.delete_node',
+            workflow_input={
+                'container': 'overcloud',
+                'queue_name': 'UUID4',
+                'nodes': ['instance1', 'instance2']
+            })
 
 
 class TestProvideNode(fakes.TestOvercloudNode):
