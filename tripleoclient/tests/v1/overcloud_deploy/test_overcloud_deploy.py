@@ -567,7 +567,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         def _fake_heat_deploy(self, stack, stack_name, template_path,
                               parameters, environments, timeout, tht_root,
-                              env):
+                              env, update_plan_only):
             assertEqual(
                 {'parameter_defaults': {},
                  'resource_registry': {'Test': u'OS::Heat::None'}}, env)
@@ -621,7 +621,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         def _fake_heat_deploy(self, stack, stack_name, template_path,
                               parameters, environments, timeout, tht_root,
-                              env):
+                              env, update_plan_only):
             assertEqual(
                 {'parameter_defaults': {},
                  'resource_registry': {'Test': u'OS::Heat::None'}}, env)
@@ -912,13 +912,14 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_try_overcloud_deploy_with_first_template_existing(
             self, mock_heat_deploy_func):
         result = self.cmd._try_overcloud_deploy_with_compat_yaml(
-            '/fake/path', {}, 'overcloud', {}, ['~/overcloud-env.json'], 1, {})
+            '/fake/path', {}, 'overcloud', {}, ['~/overcloud-env.json'], 1,
+            {}, False)
         # If it returns None it succeeded
         self.assertIsNone(result)
         mock_heat_deploy_func.assert_called_once_with(
             self.cmd, {}, 'overcloud',
             '/fake/path/' + constants.OVERCLOUD_YAML_NAME, {},
-            ['~/overcloud-env.json'], 1, '/fake/path', {})
+            ['~/overcloud-env.json'], 1, '/fake/path', {}, False)
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_heat_deploy', autospec=True)
@@ -928,7 +929,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertRaises(ValueError,
                           self.cmd._try_overcloud_deploy_with_compat_yaml,
                           '/fake/path', mock.ANY, mock.ANY, mock.ANY,
-                          mock.ANY, mock.ANY, mock.ANY)
+                          mock.ANY, mock.ANY, mock.ANY, mock.ANY)
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_heat_deploy', autospec=True)
@@ -939,7 +940,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         try:
             self.cmd._try_overcloud_deploy_with_compat_yaml(
                 '/fake/path', mock.ANY, mock.ANY, mock.ANY,
-                mock.ANY, mock.ANY, mock.ANY)
+                mock.ANY, mock.ANY, mock.ANY, mock.ANY)
         except ValueError as value_error:
             self.assertIn('/fake/path', str(value_error))
 
@@ -1373,3 +1374,47 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_process_env.assert_called_with(env_path='/fake/path')
 
         mock_validate_args.assert_called_once_with(parsed_args)
+
+    @mock.patch('tripleoclient.workflows.deployment.deploy_and_wait',
+                autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_process_and_upload_environment', autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_upload_missing_files', autospec=True)
+    @mock.patch('heatclient.common.template_utils.get_template_contents',
+                autospec=True)
+    @mock.patch('os.path.relpath', autospec=True)
+    @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env',
+                autospec=True)
+    def test__heat_deploy_update_plan_only(self, mock_breakpoints_cleanup,
+                                           mock_relpath,
+                                           mock_get_template_contents,
+                                           mock_upload_missing_files,
+                                           mock_process_and_upload_env,
+                                           mock_deploy_and_wait):
+        clients = self.app.client_manager
+        orchestration_client = clients.orchestration
+        mock_stack = fakes.create_tht_stack()
+        orchestration_client.stacks.get.side_effect = [
+            None,
+            mock.MagicMock()
+        ]
+
+        workflow_client = clients.workflow_engine
+        workflow_client.environments.get.return_value = mock.MagicMock(
+            variables={'environments': []})
+        workflow_client.action_executions.create.return_value = mock.MagicMock(
+            output='{"result":[]}')
+
+        mock_relpath.return_value = './'
+
+        mock_get_template_contents.return_value = [{}, {}]
+
+        self.cmd._heat_deploy(mock_stack, 'mock_stack', '/tmp', {},
+                              {}, 1, '/tmp', {}, True)
+
+        self.assertFalse(mock_deploy_and_wait.called)
+
+        # if not parsed_args.update_plan_only:
+        #     deployment.deploy_and_wait(self.log, clients, stack, stack_name,
+        #                                self.app_args.verbose_level, timeout)
