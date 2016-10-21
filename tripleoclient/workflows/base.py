@@ -30,7 +30,7 @@ def start_workflow(workflow_client, identifier, workflow_input):
         workflow_input=workflow_input
     )
 
-    print("Started Mistral Workflow. Execution ID: {}".format(
-          execution.id))
+    print("Started Mistral Workflow {}. Execution ID: {}".format(
+          identifier, execution.id))
 
     return execution
