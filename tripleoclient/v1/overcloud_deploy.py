@@ -664,9 +664,13 @@ class DeployOvercloud(command.Command):
         overcloud_ip_or_fqdn = six.moves.urllib.parse.urlparse(
             overcloud_endpoint).hostname
 
-        no_proxy = [os.environ.get('no_proxy'), overcloud_ip_or_fqdn]
+        keystone_admin_ip = utils.get_endpoint('KeystoneAdmin', stack)
+        no_proxy = os.environ.get('no_proxy', overcloud_ip_or_fqdn)
+        no_proxy_list = map(utils.bracket_ipv6,
+                            [no_proxy, overcloud_ip_or_fqdn,
+                             keystone_admin_ip])
         os.environ['no_proxy'] = ','.join(
-            [x for x in no_proxy if x is not None])
+            [x for x in no_proxy_list if x is not None])
 
         utils.remove_known_hosts(overcloud_ip_or_fqdn)
 
