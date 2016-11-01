@@ -900,7 +900,7 @@ class DeployOvercloud(command.Command):
         parser.add_argument('--timeout', '-t', metavar='<TIMEOUT>',
                             type=int, default=240,
                             help=_('Deployment timeout in minutes.'))
-        utils.add_deployment_plan_arguments(parser)
+        utils.add_deployment_plan_arguments(parser, mark_as_depr=True)
         parser.add_argument('--libvirt-type',
                             choices=['kvm', 'qemu'],
                             help=_('Libvirt domain type.'))

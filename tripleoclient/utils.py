@@ -699,63 +699,54 @@ def assign_and_verify_profiles(bm_client, flavors,
     return predeploy_errors, predeploy_warnings
 
 
-def add_deployment_plan_arguments(parser):
+def add_deployment_plan_arguments(parser, mark_as_depr=False):
     """Add deployment plan arguments (flavors and scales) to a parser"""
+
+    depr_warning = _(' (DEPRECATED. Use an environment file and set the '
+                     'parameter %s. It will be removed after the "P" '
+                     'release.)')
 
     # TODO(d0ugal): Deprecated in Newton. Remove these in P.
     parser.add_argument('--control-scale', type=int,
-                        help=_('New number of control nodes. (DEPRECATED. Use '
-                               'an environment file and set the parameter '
-                               'ControllerCount. It will be removed after the '
-                               '"P" release.)'))
+                        help=_('New number of control nodes.')
+                        + (depr_warning % 'ControllerCount'
+                           if mark_as_depr else ''))
     parser.add_argument('--compute-scale', type=int,
-                        help=_('New number of compute nodes. (DEPRECATED. Use '
-                               'an environment file and set the parameter '
-                               'ComputeCount. It will be removed after the '
-                               '"P" release.)'))
+                        help=_('New number of compute nodes.')
+                        + (depr_warning % 'ComputeCount'
+                           if mark_as_depr else ''))
     parser.add_argument('--ceph-storage-scale', type=int,
-                        help=_('New number of ceph storage nodes. '
-                               '(DEPRECATED. Use an environment file and set '
-                               'the parameter CephStorageCount. It will be '
-                               'removed after the "P" release.)'))
+                        help=_('New number of ceph storage nodes.')
+                        + (depr_warning % 'CephStorageCount'
+                           if mark_as_depr else ''))
     parser.add_argument('--block-storage-scale', type=int,
-                        help=_('New number of cinder storage nodes. '
-                               '(DEPRECATED. Use an environment file and set '
-                               'the parameter BlockStorageCount. It will be '
-                               'removed after the "P" release.)'))
+                        help=_('New number of cinder storage nodes.')
+                        + (depr_warning % 'BlockStorageCount'
+                           if mark_as_depr else ''))
     parser.add_argument('--swift-storage-scale', type=int,
-                        help=_('New number of swift storage nodes. '
-                               '(DEPRECATED. Use an environment file and set '
-                               'the parameter ObjectStorageCount. It will be '
-                               'removed after the "P" release.)'))
+                        help=_('New number of swift storage nodes.')
+                        + (depr_warning % 'ObjectStorageCount'
+                           if mark_as_depr else ''))
     parser.add_argument('--control-flavor',
-                        help=_('Nova flavor to use for control nodes. '
-                               '(DEPRECATED. Use an environment file and set '
-                               'the parameter OvercloudControlFlavor. It will '
-                               'be removed after the "P" release.)'))
+                        help=_('Nova flavor to use for control nodes.')
+                        + (depr_warning % 'OvercloudControlFlavor'
+                           if mark_as_depr else ''))
     parser.add_argument('--compute-flavor',
-                        help=_('Nova flavor to use for compute nodes. '
-                               '(DEPRECATED. Use an environment file and set '
-                               'the parameter OvercloudComputeFlavor. It will '
-                               'be removed after the "P" release.)'))
+                        help=_('Nova flavor to use for compute nodes.')
+                        + (depr_warning % 'OvercloudComputeFlavor'
+                           if mark_as_depr else ''))
     parser.add_argument('--ceph-storage-flavor',
-                        help=_('Nova flavor to use for ceph storage '
-                               'nodes. (DEPRECATED. Use '
-                               'an environment file and set the parameter '
-                               'OvercloudCephStorageFlavor. It will '
-                               'be removed after the "P" release.)'))
+                        help=_('Nova flavor to use for ceph storage nodes.')
+                        + (depr_warning % 'OvercloudCephStorageFlavor'
+                           if mark_as_depr else ''))
     parser.add_argument('--block-storage-flavor',
-                        help=_('Nova flavor to use for cinder storage '
-                               'nodes. (DEPRECATED. Use '
-                               'an environment file and set the parameter '
-                               'OvercloudBlockStorageFlavor. It will '
-                               'be removed after the "P" release.)'))
+                        help=_('Nova flavor to use for cinder storage nodes')
+                        + (depr_warning % 'OvercloudBlockStorageFlavor'
+                           if mark_as_depr else ''))
     parser.add_argument('--swift-storage-flavor',
-                        help=_('Nova flavor to use for swift storage '
-                               'nodes. (DEPRECATED. Use '
-                               'an environment file and set the parameter '
-                               'OvercloudSwiftStorageFlavor. It will '
-                               'be removed after the "P" release.)'))
+                        help=_('Nova flavor to use for swift storage nodes')
+                        + (depr_warning % 'OvercloudSwiftStorageFlavor'
+                           if mark_as_depr else ''))
 
 
 def get_roles_info(parsed_args):
