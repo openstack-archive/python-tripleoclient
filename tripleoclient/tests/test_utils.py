@@ -248,7 +248,7 @@ class TestWaitForStackUtil(TestCase):
         self.assertRaises(ValueError, utils.file_checksum, '/dev/zero')
 
 
-class TestCheckNodesCount(TestCase):
+class TestCheckNodesCountCreate(TestCase):
 
     def setUp(self):
         self.baremetal = mock.Mock()
@@ -259,7 +259,7 @@ class TestCheckNodesCount(TestCase):
             'BlockStorageCount': 0,
             'CephStorageCount': 0,
         }
-        self.stack = mock.Mock(parameters=self.defaults)
+        self.stack = None
 
         def ironic_node_list(*args, **kwargs):
             if kwargs.get('associated') is True:
@@ -293,13 +293,72 @@ class TestCheckNodesCount(TestCase):
                          utils.check_nodes_count(self.baremetal, self.stack,
                                                  user_params, self.defaults))
 
+
+class TestCheckNodesCountUpdate(TestCheckNodesCountCreate):
+
+    def setUp(self):
+        super(TestCheckNodesCountUpdate, self).setUp()
+        self.stack = mock.Mock(parameters=self.defaults)
+
     def test_check_default_param_not_in_stack(self):
+        user_params = {'ControllerCount': 3}
         missing_param = 'CephStorageCount'
         self.stack.parameters = self.defaults.copy()
         del self.stack.parameters[missing_param]
 
-        self.assertRaises(ValueError, utils.check_nodes_count,
-                          self.baremetal, self.stack, dict(), self.defaults)
+        self.assertEqual((False, 4, 3),
+                         utils.check_nodes_count(self.baremetal, self.stack,
+                                                 user_params, self.defaults))
+
+
+class TestCheckNodesCountCustomRolesCreate(TestCase):
+
+    def setUp(self):
+        self.baremetal = mock.Mock()
+        self.custom_roles_defaults = {
+            'ControllerApiCount': 3,
+            'ControllerPacemakerCount': 3,
+            'ComputeDvrCount': 3
+        }
+        self.stack = None
+
+        def ironic_node_list(*args, **kwargs):
+            if kwargs.get('associated') is True:
+                nodes = range(2)
+            elif kwargs.get('maintenance') is False:
+                nodes = range(9)
+            return nodes
+        self.baremetal.node.list.side_effect = ironic_node_list
+
+    def test_check_nodes_count_custom_roles_scale_enough_nodes(self):
+        user_params = {
+            'ControllerApiCount': 3,
+            'ControllerPacemakerCount': 3,
+            'ComputeDvrCount': 3
+        }
+        self.assertEqual((True, 9, 11),
+                         utils.check_nodes_count(self.baremetal, self.stack,
+                                                 user_params,
+                                                 self.custom_roles_defaults))
+
+    def test_check_nodes_count_custom_roles_scale_too_much(self):
+        user_params = {
+            'ControllerApiCount': 3,
+            'ControllerPacemakerCount': 3,
+            'ComputeDvrCount': 6
+        }
+        self.assertEqual((False, 12, 11),
+                         utils.check_nodes_count(self.baremetal, self.stack,
+                                                 user_params,
+                                                 self.custom_roles_defaults))
+
+
+class TestCheckNodesCountCustomRolesUpdate(
+        TestCheckNodesCountCustomRolesCreate):
+
+    def setUp(self):
+        super(TestCheckNodesCountCustomRolesUpdate, self).setUp()
+        self.stack = mock.Mock(parameters=self.custom_roles_defaults)
 
 
 class TestEnsureRunAsNormalUser(TestCase):

@@ -709,6 +709,28 @@ class DeployOvercloud(command.Command):
                                           "specified when Neutron tunnel "
                                           "types is specified")
 
+    def _get_default_role_counts(self, parsed_args):
+
+        if parsed_args.roles_file:
+            roles_data = yaml.safe_load(open(parsed_args.roles_file).read())
+        else:
+            # Assume default role counts
+            return {
+                'ControllerCount': 1,
+                'ComputeCount': 1,
+                'ObjectStorageCount': 0,
+                'BlockStorageCount': 0,
+                'CephStorageCount': 0
+            }
+
+        default_role_counts = {}
+        for r in roles_data:
+            default_role_counts.setdefault(
+                "%sCount" % r['name'],
+                r['CountDefault'])
+
+        return default_role_counts
+
     def _predeploy_verify_capabilities(self, stack, parameters, parsed_args):
         self.predeploy_errors = 0
         self.predeploy_warnings = 0
@@ -738,17 +760,12 @@ class DeployOvercloud(command.Command):
             self.predeploy_errors += 1
 
         self.log.debug("Checking nodes count")
+        default_role_counts = self._get_default_role_counts(parsed_args)
         enough_nodes, count, ironic_nodes_count = utils.check_nodes_count(
             bm_client,
             stack,
             parameters,
-            {
-                'ControllerCount': 1,
-                'ComputeCount': 1,
-                'ObjectStorageCount': 0,
-                'BlockStorageCount': 0,
-                'CephStorageCount': 0,
-            }
+            default_role_counts
         )
         if not enough_nodes:
             self.log.error(
