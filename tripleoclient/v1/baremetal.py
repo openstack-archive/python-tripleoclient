@@ -190,9 +190,13 @@ class ImportBaremetal(command.Command):
             instance_boot_option=parsed_args.instance_boot_option
         )
 
-        node_uuids = [node['uuid'] for node in nodes]
-
         if parsed_args.initial_state == "available":
+            # NOTE(dtantsur): newly enrolled nodes state is reported as
+            # "enroll" from the workflow even though it's actually "manageable"
+            # because the node list is built before "manage" action is run.
+            node_uuids = [node['uuid'] for node in nodes
+                          if node['provision_state'] in {'manageable',
+                                                         'enroll'}]
             baremetal.provide(self.app.client_manager, node_uuids=node_uuids,
                               queue_name=queue_name)
 
