@@ -338,9 +338,10 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
         )
         self.mock_websocket_success = [{
             "status": "SUCCESS",
-            "registered_nodes": [{
-                "uuid": "MOCK_NODE_UUID"
-            }],
+            "registered_nodes": [
+                {"uuid": "MOCK_NODE_UUID", "provision_state": "manageable"},
+                {"uuid": "MOCK_NODE_UUID2", "provision_state": "available"},
+            ],
         }, {
             "status": "SUCCESS"
         }]
