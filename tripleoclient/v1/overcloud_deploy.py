@@ -32,7 +32,7 @@ from heatclient import exc as hc_exc
 from keystoneclient import exceptions as kscexc
 from os_cloud_config import keystone
 from os_cloud_config import keystone_pki
-from os_cloud_config.utils import clients
+from os_cloud_config.utils import clients as occ_clients
 from osc_lib.command import command
 from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
@@ -509,9 +509,11 @@ class DeployOvercloud(command.Command):
             # keystone.initialize.
             keystone_tls_host = overcloud_ip_or_fqdn
 
-        keystone_client = clients.get_keystone_client(
+        keystone_client = occ_clients.get_keystone_client(
             'admin',
-            utils.get_password(stack.stack_name, 'AdminPassword'),
+            utils.get_password(self.app.client_manager,
+                               stack.stack_name,
+                               'AdminPassword'),
             'admin',
             overcloud_endpoint)
 
@@ -553,9 +555,13 @@ class DeployOvercloud(command.Command):
             # TODO(rbrady): check usages of get_password
             keystone.initialize(
                 keystone_admin_ip,
-                utils.get_password(stack.stack_name, 'AdminToken'),
+                utils.get_password(self.app.client_manager,
+                                   stack.stack_name,
+                                   'AdminToken'),
                 'admin@example.com',
-                utils.get_password(stack.stack_name, 'AdminPassword'),
+                utils.get_password(self.app.client_manager,
+                                   stack.stack_name,
+                                   'AdminPassword'),
                 ssl=keystone_tls_host,
                 public=overcloud_ip_or_fqdn,
                 user=parsed_args.overcloud_ssh_user,
@@ -605,8 +611,10 @@ class DeployOvercloud(command.Command):
         service_data = {}
         password_field = data.get('password_field')
         if password_field:
-            service_data['password'] = utils.get_password(stack.stack_name,
-                                                          password_field)
+            service_data['password'] = utils.get_password(
+                self.app.client_manager,
+                stack.stack_name,
+                password_field)
 
         # Set internal endpoint
         service_name_internal = self._format_endpoint_name(service, 'internal')

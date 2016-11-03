@@ -14,20 +14,20 @@
 #
 
 SERVICE_LIST = {
-    'aodh': {'password_field': 'OVERCLOUD_AODH_PASSWORD'},
-    'ceilometer': {'password_field': 'OVERCLOUD_CEILOMETER_PASSWORD'},
-    'cinder': {'password_field': 'OVERCLOUD_CINDER_PASSWORD'},
-    'cinderv2': {'password_field': 'OVERCLOUD_CINDER_PASSWORD'},
-    'glance': {'password_field': 'OVERCLOUD_GLANCE_PASSWORD'},
-    'gnocchi': {'password_field': 'OVERCLOUD_GNOCCHI_PASSWORD'},
-    'heat': {'password_field': 'OVERCLOUD_HEAT_PASSWORD'},
+    'aodh': {'password_field': 'AodhPassword'},
+    'ceilometer': {'password_field': 'CeilometerPassword'},
+    'cinder': {'password_field': 'CinderPassword'},
+    'cinderv2': {'password_field': 'CinderPassword'},
+    'glance': {'password_field': 'GlancePassword'},
+    'gnocchi': {'password_field': 'GnocchiPassword'},
+    'heat': {'password_field': 'HeatPassword'},
     'heatcfn': {},
-    'ironic': {'password_field': 'OVERCLOUD_IRONIC_PASSWORD'},
-    'neutron': {'password_field': 'OVERCLOUD_NEUTRON_PASSWORD'},
-    'nova': {'password_field': 'OVERCLOUD_NOVA_PASSWORD'},
-    'swift': {'password_field': 'OVERCLOUD_SWIFT_PASSWORD'},
-    'sahara': {'password_field': 'OVERCLOUD_SAHARA_PASSWORD'},
-    'trove': {'password_field': 'OVERCLOUD_TROVE_PASSWORD'},
+    'ironic': {'password_field': 'IronicPassword'},
+    'neutron': {'password_field': 'NeutronPassword'},
+    'nova': {'password_field': 'NovaPassword'},
+    'swift': {'password_field': 'SwiftPassword'},
+    'sahara': {'password_field': 'SaharaPassword'},
+    'trove': {'password_field': 'TrovePassword'},
 }
 
 TRIPLEO_HEAT_TEMPLATES = "/usr/share/openstack-tripleo-heat-templates/"
