@@ -153,7 +153,7 @@ def check_hypervisor_stats(compute_client, nodes=1, memory=0, vcpu=0):
 
 
 def wait_for_stack_ready(orchestration_client, stack_name, marker=None,
-                         action='CREATE', verbose=False):
+                         action='CREATE', verbose=False, ws_client=None):
     """Check the status of an orchestration stack
 
     Get the status of an orchestration stack and check whether it is complete
@@ -183,9 +183,14 @@ def wait_for_stack_ready(orchestration_client, stack_name, marker=None,
         out = sys.stdout
     else:
         out = open(os.devnull, "w")
-    stack_status, msg = event_utils.poll_for_events(
-        orchestration_client, stack_name, action=action,
-        poll_period=5, marker=marker, out=out, nested_depth=2)
+    if ws_client is not None:
+        with ws_client:
+            stack_status, msg = event_utils.wait_for_events(
+                ws_client, stack_name, out=out)
+    else:
+        stack_status, msg = event_utils.poll_for_events(
+            orchestration_client, stack_name, action=action,
+            poll_period=5, marker=marker, out=out, nested_depth=2)
     print(msg)
     return stack_status == '%s_COMPLETE' % action
 

@@ -22,6 +22,7 @@ from unittest import TestCase
 import yaml
 
 from tripleoclient import exceptions
+from tripleoclient.tests import fakes
 from tripleoclient import utils
 
 
@@ -107,6 +108,20 @@ class TestWaitForStackUtil(TestCase):
         self.mock_orchestration.stacks.get.return_value = stack
 
         result = utils.wait_for_stack_ready(self.mock_orchestration, 'stack')
+        self.assertEqual(False, result)
+
+    @mock.patch("heatclient.common.event_utils.wait_for_events")
+    def test_wait_for_stack_websocket(self, mock_wait_for_events):
+
+        mock_wait_for_events.return_value = ("CREATE_IN_PROGRESS", "MESSAGE")
+
+        stack = mock.Mock()
+        stack.stack_name = 'stack'
+        stack.stack_status = 'CREATE_IN_PROGRESS'
+        self.mock_orchestration.stacks.get.return_value = stack
+
+        result = utils.wait_for_stack_ready(self.mock_orchestration, 'stack',
+                                            ws_client=fakes.FakeWebSocket())
         self.assertEqual(False, result)
 
     @mock.patch('tripleoclient.utils.wait_for_provision_state')
