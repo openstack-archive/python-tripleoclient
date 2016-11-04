@@ -1108,12 +1108,15 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.check_hypervisor_stats')
     @mock.patch('tripleoclient.utils.assign_and_verify_profiles')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_get_default_role_counts')
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_check_ironic_boot_configuration')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_collect_flavors')
     def test_predeploy_verify_capabilities_hypervisor_stats(
             self, mock_collect_flavors,
             mock_check_ironic_boot_configuration,
+            mock_get_default_role_counts,
             mock_assign_and_verify_profiles,
             mock_check_hypervisor_stats,
             mock_check_nodes_count):

@@ -515,16 +515,17 @@ def file_checksum(filepath):
 def check_nodes_count(baremetal_client, stack, parameters, defaults):
     """Check if there are enough available nodes for creating/scaling stack"""
     count = 0
-    if stack:
-        for param in defaults:
+
+    for param, default in defaults.items():
+        if stack:
             try:
                 current = int(stack.parameters[param])
             except KeyError:
-                raise ValueError(
-                    "Parameter '%s' was not found in existing stack" % param)
+                # We could be adding a new role on stack-update, so there's no
+                # assumption the parameter exists in the stack.
+                current = parameters.get(param, default)
             count += parameters.get(param, current)
-    else:
-        for param, default in defaults.items():
+        else:
             count += parameters.get(param, default)
 
     # We get number of nodes usable for the stack by getting already
