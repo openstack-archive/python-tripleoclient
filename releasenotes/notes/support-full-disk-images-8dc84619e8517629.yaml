@@ -1,0 +1,15 @@
+---
+features:
+  - Allow client to support whole disk images. Client
+    will now accept a --whole-disk flag on the
+    overcloud image upload command. When this flag is
+    set, it will only look for qcow2 image, not enforcing
+    the upload of initrd and vmlinuz images. It will also
+    not set these properties on the qcow2 image on glance.
+    This will allow Ironic to consider the uploaded image
+    as full disk image, giving the possibility to provide
+    full disk images in TripleO instead of single partition
+    ones.
+    Please look at `Ironic documentation <http://docs.openstack.org/project-install-guide/baremetal/draft/configure-integration.html#create-and-add-images-to-the-image-service>`_
+    for reference
+
