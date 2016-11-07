@@ -138,6 +138,7 @@ def update_plan_from_templates(clients, name, tht_root, roles_file=None):
     mistral = clients.workflow_engine
     mistral_env = mistral.environments.get(name)
     mistral_env.variables['environments'] = []
+    mistral_env.variables['parameter_defaults'] = {}
     mistral.environments.update(
         name=name,
         variables=mistral_env.variables
