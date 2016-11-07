@@ -19,6 +19,7 @@ import six
 import tempfile
 import yaml
 
+from heatclient import exc as hc_exc
 from keystoneclient import exceptions as kscexc
 import mock
 from osc_lib import exceptions as oscexc
@@ -630,6 +631,54 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         self.cmd.take_action(parsed_args)
+
+    @mock.patch('tripleoclient.workflows.plan_management.tarball',
+                autospec=True)
+    @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
+                autospec=True)
+    @mock.patch('tripleoclient.utils.create_overcloudrc', autospec=True)
+    @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
+    @mock.patch('tripleoclient.utils.check_nodes_count', autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_deploy_postconfig', autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_update_parameters', autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_heat_deploy', autospec=True)
+    @mock.patch('shutil.copytree', autospec=True)
+    def test_environment_dirs_env_files_not_found(self, mock_copy,
+                                                  mock_deploy_heat,
+                                                  mock_update_parameters,
+                                                  mock_post_config,
+                                                  mock_utils_check_nodes,
+                                                  mock_utils_endpoint,
+                                                  mock_utils_createrc,
+                                                  mock_utils_tempest,
+                                                  mock_tarball):
+
+        clients = self.app.client_manager
+        workflow_client = clients.workflow_engine
+        workflow_client.action_executions.create.return_value = mock.MagicMock(
+            output='{"result":[]}')
+
+        mock_update_parameters.return_value = {}
+        mock_utils_endpoint.return_value = 'foo.bar'
+
+        test_env = self.tmp_dir.join('foo2.yaml')
+
+        with open(test_env, 'w') as temp_file:
+            temp_file.write('resource_registry:\n  Test: /tmp/doesnexit.yaml')
+
+        arglist = ['--templates']
+        verifylist = [
+            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
+        ]
+        os.environ['TRIPLEO_ENVIRONMENT_DIRECTORY'] = self.tmp_dir.path
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        error = self.assertRaises(hc_exc.CommandError, self.cmd.take_action,
+                                  parsed_args)
+        self.assertIn('tmp/doesnexit.yaml', str(error))
 
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
