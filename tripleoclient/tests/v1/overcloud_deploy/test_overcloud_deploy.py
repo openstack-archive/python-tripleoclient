@@ -1059,9 +1059,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         stack = mock.MagicMock()
         stack.to_dict.return_value = fakes.FAKE_STACK
         ip = '192.0.2.1'
-        overcloud_deploy.DeployOvercloud(None, None)._keystone_init(ip, ip,
-                                                                    None,
-                                                                    stack)
+
+        self.cmd._keystone_init(ip, ip, None, stack)
+
         self.assertFalse(mock_init.called)
 
     @mock.patch('tripleoclient.utils.get_password')
@@ -1078,9 +1078,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         stack.to_dict.return_value = fakes.FAKE_STACK
         ip = '192.0.2.1'
         args = mock.Mock()
-        overcloud_deploy.DeployOvercloud(None, None)._keystone_init(ip, ip,
-                                                                    args,
-                                                                    stack)
+
+        self.cmd._keystone_init(ip, ip, args, stack)
+
         self.assertTrue(mock_init.called)
 
     @mock.patch('tripleoclient.utils.get_password')
@@ -1099,9 +1099,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         stack.to_dict.return_value = fakes.FAKE_STACK
         ip = '192.0.2.1'
         args = mock.Mock()
-        overcloud_deploy.DeployOvercloud(None, None)._keystone_init(ip, ip,
-                                                                    args,
-                                                                    stack)
+
+        self.cmd._keystone_init(ip, ip, args, stack)
+
         self.assertTrue(mock_init.called)
 
     @mock.patch('tripleoclient.utils.check_nodes_count')
