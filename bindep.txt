@@ -2,7 +2,7 @@
 # see http://docs.openstack.org/infra/bindep/ for additional information.
 
 xfsprogs [platform:rpm test]
-qemu-img [platform:rpm test]
+qemu-img-ev [platform:rpm test]
 libffi-dev [platform:dpkg]
 libffi-devel [platform:rpm]
 libssl-dev [platform:dpkg test]
