@@ -735,9 +735,10 @@ class DeployOvercloud(command.Command):
 
         default_role_counts = {}
         for r in roles_data:
+            count_default = r.get('CountDefault', 0)
             default_role_counts.setdefault(
                 "%sCount" % r['name'],
-                r['CountDefault'])
+                count_default)
 
         return default_role_counts
 
