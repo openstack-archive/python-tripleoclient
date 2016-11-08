@@ -1033,8 +1033,8 @@ class DeployOvercloud(command.Command):
             '--update-plan-only',
             action='store_true',
             help=_('Only update the plan. Do not perform the actual '
-                   'deployment. DEPRECATED: Will move to a discrete command '
-                   'in a future release.')
+                   'deployment. NOTE: Will move to a discrete command  in a '
+                   'future release.')
         )
         # TODO(bnemec): In Ocata or later, remove this group and just leave
         # --validation-errors-nonfatal
