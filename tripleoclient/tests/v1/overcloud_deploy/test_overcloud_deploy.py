@@ -1198,8 +1198,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             defaults,
             self.cmd._get_default_role_counts(parsed_args))
 
+    @mock.patch("yaml.safe_load")
     @mock.patch("six.moves.builtins.open")
-    def test_get_default_role_counts_custom_roles(self, mock_open):
+    def test_get_default_role_counts_custom_roles(self, mock_open,
+                                                  mock_safe_load):
         parsed_args = mock.Mock()
         roles_data = [
             {'name': 'ControllerApi', 'CountDefault': 3},
@@ -1208,7 +1210,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             {'name': 'ObjectStorage', 'CountDefault': 0},
             {'name': 'BlockStorage'}
         ]
-        yaml.safe_load = mock.Mock(return_value=roles_data)
+        mock_safe_load.return_value = roles_data
         role_counts = {
             'ControllerApiCount': 3,
             'ControllerPcmkCount': 3,
