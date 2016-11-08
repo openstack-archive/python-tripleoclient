@@ -615,7 +615,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         verifylist = [
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
         ]
-        os.environ['TRIPLEO_ENVIRONMENT_DIRECTORY'] = self.tmp_dir.path
+        self.useFixture(
+            fixtures.EnvironmentVariable('TRIPLEO_ENVIRONMENT_DIRECTORY',
+                                         self.tmp_dir.path))
 
         def assertEqual(*args):
             self.assertEqual(*args)
@@ -673,7 +675,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         verifylist = [
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
         ]
-        os.environ['TRIPLEO_ENVIRONMENT_DIRECTORY'] = self.tmp_dir.path
+        self.useFixture(
+            fixtures.EnvironmentVariable('TRIPLEO_ENVIRONMENT_DIRECTORY',
+                                         self.tmp_dir.path))
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         error = self.assertRaises(hc_exc.CommandError, self.cmd.take_action,
