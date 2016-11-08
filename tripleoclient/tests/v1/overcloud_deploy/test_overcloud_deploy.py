@@ -1504,7 +1504,3 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                               {}, 1, '/tmp', {}, True)
 
         self.assertFalse(mock_deploy_and_wait.called)
-
-        # if not parsed_args.update_plan_only:
-        #     deployment.deploy_and_wait(self.log, clients, stack, stack_name,
-        #                                self.app_args.verbose_level, timeout)
