@@ -1184,6 +1184,42 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             stack, parameters, parsed_args)
         self.assertEqual(1, self.cmd.predeploy_errors)
 
+    def test_get_default_role_counts_defaults(self):
+        parsed_args = mock.Mock()
+        parsed_args.roles_file = None
+        defaults = {
+            'ControllerCount': 1,
+            'ComputeCount': 1,
+            'ObjectStorageCount': 0,
+            'BlockStorageCount': 0,
+            'CephStorageCount': 0
+        }
+        self.assertEqual(
+            defaults,
+            self.cmd._get_default_role_counts(parsed_args))
+
+    @mock.patch("six.moves.builtins.open")
+    def test_get_default_role_counts_custom_roles(self, mock_open):
+        parsed_args = mock.Mock()
+        roles_data = [
+            {'name': 'ControllerApi', 'CountDefault': 3},
+            {'name': 'ControllerPcmk', 'CountDefault': 3},
+            {'name': 'Compute', 'CountDefault': 3},
+            {'name': 'ObjectStorage', 'CountDefault': 0},
+            {'name': 'BlockStorage'}
+        ]
+        yaml.safe_load = mock.Mock(return_value=roles_data)
+        role_counts = {
+            'ControllerApiCount': 3,
+            'ControllerPcmkCount': 3,
+            'ComputeCount': 3,
+            'ObjectStorageCount': 0,
+            'BlockStorageCount': 0,
+        }
+        self.assertEqual(
+            role_counts,
+            self.cmd._get_default_role_counts(parsed_args))
+
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
                 autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
