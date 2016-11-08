@@ -198,14 +198,16 @@ class DeployOvercloud(command.Command):
                     else:
                         env_registry[rsrc] = rsrc_path
                 env_map['resource_registry'] = env_registry
-                f_name = os.path.basename(os.path.splitext(abs_rsrc_path)[0])
+                f_name = os.path.basename(os.path.splitext(abs_env_path)[0])
                 with tempfile.NamedTemporaryFile(dir=tht_root,
                                                  prefix="env-%s-" % f_name,
                                                  suffix=".yaml",
+                                                 mode="w",
                                                  delete=cleanup) as f:
                     self.log.debug("Rewriting %s environment to %s"
                                    % (env_path, f.name))
-                    f.write(yaml.dump(env_map, default_flow_style=False))
+                    f.write(yaml.safe_dump(env_map, default_flow_style=False))
+                    f.flush()
                     files, env = template_utils.process_environment_and_files(
                         env_path=f.name)
             if files:
