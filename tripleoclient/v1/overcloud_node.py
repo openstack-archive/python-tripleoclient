@@ -66,8 +66,9 @@ class DeleteNode(command.Command):
         self.log.debug("take_action(%s)" % parsed_args)
         clients = self.app.client_manager
 
-        print("deleting nodes {0} from stack {1}".format(parsed_args.nodes,
-                                                         parsed_args.stack))
+        nodes = '\n'.join('- %s' % node for node in parsed_args.nodes)
+        print("Deleting the following nodes from stack {stack}:\n{nodes}"
+              .format(stack=parsed_args.stack, nodes=nodes))
 
         scale.scale_down(clients, parsed_args.stack, parsed_args.nodes)
 
