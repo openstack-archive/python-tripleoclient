@@ -220,7 +220,7 @@ class DeployOvercloud(command.Command):
         return env_files, localenv
 
     def _heat_deploy(self, stack, stack_name, template_path, parameters,
-                     env_files, timeout, tht_root, env):
+                     env_files, timeout, tht_root, env, update_plan_only):
         """Verify the Baremetal nodes are available and do a stack update"""
 
         clients = self.app.client_manager
@@ -266,8 +266,9 @@ class DeployOvercloud(command.Command):
             stack_name, objectclient, env, moved_files, tht_root,
             workflow_client)
 
-        deployment.deploy_and_wait(self.log, clients, stack, stack_name,
-                                   self.app_args.verbose_level, timeout)
+        if not update_plan_only:
+            deployment.deploy_and_wait(self.log, clients, stack, stack_name,
+                                       self.app_args.verbose_level, timeout)
 
     def _load_environment_directories(self, directories):
         if os.environ.get('TRIPLEO_ENVIRONMENT_DIRECTORY'):
@@ -479,17 +480,17 @@ class DeployOvercloud(command.Command):
 
         self._try_overcloud_deploy_with_compat_yaml(
             tht_root, stack, parsed_args.stack, parameters, env_files,
-            parsed_args.timeout, env)
+            parsed_args.timeout, env, parsed_args.update_plan_only)
 
     def _try_overcloud_deploy_with_compat_yaml(self, tht_root, stack,
                                                stack_name, parameters,
                                                env_files, timeout,
-                                               env):
+                                               env, update_plan_only):
         overcloud_yaml = os.path.join(tht_root, constants.OVERCLOUD_YAML_NAME)
         try:
             self._heat_deploy(stack, stack_name, overcloud_yaml,
                               parameters, env_files, timeout,
-                              tht_root, env)
+                              tht_root, env, update_plan_only)
         except ClientException as e:
             messages = 'Failed to deploy: %s' % str(e)
             raise ValueError(messages)
@@ -1027,6 +1028,13 @@ class DeployOvercloud(command.Command):
         parser.add_argument(
             '--no-cleanup', action='store_true',
             help=_('Don\'t cleanup temporary files, just log their location')
+        )
+        parser.add_argument(
+            '--update-plan-only',
+            action='store_true',
+            help=_('Only update the plan. Do not perform the actual '
+                   'deployment. DEPRECATED: Will move to a discrete command '
+                   'in a future release.')
         )
         # TODO(bnemec): In Ocata or later, remove this group and just leave
         # --validation-errors-nonfatal
