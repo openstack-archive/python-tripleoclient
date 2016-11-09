@@ -54,9 +54,9 @@ class TestDeleteNode(fakes.TestDeleteNode):
     # probably be fixed so that it can pass with that.
     def test_node_delete(self):
         argslist = ['instance1', 'instance2', '--templates',
-                    '--stack', 'overcloud']
+                    '--stack', 'overcast']
         verifylist = [
-            ('stack', 'overcloud'),
+            ('stack', 'overcast'),
             ('nodes', ['instance1', 'instance2'])
         ]
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
@@ -71,9 +71,34 @@ class TestDeleteNode(fakes.TestDeleteNode):
         self.workflow.executions.create.assert_called_once_with(
             'tripleo.scale.v1.delete_node',
             workflow_input={
-                'container': 'overcloud',
+                'container': 'overcast',
                 'queue_name': 'UUID4',
                 'nodes': ['instance1', 'instance2']
+            })
+
+    def test_node_delete_without_stack(self):
+
+        arglist = ['instance1', ]
+
+        verifylist = [
+            ('stack', 'overcloud'),
+            ('nodes', ['instance1']),
+        ]
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.websocket.wait_for_message.return_value = {
+            "status": "SUCCESS"
+        }
+
+        self.cmd.take_action(parsed_args)
+
+        # Verify
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.scale.v1.delete_node',
+            workflow_input={
+                'container': 'overcloud',
+                'queue_name': 'UUID4',
+                'nodes': ['instance1', ]
             })
 
 
