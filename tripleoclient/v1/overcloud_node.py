@@ -39,7 +39,8 @@ class DeleteNode(command.Command):
         parser.add_argument('--stack', dest='stack',
                             help=_('Name or ID of heat stack to scale '
                                    '(default=Env: OVERCLOUD_STACK_NAME)'),
-                            default=utils.env('OVERCLOUD_STACK_NAME'))
+                            default=utils.env('OVERCLOUD_STACK_NAME',
+                                              default='overcloud'))
         parser.add_argument(
             '--templates', nargs='?', const=constants.TRIPLEO_HEAT_TEMPLATES,
             help=_("The directory containing the Heat templates to deploy. "
