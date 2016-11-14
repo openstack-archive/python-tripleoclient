@@ -818,35 +818,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                       'environment-rhel-registration.yaml')]
         mock_process_env.assert_has_calls(calls)
 
-    def test_validate_args_correct(self):
-        arglist = ['--templates',
-                   '--neutron-network-type', 'nettype',
-                   '--neutron-tunnel-types', 'nettype']
-        verifylist = [
-            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
-            ('neutron_network_type', 'nettype'),
-            ('neutron_tunnel_types', 'nettype'),
-        ]
-
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-        self.cmd._validate_args(parsed_args)
-
-    def test_validate_args_mismatch(self):
-        arglist = ['--templates',
-                   '--neutron-network-type', 'nettype1',
-                   '--neutron-tunnel-types', 'nettype2']
-        verifylist = [
-            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
-            ('neutron_network_type', 'nettype1'),
-            ('neutron_tunnel_types', 'nettype2'),
-        ]
-
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-
-        self.assertRaises(oscexc.CommandError,
-                          self.cmd._validate_args,
-                          parsed_args)
-
     @mock.patch('tripleoclient.tests.v1.overcloud_deploy.fakes.'
                 'FakeObjectClient.get_object', autospec=True)
     def test_validate_args_missing_environment_files(self, mock_obj):
@@ -883,78 +854,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         calls = [mock.call(env_path),
                  mock.call(env_path.replace(".yaml", ".j2.yaml"))]
         mock_isfile.assert_has_calls(calls)
-
-    def test_validate_args_no_tunnel_type(self):
-        arglist = ['--templates',
-                   '--neutron-network-type', 'nettype']
-        verifylist = [
-            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
-            ('neutron_network_type', 'nettype'),
-        ]
-
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-
-        self.assertRaises(oscexc.CommandError,
-                          self.cmd._validate_args,
-                          parsed_args)
-
-    def test_validate_args_no_tunnel_types(self):
-        arglist = ['--templates',
-                   '--neutron-tunnel-types', 'nettype']
-        verifylist = [
-            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
-            ('neutron_tunnel_types', 'nettype'),
-        ]
-
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-
-        self.assertRaises(oscexc.CommandError,
-                          self.cmd._validate_args,
-                          parsed_args)
-
-    def test_validate_args_tunneling_disabled_with_network_type(self):
-        arglist = ['--templates',
-                   '--neutron-disable-tunneling',
-                   '--neutron-network-type', 'nettype']
-        verifylist = [
-            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
-            ('neutron_disable_tunneling', True),
-            ('neutron_network_type', 'nettype')
-        ]
-
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-
-        # If this call does not raise an error, then call is validated
-        self.cmd._validate_args(parsed_args)
-
-    def test_validate_args_tunneling_disabled_with_tunnel_types(self):
-        arglist = ['--templates',
-                   '--neutron-disable-tunneling',
-                   '--neutron-tunnel-types', 'nettype']
-        verifylist = [
-            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
-            ('neutron_disable_tunneling', True),
-            ('neutron_tunnel_types', 'nettype')
-        ]
-
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-
-        # If this call does not raise an error, then call is validated
-        self.cmd._validate_args(parsed_args)
-
-    def test_validate_args_vlan_as_network_type_no_vlan_range(self):
-        arglist = ['--templates',
-                   '--neutron-network-type', 'vlan']
-        verifylist = [
-            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
-            ('neutron_network_type', 'vlan')
-        ]
-
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-
-        self.assertRaises(oscexc.CommandError,
-                          self.cmd._validate_args,
-                          parsed_args)
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_heat_deploy', autospec=True)
