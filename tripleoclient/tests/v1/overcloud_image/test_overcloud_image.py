@@ -377,7 +377,7 @@ class TestUploadOvercloudImage(TestPluginV1):
     @mock.patch('osc_lib.utils.find_resource')
     def test_get_image_none(self, mock_find_resource):
         mock_find_resource.side_effect = exceptions.CommandError('')
-        self.assertEqual(self.cmd._get_image('noimagename'), None)
+        self.assertIsNone(self.cmd._get_image('noimagename'))
 
     def test_image_try_update_no_exist(self):
         self.cmd._get_image = mock.Mock(return_value=None)

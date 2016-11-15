@@ -44,7 +44,7 @@ class TestCheckHypervisorUtil(TestCase):
         stats = utils.check_hypervisor_stats(
             mock_compute, nodes=1, memory=1, vcpu=1)
 
-        self.assertEqual(stats, None)
+        self.assertIsNone(stats)
         self.assertEqual(mock_stats.to_dict.call_count, 1)
 
         stats = utils.check_hypervisor_stats(
@@ -366,7 +366,7 @@ class TestEnsureRunAsNormalUser(TestCase):
     @mock.patch('os.geteuid')
     def test_ensure_run_as_normal_user(self, os_geteuid_mock):
         os_geteuid_mock.return_value = 1000
-        self.assertEqual(utils.ensure_run_as_normal_user(), None)
+        self.assertIsNone(utils.ensure_run_as_normal_user())
 
     @mock.patch('os.geteuid')
     def test_ensure_run_as_normal_user_root(self, os_geteuid_mock):
