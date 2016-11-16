@@ -101,6 +101,34 @@ class TestDeleteNode(fakes.TestDeleteNode):
                 'nodes': ['instance1', ]
             })
 
+    def test_node_delete_wrong_instance(self):
+
+        argslist = ['wrong_instance', '--templates',
+                    '--stack', 'overcloud']
+        verifylist = [
+            ('stack', 'overcloud'),
+            ('nodes', ['wrong_instance']),
+        ]
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+
+        self.websocket.wait_for_message.return_value = {
+            "status": "FAILED",
+            "message": """Failed to run action ERROR: Couldn't find \
+                following instances in stack overcloud: wrong_instance"""
+        }
+
+        self.assertRaises(exceptions.InvalidConfiguration,
+                          self.cmd.take_action, parsed_args)
+
+        # Verify
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.scale.v1.delete_node',
+            workflow_input={
+                'container': 'overcloud',
+                'queue_name': 'UUID4',
+                'nodes': ['wrong_instance', ]
+            })
+
 
 class TestProvideNode(fakes.TestOvercloudNode):
 
