@@ -44,6 +44,8 @@ class TestDeleteNode(fakes.TestDeleteNode):
         self.app.client_manager.tripleoclient = self.tripleoclient
 
         self.workflow = self.app.client_manager.workflow_engine
+        self.stack_name = self.app.client_manager.orchestration.stacks.get
+        self.stack_name.return_value = mock.Mock(stack_name="overcloud")
 
         # Mock UUID4 generation for every test
         uuid4_patcher = mock.patch('uuid.uuid4', return_value="UUID4")
@@ -65,6 +67,8 @@ class TestDeleteNode(fakes.TestDeleteNode):
             "status": "SUCCESS"
         }
 
+        self.stack_name.return_value = mock.Mock(stack_name="overcast")
+
         self.cmd.take_action(parsed_args)
 
         # Verify
@@ -75,6 +79,28 @@ class TestDeleteNode(fakes.TestDeleteNode):
                 'queue_name': 'UUID4',
                 'nodes': ['instance1', 'instance2']
             })
+
+    def test_node_wrong_stack(self):
+        argslist = ['instance1', '--templates',
+                    '--stack', 'overcast']
+        verifylist = [
+            ('stack', 'overcast'),
+            ('nodes', ['instance1', ])
+        ]
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+
+        self.websocket.wait_for_message.return_value = {
+            "status": "SUCCESS"
+        }
+
+        self.stack_name.return_value = None
+
+        self.assertRaises(exceptions.InvalidConfiguration,
+                          self.cmd.take_action,
+                          parsed_args)
+
+        # Verify
+        self.workflow.executions.create.assert_not_called()
 
     def test_node_delete_without_stack(self):
 
