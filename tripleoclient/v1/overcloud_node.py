@@ -22,6 +22,7 @@ from osc_lib.i18n import _
 from osc_lib import utils
 
 from tripleoclient import constants
+from tripleoclient.exceptions import InvalidConfiguration
 from tripleoclient import utils as oooutils
 from tripleoclient.workflows import baremetal
 from tripleoclient.workflows import scale
@@ -65,12 +66,19 @@ class DeleteNode(command.Command):
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
         clients = self.app.client_manager
+        orchestration_client = clients.orchestration
+
+        stack = oooutils.get_stack(orchestration_client, parsed_args.stack)
+
+        if not stack:
+            raise InvalidConfiguration("stack {} not found".format(
+                parsed_args.stack))
 
         nodes = '\n'.join('- %s' % node for node in parsed_args.nodes)
         print("Deleting the following nodes from stack {stack}:\n{nodes}"
-              .format(stack=parsed_args.stack, nodes=nodes))
+              .format(stack=stack.stack_name, nodes=nodes))
 
-        scale.scale_down(clients, parsed_args.stack, parsed_args.nodes)
+        scale.scale_down(clients, stack.stack_name, parsed_args.nodes)
 
 
 class ProvideNode(command.Command):
