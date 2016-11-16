@@ -344,6 +344,8 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
             ],
         }, {
             "status": "SUCCESS"
+        }, {
+            "status": "SUCCESS"
         }]
 
         self.workflow = self.app.client_manager.workflow_engine
@@ -375,22 +377,14 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
                 'nodes_json': self.nodes_list,
                 'queue_name': 'UUID4',
                 'ramdisk_name': ramdisk_name,
-                'instance_boot_option': 'local' if local else 'netboot'
+                'instance_boot_option': 'local' if local else 'netboot',
+                'initial_state': 'available',
             }
         )]
 
-        if provide:
-            call_list.append(mock.call(
-                'tripleo.baremetal.v1.provide', workflow_input={
-                    'node_uuids': ['MOCK_NODE_UUID', ],
-                    'queue_name': 'UUID4'
-                }
-            ))
-
         self.workflow.executions.create.assert_has_calls(call_list)
 
-        self.assertEqual(self.workflow.executions.create.call_count,
-                         2 if provide else 1)
+        self.assertEqual(self.workflow.executions.create.call_count, 1)
 
     def test_json_import(self):
 
@@ -406,26 +400,6 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
         self.cmd.take_action(parsed_args)
 
         self._check_workflow_call()
-
-    def test_json_import_initial_state_enroll(self):
-
-        arglist = [
-            self.json_file.name,
-            '--json',
-            '-s', 'http://localhost',
-            '--initial-state', 'enroll'
-        ]
-
-        verifylist = [
-            ('csv', False),
-            ('json', True),
-        ]
-
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-
-        self.cmd.take_action(parsed_args)
-        self._check_workflow_call(provide=False)
-        self.assertEqual([], self.baremetal.node.updates)
 
     def test_available_does_not_require_api_1_11(self):
         arglist = [self.json_file.name, '--json', '-s', 'http://localhost']
