@@ -484,7 +484,6 @@ class BuildOvercloudImage(command.Command):
 
         dib_common_elements.extend([
             'element-manifest',
-            'network-gateway',
         ])
 
         if parsed_args.node_dist in ['rhel7', 'centos7']:
