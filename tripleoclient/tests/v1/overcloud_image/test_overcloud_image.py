@@ -361,6 +361,7 @@ class TestUploadOvercloudImage(TestPluginV1):
         # Get the command object to test
         self.cmd = overcloud_image.UploadOvercloudImage(self.app, None)
         self.app.client_manager.image = mock.Mock()
+        self.app.client_manager.image.version = 2.0
         self.app.client_manager.image.images.create.return_value = (
             mock.Mock(id=10, name='imgname', properties={'kernel_id': 10,
                                                          'ramdisk_id': 10},
@@ -433,11 +434,62 @@ class TestUploadOvercloudImage(TestPluginV1):
         )
 
     @mock.patch('subprocess.check_call', autospec=True)
-    def test_overcloud_create_images(self, mock_subprocess_call):
+    def test_overcloud_create_images_v2(self, mock_subprocess_call):
         parsed_args = self.check_parser(self.cmd, [], [])
         os.path.isfile = mock.Mock(return_value=False)
 
         self.cmd._get_image = mock.Mock(return_value=None)
+
+        self.cmd.take_action(parsed_args)
+
+        self.assertEqual(
+            0,
+            self.app.client_manager.image.images.delete.call_count
+        )
+        self.assertEqual(
+            5,
+            self.app.client_manager.image.images.create.call_count
+        )
+        self.assertEqual(
+            [mock.call(name='overcloud-full-vmlinuz',
+                       disk_format='aki',
+                       container_format='bare',
+                       visibility='public'),
+             mock.call(name='overcloud-full-initrd',
+                       disk_format='ari',
+                       container_format='bare',
+                       visibility='public'),
+             mock.call(name='overcloud-full',
+                       disk_format='qcow2',
+                       container_format='bare',
+                       visibility='public'),
+             mock.call(name='bm-deploy-kernel',
+                       disk_format='aki',
+                       container_format='bare',
+                       visibility='public'),
+             mock.call(name='bm-deploy-ramdisk',
+                       disk_format='ari',
+                       container_format='bare',
+                       visibility='public')
+             ], self.app.client_manager.image.images.create.call_args_list
+        )
+
+        self.assertEqual(mock_subprocess_call.call_count, 2)
+        self.assertEqual(
+            mock_subprocess_call.call_args_list, [
+                mock.call('sudo cp -f "./ironic-python-agent.kernel" '
+                          '"/httpboot/agent.kernel"', shell=True),
+                mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
+                          '"/httpboot/agent.ramdisk"', shell=True)
+            ])
+
+    @mock.patch('subprocess.check_call', autospec=True)
+    def test_overcloud_create_images_v1(self, mock_subprocess_call):
+        parsed_args = self.check_parser(self.cmd, [], [])
+        os.path.isfile = mock.Mock(return_value=False)
+
+        self.cmd._get_image = mock.Mock(return_value=None)
+        self.app.client_manager.image.version = 1.0
 
         self.cmd.take_action(parsed_args)
 
@@ -538,7 +590,7 @@ class TestUploadOvercloudImage(TestPluginV1):
             self.app.client_manager.image.images.create.call_count
         )
         self.assertEqual(
-            5,
+            6,
             self.app.client_manager.image.images.update.call_count
         )
         self.assertEqual(mock_subprocess_call.call_count, 2)

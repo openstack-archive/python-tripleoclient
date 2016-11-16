@@ -603,6 +603,53 @@ class BuildOvercloudImage(command.Command):
         manager.build()
 
 
+class GlanceBaseClientAdapter(object):
+    def __init__(self, client):
+        self.client = client
+
+    def print_image_info(self, image):
+        table = PrettyTable(['ID', 'Name', 'Disk Format', 'Size', 'Status'])
+        table.add_row([image.id, image.name, image.disk_format, image.size,
+                       image.status])
+        print(table, file=sys.stdout)
+
+
+class GlanceV1ClientAdapter(GlanceBaseClientAdapter):
+    def upload_image(self, *args, **kwargs):
+        image = self.client.images.create(*args, **kwargs)
+
+        print('Image "%s" was uploaded.' % image.name, file=sys.stdout)
+        self.print_image_info(image)
+        return image
+
+    def get_image_property(self, image, prop):
+        return image.properties[prop]
+
+
+class GlanceV2ClientAdapter(GlanceBaseClientAdapter):
+    def upload_image(self, *args, **kwargs):
+        is_public = kwargs.pop('is_public')
+        data = kwargs.pop('data')
+        properties = kwargs.pop('properties', None)
+        kwargs['visibility'] = 'public' if is_public else 'private'
+        kwargs.setdefault('container_format', 'bare')
+
+        image = self.client.images.create(*args, **kwargs)
+
+        self.client.images.upload(image.id, image_data=data)
+        if properties:
+            self.client.images.update(image.id, **properties)
+        # Refresh image info
+        image = self.client.images.get(image.id)
+
+        print('Image "%s" was uploaded.' % image.name, file=sys.stdout)
+        self.print_image_info(image)
+        return image
+
+    def get_image_property(self, image, prop):
+        return getattr(image, prop)
+
+
 class UploadOvercloudImage(command.Command):
     """Create overcloud glance images from existing image files."""
     log = logging.getLogger(__name__ + ".UploadOvercloudImage")
@@ -695,17 +742,11 @@ class UploadOvercloudImage(command.Command):
         else:
             self._copy_file(src_file, dest_file)
 
-    def _print_image_info(self, image):
-        table = PrettyTable(['ID', 'Name', 'Disk Format', 'Size', 'Status'])
-        table.add_row([image.id, image.name, image.disk_format, image.size,
-                       image.status])
-        print(table, file=sys.stdout)
-
-    def _upload_image(self, *args, **kwargs):
-        image = self.app.client_manager.image.images.create(*args, **kwargs)
-        print('Image "%s" was uploaded.' % image.name, file=sys.stdout)
-        self._print_image_info(image)
-        return image
+    def _get_glance_client_adaptor(self):
+        if self.app.client_manager.image.version >= 2.0:
+            return GlanceV2ClientAdapter(self.app.client_manager.image)
+        else:
+            return GlanceV1ClientAdapter(self.app.client_manager.image)
 
     def get_parser(self, prog_name):
         parser = super(UploadOvercloudImage, self).get_parser(prog_name)
@@ -734,6 +775,7 @@ class UploadOvercloudImage(command.Command):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+        glance_client_adaptor = self._get_glance_client_adaptor()
 
         self._env_variable_or_set('AGENT_NAME', 'ironic-python-agent')
 
@@ -758,7 +800,7 @@ class UploadOvercloudImage(command.Command):
         kernel = (self._image_try_update(oc_vmlinuz_name,
                                          oc_vmlinuz_file,
                                          parsed_args) or
-                  self._upload_image(
+                  glance_client_adaptor.upload_image(
                       name=oc_vmlinuz_name,
                       is_public=True,
                       disk_format='aki',
@@ -771,7 +813,7 @@ class UploadOvercloudImage(command.Command):
         ramdisk = (self._image_try_update(oc_initrd_name,
                                           oc_initrd_file,
                                           parsed_args) or
-                   self._upload_image(
+                   glance_client_adaptor.upload_image(
                        name=oc_initrd_name,
                        is_public=True,
                        disk_format='ari',
@@ -783,7 +825,7 @@ class UploadOvercloudImage(command.Command):
         oc_file = '%s.qcow2' % image_name
         overcloud_image = (self._image_try_update(oc_name, oc_file,
                                                   parsed_args) or
-                           self._upload_image(
+                           glance_client_adaptor.upload_image(
                                name=oc_name,
                                is_public=True,
                                disk_format='qcow2',
@@ -794,9 +836,12 @@ class UploadOvercloudImage(command.Command):
                                    parsed_args.image_path, oc_file)
         ))
 
+        img_kernel_id = glance_client_adaptor.get_image_property(
+            overcloud_image, 'kernel_id')
+        img_ramdisk_id = glance_client_adaptor.get_image_property(
+            overcloud_image, 'ramdisk_id')
         # check overcloud image links
-        if (overcloud_image.properties['kernel_id'] != kernel.id or
-                overcloud_image.properties['ramdisk_id'] != ramdisk.id):
+        if (img_kernel_id != kernel.id or img_ramdisk_id != ramdisk.id):
             self.log.error('Link overcloud image to it\'s initrd and kernel'
                            ' images is MISSING OR leads to OLD image.'
                            ' You can keep it or fix it manually.')
@@ -806,25 +851,25 @@ class UploadOvercloudImage(command.Command):
         deploy_kernel_name = 'bm-deploy-kernel'
         deploy_kernel_file = '%s.kernel' % os.environ['AGENT_NAME']
         self._image_try_update(deploy_kernel_name, deploy_kernel_file,
-                               parsed_args) or self._upload_image(
-            name=deploy_kernel_name,
-            is_public=True,
-            disk_format='aki',
-            data=self._read_image_file_pointer(
-                parsed_args.image_path,
-                deploy_kernel_file)
-        )
+                               parsed_args) or \
+            glance_client_adaptor.upload_image(
+                name=deploy_kernel_name,
+                is_public=True,
+                disk_format='aki',
+                data=self._read_image_file_pointer(
+                    parsed_args.image_path,
+                    deploy_kernel_file))
 
         deploy_ramdisk_name = 'bm-deploy-ramdisk'
         deploy_ramdisk_file = '%s.initramfs' % os.environ['AGENT_NAME']
         self._image_try_update(deploy_ramdisk_name, deploy_ramdisk_file,
-                               parsed_args) or self._upload_image(
-            name=deploy_ramdisk_name,
-            is_public=True,
-            disk_format='ari',
-            data=self._read_image_file_pointer(parsed_args.image_path,
-                                               deploy_ramdisk_file)
-        )
+                               parsed_args) or \
+            glance_client_adaptor.upload_image(
+                name=deploy_ramdisk_name,
+                is_public=True,
+                disk_format='ari',
+                data=self._read_image_file_pointer(parsed_args.image_path,
+                                                   deploy_ramdisk_file))
 
         self.log.debug("copy agent images to HTTP BOOT dir")
 
