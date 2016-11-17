@@ -33,6 +33,10 @@ class DeploymentError(RuntimeError):
     """Deployment failed"""
 
 
+class StackInProgress(RuntimeError):
+    """Unable to deploy as the stack is busy"""
+
+
 class RootUserExecution(Exception):
     """Command was executed by a root user"""
 
