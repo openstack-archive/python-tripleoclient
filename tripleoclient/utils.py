@@ -34,7 +34,6 @@ from heatclient.common import event_utils
 from heatclient.exc import HTTPNotFound
 from osc_lib.i18n import _
 from six.moves import configparser
-from six.moves import urllib
 
 from tripleoclient import exceptions
 from tripleoclient.workflows import parameters
@@ -80,42 +79,17 @@ def unbracket_ipv6(address):
     return address
 
 
-def create_overcloudrc(clients, stack, no_proxy, config_directory='.'):
-    """Given proxy settings and stack, create the overcloudrc
+def write_overcloudrc(stack_name, overcloudrcs, config_directory='.'):
+    """Write the overcloudrc files"""
 
-    stack: Heat stack containing the deployed overcloud
-    no_proxy: a comma-separated string of hosts that shouldn't be proxied
-    """
-    overcloud_endpoint = get_overcloud_endpoint(stack)
-    overcloud_host = urllib.parse.urlparse(overcloud_endpoint).hostname
-    overcloud_admin_vip = get_endpoint('KeystoneAdmin', stack)
+    rcpath = os.path.join(config_directory, '%src' % stack_name)
+    rcv3path = os.path.join(config_directory, '%src.v3' % stack_name)
 
-    no_proxy_list = map(bracket_ipv6,
-                        [no_proxy, overcloud_host, overcloud_admin_vip])
+    with open(rcpath, 'w') as rcfile:
+        rcfile.write(overcloudrcs['overcloudrc'])
 
-    rc_params = {
-        'NOVA_VERSION': '1.1',
-        'COMPUTE_API_VERSION': '1.1',
-        'OS_USERNAME': 'admin',
-        'OS_TENANT_NAME': 'admin',
-        'OS_NO_CACHE': 'True',
-        'OS_CLOUDNAME': stack.stack_name,
-        'no_proxy': ','.join(no_proxy_list),
-        'PYTHONWARNINGS': ('"ignore:Certificate has no, ignore:A true '
-                           'SSLContext object is not available"'),
-    }
-    rc_params.update({
-        'OS_PASSWORD': get_password(clients, stack.stack_name,
-                                    'AdminPassword'),
-        'OS_AUTH_URL': overcloud_endpoint,
-    })
-
-    config_path = os.path.join(config_directory, '%src' % stack.stack_name)
-
-    with open(config_path, 'w') as f:
-        for key, value in rc_params.items():
-            f.write("export %(key)s=%(value)s\n" %
-                    {'key': key, 'value': value})
+    with open(rcv3path, 'w') as rcv3file:
+        rcv3file.write(overcloudrcs['overcloudrc.v3'])
 
 
 def create_tempest_deployer_input(config_name='tempest-deployer-input.conf'):

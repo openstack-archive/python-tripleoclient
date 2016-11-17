@@ -80,3 +80,8 @@ def deploy_and_wait(log, clients, stack, plan_name, verbose_level,
             raise exceptions.DeploymentError("Heat Stack create failed.")
         else:
             raise exceptions.DeploymentError("Heat Stack update failed.")
+
+
+def overcloudrc(workflow_client, **input_):
+    return base.call_action(workflow_client, 'tripleo.deployment.overcloudrc',
+                            **input_)
