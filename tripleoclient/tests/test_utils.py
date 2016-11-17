@@ -22,8 +22,6 @@ from unittest import TestCase
 import yaml
 
 from tripleoclient import exceptions
-from tripleoclient.tests.v1.utils import (
-    generate_overcloud_passwords_mock)
 from tripleoclient import utils
 
 
@@ -377,41 +375,25 @@ class TestEnsureRunAsNormalUser(TestCase):
 
 class TestCreateOvercloudRC(TestCase):
 
-    @mock.patch('tripleoclient.utils.generate_overcloud_passwords',
-                new=generate_overcloud_passwords_mock)
-    def test_create_overcloudrc(self):
-        stack = mock.MagicMock()
-        stack.stack_name = 'teststack'
-        endpoint_map = {'KeystoneAdmin': {'host': 'fd00::1'}}
-        stack.to_dict.return_value = {
-            'outputs': [{'output_key': 'KeystoneURL',
-                         'output_value': 'http://foo.com:8000/'},
-                        {'output_key': 'EndpointMap',
-                         'output_value': endpoint_map}]
-        }
+    def test_write_overcloudrc(self):
+        stack_name = 'teststack'
 
         tempdir = tempfile.mkdtemp()
         rcfile = os.path.join(tempdir, 'teststackrc')
         rcfile_v3 = os.path.join(tempdir, 'teststackrc.v3')
-        mock_clients = mock.Mock()
+
+        overcloudrcs = {
+            "overcloudrc": "overcloudrc not v3",
+            "overcloudrc.v3": "overcloudrc.v3",
+        }
 
         try:
-            utils.create_overcloudrc(clients=mock_clients,
-                                     stack=stack,
-                                     no_proxy='127.0.0.1',
-                                     config_directory=tempdir)
+            utils.write_overcloudrc(stack_name, overcloudrcs,
+                                    config_directory=tempdir)
             rc = open(rcfile, 'rt').read()
-            self.assertIn('export OS_AUTH_URL=http://foo.com:8000/', rc)
-            self.assertIn('export no_proxy=127.0.0.1,foo.com,[fd00::1]',
-                          rc)
-            self.assertIn('export OS_CLOUDNAME=teststack', rc)
-            self.assertIn('export PYTHONWARNINGS="ignore:Certificate has no, '
-                          'ignore:A true SSLContext object is not available"',
-                          rc)
+            self.assertIn('overcloudrc not v3', rc)
             rc_v3 = open(rcfile_v3, 'rt').read()
-            self.assertIn('export OS_USER_DOMAIN_NAME=Default', rc_v3)
-            self.assertIn('export OS_PROJECT_DOMAIN_NAME=Default', rc_v3)
-            self.assertIn('export OS_IDENTITY_API_VERSION=3', rc_v3)
+            self.assertIn('overcloudrc.v3', rc_v3)
         finally:
             if os.path.exists(rcfile):
                 os.unlink(rcfile)

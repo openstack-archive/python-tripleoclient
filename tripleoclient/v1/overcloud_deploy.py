@@ -1123,7 +1123,11 @@ class DeployOvercloud(command.Command):
         # Force fetching of attributes
         stack.get()
 
-        utils.create_overcloudrc(clients, stack, parsed_args.no_proxy)
+        overcloudrcs = deployment.overcloudrc(
+            clients.workflow_engine, container=stack.stack_name,
+            no_proxy=parsed_args.no_proxy)
+
+        utils.write_overcloudrc(stack.stack_name, overcloudrcs)
         utils.create_tempest_deployer_input()
 
         # Run postconfig on create or force. Use force to makes sure endpoints
