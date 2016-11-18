@@ -771,6 +771,14 @@ class UploadOvercloudImage(command.Command):
             action="store_true",
             help=_("Update images if already exist"),
         )
+        parser.add_argument(
+            "--whole-disk",
+            dest="whole_disk",
+            action="store_true",
+            default=False,
+            help=_("When set, the overcloud-full image to be uploaded "
+                   "will be considered as a whole disk one"),
+        )
         return parser
 
     def take_action(self, parsed_args):
@@ -781,11 +789,18 @@ class UploadOvercloudImage(command.Command):
 
         self.log.debug("checking if image files exist")
 
-        image_files = [
-            '%s.initramfs' % os.environ['AGENT_NAME'],
-            '%s.kernel' % os.environ['AGENT_NAME'],
-            parsed_args.os_image
-        ]
+        if parsed_args.whole_disk:
+            image_files = [
+                parsed_args.os_image
+            ]
+            overcloud_image_type = 'whole disk'
+        else:
+            image_files = [
+                '%s.initramfs' % os.environ['AGENT_NAME'],
+                '%s.kernel' % os.environ['AGENT_NAME'],
+                parsed_args.os_image
+            ]
+            overcloud_image_type = 'partition'
 
         for image in image_files:
             self._check_file_exists(os.path.join(parsed_args.image_path,
@@ -793,58 +808,76 @@ class UploadOvercloudImage(command.Command):
 
         image_name = parsed_args.os_image.split('.')[0]
 
-        self.log.debug("uploading overcloud images to glance")
+        self.log.debug("uploading %s overcloud images to glance" %
+                       overcloud_image_type)
 
-        oc_vmlinuz_name = '%s-vmlinuz' % image_name
-        oc_vmlinuz_file = '%s.vmlinuz' % image_name
-        kernel = (self._image_try_update(oc_vmlinuz_name,
-                                         oc_vmlinuz_file,
-                                         parsed_args) or
-                  glance_client_adaptor.upload_image(
-                      name=oc_vmlinuz_name,
-                      is_public=True,
-                      disk_format='aki',
-                      data=self._read_image_file_pointer(
-                          parsed_args.image_path, oc_vmlinuz_file)
-        ))
+        # vmlinuz and initrd only need to be uploaded for a partition image
+        if not parsed_args.whole_disk:
+            oc_vmlinuz_name = '%s-vmlinuz' % image_name
+            oc_vmlinuz_file = '%s.vmlinuz' % image_name
+            kernel = (self._image_try_update(oc_vmlinuz_name,
+                                             oc_vmlinuz_file,
+                                             parsed_args) or
+                      glance_client_adaptor.upload_image(
+                          name=oc_vmlinuz_name,
+                          is_public=True,
+                          disk_format='aki',
+                          data=self._read_image_file_pointer(
+                              parsed_args.image_path, oc_vmlinuz_file)
+            ))
 
-        oc_initrd_name = '%s-initrd' % image_name
-        oc_initrd_file = '%s.initrd' % image_name
-        ramdisk = (self._image_try_update(oc_initrd_name,
-                                          oc_initrd_file,
-                                          parsed_args) or
-                   glance_client_adaptor.upload_image(
-                       name=oc_initrd_name,
-                       is_public=True,
-                       disk_format='ari',
-                       data=self._read_image_file_pointer(
-                           parsed_args.image_path, oc_initrd_file)
-        ))
+            oc_initrd_name = '%s-initrd' % image_name
+            oc_initrd_file = '%s.initrd' % image_name
+            ramdisk = (self._image_try_update(oc_initrd_name,
+                                              oc_initrd_file,
+                                              parsed_args) or
+                       glance_client_adaptor.upload_image(
+                           name=oc_initrd_name,
+                           is_public=True,
+                           disk_format='ari',
+                           data=self._read_image_file_pointer(
+                               parsed_args.image_path, oc_initrd_file)
+            ))
 
-        oc_name = image_name
-        oc_file = '%s.qcow2' % image_name
-        overcloud_image = (self._image_try_update(oc_name, oc_file,
-                                                  parsed_args) or
-                           glance_client_adaptor.upload_image(
-                               name=oc_name,
-                               is_public=True,
-                               disk_format='qcow2',
-                               container_format='bare',
-                               properties={'kernel_id': kernel.id,
-                                           'ramdisk_id': ramdisk.id},
-                               data=self._read_image_file_pointer(
-                                   parsed_args.image_path, oc_file)
-        ))
+            oc_name = image_name
+            oc_file = '%s.qcow2' % image_name
+            overcloud_image = (self._image_try_update(oc_name, oc_file,
+                                                      parsed_args) or
+                               glance_client_adaptor.upload_image(
+                                   name=oc_name,
+                                   is_public=True,
+                                   disk_format='qcow2',
+                                   container_format='bare',
+                                   properties={'kernel_id': kernel.id,
+                                               'ramdisk_id': ramdisk.id},
+                                   data=self._read_image_file_pointer(
+                                       parsed_args.image_path, oc_file)
+            ))
 
-        img_kernel_id = glance_client_adaptor.get_image_property(
-            overcloud_image, 'kernel_id')
-        img_ramdisk_id = glance_client_adaptor.get_image_property(
-            overcloud_image, 'ramdisk_id')
-        # check overcloud image links
-        if (img_kernel_id != kernel.id or img_ramdisk_id != ramdisk.id):
-            self.log.error('Link overcloud image to it\'s initrd and kernel'
-                           ' images is MISSING OR leads to OLD image.'
-                           ' You can keep it or fix it manually.')
+            img_kernel_id = glance_client_adaptor.get_image_property(
+                overcloud_image, 'kernel_id')
+            img_ramdisk_id = glance_client_adaptor.get_image_property(
+                overcloud_image, 'ramdisk_id')
+            # check overcloud image links
+            if (img_kernel_id != kernel.id or img_ramdisk_id != ramdisk.id):
+                self.log.error('Link overcloud image to it\'s initrd and '
+                               'kernel images is MISSING OR leads to OLD '
+                               'image. You can keep it or fix it manually.')
+
+        else:
+            oc_name = image_name
+            oc_file = '%s.qcow2' % image_name
+            overcloud_image = (self._image_try_update(oc_name, oc_file,
+                                                      parsed_args) or
+                               glance_client_adaptor.upload_image(
+                                   name=oc_name,
+                                   is_public=True,
+                                   disk_format='qcow2',
+                                   container_format='bare',
+                                   properties={},
+                                   data=self._read_image_file_pointer(
+                                       parsed_args.image_path, oc_file)
+            ))
 
         self.log.debug("uploading bm images to glance")
 
