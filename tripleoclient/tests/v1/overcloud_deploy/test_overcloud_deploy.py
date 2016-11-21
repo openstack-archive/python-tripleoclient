@@ -521,6 +521,23 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                           parsed_args)
         self.assertFalse(mock_deploy_tht.called)
 
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_deploy_tripleo_heat_templates', autospec=True)
+    def test_jinja2_env_path(self, mock_deploy_tht):
+
+        arglist = ['--templates', '-e', 'bad_path.j2.yaml', '-e', 'other.yaml',
+                   '-e', 'bad_path2.j2.yaml']
+        verifylist = [
+            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
+            ('environment_files', ['bad_path.j2.yaml', 'other.yaml',
+                                   'bad_path2.j2.yaml'])
+        ]
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        self.assertRaises(
+            oscexc.CommandError,
+            self.cmd.take_action, parsed_args)
+        self.assertFalse(mock_deploy_tht.called)
+
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
                 autospec=True)
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
