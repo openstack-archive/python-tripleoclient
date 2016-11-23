@@ -68,16 +68,12 @@ class DeletePlan(command.Command):
 
         for plan in parsed_args.plans:
             print("Deleting plan %s..." % plan)
-            execution = workflow_client.action_executions.create(
-                'tripleo.plan.delete', input={'container': plan})
-
+            workflow_input = {'container': plan}
             try:
-                json_results = json.loads(execution.output)['result']
-                if json_results is not None:
-                    print(json_results)
+                plan_management.delete_deployment_plan(workflow_client,
+                                                       input=workflow_input)
             except Exception:
-                self.log.exception(
-                    "Error parsing action result %s", execution.output)
+                self.log.exception("Error deleting plan")
 
 
 class CreatePlan(command.Command):
