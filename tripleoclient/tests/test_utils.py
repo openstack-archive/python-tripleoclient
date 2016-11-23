@@ -720,3 +720,17 @@ class TestReplaceLinks(TestCase):
         }
         self.assertEqual(expected, utils.relative_link_replacement(
             self.link_replacement, current_dir))
+
+
+class TestBracketIPV6(TestCase):
+    def test_basic(self):
+        result = utils.bracket_ipv6('::1')
+        self.assertEqual('[::1]', result)
+
+    def test_hostname(self):
+        result = utils.bracket_ipv6('hostname')
+        self.assertEqual('hostname', result)
+
+    def test_already_bracketed(self):
+        result = utils.bracket_ipv6('[::1]')
+        self.assertEqual('[::1]', result)
