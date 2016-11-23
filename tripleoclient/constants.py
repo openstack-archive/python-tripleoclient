@@ -25,6 +25,7 @@ SERVICE_LIST = {
     'ironic': {'password_field': 'IronicPassword'},
     'neutron': {'password_field': 'NeutronPassword'},
     'nova': {'password_field': 'NovaPassword'},
+    'panko': {'password_field': 'PankoPassword'},
     'swift': {'password_field': 'SwiftPassword'},
     'sahara': {'password_field': 'SaharaPassword'},
     'trove': {'password_field': 'TrovePassword'},
