@@ -45,6 +45,7 @@ _EXISTING_PASSWORDS = (
     'MysqlClustercheckPassword',
     'CephClientKey',
     'NeutronPassword',
+    'PankoPassword',
 )
 
 
