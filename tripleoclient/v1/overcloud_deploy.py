@@ -1198,6 +1198,13 @@ class DeployOvercloud(command.Command):
         # Get a new copy of the stack after stack update/create. If it was
         # a create then the previous stack object would be None.
         stack = utils.get_stack(orchestration_client, parsed_args.stack)
+
+        if parsed_args.update_plan_only:
+            # If we are only updating the plan, then we either wont have a
+            # stack yet or there wont be any changes and the following code
+            # wont do anything.
+            return
+
         # Force fetching of attributes
         stack.get()
 
