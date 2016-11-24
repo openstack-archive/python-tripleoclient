@@ -24,7 +24,6 @@ import shutil
 import six
 import tempfile
 import time
-import uuid
 import yaml
 
 from heatclient.common import template_utils
@@ -125,10 +124,6 @@ class DeployOvercloud(command.Command):
         parameters.update({
             'NeutronDhcpAgentsPerNetwork': dhcp_agents_per_network,
         })
-
-        if stack_is_new:
-            parameters.update({
-                'CephClusterFSID': six.text_type(uuid.uuid1())})
 
         return parameters
 
