@@ -77,10 +77,6 @@ class DeployOvercloud(command.Command):
                 args.environment_files = answers['environments']
 
         param_args = (
-            ('NeutronPublicInterface', 'neutron_public_interface'),
-            ('NeutronBridgeMappings', 'neutron_bridge_mappings'),
-            ('NeutronFlatNetworks', 'neutron_flat_networks'),
-            ('HypervisorNeutronPhysicalBridge', 'neutron_physical_bridge'),
             ('NtpServer', 'ntp_server'),
             ('ControllerCount', 'control_scale'),
             ('ComputeCount', 'compute_scale'),
@@ -92,16 +88,10 @@ class DeployOvercloud(command.Command):
             ('OvercloudBlockStorageFlavor', 'block_storage_flavor'),
             ('OvercloudSwiftStorageFlavor', 'swift_storage_flavor'),
             ('OvercloudCephStorageFlavor', 'ceph_storage_flavor'),
-            ('NeutronNetworkVLANRanges', 'neutron_network_vlan_ranges'),
-            ('NeutronMechanismDrivers', 'neutron_mechanism_drivers')
         )
 
         if stack_is_new:
             new_stack_args = (
-                ('NeutronNetworkType', 'neutron_network_type'),
-                ('NeutronTunnelIdRanges', 'neutron_tunnel_id_ranges'),
-                ('NeutronTunnelTypes', 'neutron_tunnel_types'),
-                ('NeutronVniRanges', 'neutron_vni_ranges'),
                 ('NovaComputeLibvirtType', 'libvirt_type'),
             )
             param_args = param_args + new_stack_args
@@ -109,12 +99,7 @@ class DeployOvercloud(command.Command):
         # Update parameters from commandline
         for param, arg in param_args:
             if getattr(args, arg, None) is not None:
-                # these must be converted to [] which is what Heat expects
-                if param.endswith(('NeutronTunnelIdRanges',
-                                   'NeutronVniRanges')):
-                    parameters[param] = [getattr(args, arg)]
-                else:
-                    parameters[param] = getattr(args, arg)
+                parameters[param] = getattr(args, arg)
 
         # Scaling needs extra parameters
         number_controllers = int(parameters.get('ControllerCount', 0))
@@ -695,30 +680,6 @@ class DeployOvercloud(command.Command):
                     "Error: The following files were not found: {0}".format(
                         ", ".join(nonexisting_envs)))
 
-        network_type = parsed_args.neutron_network_type
-        tunnel_types = parsed_args.neutron_tunnel_types
-        tunnel_disabled = parsed_args.neutron_disable_tunneling
-        neutron_network_vlan_ranges = parsed_args.neutron_network_vlan_ranges
-        if network_type == 'vlan' and not neutron_network_vlan_ranges:
-            raise oscexc.CommandError(
-                "Neutron network VLAN ranges must be specified when the "
-                "network type is set to VLAN")
-        elif network_type and tunnel_types:
-            # Validate that neutron_network_type is in neutron_tunnel_types
-            if network_type not in tunnel_types:
-                raise oscexc.CommandError("Neutron network type must be in "
-                                          "Neutron tunnel types "
-                                          "(%s) " % tunnel_types)
-        elif not tunnel_disabled:
-            if network_type and not tunnel_types:
-                raise oscexc.CommandError("Neutron tunnel types must be "
-                                          "specified when Neutron network "
-                                          "type is specified")
-            elif tunnel_types and not network_type:
-                raise oscexc.CommandError("Neutron network type must be "
-                                          "specified when Neutron tunnel "
-                                          "types is specified")
-
     def _get_default_role_counts(self, parsed_args):
 
         if parsed_args.roles_file:
@@ -940,52 +901,6 @@ class DeployOvercloud(command.Command):
                             type=int, default=240,
                             help=_('Deployment timeout in minutes.'))
         utils.add_deployment_plan_arguments(parser)
-        parser.add_argument('--neutron-flat-networks',
-                            help=_('Comma separated list of physical_network '
-                                   'names with which flat networks can be '
-                                   'created. Use * to allow flat networks '
-                                   'with arbitrary physical_network names. '
-                                   '(DEPRECATED)'))
-        parser.add_argument('--neutron-physical-bridge',
-                            help=_('Deprecated.'))
-        parser.add_argument('--neutron-bridge-mappings',
-                            help=_('Comma separated list of bridge mappings. '
-                                   '(DEPRECATED)'))
-        parser.add_argument('--neutron-public-interface',
-                            help=_('Deprecated.'))
-        parser.add_argument('--neutron-network-type',
-                            help=_('The network type for tenant networks. '
-                                   '(DEPRECATED)'))
-        parser.add_argument('--neutron-tunnel-types',
-                            help=_('Network types supported by the agent '
-                                   '(gre and/or vxlan). '
-                                   '(DEPRECATED)'))
-        parser.add_argument('--neutron-tunnel-id-ranges',
-                            help=_("Ranges of GRE tunnel IDs to make "
-                                   "available for tenant network allocation "
-                                   "(DEPRECATED)"),)
-        parser.add_argument('--neutron-vni-ranges',
-                            help=_("Ranges of VXLAN VNI IDs to make "
-                                   "available for tenant network allocation "
-                                   "(DEPRECATED)"),)
-        parser.add_argument('--neutron-disable-tunneling',
-                            dest='neutron_disable_tunneling',
-                            action="store_const", const=True,
-                            help=_('Disables tunneling. (DEPRECATED)')),
-        parser.add_argument('--neutron-network-vlan-ranges',
-                            help=_('Comma separated list of '
-                                   '<physical_network>:<vlan_min>:<vlan_max> '
-                                   'or <physical_network> specifying '
-                                   'physical_network names usable for VLAN '
-                                   'provider and tenant networks, as well as '
-                                   'ranges of VLAN tags on each available for '
-                                   'allocation to tenant networks. '
-                                   '(ex: datacentre:1:1000) (DEPRECATED)'))
-        parser.add_argument('--neutron-mechanism-drivers',
-                            help=_('An ordered list of extension driver '
-                                   'entrypoints to be loaded from the '
-                                   'neutron.ml2.extension_drivers namespace. '
-                                   '(DEPRECATED)'))
         parser.add_argument('--libvirt-type',
                             choices=['kvm', 'qemu'],
                             help=_('Libvirt domain type.'))
@@ -1035,17 +950,7 @@ class DeployOvercloud(command.Command):
                    'deployment. NOTE: Will move to a discrete command  in a '
                    'future release.')
         )
-        # TODO(bnemec): In Ocata or later, remove this group and just leave
-        # --validation-errors-nonfatal
-        error_group = parser.add_mutually_exclusive_group()
-        error_group.add_argument(
-            '--validation-errors-fatal',
-            action='store_true',
-            default=True,
-            help=_('DEPRECATED: Validation errors are now fatal by default. '
-                   'This option will be removed in the future.')
-        )
-        error_group.add_argument(
+        parser.add_argument(
             '--validation-errors-nonfatal',
             dest='validation_errors_fatal',
             action='store_false',

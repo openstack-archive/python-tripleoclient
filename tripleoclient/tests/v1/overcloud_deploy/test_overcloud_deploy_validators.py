@@ -237,11 +237,6 @@ class TestCollectFlavors(fakes.TestDeployOvercloud):
         self.check_parser(self.cmd, ['--templates'],
                           [('validation_errors_fatal', True)])
 
-    def test_error_deprecated(self):
-        self.check_parser(self.cmd,
-                          ['--templates', '--validation-errors-fatal'],
-                          [('validation_errors_fatal', True)])
-
     def test_error_nonfatal(self):
         self.check_parser(self.cmd,
                           ['--templates', '--validation-errors-nonfatal'],
