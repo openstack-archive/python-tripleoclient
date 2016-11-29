@@ -668,13 +668,25 @@ class DeployOvercloud(command.Command):
 
         if parsed_args.environment_files:
             nonexisting_envs = []
+            jinja2_envs = []
             for env_file in parsed_args.environment_files:
-                if not os.path.isfile(env_file):
+
+                if env_file.endswith(".j2.yaml"):
+                    jinja2_envs.append(env_file)
+                elif not os.path.isfile(env_file):
                     # Tolerate missing file if there's a j2.yaml file that will
                     # be rendered in the plan but not available locally (yet)
                     if not os.path.isfile(env_file.replace(".yaml",
                                                            ".j2.yaml")):
                         nonexisting_envs.append(env_file)
+            if jinja2_envs:
+                rewritten_paths = [e.replace(".j2.yaml", ".yaml")
+                                   for e in jinja2_envs]
+                raise oscexc.CommandError(
+                    "Error: The the following jinja2 files were provided: -e "
+                    "{}. Did you mean -e {}?".format(
+                        ' -e '.join(jinja2_envs),
+                        ' -e '.join(rewritten_paths)))
             if nonexisting_envs:
                 raise oscexc.CommandError(
                     "Error: The following files were not found: {0}".format(
