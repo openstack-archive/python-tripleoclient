@@ -44,7 +44,7 @@ class FakeClientManager(object):
 
 class FakeWebSocket(object):
 
-    def wait_for_message(self, execution_id):
+    def wait_for_message(self, execution_id, timeout=None):
         return {
             'status': 'SUCCESS'
         }
