@@ -28,6 +28,7 @@ FAKE_STACK = {
         'CephStorageCount': 0,
     },
     'stack_name': 'overcloud',
+    'stack_status': "CREATE_COMPLETE",
     'outputs': [{
         'output_key': 'KeystoneURL',
         'output_value': 'http://0.0.0.0:8000',

@@ -1399,12 +1399,12 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('os.path.relpath', autospec=True)
     @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env',
                 autospec=True)
-    def test__heat_deploy_update_plan_only(self, mock_breakpoints_cleanup,
-                                           mock_relpath,
-                                           mock_get_template_contents,
-                                           mock_upload_missing_files,
-                                           mock_process_and_upload_env,
-                                           mock_deploy_and_wait):
+    def test_heat_deploy_update_plan_only(self, mock_breakpoints_cleanup,
+                                          mock_relpath,
+                                          mock_get_template_contents,
+                                          mock_upload_missing_files,
+                                          mock_process_and_upload_env,
+                                          mock_deploy_and_wait):
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
         mock_stack = fakes.create_tht_stack()
@@ -1427,3 +1427,19 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                               {}, 1, '/tmp', {}, True)
 
         self.assertFalse(mock_deploy_and_wait.called)
+
+    def test_heat_stack_busy(self):
+
+        clients = self.app.client_manager
+        orchestration_client = clients.orchestration
+        mock_stack = fakes.create_tht_stack(stack_status="IN_PROGRESS")
+        orchestration_client.stacks.get.return_value = mock_stack
+
+        arglist = ['--templates', ]
+        verifylist = [
+            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
+        ]
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.assertRaises(exceptions.StackInProgress,
+                          self.cmd.take_action, parsed_args)

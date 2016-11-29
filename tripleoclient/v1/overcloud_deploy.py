@@ -1053,6 +1053,11 @@ class DeployOvercloud(command.Command):
 
         stack = utils.get_stack(orchestration_client, parsed_args.stack)
 
+        if stack and stack.stack_status == 'IN_PROGRESS':
+            raise exceptions.StackInProgress(
+                "Unable to deploy as the stack '{}' status is '{}'".format(
+                    stack.stack_name, stack.stack_status))
+
         parameters = self._update_parameters(
             parsed_args, clients.network, stack)
 
