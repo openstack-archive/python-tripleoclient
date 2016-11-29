@@ -75,7 +75,7 @@ def write_overcloudrc(stack_name, overcloudrcs, config_directory='.'):
 
     with open(rcv3path, 'w') as rcv3file:
         rcv3file.write(overcloudrcs['overcloudrc.v3'])
-    os.chmod(rcpath, 0o600)
+    os.chmod(rcv3path, 0o600)
 
 
 def create_tempest_deployer_input(config_name='tempest-deployer-input.conf'):
