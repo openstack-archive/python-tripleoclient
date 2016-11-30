@@ -775,8 +775,9 @@ class DeployOvercloud(command.Command):
             self.log.exception("Please make sure there is only one image "
                                "named 'bm-deploy-kernel' in glance.")
         except oscexc.CommandError:
-            self.log.exception("Error finding 'bm-deploy-kernel' in "
-                               "glance.")
+            # kernel_id=None will be returned and an error will be logged from
+            # self._check_boot_images
+            pass
 
         try:
             ramdisk_id = osc_utils.find_resource(
@@ -785,8 +786,9 @@ class DeployOvercloud(command.Command):
             self.log.exception("Please make sure there is only one image "
                                "named 'bm-deploy-ramdisk' in glance.")
         except oscexc.CommandError:
-            self.log.exception("Error finding 'bm-deploy-ramdisk' in "
-                               "glance.")
+            # ramdisk_id=None will be returned and an error will be logged from
+            # self._check_boot_images
+            pass
 
         self.log.debug("Using kernel ID: {0} and ramdisk ID: {1}".format(
             kernel_id, ramdisk_id))
