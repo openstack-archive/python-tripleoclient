@@ -87,3 +87,15 @@ class WorkflowActionError(Exception):
     def __init__(self, message, action='', output=''):
         message = message.format(action, output)
         super(WorkflowActionError, self).__init__(message)
+
+
+class DownloadError(Exception):
+    """Download attempt failed"""
+
+
+class LogFetchError(Exception):
+    """Fetching logs failed"""
+
+
+class ContainerDeleteFailed(Exception):
+    """Container deletion failed"""

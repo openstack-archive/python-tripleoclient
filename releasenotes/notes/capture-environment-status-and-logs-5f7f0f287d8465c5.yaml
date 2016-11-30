@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Implemented new 'openstack overcloud support report' command to execute
+    a log collection and retrieval against overcloud nodes.  This new command
+    allows an operator to perform sosreport retrieval from all nodes or
+    specific nodes based on their server name.
