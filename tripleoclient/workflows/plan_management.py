@@ -91,6 +91,18 @@ def create_deployment_plan(clients, **workflow_input):
             'Exception creating plan: {}'.format(payload['message']))
 
 
+def delete_deployment_plan(workflow_client, **input_):
+    try:
+        results = base.call_action(workflow_client,
+                                   'tripleo.plan.delete',
+                                   **input_)
+        if results is not None:
+            print(results)
+    except Exception as err:
+        raise exceptions.WorkflowServiceError(
+            'Exception deleting plan: {}'.format(err))
+
+
 def update_deployment_plan(clients, **workflow_input):
     payload = _create_update_deployment_plan(
         clients, 'tripleo.plan_management.v1.update_deployment_plan',

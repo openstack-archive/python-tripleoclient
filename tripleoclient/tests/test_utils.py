@@ -656,6 +656,48 @@ class TestAssignVerifyProfiles(TestCase):
         self._test(0, 0)
 
 
+class TestPromptUser(TestCase):
+    def setUp(self):
+        super(TestPromptUser, self).setUp()
+        self.logger = mock.MagicMock()
+        self.logger.info = mock.MagicMock()
+
+    @mock.patch('sys.stdin')
+    def test_user_accepts(self, stdin_mock):
+        stdin_mock.isatty.return_value = True
+        stdin_mock.readline.return_value = "yes"
+        result = utils.prompt_user_for_confirmation("[y/N]?", self.logger)
+        self.assertTrue(result)
+
+    @mock.patch('sys.stdin')
+    def test_user_declines(self, stdin_mock):
+        stdin_mock.isatty.return_value = True
+        stdin_mock.readline.return_value = "no"
+        result = utils.prompt_user_for_confirmation("[y/N]?", self.logger)
+        self.assertFalse(result)
+
+    @mock.patch('sys.stdin')
+    def test_user_no_tty(self, stdin_mock):
+        stdin_mock.isatty.return_value = False
+        stdin_mock.readline.return_value = "yes"
+        result = utils.prompt_user_for_confirmation("[y/N]?", self.logger)
+        self.assertFalse(result)
+
+    @mock.patch('sys.stdin')
+    def test_user_aborts_control_c(self, stdin_mock):
+        stdin_mock.isatty.return_value = False
+        stdin_mock.readline.side_effect = KeyboardInterrupt()
+        result = utils.prompt_user_for_confirmation("[y/N]?", self.logger)
+        self.assertFalse(result)
+
+    @mock.patch('sys.stdin')
+    def test_user_aborts_with_control_d(self, stdin_mock):
+        stdin_mock.isatty.return_value = False
+        stdin_mock.readline.side_effect = EOFError()
+        result = utils.prompt_user_for_confirmation("[y/N]?", self.logger)
+        self.assertFalse(result)
+
+
 class TestReplaceLinks(TestCase):
 
     def setUp(self):

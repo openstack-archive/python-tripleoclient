@@ -112,3 +112,16 @@ class TestPlanCreationWorkflows(utils.TestCommand):
 
         self.tripleoclient.object_store.put_object.assert_called_once_with(
             'test-overcloud', 'roles_data.yaml', mock_open_context())
+
+    def test_delete_plan(self):
+        self.workflow.action_executions.create.return_value = (
+            mock.Mock(output='{"result": null}'))
+
+        plan_management.delete_deployment_plan(
+            self.workflow,
+            input={'container': 'overcloud'})
+
+        self.workflow.action_executions.create.assert_called_once_with(
+            'tripleo.plan.delete',
+            {'input': {'container': 'overcloud'}},
+            run_sync=True, save_result=True)

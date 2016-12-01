@@ -33,6 +33,7 @@ import yaml
 from heatclient.common import event_utils
 from heatclient.exc import HTTPNotFound
 from osc_lib.i18n import _
+from osc_lib.i18n import _LI
 from six.moves import configparser
 from six.moves import urllib
 
@@ -817,6 +818,42 @@ def parse_env_file(env_file, file_type=None):
         nodes_config = nodes_config['nodes']
 
     return nodes_config
+
+
+def prompt_user_for_confirmation(message, logger, positive_response='y'):
+    """Prompt user for a y/N confirmation
+
+    Use this function to prompt the user for a y/N confirmation
+    with the provided message. The [y/N] should be included in
+    the provided message to this function to indicate the expected
+    input for confirmation. You can customize the positive response if
+    y/N is not a desired input.
+
+    :param message: Confirmation string prompt
+    :param logger: logger object used to write info logs
+    :param positive_response: Beginning character for a positive user input
+    :return boolean true for valid confirmation, false for all others
+    """
+    try:
+        if not sys.stdin.isatty():
+            logger.error(_LI('User interaction required, cannot confirm.'))
+            return False
+        else:
+            sys.stdout.write(message)
+            prompt_response = sys.stdin.readline().lower()
+            if not prompt_response.startswith(positive_response):
+                logger.info(_LI(
+                    'User did not confirm action so taking no action.'))
+                return False
+            logger.info(_LI('User confirmed action.'))
+            return True
+    except KeyboardInterrupt:  # ctrl-c
+        logger.info(_LI(
+            'User did not confirm action (ctrl-c) so taking no action.'))
+    except EOFError:  # ctrl-d
+        logger.info(_LI(
+            'User did not confirm action (ctrl-d) so taking no action.'))
+    return False
 
 
 def replace_links_in_template_contents(contents, link_replacement):

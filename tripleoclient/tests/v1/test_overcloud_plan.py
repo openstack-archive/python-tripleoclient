@@ -58,33 +58,35 @@ class TestOvercloudDeletePlan(utils.TestCommand):
         self.app.client_manager.workflow_engine = mock.Mock()
         self.workflow = self.app.client_manager.workflow_engine
 
-    def test_delete_plan(self):
+    @mock.patch(
+        'tripleoclient.workflows.plan_management.delete_deployment_plan',
+        autospec=True)
+    def test_delete_plan(self, delete_deployment_plan_mock):
         parsed_args = self.check_parser(self.cmd, ['test-plan'],
                                         [('plans', ['test-plan'])])
 
-        self.workflow.action_executions.create.return_value = (
-            mock.Mock(output='{"result": null}'))
-
         self.cmd.take_action(parsed_args)
 
-        self.workflow.action_executions.create.assert_called_once_with(
-            'tripleo.plan.delete', input={'container': 'test-plan'})
+        delete_deployment_plan_mock.assert_called_once_with(
+            self.workflow,
+            input={'container': 'test-plan'})
 
-    def test_delete_multiple_plans(self):
+    @mock.patch(
+        'tripleoclient.workflows.plan_management.delete_deployment_plan',
+        autospec=True)
+    def test_delete_multiple_plans(self, delete_deployment_plan_mock):
         argslist = ['test-plan1', 'test-plan2']
         verifylist = [('plans', ['test-plan1', 'test-plan2'])]
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
 
-        self.workflow.action_executions.create.return_value = (
-            mock.Mock(output='{"result": null}'))
-
         self.cmd.take_action(parsed_args)
 
-        self.workflow.action_executions.create.assert_has_calls(
-            [mock.call('tripleo.plan.delete',
-                       input={'container': 'test-plan1'}),
-             mock.call('tripleo.plan.delete',
-                       input={'container': 'test-plan2'})])
+        expected = [
+            mock.call(self.workflow, input={'container': 'test-plan1'}),
+            mock.call(self.workflow, input={'container': 'test-plan2'}),
+        ]
+        self.assertEqual(delete_deployment_plan_mock.call_args_list,
+                         expected)
 
 
 class TestOvercloudCreatePlan(utils.TestCommand):
