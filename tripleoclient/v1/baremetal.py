@@ -428,21 +428,3 @@ class ConfigureBaremetalBoot(command.Command):
                 overwrite_root_device_hints=(
                     parsed_args.overwrite_root_device_hints)
             )
-
-
-class ShowNodeCapabilities(command.Lister):
-    """List the capabilities for all Nodes"""
-
-    log = logging.getLogger(__name__ + ".ShowNodeProfile")
-
-    def take_action(self, parsed_args):
-        self.log.warning('This command is deprecated and will be removed soon '
-                         'please use "openstack overcloud profiles list" to '
-                         'get the list of all nodes and their profiles')
-        bm_client = self.app.client_manager.baremetal
-        rows = []
-        for node in bm_client.node.list():
-            node_detail = bm_client.node.get(node.uuid)
-            capabilities = node_detail.properties.get('capabilities')
-            rows.append((node.uuid, capabilities))
-        return (("Node UUID", "Node Capabilities"), rows, )
