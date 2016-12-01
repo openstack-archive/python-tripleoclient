@@ -684,11 +684,19 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_update_parameters.return_value = {}
         mock_utils_endpoint.return_value = 'foo.bar'
+        os.mkdir(self.tmp_dir.join('env'))
+        os.mkdir(self.tmp_dir.join('common'))
 
-        test_env = self.tmp_dir.join('foo2.yaml')
+        test_env = self.tmp_dir.join('env/foo2.yaml')
 
         with open(test_env, 'w') as temp_file:
-            temp_file.write('resource_registry:\n  Test: /tmp/doesnexit.yaml')
+            temp_file.write('resource_registry:\n  '
+                            'Test1: ../common/bar.yaml\n  '
+                            'Test2: /tmp/doesnexit.yaml')
+
+        test_sub_env = self.tmp_dir.join('common/bar.yaml')
+        with open(test_sub_env, 'w') as temp_file:
+            temp_file.write('outputs:\n  data:\n    value: 1')
 
         arglist = ['--templates']
         verifylist = [
@@ -696,7 +704,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         ]
         self.useFixture(
             fixtures.EnvironmentVariable('TRIPLEO_ENVIRONMENT_DIRECTORY',
-                                         self.tmp_dir.path))
+                                         self.tmp_dir.join('env')))
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         error = self.assertRaises(hc_exc.CommandError, self.cmd.take_action,
