@@ -191,7 +191,7 @@ class DeployOvercloud(command.Command):
                                        % (env_path, rsrc, new_rsrc_path))
                         env_registry[rsrc] = new_rsrc_path
                     else:
-                        env_registry[rsrc] = rsrc_path
+                        env_registry[rsrc] = abs_rsrc_path
                 env_map['resource_registry'] = env_registry
                 f_name = os.path.basename(os.path.splitext(abs_env_path)[0])
                 with tempfile.NamedTemporaryFile(dir=tht_root,
