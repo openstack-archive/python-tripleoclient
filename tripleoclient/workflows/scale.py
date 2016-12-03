@@ -14,9 +14,9 @@
 # under the License.
 from __future__ import print_function
 
-import pprint
 import uuid
 
+from tripleoclient.exceptions import InvalidConfiguration
 from tripleoclient.workflows import base
 
 
@@ -33,8 +33,9 @@ def delete_node(clients, **workflow_input):
     )
 
     with tripleoclients.messaging_websocket(queue_name) as ws:
-        message = ws.wait_for_message(execution.id)
-        assert message['status'] == "SUCCESS", pprint.pformat(message)
+        rtn_message = ws.wait_for_message(execution.id)
+        if rtn_message['status'] != "SUCCESS":
+            raise InvalidConfiguration(rtn_message['message'])
 
 
 def scale_down(clients, plan_name, nodes, timeout=None):
