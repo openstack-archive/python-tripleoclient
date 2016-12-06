@@ -560,6 +560,33 @@ class TestUploadOvercloudImage(TestPluginV1):
                           '"/httpboot/agent.ramdisk"', shell=True)
             ])
 
+    @mock.patch('os.path.isfile')
+    @mock.patch('subprocess.check_call', autospec=True)
+    def test_overcloud_create_images_image_path(self, mock_subprocess_call,
+                                                mock_isfile):
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--image-path', '/foo'],
+                                        [])
+        self.cmd._image_try_update = mock.Mock()
+        mock_isfile.return_value = False
+
+        self.cmd.take_action(parsed_args)
+
+        expected = [
+            mock.call('overcloud-full-vmlinuz', '/foo/overcloud-full.vmlinuz',
+                      mock.ANY),
+            mock.call('overcloud-full-initrd', '/foo/overcloud-full.initrd',
+                      mock.ANY),
+            mock.call('overcloud-full', '/foo/overcloud-full.qcow2',
+                      mock.ANY),
+            mock.call('bm-deploy-kernel', '/foo/ironic-python-agent.kernel',
+                      mock.ANY),
+            mock.call('bm-deploy-ramdisk',
+                      '/foo/ironic-python-agent.initramfs',
+                      mock.ANY),
+            ]
+        self.assertEqual(expected, self.cmd._image_try_update.mock_calls)
+
     @mock.patch('subprocess.check_call', autospec=True)
     def test_overcloud_create_noupdate_images(self, mock_subprocess_call):
         parsed_args = self.check_parser(self.cmd, [], [])
