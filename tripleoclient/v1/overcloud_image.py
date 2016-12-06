@@ -813,7 +813,10 @@ class UploadOvercloudImage(command.Command):
         # vmlinuz and initrd only need to be uploaded for a partition image
         if not parsed_args.whole_disk:
             oc_vmlinuz_name = '%s-vmlinuz' % image_name
-            oc_vmlinuz_file = '%s.vmlinuz' % image_name
+            oc_vmlinuz_extension = '.vmlinuz'
+            oc_vmlinuz_file = os.path.join(parsed_args.image_path,
+                                           image_name +
+                                           oc_vmlinuz_extension)
             kernel = (self._image_try_update(oc_vmlinuz_name,
                                              oc_vmlinuz_file,
                                              parsed_args) or
@@ -826,7 +829,10 @@ class UploadOvercloudImage(command.Command):
             ))
 
             oc_initrd_name = '%s-initrd' % image_name
-            oc_initrd_file = '%s.initrd' % image_name
+            oc_initrd_extension = '.initrd'
+            oc_initrd_file = os.path.join(parsed_args.image_path,
+                                          image_name +
+                                          oc_initrd_extension)
             ramdisk = (self._image_try_update(oc_initrd_name,
                                               oc_initrd_file,
                                               parsed_args) or
@@ -839,7 +845,10 @@ class UploadOvercloudImage(command.Command):
             ))
 
             oc_name = image_name
-            oc_file = '%s.qcow2' % image_name
+            oc_extension = '.qcow2'
+            oc_file = os.path.join(parsed_args.image_path,
+                                   image_name +
+                                   oc_extension)
             overcloud_image = (self._image_try_update(oc_name, oc_file,
                                                       parsed_args) or
                                glance_client_adaptor.upload_image(
@@ -865,7 +874,10 @@ class UploadOvercloudImage(command.Command):
 
         else:
             oc_name = image_name
-            oc_file = '%s.qcow2' % image_name
+            oc_extension = '.qcow2'
+            oc_file = os.path.join(parsed_args.image_path,
+                                   image_name +
+                                   oc_extension)
             overcloud_image = (self._image_try_update(oc_name, oc_file,
                                                       parsed_args) or
                                glance_client_adaptor.upload_image(
@@ -881,7 +893,10 @@ class UploadOvercloudImage(command.Command):
         self.log.debug("uploading bm images to glance")
 
         deploy_kernel_name = 'bm-deploy-kernel'
-        deploy_kernel_file = '%s.kernel' % os.environ['AGENT_NAME']
+        deploy_kernel_extension = '.kernel'
+        deploy_kernel_file = os.path.join(parsed_args.image_path,
+                                          os.environ['AGENT_NAME'] +
+                                          deploy_kernel_extension)
         self._image_try_update(deploy_kernel_name, deploy_kernel_file,
                                parsed_args) or \
             glance_client_adaptor.upload_image(
@@ -893,7 +908,10 @@ class UploadOvercloudImage(command.Command):
                     deploy_kernel_file))
 
         deploy_ramdisk_name = 'bm-deploy-ramdisk'
-        deploy_ramdisk_file = '%s.initramfs' % os.environ['AGENT_NAME']
+        deploy_ramdisk_extension = '.initramfs'
+        deploy_ramdisk_file = os.path.join(parsed_args.image_path,
+                                           os.environ['AGENT_NAME'] +
+                                           deploy_ramdisk_extension)
         self._image_try_update(deploy_ramdisk_name, deploy_ramdisk_file,
                                parsed_args) or \
             glance_client_adaptor.upload_image(
