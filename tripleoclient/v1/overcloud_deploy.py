@@ -115,10 +115,6 @@ class DeployOvercloud(command.Command):
     def _create_registration_env(self, args):
         tht_root = args.templates
 
-        env_file = os.path.join(
-            tht_root,
-            constants.RHEL_REGISTRATION_EXTRACONFIG_NAME,
-            'environment-rhel-registration.yaml')
         registry = os.path.join(
             tht_root,
             constants.RHEL_REGISTRATION_EXTRACONFIG_NAME,
@@ -128,7 +124,7 @@ class DeployOvercloud(command.Command):
                     'rhel_reg_force': args.reg_force,
                     'rhel_reg_sat_url': args.reg_sat_url,
                     'rhel_reg_activation_key': args.reg_activation_key}
-        return [registry, env_file], {"parameter_defaults": user_env}
+        return [registry], {"parameter_defaults": user_env}
 
     def _create_parameters_env(self, parameters):
         parameter_defaults = {"parameter_defaults": parameters}

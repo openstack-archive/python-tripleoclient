@@ -844,9 +844,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                       'pre_deploy/rhel-registration/')
         calls = [
             mock.call(env_path=tht_prefix +
-                      'rhel-registration-resource-registry.yaml'),
-            mock.call(env_path=tht_prefix +
-                      'environment-rhel-registration.yaml')]
+                      'rhel-registration-resource-registry.yaml'), ]
         mock_process_env.assert_has_calls(calls)
 
     @mock.patch('tripleoclient.tests.v1.overcloud_deploy.fakes.'
