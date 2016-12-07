@@ -813,9 +813,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                       'pre_deploy/rhel-registration/')
         calls = [
             mock.call(env_path=tht_prefix +
-                      'rhel-registration-resource-registry.yaml'),
-            mock.call(env_path=tht_prefix +
-                      'environment-rhel-registration.yaml')]
+                      'rhel-registration-resource-registry.yaml'), ]
         mock_process_env.assert_has_calls(calls)
 
     def test_validate_args_correct(self):
