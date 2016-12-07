@@ -70,7 +70,7 @@ class DeleteOvercloud(command.Command):
         try:
             plan_management.delete_deployment_plan(
                 workflow_client,
-                input={'container': stack_name})
+                container=stack_name)
         except Exception as err:
             raise oscexc.CommandError(
                 "Error occurred while deleting plan {}".format(err))
@@ -83,7 +83,7 @@ class DeleteOvercloud(command.Command):
         if not parsed_args.yes:
             confirm = utils.prompt_user_for_confirmation(
                 message=_("Are you sure you want to delete this overcloud "
-                          "[y/N]?"),
+                          "[y/N]? "),
                 logger=self.log)
             if not confirm:
                 raise oscexc.CommandError("Action not confirmed, exiting.")

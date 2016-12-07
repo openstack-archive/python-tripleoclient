@@ -119,9 +119,9 @@ class TestPlanCreationWorkflows(utils.TestCommand):
 
         plan_management.delete_deployment_plan(
             self.workflow,
-            input={'container': 'overcloud'})
+            container='overcloud')
 
         self.workflow.action_executions.create.assert_called_once_with(
             'tripleo.plan.delete',
-            {'input': {'container': 'overcloud'}},
+            {'container': 'overcloud'},
             run_sync=True, save_result=True)

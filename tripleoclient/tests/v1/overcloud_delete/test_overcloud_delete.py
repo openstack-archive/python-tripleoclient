@@ -63,4 +63,4 @@ class TestDeleteOvercloud(fakes.TestDeployOvercloud):
 
         delete_deployment_plan_mock.assert_called_once_with(
             self.workflow,
-            input={'container': 'overcloud'})
+            container='overcloud')

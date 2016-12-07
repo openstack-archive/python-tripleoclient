@@ -69,7 +69,7 @@ class TestOvercloudDeletePlan(utils.TestCommand):
 
         delete_deployment_plan_mock.assert_called_once_with(
             self.workflow,
-            input={'container': 'test-plan'})
+            container='test-plan')
 
     @mock.patch(
         'tripleoclient.workflows.plan_management.delete_deployment_plan',
@@ -82,8 +82,8 @@ class TestOvercloudDeletePlan(utils.TestCommand):
         self.cmd.take_action(parsed_args)
 
         expected = [
-            mock.call(self.workflow, input={'container': 'test-plan1'}),
-            mock.call(self.workflow, input={'container': 'test-plan2'}),
+            mock.call(self.workflow, container='test-plan1'),
+            mock.call(self.workflow, container='test-plan2'),
         ]
         self.assertEqual(delete_deployment_plan_mock.call_args_list,
                          expected)
