@@ -72,13 +72,5 @@ class ProfileMatchingError(Exception):
     """Failed to validate or assign node profiles"""
 
 
-class PasswordFileNotFound(Exception):
-    """Password file for the Heat stack not found in the current working dir"""
-
-
-class RootDeviceDetectionError(Exception):
-    """Failed to detect the root device"""
-
-
 class PlanCreationError(Exception):
     """Plan creation failed"""
