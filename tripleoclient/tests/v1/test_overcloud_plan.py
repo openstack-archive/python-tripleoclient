@@ -106,6 +106,7 @@ class TestOvercloudCreatePlan(utils.TestCommand):
         self.app.client_manager.tripleoclient = self.tripleoclient
 
         self.workflow = self.app.client_manager.workflow_engine
+        self.swift = self.app.client_manager.tripleoclient.object_store
 
         # Mock UUID4 generation for every test
         uuid4_patcher = mock.patch('uuid.uuid4', return_value="UUID4")
@@ -216,6 +217,28 @@ class TestOvercloudCreatePlan(utils.TestCommand):
         mock_result = mock.Mock(output='{"result": null}')
         self.workflow.action_executions.create.return_value = mock_result
 
+        self.swift.get_account.return_value = (
+            {u'accept-ranges': u'bytes'},
+            [{u'bytes': 1719440, u'count': 482, u'name': u'overcast'},
+             {u'bytes': 1719440, u'count': 482, u'name': u'overcloud'}]
+        )
+
+        self.swift.get_container.return_value = (
+            {u'x-container-meta-usage-tripleo': u'plan'},
+            [{u'hash': u'2df2606ed8b866806b162ab3fa9a77ea',
+              u'last_modified': u'2016-12-09T21:18:16.172610', u'bytes': 808,
+              u'name': u'all-nodes-validation.yaml',
+              u'content_type': u'application/octet-stream'},
+             {u'hash': u'0f1043e65e95ec24054a4ea63cdb3984',
+              u'last_modified': u'2016-12-09T21:18:19.612600', u'bytes': 583,
+              u'name': u'bootstrap-config.yaml',
+              u'content_type': u'application/octet-stream'},
+             {u'hash': u'f9415b93617acd6b151582543a77c689',
+              u'last_modified': u'2016-12-09T21:18:16.486870', u'bytes': 20903,
+              u'name': u'capabilities-map.yaml',
+              u'content_type': u'application/octet-stream'}]
+        )
+
         # Run
         self.assertRaises(exceptions.WorkflowServiceError,
                           self.cmd.take_action, parsed_args)
@@ -233,6 +256,14 @@ class TestOvercloudCreatePlan(utils.TestCommand):
                 'queue_name': 'UUID4',
                 'generate_passwords': True
             })
+
+        self.swift.get_account.assert_called_once()
+        self.swift.get_container.assert_called_once_with('overcast')
+        self.swift.delete_object.assert_has_calls([
+            mock.call('overcast', u'capabilities-map.yaml'),
+            mock.call('overcast', u'bootstrap-config.yaml'),
+            mock.call('overcast', u'all-nodes-validation.yaml'),
+        ], any_order=True)
 
     def test_create_default_plan_with_password_gen_disabled(self):
 

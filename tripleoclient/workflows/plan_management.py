@@ -12,6 +12,7 @@
 import tempfile
 import uuid
 
+from tripleo_common.utils import swift as swiftutils
 from tripleo_common.utils import tarball
 
 from tripleoclient import constants
@@ -139,9 +140,14 @@ def create_plan_from_templates(clients, name, tht_root, roles_file=None,
 
     print("Creating plan from template files in: {}".format(tht_root))
     _upload_templates(swift_client, name, tht_root, roles_file)
-    create_deployment_plan(clients, container=name,
-                           queue_name=str(uuid.uuid4()),
-                           generate_passwords=generate_passwords)
+
+    try:
+        create_deployment_plan(clients, container=name,
+                               queue_name=str(uuid.uuid4()),
+                               generate_passwords=generate_passwords)
+    except exceptions.WorkflowServiceError:
+        swiftutils.delete_container(swift_client, name)
+        raise
 
 
 def update_plan_from_templates(clients, name, tht_root, roles_file=None,
@@ -151,9 +157,7 @@ def update_plan_from_templates(clients, name, tht_root, roles_file=None,
     # TODO(dmatthews): Removing the existing plan files should probably be
     #                  a Mistral action.
     print("Removing the current plan files")
-    headers, objects = swift_client.get_container(name)
-    for object_ in objects:
-        swift_client.delete_object(name, object_['name'])
+    swiftutils.empty_container(swift_client, name)
 
     # Until we have a well defined plan update workflow in tripleo-common we
     # need to manually reset the environments here. This is to ensure that

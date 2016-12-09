@@ -30,5 +30,8 @@ fixes:
   - Fixes `bug 1637474
     <https://bugs.launchpad.net/tripleo/+bug/1637474>`__ so we manage
     --initial-state flag for register_or_update.
+  - Fixes `bug 1648861
+    <https://bugs.launchpad.net/tripleo/+bug/1648861>`__ so that if the plan
+    creation fails, the Swift container isn't created.
 other:
   - Remove the keystone_pki cert generation, which is not needed anymore.
