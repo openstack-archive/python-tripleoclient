@@ -28,8 +28,6 @@ from swiftclient.exceptions import ClientException as ObjectClientException
 from tripleoclient import constants
 from tripleoclient import exceptions
 from tripleoclient.tests.v1.overcloud_deploy import fakes
-from tripleoclient.tests.v1.utils import (
-    generate_overcloud_passwords_mock)
 from tripleoclient.v1 import overcloud_deploy
 
 
@@ -49,8 +47,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.real_predeploy_verify_capabilities = \
             self.cmd._predeploy_verify_capabilities
         self.cmd._predeploy_verify_capabilities = validator_mock
-
-        self._get_passwords = generate_overcloud_passwords_mock
 
         self.parameter_defaults_env_file = (
             tempfile.NamedTemporaryFile(mode='w', delete=False).name)
@@ -82,19 +78,14 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
-    @mock.patch('tripleoclient.utils.create_environment_file',
-                autospec=True)
     @mock.patch('tripleoclient.utils.get_config_value', autospec=True)
     @mock.patch('tripleoclient.utils.check_hypervisor_stats',
                 autospec=True)
     @mock.patch('uuid.uuid1', autospec=True)
-    @mock.patch('tripleoclient.utils.create_keystone_credential',
-                autospec=True)
     @mock.patch('time.time', autospec=True)
     @mock.patch('shutil.copytree', autospec=True)
-    def test_tht_scale(self, mock_copy, mock_time, mock_creds, mock_uuid1,
+    def test_tht_scale(self, mock_copy, mock_time, mock_uuid1,
                        mock_check_hypervisor_stats, mock_get_key,
-                       mock_create_env,
                        mock_get_template_contents,
                        wait_for_stack_ready_mock,
                        mock_remove_known_hosts, mock_keystone_initialize,
@@ -114,10 +105,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         ]
 
         mock_uuid1.return_value = "uuid"
-        mock_creds.return_value = "key"
         mock_time.return_value = 123456789
 
-        mock_generate_overcloud_passwords.return_value = self._get_passwords()
+        mock_generate_overcloud_passwords.return_value = {}
 
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
@@ -140,7 +130,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         clients.network.api.find_attr.return_value = {
             "id": "network id"
         }
-        mock_create_env.return_value = "/fake/path"
         mock_get_template_contents.return_value = [{}, "template"]
         wait_for_stack_ready_mock.return_value = True
 
@@ -150,50 +139,17 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         baremetal.node.list.return_value = range(10)
 
         expected_parameters = {
-            'AdminPassword': 'password',
-            'AdminToken': 'password',
-            'AodhPassword': 'password',
-            'BarbicanPassword': 'password',
-            'CeilometerMeteringSecret': 'password',
-            'CeilometerPassword': 'password',
-            'CephAdminKey': 'password',
-            'CephClientKey': 'password',
             'CephClusterFSID': 'uuid',
-            'CephMonKey': 'password',
-            'CephRgwKey': 'password',
             'CephStorageCount': 3,
-            'CinderPassword': 'password',
             'ExtraConfig': '{}',
-            'GlancePassword': 'password',
-            'GnocchiPassword': 'password',
-            'HAProxyStatsPassword': 'password',
-            'HeatPassword': 'password',
-            'HeatStackDomainAdminPassword': 'password',
             'HypervisorNeutronPhysicalBridge': 'br-ex',
             'HypervisorNeutronPublicInterface': 'nic1',
-            'IronicPassword': 'password',
-            'KeystoneCredential0': 'password',
-            'KeystoneCredential1': 'password',
-            'ManilaPassword': 'password',
-            'MistralPassword': 'password',
-            'MysqlClustercheckPassword': 'password',
             'NeutronDhcpAgentsPerNetwork': 1,
             'NeutronDnsmasqOptions': 'dhcp-option-force=26,1400',
             'NeutronFlatNetworks': 'datacentre',
-            'NeutronMetadataProxySharedSecret': 'password',
-            'NeutronPassword': 'password',
             'NeutronPublicInterface': 'nic1',
-            'NovaPassword': 'password',
             'NtpServer': '',
-            'PankoPassword': 'password',
-            'RabbitPassword': 'password',
-            'RedisPassword': 'password',
-            'SaharaPassword': 'password',
             'SnmpdReadonlyUserPassword': 'PASSWORD',
-            'SwiftHashSuffix': 'password',
-            'SwiftPassword': 'password',
-            'TrovePassword': 'password',
-            'ZaqarPassword': 'password',
             'DeployIdentifier': 123456789,
             'UpdateIdentifier': '',
             'StackAction': 'UPDATE',
@@ -245,26 +201,19 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.remove_known_hosts', autospec=True)
     @mock.patch('tripleoclient.utils.wait_for_stack_ready',
                 autospec=True)
-    @mock.patch('heatclient.common.template_utils.'
-                'process_environment_and_files', autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
-                autospec=True)
-    @mock.patch('tripleoclient.utils.create_environment_file',
                 autospec=True)
     @mock.patch('tripleoclient.utils.get_config_value', autospec=True)
     @mock.patch('tripleoclient.utils.check_hypervisor_stats',
                 autospec=True)
     @mock.patch('uuid.uuid1', autospec=True)
-    @mock.patch('tripleoclient.utils.create_keystone_credential',
-                autospec=True)
     @mock.patch('time.time', autospec=True)
     @mock.patch('shutil.copytree', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True)
-    def test_tht_deploy(self, mock_tmpdir, mock_copy, mock_time, mock_creds,
+    def test_tht_deploy(self, mock_tmpdir, mock_copy, mock_time,
                         mock_uuid1,
                         mock_check_hypervisor_stats, mock_get_key,
-                        mock_create_env,
-                        mock_get_template_contents, mock_process_env,
+                        mock_get_template_contents,
                         wait_for_stack_ready_mock,
                         mock_remove_known_hosts, mock_keystone_initialize,
                         mock_sleep, mock_setup_endpoints,
@@ -284,10 +233,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_tmpdir.return_value = "/tmp/tht"
         mock_uuid1.return_value = "uuid"
-        mock_creds.return_value = "key"
         mock_time.return_value = 123456789
 
-        mock_generate_overcloud_passwords.return_value = self._get_passwords()
+        mock_generate_overcloud_passwords.return_value = {}
 
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
@@ -313,9 +261,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         clients.network.api.find_attr.return_value = {
             "id": "network id"
         }
-        mock_create_env.return_value = "/fake/path"
-        mock_env = fakes.create_env()
-        mock_process_env.return_value = [{}, mock_env]
         mock_get_template_contents.return_value = [{}, "template"]
         wait_for_stack_ready_mock.return_value = True
 
@@ -325,52 +270,19 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         baremetal.node.list.return_value = range(10)
 
         expected_parameters = {
-            'AdminPassword': 'password',
-            'AdminToken': 'password',
-            'AodhPassword': 'password',
-            'BarbicanPassword': 'password',
-            'CeilometerMeteringSecret': 'password',
-            'CeilometerPassword': 'password',
-            'CephAdminKey': 'password',
-            'CephClientKey': 'password',
             'CephClusterFSID': 'uuid',
-            'CephMonKey': 'password',
-            'CephRgwKey': 'password',
             'CephStorageCount': 3,
-            'CinderPassword': 'password',
             'ExtraConfig': '{}',
-            'GlancePassword': 'password',
-            'GnocchiPassword': 'password',
-            'HAProxyStatsPassword': 'password',
-            'HeatPassword': 'password',
-            'HeatStackDomainAdminPassword': 'password',
             'HypervisorNeutronPhysicalBridge': 'br-ex',
             'HypervisorNeutronPublicInterface': 'nic1',
-            'IronicPassword': 'password',
-            'KeystoneCredential0': 'password',
-            'KeystoneCredential1': 'password',
-            'ManilaPassword': 'password',
-            'MistralPassword': 'password',
-            'MysqlClustercheckPassword': 'password',
             'NeutronDhcpAgentsPerNetwork': 1,
             'NeutronDnsmasqOptions': 'dhcp-option-force=26,1400',
             'NeutronFlatNetworks': 'datacentre',
             'NeutronNetworkType': 'gre',
-            'NeutronMetadataProxySharedSecret': 'password',
-            'NeutronPassword': 'password',
             'NeutronPublicInterface': 'nic1',
             'NeutronTunnelTypes': 'gre',
-            'NovaPassword': 'password',
             'NtpServer': '',
-            'PankoPassword': 'password',
-            'RabbitPassword': 'password',
-            'RedisPassword': 'password',
-            'SaharaPassword': 'password',
             'SnmpdReadonlyUserPassword': 'PASSWORD',
-            'SwiftHashSuffix': 'password',
-            'SwiftPassword': 'password',
-            'TrovePassword': 'password',
-            'ZaqarPassword': 'password',
             'DeployIdentifier': 123456789,
             'UpdateIdentifier': '',
             'StackAction': 'CREATE',
@@ -423,8 +335,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
-    @mock.patch('tripleoclient.utils.create_environment_file',
-                autospec=True)
     @mock.patch('tripleoclient.utils.get_config_value', autospec=True)
     @mock.patch('tripleoclient.utils.check_hypervisor_stats',
                 autospec=True)
@@ -432,7 +342,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_deploy_custom_templates(self, mock_copy,
                                      mock_check_hypervisor_stats,
                                      mock_get_key,
-                                     mock_create_env,
                                      mock_get_template_contents,
                                      wait_for_stack_ready_mock,
                                      mock_remove_known_hosts,
@@ -450,7 +359,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             ('templates', '/home/stack/tripleo-heat-templates'),
         ]
 
-        mock_generate_overcloud_passwords.return_value = self._get_passwords()
+        mock_generate_overcloud_passwords.return_value = {}
 
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
@@ -466,7 +375,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         clients.network.api.find_attr.return_value = {
             "id": "network id"
         }
-        mock_create_env.return_value = "/fake/path"
         mock_get_template_contents.return_value = [{}, "template"]
         wait_for_stack_ready_mock.return_value = True
 
@@ -764,8 +672,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 'process_environment_and_files', autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
-    @mock.patch('tripleoclient.utils.create_environment_file',
-                autospec=True)
     @mock.patch('tripleoclient.utils.get_config_value', autospec=True)
     @mock.patch('tripleoclient.utils.check_hypervisor_stats',
                 autospec=True)
@@ -775,7 +681,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_deploy_rhel_reg(self, mock_rmtree, mock_tmpdir, mock_copy,
                              mock_check_hypervisor_stats,
                              mock_get_key,
-                             mock_create_env,
                              mock_get_template_contents,
                              mock_process_env,
                              wait_for_stack_ready_mock,
@@ -804,8 +709,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_tmpdir.return_value = None
         mock_tmpdir.return_value = '/tmp/tht'
-        mock_generate_overcloud_passwords.return_value = self._get_passwords()
         mock_process_env.return_value = [{}, fakes.create_env()]
+        mock_generate_overcloud_passwords.return_value = {}
         mock_get_template_contents.return_value = [{}, "template"]
         wait_for_stack_ready_mock.return_value = True
 
@@ -1157,13 +1062,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 'process_environment_and_files', autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
-    @mock.patch('tripleoclient.utils.create_environment_file',
-                autospec=True)
     @mock.patch('tripleoclient.utils.get_config_value', autospec=True)
     @mock.patch('shutil.copytree', autospec=True)
     def test_ntp_server_mandatory(self, mock_copy,
                                   mock_get_key,
-                                  mock_create_env,
                                   mock_get_template_contents,
                                   mock_process_env,
                                   mock_write_overcloudrc,
@@ -1186,7 +1088,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         workflow_client.action_executions.create.return_value = mock.MagicMock(
             output='{"result":[]}')
 
-        mock_generate_overcloud_passwords.return_value = self._get_passwords()
+        mock_generate_overcloud_passwords.return_value = {}
 
         def _custom_create_params_env(parameters):
             parameter_defaults = {"parameter_defaults": parameters}
@@ -1194,7 +1096,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_create_parameters_env.side_effect = _custom_create_params_env
 
-        mock_create_env.return_value = "/fake/path"
         mock_env = fakes.create_env()
         mock_process_env.return_value = [{}, mock_env]
         mock_get_template_contents.return_value = [{}, "template"]
@@ -1232,20 +1133,16 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 'process_environment_and_files', autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
-    @mock.patch('tripleoclient.utils.create_environment_file',
-                autospec=True)
     @mock.patch('tripleoclient.utils.get_config_value', autospec=True)
     @mock.patch('tripleoclient.utils.check_hypervisor_stats',
                 autospec=True)
     @mock.patch('uuid.uuid1', autospec=True)
-    @mock.patch('tripleoclient.utils.create_keystone_credential',
-                autospec=True)
     @mock.patch('time.time', autospec=True)
     @mock.patch('shutil.copytree', autospec=True)
-    def test_tht_deploy_with_ntp(self, mock_copy, mock_time, mock_creds,
+    def test_tht_deploy_with_ntp(self, mock_copy, mock_time,
                                  mock_uuid1,
                                  mock_check_hypervisor_stats,
-                                 mock_get_key, mock_create_env,
+                                 mock_get_key,
                                  mock_get_template_contents,
                                  mock_process_env,
                                  wait_for_stack_ready_mock,
@@ -1269,14 +1166,12 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
             ('ceph_storage_scale', 3),
             ('control_scale', 3),
-            ('ntp_server', 'ntp'),
         ]
 
         mock_uuid1.return_value = "uuid"
-        mock_creds.return_value = "key"
         mock_time.return_value = 123456789
 
-        mock_generate_overcloud_passwords.return_value = self._get_passwords()
+        mock_generate_overcloud_passwords.return_value = {}
 
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
@@ -1306,7 +1201,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         clients.network.api.find_attr.return_value = {
             "id": "network id"
         }
-        mock_create_env.return_value = "/fake/path"
         mock_env = fakes.create_env_with_ntp()
         mock_process_env.return_value = [{}, mock_env]
         mock_get_template_contents.return_value = [{}, "template"]
@@ -1318,52 +1212,19 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         baremetal.node.list.return_value = range(10)
 
         expected_parameters = {
-            'AdminPassword': 'password',
-            'AdminToken': 'password',
-            'AodhPassword': 'password',
-            'BarbicanPassword': 'password',
-            'CeilometerMeteringSecret': 'password',
-            'CeilometerPassword': 'password',
-            'CephAdminKey': 'password',
-            'CephClientKey': 'password',
             'CephClusterFSID': 'uuid',
-            'CephMonKey': 'password',
-            'CephRgwKey': 'password',
             'CephStorageCount': 3,
             'ControllerCount': 3,
-            'CinderPassword': 'password',
             'ExtraConfig': '{}',
-            'GlancePassword': 'password',
-            'GnocchiPassword': 'password',
-            'HAProxyStatsPassword': 'password',
-            'HeatPassword': 'password',
-            'HeatStackDomainAdminPassword': 'password',
             'HypervisorNeutronPhysicalBridge': 'br-ex',
             'HypervisorNeutronPublicInterface': 'nic1',
-            'IronicPassword': 'password',
-            'KeystoneCredential0': 'password',
-            'KeystoneCredential1': 'password',
-            'ManilaPassword': 'password',
-            'MistralPassword': 'password',
-            'MysqlClustercheckPassword': 'password',
             'NeutronDhcpAgentsPerNetwork': 3,
             'NeutronDnsmasqOptions': 'dhcp-option-force=26,1400',
             'NeutronFlatNetworks': 'datacentre',
             'NeutronNetworkType': 'gre',
-            'NeutronMetadataProxySharedSecret': 'password',
-            'NeutronPassword': 'password',
             'NeutronPublicInterface': 'nic1',
             'NeutronTunnelTypes': 'gre',
-            'NovaPassword': 'password',
-            'PankoPassword': 'password',
-            'RabbitPassword': 'password',
-            'RedisPassword': 'password',
-            'SaharaPassword': 'password',
             'SnmpdReadonlyUserPassword': 'PASSWORD',
-            'SwiftHashSuffix': 'password',
-            'SwiftPassword': 'password',
-            'TrovePassword': 'password',
-            'ZaqarPassword': 'password',
             'DeployIdentifier': 123456789,
             'UpdateIdentifier': '',
             'StackAction': 'CREATE',

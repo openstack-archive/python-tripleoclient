@@ -14,7 +14,6 @@
 #
 
 from __future__ import print_function
-import base64
 import csv
 import hashlib
 import json
@@ -23,7 +22,6 @@ import os
 import os.path
 import six
 import socket
-import struct
 import subprocess
 import sys
 import time
@@ -273,20 +271,6 @@ def wait_for_provision_state(baremetal_client, node_uuid, provision_state,
     )
 
 
-def create_environment_file(path="~/overcloud-env.json"):
-    """Create a blank heat environment file
-
-    Create a Heat environment file for supplying initial parameter
-    values when deploying overcloud
-    """
-
-    env_path = os.path.expanduser(path)
-    with open(env_path, 'w+') as f:
-        f.write(json.dumps({"parameter_defaults": {}}))
-
-    return env_path
-
-
 def set_nodes_state(baremetal_client, nodes, transition, target_state,
                     skipped_states=()):
     """Make all nodes available in the baremetal service for a deployment
@@ -429,18 +413,6 @@ def remove_known_hosts(overcloud_ip):
     if os.path.exists(known_hosts):
         command = ['ssh-keygen', '-R', overcloud_ip, '-f', known_hosts]
         subprocess.check_call(command)
-
-
-def create_cephx_key():
-    # NOTE(gfidente): Taken from
-    # https://github.com/ceph/ceph-deploy/blob/master/ceph_deploy/new.py#L21
-    key = os.urandom(16)
-    header = struct.pack("<hiih", 1, int(time.time()), 0, len(key))
-    return base64.b64encode(header + key)
-
-
-def create_keystone_credential():
-    return base64.urlsafe_b64encode(os.urandom(32))
 
 
 def run_shell(cmd):

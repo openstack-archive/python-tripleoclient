@@ -106,20 +106,6 @@ class TestWaitForStackUtil(TestCase):
         result = utils.wait_for_stack_ready(self.mock_orchestration, 'stack')
         self.assertEqual(False, result)
 
-    def test_create_environment_file(self):
-
-        json_file_path = "env.json"
-
-        mock_open = mock.mock_open()
-
-        with mock.patch('six.moves.builtins.open', mock_open):
-            with mock.patch('json.dumps', return_value="JSON"):
-                utils.create_environment_file(path=json_file_path)
-
-                mock_open.assert_called_with('env.json', 'w+')
-
-        mock_open().write.assert_called_with('JSON')
-
     @mock.patch('tripleoclient.utils.wait_for_provision_state')
     def test_set_nodes_state(self, wait_for_state_mock):
 
@@ -428,20 +414,6 @@ class TestGetEndpointMap(TestCase):
         endpoint_map = utils.get_endpoint_map(stack)
         self.assertEqual(endpoint_map,
                          {'KeystonePublic': {'uri': 'http://foo:8000/'}})
-
-
-class TestCreateCephxKey(TestCase):
-
-    def test_create_cephx_key(self):
-        key = utils.create_cephx_key()
-        self.assertEqual(len(key), 40)
-
-
-class TestCreateKeystoneCredential(TestCase):
-
-    def test_create_keystone_credential(self):
-        key = utils.create_keystone_credential()
-        self.assertEqual(len(key), 44)
 
 
 class TestNodeGetCapabilities(TestCase):
