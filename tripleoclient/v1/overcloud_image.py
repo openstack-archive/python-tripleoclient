@@ -657,14 +657,6 @@ class UploadOvercloudImage(command.Command):
     def _env_variable_or_set(self, key_name, default_value):
         os.environ[key_name] = os.environ.get(key_name, default_value)
 
-    def _delete_image_if_exists(self, image_client, name):
-        try:
-            image = utils.find_resource(image_client.images, name)
-            image_client.images.delete(image.id)
-        except exceptions.CommandError:
-            self.log.debug('Image "%s" have already not existed, '
-                           'no problem.' % name)
-
     def _get_image(self, name):
         try:
             image = utils.find_resource(self.app.client_manager.image.images,
