@@ -78,14 +78,13 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
-    @mock.patch('tripleoclient.utils.get_config_value', autospec=True)
     @mock.patch('tripleoclient.utils.check_hypervisor_stats',
                 autospec=True)
     @mock.patch('uuid.uuid1', autospec=True)
     @mock.patch('time.time', autospec=True)
     @mock.patch('shutil.copytree', autospec=True)
     def test_tht_scale(self, mock_copy, mock_time, mock_uuid1,
-                       mock_check_hypervisor_stats, mock_get_key,
+                       mock_check_hypervisor_stats,
                        mock_get_template_contents,
                        wait_for_stack_ready_mock,
                        mock_remove_known_hosts, mock_keystone_initialize,
@@ -126,7 +125,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'memory_mb': 4096,
             'vcpus': 8,
         }
-        mock_get_key.return_value = "PASSWORD"
         clients.network.api.find_attr.return_value = {
             "id": "network id"
         }
@@ -203,7 +201,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
-    @mock.patch('tripleoclient.utils.get_config_value', autospec=True)
     @mock.patch('tripleoclient.utils.check_hypervisor_stats',
                 autospec=True)
     @mock.patch('uuid.uuid1', autospec=True)
@@ -212,7 +209,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tempfile.mkdtemp', autospec=True)
     def test_tht_deploy(self, mock_tmpdir, mock_copy, mock_time,
                         mock_uuid1,
-                        mock_check_hypervisor_stats, mock_get_key,
+                        mock_check_hypervisor_stats,
                         mock_get_template_contents,
                         wait_for_stack_ready_mock,
                         mock_remove_known_hosts, mock_keystone_initialize,
@@ -257,7 +254,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'memory_mb': 4096,
             'vcpus': 8,
         }
-        mock_get_key.return_value = "PASSWORD"
         clients.network.api.find_attr.return_value = {
             "id": "network id"
         }
@@ -335,13 +331,11 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
-    @mock.patch('tripleoclient.utils.get_config_value', autospec=True)
     @mock.patch('tripleoclient.utils.check_hypervisor_stats',
                 autospec=True)
     @mock.patch('shutil.copytree', autospec=True)
     def test_deploy_custom_templates(self, mock_copy,
                                      mock_check_hypervisor_stats,
-                                     mock_get_key,
                                      mock_get_template_contents,
                                      wait_for_stack_ready_mock,
                                      mock_remove_known_hosts,
@@ -371,7 +365,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'memory_mb': 4096,
             'vcpus': 8,
         }
-        mock_get_key.return_value = "PASSWORD"
         clients.network.api.find_attr.return_value = {
             "id": "network id"
         }
@@ -672,7 +665,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 'process_environment_and_files', autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
-    @mock.patch('tripleoclient.utils.get_config_value', autospec=True)
     @mock.patch('tripleoclient.utils.check_hypervisor_stats',
                 autospec=True)
     @mock.patch('shutil.copytree', autospec=True)
@@ -680,7 +672,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('shutil.rmtree', autospec=True)
     def test_deploy_rhel_reg(self, mock_rmtree, mock_tmpdir, mock_copy,
                              mock_check_hypervisor_stats,
-                             mock_get_key,
                              mock_get_template_contents,
                              mock_process_env,
                              wait_for_stack_ready_mock,
@@ -729,7 +720,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'memory_mb': 4096,
             'vcpus': 8,
         }
-        mock_get_key.return_value = "PASSWORD"
         clients.network.api.find_attr.return_value = {
             "id": "network id"
         }
@@ -1062,10 +1052,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 'process_environment_and_files', autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
-    @mock.patch('tripleoclient.utils.get_config_value', autospec=True)
     @mock.patch('shutil.copytree', autospec=True)
     def test_ntp_server_mandatory(self, mock_copy,
-                                  mock_get_key,
                                   mock_get_template_contents,
                                   mock_process_env,
                                   mock_write_overcloudrc,
@@ -1078,8 +1066,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
             ('control_scale', 3)
         ]
-
-        mock_get_key.return_value = "PASSWORD"
 
         clients = self.app.client_manager
         workflow_client = clients.workflow_engine
@@ -1133,7 +1119,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 'process_environment_and_files', autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
-    @mock.patch('tripleoclient.utils.get_config_value', autospec=True)
     @mock.patch('tripleoclient.utils.check_hypervisor_stats',
                 autospec=True)
     @mock.patch('uuid.uuid1', autospec=True)
@@ -1142,7 +1127,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_tht_deploy_with_ntp(self, mock_copy, mock_time,
                                  mock_uuid1,
                                  mock_check_hypervisor_stats,
-                                 mock_get_key,
                                  mock_get_template_contents,
                                  mock_process_env,
                                  wait_for_stack_ready_mock,
@@ -1197,7 +1181,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'memory_mb': 4096,
             'vcpus': 8,
         }
-        mock_get_key.return_value = "PASSWORD"
         clients.network.api.find_attr.return_value = {
             "id": "network id"
         }
