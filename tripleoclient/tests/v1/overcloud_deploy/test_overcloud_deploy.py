@@ -82,8 +82,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
-    @mock.patch('os_cloud_config.keystone_pki.generate_certs_into_json',
-                autospec=True)
     @mock.patch('tripleoclient.utils.create_environment_file',
                 autospec=True)
     @mock.patch('tripleoclient.utils.get_config_value', autospec=True)
@@ -96,7 +94,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('shutil.copytree', autospec=True)
     def test_tht_scale(self, mock_copy, mock_time, mock_creds, mock_uuid1,
                        mock_check_hypervisor_stats, mock_get_key,
-                       mock_create_env, generate_certs_mock,
+                       mock_create_env,
                        mock_get_template_contents,
                        wait_for_stack_ready_mock,
                        mock_remove_known_hosts, mock_keystone_initialize,
@@ -251,8 +249,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 'process_environment_and_files', autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
-    @mock.patch('os_cloud_config.keystone_pki.generate_certs_into_json',
-                autospec=True)
     @mock.patch('tripleoclient.utils.create_environment_file',
                 autospec=True)
     @mock.patch('tripleoclient.utils.get_config_value', autospec=True)
@@ -267,7 +263,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_tht_deploy(self, mock_tmpdir, mock_copy, mock_time, mock_creds,
                         mock_uuid1,
                         mock_check_hypervisor_stats, mock_get_key,
-                        mock_create_env, generate_certs_mock,
+                        mock_create_env,
                         mock_get_template_contents, mock_process_env,
                         wait_for_stack_ready_mock,
                         mock_remove_known_hosts, mock_keystone_initialize,
@@ -399,7 +395,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             template_object=constants.OVERCLOUD_YAML_NAME)
 
         mock_create_tempest_deployer_input.assert_called_with()
-        mock_process_env.assert_called_with(env_path='/fake/path')
 
         mock_validate_args.assert_called_once_with(parsed_args)
 
@@ -428,8 +423,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
-    @mock.patch('os_cloud_config.keystone_pki.generate_certs_into_json',
-                autospec=True)
     @mock.patch('tripleoclient.utils.create_environment_file',
                 autospec=True)
     @mock.patch('tripleoclient.utils.get_config_value', autospec=True)
@@ -439,7 +432,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_deploy_custom_templates(self, mock_copy,
                                      mock_check_hypervisor_stats,
                                      mock_get_key,
-                                     mock_create_env, generate_certs_mock,
+                                     mock_create_env,
                                      mock_get_template_contents,
                                      wait_for_stack_ready_mock,
                                      mock_remove_known_hosts,
@@ -771,8 +764,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 'process_environment_and_files', autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
-    @mock.patch('os_cloud_config.keystone_pki.generate_certs_into_json',
-                autospec=True)
     @mock.patch('tripleoclient.utils.create_environment_file',
                 autospec=True)
     @mock.patch('tripleoclient.utils.get_config_value', autospec=True)
@@ -784,7 +775,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_deploy_rhel_reg(self, mock_rmtree, mock_tmpdir, mock_copy,
                              mock_check_hypervisor_stats,
                              mock_get_key,
-                             mock_create_env, generate_certs_mock,
+                             mock_create_env,
                              mock_get_template_contents,
                              mock_process_env,
                              wait_for_stack_ready_mock,
@@ -1241,8 +1232,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 'process_environment_and_files', autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
-    @mock.patch('os_cloud_config.keystone_pki.generate_certs_into_json',
-                autospec=True)
     @mock.patch('tripleoclient.utils.create_environment_file',
                 autospec=True)
     @mock.patch('tripleoclient.utils.get_config_value', autospec=True)
@@ -1257,7 +1246,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                  mock_uuid1,
                                  mock_check_hypervisor_stats,
                                  mock_get_key, mock_create_env,
-                                 generate_certs_mock,
                                  mock_get_template_contents,
                                  mock_process_env,
                                  wait_for_stack_ready_mock,
@@ -1276,11 +1264,12 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                  mock_deploy_post_config):
 
         arglist = ['--templates', '--ceph-storage-scale', '3',
-                   '--control-scale', '3']
+                   '--control-scale', '3', '--ntp-server', 'ntp']
         verifylist = [
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
             ('ceph_storage_scale', 3),
             ('control_scale', 3),
+            ('ntp_server', 'ntp'),
         ]
 
         mock_uuid1.return_value = "uuid"
@@ -1378,6 +1367,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'DeployIdentifier': 123456789,
             'UpdateIdentifier': '',
             'StackAction': 'CREATE',
+            'NtpServer': 'ntp',
         }
 
         def _custom_create_params_env(parameters):
@@ -1395,7 +1385,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             template_object=constants.OVERCLOUD_YAML_NAME)
 
         mock_create_tempest_deployer_input.assert_called_with()
-        mock_process_env.assert_called_with(env_path='/fake/path')
 
         mock_validate_args.assert_called_once_with(parsed_args)
 
