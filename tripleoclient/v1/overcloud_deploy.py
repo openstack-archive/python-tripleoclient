@@ -24,6 +24,7 @@ import shutil
 import six
 import tempfile
 import time
+import uuid
 import yaml
 
 from heatclient.common import template_utils
@@ -52,6 +53,10 @@ class DeployOvercloud(command.Command):
     log = logging.getLogger(__name__ + ".DeployOvercloud")
     predeploy_errors = 0
     predeploy_warnings = 0
+
+    def __init__(self, *args, **kwargs):
+        self._password_cache = None
+        super(DeployOvercloud, self).__init__(*args, **kwargs)
 
     def _update_parameters(self, args, network_client, stack):
         parameters = {}
@@ -464,6 +469,17 @@ class DeployOvercloud(command.Command):
     def _is_tls_enabled(self, overcloud_endpoint):
         return overcloud_endpoint.startswith('https')
 
+    def _get_password(self, stack_name, password_name):
+        # NOTE(d0ugal): This method is only used during the post-deploy config
+        # steps that are now deprecated. It should be removed when they are.
+        if self._password_cache is None:
+            self._password_cache = workflow_params.get_overcloud_passwords(
+                self.app.client_manager,
+                container=stack_name,
+                queue_name=str(uuid.uuid4()))
+
+        return self._password_cache[password_name]
+
     def _keystone_init(self, overcloud_endpoint, overcloud_ip_or_fqdn,
                        parsed_args, stack):
         keystone_admin_ip = utils.get_endpoint('KeystoneAdmin', stack)
@@ -480,9 +496,7 @@ class DeployOvercloud(command.Command):
 
         keystone_client = occ_clients.get_keystone_client(
             'admin',
-            utils.get_password(self.app.client_manager,
-                               stack.stack_name,
-                               'AdminPassword'),
+            self._get_password(stack.stack_name, "AdminPassword"),
             'admin',
             overcloud_endpoint)
 
@@ -524,13 +538,9 @@ class DeployOvercloud(command.Command):
             # TODO(rbrady): check usages of get_password
             keystone.initialize(
                 keystone_admin_ip,
-                utils.get_password(self.app.client_manager,
-                                   stack.stack_name,
-                                   'AdminToken'),
+                self._get_password(stack.stack_name, "AdminToken"),
                 'admin@example.com',
-                utils.get_password(self.app.client_manager,
-                                   stack.stack_name,
-                                   'AdminPassword'),
+                self._get_password(stack.stack_name, "AdminPassword"),
                 ssl=keystone_tls_host,
                 public=overcloud_ip_or_fqdn,
                 user=parsed_args.overcloud_ssh_user,
@@ -580,8 +590,7 @@ class DeployOvercloud(command.Command):
         service_data = {}
         password_field = data.get('password_field')
         if password_field:
-            service_data['password'] = utils.get_password(
-                self.app.client_manager,
+            service_data['password'] = self._get_password(
                 stack.stack_name,
                 password_field)
 

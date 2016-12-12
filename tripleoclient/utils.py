@@ -25,7 +25,6 @@ import socket
 import subprocess
 import sys
 import time
-import uuid
 import yaml
 
 from heatclient.common import event_utils
@@ -35,20 +34,6 @@ from osc_lib.i18n import _LI
 from six.moves import configparser
 
 from tripleoclient import exceptions
-from tripleoclient.workflows import parameters
-
-
-def generate_overcloud_passwords(clients, plan_name):
-    """Retrieve passwords needed for the overcloud
-
-    This will retrieve the set of passwords required by the overcloud stored
-    in the deployment plan and accessible via a workflow.
-    """
-    workflow_input = {
-        "container": plan_name,
-        "queue_name": str(uuid.uuid4()),
-    }
-    return parameters.get_overcloud_passwords(clients, **workflow_input)
 
 
 def bracket_ipv6(address):
@@ -361,20 +346,6 @@ def get_endpoint(key, stack):
         return endpoint_map[key]['host']
     else:
         return get_service_ips(stack).get(key + 'Vip')
-
-
-__password_cache = None
-
-
-def get_password(clients, plan_name, pass_name):
-    """Retrieve a password by name, such as 'AdminPassword'.
-
-    Raises KeyError if password does not exist.
-    """
-    global __password_cache
-    if __password_cache is None:
-        __password_cache = generate_overcloud_passwords(clients, plan_name)
-    return __password_cache[pass_name]
 
 
 def get_stack(orchestration_client, stack_name):

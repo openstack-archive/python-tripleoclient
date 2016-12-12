@@ -36,7 +36,6 @@ class FakeClientManager(object):
     def __init__(self):
         self.identity = None
         self.workflow_engine = None
-        self.tripleoclient = None
         self.auth_ref = None
         self.tripleoclient = FakeClientWrapper()
         self.workflow_engine = mock.Mock()
@@ -58,5 +57,8 @@ class FakeWebSocket(object):
 
 class FakeClientWrapper(object):
 
-    def messaging_websocket(self, queue_name):
-        return FakeWebSocket()
+    def __init__(self):
+        self.ws = FakeWebSocket()
+
+    def messaging_websocket(self, queue_name="tripleo"):
+        return self.ws

@@ -67,8 +67,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 '_deploy_postconfig', autospec=True)
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
-    @mock.patch('tripleoclient.utils.generate_overcloud_passwords',
-                autospec=True)
     @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
     @mock.patch('os_cloud_config.keystone.setup_endpoints', autospec=True)
     @mock.patch('time.sleep', return_value=None)
@@ -90,7 +88,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                        mock_remove_known_hosts, mock_keystone_initialize,
                        mock_sleep, mock_setup_endpoints,
                        mock_write_overcloudrc,
-                       mock_generate_overcloud_passwords,
                        mock_create_tempest_deployer_input,
                        mock_deploy_postconfig,
                        mock_create_parameters_env,
@@ -105,8 +102,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_uuid1.return_value = "uuid"
         mock_time.return_value = 123456789
-
-        mock_generate_overcloud_passwords.return_value = {}
 
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
@@ -186,8 +181,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 '_create_parameters_env', autospec=True)
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
-    @mock.patch('tripleoclient.utils.generate_overcloud_passwords',
-                autospec=True)
     @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
     @mock.patch('os_cloud_config.utils.clients.get_nova_bm_client',
                 autospec=True)
@@ -216,7 +209,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                         mock_sleep, mock_setup_endpoints,
                         mock_get_keystone_client, mock_get_nova_bm_client,
                         mock_write_overcloudrc,
-                        mock_generate_overcloud_passwords,
                         mock_create_tempest_deployer_input,
                         mock_create_parameters_env, mock_validate_args,
                         mock_breakpoints_cleanup, mock_tarball,
@@ -231,8 +223,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_tmpdir.return_value = "/tmp/tht"
         mock_uuid1.return_value = "uuid"
         mock_time.return_value = 123456789
-
-        mock_generate_overcloud_passwords.return_value = {}
 
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
@@ -320,8 +310,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 '_deploy_postconfig', autospec=True)
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
-    @mock.patch('tripleoclient.utils.generate_overcloud_passwords',
-                autospec=True)
     @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
     @mock.patch('os_cloud_config.keystone.setup_endpoints', autospec=True)
     @mock.patch('time.sleep', return_value=None)
@@ -342,7 +330,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                      mock_keystone_initialize,
                                      mock_sleep, mock_setup_endpoints,
                                      mock_write_overcloudrc,
-                                     mock_generate_overcloud_passwords,
                                      mock_create_tempest_deployer_input,
                                      mock_deploy_postconfig,
                                      mock_breakpoints_cleanup,
@@ -352,8 +339,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         verifylist = [
             ('templates', '/home/stack/tripleo-heat-templates'),
         ]
-
-        mock_generate_overcloud_passwords.return_value = {}
 
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
@@ -652,8 +637,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 '_deploy_postconfig', autospec=True)
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
-    @mock.patch('tripleoclient.utils.generate_overcloud_passwords',
-                autospec=True)
     @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
     @mock.patch('os_cloud_config.keystone.setup_endpoints', autospec=True)
     @mock.patch('time.sleep', return_value=None)
@@ -679,7 +662,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                              mock_keystone_initialize,
                              mock_sleep, mock_setup_endpoints,
                              mock_write_overcloudrc,
-                             mock_generate_overcloud_passwords,
                              mock_create_tempest_deployer_input,
                              mock_deploy_postconfig,
                              mock_breakpoints_cleanup,
@@ -701,7 +683,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_tmpdir.return_value = None
         mock_tmpdir.return_value = '/tmp/tht'
         mock_process_env.return_value = [{}, fakes.create_env()]
-        mock_generate_overcloud_passwords.return_value = {}
         mock_get_template_contents.return_value = [{}, "template"]
         wait_for_stack_ready_mock.return_value = True
 
@@ -916,12 +897,17 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_create_tempest_deployer_input.assert_called_with()
 
-    @mock.patch('tripleoclient.utils.get_password')
+    @mock.patch('tripleoclient.workflows.parameters.get_overcloud_passwords')
     @mock.patch('tripleoclient.constants.SERVICE_LIST',
-                {'nova': {'password_field': 'OVERCLOUD_NOVA_PASSWORD'}})
+                {'nova': {'password_field': 'NovaPassword'}})
     @mock.patch('os_cloud_config.keystone.initialize')
     @mock.patch('os_cloud_config.utils.clients.get_keystone_client')
     def test_keystone_init(self, mock_gkc, mock_init, mock_gp):
+        mock_gp.return_value = {
+            "AdminPassword": "password",
+            "AdminToken": "token",
+            "NovaPassword": "nova-password"
+        }
         mock_ksc = mock.Mock()
         mock_gkc.return_value = mock_ksc
         mock_ksc.services.find.return_value = True
@@ -933,13 +919,18 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         self.assertFalse(mock_init.called)
 
-    @mock.patch('tripleoclient.utils.get_password')
+    @mock.patch('tripleoclient.workflows.parameters.get_overcloud_passwords')
     @mock.patch('tripleoclient.constants.SERVICE_LIST',
-                {'nova': {'password_field': 'OVERCLOUD_NOVA_PASSWORD'}})
+                {'nova': {'password_field': 'NovaPassword'}})
     @mock.patch('os_cloud_config.keystone.setup_endpoints')
     @mock.patch('os_cloud_config.keystone.initialize')
     @mock.patch('os_cloud_config.utils.clients.get_keystone_client')
     def test_keystone_init_occ(self, mock_gkc, mock_init, mock_se, mock_gp):
+        mock_gp.return_value = {
+            "AdminPassword": "password",
+            "AdminToken": "token",
+            "NovaPassword": "nova-password"
+        }
         mock_ksc = mock.Mock()
         mock_gkc.return_value = mock_ksc
         mock_ksc.services.find.side_effect = kscexc.NotFound()
@@ -952,15 +943,20 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         self.assertTrue(mock_init.called)
 
-    @mock.patch('tripleoclient.utils.get_password')
+    @mock.patch('tripleoclient.workflows.parameters.get_overcloud_passwords')
     @mock.patch('tripleoclient.constants.SERVICE_LIST',
-                {'nova': {'password_field': 'OVERCLOUD_NOVA_PASSWORD'},
-                 'unexistent': {'password_field': 'OVERCLOUD_NOVA_PASSWORD'}})
+                {'nova': {'password_field': 'NovaPassword'},
+                 'unexistent': {'password_field': 'NovaPassword'}})
     @mock.patch('os_cloud_config.keystone.setup_endpoints')
     @mock.patch('os_cloud_config.keystone.initialize')
     @mock.patch('os_cloud_config.utils.clients.get_keystone_client')
     def test_keystone_init_occ_w_entry_not_in_endpoint_map(
             self, mock_gkc, mock_init, mock_se, mock_gp):
+        mock_gp.return_value = {
+            "AdminPassword": "password",
+            "AdminToken": "token",
+            "NovaPassword": "nova-password"
+        }
         mock_ksc = mock.Mock()
         mock_gkc.return_value = mock_ksc
         mock_ksc.services.find.side_effect = kscexc.NotFound()
@@ -972,6 +968,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.cmd._keystone_init(ip, ip, args, stack)
 
         self.assertTrue(mock_init.called)
+        self.assertEqual(mock_gp.call_count, 1)
 
     @mock.patch('tripleoclient.utils.check_nodes_count')
     @mock.patch('tripleoclient.utils.check_hypervisor_stats')
@@ -1046,7 +1043,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_create_parameters_env')
-    @mock.patch('tripleoclient.utils.generate_overcloud_passwords')
     @mock.patch('tripleoclient.utils.write_overcloudrc')
     @mock.patch('heatclient.common.template_utils.'
                 'process_environment_and_files', autospec=True)
@@ -1057,7 +1053,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                   mock_get_template_contents,
                                   mock_process_env,
                                   mock_write_overcloudrc,
-                                  mock_generate_overcloud_passwords,
                                   mock_create_parameters_env,
                                   mock_tarball):
 
@@ -1073,8 +1068,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             variables={'environments': []})
         workflow_client.action_executions.create.return_value = mock.MagicMock(
             output='{"result":[]}')
-
-        mock_generate_overcloud_passwords.return_value = {}
 
         def _custom_create_params_env(parameters):
             parameter_defaults = {"parameter_defaults": parameters}
@@ -1103,7 +1096,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 '_create_parameters_env')
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
-    @mock.patch('tripleoclient.utils.generate_overcloud_passwords')
     @mock.patch('tripleoclient.utils.write_overcloudrc')
     @mock.patch('os_cloud_config.utils.clients.get_nova_bm_client',
                 autospec=True)
@@ -1136,7 +1128,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                  mock_get_keystone_client,
                                  mock_get_nova_bm_client,
                                  mock_write_overcloudrc,
-                                 mock_generate_overcloud_passwords,
                                  mock_create_tempest_deployer_input,
                                  mock_create_parameters_env,
                                  mock_validate_args,
@@ -1154,8 +1145,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_uuid1.return_value = "uuid"
         mock_time.return_value = 123456789
-
-        mock_generate_overcloud_passwords.return_value = {}
 
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
