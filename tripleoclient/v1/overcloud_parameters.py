@@ -13,12 +13,15 @@
 import argparse
 import json
 import logging
+import os
 import yaml
 
 from osc_lib.command import command
 from osc_lib.i18n import _
 
 from tripleoclient import exceptions
+from tripleoclient import utils
+from tripleoclient.workflows import base
 from tripleoclient.workflows import parameters
 
 
@@ -62,3 +65,77 @@ class SetParameters(command.Command):
             container=name,
             parameters=params
         )
+
+
+class GenerateFencingParameters(command.Command):
+    """Generate fencing parameters"""
+
+    log = logging.getLogger(__name__ + ".GenerateFencing")
+
+    def get_parser(self, prog_name):
+        parser = super(GenerateFencingParameters, self).get_parser(prog_name)
+        parser.add_argument('-a', '--action', dest='fence_action',
+                            default='reboot',
+                            help=_('Operation to perform. Valid operations: '
+                                   'on, off, reboot, status, list, diag, '
+                                   'monitor or metadata. Defaults to: reboot'))
+        parser.add_argument('--delay', type=int,
+                            help=_('Wait DELAY seconds before fencing is '
+                                   'started'))
+        parser.add_argument('--ipmi-lanplus',
+                            action='store_true',
+                            help=_('Use Lanplus. Defaults to: false'))
+        parser.add_argument('--ipmi-cipher', type=int,
+                            help=_('Ciphersuite to use (same as ipmitool -C '
+                                   'parameter.'))
+        parser.add_argument('--ipmi-level',
+                            help=_('Privilegel level on IPMI device. Valid '
+                                   'levels: callback, user, operator, '
+                                   'administrator.'))
+        parser.add_argument('--output', type=argparse.FileType('w'),
+                            help=_('Write parameters to a file'))
+        parser.add_argument('instackenv', type=argparse.FileType('r'))
+        return parser
+
+    def take_action(self, parsed_args):
+        nodes_config = utils.parse_env_file(parsed_args.instackenv)
+
+        # We only need to collect OpenStack client authentication data
+        # if we have nodes using Ironic's pxe_ssh driver. If there are
+        # any, we'll use the fence_ironic fencing agent, which requires
+        # the auth data.
+        os_auth = None
+        for node in nodes_config:
+            if node["pm_type"] == "pxe_ssh":
+                os_auth = {}
+        if os_auth:
+            try:
+                os_auth["auth_url"] = os.environ["OS_AUTH_URL"]
+                os_auth["login"] = os.environ["OS_USERNAME"]
+                os_auth["passwd"] = os.environ["OS_PASSWORD"]
+                os_auth["tenant_name"] = os.environ["OS_TENANT_NAME"]
+            except KeyError:
+                # This really shouldn't happen since we're running in
+                # tripleoclient
+                raise ValueError(
+                    _("Unable to find one or more of OS_AUTH_URL, "
+                      "OS_USERNAME, OS_PASSWORD or OS_TENANT_NAME in the "
+                      "environment."))
+        workflow_input = {
+            'nodes_json': nodes_config,
+            'os_auth': os_auth,
+            'fence_action': parsed_args.fence_action,
+            'delay': parsed_args.delay,
+            'ipmi_privlvl': parsed_args.ipmi_level,
+            'ipmi_cipher': parsed_args.ipmi_cipher,
+            'ipmi_lanplus': parsed_args.ipmi_lanplus,
+            }
+        result = base.call_action(
+            self.app.client_manager.workflow_engine,
+            'tripleo.parameters.generate_fencing',
+            **workflow_input)
+        fencing_parameters = yaml.safe_dump(result, default_flow_style=False)
+        if parsed_args.output:
+            parsed_args.output.write(fencing_parameters)
+        else:
+            print(fencing_parameters)

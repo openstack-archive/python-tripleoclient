@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Adds `overcloud generate fencing` command, which outputs an environment
+    file which can be used to configure node fencing in HA deployments.
+    Currently IPMI and virtual (non-production) deployments are supported.
