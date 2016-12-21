@@ -39,6 +39,24 @@ class TestOvercloudImageBuild(TestPluginV1):
         self.cmd._create_builder = _force_builder
 
     @mock.patch('tripleo_common.image.build.ImageBuildManager', autospec=True)
+    def test_overcloud_image_build_default_yaml(self, mock_manager):
+        arglist = []
+        verifylist = []
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
+
+        mock_manager.assert_called_once_with(
+            ['/usr/share/openstack-tripleo-common/image-yaml/'
+             'overcloud-images.yaml',
+             '/usr/share/openstack-tripleo-common/image-yaml/'
+             'overcloud-images-centos7.yaml'],
+            output_directory='.',
+            skip=True,
+            images=None)
+
+    @mock.patch('tripleo_common.image.build.ImageBuildManager', autospec=True)
     def test_overcloud_image_build_yaml(self, mock_manager):
         arglist = ['--config-file', 'config.yaml']
         verifylist = [('config_files', ['config.yaml'])]
@@ -102,13 +120,15 @@ class TestOvercloudImageBuild(TestPluginV1):
             skip=True,
             images=None)
 
+    @mock.patch('tripleo_common.image.build.ImageBuildManager', autospec=True)
     @mock.patch('os.path.isfile', autospec=True)
     @mock.patch('platform.linux_distribution')
     @mock.patch.object(overcloud_image.BuildOvercloudImage,
                        '_build_image_fedora_user', autospec=True)
     def test_overcloud_image_build_all(self, mock_fedora_user,
                                        mock_linux_distribution,
-                                       mock_os_path_isfile):
+                                       mock_os_path_isfile,
+                                       mock_manager):
         arglist = ['--all']
         verifylist = [('all', True)]
 
@@ -119,6 +139,7 @@ class TestOvercloudImageBuild(TestPluginV1):
         self.cmd.take_action(parsed_args)
 
         self.assertEqual(2, self.mock_disk_image_create.call_count)
+        self.assertEqual(0, mock_manager.call_count)
 
     @mock.patch('platform.linux_distribution')
     @mock.patch('subprocess.call', autospec=True)
@@ -161,12 +182,14 @@ class TestOvercloudImageBuild(TestPluginV1):
         mock_open_context.assert_has_calls(
             [mock.call('fedora-user.qcow2', 'wb')])
 
+    @mock.patch('tripleo_common.image.build.ImageBuildManager', autospec=True)
     @mock.patch('platform.linux_distribution')
     @mock.patch('os.path.isfile', autospec=True)
     def test_overcloud_image_build_overcloud_full(
             self,
             mock_os_path_isfile,
-            mock_linux_distribution):
+            mock_linux_distribution,
+            mock_manager):
         arglist = ['--type', 'overcloud-full']
         verifylist = [('image_types', ['overcloud-full'])]
 
@@ -199,6 +222,7 @@ class TestOvercloudImageBuild(TestPluginV1):
         self.assertEqual([mock.call('overcloud-full.qcow2'),
                           mock.call('overcloud-full.qcow2')],
                          mock_os_path_isfile.mock_calls)
+        self.assertEqual(0, mock_manager.call_count)
 
     @mock.patch('platform.linux_distribution')
     @mock.patch('os.path.isfile', autospec=True)

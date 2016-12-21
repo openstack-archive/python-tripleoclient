@@ -177,6 +177,10 @@ class BuildOvercloudImage(command.Command):
     auth_required = False
     log = logging.getLogger(__name__ + ".BuildOvercloudImage")
 
+    IMAGE_YAML_PATH = "/usr/share/openstack-tripleo-common/image-yaml"
+    DEFAULT_YAML = ['overcloud-images.yaml', 'overcloud-images-centos7.yaml']
+
+    # The constants below are deprecated and will be removed in Pike
     TRIPLEOPUPPETELEMENTS = "/usr/share/tripleo-puppet-elements"
     INSTACKUNDERCLOUDELEMENTS = "/usr/share/instack-undercloud"
     PUPPET_COMMON_ELEMENTS = [
@@ -229,7 +233,7 @@ class BuildOvercloudImage(command.Command):
 
     def get_parser(self, prog_name):
         parser = super(BuildOvercloudImage, self).get_parser(prog_name)
-        image_group = parser.add_mutually_exclusive_group(required=True)
+        image_group = parser.add_mutually_exclusive_group(required=False)
         image_group.add_argument(
             "--all",
             dest="all",
@@ -592,9 +596,12 @@ class BuildOvercloudImage(command.Command):
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
 
-        if not parsed_args.config_files:
+        if parsed_args.all or parsed_args.image_types:
             return self._legacy_build(parsed_args)
 
+        if not parsed_args.config_files:
+            parsed_args.config_files = [os.path.join(self.IMAGE_YAML_PATH, f)
+                                        for f in self.DEFAULT_YAML]
         manager = build.ImageBuildManager(
             parsed_args.config_files,
             output_directory=parsed_args.output_directory,
