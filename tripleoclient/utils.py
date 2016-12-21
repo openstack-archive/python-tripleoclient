@@ -121,40 +121,45 @@ def create_overcloudrc(clients, stack, no_proxy, config_directory='.'):
 def create_tempest_deployer_input(config_name='tempest-deployer-input.conf'):
     config = configparser.ConfigParser()
 
-    config.add_section('auth')
+    # Create required sections
+    for section in ('auth', 'compute', 'compute-feature-enabled', 'identity',
+                    'image', 'network', 'object-storage', 'orchestration',
+                    'volume', 'volume-feature-enabled'):
+        config.add_section(section)
+
     # Roles to assign to all users created by tempest (list value)
     # It should be the set of roles which allows an user to use all services
     config.set('auth', 'tempest_roles', 'swiftoperator')
 
-    config.add_section('compute-feature-enabled')
     # Does the test environment support obtaining instance serial console
     # output? (default: true)
     # set in [nova.serial_console]->enabled
     config.set('compute-feature-enabled', 'console_output', 'false')
 
-    config.add_section('object-storage')
     # Role to add to users created for swift tests to enable creating
     # containers (default: 'Member')
     # keystone role-list returns this role
     config.set('object-storage', 'operator_role', 'swiftoperator')
 
-    config.add_section('orchestration')
     # Role required for users to be able to manage stacks
     # (default: 'heat_stack_owner')
     # keystone role-list returns this role
     config.set('orchestration', 'stack_owner_role', 'swiftoperator')
 
-    config.add_section('volume')
     # Name of the backend1 (must be declared in cinder.conf)
     # (default: 'BACKEND_1')
     # set in [cinder]->enabled_backends
     config.set('volume', 'backend1_name', 'tripleo_iscsi')
 
-    config.add_section('volume-feature-enabled')
     # Update bootable status of a volume Not implemented on icehouse
     # (default: false)
     # python-cinderclient supports set-bootable
     config.set('volume-feature-enabled', 'bootable', 'true')
+
+    # Fix region value because TripleO is using non-standard value
+    for section in ('compute', 'identity', 'image', 'network',
+                    'object-storage', 'orchestration', 'volume'):
+        config.set(section, 'region', 'regionOne')
 
     with open(config_name, 'w+') as config_file:
         config.write(config_file)
