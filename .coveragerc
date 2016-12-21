@@ -1,7 +1,7 @@
 [run]
 branch = True
 source = tripleoclient
-omit = tripleoclient/tests/*,tripleoclient/openstack/*
+omit = tripleoclient/tests/*
 
 [report]
 ignore_errors = True
