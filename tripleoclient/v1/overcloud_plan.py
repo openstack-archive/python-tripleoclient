@@ -68,11 +68,8 @@ class DeletePlan(command.Command):
 
         for plan in parsed_args.plans:
             print("Deleting plan %s..." % plan)
-            try:
-                plan_management.delete_deployment_plan(workflow_client,
-                                                       container=plan)
-            except Exception:
-                self.log.exception("Error deleting plan")
+            plan_management.delete_deployment_plan(workflow_client,
+                                                   container=plan)
 
 
 class CreatePlan(command.Command):
