@@ -197,7 +197,9 @@ class BuildOvercloudImage(command.Command):
         'python-UcsSdk,device-mapper-multipath,'
         'python-networking-bigswitch,openstack-neutron-bigswitch-lldp,'
         'openstack-neutron-bigswitch-agent,python-heat-agent-puppet,'
-        'python-heat-agent-ansible'
+        'python-heat-agent-ansible,'
+        'python-heat-agent-hiera,'
+        'python-heat-agent-apply-config'
     ]
 
     OVERCLOUD_FULL_DIB_EXTRA_ARGS = [
