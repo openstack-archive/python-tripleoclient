@@ -90,6 +90,12 @@ class CreatePlan(command.Command):
                    'If this isn\'t provided, the templates packaged on the '
                    'Undercloud will be used.'),
         )
+        parser.add_argument(
+            '--disable-password-generation',
+            action='store_true',
+            default=False,
+            help=_('Disable password generation.')
+        )
 
         return parser
 
@@ -98,13 +104,16 @@ class CreatePlan(command.Command):
         clients = self.app.client_manager
 
         name = parsed_args.name
+        generate_passwords = not parsed_args.disable_password_generation
 
         if parsed_args.templates:
             plan_management.create_plan_from_templates(
-                clients, name, parsed_args.templates)
+                clients, name, parsed_args.templates,
+                generate_passwords=generate_passwords)
         else:
             plan_management.create_default_plan(
-                clients, container=name, queue_name=str(uuid.uuid4()))
+                clients, container=name, queue_name=str(uuid.uuid4()),
+                generate_passwords=generate_passwords)
 
 
 class DeployPlan(command.Command):

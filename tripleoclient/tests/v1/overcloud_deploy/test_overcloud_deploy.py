@@ -888,11 +888,13 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         arglist = ['--answers-file', test_answerfile,
                    '--environment-file', test_env2,
-                   '--block-storage-scale', '3']
+                   '--block-storage-scale', '3',
+                   '--disable-password-generation']
         verifylist = [
             ('answers_file', test_answerfile),
             ('environment_files', [test_env2]),
-            ('block_storage_scale', 3)]
+            ('block_storage_scale', 3),
+            ('disable_password_generation', True)]
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.cmd.take_action(parsed_args)
