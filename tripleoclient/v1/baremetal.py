@@ -145,7 +145,7 @@ class ImportBaremetal(command.Command):
         parser.add_argument('file_in', type=argparse.FileType('r'))
         parser.add_argument(
             '--initial-state',
-            choices=['enroll', 'available'],
+            choices=['enroll', 'manageable', 'available'],
             default='available',
             help=_('Provision state for newly-enrolled nodes.')
         )
@@ -181,24 +181,15 @@ class ImportBaremetal(command.Command):
             deploy_kernel = parsed_args.deploy_kernel
             deploy_ramdisk = parsed_args.deploy_ramdisk
 
-        nodes = baremetal.register_or_update(
+        baremetal.register_or_update(
             self.app.client_manager,
             nodes_json=nodes_config,
             queue_name=queue_name,
             kernel_name=deploy_kernel,
             ramdisk_name=deploy_ramdisk,
-            instance_boot_option=parsed_args.instance_boot_option
+            instance_boot_option=parsed_args.instance_boot_option,
+            initial_state=parsed_args.initial_state,
         )
-
-        if parsed_args.initial_state == "available":
-            # NOTE(dtantsur): newly enrolled nodes state is reported as
-            # "enroll" from the workflow even though it's actually "manageable"
-            # because the node list is built before "manage" action is run.
-            node_uuids = [node['uuid'] for node in nodes
-                          if node['provision_state'] in {'manageable',
-                                                         'enroll'}]
-            baremetal.provide(self.app.client_manager, node_uuids=node_uuids,
-                              queue_name=queue_name)
 
 
 class StartBaremetalIntrospectionBulk(command.Command):
