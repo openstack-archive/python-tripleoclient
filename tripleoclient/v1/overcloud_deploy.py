@@ -976,6 +976,11 @@ class DeployOvercloud(command.Command):
                    'pre-checks.')
         )
         parser.add_argument(
+            '--disable-validations',
+            action='store_true',
+            default=False,
+            help=_('Disable the predeployment validations entirely.'))
+        parser.add_argument(
             '--dry-run',
             action='store_true',
             default=False,
@@ -1058,25 +1063,28 @@ class DeployOvercloud(command.Command):
         parameters = self._update_parameters(
             parsed_args, clients.network, stack)
 
-        errors, warnings = self._predeploy_verify_capabilities(
-            stack, parameters, parsed_args)
-        if errors > 0:
-            self.log.error(
-                "Configuration has %d errors, fix them before proceeding. "
-                "Ignoring these errors is likely to lead to a failed deploy.",
-                errors)
-            if parsed_args.validation_warnings_fatal or \
-                    parsed_args.validation_errors_fatal:
-                return
-        if warnings > 0:
-            self.log.error(
-                "Configuration has %d warnings, fix them before proceeding. ",
-                warnings)
-            if parsed_args.validation_warnings_fatal:
-                return
-        else:
-            self.log.info("SUCCESS: No warnings or errors in deploy "
-                          "configuration, proceeding.")
+        if not parsed_args.disable_validations:
+            errors, warnings = self._predeploy_verify_capabilities(
+                stack, parameters, parsed_args)
+            if errors > 0:
+                self.log.error(
+                    "Configuration has %d errors, fix them before "
+                    "proceeding. Ignoring these errors is likely to lead to "
+                    "a failed deploy.",
+                    errors)
+                if parsed_args.validation_warnings_fatal or \
+                        parsed_args.validation_errors_fatal:
+                    return
+            if warnings > 0:
+                self.log.error(
+                    "Configuration has %d warnings, fix them before "
+                    "proceeding.",
+                    warnings)
+                if parsed_args.validation_warnings_fatal:
+                    return
+            else:
+                self.log.info("SUCCESS: No warnings or errors in deploy "
+                              "configuration, proceeding.")
 
         stack_create = stack is None
         if stack_create:
