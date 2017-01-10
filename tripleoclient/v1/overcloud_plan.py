@@ -118,6 +118,11 @@ class DeployPlan(command.Command):
         parser.add_argument('--timeout', '-t', metavar='<TIMEOUT>',
                             type=int,
                             help=_('Deployment timeout in minutes.'))
+        parser.add_argument('--run-validations', action='store_true',
+                            default=False,
+                            help=_('Run the pre-deployment validations. These '
+                                   'external validations are from the TripleO '
+                                   'Validations project.'))
         return parser
 
     def take_action(self, parsed_args):
@@ -130,4 +135,5 @@ class DeployPlan(command.Command):
         print("Starting to deploy plan: {}".format(parsed_args.name))
         deployment.deploy_and_wait(self.log, clients, stack, parsed_args.name,
                                    self.app_args.verbose_level,
-                                   timeout=parsed_args.timeout)
+                                   timeout=parsed_args.timeout,
+                                   run_validations=parsed_args.run_validations)

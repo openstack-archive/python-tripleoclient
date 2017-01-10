@@ -200,7 +200,8 @@ class DeployOvercloud(command.Command):
         return env_files, localenv
 
     def _heat_deploy(self, stack, stack_name, template_path, parameters,
-                     env_files, timeout, tht_root, env, update_plan_only):
+                     env_files, timeout, tht_root, env, update_plan_only,
+                     run_validations):
         """Verify the Baremetal nodes are available and do a stack update"""
 
         clients = self.app.client_manager
@@ -248,7 +249,9 @@ class DeployOvercloud(command.Command):
 
         if not update_plan_only:
             deployment.deploy_and_wait(self.log, clients, stack, stack_name,
-                                       self.app_args.verbose_level, timeout)
+                                       self.app_args.verbose_level,
+                                       timeout=timeout,
+                                       run_validations=run_validations)
 
     def _load_environment_directories(self, directories):
         if os.environ.get('TRIPLEO_ENVIRONMENT_DIRECTORY'):
@@ -451,17 +454,20 @@ class DeployOvercloud(command.Command):
 
         self._try_overcloud_deploy_with_compat_yaml(
             tht_root, stack, parsed_args.stack, parameters, env_files,
-            parsed_args.timeout, env, parsed_args.update_plan_only)
+            parsed_args.timeout, env, parsed_args.update_plan_only,
+            parsed_args.run_validations)
 
     def _try_overcloud_deploy_with_compat_yaml(self, tht_root, stack,
                                                stack_name, parameters,
                                                env_files, timeout,
-                                               env, update_plan_only):
+                                               env, update_plan_only,
+                                               run_validations):
         overcloud_yaml = os.path.join(tht_root, constants.OVERCLOUD_YAML_NAME)
         try:
             self._heat_deploy(stack, stack_name, overcloud_yaml,
                               parameters, env_files, timeout,
-                              tht_root, env, update_plan_only)
+                              tht_root, env, update_plan_only,
+                              run_validations)
         except ClientException as e:
             messages = 'Failed to deploy: %s' % str(e)
             raise ValueError(messages)
@@ -979,13 +985,22 @@ class DeployOvercloud(command.Command):
             '--disable-validations',
             action='store_true',
             default=False,
-            help=_('Disable the predeployment validations entirely.'))
+            help=_('Disable the pre-deployment validations entirely. These '
+                   'validations are the built-in pre-deployment validations. '
+                   'To enable external validations from tripleo-validations, '
+                   'use the --run-validations flag.'))
         parser.add_argument(
             '--dry-run',
             action='store_true',
             default=False,
             help=_('Only run validations, but do not apply any changes.')
         )
+        parser.add_argument(
+            '--run-validations',
+            action='store_true',
+            default=False,
+            help=_('Run external validations from the tripleo-validations '
+                   'project.'))
         parser.add_argument(
             '--skip-postconfig',
             action='store_true',

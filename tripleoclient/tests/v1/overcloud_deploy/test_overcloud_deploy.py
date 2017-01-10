@@ -466,7 +466,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         def _fake_heat_deploy(self, stack, stack_name, template_path,
                               parameters, environments, timeout, tht_root,
-                              env, update_plan_only):
+                              env, update_plan_only, run_validations):
             assertEqual(
                 {'parameter_defaults': {},
                  'resource_registry': {'Test': u'OS::Heat::None'}}, env)
@@ -522,7 +522,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         def _fake_heat_deploy(self, stack, stack_name, template_path,
                               parameters, environments, timeout, tht_root,
-                              env, update_plan_only):
+                              env, update_plan_only, run_validations):
             assertEqual(
                 {'parameter_defaults': {},
                  'resource_registry': {'Test': u'OS::Heat::None'}}, env)
@@ -762,13 +762,13 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             self, mock_heat_deploy_func):
         result = self.cmd._try_overcloud_deploy_with_compat_yaml(
             '/fake/path', {}, 'overcloud', {}, ['~/overcloud-env.json'], 1,
-            {}, False)
+            {}, False, True)
         # If it returns None it succeeded
         self.assertIsNone(result)
         mock_heat_deploy_func.assert_called_once_with(
             self.cmd, {}, 'overcloud',
             '/fake/path/' + constants.OVERCLOUD_YAML_NAME, {},
-            ['~/overcloud-env.json'], 1, '/fake/path', {}, False)
+            ['~/overcloud-env.json'], 1, '/fake/path', {}, False, True)
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_heat_deploy', autospec=True)
@@ -778,7 +778,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertRaises(ValueError,
                           self.cmd._try_overcloud_deploy_with_compat_yaml,
                           '/fake/path', mock.ANY, mock.ANY, mock.ANY,
-                          mock.ANY, mock.ANY, mock.ANY, mock.ANY)
+                          mock.ANY, mock.ANY, mock.ANY, mock.ANY, mock.ANY)
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_heat_deploy', autospec=True)
@@ -789,7 +789,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         try:
             self.cmd._try_overcloud_deploy_with_compat_yaml(
                 '/fake/path', mock.ANY, mock.ANY, mock.ANY,
-                mock.ANY, mock.ANY, mock.ANY, mock.ANY)
+                mock.ANY, mock.ANY, mock.ANY, mock.ANY, mock.ANY)
         except ValueError as value_error:
             self.assertIn('/fake/path', str(value_error))
 
@@ -1257,7 +1257,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_get_template_contents.return_value = [{}, {}]
 
         self.cmd._heat_deploy(mock_stack, 'mock_stack', '/tmp', {},
-                              {}, 1, '/tmp', {}, True)
+                              {}, 1, '/tmp', {}, True, False)
 
         self.assertFalse(mock_deploy_and_wait.called)
 
