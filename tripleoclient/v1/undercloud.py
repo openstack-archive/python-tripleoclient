@@ -48,7 +48,7 @@ class UpgradeUndercloud(command.Command):
         utils.ensure_run_as_normal_user()
 
         subprocess.check_call(['sudo', 'yum', 'update', '-y'])
-        subprocess.check_call("instack-install-undercloud")
+        subprocess.check_call("instack-upgrade-undercloud")
         # restart nova-api https://bugzilla.redhat.com/show_bug.cgi?id=1315467
         subprocess.check_call(['sudo', 'systemctl', 'restart',
                               'openstack-nova-api'])
