@@ -107,6 +107,7 @@ def introspect(clients, **workflow_input):
         workflow_client,
         'tripleo.baremetal.v1.introspect',
         workflow_input={'node_uuids': workflow_input['node_uuids'],
+                        'run_validations': workflow_input['run_validations'],
                         'queue_name': queue_name}
     )
 
@@ -138,7 +139,8 @@ def introspect_manageable_nodes(clients, **workflow_input):
     execution = base.start_workflow(
         workflow_client,
         'tripleo.baremetal.v1.introspect_manageable_nodes',
-        workflow_input={"queue_name": queue_name, }
+        workflow_input={'run_validations': workflow_input['run_validations'],
+                        "queue_name": queue_name, }
     )
 
     print("Waiting for introspection to finish...")

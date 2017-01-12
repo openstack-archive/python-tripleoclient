@@ -262,7 +262,10 @@ class TestIntrospectNode(fakes.TestOvercloudNode):
 
         call_list = [mock.call(
             'tripleo.baremetal.v1.introspect_manageable_nodes',
-            workflow_input={'queue_name': 'UUID4'}
+            workflow_input={
+                'run_validations': False,
+                'queue_name': 'UUID4'
+            }
         )]
 
         if provide:
@@ -287,6 +290,7 @@ class TestIntrospectNode(fakes.TestOvercloudNode):
         call_list = [mock.call(
             'tripleo.baremetal.v1.introspect', workflow_input={
                 'node_uuids': nodes,
+                'run_validations': False,
                 'queue_name': 'UUID4'}
         )]
 
@@ -412,6 +416,7 @@ class TestImportNode(fakes.TestOvercloudNode):
             call_list.append(mock.call(
                 'tripleo.baremetal.v1.introspect', workflow_input={
                     'node_uuids': ['MOCK_NODE_UUID'],
+                    'run_validations': False,
                     'queue_name': 'UUID4'}
             ))
 

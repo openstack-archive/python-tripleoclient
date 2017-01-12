@@ -606,7 +606,10 @@ class TestStartBaremetalIntrospectionBulk(fakes.TestBaremetal):
 
         call_list = [mock.call(
             'tripleo.baremetal.v1.introspect_manageable_nodes',
-            workflow_input={'queue_name': 'UUID4'}
+            workflow_input={
+                'run_validations': False,
+                'queue_name': 'UUID4'
+            }
         )]
 
         if provide:

@@ -206,6 +206,16 @@ class StartBaremetalIntrospectionBulk(command.Command):
 
     log = logging.getLogger(__name__ + ".StartBaremetalIntrospectionBulk")
 
+    def get_parser(self, prog_name):
+        parser = super(StartBaremetalIntrospectionBulk, self).get_parser(
+            prog_name)
+        parser.add_argument('--run-validations', action='store_true',
+                            default=False,
+                            help=_('Run the pre-deployment validations. These '
+                                   'external validations are from the TripleO '
+                                   'Validations project.'))
+        return parser
+
     def take_action(self, parsed_args):
 
         self.log.debug("take_action(%s)" % parsed_args)
@@ -229,7 +239,10 @@ class StartBaremetalIntrospectionBulk(command.Command):
                 "Node {0} has been set to manageable.".format(node_uuid))
 
         print("Starting introspection of manageable nodes")
-        baremetal.introspect_manageable_nodes(clients, queue_name=queue_name)
+        baremetal.introspect_manageable_nodes(
+            clients,
+            run_validations=parsed_args.run_validations,
+            queue_name=queue_name)
 
         print("Setting manageable nodes to available...")
         self.log.debug("Moving manageable nodes to available state.")

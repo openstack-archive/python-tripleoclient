@@ -1,0 +1,4 @@
+---
+features:
+  - Adds the ability for external TripleO validations to
+    be called during an introspection workflow.

@@ -137,6 +137,11 @@ class IntrospectNode(command.Command):
                             action='store_true',
                             help=_('Provide (make available) the nodes once '
                                    'introspected'))
+        parser.add_argument('--run-validations', action='store_true',
+                            default=False,
+                            help=_('Run the pre-deployment validations. These '
+                                   'external validations are from the TripleO '
+                                   'Validations project.'))
         return parser
 
     def take_action(self, parsed_args):
@@ -148,10 +153,13 @@ class IntrospectNode(command.Command):
         if nodes:
             baremetal.introspect(self.app.client_manager,
                                  node_uuids=nodes,
+                                 run_validations=parsed_args.run_validations,
                                  queue_name=queue_name)
         else:
-            baremetal.introspect_manageable_nodes(self.app.client_manager,
-                                                  queue_name=queue_name)
+            baremetal.introspect_manageable_nodes(
+                self.app.client_manager,
+                run_validations=parsed_args.run_validations,
+                queue_name=queue_name)
 
         if parsed_args.provide:
             if nodes:
@@ -176,6 +184,11 @@ class ImportNode(command.Command):
         parser.add_argument('--introspect',
                             action='store_true',
                             help=_('Introspect the imported nodes'))
+        parser.add_argument('--run-validations', action='store_true',
+                            default=False,
+                            help=_('Run the pre-deployment validations. These '
+                                   'external validations are from the TripleO '
+                                   'Validations project.'))
         parser.add_argument('--provide',
                             action='store_true',
                             help=_('Provide (make available) the nodes'))
@@ -218,6 +231,7 @@ class ImportNode(command.Command):
         if parsed_args.introspect:
             baremetal.introspect(self.app.client_manager,
                                  node_uuids=nodes_uuids,
+                                 run_validations=parsed_args.run_validations,
                                  queue_name=queue_name)
 
         if parsed_args.provide:

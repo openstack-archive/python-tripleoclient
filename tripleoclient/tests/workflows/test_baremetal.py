@@ -149,12 +149,13 @@ class TestBaremetalWorkflows(utils.TestCommand):
         }
 
         baremetal.introspect(self.app.client_manager, node_uuids=[],
-                             queue_name="QUEUE_NAME")
+                             run_validations=True, queue_name="QUEUE_NAME")
 
         self.workflow.executions.create.assert_called_once_with(
             'tripleo.baremetal.v1.introspect',
             workflow_input={
                 'node_uuids': [],
+                'run_validations': True,
                 'queue_name': "QUEUE_NAME"
             })
 
@@ -171,12 +172,14 @@ class TestBaremetalWorkflows(utils.TestCommand):
             baremetal.introspect,
             self.app.client_manager,
             node_uuids=[],
+            run_validations=False,
             queue_name="QUEUE_NAME")
 
         self.workflow.executions.create.assert_called_once_with(
             'tripleo.baremetal.v1.introspect',
             workflow_input={
                 'node_uuids': [],
+                'run_validations': False,
                 'queue_name': "QUEUE_NAME"
             })
 
@@ -188,11 +191,15 @@ class TestBaremetalWorkflows(utils.TestCommand):
         }
 
         baremetal.introspect_manageable_nodes(
-            self.app.client_manager, queue_name="QUEUE_NAME")
+            self.app.client_manager, run_validations=False,
+            queue_name="QUEUE_NAME")
 
         self.workflow.executions.create.assert_called_once_with(
             'tripleo.baremetal.v1.introspect_manageable_nodes',
-            workflow_input={'queue_name': "QUEUE_NAME"})
+            workflow_input={
+                'run_validations': False,
+                'queue_name': "QUEUE_NAME"
+            })
 
     def test_introspect_manageable_nodes_error(self):
 
@@ -204,11 +211,16 @@ class TestBaremetalWorkflows(utils.TestCommand):
         self.assertRaises(
             exceptions.IntrospectionError,
             baremetal.introspect_manageable_nodes,
-            self.app.client_manager, queue_name="QUEUE_NAME")
+            self.app.client_manager,
+            run_validations=False,
+            queue_name="QUEUE_NAME")
 
         self.workflow.executions.create.assert_called_once_with(
             'tripleo.baremetal.v1.introspect_manageable_nodes',
-            workflow_input={'queue_name': "QUEUE_NAME"})
+            workflow_input={
+                'run_validations': False,
+                'queue_name': "QUEUE_NAME"
+            })
 
     def test_introspect_manageable_nodes_mixed_status(self):
 
@@ -221,11 +233,16 @@ class TestBaremetalWorkflows(utils.TestCommand):
         self.assertRaises(
             exceptions.IntrospectionError,
             baremetal.introspect_manageable_nodes,
-            self.app.client_manager, queue_name="QUEUE_NAME")
+            self.app.client_manager,
+            run_validations=False,
+            queue_name="QUEUE_NAME")
 
         self.workflow.executions.create.assert_called_once_with(
             'tripleo.baremetal.v1.introspect_manageable_nodes',
-            workflow_input={'queue_name': "QUEUE_NAME"})
+            workflow_input={
+                'run_validations': False,
+                'queue_name': "QUEUE_NAME"
+            })
 
     def test_provide_manageable_nodes_success(self):
 
