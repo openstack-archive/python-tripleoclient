@@ -43,7 +43,7 @@ class ValidateOvercloudNetenv(command.Command):
         self.log.debug("take_action(%s)" % parsed_args)
 
         with open(parsed_args.netenv, 'r') as net_file:
-            network_data = yaml.load(net_file)
+            network_data = yaml.safe_load(net_file)
 
         cidrinfo = {}
         poolsinfo = {}
@@ -162,7 +162,7 @@ class ValidateOvercloudNetenv(command.Command):
     def NIC_validate(self, resource, path):
         try:
             with open(path, 'r') as nic_file:
-                nic_data = yaml.load(nic_file)
+                nic_data = yaml.safe_load(nic_file)
         except IOError:
             self.log.error(
                 'The resource "%s" reference file does not exist: "%s"',

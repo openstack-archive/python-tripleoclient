@@ -71,7 +71,7 @@ class DeployOvercloud(command.Command):
         # Update parameters from answers file:
         if args.answers_file is not None:
             with open(args.answers_file, 'r') as answers_file:
-                answers = yaml.load(answers_file)
+                answers = yaml.safe_load(answers_file)
 
             if args.templates is None:
                 args.templates = answers['templates']
