@@ -1,0 +1,34 @@
+---
+prelude: >
+    5.8.0 is the final release for Ocata.
+    It's the first release where release notes are added.
+features:
+  - Use the overcloudrc generated in a Mistral action so both
+    CLI and UI can use the same file when interacting with the
+    deployed OpenStack.
+  - Default image build to use yaml files.
+    If no args are given to the overcloud image build, it will
+    default to using the CentOS yaml files in
+    /usr/share/openstack-tripleo-common/image-yaml.
+  - Simplify fetching the passwords from Mistral.
+  - Add --disable-validations argument that will disable the run
+    of validations completely. This feature is useful when we deploy
+    TripleO with multinode and deployed-server features.
+fixes:
+  - Fixes `bug 1649588
+    <https://bugs.launchpad.net/tripleo/+bug/1649588>`__ so exceptions are not
+    swallowed anymore which was leading to 0 exit code.
+    Now, it returns a proper exit code when plan deletion fails.
+  - Add new hiera agent hook to legacy image build.
+    The change Ia1864933235152b7e899c4442534879f8e22240d added these to the
+    newer overcloud-images.yaml method of building images.  Unfortunately
+    because the old 'openstack overcloud image build --all' method does not
+    leverage this file yet, it leads to a timeout in deployment because the
+    heat agents are not available.
+    It fixes `bug 1651616
+    <https://bugs.launchpad.net/tripleo/+bug/1651616>`__.
+  - Fixes `bug 1637474
+    <https://bugs.launchpad.net/tripleo/+bug/1637474>`__ so we manage
+    --initial-state flag for register_or_update.
+other:
+  - Remove the keystone_pki cert generation, which is not needed anymore.
