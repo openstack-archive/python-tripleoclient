@@ -14,8 +14,5 @@ python-ironicclient>=1.1.0 # Apache-2.0
 python-openstackclient>=2.1.0 # Apache-2.0
 six>=1.9.0 # MIT
 
-# tripleo-common lib is not yet on PyPi
--e git://github.com/openstack/tripleo-common.git#egg=tripleo_common
-
-# This currently needs a development version of os_cloud_config
--e git://github.com/openstack/os-cloud-config.git#egg=os_cloud_config
+tripleo-common>=2.0.0,<3.0.0  # Apache-2.0
+os-cloud-config  # Apache-2.0
