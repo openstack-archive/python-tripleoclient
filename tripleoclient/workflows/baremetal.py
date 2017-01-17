@@ -248,3 +248,31 @@ def configure_manageable_nodes(clients, **workflow_input):
             'Exception configuring nodes: {}'.format(payload['message']))
 
     print(payload['message'])
+
+
+def create_raid_configuration(clients, **workflow_input):
+    """Create RAID configuration on nodes.
+
+    Run the tripleo.baremetal.v1.create_raid_configuration Mistral workflow.
+    """
+
+    workflow_client = clients.workflow_engine
+    ooo_client = clients.tripleoclient
+    queue_name = workflow_input['queue_name']
+
+    execution = base.start_workflow(
+        workflow_client,
+        'tripleo.baremetal.v1.create_raid_configuration',
+        workflow_input=workflow_input
+    )
+
+    print('Creating RAID configuration for given nodes, this may take time')
+
+    with ooo_client.messaging_websocket(queue_name) as ws:
+        payload = ws.wait_for_message(execution.id)
+
+    if payload['status'] == 'SUCCESS':
+        print('Success')
+    else:
+        raise RuntimeError(
+            'Failed to create RAID: {}'.format(payload['message']))
