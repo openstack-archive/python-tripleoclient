@@ -1,0 +1,8 @@
+---
+deprecations:
+  - The ``openstack baremetal import``, ``openstack baremetal
+    introspect bulk start`` and ``openstack baremetal configure`` are
+    now deprecated in favour of ``openstack overcloud node import``,
+    ``openstack overcloud node introspect`` and ``openstack overcloud
+    node configure`` respectively. See `bug 1649541
+    <https://bugs.launchpad.net/tripleo/+bug/1649541>`__.
