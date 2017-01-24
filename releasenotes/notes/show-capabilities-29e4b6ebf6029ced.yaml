@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    Command ``openstack baremetal show capabilities`` has been broken for some
+    time due to conflict with ``openstack baremetal show`` from Ironic. This
+    command was removed.
