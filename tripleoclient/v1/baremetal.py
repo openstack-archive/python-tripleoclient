@@ -114,7 +114,10 @@ class ValidateInstackEnv(command.Command):
 
 
 class ImportBaremetal(command.Command):
-    """Import baremetal nodes from a JSON, YAML or CSV file"""
+    """Import baremetal nodes from a JSON, YAML or CSV file (DEPRECATED).
+
+    Please use 'openstack overcloud node import' instead.
+    """
 
     log = logging.getLogger(__name__ + ".ImportBaremetal")
 
@@ -155,6 +158,8 @@ class ImportBaremetal(command.Command):
     def take_action(self, parsed_args):
 
         self.log.debug("take_action(%s)" % parsed_args)
+        self.log.warning('This command is deprecated. Please use "openstack '
+                         'overcloud node import" to register nodes instead.')
 
         file_type = None
         if parsed_args.json:
@@ -193,9 +198,10 @@ class ImportBaremetal(command.Command):
 
 
 class StartBaremetalIntrospectionBulk(command.Command):
-    """Start bulk introspection on all baremetal nodes (Deprecated).
+    """Start bulk introspection on all baremetal nodes (DEPRECATED).
 
-    Please use 'openstack overcloud node introspect' instead.
+    Please use 'openstack overcloud node introspect' instead. The nodes
+    should be in 'manageable' state before running the command.
     """
 
     log = logging.getLogger(__name__ + ".StartBaremetalIntrospectionBulk")
@@ -205,7 +211,7 @@ class StartBaremetalIntrospectionBulk(command.Command):
         self.log.debug("take_action(%s)" % parsed_args)
         self.log.warning('This command is deprecated. Please use "openstack '
                          'overcloud node introspect" to introspect manageable '
-                         'nodes instead.\n')
+                         'nodes instead.')
 
         queue_name = str(uuid.uuid4())
         clients = self.app.client_manager
@@ -348,7 +354,10 @@ class ConfigureReadyState(command.Command):
 
 
 class ConfigureBaremetalBoot(command.Command):
-    """Configure baremetal boot for all nodes"""
+    """Configure baremetal boot for all nodes (DEPRECATED).
+
+    Please use 'openstack overcloud node configure' instead.
+    """
 
     log = logging.getLogger(__name__ + ".ConfigureBaremetalBoot")
     loops = 12
@@ -382,6 +391,9 @@ class ConfigureBaremetalBoot(command.Command):
     def take_action(self, parsed_args):
 
         self.log.debug("take_action(%s)" % parsed_args)
+        self.log.warning('This command is deprecated. Please use "openstack '
+                         'overcloud node configure" to configure manageable '
+                         'nodes instead.')
 
         queue_name = str(uuid.uuid4())
         bm_client = self.app.client_manager.baremetal
