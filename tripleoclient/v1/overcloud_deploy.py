@@ -678,7 +678,7 @@ class DeployOvercloud(command.Command):
                 rewritten_paths = [e.replace(".j2.yaml", ".yaml")
                                    for e in jinja2_envs]
                 raise oscexc.CommandError(
-                    "Error: The the following jinja2 files were provided: -e "
+                    "Error: The following jinja2 files were provided: -e "
                     "{}. Did you mean -e {}?".format(
                         ' -e '.join(jinja2_envs),
                         ' -e '.join(rewritten_paths)))
