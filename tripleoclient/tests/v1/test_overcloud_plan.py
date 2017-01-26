@@ -290,9 +290,10 @@ class TestOvercloudDeployPlan(utils.TestCommand):
     def test_overcloud_deploy_plan(self, mock_for_stack_ready):
 
         # Setup
-        arglist = ['overcast']
+        arglist = ['--run-validations', 'overcast']
         verifylist = [
-            ('name', 'overcast')
+            ('name', 'overcast'),
+            ('run_validations', True),
         ]
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
@@ -313,6 +314,7 @@ class TestOvercloudDeployPlan(utils.TestCommand):
             'tripleo.deployment.v1.deploy_plan',
             workflow_input={
                 'container': 'overcast',
+                'run_validations': True,
                 'queue_name': 'UUID4'
             }
         )
