@@ -359,3 +359,59 @@ class TestOvercloudDeployPlan(utils.TestCommand):
                 'queue_name': 'UUID4'
             }
         )
+
+
+class TestOvercloudExportPlan(utils.TestCommand):
+
+    def setUp(self):
+        super(TestOvercloudExportPlan, self).setUp()
+        self.cmd = overcloud_plan.ExportPlan(self.app, None)
+        self.app.client_manager = mock.Mock()
+        self.clients = self.app.client_manager
+
+        # Mock UUID4 generation for every test
+        uuid4_patcher = mock.patch('uuid.uuid4', return_value="UUID4")
+        self.mock_uuid4 = uuid4_patcher.start()
+        self.addCleanup(self.mock_uuid4.stop)
+
+        # Mock urlopen
+        f = mock.Mock()
+        f.read.return_value = 'tarball contents'
+        urlopen_patcher = mock.patch('six.moves.urllib.request.urlopen',
+                                     return_value=f)
+        self.mock_urlopen = urlopen_patcher.start()
+        self.addCleanup(self.mock_urlopen.stop)
+
+    @mock.patch(
+        'tripleoclient.workflows.plan_management.export_deployment_plan',
+        autospec=True)
+    def test_export_plan(self, export_deployment_plan_mock):
+        parsed_args = self.check_parser(self.cmd, ['test-plan'],
+                                        [('plans', ['test-plan'])])
+
+        export_deployment_plan_mock.return_value = 'http://fake-url.com'
+
+        with mock.patch('six.moves.builtins.open', mock.mock_open()):
+            self.cmd.take_action(parsed_args)
+
+        export_deployment_plan_mock.assert_called_once_with(
+            self.clients, plan='test-plan', queue_name='UUID4')
+
+    @mock.patch(
+        'tripleoclient.workflows.plan_management.export_deployment_plan',
+        autospec=True)
+    def test_export_multiple_plans(self, export_deployment_plan_mock):
+        argslist = ['test-plan1', 'test-plan2']
+        verifylist = [('plans', ['test-plan1', 'test-plan2'])]
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+
+        export_deployment_plan_mock.return_value = 'http://fake-url.com'
+
+        with mock.patch('six.moves.builtins.open', mock.mock_open()):
+            self.cmd.take_action(parsed_args)
+
+        expected = [
+            mock.call(self.clients, plan='test-plan1', queue_name='UUID4'),
+            mock.call(self.clients, plan='test-plan2', queue_name='UUID4'),
+        ]
+        self.assertEqual(export_deployment_plan_mock.call_args_list, expected)

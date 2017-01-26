@@ -183,3 +183,27 @@ def update_plan_from_templates(clients, name, tht_root, roles_file=None,
     update_deployment_plan(clients, container=name,
                            queue_name=str(uuid.uuid4()),
                            generate_passwords=generate_passwords)
+
+
+def export_deployment_plan(clients, **workflow_input):
+    workflow_client = clients.workflow_engine
+    tripleoclients = clients.tripleoclient
+    queue_name = workflow_input['queue_name']
+
+    execution = base.start_workflow(
+        workflow_client,
+        'tripleo.plan_management.v1.export_deployment_plan',
+        workflow_input=workflow_input
+    )
+
+    with tripleoclients.messaging_websocket(queue_name) as ws:
+        for payload in base.wait_for_messages(workflow_client, ws, execution,
+                                              _WORKFLOW_TIMEOUT):
+            if 'message' in payload:
+                print(payload['message'])
+
+    if payload['status'] == 'SUCCESS':
+        return payload['tempurl']
+    else:
+        raise exceptions.WorkflowServiceError(
+            'Exception exporting plan: {}'.format(payload['message']))
