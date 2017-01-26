@@ -1,0 +1,10 @@
+---
+upgrade:
+  - |
+    Some packages previously built into the default overcloud-full image to
+    support vendor integration have been removed due to difficulties related
+    to CI stability.  To add these packages for the vendor support you require
+    you can either build a custom image containing the packages (see
+    http://docs.openstack.org/developer/tripleo-docs/basic_deployment/basic_deployment_cli.html#get-images)
+    or you can use virt-customize (http://libguestfs.org/virt-customize.1.html)
+    to install the required extra packages in a pre-built overcloud-full image.
