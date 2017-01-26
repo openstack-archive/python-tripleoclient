@@ -28,20 +28,21 @@ class TestDeleteOvercloud(fakes.TestDeployOvercloud):
         self.app.client_manager.workflow_engine = mock.Mock()
         self.workflow = self.app.client_manager.workflow_engine
 
-    @mock.patch('tripleoclient.utils.wait_for_stack_ready',
-                autospec=True)
-    def test_stack_delete(self, wait_for_stack_ready_mock):
+    @mock.patch(
+        'tripleoclient.workflows.stack_management.delete_stack', autospec=True)
+    def test_stack_delete(self, mock_delete_stack):
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
 
-        self.cmd._stack_delete(orchestration_client, 'overcloud')
+        stack = mock.Mock()
+        stack.id = 12345
+        orchestration_client.stacks.get.return_value = stack
+
+        self.cmd._stack_delete(clients, 'overcloud')
 
         orchestration_client.stacks.get.assert_called_once_with('overcloud')
-        wait_for_stack_ready_mock.assert_called_once_with(
-            orchestration_client=orchestration_client,
-            stack_name='overcloud',
-            action='DELETE'
-        )
+        mock_delete_stack.assert_called_once_with(
+            clients.workflow_engine, stack=12345)
 
     def test_stack_delete_no_stack(self):
         clients = self.app.client_manager
@@ -49,7 +50,7 @@ class TestDeleteOvercloud(fakes.TestDeployOvercloud):
         type(orchestration_client.stacks.get).return_value = None
         self.cmd.log.warning = mock.MagicMock()
 
-        self.cmd._stack_delete(orchestration_client, 'overcloud')
+        self.cmd._stack_delete(clients, 'overcloud')
 
         orchestration_client.stacks.get.assert_called_once_with('overcloud')
         self.cmd.log.warning.assert_called_once_with(

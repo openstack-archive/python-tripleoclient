@@ -22,6 +22,7 @@ from osc_lib import utils as osc_utils
 
 from tripleoclient import utils
 from tripleoclient.workflows import plan_management
+from tripleoclient.workflows import stack_management
 
 
 class DeleteOvercloud(command.Command):
@@ -46,7 +47,9 @@ class DeleteOvercloud(command.Command):
             raise oscexc.CommandError(
                 "You must specify a stack name")
 
-    def _stack_delete(self, orchestration_client, stack_name):
+    def _stack_delete(self, clients, stack_name):
+        orchestration_client = clients.orchestration
+
         print("Deleting stack {s}...".format(s=stack_name))
         stack = utils.get_stack(orchestration_client, stack_name)
         if stack is None:
@@ -54,15 +57,13 @@ class DeleteOvercloud(command.Command):
                              format(s=stack_name))
         else:
             try:
-                utils.wait_for_stack_ready(
-                    orchestration_client=orchestration_client,
-                    stack_name=stack_name,
-                    action='DELETE')
+                stack_management.delete_stack(
+                    clients.workflow_engine,
+                    stack=stack.id
+                )
             except Exception as e:
-                self.log.error("Exception while waiting for stack to delete "
-                               "{}".format(e))
                 raise oscexc.CommandError(
-                    "Error occurred while waiting for stack to delete {}".
+                    "Error occurred during stack delete {}".
                     format(e))
 
     def _plan_delete(self, workflow_client, stack_name):
@@ -89,9 +90,8 @@ class DeleteOvercloud(command.Command):
                 raise oscexc.CommandError("Action not confirmed, exiting.")
 
         clients = self.app.client_manager
-        orchestration_client = clients.orchestration
-        workflow_client = self.app.client_manager.workflow_engine
+        workflow_client = clients.workflow_engine
 
-        self._stack_delete(orchestration_client, parsed_args.stack)
+        self._stack_delete(clients, parsed_args.stack)
         self._plan_delete(workflow_client, parsed_args.stack)
         print("Success.")
