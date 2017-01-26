@@ -124,7 +124,8 @@ def create_container(workflow_client, **input_):
                             **input_)
 
 
-def create_plan_from_templates(clients, name, tht_root, roles_file=None):
+def create_plan_from_templates(clients, name, tht_root, roles_file=None,
+                               generate_passwords=True):
     workflow_client = clients.workflow_engine
     swift_client = clients.tripleoclient.object_store
 
@@ -139,10 +140,12 @@ def create_plan_from_templates(clients, name, tht_root, roles_file=None):
     print("Creating plan from template files in: {}".format(tht_root))
     _upload_templates(swift_client, name, tht_root, roles_file)
     create_deployment_plan(clients, container=name,
-                           queue_name=str(uuid.uuid4()))
+                           queue_name=str(uuid.uuid4()),
+                           generate_passwords=generate_passwords)
 
 
-def update_plan_from_templates(clients, name, tht_root, roles_file=None):
+def update_plan_from_templates(clients, name, tht_root, roles_file=None,
+                               generate_passwords=True):
     swift_client = clients.tripleoclient.object_store
 
     # TODO(dmatthews): Removing the existing plan files should probably be
@@ -168,4 +171,5 @@ def update_plan_from_templates(clients, name, tht_root, roles_file=None):
     print("Uploading new plan files")
     _upload_templates(swift_client, name, tht_root, roles_file)
     update_deployment_plan(clients, container=name,
-                           queue_name=str(uuid.uuid4()))
+                           queue_name=str(uuid.uuid4()),
+                           generate_passwords=generate_passwords)

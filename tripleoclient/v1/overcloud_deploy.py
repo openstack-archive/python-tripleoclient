@@ -408,6 +408,7 @@ class DeployOvercloud(command.Command):
             parsed_args, network_client, stack)
 
         plans = plan_management.list_deployment_plans(workflow_client)
+        generate_passwords = not parsed_args.disable_password_generation
 
         # TODO(d0ugal): We need to put a more robust strategy in place here to
         #               handle updating plans.
@@ -415,10 +416,12 @@ class DeployOvercloud(command.Command):
             # Upload the new plan templates to swift to replace the existing
             # templates.
             plan_management.update_plan_from_templates(
-                clients, parsed_args.stack, tht_root, parsed_args.roles_file)
+                clients, parsed_args.stack, tht_root, parsed_args.roles_file,
+                generate_passwords)
         else:
             plan_management.create_plan_from_templates(
-                clients, parsed_args.stack, tht_root, parsed_args.roles_file)
+                clients, parsed_args.stack, tht_root, parsed_args.roles_file,
+                generate_passwords)
 
         # Get any missing (e.g j2 rendered) files from the plan to tht_root
         added_files = self._download_missing_files_from_plan(
@@ -1034,6 +1037,12 @@ class DeployOvercloud(command.Command):
         parser.add_argument(
             '--answers-file',
             help=_('Path to a YAML file with arguments and parameters.')
+        )
+        parser.add_argument(
+            '--disable-password-generation',
+            action='store_true',
+            default=False,
+            help=_('Disable password generation.')
         )
 
         return parser

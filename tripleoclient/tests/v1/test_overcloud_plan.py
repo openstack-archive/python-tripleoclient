@@ -134,7 +134,8 @@ class TestOvercloudCreatePlan(utils.TestCommand):
             'tripleo.plan_management.v1.create_default_deployment_plan',
             workflow_input={
                 'container': 'overcast',
-                'queue_name': 'UUID4'
+                'queue_name': 'UUID4',
+                'generate_passwords': True
             })
 
     def test_create_default_plan_failed(self):
@@ -160,7 +161,8 @@ class TestOvercloudCreatePlan(utils.TestCommand):
             'tripleo.plan_management.v1.create_default_deployment_plan',
             workflow_input={
                 'container': 'overcast',
-                'queue_name': 'UUID4'
+                'queue_name': 'UUID4',
+                'generate_passwords': True
             })
 
     @mock.patch("tripleoclient.workflows.plan_management.tarball")
@@ -193,7 +195,8 @@ class TestOvercloudCreatePlan(utils.TestCommand):
             'tripleo.plan_management.v1.create_deployment_plan',
             workflow_input={
                 'container': 'overcast',
-                'queue_name': 'UUID4'
+                'queue_name': 'UUID4',
+                'generate_passwords': True
             })
 
     @mock.patch("tripleoclient.workflows.plan_management.tarball")
@@ -227,7 +230,35 @@ class TestOvercloudCreatePlan(utils.TestCommand):
             'tripleo.plan_management.v1.create_deployment_plan',
             workflow_input={
                 'container': 'overcast',
-                'queue_name': 'UUID4'
+                'queue_name': 'UUID4',
+                'generate_passwords': True
+            })
+
+    def test_create_default_plan_with_password_gen_disabled(self):
+
+        # Setup
+        arglist = ['overcast', '--disable-password-generation']
+        verifylist = [
+            ('name', 'overcast'),
+            ('templates', None),
+            ('disable_password_generation', True)
+        ]
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.websocket.wait_for_message.return_value = {
+            "status": "SUCCESS"
+        }
+
+        # Run
+        self.cmd.take_action(parsed_args)
+
+        # Verify
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.plan_management.v1.create_default_deployment_plan',
+            workflow_input={
+                'container': 'overcast',
+                'queue_name': 'UUID4',
+                'generate_passwords': False
             })
 
 
