@@ -1,6 +1,6 @@
 ---
 prelude: >
-    5.8.0 is the final release for Ocata.
+    6.0.0 is the final release for Ocata.
     It's the first release where release notes are added.
 features:
   - Use the overcloudrc generated in a Mistral action so both
