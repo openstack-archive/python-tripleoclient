@@ -255,6 +255,10 @@ class TestOvercloudDeployPlan(utils.TestCommand):
         self.mock_uuid4 = uuid4_patcher.start()
         self.addCleanup(self.mock_uuid4.stop)
 
+        sleep_patch = mock.patch('time.sleep')
+        self.addCleanup(sleep_patch.stop)
+        sleep_patch.start()
+
     @mock.patch('tripleoclient.utils.wait_for_stack_ready', autospec=True)
     def test_overcloud_deploy_plan(self, mock_for_stack_ready):
 
