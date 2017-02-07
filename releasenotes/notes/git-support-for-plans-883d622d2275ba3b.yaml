@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Added argument for --source_url to overcloud create_plan workflow call.
+    The --source_url argument expects the url of a git repository containing
+    the Heat templates to deploy.

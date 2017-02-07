@@ -44,6 +44,7 @@ def _upload_templates(swift_client, container_name, tht_root, roles_file=None):
 
 
 def create_default_plan(clients, **workflow_input):
+
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
     queue_name = workflow_input['queue_name']
@@ -92,7 +93,10 @@ def create_deployment_plan(clients, **workflow_input):
         **workflow_input)
 
     if payload['status'] == 'SUCCESS':
-        print("Plan created")
+        if 'use_default_templates' in workflow_input:
+            print("Default plan created")
+        else:
+            print("Plan created")
     else:
         raise exceptions.WorkflowServiceError(
             'Exception creating plan: {}'.format(payload['message']))
@@ -182,7 +186,8 @@ def update_plan_from_templates(clients, name, tht_root, roles_file=None,
     _upload_templates(swift_client, name, tht_root, roles_file)
     update_deployment_plan(clients, container=name,
                            queue_name=str(uuid.uuid4()),
-                           generate_passwords=generate_passwords)
+                           generate_passwords=generate_passwords,
+                           source_url=None)
 
 
 def export_deployment_plan(clients, **workflow_input):
