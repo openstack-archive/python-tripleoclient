@@ -26,7 +26,7 @@ def update(clients, **workflow_input):
 
     execution = base.start_workflow(
         workflow_client,
-        'tripleo.update.v1.update_plan',
+        'tripleo.package_update.v1.package_update_plan',
         workflow_input=workflow_input
     )
 
@@ -69,7 +69,7 @@ def abort_update(clients, **workflow_input):
 
     execution = base.start_workflow(
         workflow_client,
-        'tripleo.update.v1.cancel_stack_update',
+        'tripleo.package_update.v1.cancel_stack_update',
         workflow_input=workflow_input
     )
 
@@ -86,7 +86,7 @@ def clear_breakpoints(clients, **workflow_input):
 
     execution = base.start_workflow(
         workflow_client,
-        'tripleo.update.v1.clear_breakpoints',
+        'tripleo.package_update.v1.clear_breakpoints',
         workflow_input=workflow_input
     )
 
