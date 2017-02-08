@@ -35,8 +35,8 @@ class TestUndercloudInstall(TestPluginV1):
         # Get the command object to test
         self.cmd = undercloud.InstallUndercloud(self.app, None)
 
-    @mock.patch('subprocess.check_call', autospec=True)
-    def test_undercloud_install(self, mock_subprocess):
+    @mock.patch('instack_undercloud.undercloud.install')
+    def test_undercloud_install(self, mock_install):
         arglist = []
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
@@ -44,7 +44,7 @@ class TestUndercloudInstall(TestPluginV1):
         # DisplayCommandBase.take_action() returns two tuples
         self.cmd.take_action(parsed_args)
 
-        mock_subprocess.assert_called_with('instack-install-undercloud')
+        mock_install.assert_called_once_with('/usr/share/instack-undercloud')
 
 
 class TestUndercloudUpgrade(TestPluginV1):
@@ -54,8 +54,9 @@ class TestUndercloudUpgrade(TestPluginV1):
         # Get the command object to test
         self.cmd = undercloud.UpgradeUndercloud(self.app, None)
 
+    @mock.patch('instack_undercloud.undercloud.install')
     @mock.patch('subprocess.check_call', autospec=True)
-    def test_undercloud_upgrade(self, mock_subprocess):
+    def test_undercloud_upgrade(self, mock_subprocess, mock_install):
         arglist = []
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
@@ -66,8 +67,9 @@ class TestUndercloudUpgrade(TestPluginV1):
         mock_subprocess.assert_has_calls(
             [
                 mock.call(['sudo', 'yum', 'update', '-y']),
-                mock.call('instack-upgrade-undercloud'),
                 mock.call(['sudo', 'systemctl', 'restart',
                           'openstack-nova-api'])
             ]
         )
+        mock_install.assert_called_once_with('/usr/share/instack-undercloud',
+                                             upgrade=True)
