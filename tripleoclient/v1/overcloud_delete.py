@@ -58,7 +58,7 @@ class DeleteOvercloud(command.Command):
         else:
             try:
                 stack_management.delete_stack(
-                    clients.workflow_engine,
+                    clients,
                     stack=stack.id
                 )
             except Exception as e:
