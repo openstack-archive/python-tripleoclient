@@ -42,7 +42,7 @@ class TestDeleteOvercloud(fakes.TestDeployOvercloud):
 
         orchestration_client.stacks.get.assert_called_once_with('overcloud')
         mock_delete_stack.assert_called_once_with(
-            clients.workflow_engine, stack=12345)
+            clients, stack=12345)
 
     def test_stack_delete_no_stack(self):
         clients = self.app.client_manager
