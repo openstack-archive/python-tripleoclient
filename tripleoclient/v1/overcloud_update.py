@@ -84,11 +84,12 @@ class UpdateOvercloud(command.Command):
                 self.log, clients, stack, stack_name,
                 self.app_args.verbose_level, timeout)
             if status not in ['COMPLETE']:
-                raise exceptions.DeploymentError("Stack update failed.")
+                raise exceptions.DeploymentError("Package update failed.")
         else:
-            status = package_update.update(clients, container=stack_name,
-                                           queue_name=str(uuid.uuid4()))
-            print("stack {0} status: {1}".format(parsed_args.stack, status))
+            package_update.update(clients, container=stack_name,
+                                  queue_name=str(uuid.uuid4()))
+            print("Package update on stack {0} initiated.".format(
+                parsed_args.stack))
 
 
 class AbortUpdateOvercloud(command.Command):
