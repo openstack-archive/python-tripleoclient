@@ -126,7 +126,7 @@ class GenerateFencingParameters(command.Command):
             'os_auth': os_auth,
             'fence_action': parsed_args.fence_action,
             'delay': parsed_args.delay,
-            'ipmi_privlvl': parsed_args.ipmi_level,
+            'ipmi_level': parsed_args.ipmi_level,
             'ipmi_cipher': parsed_args.ipmi_cipher,
             'ipmi_lanplus': parsed_args.ipmi_lanplus,
             }
