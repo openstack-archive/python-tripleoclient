@@ -14,7 +14,6 @@
 #
 
 import mock
-import os
 
 from osc_lib import exceptions
 from tripleoclient.tests.v1.test_plugin import TestPluginV1
@@ -436,8 +435,9 @@ class TestUploadOvercloudImage(TestPluginV1):
             update_mock.call_count
         )
 
-    def test_file_try_update_need_update(self):
-        os.path.isfile = mock.Mock(return_value=True)
+    @mock.patch('os.path.isfile', autospec=True)
+    def test_file_try_update_need_update(self, mock_isfile):
+        mock_isfile.return_value = True
         self.cmd._files_changed = mock.Mock(return_value=True)
         self.cmd._copy_file = mock.Mock()
 
@@ -457,10 +457,12 @@ class TestUploadOvercloudImage(TestPluginV1):
             self.cmd._copy_file.call_count
         )
 
+    @mock.patch('os.path.isfile', autospec=True)
     @mock.patch('subprocess.check_call', autospec=True)
-    def test_overcloud_create_images_v2(self, mock_subprocess_call):
+    def test_overcloud_create_images_v2(self, mock_subprocess_call,
+                                        mock_isfile):
         parsed_args = self.check_parser(self.cmd, [], [])
-        os.path.isfile = mock.Mock(return_value=False)
+        mock_isfile.return_value = False
 
         self.cmd._get_image = mock.Mock(return_value=None)
 
@@ -507,10 +509,12 @@ class TestUploadOvercloudImage(TestPluginV1):
                           '"/httpboot/agent.ramdisk"', shell=True)
             ])
 
+    @mock.patch('os.path.isfile', autospec=True)
     @mock.patch('subprocess.check_call', autospec=True)
-    def test_overcloud_create_images_v1(self, mock_subprocess_call):
+    def test_overcloud_create_images_v1(self, mock_subprocess_call,
+                                        mock_isfile):
         parsed_args = self.check_parser(self.cmd, [], [])
-        os.path.isfile = mock.Mock(return_value=False)
+        mock_isfile.return_value = False
 
         self.cmd._get_image = mock.Mock(return_value=None)
         self.app.client_manager.image.version = 1.0
@@ -587,10 +591,12 @@ class TestUploadOvercloudImage(TestPluginV1):
             ]
         self.assertEqual(expected, self.cmd._image_try_update.mock_calls)
 
+    @mock.patch('os.path.isfile', autospec=True)
     @mock.patch('subprocess.check_call', autospec=True)
-    def test_overcloud_create_noupdate_images(self, mock_subprocess_call):
+    def test_overcloud_create_noupdate_images(self, mock_subprocess_call,
+                                              mock_isfile):
         parsed_args = self.check_parser(self.cmd, [], [])
-        os.path.isfile = mock.Mock(return_value=True)
+        mock_isfile.return_value = True
         self.cmd._files_changed = mock.Mock(return_value=True)
 
         existing_image = mock.Mock(id=10, name='imgname',
@@ -661,10 +667,12 @@ class TestUploadOvercloudImageFull(TestPluginV1):
         self.cmd._read_image_file_pointer = mock.Mock(return_value=b'IMGDATA')
         self.cmd._check_file_exists = mock.Mock(return_value=True)
 
+    @mock.patch('os.path.isfile', autospec=True)
     @mock.patch('subprocess.check_call', autospec=True)
-    def test_overcloud_create_images(self, mock_subprocess_call):
+    def test_overcloud_create_images(self, mock_subprocess_call,
+                                     mock_isfile):
         parsed_args = self.check_parser(self.cmd, ['--whole-disk'], [])
-        os.path.isfile = mock.Mock(return_value=False)
+        mock_isfile.return_value = False
 
         self.cmd._get_image = mock.Mock(return_value=None)
 
@@ -704,10 +712,12 @@ class TestUploadOvercloudImageFull(TestPluginV1):
                           '"/httpboot/agent.ramdisk"', shell=True)
             ])
 
+    @mock.patch('os.path.isfile', autospec=True)
     @mock.patch('subprocess.check_call', autospec=True)
-    def test_overcloud_create_noupdate_images(self, mock_subprocess_call):
+    def test_overcloud_create_noupdate_images(self, mock_subprocess_call,
+                                              mock_isfile):
         parsed_args = self.check_parser(self.cmd, ['--whole-disk'], [])
-        os.path.isfile = mock.Mock(return_value=True)
+        mock_isfile.return_value = True
         self.cmd._files_changed = mock.Mock(return_value=True)
 
         existing_image = mock.Mock(id=10, name='imgname',
