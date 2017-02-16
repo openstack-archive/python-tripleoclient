@@ -54,6 +54,9 @@ class TestCheckHypervisorUtil(TestCase):
 class TestWaitForStackUtil(TestCase):
     def setUp(self):
         self.mock_orchestration = mock.Mock()
+        sleep_patch = mock.patch('time.sleep')
+        self.addCleanup(sleep_patch.stop)
+        sleep_patch.start()
 
     def mock_event(self, resource_name, id, resource_status_reason,
                    resource_status, event_time):
