@@ -168,6 +168,6 @@ class TestGenerateFencingParameters(utils.TestCommand):
                 'os_auth': {},
                 'ipmi_cipher': None,
                 'ipmi_lanplus': False,
-                'ipmi_privlvl': None
+                'ipmi_level': None
             },
             run_sync=True, save_result=True)
