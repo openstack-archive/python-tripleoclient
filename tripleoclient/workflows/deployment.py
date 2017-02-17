@@ -16,6 +16,7 @@ import time
 import uuid
 
 from heatclient.common import event_utils
+from openstackclient import shell
 
 from tripleoclient import exceptions
 from tripleoclient import utils
@@ -80,6 +81,7 @@ def deploy_and_wait(log, clients, stack, plan_name, verbose_level,
     create_result = utils.wait_for_stack_ready(
         orchestration_client, plan_name, marker, action, verbose_events)
     if not create_result:
+        shell.OpenStackShell().run(["stack", "failures", "list", plan_name])
         if stack is None:
             raise exceptions.DeploymentError("Heat Stack create failed.")
         else:
