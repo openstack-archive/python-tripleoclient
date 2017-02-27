@@ -16,6 +16,7 @@ import uuid
 
 from tripleo_common import update as update_common
 
+from tripleoclient import utils as oooutils
 from tripleoclient.workflows import base
 
 
@@ -55,9 +56,15 @@ def update_and_wait(log, clients, stack, plan_name, verbose_level,
     update_manager = update_common.PackageUpdateManager(
         heatclient=clients.orchestration,
         novaclient=clients.compute,
-        stack_id=stack)
+        stack_id=plan_name,
+        stack_fields={})
 
     update_manager.do_interactive_update()
+
+    stack = oooutils.get_stack(clients.orchestration,
+                               plan_name)
+
+    return stack.status
 
 
 def abort_update(clients, **workflow_input):
