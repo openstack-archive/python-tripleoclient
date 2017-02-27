@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Removed setting NeutronDhcpAgentsPerNetwork based on controller count.
+    If not overridden by the user, it should be calculated based on the
+    number of neutron DHCP agents that are actually deployed.
