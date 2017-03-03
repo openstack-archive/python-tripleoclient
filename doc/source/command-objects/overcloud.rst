@@ -26,15 +26,6 @@ Deploy an overcloud stack
         [--ceph-storage-flavor CEPH_STORAGE_FLAVOR]
         [--block-storage-flavor BLOCK_STORAGE_FLAVOR]
         [--swift-storage-flavor SWIFT_STORAGE_FLAVOR]
-        [--neutron-flat-networks NEUTRON_FLAT_NETWORKS]
-        [--neutron-physical-bridge NEUTRON_PHYSICAL_BRIDGE]
-        [--neutron-bridge-mappings NEUTRON_BRIDGE_MAPPINGS]
-        [--neutron-public-interface NEUTRON_PUBLIC_INTERFACE]
-        [--neutron-network-type NEUTRON_NETWORK_TYPE]
-        [--neutron-tunnel-types NEUTRON_TUNNEL_TYPES]
-        [--neutron-disable-tunneling]
-        [--neutron-network-vlan-ranges NEUTRON_NETWORK_VLAN_RANGES]
-        [--neutron-mechanism-drivers NEUTRON_MECHANISM_DRIVERS]
         [--libvirt-type LIBVIRT_TYPE]
         [--ntp-server NTP_SERVER] [--cinder-lvm]
         [--no-proxy NO_PROXY] [-O <OUTPUT DIR>]
@@ -97,62 +88,6 @@ Deploy an overcloud stack
 .. option:: --swift-storage-flavor <flavor-name>
 
     Nova flavor to use for swift storage nodes.
-
-.. option:: --neutron-flat-networks <networks>
-
-    Deprecated.
-
-    Comma separated list of physical_network names with which flat networks
-    can be created. Use * to allow flat networks with arbitrary
-    physical_network names. (default: 'datacentre')
-
-.. option:: --neutron-physical-bridge <bridge>
-
-    Deprecated.
-
-.. option:: --neutron-bridge-mappings <mappings>
-
-    Deprecated.
-
-    Comma separated list of bridge mappings. (default: datacentre:br-ex)
-
-.. option:: --neutron-public-interface <interface>
-
-    Deprecated.
-
-.. option:: --neutron-network-type <type>
-
-    Deprecated.
-
-    The network type for the tenant networks.
-
-.. option:: --neutron-tunnel-types <type>
-
-    Deprecated.
-
-    Network types supported by the agent (gre and/or vxlan).
-
-.. option:: --neutron-disable-tunneling
-
-    Deprecated.
-
-    Disables tunneling.
-
-.. option:: --neutron-network-vlan-ranges <ranges>
-
-    Deprecated.
-
-    Comma separated list of <physical_network>:<vlan_min>:<vlan_max> or
-    <physical_network> specifying physical_network names usable for VLAN
-    provider and tenant networks, as well as ranges of VLAN tags on each
-    available for allocation to tenant networks. (ex: datacentre:1:1000)
-
-.. option:: --neutron-mechanism-drivers <drivers>
-
-    Deprecated.
-
-    An ordered list of extension driver entrypoints to be loaded from the
-    neutron.ml2.extension_drivers namespace.
 
 .. option:: --libvirt-type {kvm,qemu}
 
