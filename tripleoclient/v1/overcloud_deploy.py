@@ -30,8 +30,6 @@ import yaml
 from heatclient.common import template_utils
 from heatclient import exc as hc_exc
 from keystoneclient import exceptions as kscexc
-from os_cloud_config import keystone
-from os_cloud_config.utils import clients as occ_clients
 from osc_lib.command import command
 from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
@@ -45,6 +43,13 @@ from tripleoclient import utils
 from tripleoclient.workflows import deployment
 from tripleoclient.workflows import parameters as workflow_params
 from tripleoclient.workflows import plan_management
+
+
+level = logging.getLogger('os_cloud_config').getEffectiveLevel()
+logging.getLogger('os_cloud_config').setLevel(logging.ERROR)
+from os_cloud_config import keystone
+from os_cloud_config.utils import clients as occ_clients
+logging.getLogger('os_cloud_config').setLevel(level)
 
 
 class DeployOvercloud(command.Command):
