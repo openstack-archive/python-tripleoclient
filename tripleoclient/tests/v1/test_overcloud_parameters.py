@@ -145,7 +145,7 @@ class TestGenerateFencingParameters(utils.TestCommand):
         self.workflow.action_executions.create.assert_called_once_with(
             'tripleo.parameters.generate_fencing',
             {
-                'fence_action': 'reboot',
+                'fence_action': None,
                 'nodes_json': [
                     {
                         u'mac': [u'00:11:22:33:44:55'],

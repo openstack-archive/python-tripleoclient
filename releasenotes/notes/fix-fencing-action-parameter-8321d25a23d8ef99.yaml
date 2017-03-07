@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    The `overcloud generate fencing` command no longer carries a default value
+    for the `action` parameter. Advice from upstream Pacemaker is that this
+    value should no longer be passed to fencing agents as it may cause
+    inconsistent behaviour. The parameter remains, but is now optional, and
+    its use is discouraged.
