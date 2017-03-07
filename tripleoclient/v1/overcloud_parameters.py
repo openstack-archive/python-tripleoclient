@@ -75,10 +75,10 @@ class GenerateFencingParameters(command.Command):
     def get_parser(self, prog_name):
         parser = super(GenerateFencingParameters, self).get_parser(prog_name)
         parser.add_argument('-a', '--action', dest='fence_action',
-                            default='reboot',
                             help=_('Operation to perform. Valid operations: '
                                    'on, off, reboot, status, list, diag, '
-                                   'monitor or metadata. Defaults to: reboot'))
+                                   'monitor or metadata. You should generally '
+                                   'not use this option.'))
         parser.add_argument('--delay', type=int,
                             help=_('Wait DELAY seconds before fencing is '
                                    'started'))
