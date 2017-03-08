@@ -85,6 +85,47 @@ class TestPlugin(base.TestCase):
                 "execution": {"id": "IDID"},
             })
 
+    @mock.patch.object(plugin.WebsocketClient, "recv")
+    @mock.patch("websocket.create_connection")
+    def test_handle_websocket_multiple(self, ws_create_connection, recv_mock):
+
+        send_ack = {
+            "headers": {
+                "status": 200
+            }
+        }
+
+        # Creating the websocket sends three messages and closing sends one.
+        # The one being tested is wrapped between these
+        recv_mock.side_effect = [send_ack, send_ack, send_ack, {
+            "body": {
+                "payload": {
+                    "status": 200,
+                    "message": "Result for IDID",
+                    "execution": {"id": "IDID"},
+                }
+            }
+        }, send_ack]
+
+        clientmgr = mock.MagicMock()
+        clientmgr.get_endpoint_for_service_type.return_value = fakes.WS_URL
+        clientmgr.auth.get_token.return_value = "TOKEN"
+        clientmgr.auth_ref.project_id = "ID"
+
+        client = plugin.make_client(clientmgr)
+
+        with client.messaging_websocket() as ws:
+            for payload in ws.wait_for_messages():
+                self.assertEqual(payload, {
+                    "status": 200,
+                    "message": "Result for IDID",
+                    "execution": {"id": "IDID"},
+                })
+                # We only want to test the first message, as there is only one.
+                # The last one, the send_ack will be used by the context
+                # manager when it is closed.
+                break
+
     @mock.patch("websocket.create_connection")
     def test_websocket_creation_error(self, ws_create_connection):
 
