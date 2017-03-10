@@ -341,6 +341,15 @@ def get_endpoint_map(stack):
     return endpoint_map
 
 
+def get_role_data(stack):
+    role_data = {}
+    for output in stack.to_dict().get('outputs', {}):
+        if output['output_key'] == 'RoleData':
+            for role in output['output_value']:
+                role_data[role] = output['output_value'][role]
+    return role_data
+
+
 def get_endpoint(key, stack):
     endpoint_map = get_endpoint_map(stack)
     if endpoint_map:
