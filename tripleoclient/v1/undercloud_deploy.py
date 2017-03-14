@@ -40,7 +40,7 @@ from tripleo_common.utils import passwords as password_utils
 
 
 class DeployUndercloud(command.Command):
-    """Deploy Undercloud"""
+    """Deploy Undercloud (experimental feature)"""
 
     log = logging.getLogger(__name__ + ".DeployUndercloud")
     auth_required = False
@@ -391,6 +391,9 @@ class DeployUndercloud(command.Command):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+        print("\nUndercloud deploy is an experimental developer focused "
+              "feature that does not yet replace "
+              "'openstack undercloud install'.")
 
         if not parsed_args.local_ip:
             print('Please set --local-ip to the correct ipaddress/cidr '
