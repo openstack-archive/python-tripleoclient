@@ -390,10 +390,14 @@ class TestImportNode(fakes.TestOvercloudNode):
         self.websocket.wait_for_message.return_value = {
             "status": "SUCCESS",
             "message": "Success",
+        }
+        self.websocket.wait_for_messages.return_value = [{
+            "status": "SUCCESS",
+            "message": "Success",
             "registered_nodes": [{
                 "uuid": "MOCK_NODE_UUID"
             }]
-        }
+        }]
 
         self.cmd.take_action(parsed_args)
 

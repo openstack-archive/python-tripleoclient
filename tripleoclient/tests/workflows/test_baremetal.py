@@ -33,12 +33,21 @@ class TestBaremetalWorkflows(utils.TestCommand):
         self.tripleoclient.messaging_websocket.return_value = self.websocket
         self.app.client_manager.tripleoclient = self.tripleoclient
 
+        self.message_success = iter([{
+            "execution": {"id": "IDID"},
+            "status": "SUCCESS",
+            "message": "Success.",
+            "registered_nodes": [],
+        }])
+        self.message_failed = iter([{
+            "execution": {"id": "IDID"},
+            "status": "FAIL",
+            "message": "Fail.",
+        }])
+
     def test_register_or_update_success(self):
 
-        self.websocket.wait_for_message.return_value = {
-            "status": "SUCCESS",
-            "registered_nodes": [],
-        }
+        self.websocket.wait_for_messages.return_value = self.message_success
 
         self.assertEqual(baremetal.register_or_update(
             self.app.client_manager,
@@ -59,10 +68,7 @@ class TestBaremetalWorkflows(utils.TestCommand):
 
     def test_register_or_update_error(self):
 
-        self.websocket.wait_for_message.return_value = {
-            "status": "FAIL",
-            "message": "FAILED",
-        }
+        self.websocket.wait_for_messages.return_value = self.message_failed
 
         self.assertRaises(
             exceptions.RegisterOrUpdateError,

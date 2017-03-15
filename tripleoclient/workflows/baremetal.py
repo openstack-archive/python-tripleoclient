@@ -35,7 +35,9 @@ def register_or_update(clients, **workflow_input):
     )
 
     with tripleoclients.messaging_websocket(queue_name) as ws:
-        payload = ws.wait_for_message(execution.id)
+        for payload in base.wait_for_messages(workflow_client, ws, execution):
+            if 'message' in payload:
+                print(payload['message'])
 
     if payload['status'] == 'SUCCESS':
         registered_nodes = payload['registered_nodes']
