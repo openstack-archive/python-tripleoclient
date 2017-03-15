@@ -252,8 +252,12 @@ class TestIntrospectNode(fakes.TestOvercloudNode):
         self.websocket.wait_for_message.return_value = {
             "status": "SUCCESS",
             "message": "Success",
-            "introspected_nodes": {}
         }
+        self.websocket.wait_for_messages.return_value = iter([{
+            "status": "SUCCESS",
+            "message": "Success",
+            "introspected_nodes": {}
+        }])
 
         self.cmd.take_action(parsed_args)
 

@@ -153,7 +153,9 @@ def introspect_manageable_nodes(clients, **workflow_input):
     successful_node_uuids = set()
 
     with tripleoclients.messaging_websocket(queue_name) as ws:
-        payload = ws.wait_for_message(execution.id)
+        for payload in base.wait_for_messages(workflow_client, ws, execution):
+            if 'message' in payload:
+                print(payload['message'])
 
     if payload['status'] == 'SUCCESS':
         introspected_nodes = payload['introspected_nodes'] or {}

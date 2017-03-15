@@ -180,10 +180,11 @@ class TestBaremetalWorkflows(utils.TestCommand):
 
     def test_introspect_manageable_nodes_success(self):
 
-        self.websocket.wait_for_message.return_value = {
+        self.websocket.wait_for_messages.return_value = iter([{
+            "execution": {"id": "IDID"},
             "status": "SUCCESS",
             "introspected_nodes": {},
-        }
+        }])
 
         baremetal.introspect_manageable_nodes(
             self.app.client_manager, run_validations=False,
@@ -198,10 +199,7 @@ class TestBaremetalWorkflows(utils.TestCommand):
 
     def test_introspect_manageable_nodes_error(self):
 
-        self.websocket.wait_for_message.return_value = {
-            "status": "FAIL",
-            "message": "Failed"
-        }
+        self.websocket.wait_for_messages.return_value = self.message_failed
 
         self.assertRaises(
             exceptions.IntrospectionError,
@@ -219,11 +217,12 @@ class TestBaremetalWorkflows(utils.TestCommand):
 
     def test_introspect_manageable_nodes_mixed_status(self):
 
-        self.websocket.wait_for_message.return_value = {
+        self.websocket.wait_for_messages.return_value = iter([{
+            "execution": {"id": "IDID"},
             "status": "SUCCESS",
             "introspected_nodes": {'node1': {'error': None},
                                    'node2': {'error': 'Error'}}
-        }
+        }])
 
         self.assertRaises(
             exceptions.IntrospectionError,
