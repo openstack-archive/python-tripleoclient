@@ -121,7 +121,7 @@ class HeatDockerLauncher(HeatBaseLauncher):
     def heat_db_sync(self):
 
         subprocess.check_call([
-            'docker', 'run',
+            'docker', 'run', '--rm',
             '--user', self.user,
             '--volume', '%(conf)s:/etc/heat/heat.conf' % {'conf':
                                                           self.config_file},
@@ -132,7 +132,7 @@ class HeatDockerLauncher(HeatBaseLauncher):
 
     def get_heat_uid(self):
         p = subprocess.Popen([
-            'docker', 'run',
+            'docker', 'run', '--rm',
             self.container_image,
             'getent', 'passwd', '|', 'grep', self.user],
             stdout=subprocess.PIPE)
@@ -140,7 +140,7 @@ class HeatDockerLauncher(HeatBaseLauncher):
 
     def get_heat_gid(self):
         p = subprocess.Popen([
-            'docker', 'run',
+            'docker', 'run', '--rm',
             self.container_image,
             'getent', 'group', '|', 'grep', self.user],
             stdout=subprocess.PIPE)
