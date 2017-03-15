@@ -91,9 +91,7 @@ class TestBaremetalWorkflows(utils.TestCommand):
 
     def test_provide_success(self):
 
-        self.websocket.wait_for_message.return_value = {
-            "status": "SUCCESS",
-        }
+        self.websocket.wait_for_messages.return_value = self.message_success
 
         baremetal.provide(self.app.client_manager, node_uuids=[],
                           queue_name="QUEUE_NAME")
@@ -107,10 +105,7 @@ class TestBaremetalWorkflows(utils.TestCommand):
 
     def test_provide_error(self):
 
-        self.websocket.wait_for_message.return_value = {
-            "status": "FAIL",
-            "message": "Failed"
-        }
+        self.websocket.wait_for_messages.return_value = self.message_failed
 
         self.assertRaises(
             exceptions.NodeProvideError,
@@ -135,10 +130,11 @@ class TestBaremetalWorkflows(utils.TestCommand):
 
     def test_provide_error_with_format_message(self):
 
-        self.websocket.wait_for_message.return_value = {
+        self.websocket.wait_for_messages.return_value = iter([{
+            "execution": {"id": "IDID"},
             "status": "FAIL",
             "message": ['Error1', 'Error2']
-        }
+        }])
 
         self.assertRaises(
             exceptions.NodeProvideError,
