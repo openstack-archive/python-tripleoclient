@@ -340,9 +340,10 @@ class TestOvercloudDeployPlan(utils.TestCommand):
         # No existing stack, this is a new deploy.
         self.orch.stacks.get.return_value = None
 
-        self.websocket.wait_for_message.return_value = {
+        self.websocket.wait_for_messages.return_value = iter([{
+            'execution': {'id': 'IDID'},
             'status': 'SUCCESS'
-        }
+        }])
 
         mock_for_stack_ready.return_value = True
 
