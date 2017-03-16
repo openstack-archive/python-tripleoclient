@@ -463,10 +463,13 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             self.assertEqual(*args)
 
         def _fake_heat_deploy(self, stack, stack_name, template_path,
-                              parameters, environments, timeout, tht_root,
-                              env, update_plan_only, run_validations):
+                              parameters, environments, timeout, tht_root, env,
+                              update_plan_only, run_validations, ws_client):
+            queue = env['event_sinks'][0]['target']
             assertEqual(
                 {'parameter_defaults': {},
+                 'event_sinks': [
+                     {'target': queue, 'ttl': 14400, 'type': 'zaqar-queue'}],
                  'resource_registry': {'Test': u'OS::Heat::None'}}, env)
 
         mock_deploy_heat.side_effect = _fake_heat_deploy
@@ -519,10 +522,13 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             self.assertEqual(*args)
 
         def _fake_heat_deploy(self, stack, stack_name, template_path,
-                              parameters, environments, timeout, tht_root,
-                              env, update_plan_only, run_validations):
+                              parameters, environments, timeout, tht_root, env,
+                              update_plan_only, run_validations, ws_client):
+            queue = env['event_sinks'][0]['target']
             assertEqual(
                 {'parameter_defaults': {},
+                 'event_sinks': [
+                     {'target': queue, 'ttl': 14400, 'type': 'zaqar-queue'}],
                  'resource_registry': {'Test': u'OS::Heat::None'}}, env)
 
         mock_deploy_heat.side_effect = _fake_heat_deploy
@@ -760,13 +766,14 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             self, mock_heat_deploy_func):
         result = self.cmd._try_overcloud_deploy_with_compat_yaml(
             '/fake/path', {}, 'overcloud', {}, ['~/overcloud-env.json'], 1,
-            {}, False, True)
+            {}, False, True, mock.ANY)
         # If it returns None it succeeded
         self.assertIsNone(result)
         mock_heat_deploy_func.assert_called_once_with(
             self.cmd, {}, 'overcloud',
             '/fake/path/' + constants.OVERCLOUD_YAML_NAME, {},
-            ['~/overcloud-env.json'], 1, '/fake/path', {}, False, True)
+            ['~/overcloud-env.json'], 1, '/fake/path', {}, False, True,
+            mock.ANY)
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_heat_deploy', autospec=True)
@@ -775,7 +782,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_heat_deploy_func.side_effect = ObjectClientException('error')
         self.assertRaises(ValueError,
                           self.cmd._try_overcloud_deploy_with_compat_yaml,
-                          '/fake/path', mock.ANY, mock.ANY, mock.ANY,
+                          '/fake/path', mock.ANY, mock.ANY, mock.ANY, mock.ANY,
                           mock.ANY, mock.ANY, mock.ANY, mock.ANY, mock.ANY)
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
@@ -786,8 +793,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             ObjectClientException('/fake/path not found')
         try:
             self.cmd._try_overcloud_deploy_with_compat_yaml(
-                '/fake/path', mock.ANY, mock.ANY, mock.ANY,
-                mock.ANY, mock.ANY, mock.ANY, mock.ANY, mock.ANY)
+                '/fake/path', mock.ANY, mock.ANY, mock.ANY, mock.ANY, mock.ANY,
+                mock.ANY, mock.ANY, mock.ANY, mock.ANY)
         except ValueError as value_error:
             self.assertIn('/fake/path', str(value_error))
 
@@ -1256,7 +1263,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_get_template_contents.return_value = [{}, {}]
 
         self.cmd._heat_deploy(mock_stack, 'mock_stack', '/tmp', {},
-                              {}, 1, '/tmp', {}, True, False)
+                              {}, 1, '/tmp', {}, True, False, mock.ANY)
 
         self.assertFalse(mock_deploy_and_wait.called)
 
