@@ -520,10 +520,10 @@ class TestConfigureNode(fakes.TestOvercloudNode):
         )
 
     def test_failed_to_configure_all_manageable_nodes(self):
-        self.websocket.wait_for_message.return_value = {
+        self.websocket.wait_for_messages.return_value = iter([{
             "status": "FAILED",
             "message": "Test failure."
-        }
+        }])
 
         parsed_args = self.check_parser(self.cmd, ['--all-manageable'], [])
         self.assertRaises(exceptions.NodeConfigurationError,
