@@ -15,9 +15,12 @@
 
 from uuid import uuid4
 
+import argparse
 import mock
+from mock import call
 import os.path
 import tempfile
+
 from unittest import TestCase
 import yaml
 
@@ -712,3 +715,45 @@ class TestBracketIPV6(TestCase):
     def test_already_bracketed(self):
         result = utils.bracket_ipv6('[::1]')
         self.assertEqual('[::1]', result)
+
+
+class TestStoreCliParam(TestCase):
+
+    def setUp(self):
+        self.args = argparse.ArgumentParser()
+
+    @mock.patch('os.mkdir')
+    @mock.patch('os.path.exists')
+    def test_fail_to_create_file(self, mock_exists, mock_mkdir):
+        mock_exists.return_value = False
+        mock_mkdir.side_effect = OSError()
+        self.assertRaises(OSError, utils.store_cli_param, self.args)
+
+    @mock.patch('os.path.isdir')
+    @mock.patch('os.path.exists')
+    def test_exists_but_not_dir(self, mock_exists, mock_isdir):
+        mock_exists.return_value = True
+        mock_isdir.return_value = False
+        self.assertRaises(exceptions.InvalidConfiguration,
+                          utils.store_cli_param,
+                          self.args)
+
+    @mock.patch('six.moves.builtins.open')
+    @mock.patch('os.path.isdir')
+    @mock.patch('os.path.exists')
+    def test_write_cli_param(self, mock_exists, mock_isdir, mock_open):
+        history_path = os.path.join(os.path.expanduser("~"), '.tripleo')
+        mock_exists.return_value = True
+        mock_isdir.return_value = True
+        utils.store_cli_param(self.args)
+        expected_call = [call("%s/history" % history_path, 'a')]
+        mock_open.assert_has_calls(expected_call)
+
+    @mock.patch('six.moves.builtins.open')
+    @mock.patch('os.path.isdir')
+    @mock.patch('os.path.exists')
+    def test_fail_to_write_data(self, mock_exists, mock_isdir, mock_open):
+        mock_exists.return_value = True
+        mock_isdir.return_value = True
+        mock_open.side_effect = IOError()
+        self.assertRaises(IOError, utils.store_cli_param, self.args)

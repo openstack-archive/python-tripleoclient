@@ -15,6 +15,7 @@
 
 from __future__ import print_function
 import csv
+import datetime
 import hashlib
 import json
 import logging
@@ -75,6 +76,35 @@ def write_overcloudrc(stack_name, overcloudrcs, config_directory='.'):
     with open(rcv3path, 'w') as rcv3file:
         rcv3file.write(overcloudrcs['overcloudrc.v3'])
     os.chmod(rcv3path, 0o600)
+
+
+def store_cli_param(parsed_args):
+    """write the cli parameters into an history file"""
+
+    history_path = os.path.join(os.path.expanduser("~"), '.tripleo')
+    if not os.path.exists(history_path):
+        try:
+            os.mkdir(history_path)
+        except OSError as e:
+            messages = "Unable to create TripleO history directory: "
+            "{0}, {1}".format(history_path, e)
+            raise OSError(messages)
+    if os.path.isdir(history_path):
+        try:
+            with open(os.path.join(history_path,
+                                   'history'), 'a') as history:
+                args = parsed_args.__dict__.copy()
+                used_args = ', '.join('%s=%s' % (key, value)
+                                      for key, value in args.items())
+                history.write(' '.join([str(datetime.datetime.now()),
+                                       used_args]))
+        except IOError as e:
+            messages = "Unable to write into TripleO history file: "
+            "{0}, {1}".format(history_path, e)
+            raise IOError(messages)
+    else:
+        raise exceptions.InvalidConfiguration("Target path %s is not a "
+                                              "directory" % history_path)
 
 
 def create_tempest_deployer_input(config_name='tempest-deployer-input.conf'):

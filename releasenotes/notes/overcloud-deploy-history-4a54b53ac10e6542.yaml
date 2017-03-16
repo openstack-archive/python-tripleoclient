@@ -1,0 +1,7 @@
+---
+fixes:
+  - Each deploy command run by a user is now track in an history file under
+    $HOME/.tripleo directory. It allow to retrieve all the previous calls from
+    the openstack overcloud deploy command, the environment files used and the
+    templates directories used, for analysis, debugging or tracking. See
+    https://bugs.launchpad.net/tripleo/+bug/1673700
