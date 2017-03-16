@@ -55,8 +55,10 @@ def create_default_plan(clients, **workflow_input):
     )
 
     with tripleoclients.messaging_websocket(queue_name) as ws:
-        payload = base.wait_for_message(workflow_client, ws, execution,
-                                        _WORKFLOW_TIMEOUT)
+        for payload in base.wait_for_messages(workflow_client, ws, execution,
+                                              _WORKFLOW_TIMEOUT):
+            if 'message' in payload:
+                print(payload['message'])
 
     if payload['status'] == 'SUCCESS':
         print("Default plan created")
