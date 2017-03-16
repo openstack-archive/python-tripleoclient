@@ -44,6 +44,6 @@ def delete_stack(clients, stack):
     )
 
     with tripleoclient.messaging_websocket(queue_name) as ws:
-        rtn_message = ws.wait_for_message(execution.id)
-        if rtn_message['status'] != "SUCCESS":
-            raise InvalidConfiguration(rtn_message['message'])
+        for payload in base.wait_for_messages(workflow_client, ws, execution):
+            if payload['status'] != "SUCCESS":
+                raise InvalidConfiguration(payload['message'])
