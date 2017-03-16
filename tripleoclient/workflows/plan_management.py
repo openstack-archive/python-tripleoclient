@@ -78,8 +78,12 @@ def _create_update_deployment_plan(clients, workflow, **workflow_input):
     )
 
     with tripleoclients.messaging_websocket(queue_name) as ws:
-        return base.wait_for_message(workflow_client, ws, execution,
-                                     _WORKFLOW_TIMEOUT)
+        for payload in base.wait_for_messages(workflow_client, ws, execution,
+                                              _WORKFLOW_TIMEOUT):
+            if 'message' in payload:
+                print(payload['message'])
+
+    return payload
 
 
 def create_deployment_plan(clients, **workflow_input):
