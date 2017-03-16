@@ -32,8 +32,8 @@ def update(clients, **workflow_input):
     )
 
     with tripleoclients.messaging_websocket(queue_name) as ws:
-        message = ws.wait_for_message(execution.id)
-        assert message['status'] == "SUCCESS", pprint.pformat(message)
+        for payload in base.wait_for_messages(workflow_client, ws, execution):
+            assert payload['status'] == "SUCCESS", pprint.pformat(payload)
 
 
 def update_and_wait(log, clients, stack, plan_name, verbose_level,
@@ -81,8 +81,8 @@ def abort_update(clients, **workflow_input):
     )
 
     with tripleoclients.messaging_websocket(queue_name) as ws:
-        message = ws.wait_for_message(execution.id)
-        assert message['status'] == "SUCCESS", pprint.pformat(message)
+        for payload in base.wait_for_messages(workflow_client, ws, execution):
+            assert payload['status'] == "SUCCESS", pprint.pformat(payload)
 
 
 def clear_breakpoints(clients, **workflow_input):
@@ -98,5 +98,5 @@ def clear_breakpoints(clients, **workflow_input):
     )
 
     with tripleoclients.messaging_websocket(queue_name) as ws:
-        message = ws.wait_for_message(execution.id)
-        assert message['status'] == "SUCCESS", pprint.pformat(message)
+        for payload in base.wait_for_messages(workflow_client, ws, execution):
+            assert payload['status'] == "SUCCESS", pprint.pformat(payload)
