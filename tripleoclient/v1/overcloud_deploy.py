@@ -1105,14 +1105,14 @@ class DeployOvercloud(command.Command):
                     errors)
                 if parsed_args.validation_warnings_fatal or \
                         parsed_args.validation_errors_fatal:
-                    return
+                    raise exceptions.InvalidConfiguration()
             if warnings > 0:
                 self.log.error(
                     "Configuration has %d warnings, fix them before "
                     "proceeding.",
                     warnings)
                 if parsed_args.validation_warnings_fatal:
-                    return
+                    raise exceptions.InvalidConfiguration()
             else:
                 self.log.info("SUCCESS: No warnings or errors in deploy "
                               "configuration, proceeding.")
