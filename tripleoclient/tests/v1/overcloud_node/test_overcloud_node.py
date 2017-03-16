@@ -63,9 +63,10 @@ class TestDeleteNode(fakes.TestDeleteNode):
         ]
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
 
-        self.websocket.wait_for_message.return_value = {
+        self.websocket.wait_for_messages.return_value = iter([{
+            "execution": {"id": "IDID"},
             "status": "SUCCESS"
-        }
+        }])
 
         self.stack_name.return_value = mock.Mock(stack_name="overcast")
 
@@ -112,9 +113,10 @@ class TestDeleteNode(fakes.TestDeleteNode):
         ]
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
-        self.websocket.wait_for_message.return_value = {
+        self.websocket.wait_for_messages.return_value = iter([{
+            "execution": {"id": "IDID"},
             "status": "SUCCESS"
-        }
+        }])
 
         self.cmd.take_action(parsed_args)
 
@@ -137,11 +139,11 @@ class TestDeleteNode(fakes.TestDeleteNode):
         ]
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
 
-        self.websocket.wait_for_message.return_value = {
+        self.websocket.wait_for_messages.return_value = iter([{
             "status": "FAILED",
             "message": """Failed to run action ERROR: Couldn't find \
                 following instances in stack overcloud: wrong_instance"""
-        }
+        }])
 
         self.assertRaises(exceptions.InvalidConfiguration,
                           self.cmd.take_action, parsed_args)

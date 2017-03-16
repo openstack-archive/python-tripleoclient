@@ -33,9 +33,10 @@ def delete_node(clients, **workflow_input):
     )
 
     with tripleoclients.messaging_websocket(queue_name) as ws:
-        rtn_message = ws.wait_for_message(execution.id)
-        if rtn_message['status'] != "SUCCESS":
-            raise InvalidConfiguration(rtn_message['message'])
+        for payload in base.wait_for_messages(workflow_client, ws, execution,
+                                              360):
+            if payload['status'] != "SUCCESS":
+                raise InvalidConfiguration(payload['message'])
 
 
 def scale_down(clients, plan_name, nodes, timeout=None):
