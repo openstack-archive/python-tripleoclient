@@ -874,10 +874,10 @@ class TestConfigureBaremetalBoot(fakes.TestBaremetal):
         self.workflow = self.app.client_manager.workflow_engine
         client = self.app.client_manager.tripleoclient
         self.websocket = client.messaging_websocket()
-        self.websocket.wait_for_message.return_value = {
+        self.websocket.wait_for_messages.return_value = iter([{
             "status": "SUCCESS",
             "message": ""
-        }
+        }] * 2)
 
         uuid4_patcher = mock.patch('uuid.uuid4', return_value="UUID4")
         self.mock_uuid4 = uuid4_patcher.start()

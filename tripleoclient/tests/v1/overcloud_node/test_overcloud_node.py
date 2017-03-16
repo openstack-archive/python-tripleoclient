@@ -492,6 +492,10 @@ class TestConfigureNode(fakes.TestOvercloudNode):
             "status": "SUCCESS",
             "message": ""
         }
+        self.websocket.wait_for_messages.return_value = iter([{
+            "status": "SUCCESS",
+            "message": ""
+        }])
 
         # Get the command object to test
         self.cmd = overcloud_node.ConfigureNode(self.app, None)
@@ -544,10 +548,10 @@ class TestConfigureNode(fakes.TestOvercloudNode):
         )
 
     def test_failed_to_configure_specified_nodes(self):
-        self.websocket.wait_for_message.return_value = {
+        self.websocket.wait_for_messages.return_value = iter([{
             "status": "FAILED",
             "message": "Test failure."
-        }
+        }])
 
         parsed_args = self.check_parser(self.cmd, ['node_uuid1'], [])
         self.assertRaises(exceptions.NodeConfigurationError,
