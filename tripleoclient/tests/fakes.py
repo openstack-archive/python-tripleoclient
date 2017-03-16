@@ -43,11 +43,6 @@ class FakeClientManager(object):
 
 class FakeWebSocket(object):
 
-    def wait_for_message(self, execution_id, timeout=None):
-        return {
-            'status': 'SUCCESS'
-        }
-
     def wait_for_messages(self, timeout=None):
         yield {
             'execution': {'id': 'IDID'},

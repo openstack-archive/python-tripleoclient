@@ -41,28 +41,6 @@ def start_workflow(workflow_client, identifier, workflow_input):
     return execution
 
 
-def wait_for_message(mistral, websocket, execution, timeout=None):
-    """Wait for messages on a websocket.
-
-    Given an instance of mistral client, a websocket and a Mistral execution
-    wait for messages on that websocket queue that match the execution ID until
-    the timeout is reached.
-
-    If no timeout is provided, this method will block forever.
-
-    If a timeout is reached, called check_execution_status which will look up
-    the execution on Mistral and log information about it.
-
-    DEPRECATED: Use wait_for_messages. This method will be removed when
-                all commands have been migrated.
-    """
-    try:
-        return websocket.wait_for_message(execution.id, timeout=timeout)
-    except exceptions.WebSocketTimeout:
-        check_execution_status(mistral, execution.id)
-        raise
-
-
 def wait_for_messages(mistral, websocket, execution, timeout=None):
     """Wait for messages on a websocket.
 

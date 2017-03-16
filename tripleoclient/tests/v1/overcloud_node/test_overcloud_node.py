@@ -90,10 +90,6 @@ class TestDeleteNode(fakes.TestDeleteNode):
         ]
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
 
-        self.websocket.wait_for_message.return_value = {
-            "status": "SUCCESS"
-        }
-
         self.stack_name.return_value = None
 
         self.assertRaises(exceptions.InvalidConfiguration,
@@ -170,10 +166,6 @@ class TestProvideNode(fakes.TestOvercloudNode):
         # Get the command object to test
         self.cmd = overcloud_node.ProvideNode(self.app, None)
 
-        self.websocket.wait_for_message.return_value = {
-            "status": "SUCCESS",
-            "message": "Success"
-        }
         self.websocket.wait_for_messages.return_value = iter([{
             "status": "SUCCESS",
             "message": "Success"
@@ -383,10 +375,6 @@ class TestImportNode(fakes.TestOvercloudNode):
 
     def _check_workflow_call(self, parsed_args, introspect=False,
                              provide=False, local=True, no_deploy_image=False):
-        self.websocket.wait_for_message.return_value = {
-            "status": "SUCCESS",
-            "message": "Success",
-        }
         self.websocket.wait_for_messages.return_value = [{
             "status": "SUCCESS",
             "message": "Success",
@@ -488,10 +476,6 @@ class TestConfigureNode(fakes.TestOvercloudNode):
         self.workflow = self.app.client_manager.workflow_engine
         client = self.app.client_manager.tripleoclient
         self.websocket = client.messaging_websocket()
-        self.websocket.wait_for_message.return_value = {
-            "status": "SUCCESS",
-            "message": ""
-        }
         self.websocket.wait_for_messages.return_value = iter([{
             "status": "SUCCESS",
             "message": ""

@@ -352,7 +352,6 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
         tripleoclient = self.app.client_manager.tripleoclient
         websocket = tripleoclient.messaging_websocket()
         websocket.wait_for_messages.return_value = self.mock_websocket_success
-        websocket.wait_for_message.side_effect = self.mock_websocket_success
         self.websocket = websocket
 
         uuid4_patcher = mock.patch('uuid.uuid4', return_value="UUID4")

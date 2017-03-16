@@ -126,35 +126,6 @@ class WebsocketClient(object):
     def recv(self):
         return json.loads(self._ws.recv())
 
-    def wait_for_message(self, execution_id, timeout=None):
-        """Wait for a message for a mistral execution ID
-
-        This method blocks until a message is received on the message queue
-        with the execution ID passed in.
-
-        A timeout can be provided in seconds, if no timeout is provided it
-        will block forever until a message is received. If no message is
-        received (for example, Zaqar is down) then it will block until manually
-        killed.
-
-        DEPRECATED: Use wait_for_messages. This method will be removed when
-                    all commands have been migrated.
-        """
-
-        if timeout is None:
-            LOG.warning("Waiting for messages on queue '{}' with no timeout."
-                        .format(self._queue_name))
-
-        self._ws.settimeout(timeout)
-
-        while True:
-            try:
-                body = self.recv()['body']
-            except websocket.WebSocketTimeoutException:
-                raise exceptions.WebSocketTimeout()
-            if body['payload']['execution']['id'] == execution_id:
-                return body['payload']
-
     def wait_for_messages(self, timeout=None):
         """Wait for messages on a Zaqar queue
 
