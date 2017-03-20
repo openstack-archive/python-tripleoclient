@@ -1238,6 +1238,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertRaises(exceptions.StackInProgress,
                           self.cmd.take_action, parsed_args)
 
+    @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
+                autospec=True)
     @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
     @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
     @mock.patch('tripleoclient.workflows.deployment.overcloudrc',
@@ -1247,7 +1249,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_disable_validations_true(
             self, mock_deploy_tmpdir,
             mock_overcloudrc, mock_write_overcloudrc,
-            mock_overcloud_endpoint):
+            mock_overcloud_endpoint,
+            mock_create_tempest_deployer_input):
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
         orchestration_client.stacks.get.return_value = mock.Mock()
@@ -1260,7 +1263,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         self.cmd.take_action(parsed_args)
         self.assertNotCalled(self.cmd._predeploy_verify_capabilities)
+        mock_create_tempest_deployer_input.assert_called_with()
 
+    @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
+                autospec=True)
     @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
     @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
     @mock.patch('tripleoclient.workflows.deployment.overcloudrc',
@@ -1270,7 +1276,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_disable_validations_false(
             self, mock_deploy_tmpdir,
             mock_overcloudrc, mock_write_overcloudrc,
-            mock_overcloud_endpoint):
+            mock_overcloud_endpoint,
+            mock_create_tempest_deployer_input):
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
         orchestration_client.stacks.get.return_value = mock.Mock()
@@ -1283,6 +1290,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         self.cmd.take_action(parsed_args)
         self.assertTrue(self.cmd._predeploy_verify_capabilities.called)
+        mock_create_tempest_deployer_input.assert_called_with()
 
     @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
     @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
