@@ -870,37 +870,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_create_tempest_deployer_input.assert_called_with()
 
-    @mock.patch('tripleoclient.utils.check_nodes_count')
-    @mock.patch('tripleoclient.utils.check_hypervisor_stats')
-    @mock.patch('tripleoclient.utils.assign_and_verify_profiles')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_get_default_role_counts')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_check_ironic_boot_configuration')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_collect_flavors')
-    def test_predeploy_verify_capabilities_hypervisor_stats(
-            self, mock_collect_flavors,
-            mock_check_ironic_boot_configuration,
-            mock_get_default_role_counts,
-            mock_assign_and_verify_profiles,
-            mock_check_hypervisor_stats,
-            mock_check_nodes_count):
-        self.cmd._predeploy_verify_capabilities = \
-            self.real_predeploy_verify_capabilities
-
-        stack = None
-        parameters = {}
-        parsed_args = mock.Mock()
-        mock_assign_and_verify_profiles.return_value = (0, 0)
-        mock_check_nodes_count.return_value = (True, 0, 0)
-
-        # A None return value here indicates an error
-        mock_check_hypervisor_stats.return_value = None
-        self.cmd._predeploy_verify_capabilities(
-            stack, parameters, parsed_args)
-        self.assertEqual(1, self.cmd.predeploy_errors)
-
     def test_get_default_role_counts_defaults(self):
         parsed_args = mock.Mock()
         parsed_args.roles_file = None

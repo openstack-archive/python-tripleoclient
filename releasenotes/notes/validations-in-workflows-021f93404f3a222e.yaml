@@ -1,0 +1,9 @@
+---
+features:
+  - Pre-deployment checks are now being called in a
+    workflow. This simplifies the client, and removes
+    code that does not need to be in the client.
+fixes:
+  - Fixes `bug 1638697
+    <https://bugs.launchpad.net/tripleo/+bug/1638607>`__ Moves the
+    pre-deployment checks to workflows.
