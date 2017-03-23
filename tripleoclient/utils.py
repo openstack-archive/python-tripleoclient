@@ -30,7 +30,6 @@ import yaml
 from heatclient.common import event_utils
 from heatclient.exc import HTTPNotFound
 from osc_lib.i18n import _
-from osc_lib.i18n import _LI
 from six.moves import configparser
 
 from tripleoclient import exceptions
@@ -716,22 +715,22 @@ def prompt_user_for_confirmation(message, logger, positive_response='y'):
     """
     try:
         if not sys.stdin.isatty():
-            logger.error(_LI('User interaction required, cannot confirm.'))
+            logger.error(_('User interaction required, cannot confirm.'))
             return False
         else:
             sys.stdout.write(message)
             prompt_response = sys.stdin.readline().lower()
             if not prompt_response.startswith(positive_response):
-                logger.info(_LI(
+                logger.info(_(
                     'User did not confirm action so taking no action.'))
                 return False
-            logger.info(_LI('User confirmed action.'))
+            logger.info(_('User confirmed action.'))
             return True
     except KeyboardInterrupt:  # ctrl-c
-        logger.info(_LI(
+        logger.info(_(
             'User did not confirm action (ctrl-c) so taking no action.'))
     except EOFError:  # ctrl-d
-        logger.info(_LI(
+        logger.info(_(
             'User did not confirm action (ctrl-d) so taking no action.'))
     return False
 
