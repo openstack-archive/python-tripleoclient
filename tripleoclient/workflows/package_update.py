@@ -67,24 +67,6 @@ def update_and_wait(log, clients, stack, plan_name, verbose_level,
     return stack.status
 
 
-def abort_update(clients, **workflow_input):
-
-    workflow_client = clients.workflow_engine
-    tripleoclients = clients.tripleoclient
-    workflow_input['queue_name'] = str(uuid.uuid4())
-    queue_name = workflow_input['queue_name']
-
-    execution = base.start_workflow(
-        workflow_client,
-        'tripleo.package_update.v1.cancel_stack_update',
-        workflow_input=workflow_input
-    )
-
-    with tripleoclients.messaging_websocket(queue_name) as ws:
-        for payload in base.wait_for_messages(workflow_client, ws, execution):
-            assert payload['status'] == "SUCCESS", pprint.pformat(payload)
-
-
 def clear_breakpoints(clients, **workflow_input):
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
