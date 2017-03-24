@@ -448,7 +448,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                               env, update_plan_only, run_validations):
             assertEqual(
                 {'parameter_defaults': {},
-                 'resource_registry': {'Test': u'OS::Heat::None'}}, env)
+                 'resource_registry': {
+                     'Test': 'OS::Heat::None',
+                     'resources': {'*': {'*': {
+                         'UpdateDeployment': {'hooks': []}}}}}}, env)
 
         mock_deploy_heat.side_effect = _fake_heat_deploy
 
@@ -461,6 +464,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True)
     @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
     @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
+    @mock.patch('tripleoclient.utils.get_stack', autospec=True)
     @mock.patch('tripleoclient.utils.check_nodes_count', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig', autospec=True)
@@ -471,9 +475,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('shutil.copytree', autospec=True)
     def test_environment_dirs_env(self, mock_copy, mock_deploy_heat,
                                   mock_update_parameters, mock_post_config,
-                                  mock_utils_check_nodes, mock_utils_endpoint,
-                                  mock_utils_createrc, mock_utils_tempest,
-                                  mock_tarball):
+                                  mock_utils_check_nodes, mock_utils_get_stack,
+                                  mock_utils_endpoint, mock_utils_createrc,
+                                  mock_utils_tempest, mock_tarball):
 
         clients = self.app.client_manager
         workflow_client = clients.workflow_engine
@@ -481,6 +485,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             output='{"result":[]}')
 
         mock_update_parameters.return_value = {}
+        mock_utils_get_stack.return_value = None
         mock_utils_endpoint.return_value = 'foo.bar'
 
         test_env = self.tmp_dir.join('foo2.yaml')
@@ -488,7 +493,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         with open(test_env, 'w') as temp_file:
             temp_file.write('resource_registry:\n  Test: OS::Heat::None')
 
-        arglist = ['--templates']
+        arglist = ['--templates', '--update-plan-only']
         verifylist = [
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
         ]
@@ -502,6 +507,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         def _fake_heat_deploy(self, stack, stack_name, template_path,
                               parameters, environments, timeout, tht_root,
                               env, update_plan_only, run_validations):
+            # Should be no breakpoint cleanup because utils.get_stack = None
             assertEqual(
                 {'parameter_defaults': {},
                  'resource_registry': {'Test': u'OS::Heat::None'}}, env)

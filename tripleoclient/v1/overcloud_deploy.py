@@ -202,9 +202,6 @@ class DeployOvercloud(command.Command):
                      run_validations):
         """Verify the Baremetal nodes are available and do a stack update"""
 
-        if stack:
-            update.add_breakpoints_cleanup_into_env(env)
-
         self.log.debug("Getting template contents from plan %s" % stack_name)
         # We need to reference the plan here, not the local
         # tht root, as we need template_object to refer to
@@ -433,6 +430,9 @@ class DeployOvercloud(command.Command):
             created_env_files, tht_root, user_tht_root,
             cleanup=not parsed_args.no_cleanup)
         template_utils.deep_update(env, localenv)
+
+        if stack:
+            update.add_breakpoints_cleanup_into_env(env)
 
         self._try_overcloud_deploy_with_compat_yaml(
             tht_root, stack, parsed_args.stack, parameters, env_files,
