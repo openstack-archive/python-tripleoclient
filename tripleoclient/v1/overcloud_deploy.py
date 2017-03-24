@@ -221,14 +221,6 @@ class DeployOvercloud(command.Command):
 
         files = dict(list(template_files.items()) + list(env_files.items()))
 
-        number_controllers = int(parameters.get('ControllerCount', 0))
-        if number_controllers > 1:
-            if not env.get('parameter_defaults').get('NtpServer'):
-                raise exceptions.InvalidConfiguration(
-                    'Specify --ntp-server as parameter or NtpServer in '
-                    'environments when using multiple controllers '
-                    '(with HA).')
-
         moved_files = self._upload_missing_files(
             stack_name, files, tht_root)
         self._process_and_upload_environment(
@@ -433,6 +425,16 @@ class DeployOvercloud(command.Command):
 
         if stack:
             update.add_breakpoints_cleanup_into_env(env)
+
+        # FIXME(shardy) It'd be better to validate this via mistral
+        # e.g part of the plan create/update workflow
+        number_controllers = int(parameters.get('ControllerCount', 0))
+        if number_controllers > 1:
+            if not env.get('parameter_defaults').get('NtpServer'):
+                raise exceptions.InvalidConfiguration(
+                    'Specify --ntp-server as parameter or NtpServer in '
+                    'environments when using multiple controllers '
+                    '(with HA).')
 
         self._try_overcloud_deploy_with_compat_yaml(
             tht_root, stack, parsed_args.stack, parameters, env_files,
