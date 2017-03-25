@@ -149,7 +149,9 @@ class DeployOvercloud(command.Command):
                 # for details on why this is needed (backwards-compatibility)
                 self.log.debug("Error %s processing environment file %s"
                                % (six.text_type(ex), env_path))
-                with open(abs_env_path, 'r') as f:
+                # Use the temporary path as it's possible the environment
+                # itself was rendered via jinja.
+                with open(env_path, 'r') as f:
                     env_map = yaml.safe_load(f)
                 env_registry = env_map.get('resource_registry', {})
                 env_dirname = os.path.dirname(os.path.abspath(env_path))
