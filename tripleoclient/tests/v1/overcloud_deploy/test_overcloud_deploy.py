@@ -925,6 +925,13 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_get_template_contents.return_value = [{}, "template"]
         wait_for_stack_ready_mock.return_value = True
 
+        bp_cleanup_env = {'resource_registry': {'Cleanup': 'OS::Heat::None'}}
+
+        def _fake_bp_cleanup(env):
+            env.update(bp_cleanup_env)
+
+        mock_breakpoints_cleanup.side_effect = _fake_bp_cleanup
+
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
         orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
@@ -950,7 +957,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.cmd.take_action(parsed_args)
 
         user_env = {
-            'resource_registry': {'Test': 'OS::Heat::None'}}
+            'resource_registry': {'Test': 'OS::Heat::None',
+                                  'Cleanup': 'OS::Heat::None'}}
         parameters_env = {
             'parameter_defaults': {
                 'StackAction': 'UPDATE',
@@ -972,6 +980,11 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                       'user-environments/'
                       'tripleoclient-registration-parameters.yaml',
                       yaml.safe_dump(reg_env,
+                                     default_flow_style=False)),
+            mock.call('overcloud',
+                      'user-environments/'
+                      'tripleoclient-breakpoint-cleanup.yaml',
+                      yaml.safe_dump(bp_cleanup_env,
                                      default_flow_style=False)),
             mock.call('overcloud',
                       'user-environment.yaml',

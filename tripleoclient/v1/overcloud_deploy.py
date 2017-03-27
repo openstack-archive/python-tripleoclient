@@ -107,6 +107,16 @@ class DeployOvercloud(command.Command):
 
         return parameters
 
+    def _create_breakpoint_cleanup_env(self, tht_root, container_name):
+        bp_env = {}
+        update.add_breakpoints_cleanup_into_env(bp_env)
+        env_path, swift_path = self._write_user_environment(
+            bp_env,
+            'tripleoclient-breakpoint-cleanup.yaml',
+            tht_root,
+            container_name)
+        return bp_env
+
     def _create_registration_env(self, args, tht_root):
         user_tht_root = args.templates
         registry = os.path.join(
@@ -478,7 +488,9 @@ class DeployOvercloud(command.Command):
         template_utils.deep_update(env, localenv)
 
         if stack:
-            update.add_breakpoints_cleanup_into_env(env)
+            bp_cleanup = self._create_breakpoint_cleanup_env(
+                tht_root, parsed_args.stack)
+            template_utils.deep_update(env, bp_cleanup)
 
         # FIXME(shardy) It'd be better to validate this via mistral
         # e.g part of the plan create/update workflow
