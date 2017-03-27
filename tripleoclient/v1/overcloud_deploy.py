@@ -202,7 +202,7 @@ class DeployOvercloud(command.Command):
 
     def _heat_deploy(self, stack, stack_name, template_path, parameters,
                      env_files, timeout, tht_root, env, update_plan_only,
-                     run_validations, ws_client):
+                     run_validations):
         """Verify the Baremetal nodes are available and do a stack update"""
 
         if stack:
@@ -244,8 +244,7 @@ class DeployOvercloud(command.Command):
             deployment.deploy_and_wait(self.log, self.clients, stack,
                                        stack_name, self.app_args.verbose_level,
                                        timeout=timeout,
-                                       run_validations=run_validations,
-                                       ws_client=ws_client)
+                                       run_validations=run_validations)
 
     def _load_environment_directories(self, directories):
         if os.environ.get('TRIPLEO_ENVIRONMENT_DIRECTORY'):
@@ -425,12 +424,6 @@ class DeployOvercloud(command.Command):
                 parsed_args.environment_directories))
         env.update(self._create_parameters_env(parameters))
 
-        event_queue = str(uuid.uuid4())
-        env['event_sinks'] = [
-            {'type': 'zaqar-queue', 'target': event_queue,
-             'ttl': parsed_args.timeout * 60}]
-        ws_client = self.clients.tripleoclient.messaging_websocket(event_queue)
-
         if parsed_args.rhel_reg:
             reg_env_files, reg_env = self._create_registration_env(parsed_args)
             created_env_files.extend(reg_env_files)
@@ -447,19 +440,19 @@ class DeployOvercloud(command.Command):
         self._try_overcloud_deploy_with_compat_yaml(
             tht_root, stack, parsed_args.stack, parameters, env_files,
             parsed_args.timeout, env, parsed_args.update_plan_only,
-            parsed_args.run_validations, ws_client)
+            parsed_args.run_validations)
 
     def _try_overcloud_deploy_with_compat_yaml(self, tht_root, stack,
                                                stack_name, parameters,
                                                env_files, timeout,
                                                env, update_plan_only,
-                                               run_validations, ws_client):
+                                               run_validations):
         overcloud_yaml = os.path.join(tht_root, constants.OVERCLOUD_YAML_NAME)
         try:
             self._heat_deploy(stack, stack_name, overcloud_yaml,
                               parameters, env_files, timeout,
                               tht_root, env, update_plan_only,
-                              run_validations, ws_client)
+                              run_validations)
         except ClientException as e:
             messages = 'Failed to deploy: %s' % str(e)
             raise ValueError(messages)

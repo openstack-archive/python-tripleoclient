@@ -45,7 +45,7 @@ def deploy(clients, **workflow_input):
 
 
 def deploy_and_wait(log, clients, stack, plan_name, verbose_level,
-                    timeout=None, run_validations=False, ws_client=None):
+                    timeout=None, run_validations=False):
     """Start the deploy and wait for it to finish"""
 
     workflow_input = {
@@ -79,8 +79,7 @@ def deploy_and_wait(log, clients, stack, plan_name, verbose_level,
     time.sleep(10)
     verbose_events = verbose_level > 0
     create_result = utils.wait_for_stack_ready(
-        orchestration_client, plan_name, marker, action, verbose_events,
-        ws_client)
+        orchestration_client, plan_name, marker, action, verbose_events)
     if not create_result:
         shell.OpenStackShell().run(["stack", "failures", "list", plan_name])
         if stack is None:
