@@ -1,0 +1,7 @@
+---
+other:
+  - |
+    Remove all usage of os-cloud-config.
+    Indeed, os-cloud-config has been deprecated in Ocata and is not useful anymore
+    from tripleoclient. Let's stop using it and remove all the code that used it,
+    including the tests.
