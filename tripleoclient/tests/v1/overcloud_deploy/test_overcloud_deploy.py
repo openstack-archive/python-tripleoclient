@@ -882,16 +882,16 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.remove_known_hosts', autospec=True)
     @mock.patch('tripleoclient.utils.wait_for_stack_ready',
                 autospec=True)
-    @mock.patch('heatclient.common.template_utils.'
-                'process_environment_and_files', autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
     @mock.patch('shutil.copytree', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True)
     @mock.patch('shutil.rmtree', autospec=True)
-    def test_deploy_rhel_reg(self, mock_rmtree, mock_tmpdir, mock_copy,
+    @mock.patch('time.time', autospec=True)
+    @mock.patch('uuid.uuid4', autospec=True)
+    def test_deploy_rhel_reg(self, mock_uuid4, mock_time, mock_rmtree,
+                             mock_tmpdir, mock_copy,
                              mock_get_template_contents,
-                             mock_process_env,
                              wait_for_stack_ready_mock,
                              mock_remove_known_hosts,
                              mock_write_overcloudrc,
@@ -913,9 +913,15 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             ('reg_activation_key', 'super-awesome-key')
         ]
 
-        mock_tmpdir.return_value = None
-        mock_tmpdir.return_value = '/tmp/tht'
-        mock_process_env.return_value = [{}, fakes.create_env()]
+        mock_uuid4.return_value = 'uuid4'
+        mock_time.return_value = 123456
+        mock_tmpdir.return_value = self.tmp_dir.path
+        test_env = self.tmp_dir.join(
+            'tripleo-heat-templates/extraconfig/pre_deploy/rhel-registration/'
+            'rhel-registration-resource-registry.yaml')
+        os.makedirs(os.path.dirname(test_env))
+        with open(test_env, 'w') as temp_file:
+            temp_file.write('resource_registry:\n  Test: OS::Heat::None')
         mock_get_template_contents.return_value = [{}, "template"]
         wait_for_stack_ready_mock.return_value = True
 
@@ -943,12 +949,50 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         self.cmd.take_action(parsed_args)
 
-        tht_prefix = ('/tmp/tht/tripleo-heat-templates/extraconfig/'
-                      'pre_deploy/rhel-registration/')
+        user_env = {
+            'resource_registry': {'Test': 'OS::Heat::None'}}
+        parameters_env = {
+            'parameter_defaults': {
+                'StackAction': 'UPDATE',
+                'UpdateIdentifier': ''}}
+        reg_env = {
+            'parameter_defaults': {
+                'rhel_reg_activation_key': 'super-awesome-key',
+                'rhel_reg_force': False,
+                'rhel_reg_method': 'satellite',
+                'rhel_reg_org': '123456789',
+                'rhel_reg_sat_url': 'https://example.com'}}
+
         calls = [
-            mock.call(env_path=tht_prefix +
-                      'rhel-registration-resource-registry.yaml'), ]
-        mock_process_env.assert_has_calls(calls)
+            mock.call('overcloud',
+                      'user-environments/tripleoclient-parameters.yaml',
+                      yaml.safe_dump(parameters_env,
+                                     default_flow_style=False)),
+            mock.call('overcloud',
+                      'user-environments/'
+                      'tripleoclient-registration-parameters.yaml',
+                      yaml.safe_dump(reg_env,
+                                     default_flow_style=False)),
+            mock.call('overcloud',
+                      'user-environment.yaml',
+                      yaml.safe_dump(user_env,
+                                     default_flow_style=False)),
+            mock.call('overcloud',
+                      'plan-environment.yaml',
+                      yaml.safe_dump({'environments':
+                                      [{'path': 'user-environment.yaml'}]},
+                                     default_flow_style=False))]
+
+        object_client = clients.tripleoclient.object_store
+        object_client.put_object.assert_has_calls(calls)
+        tmp_param_env = self.tmp_dir.join(
+            'tripleo-heat-templates',
+            'user-environments/tripleoclient-parameters.yaml')
+        self.assertTrue(os.path.isfile(tmp_param_env))
+        with open(tmp_param_env, 'r') as f:
+            env_map = yaml.safe_load(f)
+        self.assertEqual(env_map.get('parameter_defaults'),
+                         parameters_env.get('parameter_defaults'))
 
     @mock.patch('tripleoclient.tests.v1.overcloud_deploy.fakes.'
                 'FakeObjectClient.get_object', autospec=True)

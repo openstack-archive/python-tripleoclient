@@ -107,11 +107,10 @@ class DeployOvercloud(command.Command):
 
         return parameters
 
-    def _create_registration_env(self, args):
-        tht_root = args.templates
-
+    def _create_registration_env(self, args, tht_root):
+        user_tht_root = args.templates
         registry = os.path.join(
-            tht_root,
+            user_tht_root,
             constants.RHEL_REGISTRATION_EXTRACONFIG_NAME,
             'rhel-registration-resource-registry.yaml')
         user_env = {'rhel_reg_method': args.reg_method,
@@ -119,6 +118,12 @@ class DeployOvercloud(command.Command):
                     'rhel_reg_force': args.reg_force,
                     'rhel_reg_sat_url': args.reg_sat_url,
                     'rhel_reg_activation_key': args.reg_activation_key}
+        parameter_defaults = {"parameter_defaults": user_env}
+        env_path, swift_path = self._write_user_environment(
+            parameter_defaults,
+            'tripleoclient-registration-parameters.yaml',
+            tht_root,
+            args.stack)
         return [registry], {"parameter_defaults": user_env}
 
     def _create_parameters_env(self, parameters, tht_root, container_name):
@@ -459,7 +464,8 @@ class DeployOvercloud(command.Command):
                                                parsed_args.stack))
 
         if parsed_args.rhel_reg:
-            reg_env_files, reg_env = self._create_registration_env(parsed_args)
+            reg_env_files, reg_env = self._create_registration_env(
+                parsed_args, tht_root)
             created_env_files.extend(reg_env_files)
             template_utils.deep_update(env, reg_env)
         if parsed_args.environment_files:
