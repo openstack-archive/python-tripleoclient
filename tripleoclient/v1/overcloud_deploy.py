@@ -125,8 +125,8 @@ class DeployOvercloud(command.Command):
         parameter_defaults = {"parameter_defaults": parameters}
         return parameter_defaults
 
-    def _process_multiple_environments(self, created_env_files, added_files,
-                                       tht_root, user_tht_root, cleanup=True):
+    def _process_multiple_environments(self, created_env_files, tht_root,
+                                       user_tht_root, cleanup=True):
         env_files = {}
         localenv = {}
         for env_path in created_env_files:
@@ -361,7 +361,6 @@ class DeployOvercloud(command.Command):
         objectclient = clients.tripleoclient.object_store
         plan_list = objectclient.get_container(plan_name)
         plan_filenames = [f['name'] for f in plan_list[1]]
-        added_files = {}
         for pf in plan_filenames:
             file_path = os.path.join(tht_dir, pf)
             if not os.path.isfile(file_path):
@@ -371,9 +370,6 @@ class DeployOvercloud(command.Command):
                     os.makedirs(os.path.dirname(file_path))
                 with open(file_path, 'w') as f:
                     f.write(objectclient.get_object(plan_name, pf)[1])
-                added_files[pf] = file_path
-        self.log.debug("added_files = %s" % added_files)
-        return added_files
 
     def _deploy_tripleo_heat_templates_tmpdir(self, stack, parsed_args):
         # copy tht_root to temporary directory because we need to
@@ -421,7 +417,7 @@ class DeployOvercloud(command.Command):
                 generate_passwords)
 
         # Get any missing (e.g j2 rendered) files from the plan to tht_root
-        added_files = self._download_missing_files_from_plan(
+        self._download_missing_files_from_plan(
             tht_root, parsed_args.stack)
 
         print("Deploying templates in the directory {0}".format(
@@ -452,7 +448,7 @@ class DeployOvercloud(command.Command):
 
         self.log.debug("Processing environment files %s" % created_env_files)
         env_files, localenv = self._process_multiple_environments(
-            created_env_files, added_files, tht_root, user_tht_root,
+            created_env_files, tht_root, user_tht_root,
             cleanup=not parsed_args.no_cleanup)
         template_utils.deep_update(env, localenv)
 
