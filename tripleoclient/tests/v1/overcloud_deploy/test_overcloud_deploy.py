@@ -20,7 +20,6 @@ import tempfile
 import yaml
 
 from heatclient import exc as hc_exc
-from keystoneclient import exceptions as kscexc
 import mock
 from osc_lib import exceptions as oscexc
 from swiftclient.exceptions import ClientException as ObjectClientException
@@ -68,9 +67,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
     @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
-    @mock.patch('os_cloud_config.keystone.setup_endpoints', autospec=True)
-    @mock.patch('time.sleep', return_value=None)
-    @mock.patch('os_cloud_config.keystone.initialize', autospec=True)
     @mock.patch('tripleoclient.utils.remove_known_hosts', autospec=True)
     @mock.patch('tripleoclient.utils.wait_for_stack_ready',
                 autospec=True)
@@ -85,8 +81,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                        mock_check_hypervisor_stats,
                        mock_get_template_contents,
                        wait_for_stack_ready_mock,
-                       mock_remove_known_hosts, mock_keystone_initialize,
-                       mock_sleep, mock_setup_endpoints,
+                       mock_remove_known_hosts,
                        mock_write_overcloudrc,
                        mock_create_tempest_deployer_input,
                        mock_deploy_postconfig,
@@ -181,13 +176,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
     @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
-    @mock.patch('os_cloud_config.utils.clients.get_nova_bm_client',
-                autospec=True)
-    @mock.patch('os_cloud_config.utils.clients.get_keystone_client',
-                autospec=True)
-    @mock.patch('os_cloud_config.keystone.setup_endpoints', autospec=True)
-    @mock.patch('time.sleep', return_value=None)
-    @mock.patch('os_cloud_config.keystone.initialize', autospec=True)
     @mock.patch('tripleoclient.utils.remove_known_hosts', autospec=True)
     @mock.patch('tripleoclient.utils.wait_for_stack_ready',
                 autospec=True)
@@ -204,9 +192,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                         mock_check_hypervisor_stats,
                         mock_get_template_contents,
                         wait_for_stack_ready_mock,
-                        mock_remove_known_hosts, mock_keystone_initialize,
-                        mock_sleep, mock_setup_endpoints,
-                        mock_get_keystone_client, mock_get_nova_bm_client,
+                        mock_remove_known_hosts,
                         mock_write_overcloudrc,
                         mock_create_tempest_deployer_input,
                         mock_create_parameters_env, mock_validate_args,
@@ -309,9 +295,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
     @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
-    @mock.patch('os_cloud_config.keystone.setup_endpoints', autospec=True)
-    @mock.patch('time.sleep', return_value=None)
-    @mock.patch('os_cloud_config.keystone.initialize', autospec=True)
     @mock.patch('tripleoclient.utils.remove_known_hosts', autospec=True)
     @mock.patch('tripleoclient.utils.wait_for_stack_ready',
                 autospec=True)
@@ -325,8 +308,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                      mock_get_template_contents,
                                      wait_for_stack_ready_mock,
                                      mock_remove_known_hosts,
-                                     mock_keystone_initialize,
-                                     mock_sleep, mock_setup_endpoints,
                                      mock_write_overcloudrc,
                                      mock_create_tempest_deployer_input,
                                      mock_deploy_postconfig,
@@ -621,7 +602,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         self.cmd.take_action(parsed_args)
         self.assertTrue(mock_deploy_tht.called)
-        self.assertTrue(mock_oc_endpoint.called)
         self.assertTrue(mock_create_ocrc.called)
 
         mock_create_tempest_deployer_input.assert_called_with()
@@ -636,9 +616,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
     @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
-    @mock.patch('os_cloud_config.keystone.setup_endpoints', autospec=True)
-    @mock.patch('time.sleep', return_value=None)
-    @mock.patch('os_cloud_config.keystone.initialize', autospec=True)
     @mock.patch('tripleoclient.utils.remove_known_hosts', autospec=True)
     @mock.patch('tripleoclient.utils.wait_for_stack_ready',
                 autospec=True)
@@ -657,8 +634,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                              mock_process_env,
                              wait_for_stack_ready_mock,
                              mock_remove_known_hosts,
-                             mock_keystone_initialize,
-                             mock_sleep, mock_setup_endpoints,
                              mock_write_overcloudrc,
                              mock_create_tempest_deployer_input,
                              mock_deploy_postconfig,
@@ -811,7 +786,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         self.cmd.take_action(parsed_args)
         self.assertFalse(mock_deploy_tht.called)
-        self.assertFalse(mock_oc_endpoint.called)
         self.assertFalse(mock_create_ocrc.called)
         self.assertFalse(mock_create_tempest_deployer_input.called)
 
@@ -879,7 +853,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.cmd.take_action(parsed_args)
 
         self.assertTrue(mock_heat_deploy.called)
-        self.assertTrue(mock_oc_endpoint.called)
         self.assertTrue(mock_create_ocrc.called)
         self.assertTrue(mock_create_tempest_deployer_input.called)
 
@@ -896,79 +869,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             3, call_args[8]['parameter_defaults']['BlockStorageCount'])
 
         mock_create_tempest_deployer_input.assert_called_with()
-
-    @mock.patch('tripleoclient.workflows.parameters.get_overcloud_passwords')
-    @mock.patch('tripleoclient.constants.SERVICE_LIST',
-                {'nova': {'password_field': 'NovaPassword'}})
-    @mock.patch('os_cloud_config.keystone.initialize')
-    @mock.patch('os_cloud_config.utils.clients.get_keystone_client')
-    def test_keystone_init(self, mock_gkc, mock_init, mock_gp):
-        mock_gp.return_value = {
-            "AdminPassword": "password",
-            "AdminToken": "token",
-            "NovaPassword": "nova-password"
-        }
-        mock_ksc = mock.Mock()
-        mock_gkc.return_value = mock_ksc
-        mock_ksc.services.find.return_value = True
-        stack = mock.MagicMock()
-        stack.to_dict.return_value = fakes.FAKE_STACK
-        ip = '192.0.2.1'
-
-        self.cmd._keystone_init(ip, ip, None, stack)
-
-        self.assertFalse(mock_init.called)
-
-    @mock.patch('tripleoclient.workflows.parameters.get_overcloud_passwords')
-    @mock.patch('tripleoclient.constants.SERVICE_LIST',
-                {'nova': {'password_field': 'NovaPassword'}})
-    @mock.patch('os_cloud_config.keystone.setup_endpoints')
-    @mock.patch('os_cloud_config.keystone.initialize')
-    @mock.patch('os_cloud_config.utils.clients.get_keystone_client')
-    def test_keystone_init_occ(self, mock_gkc, mock_init, mock_se, mock_gp):
-        mock_gp.return_value = {
-            "AdminPassword": "password",
-            "AdminToken": "token",
-            "NovaPassword": "nova-password"
-        }
-        mock_ksc = mock.Mock()
-        mock_gkc.return_value = mock_ksc
-        mock_ksc.services.find.side_effect = kscexc.NotFound()
-        stack = mock.Mock()
-        stack.to_dict.return_value = fakes.FAKE_STACK
-        ip = '192.0.2.1'
-        args = mock.Mock()
-
-        self.cmd._keystone_init(ip, ip, args, stack)
-
-        self.assertTrue(mock_init.called)
-
-    @mock.patch('tripleoclient.workflows.parameters.get_overcloud_passwords')
-    @mock.patch('tripleoclient.constants.SERVICE_LIST',
-                {'nova': {'password_field': 'NovaPassword'},
-                 'unexistent': {'password_field': 'NovaPassword'}})
-    @mock.patch('os_cloud_config.keystone.setup_endpoints')
-    @mock.patch('os_cloud_config.keystone.initialize')
-    @mock.patch('os_cloud_config.utils.clients.get_keystone_client')
-    def test_keystone_init_occ_w_entry_not_in_endpoint_map(
-            self, mock_gkc, mock_init, mock_se, mock_gp):
-        mock_gp.return_value = {
-            "AdminPassword": "password",
-            "AdminToken": "token",
-            "NovaPassword": "nova-password"
-        }
-        mock_ksc = mock.Mock()
-        mock_gkc.return_value = mock_ksc
-        mock_ksc.services.find.side_effect = kscexc.NotFound()
-        stack = mock.Mock()
-        stack.to_dict.return_value = fakes.FAKE_STACK
-        ip = '192.0.2.1'
-        args = mock.Mock()
-
-        self.cmd._keystone_init(ip, ip, args, stack)
-
-        self.assertTrue(mock_init.called)
-        self.assertEqual(mock_gp.call_count, 1)
 
     @mock.patch('tripleoclient.utils.check_nodes_count')
     @mock.patch('tripleoclient.utils.check_hypervisor_stats')
@@ -1097,13 +997,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
     @mock.patch('tripleoclient.utils.write_overcloudrc')
-    @mock.patch('os_cloud_config.utils.clients.get_nova_bm_client',
-                autospec=True)
-    @mock.patch('os_cloud_config.utils.clients.get_keystone_client',
-                autospec=True)
-    @mock.patch('os_cloud_config.keystone.setup_endpoints', autospec=True)
-    @mock.patch('time.sleep', return_value=None)
-    @mock.patch('os_cloud_config.keystone.initialize', autospec=True)
     @mock.patch('tripleoclient.utils.remove_known_hosts', autospec=True)
     @mock.patch('tripleoclient.utils.wait_for_stack_ready',
                 autospec=True)
@@ -1123,10 +1016,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                  mock_process_env,
                                  wait_for_stack_ready_mock,
                                  mock_remove_known_hosts,
-                                 mock_keystone_initialize,
-                                 mock_sleep, mock_setup_endpoints,
-                                 mock_get_keystone_client,
-                                 mock_get_nova_bm_client,
                                  mock_write_overcloudrc,
                                  mock_create_tempest_deployer_input,
                                  mock_create_parameters_env,

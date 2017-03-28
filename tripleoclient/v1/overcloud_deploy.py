@@ -29,7 +29,6 @@ import yaml
 
 from heatclient.common import template_utils
 from heatclient import exc as hc_exc
-from keystoneclient import exceptions as kscexc
 from osc_lib.command import command
 from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
@@ -43,13 +42,6 @@ from tripleoclient import utils
 from tripleoclient.workflows import deployment
 from tripleoclient.workflows import parameters as workflow_params
 from tripleoclient.workflows import plan_management
-
-
-level = logging.getLogger('os_cloud_config').getEffectiveLevel()
-logging.getLogger('os_cloud_config').setLevel(logging.ERROR)
-from os_cloud_config import keystone
-from os_cloud_config.utils import clients as occ_clients
-logging.getLogger('os_cloud_config').setLevel(level)
 
 
 class DeployOvercloud(command.Command):
@@ -476,89 +468,6 @@ class DeployOvercloud(command.Command):
 
         return self._password_cache[password_name]
 
-    def _keystone_init(self, overcloud_endpoint, overcloud_ip_or_fqdn,
-                       parsed_args, stack):
-        keystone_admin_ip = utils.get_endpoint('KeystoneAdmin', stack)
-        keystone_admin_ip = utils.unbracket_ipv6(keystone_admin_ip)
-        keystone_internal_ip = utils.get_endpoint('KeystoneInternal', stack)
-        keystone_internal_ip = utils.unbracket_ipv6(keystone_internal_ip)
-        tls_enabled = self._is_tls_enabled(overcloud_endpoint)
-        keystone_tls_host = None
-        if tls_enabled:
-            # NOTE(jaosorior): This triggers set up the keystone endpoint with
-            # the https protocol and the required port set in
-            # keystone.initialize.
-            keystone_tls_host = overcloud_ip_or_fqdn
-
-        keystone_client = occ_clients.get_keystone_client(
-            'admin',
-            self._get_password(stack.stack_name, "AdminPassword"),
-            'admin',
-            overcloud_endpoint)
-
-        services = {}
-        for service, data in six.iteritems(constants.SERVICE_LIST):
-            try:
-                keystone_client.services.find(name=service)
-            except kscexc.NotFound:
-                service_data = self._set_service_data(service, data, stack)
-                if service_data:
-                    services.update({service: service_data})
-
-        if services:
-            # This was deprecated in Newton.  The deprecation message and
-            # os-cloud-config keystone init should remain until at least the
-            # Pike release to ensure users have a chance to update their
-            # templates, including ones for the previous release.
-            self.log.warning('DEPRECATED: '
-                             'It appears Keystone was not initialized by '
-                             'Puppet. Will do initialization via '
-                             'os-cloud-config, but this behavior is '
-                             'deprecated. Please update your templates to a '
-                             'version that has Puppet initialization of '
-                             'Keystone.'
-                             )
-            # NOTE(jaosorior): These ports will be None if the templates
-            # don't support the EndpointMap as an output yet. And so the
-            # default values will be taken.
-            public_port = None
-            admin_port = None
-            internal_port = None
-            endpoint_map = utils.get_endpoint_map(stack)
-            if endpoint_map:
-                public_port = endpoint_map.get('KeystonePublic').get('port')
-                admin_port = endpoint_map.get('KeystoneAdmin').get('port')
-                internal_port = endpoint_map.get(
-                    'KeystoneInternal').get('port')
-
-            # TODO(rbrady): check usages of get_password
-            keystone.initialize(
-                keystone_admin_ip,
-                self._get_password(stack.stack_name, "AdminToken"),
-                'admin@example.com',
-                self._get_password(stack.stack_name, "AdminPassword"),
-                ssl=keystone_tls_host,
-                public=overcloud_ip_or_fqdn,
-                user=parsed_args.overcloud_ssh_user,
-                admin=keystone_admin_ip,
-                internal=keystone_internal_ip,
-                public_port=public_port,
-                admin_port=admin_port,
-                internal_port=internal_port)
-
-            if not tls_enabled:
-                # NOTE(bcrochet): Bad hack. Remove the ssl_port info from the
-                # os_cloud_config.SERVICES dictionary
-                for service_name, data in keystone.SERVICES.items():
-                    data.pop('ssl_port', None)
-
-            keystone.setup_endpoints(
-                services,
-                client=keystone_client,
-                os_auth_url=overcloud_endpoint,
-                public_host=overcloud_ip_or_fqdn)
-        # End of deprecated Keystone init
-
     def _set_service_data(self, service, data, stack):
         self.log.debug("Setting data for service '%s'" % service)
         service_data = data.copy()
@@ -616,14 +525,6 @@ class DeployOvercloud(command.Command):
         return re.sub('v[0-9]+', '',
                       service.capitalize() + interface.capitalize())
 
-    def _endpoints_managed(self, stack):
-        for output in stack.to_dict().get('outputs', {}):
-            if output['output_key'] == 'ManagedEndpoints':
-                # NOTE(jaosorior): We don't really care about the value as
-                # long as the key is there.
-                return output['output_value']
-        return False
-
     def _deploy_postconfig(self, stack, parsed_args):
         self.log.debug("_deploy_postconfig(%s)" % parsed_args)
 
@@ -644,13 +545,6 @@ class DeployOvercloud(command.Command):
             [x for x in no_proxy_list if x is not None])
 
         utils.remove_known_hosts(overcloud_ip_or_fqdn)
-
-        if not self._endpoints_managed(stack):
-            self._keystone_init(overcloud_endpoint, overcloud_ip_or_fqdn,
-                                parsed_args, stack)
-        else:
-            self.log.debug("Keystone endpoints and services are managed by "
-                           "puppet. Skipping post-config.")
 
     def _validate_args(self, parsed_args):
         if parsed_args.templates is None and parsed_args.answers_file is None:
