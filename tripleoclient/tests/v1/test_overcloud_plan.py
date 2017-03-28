@@ -123,9 +123,10 @@ class TestOvercloudCreatePlan(utils.TestCommand):
         ]
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
-        self.websocket.wait_for_message.return_value = {
+        self.websocket.wait_for_messages.return_value = iter([{
+            "execution": {"id": "IDID"},
             "status": "SUCCESS"
-        }
+        }])
 
         # Run
         self.cmd.take_action(parsed_args)
@@ -149,9 +150,10 @@ class TestOvercloudCreatePlan(utils.TestCommand):
         ]
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
-        self.websocket.wait_for_message.return_value = {
+        self.websocket.wait_for_messages.return_value = iter([{
+            "execution": {"id": "IDID"},
             "status": "ERROR", "message": "failed"
-        }
+        }])
 
         # Run
         self.assertRaises(exceptions.WorkflowServiceError,
@@ -276,9 +278,10 @@ class TestOvercloudCreatePlan(utils.TestCommand):
         ]
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
-        self.websocket.wait_for_message.return_value = {
+        self.websocket.wait_for_messages.return_value = iter([{
+            "execution": {"id": "IDID"},
             "status": "SUCCESS"
-        }
+        }])
 
         # Run
         self.cmd.take_action(parsed_args)
