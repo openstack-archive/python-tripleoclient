@@ -52,7 +52,8 @@ class TestDeployValidators(fakes.TestDeployOvercloud):
 
         # get a FakeNode by its UUID, replaces bm_client.node.get
 
-        self.cmd._check_ironic_boot_configuration(bm_client)
+        self.cmd.baremetal_client = bm_client
+        self.cmd._check_ironic_boot_configuration()
 
         mock_maint_nodes.assert_called_once_with(detail=True,
                                                  maintenance=False)

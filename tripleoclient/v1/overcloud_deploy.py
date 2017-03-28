@@ -57,8 +57,16 @@ class DeployOvercloud(command.Command):
     def __init__(self, *args, **kwargs):
         self._password_cache = None
         super(DeployOvercloud, self).__init__(*args, **kwargs)
+        self.clients = self.app.client_manager
+        self.object_client = self.clients.tripleoclient.object_store
+        self.workflow_client = self.clients.workflow_engine
+        self.network_client = self.clients.network
+        self.orchestration_client = self.clients.orchestration
+        self.compute_client = self.clients.compute
+        self.baremetal_client = self.clients.baremetal
+        self.image_client = self.clients.image
 
-    def _update_parameters(self, args, network_client, stack):
+    def _update_parameters(self, args, stack):
         parameters = {}
 
         stack_is_new = stack is None
@@ -197,9 +205,6 @@ class DeployOvercloud(command.Command):
                      run_validations, ws_client):
         """Verify the Baremetal nodes are available and do a stack update"""
 
-        clients = self.app.client_manager
-        workflow_client = clients.workflow_engine
-
         if stack:
             update.add_breakpoints_cleanup_into_env(env)
 
@@ -212,10 +217,8 @@ class DeployOvercloud(command.Command):
 
         # heatclient template_utils needs a function that can
         # retrieve objects from a container by name/path
-        objectclient = clients.tripleoclient.object_store
-
         def do_object_request(method='GET', object_path=None):
-            obj = objectclient.get_object(stack_name, object_path)
+            obj = self.object_client.get_object(stack_name, object_path)
             return obj and obj[1]
 
         template_files, template = template_utils.get_template_contents(
@@ -232,17 +235,14 @@ class DeployOvercloud(command.Command):
                     'environments when using multiple controllers '
                     '(with HA).')
 
-        clients = self.app.client_manager
-
         moved_files = self._upload_missing_files(
-            stack_name, objectclient, files, tht_root)
+            stack_name, files, tht_root)
         self._process_and_upload_environment(
-            stack_name, objectclient, env, moved_files, tht_root,
-            workflow_client)
+            stack_name, env, moved_files, tht_root)
 
         if not update_plan_only:
-            deployment.deploy_and_wait(self.log, clients, stack, stack_name,
-                                       self.app_args.verbose_level,
+            deployment.deploy_and_wait(self.log, self.clients, stack,
+                                       stack_name, self.app_args.verbose_level,
                                        timeout=timeout,
                                        run_validations=run_validations,
                                        ws_client=ws_client)
@@ -261,8 +261,8 @@ class DeployOvercloud(command.Command):
                         environments.append(f)
         return environments
 
-    def _process_and_upload_environment(self, container_name, swift_client,
-                                        env, moved_files, tht_root, mistral):
+    def _process_and_upload_environment(self, container_name,
+                                        env, moved_files, tht_root):
         """Process the environment and upload to Swift
 
         The environment at this point should be the result of the merged
@@ -295,7 +295,8 @@ class DeployOvercloud(command.Command):
         if 'parameter_defaults' in env:
             params = env.pop('parameter_defaults')
             workflow_params.update_parameters(
-                mistral, container=container_name, parameters=params)
+                self.workflow_client, container=container_name,
+                parameters=params)
 
         contents = yaml.safe_dump(env)
 
@@ -304,19 +305,18 @@ class DeployOvercloud(command.Command):
         # custom environments passed to the deploy command.
         # See bug: https://bugs.launchpad.net/tripleo/+bug/1623431
         swift_path = "user-environment.yaml"
-        swift_client.put_object(container_name, swift_path, contents)
+        self.object_client.put_object(container_name, swift_path, contents)
 
-        mistral_env = mistral.environments.get(container_name)
+        mistral_env = self.workflow_client.environments.get(container_name)
         user_env = {'path': swift_path}
         if user_env not in mistral_env.variables['environments']:
             mistral_env.variables['environments'].append(user_env)
-            mistral.environments.update(
+            self.workflow_client.environments.update(
                 name=container_name,
                 variables=mistral_env.variables
             )
 
-    def _upload_missing_files(self, container_name, swift_client, files_dict,
-                              tht_root):
+    def _upload_missing_files(self, container_name, files_dict, tht_root):
         """Find the files referenced in custom environments and upload them
 
         Heat environments can be passed to be included in the deployment, these
@@ -351,15 +351,13 @@ class DeployOvercloud(command.Command):
                 file_relocation, os.path.dirname(reloc_path))
             contents = utils.replace_links_in_template_contents(
                 files_dict[orig_path], link_replacement)
-            swift_client.put_object(container_name, reloc_path, contents)
+            self.object_client.put_object(container_name, reloc_path, contents)
 
         return file_relocation
 
     def _download_missing_files_from_plan(self, tht_dir, plan_name):
         # get and download missing files into tmp directory
-        clients = self.app.client_manager
-        objectclient = clients.tripleoclient.object_store
-        plan_list = objectclient.get_container(plan_name)
+        plan_list = self.object_client.get_container(plan_name)
         plan_filenames = [f['name'] for f in plan_list[1]]
         for pf in plan_filenames:
             file_path = os.path.join(tht_dir, pf)
@@ -369,7 +367,7 @@ class DeployOvercloud(command.Command):
                 if not os.path.exists(os.path.dirname(file_path)):
                     os.makedirs(os.path.dirname(file_path))
                 with open(file_path, 'w') as f:
-                    f.write(objectclient.get_object(plan_name, pf)[1])
+                    f.write(self.object_client.get_object(plan_name, pf)[1])
 
     def _deploy_tripleo_heat_templates_tmpdir(self, stack, parsed_args):
         # copy tht_root to temporary directory because we need to
@@ -393,14 +391,9 @@ class DeployOvercloud(command.Command):
     def _deploy_tripleo_heat_templates(self, stack, parsed_args,
                                        tht_root, user_tht_root):
         """Deploy the fixed templates in TripleO Heat Templates"""
-        clients = self.app.client_manager
-        network_client = clients.network
-        workflow_client = clients.workflow_engine
+        parameters = self._update_parameters(parsed_args, stack)
 
-        parameters = self._update_parameters(
-            parsed_args, network_client, stack)
-
-        plans = plan_management.list_deployment_plans(workflow_client)
+        plans = plan_management.list_deployment_plans(self.workflow_client)
         generate_passwords = not parsed_args.disable_password_generation
 
         # TODO(d0ugal): We need to put a more robust strategy in place here to
@@ -409,12 +402,12 @@ class DeployOvercloud(command.Command):
             # Upload the new plan templates to swift to replace the existing
             # templates.
             plan_management.update_plan_from_templates(
-                clients, parsed_args.stack, tht_root, parsed_args.roles_file,
-                generate_passwords)
+                self.clients, parsed_args.stack, tht_root,
+                parsed_args.roles_file, generate_passwords)
         else:
             plan_management.create_plan_from_templates(
-                clients, parsed_args.stack, tht_root, parsed_args.roles_file,
-                generate_passwords)
+                self.clients, parsed_args.stack, tht_root,
+                parsed_args.roles_file, generate_passwords)
 
         # Get any missing (e.g j2 rendered) files from the plan to tht_root
         self._download_missing_files_from_plan(
@@ -436,8 +429,7 @@ class DeployOvercloud(command.Command):
         env['event_sinks'] = [
             {'type': 'zaqar-queue', 'target': event_queue,
              'ttl': parsed_args.timeout * 60}]
-        clients = self.app.client_manager
-        ws_client = clients.tripleoclient.messaging_websocket(event_queue)
+        ws_client = self.clients.tripleoclient.messaging_websocket(event_queue)
 
         if parsed_args.rhel_reg:
             reg_env_files, reg_env = self._create_registration_env(parsed_args)
@@ -480,7 +472,7 @@ class DeployOvercloud(command.Command):
         # steps that are now deprecated. It should be removed when they are.
         if self._password_cache is None:
             self._password_cache = workflow_params.get_overcloud_passwords(
-                self.app.client_manager,
+                self.clients,
                 container=stack_name,
                 queue_name=str(uuid.uuid4()))
 
@@ -721,33 +713,29 @@ class DeployOvercloud(command.Command):
         self.predeploy_warnings = 0
         self.log.debug("Starting _pre_verify_capabilities")
 
-        bm_client = self.app.client_manager.baremetal
-
         self._check_boot_images()
 
         flavors = self._collect_flavors(parsed_args)
 
-        self._check_ironic_boot_configuration(bm_client)
+        self._check_ironic_boot_configuration()
 
         errors, warnings = utils.assign_and_verify_profiles(
-            bm_client, flavors,
+            self.baremetal_client, flavors,
             assign_profiles=False,
             dry_run=parsed_args.dry_run
         )
         self.predeploy_errors += errors
         self.predeploy_warnings += warnings
 
-        compute_client = self.app.client_manager.compute
-
         self.log.debug("Checking hypervisor stats")
-        if utils.check_hypervisor_stats(compute_client) is None:
+        if utils.check_hypervisor_stats(self.compute_client) is None:
             self.log.error("Expected hypervisor stats not met")
             self.predeploy_errors += 1
 
         self.log.debug("Checking nodes count")
         default_role_counts = self._get_default_role_counts(parsed_args)
         enough_nodes, count, ironic_nodes_count = utils.check_nodes_count(
-            bm_client,
+            self.baremetal_client,
             stack,
             parameters,
             default_role_counts
@@ -767,11 +755,10 @@ class DeployOvercloud(command.Command):
         if self.__kernel_id is not None and self.__ramdisk_id is not None:
             return self.__kernel_id, self.__ramdisk_id
 
-        image_client = self.app.client_manager.image
         kernel_id, ramdisk_id = None, None
         try:
             kernel_id = osc_utils.find_resource(
-                image_client.images, 'bm-deploy-kernel').id
+                self.image_client.images, 'bm-deploy-kernel').id
         except AttributeError:
             self.log.exception("Please make sure there is only one image "
                                "named 'bm-deploy-kernel' in glance.")
@@ -782,7 +769,7 @@ class DeployOvercloud(command.Command):
 
         try:
             ramdisk_id = osc_utils.find_resource(
-                image_client.images, 'bm-deploy-ramdisk').id
+                self.image_client.images, 'bm-deploy-ramdisk').id
         except AttributeError:
             self.log.exception("Please make sure there is only one image "
                                "named 'bm-deploy-ramdisk' in glance.")
@@ -817,9 +804,7 @@ class DeployOvercloud(command.Command):
 
         :returns: dictionary flavor name -> (flavor object, scale)
         """
-        compute_client = self.app.client_manager.compute
-
-        flavors = {f.name: f for f in compute_client.flavors.list()}
+        flavors = {f.name: f for f in self.compute_client.flavors.list()}
         result = {}
 
         message = "Provided --{}-flavor, '{}', does not exist"
@@ -862,8 +847,9 @@ class DeployOvercloud(command.Command):
 
         return result
 
-    def _check_ironic_boot_configuration(self, bm_client):
-        for node in bm_client.node.list(detail=True, maintenance=False):
+    def _check_ironic_boot_configuration(self):
+        for node in self.baremetal_client.node.list(detail=True,
+                                                    maintenance=False):
             self.log.debug("Checking config for Node {0}".format(node.uuid))
             self._check_node_boot_configuration(node)
 
@@ -1071,18 +1057,14 @@ class DeployOvercloud(command.Command):
 
         self._validate_args(parsed_args)
 
-        clients = self.app.client_manager
-        orchestration_client = clients.orchestration
-
-        stack = utils.get_stack(orchestration_client, parsed_args.stack)
+        stack = utils.get_stack(self.orchestration_client, parsed_args.stack)
 
         if stack and stack.stack_status == 'IN_PROGRESS':
             raise exceptions.StackInProgress(
                 "Unable to deploy as the stack '{}' status is '{}'".format(
                     stack.stack_name, stack.stack_status))
 
-        parameters = self._update_parameters(
-            parsed_args, clients.network, stack)
+        parameters = self._update_parameters(parsed_args, stack)
 
         if not parsed_args.disable_validations:
             errors, warnings = self._predeploy_verify_capabilities(
@@ -1140,7 +1122,7 @@ class DeployOvercloud(command.Command):
 
         # Get a new copy of the stack after stack update/create. If it was
         # a create then the previous stack object would be None.
-        stack = utils.get_stack(orchestration_client, parsed_args.stack)
+        stack = utils.get_stack(self.orchestration_client, parsed_args.stack)
 
         if parsed_args.update_plan_only:
             # If we are only updating the plan, then we either wont have a
@@ -1152,7 +1134,7 @@ class DeployOvercloud(command.Command):
         stack.get()
 
         overcloudrcs = deployment.overcloudrc(
-            clients.workflow_engine, container=stack.stack_name,
+            self.workflow_client, container=stack.stack_name,
             no_proxy=parsed_args.no_proxy)
 
         utils.write_overcloudrc(stack.stack_name, overcloudrcs)
