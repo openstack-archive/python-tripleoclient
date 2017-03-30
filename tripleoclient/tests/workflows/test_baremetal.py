@@ -145,10 +145,7 @@ class TestBaremetalWorkflows(utils.TestCommand):
 
     def test_introspect_success(self):
 
-        self.websocket.wait_for_message.return_value = {
-            "status": "SUCCESS",
-            "introspected_nodes": {}
-        }
+        self.websocket.wait_for_messages.return_value = self.message_success
 
         baremetal.introspect(self.app.client_manager, node_uuids=[],
                              run_validations=True, queue_name="QUEUE_NAME")
@@ -163,11 +160,7 @@ class TestBaremetalWorkflows(utils.TestCommand):
 
     def test_introspect_error(self):
 
-        self.websocket.wait_for_message.return_value = {
-            "status": "FAIL",
-            "message": "Failed",
-            "introspected_nodes": {}
-        }
+        self.websocket.wait_for_messages.return_value = self.message_failed
 
         self.assertRaises(
             exceptions.IntrospectionError,
