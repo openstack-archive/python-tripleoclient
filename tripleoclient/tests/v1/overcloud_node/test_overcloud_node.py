@@ -170,11 +170,16 @@ class TestProvideNode(fakes.TestOvercloudNode):
         # Get the command object to test
         self.cmd = overcloud_node.ProvideNode(self.app, None)
 
-    def test_provide_all_manageable_nodes(self):
         self.websocket.wait_for_message.return_value = {
             "status": "SUCCESS",
-            "message": ""
+            "message": "Success"
         }
+        self.websocket.wait_for_messages.return_value = iter([{
+            "status": "SUCCESS",
+            "message": "Success"
+        }])
+
+    def test_provide_all_manageable_nodes(self):
 
         parsed_args = self.check_parser(self.cmd,
                                         ['--all-manageable'],
@@ -188,11 +193,6 @@ class TestProvideNode(fakes.TestOvercloudNode):
 
     def test_provide_one_node(self):
         node_id = 'node_uuid1'
-
-        self.websocket.wait_for_message.return_value = {
-            "status": "SUCCESS",
-            "message": "Success"
-        }
 
         parsed_args = self.check_parser(self.cmd,
                                         [node_id],
@@ -208,11 +208,6 @@ class TestProvideNode(fakes.TestOvercloudNode):
     def test_provide_multiple_nodes(self):
         node_id1 = 'node_uuid1'
         node_id2 = 'node_uuid2'
-
-        self.websocket.wait_for_message.return_value = {
-            "status": "SUCCESS",
-            "message": "Success"
-        }
 
         argslist = [node_id1, node_id2]
         verifylist = [('node_uuids', [node_id1, node_id2])]
@@ -281,11 +276,10 @@ class TestIntrospectNode(fakes.TestOvercloudNode):
                          2 if provide else 1)
 
     def _check_introspect_nodes(self, parsed_args, nodes, provide=False):
-        self.websocket.wait_for_message.return_value = {
+        self.websocket.wait_for_messages.return_value = [{
             "status": "SUCCESS",
             "message": "Success",
-            "introspected_nodes": {}
-        }
+        }]
 
         self.cmd.take_action(parsed_args)
 
