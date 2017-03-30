@@ -283,7 +283,9 @@ def create_raid_configuration(clients, **workflow_input):
     print('Creating RAID configuration for given nodes, this may take time')
 
     with ooo_client.messaging_websocket(queue_name) as ws:
-        payload = ws.wait_for_message(execution.id)
+        for payload in base.wait_for_messages(workflow_client, ws, execution):
+            if 'message' in payload:
+                print(payload['message'])
 
     if payload['status'] == 'SUCCESS':
         print('Success')

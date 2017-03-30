@@ -36,9 +36,9 @@ class TestCreateRAID(fakes.TestBaremetal):
         }
         tripleoclient = self.app.client_manager.tripleoclient
         websocket = tripleoclient.messaging_websocket()
-        websocket.wait_for_message.side_effect = [
+        websocket.wait_for_messages.return_value = iter([
             {'status': "SUCCESS"}
-        ]
+        ])
         self.websocket = websocket
 
         self.workflow.executions.create.return_value = mock.MagicMock(
