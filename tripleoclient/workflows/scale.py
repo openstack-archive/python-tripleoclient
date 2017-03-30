@@ -26,13 +26,13 @@ def delete_node(clients, **workflow_input):
     tripleoclients = clients.tripleoclient
     queue_name = workflow_input['queue_name']
 
-    execution = base.start_workflow(
-        workflow_client,
-        'tripleo.scale.v1.delete_node',
-        workflow_input=workflow_input
-    )
-
     with tripleoclients.messaging_websocket(queue_name) as ws:
+        execution = base.start_workflow(
+            workflow_client,
+            'tripleo.scale.v1.delete_node',
+            workflow_input=workflow_input
+        )
+
         for payload in base.wait_for_messages(workflow_client, ws, execution,
                                               360):
             if payload['status'] != "SUCCESS":

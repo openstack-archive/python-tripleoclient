@@ -37,13 +37,13 @@ def delete_stack(clients, stack):
 
     queue_name = workflow_input['queue_name']
 
-    execution = base.start_workflow(
-        workflow_client,
-        'tripleo.stack.v1.delete_stack',
-        workflow_input=workflow_input
-    )
-
     with tripleoclient.messaging_websocket(queue_name) as ws:
+        execution = base.start_workflow(
+            workflow_client,
+            'tripleo.stack.v1.delete_stack',
+            workflow_input=workflow_input
+        )
+
         for payload in base.wait_for_messages(workflow_client, ws, execution):
             if payload['status'] != "SUCCESS":
                 raise InvalidConfiguration(payload['message'])

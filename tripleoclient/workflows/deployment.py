@@ -30,13 +30,13 @@ def deploy(clients, **workflow_input):
     tripleoclients = clients.tripleoclient
     queue_name = workflow_input['queue_name']
 
-    execution = base.start_workflow(
-        workflow_client,
-        'tripleo.deployment.v1.deploy_plan',
-        workflow_input=workflow_input
-    )
-
     with tripleoclients.messaging_websocket(queue_name) as ws:
+        execution = base.start_workflow(
+            workflow_client,
+            'tripleo.deployment.v1.deploy_plan',
+            workflow_input=workflow_input
+        )
+
         # The deploy workflow ends once the Heat create/update starts. This
         # means that is shouldn't take very long. Wait for six minutes for
         # messages from the workflow.
