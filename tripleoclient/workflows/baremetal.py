@@ -227,7 +227,9 @@ def configure(clients, **workflow_input):
     )
 
     with ooo_client.messaging_websocket(queue_name) as ws:
-        payload = ws.wait_for_message(execution.id)
+        for payload in base.wait_for_messages(workflow_client, ws, execution):
+            if 'message' in payload:
+                print(payload['message'])
 
     if payload['status'] != 'SUCCESS':
         raise exceptions.NodeConfigurationError(
