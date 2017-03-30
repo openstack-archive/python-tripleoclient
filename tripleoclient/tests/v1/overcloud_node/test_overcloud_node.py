@@ -249,15 +249,11 @@ class TestIntrospectNode(fakes.TestOvercloudNode):
         self.cmd = overcloud_node.IntrospectNode(self.app, None)
 
     def _check_introspect_all_manageable(self, parsed_args, provide=False):
-        self.websocket.wait_for_message.return_value = {
-            "status": "SUCCESS",
-            "message": "Success",
-        }
         self.websocket.wait_for_messages.return_value = iter([{
             "status": "SUCCESS",
             "message": "Success",
             "introspected_nodes": {}
-        }])
+        }] * 2)
 
         self.cmd.take_action(parsed_args)
 

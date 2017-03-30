@@ -634,17 +634,11 @@ class TestStartBaremetalIntrospectionBulk(fakes.TestBaremetal):
             }
         )
 
-        self.websocket.wait_for_message.return_value = {
-            "status": "SUCCESS",
-            "message": "Success",
-            "introspected_nodes": {},
-        }
-
         self.websocket.wait_for_messages.return_value = iter([{
             "status": "SUCCESS",
             "message": "Success",
             "introspected_nodes": {},
-        }])
+        }] * 2)
 
         parsed_args = self.check_parser(self.cmd, [], [])
         self.cmd.take_action(parsed_args)

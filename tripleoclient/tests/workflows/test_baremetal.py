@@ -240,11 +240,7 @@ class TestBaremetalWorkflows(utils.TestCommand):
 
     def test_provide_manageable_nodes_success(self):
 
-        self.websocket.wait_for_message.return_value = {
-            "status": "SUCCESS",
-            "introspected_nodes": {},
-            "message": "Success"
-        }
+        self.websocket.wait_for_messages.return_value = self.message_success
 
         baremetal.provide_manageable_nodes(
             self.app.client_manager, queue_name="QUEUE_NAME")
@@ -255,10 +251,7 @@ class TestBaremetalWorkflows(utils.TestCommand):
 
     def test_provide_manageable_nodes_error(self):
 
-        self.websocket.wait_for_message.return_value = {
-            "status": "FAIL",
-            "message": "Failed"
-        }
+        self.websocket.wait_for_messages.return_value = self.message_failed
 
         self.assertRaises(
             exceptions.NodeProvideError,
