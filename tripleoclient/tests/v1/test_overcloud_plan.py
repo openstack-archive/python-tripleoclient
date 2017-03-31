@@ -315,6 +315,7 @@ class TestOvercloudDeployPlan(utils.TestCommand):
             workflow_input={
                 'container': 'overcast',
                 'run_validations': True,
-                'queue_name': 'UUID4'
+                'queue_name': 'UUID4',
+                'skip_deploy_identifier': False
             }
         )

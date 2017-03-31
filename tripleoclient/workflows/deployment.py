@@ -44,12 +44,14 @@ def deploy(clients, **workflow_input):
 
 
 def deploy_and_wait(log, clients, stack, plan_name, verbose_level,
-                    timeout=None, run_validations=False):
+                    timeout=None, run_validations=False,
+                    skip_deploy_identifier=False):
     """Start the deploy and wait for it to finish"""
 
     workflow_input = {
         "container": plan_name,
         "run_validations": run_validations,
+        "skip_deploy_identifier": skip_deploy_identifier,
         "queue_name": str(uuid.uuid4()),
     }
 
