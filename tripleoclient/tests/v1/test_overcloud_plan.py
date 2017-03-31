@@ -278,6 +278,7 @@ class TestOvercloudDeployPlan(utils.TestCommand):
             'tripleo.deployment.v1.deploy_plan',
             workflow_input={
                 'container': 'overcast',
-                'queue_name': 'UUID4'
+                'queue_name': 'UUID4',
+                'skip_deploy_identifier': False
             }
         )
