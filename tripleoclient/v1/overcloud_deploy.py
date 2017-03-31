@@ -23,7 +23,6 @@ import re
 import shutil
 import six
 import tempfile
-import time
 import uuid
 import yaml
 
@@ -68,8 +67,6 @@ class DeployOvercloud(command.Command):
 
         stack_is_new = stack is None
 
-        timestamp = int(time.time())
-        parameters['DeployIdentifier'] = timestamp
         parameters['UpdateIdentifier'] = ''
         parameters['StackAction'] = 'CREATE' if stack_is_new else 'UPDATE'
 
@@ -199,7 +196,7 @@ class DeployOvercloud(command.Command):
 
     def _heat_deploy(self, stack, stack_name, template_path, parameters,
                      env_files, timeout, tht_root, env, update_plan_only,
-                     run_validations):
+                     run_validations, skip_deploy_identifier):
         """Verify the Baremetal nodes are available and do a stack update"""
 
         self.log.debug("Getting template contents from plan %s" % stack_name)
@@ -227,10 +224,12 @@ class DeployOvercloud(command.Command):
             stack_name, env, moved_files, tht_root)
 
         if not update_plan_only:
-            deployment.deploy_and_wait(self.log, self.clients, stack,
-                                       stack_name, self.app_args.verbose_level,
-                                       timeout=timeout,
-                                       run_validations=run_validations)
+            deployment.deploy_and_wait(
+                self.log, self.clients, stack,
+                stack_name, self.app_args.verbose_level,
+                timeout=timeout,
+                run_validations=run_validations,
+                skip_deploy_identifier=skip_deploy_identifier)
 
     def _load_environment_directories(self, directories):
         if os.environ.get('TRIPLEO_ENVIRONMENT_DIRECTORY'):
@@ -439,19 +438,20 @@ class DeployOvercloud(command.Command):
         self._try_overcloud_deploy_with_compat_yaml(
             tht_root, stack, parsed_args.stack, parameters, env_files,
             parsed_args.timeout, env, parsed_args.update_plan_only,
-            parsed_args.run_validations)
+            parsed_args.run_validations, parsed_args.skip_deploy_identifier)
 
     def _try_overcloud_deploy_with_compat_yaml(self, tht_root, stack,
                                                stack_name, parameters,
                                                env_files, timeout,
                                                env, update_plan_only,
-                                               run_validations):
+                                               run_validations,
+                                               skip_deploy_identifier):
         overcloud_yaml = os.path.join(tht_root, constants.OVERCLOUD_YAML_NAME)
         try:
             self._heat_deploy(stack, stack_name, overcloud_yaml,
                               parameters, env_files, timeout,
                               tht_root, env, update_plan_only,
-                              run_validations)
+                              run_validations, skip_deploy_identifier)
         except ClientException as e:
             messages = 'Failed to deploy: %s' % str(e)
             raise ValueError(messages)
@@ -742,6 +742,18 @@ class DeployOvercloud(command.Command):
             action='store_true',
             default=False,
             help=_('Force the overcloud post-deployment configuration.')
+        )
+        parser.add_argument(
+            '--skip-deploy-identifier',
+            action='store_true',
+            default=False,
+            help=_('Skip generation of a unique identifier for the '
+                   'DeployIdentifier parameter. The software configuration '
+                   'deployment steps will only be triggered if there is an '
+                   'actual change to the configuration. This option should '
+                   'be used with Caution, and only if there is confidence '
+                   'that the software configuration does not need to be '
+                   'run, such as when scaling out certain roles.')
         )
         reg_group = parser.add_argument_group('Registration Parameters')
         reg_group.add_argument(
