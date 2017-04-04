@@ -40,8 +40,9 @@ def deploy(clients, **workflow_input):
         # The deploy workflow ends once the Heat create/update starts. This
         # means that is shouldn't take very long. Wait for six minutes for
         # messages from the workflow.
-        message = ws.wait_for_message(execution.id, 360)  # 6 * 60 seconds
-        assert message['status'] == "SUCCESS", pprint.pformat(message)
+        for payload in base.wait_for_messages(workflow_client, ws, execution,
+                                              360):
+            assert payload['status'] == "SUCCESS", pprint.pformat(payload)
 
 
 def deploy_and_wait(log, clients, stack, plan_name, verbose_level,
