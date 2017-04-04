@@ -32,6 +32,11 @@ class TestPlanCreationWorkflows(utils.TestCommand):
         self.tripleoclient.messaging_websocket.return_value = self.websocket
         self.app.client_manager.tripleoclient = self.tripleoclient
 
+        self.message_success = iter([{
+            "execution": {"id": "IDID"},
+            "status": "SUCCESS",
+        }])
+
         uuid4_patcher = mock.patch('uuid.uuid4', return_value="UUID4")
         self.mock_uuid4 = uuid4_patcher.start()
         self.addCleanup(self.mock_uuid4.stop)
@@ -41,9 +46,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
     def test_create_plan_from_templates_success(self, mock_tarball):
         output = mock.Mock(output='{"result": ""}')
         self.workflow.action_executions.create.return_value = output
-        self.websocket.wait_for_message.return_value = {
-            "status": "SUCCESS",
-        }
+        self.websocket.wait_for_messages.return_value = self.message_success
 
         plan_management.create_plan_from_templates(
             self.app.client_manager,
@@ -86,9 +89,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
     def test_create_plan_from_templates_roles_data(self, mock_tarball):
         output = mock.Mock(output='{"result": ""}')
         self.workflow.action_executions.create.return_value = output
-        self.websocket.wait_for_message.return_value = {
-            "status": "SUCCESS",
-        }
+        self.websocket.wait_for_messages.return_value = self.message_success
 
         mock_open_context = mock.mock_open()
         with mock.patch('six.moves.builtins.open', mock_open_context):
@@ -133,9 +134,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
     def test_create_plan_with_password_gen_disabled(self, mock_tarball):
         output = mock.Mock(output='{"result": ""}')
         self.workflow.action_executions.create.return_value = output
-        self.websocket.wait_for_message.return_value = {
-            "status": "SUCCESS",
-        }
+        self.websocket.wait_for_messages.return_value = self.message_success
 
         plan_management.create_plan_from_templates(
             self.app.client_manager,

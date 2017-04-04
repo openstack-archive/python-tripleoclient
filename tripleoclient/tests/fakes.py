@@ -48,6 +48,12 @@ class FakeWebSocket(object):
             'status': 'SUCCESS'
         }
 
+    def wait_for_messages(self, timeout=None):
+        yield {
+            'execution': {'id': 'IDID'},
+            'status': 'SUCCESS',
+        }
+
     def __enter__(self):
         return self
 
