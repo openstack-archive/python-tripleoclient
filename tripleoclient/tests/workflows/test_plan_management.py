@@ -15,8 +15,10 @@
 import mock
 
 from osc_lib.tests import utils
+from swiftclient import exceptions as swift_exc
 
 from tripleoclient import exceptions
+from tripleoclient.tests import base
 from tripleoclient.workflows import plan_management
 
 
@@ -152,3 +154,51 @@ class TestPlanCreationWorkflows(utils.TestCommand):
             workflow_input={'queue_name': 'UUID4',
                             'container': 'test-overcloud',
                             'generate_passwords': False})
+
+
+class TestUpdatePasswords(base.TestCase):
+
+    YAML_CONTENTS = """version: 1.0
+name: overcloud
+template: overcloud.yaml
+parameter_defaults:
+  ControllerCount: 7
+"""
+
+    def setUp(self):
+        super(TestUpdatePasswords, self).setUp()
+        self.swift_client = mock.MagicMock()
+        self.swift_client.get_object.return_value = ({}, self.YAML_CONTENTS)
+
+        self.plan_name = "overcast"
+
+    def test_update_passwords(self):
+        plan_management._update_passwords(self.swift_client,
+                                          self.plan_name,
+                                          {'AdminPassword': "1234"})
+
+        self.swift_client.put_object.assert_called_once()
+        result = self.swift_client.put_object.call_args_list[0][0][2]
+
+        # Check new data is in
+        self.assertIn("passwords:\n", result)
+        self.assertIn("\n  AdminPassword: '1234'", result)
+        # Check previous data still is too
+        self.assertIn("name: overcloud", result)
+
+    def test_no_passwords(self):
+        plan_management._update_passwords(self.swift_client,
+                                          self.plan_name,
+                                          [])
+
+        self.swift_client.put_object.assert_not_called()
+
+    def test_no_plan_environment(self):
+        self.swift_client.get_object.side_effect = (
+            swift_exc.ClientException("404"))
+
+        plan_management._update_passwords(self.swift_client,
+                                          self.plan_name,
+                                          {'SecretPassword': 'abcd'})
+
+        self.swift_client.put_object.assert_not_called()

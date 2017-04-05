@@ -105,10 +105,13 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_event.id = '1234'
         mock_events.return_value = [mock_events]
         workflow_client = clients.workflow_engine
-        workflow_client.environments.get.return_value = mock.MagicMock(
-            variables={'environments': []})
         workflow_client.action_executions.create.return_value = mock.MagicMock(
             output='{"result":[]}')
+
+        object_client = clients.tripleoclient.object_store
+        object_client.get_object = mock.Mock()
+        mock_env = yaml.safe_dump({'environments': []})
+        object_client.get_object.return_value = ({}, mock_env)
 
         mock_check_hypervisor_stats.return_value = {
             'count': 4,
@@ -214,10 +217,13 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_stack = fakes.create_tht_stack()
         orchestration_client.stacks.get.side_effect = [None, mock.Mock()]
         workflow_client = clients.workflow_engine
-        workflow_client.environments.get.return_value = mock.MagicMock(
-            variables={'environments': []})
         workflow_client.action_executions.create.return_value = mock.MagicMock(
             output='{"result":[]}')
+
+        object_client = clients.tripleoclient.object_store
+        object_client.get_object = mock.Mock()
+        mock_env = yaml.safe_dump({'environments': []})
+        object_client.get_object.return_value = ({}, mock_env)
 
         def _orch_clt_create(**kwargs):
             orchestration_client.stacks.get.return_value = mock_stack
@@ -339,8 +345,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_stack = fakes.create_tht_stack()
         orchestration_client.stacks.get.side_effect = [None, mock.Mock()]
         workflow_client = clients.workflow_engine
-        workflow_client.environments.get.return_value = mock.MagicMock(
-            variables={'environments': []})
         workflow_client.action_executions.create.return_value = mock.MagicMock(
             output='{"result":[]}')
 
@@ -348,6 +352,11 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             orchestration_client.stacks.get.return_value = mock_stack
 
         orchestration_client.stacks.create.side_effect = _orch_clt_create
+
+        object_client = clients.tripleoclient.object_store
+        object_client.get_object = mock.Mock()
+        mock_env = yaml.safe_dump({'environments': []})
+        object_client.get_object.return_value = ({}, mock_env)
 
         mock_check_hypervisor_stats.return_value = {
             'count': 4,
@@ -436,10 +445,13 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         baremetal.node.list.return_value = range(10)
 
         workflow_client = clients.workflow_engine
-        workflow_client.environments.get.return_value = mock.MagicMock(
-            variables={'environments': []})
         workflow_client.action_executions.create.return_value = mock.MagicMock(
             output='{"result":[]}')
+
+        object_client = clients.tripleoclient.object_store
+        object_client.get_object = mock.Mock()
+        mock_env = yaml.safe_dump({'environments': []})
+        object_client.get_object.return_value = ({}, mock_env)
 
         with mock.patch('tempfile.mkstemp') as mkstemp:
             mkstemp.return_value = (os.open(self.parameter_defaults_env_file,
@@ -767,10 +779,13 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
         mock_events.return_value = []
         workflow_client = clients.workflow_engine
-        workflow_client.environments.get.return_value = mock.MagicMock(
-            variables={'environments': []})
         workflow_client.action_executions.create.return_value = mock.MagicMock(
             output='{"result":[]}')
+
+        object_client = clients.tripleoclient.object_store
+        object_client.get_object = mock.Mock()
+        mock_env = yaml.safe_dump({'environments': []})
+        object_client.get_object.return_value = ({}, mock_env)
 
         mock_check_hypervisor_stats.return_value = {
             'count': 4,
@@ -1037,10 +1052,13 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         clients = self.app.client_manager
         workflow_client = clients.workflow_engine
-        workflow_client.environments.get.return_value = mock.MagicMock(
-            variables={'environments': []})
         workflow_client.action_executions.create.return_value = mock.MagicMock(
             output='{"result":[]}')
+
+        object_client = clients.tripleoclient.object_store
+        object_client.get_object = mock.Mock()
+        mock_env = yaml.safe_dump({'environments': []})
+        object_client.get_object.return_value = ({}, mock_env)
 
         def _custom_create_params_env(parameters):
             parameter_defaults = {"parameter_defaults": parameters}
@@ -1122,10 +1140,13 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         orchestration_client.stacks.create.side_effect = _orch_clt_create
 
         workflow_client = clients.workflow_engine
-        workflow_client.environments.get.return_value = mock.MagicMock(
-            variables={'environments': []})
         workflow_client.action_executions.create.return_value = mock.MagicMock(
             output='{"result":[]}')
+
+        object_client = clients.tripleoclient.object_store
+        object_client.get_object = mock.Mock()
+        mock_env = yaml.safe_dump({'environments': []})
+        object_client.get_object.return_value = ({}, mock_env)
 
         mock_check_hypervisor_stats.return_value = {
             'count': 4,
@@ -1208,10 +1229,13 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         ]
 
         workflow_client = clients.workflow_engine
-        workflow_client.environments.get.return_value = mock.MagicMock(
-            variables={'environments': []})
         workflow_client.action_executions.create.return_value = mock.MagicMock(
             output='{"result":[]}')
+
+        object_client = clients.tripleoclient.object_store
+        object_client.get_object = mock.Mock()
+        mock_env = yaml.safe_dump({'environments': []})
+        object_client.get_object.return_value = ({}, mock_env)
 
         mock_relpath.return_value = './'
 
