@@ -110,15 +110,6 @@ class DeployOvercloud(command.Command):
             if getattr(args, arg, None) is not None:
                 parameters[param] = getattr(args, arg)
 
-        # Scaling needs extra parameters
-        number_controllers = int(parameters.get('ControllerCount', 0))
-        dhcp_agents_per_network = (min(number_controllers, 3) if
-                                   number_controllers else 1)
-
-        parameters.update({
-            'NeutronDhcpAgentsPerNetwork': dhcp_agents_per_network,
-        })
-
         return parameters
 
     def _create_registration_env(self, args):
