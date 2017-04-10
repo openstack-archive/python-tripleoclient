@@ -23,6 +23,8 @@ from tripleo_common.image import image_uploader
 
 class UploadImage(command.Command):
     """Push overcloud container images to registries."""
+
+    auth_required = False
     log = logging.getLogger(__name__ + ".UploadImage")
 
     def get_parser(self, prog_name):
