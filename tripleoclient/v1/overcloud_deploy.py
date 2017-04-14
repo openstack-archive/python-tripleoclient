@@ -32,7 +32,6 @@ from heatclient import exc as hc_exc
 from osc_lib.command import command
 from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
-from osc_lib import utils as osc_utils
 from swiftclient.exceptions import ClientException
 from tripleo_common import update
 
@@ -42,6 +41,7 @@ from tripleoclient import utils
 from tripleoclient.workflows import deployment
 from tripleoclient.workflows import parameters as workflow_params
 from tripleoclient.workflows import plan_management
+from tripleoclient.workflows import validations
 
 
 class DeployOvercloud(command.Command):
@@ -607,176 +607,26 @@ class DeployOvercloud(command.Command):
         self.predeploy_warnings = 0
         self.log.debug("Starting _pre_verify_capabilities")
 
-        self._check_boot_images()
+        validation_params = {
+            'deploy_kernel_name': 'bm-deploy-kernel',
+            'deploy_ramdisk_name': 'bm-deploy-ramdisk',
+            'roles_info': utils.get_roles_info(parsed_args),
+            'stack_id': parsed_args.stack,
+            'parameters': parameters,
+            'default_role_counts': self._get_default_role_counts(parsed_args),
+            'run_validations': True,
+            'queue_name': str(uuid.uuid4()),
+        }
 
-        flavors = self._collect_flavors(parsed_args)
-
-        self._check_ironic_boot_configuration()
-
-        errors, warnings = utils.assign_and_verify_profiles(
-            self.baremetal_client, flavors,
-            assign_profiles=False,
-            dry_run=parsed_args.dry_run
+        errors, warnings = validations.check_predeployment_validations(
+            self.app.client_manager,
+            **validation_params
         )
+
         self.predeploy_errors += errors
         self.predeploy_warnings += warnings
 
-        self.log.debug("Checking hypervisor stats")
-        if utils.check_hypervisor_stats(self.compute_client) is None:
-            self.log.error("Expected hypervisor stats not met")
-            self.predeploy_errors += 1
-
-        self.log.debug("Checking nodes count")
-        default_role_counts = self._get_default_role_counts(parsed_args)
-        enough_nodes, count, ironic_nodes_count = utils.check_nodes_count(
-            self.baremetal_client,
-            stack,
-            parameters,
-            default_role_counts
-        )
-        if not enough_nodes:
-            self.log.error(
-                "Not enough nodes - available: {0}, requested: {1}".format(
-                    ironic_nodes_count, count))
-            self.predeploy_errors += 1
-
         return self.predeploy_errors, self.predeploy_warnings
-
-    __kernel_id = None
-    __ramdisk_id = None
-
-    def _image_ids(self):
-        if self.__kernel_id is not None and self.__ramdisk_id is not None:
-            return self.__kernel_id, self.__ramdisk_id
-
-        kernel_id, ramdisk_id = None, None
-        try:
-            kernel_id = osc_utils.find_resource(
-                self.image_client.images, 'bm-deploy-kernel').id
-        except AttributeError:
-            self.log.exception("Please make sure there is only one image "
-                               "named 'bm-deploy-kernel' in glance.")
-        except oscexc.CommandError:
-            # kernel_id=None will be returned and an error will be logged from
-            # self._check_boot_images
-            pass
-
-        try:
-            ramdisk_id = osc_utils.find_resource(
-                self.image_client.images, 'bm-deploy-ramdisk').id
-        except AttributeError:
-            self.log.exception("Please make sure there is only one image "
-                               "named 'bm-deploy-ramdisk' in glance.")
-        except oscexc.CommandError:
-            # ramdisk_id=None will be returned and an error will be logged from
-            # self._check_boot_images
-            pass
-
-        self.log.debug("Using kernel ID: {0} and ramdisk ID: {1}".format(
-            kernel_id, ramdisk_id))
-
-        self.__kernel_id = kernel_id
-        self.__ramdisk_id = ramdisk_id
-        return kernel_id, ramdisk_id
-
-    def _check_boot_images(self):
-        kernel_id, ramdisk_id = self._image_ids()
-        message = ("No image with the name '{}' found - make "
-                   "sure you've uploaded boot images")
-        if kernel_id is None:
-            self.predeploy_errors += 1
-            self.log.error(message.format('bm-deploy-kernel'))
-        if ramdisk_id is None:
-            self.predeploy_errors += 1
-            self.log.error(message.format('bm-deploy-ramdisk'))
-
-    def _collect_flavors(self, parsed_args):
-        """Validate and collect nova flavors in use.
-
-        Ensure that selected flavors (--ROLE-flavor) are valid in nova.
-        Issue a warning of local boot is not set for a flavor.
-
-        :returns: dictionary flavor name -> (flavor object, scale)
-        """
-        flavors = {f.name: f for f in self.compute_client.flavors.list()}
-        result = {}
-
-        message = "Provided --{}-flavor, '{}', does not exist"
-
-        for target, (flavor_name, scale) in (
-            utils.get_roles_info(parsed_args).items()
-        ):
-            if flavor_name is None or not scale:
-                self.log.debug("--{}-flavor not used".format(target))
-                continue
-
-            try:
-                flavor, old_scale = result[flavor_name]
-            except KeyError:
-                pass
-            else:
-                result[flavor_name] = (flavor, old_scale + scale)
-                continue
-
-            try:
-                flavor = flavors[flavor_name]
-            except KeyError:
-                self.predeploy_errors += 1
-                self.log.error(message.format(target, flavor_name))
-                continue
-
-            if flavor.get_keys().get('capabilities:boot_option', '') \
-                    != 'local':
-                self.predeploy_warnings += 1
-                self.log.warning(
-                    'Flavor %s "capabilities:boot_option" is not set to '
-                    '"local". Nodes must have ability to PXE boot from '
-                    'deploy image.', flavor_name)
-                self.log.warning(
-                    'Recommended solution: openstack flavor set --property '
-                    '"cpu_arch"="x86_64" --property '
-                    '"capabilities:boot_option"="local" ' + flavor_name)
-
-            result[flavor_name] = (flavor, scale)
-
-        return result
-
-    def _check_ironic_boot_configuration(self):
-        for node in self.baremetal_client.node.list(detail=True,
-                                                    maintenance=False):
-            self.log.debug("Checking config for Node {0}".format(node.uuid))
-            self._check_node_boot_configuration(node)
-
-    def _check_node_boot_configuration(self, node):
-        kernel_id, ramdisk_id = self._image_ids()
-        self.log.debug("Doing boot checks for {}".format(node.uuid))
-        message = ("Node uuid={uuid} has an incorrectly configured "
-                   "{property}. Expected \"{expected}\" but got "
-                   "\"{actual}\".")
-        if node.driver_info.get('deploy_ramdisk') != ramdisk_id:
-            self.predeploy_errors += 1
-            self.log.error(message.format(
-                uuid=node.uuid,
-                property='driver_info/deploy_ramdisk',
-                expected=ramdisk_id,
-                actual=node.driver_info.get('deploy_ramdisk')
-            ))
-        if node.driver_info.get('deploy_kernel') != kernel_id:
-            self.predeploy_errors += 1
-            self.log.error(message.format(
-                uuid=node.uuid,
-                property='driver_info/deploy_kernel',
-                expected=kernel_id,
-                actual=node.driver_info.get('deploy_kernel')
-            ))
-        if 'boot_option:local' not in node.properties.get('capabilities', ''):
-            self.predeploy_warnings += 1
-            self.log.warning(message.format(
-                uuid=node.uuid,
-                property='properties/capabilities',
-                expected='boot_option:local',
-                actual=node.properties.get('capabilities')
-            ))
 
     def get_parser(self, prog_name):
         # add_help doesn't work properly, set it to False:
