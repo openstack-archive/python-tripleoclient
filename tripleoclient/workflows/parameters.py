@@ -35,13 +35,13 @@ def get_overcloud_passwords(clients, **workflow_input):
     tripleoclients = clients.tripleoclient
     queue_name = workflow_input['queue_name']
 
-    execution = base.start_workflow(
-        workflow_client,
-        'tripleo.plan_management.v1.get_passwords',
-        workflow_input=workflow_input
-    )
-
     with tripleoclients.messaging_websocket(queue_name) as ws:
+        execution = base.start_workflow(
+            workflow_client,
+            'tripleo.plan_management.v1.get_passwords',
+            workflow_input=workflow_input
+        )
+
         # Getting the passwords is a quick operation, but to allow space for
         # delays or heavy loads, timeout after 60 seconds.
         for payload in base.wait_for_messages(workflow_client, ws, execution,

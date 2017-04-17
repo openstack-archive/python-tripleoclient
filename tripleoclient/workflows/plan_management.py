@@ -48,13 +48,13 @@ def create_default_plan(clients, **workflow_input):
     tripleoclients = clients.tripleoclient
     queue_name = workflow_input['queue_name']
 
-    execution = base.start_workflow(
-        workflow_client,
-        'tripleo.plan_management.v1.create_default_deployment_plan',
-        workflow_input=workflow_input
-    )
-
     with tripleoclients.messaging_websocket(queue_name) as ws:
+        execution = base.start_workflow(
+            workflow_client,
+            'tripleo.plan_management.v1.create_default_deployment_plan',
+            workflow_input=workflow_input
+        )
+
         for payload in base.wait_for_messages(workflow_client, ws, execution,
                                               _WORKFLOW_TIMEOUT):
             if 'message' in payload:
@@ -72,12 +72,12 @@ def _create_update_deployment_plan(clients, workflow, **workflow_input):
     tripleoclients = clients.tripleoclient
     queue_name = workflow_input['queue_name']
 
-    execution = base.start_workflow(
-        workflow_client, workflow,
-        workflow_input=workflow_input
-    )
-
     with tripleoclients.messaging_websocket(queue_name) as ws:
+        execution = base.start_workflow(
+            workflow_client, workflow,
+            workflow_input=workflow_input
+        )
+
         for payload in base.wait_for_messages(workflow_client, ws, execution,
                                               _WORKFLOW_TIMEOUT):
             if 'message' in payload:

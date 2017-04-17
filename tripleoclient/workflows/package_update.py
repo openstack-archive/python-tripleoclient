@@ -25,13 +25,13 @@ def update(clients, **workflow_input):
     tripleoclients = clients.tripleoclient
     queue_name = workflow_input['queue_name']
 
-    execution = base.start_workflow(
-        workflow_client,
-        'tripleo.package_update.v1.package_update_plan',
-        workflow_input=workflow_input
-    )
-
     with tripleoclients.messaging_websocket(queue_name) as ws:
+        execution = base.start_workflow(
+            workflow_client,
+            'tripleo.package_update.v1.package_update_plan',
+            workflow_input=workflow_input
+        )
+
         for payload in base.wait_for_messages(workflow_client, ws, execution):
             assert payload['status'] == "SUCCESS", pprint.pformat(payload)
 
@@ -91,12 +91,12 @@ def clear_breakpoints(clients, **workflow_input):
     workflow_input['queue_name'] = str(uuid.uuid4())
     queue_name = workflow_input['queue_name']
 
-    execution = base.start_workflow(
-        workflow_client,
-        'tripleo.package_update.v1.clear_breakpoints',
-        workflow_input=workflow_input
-    )
-
     with tripleoclients.messaging_websocket(queue_name) as ws:
+        execution = base.start_workflow(
+            workflow_client,
+            'tripleo.package_update.v1.clear_breakpoints',
+            workflow_input=workflow_input
+        )
+
         for payload in base.wait_for_messages(workflow_client, ws, execution):
             assert payload['status'] == "SUCCESS", pprint.pformat(payload)
