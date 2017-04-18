@@ -387,7 +387,7 @@ class TestOvercloudExportPlan(utils.TestCommand):
         autospec=True)
     def test_export_plan(self, export_deployment_plan_mock):
         parsed_args = self.check_parser(self.cmd, ['test-plan'],
-                                        [('plans', ['test-plan'])])
+                                        [('plan', 'test-plan')])
 
         export_deployment_plan_mock.return_value = 'http://fake-url.com'
 
@@ -397,21 +397,34 @@ class TestOvercloudExportPlan(utils.TestCommand):
         export_deployment_plan_mock.assert_called_once_with(
             self.clients, plan='test-plan', queue_name='UUID4')
 
+    @mock.patch('os.path.exists')
+    def test_export_plan_outfile_exists(self, exists_mock):
+        parsed_args = self.check_parser(self.cmd, ['test-plan'],
+                                        [('plan', 'test-plan')])
+
+        exists_mock.return_value = True
+
+        self.assertRaises(exceptions.PlanExportError,
+                          self.cmd.take_action, parsed_args)
+
     @mock.patch(
         'tripleoclient.workflows.plan_management.export_deployment_plan',
         autospec=True)
-    def test_export_multiple_plans(self, export_deployment_plan_mock):
-        argslist = ['test-plan1', 'test-plan2']
-        verifylist = [('plans', ['test-plan1', 'test-plan2'])]
-        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+    @mock.patch('os.path.exists')
+    def test_export_plan_outfile_exists_with_overwrite(
+            self, exists_mock, export_deployment_plan_mock):
+        arglist = ['-f', 'test-plan']
+        verifylist = [
+            ('plan', 'test-plan'),
+            ('force_overwrite', True)
+        ]
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
+        exists_mock.return_value = True
         export_deployment_plan_mock.return_value = 'http://fake-url.com'
 
         with mock.patch('six.moves.builtins.open', mock.mock_open()):
             self.cmd.take_action(parsed_args)
 
-        expected = [
-            mock.call(self.clients, plan='test-plan1', queue_name='UUID4'),
-            mock.call(self.clients, plan='test-plan2', queue_name='UUID4'),
-        ]
-        self.assertEqual(export_deployment_plan_mock.call_args_list, expected)
+        export_deployment_plan_mock.assert_called_once_with(
+            self.clients, plan='test-plan', queue_name='UUID4')

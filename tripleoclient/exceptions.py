@@ -74,3 +74,7 @@ class ProfileMatchingError(Exception):
 
 class PlanCreationError(Exception):
     """Plan creation failed"""
+
+
+class PlanExportError(Exception):
+    """Plan export failed"""

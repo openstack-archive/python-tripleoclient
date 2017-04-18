@@ -19,7 +19,7 @@ from osc_lib.command import command
 from osc_lib.i18n import _
 from six.moves.urllib import request
 
-
+from tripleoclient import exceptions
 from tripleoclient import utils
 from tripleoclient.workflows import deployment
 from tripleoclient.workflows import plan_management
@@ -158,42 +158,31 @@ class ExportPlan(command.Command):
 
     def get_parser(self, prog_name):
         parser = super(ExportPlan, self).get_parser(prog_name)
-        parser.add_argument('plans', metavar='<name>', nargs='+',
-                            help=_('Name of the plan(s) to export.'))
-        parser.add_argument('--output-files', '-o', metavar='<output file>',
-                            nargs='+', default=[],
-                            help=_('Name of the output file(s) for exports. '
-                                   'Each will default to "<name>.tar.gz".')
-                            )
+        parser.add_argument('plan', metavar='<name>',
+                            help=_('Name of the plan to export.'))
+        parser.add_argument('--output-file', '-o', metavar='<output file>',
+                            help=_('Name of the output file for export. '
+                                   'It will default to "<name>.tar.gz".'))
         parser.add_argument('--force-overwrite', '-f', action='store_true',
                             default=False,
-                            help=_('Overwrite output files if they exist.'))
+                            help=_('Overwrite output file if it exists.'))
         return parser
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
-        clients = self.app.client_manager
-        plans = parsed_args.plans
-        outfiles = parsed_args.output_files
-        overwrite = parsed_args.force_overwrite
+        plan = parsed_args.plan
+        outfile = parsed_args.output_file or '%s.tar.gz' % plan
 
-        for i, plan in enumerate(plans):
-            print("Exporting plan %s..." % plan)
+        if os.path.exists(outfile) and not parsed_args.force_overwrite:
+            raise exceptions.PlanExportError(
+                "File '%s' already exists, not exporting." % outfile)
 
-            try:
-                tarball_name = outfiles[i]
-            except IndexError:
-                tarball_name = '%s.tar.gz' % plan
+        print("Exporting plan %s..." % plan)
 
-            if os.path.exists(tarball_name) and not overwrite:
-                print("File '%s' already exists, not exporting."
-                      % tarball_name)
-                continue
+        tempurl = plan_management.export_deployment_plan(
+            self.app.client_manager, plan=plan, queue_name=str(uuid.uuid4()))
+        f = request.urlopen(tempurl)
+        tarball_contents = f.read()
 
-            tempurl = plan_management.export_deployment_plan(
-                clients, plan=plan, queue_name=str(uuid.uuid4()))
-            f = request.urlopen(tempurl)
-            tarball_contents = f.read()
-
-            with open(tarball_name, 'w') as f:
-                f.write(tarball_contents)
+        with open(outfile, 'w') as f:
+            f.write(tarball_contents)
