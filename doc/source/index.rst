@@ -11,6 +11,7 @@ Contents:
 
    readme
    installation
+   usage
    command-list
    contributing
 
