@@ -47,10 +47,6 @@ class UpdateOvercloud(command.Command):
         )
         parser.add_argument('-i', '--interactive', dest='interactive',
                             action='store_true')
-        parser.add_argument('-a', '--abort', dest='abort_update',
-                            action='store_true',
-                            help=_('DEPRECATED. Please use the command'
-                                   '"openstack overcloud update abort"'))
         parser.add_argument(
             '-e', '--environment-file', metavar='<HEAT ENVIRONMENT FILE>',
             action='append', dest='environment_files',
@@ -90,31 +86,6 @@ class UpdateOvercloud(command.Command):
                                   queue_name=str(uuid.uuid4()))
             print("Package update on stack {0} initiated.".format(
                 parsed_args.stack))
-
-
-class AbortUpdateOvercloud(command.Command):
-    """Aborts a package update on overcloud nodes"""
-
-    log = logging.getLogger(__name__ + ".AbortUpdateOvercloud")
-
-    def get_parser(self, prog_name):
-        parser = super(AbortUpdateOvercloud, self).get_parser(prog_name)
-        parser.add_argument('stack', nargs='?',
-                            help=_('Name or ID of heat stack to abort a '
-                                   'running update '
-                                   '(default=Env: OVERCLOUD_STACK_NAME)'),
-                            default=utils.env('OVERCLOUD_STACK_NAME'))
-        return parser
-
-    def take_action(self, parsed_args):
-        self.log.debug("take_action(%s)" % parsed_args)
-        clients = self.app.client_manager
-
-        heat = clients.orchestration
-
-        stack = oooutils.get_stack(heat, parsed_args.stack)
-
-        package_update.abort_update(clients, stack_id=stack.id)
 
 
 class ClearBreakpointsOvercloud(command.Command):
