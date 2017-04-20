@@ -24,8 +24,17 @@ import subprocess
 import sys
 import tempfile
 import time
-import urllib2
 import yaml
+
+try:
+    from urllib2 import HTTPError
+    from urllib2 import URLError
+    from urllib2 import urlopen
+except ImportError:
+    # python3
+    from urllib.error import HTTPError
+    from urllib.error import URLError
+    from urllib.request import urlopen
 
 from cliff import command
 from heatclient.common import template_utils
@@ -76,12 +85,12 @@ class DeployUndercloud(command.Command):
             time.sleep(1)
             count += 1
             try:
-                urllib2.urlopen("http://127.0.0.1:%s/" % api_port, timeout=1)
-            except urllib2.HTTPError as he:
+                urlopen("http://127.0.0.1:%s/" % api_port, timeout=1)
+            except HTTPError as he:
                 if he.code == 300:
                     return True
                 pass
-            except urllib2.URLError:
+            except URLError:
                 pass
         return False
 
@@ -162,11 +171,17 @@ class DeployUndercloud(command.Command):
                 os.kill(pid, signal.SIGKILL)
             if event_list_pid:
                 os.kill(event_list_pid, signal.SIGKILL)
-        status = orchestration_client.stacks.get(stack_id).status
-        if status == 'FAILED':
-            return False
+        stack_get = orchestration_client.stacks.get(stack_id)
+        status = stack_get.status
+        if status != 'FAILED':
+            pw_rsrc = orchestration_client.resources.get(
+                stack_id, 'DefaultPasswords')
+            passwords = {p.title().replace("_", ""): v for p, v in
+                         pw_rsrc.attributes.get('passwords', {}).items()}
+            return passwords
         else:
-            return True
+            msg = "Stack create failed, reason: %s" % stack_get.reason
+            raise Exception(msg)
 
     def _fork_heat_event_list(self):
         pid = os.fork()
@@ -208,19 +223,26 @@ class DeployUndercloud(command.Command):
         else:
             return pid
 
-    def _generate_passwords_env(self):
+    def _update_passwords_env(self, passwords=None):
         pw_file = os.path.join(os.environ.get('HOME', ''),
                                'tripleo-undercloud-passwords.yaml')
-        stack_env = {}
+        stack_env = {'parameter_defaults': {}}
         if os.path.exists(pw_file):
             with open(pw_file) as pf:
                 stack_env = yaml.load(pf.read())
 
         pw = password_utils.generate_passwords(stack_env=stack_env)
+        stack_env['parameter_defaults'].update(pw)
+
+        if passwords:
+            # These passwords are the DefaultPasswords so we only
+            # update if they don't already exist in stack_env
+            for p, v in passwords.items():
+                if p not in stack_env['parameter_defaults']:
+                    stack_env['parameter_defaults'][p] = v
 
         with open(pw_file, 'w') as pf:
-            yaml.safe_dump({'parameter_defaults': pw}, pf,
-                           default_flow_style=False)
+            yaml.safe_dump(stack_env, pf, default_flow_style=False)
 
         return pw_file
 
@@ -277,7 +299,7 @@ class DeployUndercloud(command.Command):
         environments.insert(0, resource_registry_path)
 
         # this will allow the user to overwrite passwords with custom envs
-        pw_file = self._generate_passwords_env()
+        pw_file = self._update_passwords_env()
         environments.insert(1, pw_file)
 
         undercloud_env_path = os.path.join(
@@ -307,11 +329,17 @@ class DeployUndercloud(command.Command):
             environments.append(tmp_env_file.name)
 
             undercloud_yaml = os.path.join(tht_root, 'overcloud.yaml')
-            return self._heat_deploy(parsed_args.stack, undercloud_yaml,
-                                     parameters, environments,
-                                     parsed_args.timeout,
-                                     parsed_args.heat_api_port,
-                                     parsed_args.fake_keystone_port)
+            passwords = self._heat_deploy(parsed_args.stack, undercloud_yaml,
+                                          parameters, environments,
+                                          parsed_args.timeout,
+                                          parsed_args.heat_api_port,
+                                          parsed_args.fake_keystone_port)
+            if passwords:
+                # Get legacy passwords/secrets generated via heat
+                # These need to be written to the passwords file
+                # to avoid re-creating them every update
+                self._update_passwords_env(passwords)
+            return True
 
     def get_parser(self, prog_name):
         parser = argparse.ArgumentParser(

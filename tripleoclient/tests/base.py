@@ -44,7 +44,7 @@ class TestCase(testtools.TestCase):
             self.useFixture(fixtures.Timeout(test_timeout, gentle=True))
 
         self.useFixture(fixtures.NestedTempfile())
-        self.useFixture(fixtures.TempHomeDir())
+        self.temp_homedir = self.useFixture(fixtures.TempHomeDir()).path
 
         if os.environ.get('OS_STDOUT_CAPTURE') in _TRUE_VALUES:
             stdout = self.useFixture(fixtures.StringStream('stdout')).stream

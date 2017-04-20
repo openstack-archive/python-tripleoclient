@@ -12,7 +12,11 @@
 #   License for the specific language governing permissions and limitations
 #   under the License.
 #
-import BaseHTTPServer
+
+try:
+    import http.server as BaseHTTPServer  # Python3
+except ImportError:
+    import BaseHTTPServer  # Python2
 import datetime
 import json
 import logging
