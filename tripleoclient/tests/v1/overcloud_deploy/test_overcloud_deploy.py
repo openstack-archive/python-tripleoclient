@@ -1321,3 +1321,28 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         self.cmd.take_action(parsed_args)
         self.assertTrue(self.cmd._predeploy_verify_capabilities.called)
+
+    @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
+    @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
+    @mock.patch('tripleoclient.workflows.deployment.overcloudrc',
+                autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_deploy_tripleo_heat_templates_tmpdir', autospec=True)
+    def test_validations_failure_raises_exception(
+            self, mock_deploy_tmpdir,
+            mock_overcloudrc, mock_write_overcloudrc,
+            mock_overcloud_endpoint):
+        clients = self.app.client_manager
+        orchestration_client = clients.orchestration
+        orchestration_client.stacks.get.return_value = mock.Mock()
+        self.cmd._predeploy_verify_capabilities = mock.Mock(
+            return_value=(1, 0))
+
+        arglist = ['--templates']
+        verifylist = [
+            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
+        ]
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.assertRaises(exceptions.InvalidConfiguration,
+                          self.cmd.take_action, parsed_args)

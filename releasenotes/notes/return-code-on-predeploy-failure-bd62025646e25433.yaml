@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    `overcloud deploy` correctly returns an error code when failing
+    during the pre-deployment verifications (before the stack is
+    launched) (`bug 1672790
+    <https://bugs.launchpad.net/tripleo/+bug/1672790>`__).
