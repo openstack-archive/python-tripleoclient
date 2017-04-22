@@ -12,10 +12,13 @@
 
 import json
 import logging
+import os.path
 import uuid
 
 from osc_lib.command import command
 from osc_lib.i18n import _
+from six.moves.urllib import request
+
 
 from tripleoclient import utils
 from tripleoclient.workflows import deployment
@@ -146,3 +149,51 @@ class DeployPlan(command.Command):
                                    self.app_args.verbose_level,
                                    timeout=parsed_args.timeout,
                                    run_validations=parsed_args.run_validations)
+
+
+class ExportPlan(command.Command):
+    """Export a deployment plan"""
+
+    log = logging.getLogger(__name__ + ".ExportPlan")
+
+    def get_parser(self, prog_name):
+        parser = super(ExportPlan, self).get_parser(prog_name)
+        parser.add_argument('plans', metavar='<name>', nargs='+',
+                            help=_('Name of the plan(s) to export.'))
+        parser.add_argument('--output-files', '-o', metavar='<output file>',
+                            nargs='+', default=[],
+                            help=_('Name of the output file(s) for exports. '
+                                   'Each will default to "<name>.tar.gz".')
+                            )
+        parser.add_argument('--force-overwrite', '-f', action='store_true',
+                            default=False,
+                            help=_('Overwrite output files if they exist.'))
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)" % parsed_args)
+        clients = self.app.client_manager
+        plans = parsed_args.plans
+        outfiles = parsed_args.output_files
+        overwrite = parsed_args.force_overwrite
+
+        for i, plan in enumerate(plans):
+            print("Exporting plan %s..." % plan)
+
+            try:
+                tarball_name = outfiles[i]
+            except IndexError:
+                tarball_name = '%s.tar.gz' % plan
+
+            if os.path.exists(tarball_name) and not overwrite:
+                print("File '%s' already exists, not exporting."
+                      % tarball_name)
+                continue
+
+            tempurl = plan_management.export_deployment_plan(
+                clients, plan=plan, queue_name=str(uuid.uuid4()))
+            f = request.urlopen(tempurl)
+            tarball_contents = f.read()
+
+            with open(tarball_name, 'w') as f:
+                f.write(tarball_contents)
