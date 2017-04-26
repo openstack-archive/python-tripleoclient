@@ -58,3 +58,48 @@ class TestContainerImageUpload(TestPluginV1):
         mock_manager.assert_called_once_with(
             ['/tmp/foo.yaml', '/tmp/bar.yaml'])
         mock_manager.return_value.upload.assert_called_once_with()
+
+
+class TestContainerImageBuild(TestPluginV1):
+
+    def setUp(self):
+        super(TestContainerImageBuild, self).setUp()
+
+        # Get the command object to test
+        self.cmd = container_image.BuildImage(self.app, None)
+
+    @mock.patch('tripleo_common.image.kolla_builder.KollaImageBuilder',
+                autospec=True)
+    def test_container_image_build_noargs(self, mock_builder):
+        arglist = []
+        verifylist = []
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
+
+        mock_builder.assert_called_once_with([])
+        mock_builder.return_value.build_images.assert_called_once_with([])
+
+    @mock.patch('tripleo_common.image.kolla_builder.KollaImageBuilder',
+                autospec=True)
+    def test_container_image_build(self, mock_builder):
+        arglist = [
+            '--config-file',
+            '/tmp/foo.yaml',
+            '--config-file',
+            '/tmp/bar.yaml',
+            '--kolla-config-file',
+            '/tmp/kolla.conf'
+        ]
+        verifylist = []
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
+
+        mock_builder.assert_called_once_with([
+            '/tmp/foo.yaml', '/tmp/bar.yaml'])
+        mock_builder.return_value.build_images.assert_called_once_with([
+            '/tmp/kolla.conf'
+        ])

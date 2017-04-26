@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    New command ``overcloud container image upload``. This is the container
+    image equivalent to the ``overcloud image upload`` command. 
+  - |
+    New command ``overcloud container image build``. This command receives the
+    same ``--config-file`` argument as ``overcloud container image upload`` and
+    invokes kolla-build to build the images specified in that file.
