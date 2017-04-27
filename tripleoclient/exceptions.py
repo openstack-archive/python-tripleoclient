@@ -78,3 +78,12 @@ class PlanCreationError(Exception):
 
 class PlanExportError(Exception):
     """Plan export failed"""
+
+
+class WorkflowActionError(Exception):
+    """Workflow action failed"""
+    msg_format = "Action {} execution failed: {}"
+
+    def __init__(self, message, action='', output=''):
+        message = message.format(action, output)
+        super(WorkflowActionError, self).__init__(message)

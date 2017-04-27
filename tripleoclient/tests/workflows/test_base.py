@@ -58,3 +58,25 @@ class TestBaseWorkflows(utils.TestCommand):
 
         self.assertTrue(mistral.executions.get.called)
         websocket.wait_for_messages.assert_called_with(timeout=None)
+
+    def test_call_action_success(self):
+        mistral = mock.Mock()
+        action = 'test-action'
+
+        result = mock.Mock()
+        result.output = '{"result":"test-result"}'
+        mistral.action_executions.create = mock.Mock(return_value=result)
+
+        self.assertEqual(base.call_action(mistral, action), "test-result")
+
+    def test_call_action_fail(self):
+        mistral = mock.Mock()
+        action = 'test-action'
+
+        result = mock.Mock()
+        result.output = '{"result":"test-result"}'
+        result.state = 'ERROR'
+        mistral.action_executions.create = mock.Mock(return_value=result)
+
+        self.assertRaises(exceptions.WorkflowActionError,
+                          base.call_action, mistral, action)

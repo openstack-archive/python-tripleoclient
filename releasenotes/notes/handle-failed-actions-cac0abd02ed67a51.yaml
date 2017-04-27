@@ -1,0 +1,5 @@
+---
+fixes:
+  - The result of Mistral actions will now be checked, and if they've failed,
+    an exception will be raised. See
+    https://bugs.launchpad.net/tripleo/+bug/1686811

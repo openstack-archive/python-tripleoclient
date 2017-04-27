@@ -25,7 +25,11 @@ def call_action(workflow_client, action, **input_):
         save_result=True, run_sync=True)
 
     # Parse the JSON output. Mistral client should do this for us really.
-    return json.loads(result.output)['result']
+    output = json.loads(result.output)['result']
+
+    if result.state == 'ERROR':
+        raise exceptions.WorkflowActionError(action, output)
+    return output
 
 
 def start_workflow(workflow_client, identifier, workflow_input):
