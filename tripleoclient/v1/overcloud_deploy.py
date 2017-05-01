@@ -54,13 +54,16 @@ class DeployOvercloud(command.Command):
         self._password_cache = None
         super(DeployOvercloud, self).__init__(*args, **kwargs)
         self.clients = self.app.client_manager
-        self.object_client = self.clients.tripleoclient.object_store
         self.workflow_client = self.clients.workflow_engine
         self.network_client = self.clients.network
         self.orchestration_client = self.clients.orchestration
         self.compute_client = self.clients.compute
         self.baremetal_client = self.clients.baremetal
         self.image_client = self.clients.image
+
+    @property
+    def object_client(self):
+        return self.clients.tripleoclient.object_store
 
     def _update_parameters(self, args, stack):
         parameters = {}
