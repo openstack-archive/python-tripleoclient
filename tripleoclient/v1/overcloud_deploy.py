@@ -49,21 +49,17 @@ class DeployOvercloud(command.Command):
     log = logging.getLogger(__name__ + ".DeployOvercloud")
     predeploy_errors = 0
     predeploy_warnings = 0
+    _password_cache = None
 
-    def __init__(self, *args, **kwargs):
-        self._password_cache = None
-        super(DeployOvercloud, self).__init__(*args, **kwargs)
+    def _setup_clients(self):
         self.clients = self.app.client_manager
+        self.object_client = self.clients.tripleoclient.object_store
         self.workflow_client = self.clients.workflow_engine
         self.network_client = self.clients.network
         self.orchestration_client = self.clients.orchestration
         self.compute_client = self.clients.compute
         self.baremetal_client = self.clients.baremetal
         self.image_client = self.clients.image
-
-    @property
-    def object_client(self):
-        return self.clients.tripleoclient.object_store
 
     def _update_parameters(self, args, stack):
         parameters = {}
@@ -806,6 +802,7 @@ class DeployOvercloud(command.Command):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+        self._setup_clients()
 
         # Swiftclient logs things like 404s at error level, which is a problem
         # because we use EAFP to check for the existence of files.  Turn off
