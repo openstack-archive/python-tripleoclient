@@ -293,7 +293,7 @@ class TestImportBaremetal(fakes.TestBaremetal):
 
         self.csv_file.write("""\
 pxe_ssh,192.168.122.1,stack,"KEY1",00:0b:d0:69:7e:59
-pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
+pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58,6230""")
 
         self.nodes_list = [{
             "pm_user": "stack",
@@ -308,6 +308,7 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58""")
             "pm_addr": "192.168.122.2",
             "pm_password": "KEY2",
             "pm_type": "pxe_ssh",
+            "pm_port": "6230",
             "mac": [
                 "00:0b:d0:69:7e:58"
             ]

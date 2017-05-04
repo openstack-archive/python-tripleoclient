@@ -671,6 +671,12 @@ def _csv_to_nodes_dict(nodes_csv):
                 row[4]
             ]
         }
+
+        try:
+            node['pm_port'] = row[5]
+        except IndexError:
+            pass
+
         data.append(node)
 
     return data
