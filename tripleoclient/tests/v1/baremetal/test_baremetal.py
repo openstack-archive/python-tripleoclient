@@ -739,6 +739,27 @@ class TestStatusBaremetalIntrospectionBulk(fakes.TestBaremetal):
             ]
         ))
 
+    def test_missing_nodes(self):
+        client = self.app.client_manager.baremetal
+        client.node.list.return_value = [
+            mock.Mock(uuid="ABCDEFGH"),
+            mock.Mock(uuid="IJKLMNOP"),
+            mock.Mock(uuid="QRSTUVWX"),
+        ]
+        inspector_client = self.app.client_manager.baremetal_introspection
+        inspector_client.states['IJKLMNOP'] = {'finished': False,
+                                               'error': None}
+
+        parsed_args = self.check_parser(self.cmd, [], [])
+        result = self.cmd.take_action(parsed_args)
+
+        self.assertEqual(result, (
+            ('Node UUID', 'Finished', 'Error'),
+            [
+                ('IJKLMNOP', False, None),
+            ]
+        ))
+
 
 class TestConfigureReadyState(fakes.TestBaremetal):
 
