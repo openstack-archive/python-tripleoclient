@@ -79,7 +79,10 @@ class FakeInspectorClient(object):
         self.on_introspection.append(uuid)
 
     def get_status(self, uuid):
-        return self.states[uuid]
+        try:
+            return self.states[uuid]
+        except KeyError:
+            raise ironic_inspector_client.ClientError(mock.Mock())
 
     def get_data(self, uuid):
         try:

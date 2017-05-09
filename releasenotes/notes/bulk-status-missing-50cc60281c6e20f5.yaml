@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    The ``introspection bulk status`` command no longer aborts if some nodes
+    in the Ironic registry were never introspected. See bug `1689540
+    <https://bugs.launchpad.net/tripleo/+bug/1689540>`_.
