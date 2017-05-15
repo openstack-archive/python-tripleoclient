@@ -58,6 +58,7 @@ rpc_response_timeout = 600
 deferred_auth_method = password
 num_engine_workers=1
 convergence_engine = false
+max_json_body_size = 8388608
 
 default_deployment_signal_transport = HEAT_SIGNAL
 max_nested_stack_depth = 6
