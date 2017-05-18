@@ -133,11 +133,13 @@ class TestOvercloudCreatePlan(utils.TestCommand):
 
         # Verify
         self.workflow.executions.create.assert_called_once_with(
-            'tripleo.plan_management.v1.create_default_deployment_plan',
+            'tripleo.plan_management.v1.create_deployment_plan',
             workflow_input={
                 'container': 'overcast',
                 'queue_name': 'UUID4',
-                'generate_passwords': True
+                'generate_passwords': True,
+                'use_default_templates': True,
+                'source_url': None
             })
 
     def test_create_default_plan_failed(self):
@@ -161,11 +163,13 @@ class TestOvercloudCreatePlan(utils.TestCommand):
 
         # Verify
         self.workflow.executions.create.assert_called_once_with(
-            'tripleo.plan_management.v1.create_default_deployment_plan',
+            'tripleo.plan_management.v1.create_deployment_plan',
             workflow_input={
                 'container': 'overcast',
                 'queue_name': 'UUID4',
-                'generate_passwords': True
+                'generate_passwords': True,
+                'use_default_templates': True,
+                'source_url': None
             })
 
     @mock.patch("tripleoclient.workflows.plan_management.tarball")
@@ -290,11 +294,13 @@ class TestOvercloudCreatePlan(utils.TestCommand):
 
         # Verify
         self.workflow.executions.create.assert_called_once_with(
-            'tripleo.plan_management.v1.create_default_deployment_plan',
+            'tripleo.plan_management.v1.create_deployment_plan',
             workflow_input={
                 'container': 'overcast',
                 'queue_name': 'UUID4',
-                'generate_passwords': False
+                'use_default_templates': True,
+                'generate_passwords': False,
+                'source_url': None
             })
 
 

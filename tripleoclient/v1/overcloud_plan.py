@@ -82,22 +82,29 @@ class CreatePlan(command.Command):
 
     def get_parser(self, prog_name):
         parser = super(CreatePlan, self).get_parser(prog_name)
+        source_group = parser.add_mutually_exclusive_group()
         parser.add_argument(
             'name',
             help=_('The name of the plan, which is used for the object '
                    'storage container, workflow environment and orchestration '
                    'stack names.'))
-        parser.add_argument(
+        source_group.add_argument(
             '--templates',
             help=_('The directory containing the Heat templates to deploy. '
-                   'If this isn\'t provided, the templates packaged on the '
-                   'Undercloud will be used.'),
+                   'If this or --source_url isn\'t provided, the templates '
+                   'packaged on the Undercloud will be used.'),
         )
         parser.add_argument(
             '--disable-password-generation',
             action='store_true',
             default=False,
             help=_('Disable password generation.')
+        )
+        source_group.add_argument(
+            '--source-url',
+            help=_('The url of a git repository containing the Heat templates '
+                   'to deploy. If this or --templates isn\'t provided, the '
+                   'templates packaged on the Undercloud will be used.')
         )
 
         return parser
@@ -107,16 +114,23 @@ class CreatePlan(command.Command):
         clients = self.app.client_manager
 
         name = parsed_args.name
+        use_default_templates = False
         generate_passwords = not parsed_args.disable_password_generation
+        source_url = parsed_args.source_url
+        # if the templates and source_url params are not used, then
+        # use the default templates
+        if not parsed_args.templates and not parsed_args.source_url:
+            use_default_templates = True
 
         if parsed_args.templates:
             plan_management.create_plan_from_templates(
                 clients, name, parsed_args.templates,
                 generate_passwords=generate_passwords)
         else:
-            plan_management.create_default_plan(
+            plan_management.create_deployment_plan(
                 clients, container=name, queue_name=str(uuid.uuid4()),
-                generate_passwords=generate_passwords)
+                generate_passwords=generate_passwords, source_url=source_url,
+                use_default_templates=use_default_templates)
 
 
 class DeployPlan(command.Command):
