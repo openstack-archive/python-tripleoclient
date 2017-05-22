@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Added new commands for listing available example roles and generating
+    role_data.yaml files for an environment. ``openstack overcloud roles list``
+    provides a list of available roles shipped with tripleo-heat-templates.
+    ``openstack overcloud role info`` lists out the details of the specific role.
+    ``openstack overcloud roles generate`` can be used with the available role
+    names to create a roles_data.yaml used by the deploy command.
