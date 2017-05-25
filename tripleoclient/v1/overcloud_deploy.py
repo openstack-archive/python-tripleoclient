@@ -51,13 +51,14 @@ class DeployOvercloud(command.Command):
     predeploy_warnings = 0
     _password_cache = None
 
-    def _setup_clients(self):
+    def _setup_clients(self, parsed_args):
         self.clients = self.app.client_manager
         self.object_client = self.clients.tripleoclient.object_store
         self.workflow_client = self.clients.workflow_engine
         self.orchestration_client = self.clients.orchestration
-        self.compute_client = self.clients.compute
-        self.baremetal_client = self.clients.baremetal
+        if not parsed_args.deployed_server:
+            self.compute_client = self.clients.compute
+            self.baremetal_client = self.clients.baremetal
 
     def _update_parameters(self, args, stack):
         parameters = {}
@@ -567,6 +568,12 @@ class DeployOvercloud(command.Command):
                     "Error: The following files were not found: {0}".format(
                         ", ".join(nonexisting_envs)))
 
+        if parsed_args.deployed_server and (parsed_args.run_validations
+           or not parsed_args.disable_validations):
+                raise oscexc.CommandError(
+                    "Error: The --deployed-server cannot be used without "
+                    "the --disable-validations")
+
         # Check if disable_upgrade_deployment is set once
         self.log.debug("Checking that the disable_upgrade_deployment flag "
                        "is set at least once in the roles file")
@@ -810,12 +817,21 @@ class DeployOvercloud(command.Command):
             default=False,
             help=_('Disable password generation.')
         )
+        parser.add_argument(
+            '--deployed-server',
+            action='store_true',
+            default=False,
+            help=_('Use pre-provisioned overcloud nodes. Removes baremetal,'
+                   'compute and image services requirements from the'
+                   'undercloud node. Must only be used with the'
+                   '--disable-validations.')
+        )
 
         return parser
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
-        self._setup_clients()
+        self._setup_clients(parsed_args)
 
         # Swiftclient logs things like 404s at error level, which is a problem
         # because we use EAFP to check for the existence of files.  Turn off

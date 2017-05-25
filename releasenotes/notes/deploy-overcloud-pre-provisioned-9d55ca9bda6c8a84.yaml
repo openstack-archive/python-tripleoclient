@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Add the `--deployed-server` flag that can only be used with the
+    `--disable-validations`. When specified, allows to deploy an
+    overcloud on the pre-provisioned nodes and ignores missing nova
+    and ironic UC services.

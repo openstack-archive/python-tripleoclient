@@ -1431,3 +1431,55 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         self.assertRaises(exceptions.InvalidConfiguration,
                           self.cmd.take_action, parsed_args)
+
+    @mock.patch('tripleoclient.utils.wait_for_provision_state')
+    @mock.patch('tripleoclient.workflows.baremetal', autospec=True)
+    @mock.patch('tripleoclient.v1.baremetal', autospec=True)
+    @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
+    @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
+    @mock.patch('tripleoclient.workflows.deployment.overcloudrc',
+                autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_deploy_tripleo_heat_templates_tmpdir', autospec=True)
+    def test_deployed_server(self, mock_deploy_tmpdir, mock_overcloudrc,
+                             mock_write_overcloudrc,
+                             mock_get_overcloud_endpoint,
+                             mock_baremetal, mock_workflows_bm,
+                             mock_provision):
+        arglist = ['--templates', '--deployed-server', '--disable-validations']
+        verifylist = [
+            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
+            ('deployed_server', True),
+            ('disable_validations', True),
+        ]
+
+        clients = self.app.client_manager
+        clients.baremetal = mock.Mock()
+        clients.compute = mock.Mock()
+        orchestration_client = clients.orchestration
+        orchestration_client.stacks.get.return_value = mock.Mock()
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        self.cmd.take_action(parsed_args)
+        self.assertTrue(mock_deploy_tmpdir.called)
+        # FIXME(bogdando) this checks nothing and passes w/o --deployed-server
+        # Verify these mocks and clients aren't invoked with --deployed-server
+        self.assertNotCalled(self.cmd._predeploy_verify_capabilities)
+        self.assertNotCalled(mock_provision)
+        self.assertNotCalled(clients.baremetal)
+        self.assertNotCalled(clients.compute)
+
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_deploy_tripleo_heat_templates', autospec=True)
+    def test_fail_overcloud_deploy_with_deployed_server_and_validations(
+            self, mock_deploy_tmpdir):
+        arglist = ['--templates', '--deployed-server']
+        verifylist = [
+            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
+            ('deployed_server', True),
+        ]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        self.assertRaises(oscexc.CommandError,
+                          self.cmd.take_action,
+                          parsed_args)
+        self.assertFalse(mock_deploy_tmpdir.called)
