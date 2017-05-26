@@ -291,6 +291,142 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_tarball.tarball_extract_to_swift_container.assert_called_with(
             clients.tripleoclient.object_store, mock.ANY, 'overcloud')
 
+    @mock.patch('shutil.rmtree', autospec=True)
+    @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_deploy_postconfig', autospec=True)
+    @mock.patch('tripleoclient.workflows.plan_management.tarball',
+                autospec=True)
+    @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env',
+                autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_validate_args')
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_create_parameters_env', autospec=True)
+    @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
+                autospec=True)
+    @mock.patch('tripleoclient.workflows.deployment.overcloudrc',
+                autospec=True)
+    @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
+    @mock.patch('tripleoclient.utils.remove_known_hosts', autospec=True)
+    @mock.patch('tripleoclient.utils.wait_for_stack_ready',
+                autospec=True)
+    @mock.patch('heatclient.common.template_utils.get_template_contents',
+                autospec=True)
+    @mock.patch('tripleoclient.utils.check_hypervisor_stats',
+                autospec=True)
+    @mock.patch('uuid.uuid1', autospec=True)
+    @mock.patch('time.time', autospec=True)
+    @mock.patch('shutil.copytree', autospec=True)
+    @mock.patch('tempfile.mkdtemp', autospec=True)
+    def test_tht_deploy_with_plan_environment_file(
+        self, mock_tmpdir, mock_copy, mock_time, mock_uuid1,
+        mock_check_hypervisor_stats, mock_get_template_contents,
+        wait_for_stack_ready_mock, mock_remove_known_hosts,
+        mock_overcloudrc, mock_write_overcloudrc,
+        mock_create_tempest_deployer, mock_create_parameters_env,
+        mock_validate_args, mock_breakpoints_cleanup,
+        mock_tarball, mock_postconfig,
+            mock_get_overcloud_endpoint, mock_shutil_rmtree):
+        arglist = ['--templates', '-p', 'the-plan-environment.yaml']
+        verifylist = [
+            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
+            ('plan_environment_file', 'the-plan-environment.yaml')
+        ]
+
+        mock_tmpdir.return_value = "/tmp/tht"
+        mock_uuid1.return_value = "uuid"
+        mock_time.return_value = 123456789
+
+        clients = self.app.client_manager
+        orchestration_client = clients.orchestration
+        mock_stack = fakes.create_tht_stack()
+        orchestration_client.stacks.get.side_effect = [None, mock.Mock()]
+        workflow_client = clients.workflow_engine
+        workflow_client.environments.get.return_value = mock.MagicMock(
+            variables={'environments': []})
+        workflow_client.action_executions.create.return_value = mock.MagicMock(
+            output='{"result":[]}')
+
+        def _orch_clt_create(**kwargs):
+            orchestration_client.stacks.get.return_value = mock_stack
+
+        orchestration_client.stacks.create.side_effect = _orch_clt_create
+
+        object_client = clients.tripleoclient.object_store
+        object_client.get_object = mock.Mock()
+        mock_env = yaml.safe_dump({'environments': []})
+        object_client.get_object.return_value = ({}, mock_env)
+
+        mock_check_hypervisor_stats.return_value = {
+            'count': 4,
+            'memory_mb': 4096,
+            'vcpus': 8,
+        }
+        clients.network.api.find_attr.return_value = {
+            "id": "network id"
+        }
+        mock_get_template_contents.return_value = [{}, "template"]
+        wait_for_stack_ready_mock.return_value = True
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        baremetal = clients.baremetal
+        baremetal.node.list.return_value = range(10)
+
+        expected_parameters = {
+            'CephClusterFSID': 'uuid',
+            'CephStorageCount': 3,
+            'ExtraConfig': '{}',
+            'HypervisorNeutronPhysicalBridge': 'br-ex',
+            'HypervisorNeutronPublicInterface': 'nic1',
+            'NeutronDnsmasqOptions': 'dhcp-option-force=26,1400',
+            'NeutronFlatNetworks': 'datacentre',
+            'NeutronNetworkType': 'gre',
+            'NeutronPublicInterface': 'nic1',
+            'NeutronTunnelTypes': 'gre',
+            'NtpServer': '',
+            'SnmpdReadonlyUserPassword': 'PASSWORD',
+            'DeployIdentifier': 123456789,
+            'UpdateIdentifier': '',
+            'StackAction': 'CREATE',
+        }
+
+        testcase = self
+
+        def _custom_create_params_env(self, parameters):
+            for key, value in six.iteritems(parameters):
+                testcase.assertEqual(value, expected_parameters[key])
+            parameter_defaults = {"parameter_defaults": parameters}
+            return parameter_defaults
+
+        mock_create_parameters_env.side_effect = _custom_create_params_env
+
+        mock_open_context = mock.mock_open()
+        with mock.patch('six.moves.builtins.open', mock_open_context):
+            self.cmd.take_action(parsed_args)
+
+        self.assertFalse(orchestration_client.stacks.create.called)
+
+        mock_get_template_contents.assert_called_with(
+            object_request=mock.ANY,
+            template_object=constants.OVERCLOUD_YAML_NAME)
+
+        mock_create_tempest_deployer.assert_called_with()
+        mock_validate_args.assert_called_once_with(parsed_args)
+
+        mock_tarball.create_tarball.assert_called_with(
+            '/tmp/tht/tripleo-heat-templates', mock.ANY)
+        mock_tarball.tarball_extract_to_swift_container.assert_called_with(
+            clients.tripleoclient.object_store, mock.ANY, 'overcloud')
+
+        workflow_client.action_executions.create.assert_called()
+        workflow_client.executions.create.assert_called()
+
+        mock_open_context.assert_has_calls(
+            [mock.call('the-plan-environment.yaml')])
+        clients.tripleoclient.object_store.put_object.assert_called()
+
     @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig', autospec=True)

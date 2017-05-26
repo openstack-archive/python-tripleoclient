@@ -273,6 +273,50 @@ class TestOvercloudCreatePlan(utils.TestCommand):
             mock.call('overcast', u'all-nodes-validation.yaml'),
         ], any_order=True)
 
+    @mock.patch("tripleoclient.workflows.plan_management.tarball")
+    def test_create_custom_plan_plan_environment_file(self,
+                                                      mock_tarball):
+        # Setup
+        arglist = ['overcast', '--templates', '/fake/path',
+                   '-p', 'the_plan_environment.yaml']
+        verifylist = [
+            ('name', 'overcast'),
+            ('templates', '/fake/path'),
+            ('plan_environment_file', 'the_plan_environment.yaml')
+        ]
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.websocket.wait_for_messages.return_value = iter([{
+            "execution": {"id": "IDID"},
+            "status": "SUCCESS"
+        }])
+        mock_result = mock.Mock(output='{"result": null}')
+        self.workflow.action_executions.create.return_value = mock_result
+
+        mock_open_context = mock.mock_open()
+        with mock.patch('six.moves.builtins.open', mock_open_context):
+            self.cmd.take_action(parsed_args)
+
+        # Verify
+        self.workflow.action_executions.create.assert_called_once_with(
+            'tripleo.plan.create_container', {"container": "overcast"},
+            run_sync=True, save_result=True
+        )
+
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.plan_management.v1.create_deployment_plan',
+            workflow_input={
+                'container': 'overcast',
+                'queue_name': 'UUID4',
+                'generate_passwords': True
+            })
+
+        mock_open_context.assert_has_calls(
+            [mock.call('the_plan_environment.yaml')])
+
+        self.tripleoclient.object_store.put_object.assert_called_once_with(
+            'overcast', 'plan-environment.yaml', mock_open_context())
+
     def test_create_default_plan_with_password_gen_disabled(self):
 
         # Setup

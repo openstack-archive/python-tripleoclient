@@ -1,0 +1,4 @@
+---
+features:
+  - Adds optional override of the plan environment file with custom
+    plan environment file.

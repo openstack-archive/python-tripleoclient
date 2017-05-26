@@ -30,7 +30,8 @@ LOG = logging.getLogger(__name__)
 _WORKFLOW_TIMEOUT = 360  # 6 * 60 seconds
 
 
-def _upload_templates(swift_client, container_name, tht_root, roles_file=None):
+def _upload_templates(swift_client, container_name, tht_root, roles_file=None,
+                      plan_env_file=None):
     """tarball up a given directory and upload it to Swift to be extracted"""
 
     with tempfile.NamedTemporaryFile() as tmp_tarball:
@@ -44,6 +45,15 @@ def _upload_templates(swift_client, container_name, tht_root, roles_file=None):
             swift_client.put_object(container_name,
                                     constants.OVERCLOUD_ROLES_FILE,
                                     rf)
+    # Optional override of the plan-environment.yaml file
+    if plan_env_file:
+        # TODO(jpalanis): Instead of overriding default file,
+        # merging the user override plan-environment with default
+        # plan-environment file will avoid explict merging issues.
+        with open(plan_env_file) as pf:
+            swift_client.put_object(container_name,
+                                    constants.PLAN_ENVIRONMENT,
+                                    pf)
 
 
 def create_default_plan(clients, **workflow_input):
@@ -139,7 +149,7 @@ def create_container(workflow_client, **input_):
 
 
 def create_plan_from_templates(clients, name, tht_root, roles_file=None,
-                               generate_passwords=True):
+                               generate_passwords=True, plan_env_file=None):
     workflow_client = clients.workflow_engine
     swift_client = clients.tripleoclient.object_store
 
@@ -152,7 +162,7 @@ def create_plan_from_templates(clients, name, tht_root, roles_file=None,
             "Unable to create plan. {}".format(result))
 
     print("Creating plan from template files in: {}".format(tht_root))
-    _upload_templates(swift_client, name, tht_root, roles_file)
+    _upload_templates(swift_client, name, tht_root, roles_file, plan_env_file)
 
     try:
         create_deployment_plan(clients, container=name,
@@ -164,7 +174,7 @@ def create_plan_from_templates(clients, name, tht_root, roles_file=None,
 
 
 def update_plan_from_templates(clients, name, tht_root, roles_file=None,
-                               generate_passwords=True):
+                               generate_passwords=True, plan_env_file=None):
     swift_client = clients.tripleoclient.object_store
 
     # If the plan environment was migrated to Swift, save the generated
@@ -195,7 +205,7 @@ def update_plan_from_templates(clients, name, tht_root, roles_file=None,
     # need to special-case plan-environment.yaml to avoid this.
 
     print("Uploading new plan files")
-    _upload_templates(swift_client, name, tht_root, roles_file)
+    _upload_templates(swift_client, name, tht_root, roles_file, plan_env_file)
     _update_passwords(swift_client, name, passwords)
     update_deployment_plan(clients, container=name,
                            queue_name=str(uuid.uuid4()),
