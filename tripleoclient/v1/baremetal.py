@@ -21,6 +21,7 @@ import logging
 import time
 import uuid
 
+import ironic_inspector_client
 from osc_lib.command import command
 from osc_lib.i18n import _
 
@@ -251,8 +252,16 @@ class StatusBaremetalIntrospectionBulk(command.Lister):
             self.log.debug("Getting introspection status of Ironic node {0}"
                            .format(node.uuid))
 
-            statuses.append((node.uuid,
-                             inspector_client.get_status(node.uuid)))
+            try:
+                status = inspector_client.get_status(node.uuid)
+            except ironic_inspector_client.ClientError as exc:
+                # This API returns an error when the node was never
+                # introspected before. Exclude it from output in this case.
+                self.log.debug('Introspection status for node %(node)s '
+                               'returned error %(exc)s',
+                               {'node': node.uuid, 'exc': exc})
+            else:
+                statuses.append((node.uuid, status))
 
         return (
             ("Node UUID", "Finished", "Error"),
