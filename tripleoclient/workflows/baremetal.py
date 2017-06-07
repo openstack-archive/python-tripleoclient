@@ -296,3 +296,34 @@ def create_raid_configuration(clients, **workflow_input):
     else:
         raise RuntimeError(
             'Failed to create RAID: {}'.format(payload['message']))
+
+
+def discover_and_enroll(clients, **workflow_input):
+    """Discover nodes.
+
+    Run the tripleo.baremetal.v1.discover_and_enroll_nodes Mistral workflow.
+    """
+
+    workflow_client = clients.workflow_engine
+    tripleoclients = clients.tripleoclient
+    queue_name = workflow_input['queue_name']
+
+    with tripleoclients.messaging_websocket(queue_name) as ws:
+        execution = base.start_workflow(
+            workflow_client,
+            'tripleo.baremetal.v1.discover_and_enroll_nodes',
+            workflow_input=workflow_input
+        )
+
+        for payload in base.wait_for_messages(workflow_client, ws, execution):
+            if payload.get('message'):
+                print(payload['message'])
+
+    if payload['status'] == 'SUCCESS':
+        registered_nodes = payload['registered_nodes']
+        for nd in registered_nodes:
+            print('Successfully registered node UUID %s' % nd['uuid'])
+        return registered_nodes
+    else:
+        raise exceptions.RegisterOrUpdateError(
+            'Exception discovering nodes: {}'.format(payload['message']))
