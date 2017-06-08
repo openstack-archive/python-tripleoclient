@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    EXPERIMENTAL feature to install the undercloud with openstack heat
+    add support for a containerized undercloud. It checks for prequisites
+    and installs missing packages then deploys undercloud with heat-all.
+
+  - |
+    New flag `--install-kolla`, defaults to False. Adds or removes Kolla
+    packages to/from the list of required packages to be installed by the
+    ``openstack undercloud deploy`` command. Set it to True, if you want
+    to build Kolla containers on the undercloud node as the part of your
+    continuous deployment pipeline.

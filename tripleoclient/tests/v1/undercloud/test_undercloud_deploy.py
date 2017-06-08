@@ -15,6 +15,7 @@
 
 import mock
 import os
+import subprocess
 
 from tripleoclient.tests.v1.test_plugin import TestPluginV1
 
@@ -35,6 +36,8 @@ class TestUndercloudDeploy(TestPluginV1):
 
         # Get the command object to test
         self.cmd = undercloud_deploy.DeployUndercloud(self.app, None)
+        # Substitute required packages
+        self.cmd.prerequisites = iter(['foo', 'bar', 'baz'])
 
     @mock.patch('os.path.exists')
     @mock.patch('tripleo_common.utils.passwords.generate_passwords')
@@ -83,3 +86,42 @@ class TestUndercloudDeploy(TestPluginV1):
         mock_dump.assert_called_once_with(expected_dict,
                                           mock_open_handle,
                                           default_flow_style=False)
+
+    @mock.patch('subprocess.check_call', autospec=True)
+    def test_install_prerequisites(self, mock_check_call):
+        mock_check_call.side_effect = [
+            True, subprocess.CalledProcessError(1, ''), True,
+            subprocess.CalledProcessError(1, ''), True]
+        arglist = ['--install-kolla']
+        verifylist = [('install_kolla', True)]
+        cmd_parser = self.cmd.get_parser('check_parser')
+        parsed_args = cmd_parser.parse_args(arglist)
+        self.check_parser(self.cmd, arglist, verifylist)
+        self.cmd._install_prerequisites(parsed_args.install_kolla)
+
+        mock_check_call.assert_has_calls([
+            mock.call(['rpm', '-q', 'foo']),
+            mock.call(['rpm', '-q', 'bar']),
+            mock.call(['rpm', '-q', 'baz']),
+            mock.call(['rpm', '-q', 'openstack-kolla']),
+            mock.call(['yum', '-y', 'install', 'bar', 'openstack-kolla'])
+        ])
+
+    @mock.patch('subprocess.check_call', autospec=True)
+    def test_fail_prerequisites(self, mock_check_call):
+        mock_check_call.side_effect = [
+            True, subprocess.CalledProcessError(127, ''), True, True]
+        arglist = []
+        verifylist = []
+        cmd_parser = self.cmd.get_parser('check_parser')
+        parsed_args = cmd_parser.parse_args(arglist)
+        self.check_parser(self.cmd, arglist, verifylist)
+        try:
+            self.cmd._install_prerequisites(parsed_args.install_kolla)
+        except Exception as e:
+            self.assertTrue('Failed to check for prerequisites: '
+                            'bar, the exit status 127' in str(e))
+
+        mock_check_call.assert_has_calls([
+            mock.call(['rpm', '-q', 'foo']),
+            mock.call(['rpm', '-q', 'bar'])])

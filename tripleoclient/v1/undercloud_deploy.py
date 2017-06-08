@@ -15,6 +15,7 @@
 from __future__ import print_function
 
 import argparse
+import itertools
 import logging
 import netaddr
 import os
@@ -47,16 +48,63 @@ from tripleoclient import heat_launcher
 
 from tripleo_common.utils import passwords as password_utils
 
+# TODO(bogdando) rework the list by real requirements for the
+# heat-container-image vs heat-native cases
+REQUIRED_PACKAGES = iter([
+    'openstack-heat-api',
+    'openstack-heat-engine',
+    'openstack-heat-monolith',
+    'python-heat-agent',
+    'python-heat-agent-apply-config',
+    'python-heat-agent-hiera',
+    'python-heat-agent-puppet',
+    'python-heat-agent-docker-cmd',
+    'python-heat-agent-json-file',
+    'python-heat-agent-ansible',
+    'python-ipaddr',
+    'python-tripleoclient',
+    'docker',
+    'openvswitch',
+    'openstack-puppet-modules',
+    'yum-plugin-priorities',
+    'openstack-tripleo-common',
+    'openstack-tripleo-heat-templates',
+    'deltarpm'
+])
+
 
 class DeployUndercloud(command.Command):
     """Deploy Undercloud (experimental feature)"""
 
     log = logging.getLogger(__name__ + ".DeployUndercloud")
     auth_required = False
+    prerequisites = REQUIRED_PACKAGES
 
     def _get_hostname(self):
         p = subprocess.Popen(["hostname", "-s"], stdout=subprocess.PIPE)
         return p.communicate()[0].rstrip()
+
+    def _install_prerequisites(self, add_kolla):
+        print('Checking for installed prerequisites ...')
+        processed = []
+        if add_kolla:
+            self.prerequisites = itertools.chain(
+                self.prerequisites, ['openstack-kolla'])
+
+        for p in self.prerequisites:
+            try:
+                subprocess.check_call(['rpm', '-q', p])
+            except subprocess.CalledProcessError as e:
+                if e.returncode == 1:
+                    processed.append(p)
+                elif e.returncode != 0:
+                    raise Exception('Failed to check for prerequisites: '
+                                    '%s, the exit status %s'
+                                    % (p, e.returncode))
+
+        if len(processed) > 0:
+            print('Installing prerequisites ...')
+            subprocess.check_call(['yum', '-y', 'install'] + processed)
 
     def _lookup_tripleo_server_stackid(self, client, stack_id):
         server_stack_id = None
@@ -415,6 +463,14 @@ class DeployUndercloud(command.Command):
             dest='keep_running',
             help=_('Keep the process running on failures for debugging')
         )
+        parser.add_argument(
+            '--install-kolla',
+            action='store_true',
+            dest='install_kolla',
+            default=False,
+            help=_('Require Kolla packages to be installed for building'
+                   'containers from the undercloud node')
+        )
         return parser
 
     def take_action(self, parsed_args):
@@ -443,6 +499,9 @@ class DeployUndercloud(command.Command):
         # process runs as root.
         if os.geteuid() != 0:
             raise exceptions.DeploymentError("Please run as root.")
+
+        # Install required packages
+        self._install_prerequisites(parsed_args.install_kolla)
 
         keystone_pid = self._fork_fake_keystone()
 
