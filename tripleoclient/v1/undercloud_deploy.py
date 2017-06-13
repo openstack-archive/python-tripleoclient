@@ -15,7 +15,6 @@
 from __future__ import print_function
 
 import argparse
-import itertools
 import logging
 import netaddr
 import os
@@ -84,13 +83,9 @@ class DeployUndercloud(command.Command):
         p = subprocess.Popen(["hostname", "-s"], stdout=subprocess.PIPE)
         return p.communicate()[0].rstrip()
 
-    def _install_prerequisites(self, add_kolla):
+    def _install_prerequisites(self):
         print('Checking for installed prerequisites ...')
         processed = []
-        if add_kolla:
-            self.prerequisites = itertools.chain(
-                self.prerequisites, ['openstack-kolla'])
-
         for p in self.prerequisites:
             try:
                 subprocess.check_call(['rpm', '-q', p])
@@ -463,14 +458,6 @@ class DeployUndercloud(command.Command):
             dest='keep_running',
             help=_('Keep the process running on failures for debugging')
         )
-        parser.add_argument(
-            '--install-kolla',
-            action='store_true',
-            dest='install_kolla',
-            default=False,
-            help=_('Require Kolla packages to be installed for building'
-                   'containers from the undercloud node')
-        )
         return parser
 
     def take_action(self, parsed_args):
@@ -501,7 +488,7 @@ class DeployUndercloud(command.Command):
             raise exceptions.DeploymentError("Please run as root.")
 
         # Install required packages
-        self._install_prerequisites(parsed_args.install_kolla)
+        self._install_prerequisites()
 
         keystone_pid = self._fork_fake_keystone()
 

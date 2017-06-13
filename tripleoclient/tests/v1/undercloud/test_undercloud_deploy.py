@@ -90,21 +90,18 @@ class TestUndercloudDeploy(TestPluginV1):
     @mock.patch('subprocess.check_call', autospec=True)
     def test_install_prerequisites(self, mock_check_call):
         mock_check_call.side_effect = [
-            True, subprocess.CalledProcessError(1, ''), True,
+            True, True,
             subprocess.CalledProcessError(1, ''), True]
-        arglist = ['--install-kolla']
-        verifylist = [('install_kolla', True)]
-        cmd_parser = self.cmd.get_parser('check_parser')
-        parsed_args = cmd_parser.parse_args(arglist)
+        arglist = []
+        verifylist = []
         self.check_parser(self.cmd, arglist, verifylist)
-        self.cmd._install_prerequisites(parsed_args.install_kolla)
+        self.cmd._install_prerequisites()
 
         mock_check_call.assert_has_calls([
             mock.call(['rpm', '-q', 'foo']),
             mock.call(['rpm', '-q', 'bar']),
             mock.call(['rpm', '-q', 'baz']),
-            mock.call(['rpm', '-q', 'openstack-kolla']),
-            mock.call(['yum', '-y', 'install', 'bar', 'openstack-kolla'])
+            mock.call(['yum', '-y', 'install', 'baz'])
         ])
 
     @mock.patch('subprocess.check_call', autospec=True)
@@ -113,11 +110,9 @@ class TestUndercloudDeploy(TestPluginV1):
             True, subprocess.CalledProcessError(127, ''), True, True]
         arglist = []
         verifylist = []
-        cmd_parser = self.cmd.get_parser('check_parser')
-        parsed_args = cmd_parser.parse_args(arglist)
         self.check_parser(self.cmd, arglist, verifylist)
         try:
-            self.cmd._install_prerequisites(parsed_args.install_kolla)
+            self.cmd._install_prerequisites()
         except Exception as e:
             self.assertTrue('Failed to check for prerequisites: '
                             'bar, the exit status 127' in str(e))
