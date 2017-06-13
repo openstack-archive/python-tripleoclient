@@ -14,8 +14,6 @@ import tempfile
 import uuid
 import yaml
 
-from keystoneauth1 import exceptions as keystoneauth_exc
-from mistralclient.api import base as mistralclient_base
 from swiftclient import exceptions as swift_exc
 from tripleo_common.utils import swift as swiftutils
 from tripleo_common.utils import tarball
@@ -195,22 +193,6 @@ def update_plan_from_templates(clients, name, tht_root, roles_file=None,
     # the existing plan-environment.yaml with the skeleton one in THT
     # when updating the templates. Once LP#1623431 is resolved we may
     # need to special-case plan-environment.yaml to avoid this.
-
-    # TODO(jpichon): Remove all these references to Mistral once
-    # https://review.openstack.org/#/c/452291/ merges.
-    mistral = clients.workflow_engine
-    try:
-        mistral_env = mistral.environments.get(name)
-    except (mistralclient_base.APIException, keystoneauth_exc.http.NotFound):
-        # Plan was fully migrated, we can ignore.
-        pass
-    else:
-        mistral_env.variables['environments'] = []
-        mistral_env.variables['parameter_defaults'] = {}
-        mistral.environments.update(
-            name=name,
-            variables=mistral_env.variables
-        )
 
     print("Uploading new plan files")
     _upload_templates(swift_client, name, tht_root, roles_file)
