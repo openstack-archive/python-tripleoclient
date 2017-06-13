@@ -15,6 +15,7 @@
 from __future__ import print_function
 
 import argparse
+import itertools
 import logging
 import netaddr
 import os
@@ -47,12 +48,7 @@ from tripleoclient import heat_launcher
 
 from tripleo_common.utils import passwords as password_utils
 
-# TODO(bogdando) rework the list by real requirements for the
-# heat-container-image vs heat-native cases
 REQUIRED_PACKAGES = iter([
-    'openstack-heat-api',
-    'openstack-heat-engine',
-    'openstack-heat-monolith',
     'python-heat-agent',
     'python-heat-agent-apply-config',
     'python-heat-agent-hiera',
@@ -83,9 +79,16 @@ class DeployUndercloud(command.Command):
         p = subprocess.Popen(["hostname", "-s"], stdout=subprocess.PIPE)
         return p.communicate()[0].rstrip()
 
-    def _install_prerequisites(self):
+    def _install_prerequisites(self, install_heat_native):
         print('Checking for installed prerequisites ...')
         processed = []
+
+        if install_heat_native:
+            self.prerequisites = itertools.chain(
+                self.prerequisites,
+                ['openstack-heat-api', 'openstack-heat-engine',
+                 'openstack-heat-monolith'])
+
         for p in self.prerequisites:
             try:
                 subprocess.check_call(['rpm', '-q', p])
@@ -488,7 +491,7 @@ class DeployUndercloud(command.Command):
             raise exceptions.DeploymentError("Please run as root.")
 
         # Install required packages
-        self._install_prerequisites()
+        self._install_prerequisites(parsed_args.heat_native)
 
         keystone_pid = self._fork_fake_keystone()
 

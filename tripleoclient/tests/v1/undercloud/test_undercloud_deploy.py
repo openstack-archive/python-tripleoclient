@@ -95,7 +95,7 @@ class TestUndercloudDeploy(TestPluginV1):
         arglist = []
         verifylist = []
         self.check_parser(self.cmd, arglist, verifylist)
-        self.cmd._install_prerequisites()
+        self.cmd._install_prerequisites(False)
 
         mock_check_call.assert_has_calls([
             mock.call(['rpm', '-q', 'foo']),
@@ -112,7 +112,7 @@ class TestUndercloudDeploy(TestPluginV1):
         verifylist = []
         self.check_parser(self.cmd, arglist, verifylist)
         try:
-            self.cmd._install_prerequisites()
+            self.cmd._install_prerequisites(False)
         except Exception as e:
             self.assertTrue('Failed to check for prerequisites: '
                             'bar, the exit status 127' in str(e))
