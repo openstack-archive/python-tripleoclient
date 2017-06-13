@@ -36,3 +36,6 @@ OVERCLOUD_YAML_NAME = "overcloud.yaml"
 OVERCLOUD_ROLES_FILE = "roles_data.yaml"
 RHEL_REGISTRATION_EXTRACONFIG_NAME = (
     "extraconfig/pre_deploy/rhel-registration/")
+
+# The name of the file which holds the plan environment contents
+PLAN_ENVIRONMENT = 'plan-environment.yaml'

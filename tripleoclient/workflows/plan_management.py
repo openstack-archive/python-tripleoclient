@@ -9,9 +9,14 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import logging
 import tempfile
 import uuid
+import yaml
 
+from keystoneauth1 import exceptions as keystoneauth_exc
+from mistralclient.api import base as mistralclient_base
+from swiftclient import exceptions as swift_exc
 from tripleo_common.utils import swift as swiftutils
 from tripleo_common.utils import tarball
 
@@ -19,7 +24,7 @@ from tripleoclient import constants
 from tripleoclient import exceptions
 from tripleoclient.workflows import base
 
-
+LOG = logging.getLogger(__name__)
 # Plan management workflows should generally be quick. However, the creation
 # of the default plan in instack has demonstrated that sometimes it can take
 # several minutes. This timeout value of 6 minutes is the same as the timeout
@@ -164,30 +169,75 @@ def update_plan_from_templates(clients, name, tht_root, roles_file=None,
                                generate_passwords=True):
     swift_client = clients.tripleoclient.object_store
 
+    # If the plan environment was migrated to Swift, save the generated
+    # 'passwords' if they exist as they can't be recreated from the
+    # templates content.
+    passwords = []
+    try:
+        env = yaml.safe_load(swift_client.get_object(
+            name, constants.PLAN_ENVIRONMENT)[1])
+        passwords = env.get('passwords', [])
+    except swift_exc.ClientException:
+        pass
+
     # TODO(dmatthews): Removing the existing plan files should probably be
     #                  a Mistral action.
     print("Removing the current plan files")
     swiftutils.empty_container(swift_client, name)
 
-    # Until we have a well defined plan update workflow in tripleo-common we
-    # need to manually reset the environments here. This is to ensure that
-    # no environments are in the mistral environment but not in swift.
+    # Until we have a well defined plan update workflow in
+    # tripleo-common we need to manually reset the environments and
+    # parameter_defaults here. This is to ensure that no environments
+    # are in the plan environment but not actually in swift.
     # See bug: https://bugs.launchpad.net/tripleo/+bug/1623431
+    #
+    # Currently this is being done incidentally because we overwrite
+    # the existing plan-environment.yaml with the skeleton one in THT
+    # when updating the templates. Once LP#1623431 is resolved we may
+    # need to special-case plan-environment.yaml to avoid this.
+
+    # TODO(jpichon): Remove all these references to Mistral once
+    # https://review.openstack.org/#/c/452291/ merges.
     mistral = clients.workflow_engine
-    mistral_env = mistral.environments.get(name)
-    mistral_env.variables['environments'] = []
-    mistral_env.variables['parameter_defaults'] = {}
-    mistral.environments.update(
-        name=name,
-        variables=mistral_env.variables
-    )
+    try:
+        mistral_env = mistral.environments.get(name)
+    except (mistralclient_base.APIException, keystoneauth_exc.http.NotFound):
+        # Plan was fully migrated, we can ignore.
+        pass
+    else:
+        mistral_env.variables['environments'] = []
+        mistral_env.variables['parameter_defaults'] = {}
+        mistral.environments.update(
+            name=name,
+            variables=mistral_env.variables
+        )
 
     print("Uploading new plan files")
     _upload_templates(swift_client, name, tht_root, roles_file)
+    _update_passwords(swift_client, name, passwords)
     update_deployment_plan(clients, container=name,
                            queue_name=str(uuid.uuid4()),
                            generate_passwords=generate_passwords,
                            source_url=None)
+
+
+def _update_passwords(swift_client, name, passwords):
+    # Update the plan environment with the generated passwords. This
+    # will be solved more elegantly once passwords are saved in a
+    # separate environment (https://review.openstack.org/#/c/467909/)
+    if passwords:
+        try:
+            env = yaml.safe_load(swift_client.get_object(
+                name, constants.PLAN_ENVIRONMENT)[1])
+            env['passwords'] = passwords
+            swift_client.put_object(name,
+                                    constants.PLAN_ENVIRONMENT,
+                                    yaml.safe_dump(env,
+                                                   default_flow_style=False))
+        except swift_exc.ClientException:
+            # The plan likely has not been migrated to using Swift yet.
+            LOG.debug("Could not find plan environment %s in %s",
+                      constants.PLAN_ENVIRONMENT, name)
 
 
 def export_deployment_plan(clients, **workflow_input):

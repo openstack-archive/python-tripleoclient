@@ -28,6 +28,8 @@ import yaml
 
 from heatclient.common import template_utils
 from heatclient import exc as hc_exc
+from keystoneauth1 import exceptions as keystoneauth_exc
+from mistralclient.api import base as mistralclient_base
 from osc_lib.command import command
 from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
@@ -284,20 +286,51 @@ class DeployOvercloud(command.Command):
         contents = yaml.safe_dump(env)
 
         # Until we have a well defined plan update workflow in tripleo-common
-        # we need to manually add an environment in swift and mistral for users
+        # we need to manually add an environment in swift and for users
         # custom environments passed to the deploy command.
         # See bug: https://bugs.launchpad.net/tripleo/+bug/1623431
+        # Update plan env while taking care to migrate it from Mistral to
+        # Swift.
         swift_path = "user-environment.yaml"
         self.object_client.put_object(container_name, swift_path, contents)
 
-        mistral_env = self.workflow_client.environments.get(container_name)
+        env_missing = env_changed = False
+        try:
+            env = yaml.safe_load(self.object_client.get_object(
+                container_name, constants.PLAN_ENVIRONMENT)[1])
+        except ClientException:
+            env_missing = True
+            env = self.workflow_client.environments.get(
+                container_name).variables
+            # TODO(akrivoka): delete env from Mistral once tripleo-common
+            # change merges (https://review.openstack.org/#/c/452291/)
+        else:
+            # If the plan environment exists, the Mistral environment
+            # is superseded and should be cleaned up.
+            try:
+                self.workflow_client.environments.delete(container_name)
+            except (mistralclient_base.APIException,
+                    keystoneauth_exc.http.NotFound):
+                pass
+
         user_env = {'path': swift_path}
-        if user_env not in mistral_env.variables['environments']:
-            mistral_env.variables['environments'].append(user_env)
-            self.workflow_client.environments.update(
-                name=container_name,
-                variables=mistral_env.variables
-            )
+        if user_env not in env['environments']:
+            env_changed = True
+            env['environments'].append(user_env)
+
+        if env_missing or env_changed:
+            yaml_string = yaml.safe_dump(env, default_flow_style=False)
+            self.object_client.put_object(
+                container_name, constants.PLAN_ENVIRONMENT, yaml_string)
+
+            # TODO(akrivoka): don't update env in Mistral once the
+            # tripleo-common change merges
+            # (https://review.openstack.org/#/c/452291/)
+            if env_missing:
+                self.workflow_client.environments.update(
+                    name=container_name,
+                    variables=env
+                )
 
     def _upload_missing_files(self, container_name, files_dict, tht_root):
         """Find the files referenced in custom environments and upload them
