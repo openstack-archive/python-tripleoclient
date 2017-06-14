@@ -15,7 +15,7 @@
 
 import mock
 
-from tripleoclient.exceptions import NotFound
+from tripleo_common.exception import NotFound
 from tripleoclient.tests.v1.overcloud_deploy import fakes
 from tripleoclient.v1 import overcloud_roles
 
@@ -26,10 +26,10 @@ class TestOvercloudRolesListAvailable(fakes.TestDeployOvercloud):
         super(TestOvercloudRolesListAvailable, self).setUp()
         self.cmd = overcloud_roles.RoleList(self.app, None)
 
+    @mock.patch('tripleo_common.utils.roles.get_roles_list_from_directory')
     @mock.patch('os.path.realpath')
-    def test_action(self, realpath_mock):
+    def test_action(self, realpath_mock, get_roles_mock):
         realpath_mock.return_value = '/foo'
-        get_roles_mock = mock.MagicMock()
         get_roles_mock.return_value = ['a', 'b']
         self.cmd._get_roles = get_roles_mock
 
@@ -42,10 +42,10 @@ class TestOvercloudRolesListAvailable(fakes.TestDeployOvercloud):
         self.cmd.take_action(parsed_args)
         get_roles_mock.assert_called_once_with('/foo')
 
+    @mock.patch('tripleo_common.utils.roles.get_roles_list_from_directory')
     @mock.patch('os.path.realpath')
-    def test_action_role_path(self, realpath_mock):
+    def test_action_role_path(self, realpath_mock, get_roles_mock):
         realpath_mock.return_value = '/tmp'
-        get_roles_mock = mock.MagicMock()
         get_roles_mock.return_value = ['a', 'b']
         self.cmd._get_roles = get_roles_mock
 
@@ -65,15 +65,17 @@ class TestOvercloudRolesGenerateData(fakes.TestDeployOvercloud):
         super(TestOvercloudRolesGenerateData, self).setUp()
         self.cmd = overcloud_roles.RolesGenerate(self.app, None)
 
-    @mock.patch('shutil.copyfileobj')
-    @mock.patch('tripleoclient.v1.overcloud_roles.open')
+    @mock.patch(
+        'tripleo_common.utils.roles.generate_roles_data_from_directory')
+    @mock.patch('tripleo_common.utils.roles.check_role_exists')
+    @mock.patch('tripleo_common.utils.roles.get_roles_list_from_directory')
     @mock.patch('os.path.realpath')
-    def test_action(self, realpath_mock, open_mock, copy_mock):
+    def test_action(self, realpath_mock, get_roles_mock, check_mock,
+                    generate_roles_mock):
         realpath_mock.return_value = '/tmp'
-        get_roles_mock = mock.MagicMock()
         get_roles_mock.return_value = ['Controller', 'Compute']
+        generate_roles_mock.return_value = 'foo'
         capture_mock = mock.MagicMock()
-        self.cmd._get_roles = get_roles_mock
         self.cmd._capture_output = capture_mock
 
         arglist = ['--roles-path', '/tmp', 'Controller', 'Compute']
@@ -84,20 +86,25 @@ class TestOvercloudRolesGenerateData(fakes.TestDeployOvercloud):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.cmd.take_action(parsed_args)
-        capture_mock.assert_called_once_with(None)
         get_roles_mock.assert_called_once_with('/tmp')
-        open_mock.assert_any_call('/tmp/Controller.yaml', 'r')
-        open_mock.assert_any_call('/tmp/Compute.yaml', 'r')
+        check_mock.assert_called_once_with(['Controller', 'Compute'],
+                                           ['Controller', 'Compute'])
+        capture_mock.assert_called_once_with(None)
+        generate_roles_mock.assert_called_once_with('/tmp',
+                                                    ['Controller', 'Compute'],
+                                                    True)
 
-    @mock.patch('shutil.copyfileobj')
-    @mock.patch('tripleoclient.v1.overcloud_roles.open')
+    @mock.patch(
+        'tripleo_common.utils.roles.generate_roles_data_from_directory')
+    @mock.patch('tripleo_common.utils.roles.check_role_exists')
+    @mock.patch('tripleo_common.utils.roles.get_roles_list_from_directory')
     @mock.patch('os.path.realpath')
-    def test_action_with_outputfile(self, realpath_mock, open_mock, copy_mock):
+    def test_action_with_outputfile(self, realpath_mock, get_roles_mock,
+                                    check_mock, generate_roles_mock):
         realpath_mock.return_value = '/tmp'
-        get_roles_mock = mock.MagicMock()
         get_roles_mock.return_value = ['Controller', 'Compute']
+        generate_roles_mock.return_value = 'foo'
         capture_mock = mock.MagicMock()
-        self.cmd._get_roles = get_roles_mock
         self.cmd._capture_output = capture_mock
 
         arglist = ['--roles-path', '/tmp', '-o', 'foo.yaml',
@@ -110,19 +117,19 @@ class TestOvercloudRolesGenerateData(fakes.TestDeployOvercloud):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.cmd.take_action(parsed_args)
-        capture_mock.assert_called_once_with('foo.yaml')
         get_roles_mock.assert_called_once_with('/tmp')
-        open_mock.assert_any_call('/tmp/Controller.yaml', 'r')
-        open_mock.assert_any_call('/tmp/Compute.yaml', 'r')
+        check_mock.assert_called_once_with(['Controller', 'Compute'],
+                                           ['Controller', 'Compute'])
+        capture_mock.assert_called_once_with('foo.yaml')
+        generate_roles_mock.assert_called_once_with('/tmp',
+                                                    ['Controller', 'Compute'],
+                                                    True)
 
+    @mock.patch('tripleo_common.utils.roles.get_roles_list_from_directory')
     @mock.patch('os.path.realpath')
-    def test_action_with_invald_roles(self, realpath_mock):
+    def test_action_with_invald_roles(self, realpath_mock, get_roles_mock):
         realpath_mock.return_value = '/tmp'
-        get_roles_mock = mock.MagicMock()
         get_roles_mock.return_value = ['Controller', 'Compute']
-        capture_mock = mock.MagicMock()
-        self.cmd._get_roles = get_roles_mock
-        self.cmd._capture_output = capture_mock
 
         arglist = ['--roles-path', '/tmp', 'Foo', 'Bar']
         verifylist = [
@@ -132,14 +139,13 @@ class TestOvercloudRolesGenerateData(fakes.TestDeployOvercloud):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.assertRaises(NotFound, self.cmd.take_action, parsed_args)
-        capture_mock.assert_called_once_with(None)
         get_roles_mock.assert_called_once_with('/tmp')
 
 
-class TestOvercloudRoleInfo(fakes.TestDeployOvercloud):
+class TestOvercloudRoleShow(fakes.TestDeployOvercloud):
 
     def setUp(self):
-        super(TestOvercloudRoleInfo, self).setUp()
+        super(TestOvercloudRoleShow, self).setUp()
         self.cmd = overcloud_roles.RoleShow(self.app, None)
 
     @mock.patch('yaml.safe_load')
@@ -159,11 +165,14 @@ class TestOvercloudRoleInfo(fakes.TestDeployOvercloud):
         self.cmd.take_action(parsed_args)
         open_mock.assert_called_once_with('/tmp/foo.yaml', 'r')
 
+    @mock.patch('tripleo_common.utils.roles.get_roles_list_from_directory')
     @mock.patch('tripleoclient.v1.overcloud_roles.open')
     @mock.patch('os.path.realpath')
-    def test_action_invalid_role(self, realpath_mock, open_mock):
+    def test_action_invalid_role(self, realpath_mock, open_mock,
+                                 get_roles_mock):
         realpath_mock.return_value = '/tmp'
         open_mock.side_effect = IOError('bar')
+        get_roles_mock.return_value = ['Controller', 'Compute']
 
         arglist = ['--roles-path', '/tmp', 'foo']
         verifylist = [
