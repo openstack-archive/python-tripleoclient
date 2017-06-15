@@ -195,7 +195,7 @@ class DeployOvercloud(command.Command):
 
     def _heat_deploy(self, stack, stack_name, template_path, parameters,
                      env_files, timeout, tht_root, env, update_plan_only,
-                     run_validations, skip_deploy_identifier):
+                     run_validations, skip_deploy_identifier, plan_env_file):
         """Verify the Baremetal nodes are available and do a stack update"""
 
         self.log.debug("Getting template contents from plan %s" % stack_name)
@@ -222,7 +222,14 @@ class DeployOvercloud(command.Command):
         self._process_and_upload_environment(
             stack_name, env, moved_files, tht_root)
 
+        # Invokes the workflows specified in plan environment file
+        if plan_env_file:
+            workflow_params.invoke_plan_env_workflows(self.clients,
+                                                      stack_name,
+                                                      plan_env_file)
         if not update_plan_only:
+            print("Deploying templates in the directory {0}".format(
+                os.path.abspath(tht_root)))
             deployment.deploy_and_wait(
                 self.log, self.clients, stack,
                 stack_name, self.app_args.verbose_level,
@@ -400,7 +407,7 @@ class DeployOvercloud(command.Command):
         self._download_missing_files_from_plan(
             tht_root, parsed_args.stack)
 
-        print("Deploying templates in the directory {0}".format(
+        print("Processing templates in the directory {0}".format(
             os.path.abspath(tht_root)))
 
         self.log.debug("Creating Environment files")
@@ -441,20 +448,23 @@ class DeployOvercloud(command.Command):
         self._try_overcloud_deploy_with_compat_yaml(
             tht_root, stack, parsed_args.stack, parameters, env_files,
             parsed_args.timeout, env, parsed_args.update_plan_only,
-            parsed_args.run_validations, parsed_args.skip_deploy_identifier)
+            parsed_args.run_validations, parsed_args.skip_deploy_identifier,
+            parsed_args.plan_environment_file)
 
     def _try_overcloud_deploy_with_compat_yaml(self, tht_root, stack,
                                                stack_name, parameters,
                                                env_files, timeout,
                                                env, update_plan_only,
                                                run_validations,
-                                               skip_deploy_identifier):
+                                               skip_deploy_identifier,
+                                               plan_env_file):
         overcloud_yaml = os.path.join(tht_root, constants.OVERCLOUD_YAML_NAME)
         try:
             self._heat_deploy(stack, stack_name, overcloud_yaml,
                               parameters, env_files, timeout,
                               tht_root, env, update_plan_only,
-                              run_validations, skip_deploy_identifier)
+                              run_validations, skip_deploy_identifier,
+                              plan_env_file)
         except ClientException as e:
             messages = 'Failed to deploy: %s' % str(e)
             raise ValueError(messages)

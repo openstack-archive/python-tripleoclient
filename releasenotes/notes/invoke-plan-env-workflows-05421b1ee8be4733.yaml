@@ -1,0 +1,5 @@
+---
+features:
+  -  Workflows, associated with plan-environment.yaml using
+     workflow_parameters, are invoked before the actual
+     deployment starts.

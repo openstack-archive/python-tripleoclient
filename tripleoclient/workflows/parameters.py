@@ -10,6 +10,10 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import uuid
+import yaml
+
+from tripleoclient import exceptions
 from tripleoclient.workflows import base
 
 
@@ -49,3 +53,50 @@ def get_overcloud_passwords(clients, **workflow_input):
             assert payload['status'] == "SUCCESS"
 
         return payload['message']
+
+
+def invoke_plan_env_workflows(clients, stack_name, plan_env_file):
+    """Invokes the workflows in plan environment file"""
+
+    try:
+        with open(plan_env_file) as pf:
+            plan_env_data = yaml.safe_load(pf.read())
+    except IOError as exc:
+        raise exceptions.PlanEnvWorkflowError('File (%s) is not found: '
+                                              '%s' % (plan_env_file, exc))
+
+    if plan_env_data and "workflow_parameters" in plan_env_data:
+        for wf_name, wf_inputs in plan_env_data["workflow_parameters"].items():
+            print('Invoking workflow (%s) specified in plan-environment '
+                  'file' % wf_name)
+            inputs = {}
+            inputs['plan'] = stack_name
+            queue_name = str(uuid.uuid4())
+            inputs['queue_name'] = queue_name
+            inputs['user_inputs'] = wf_inputs
+            workflow_client = clients.workflow_engine
+            tripleoclients = clients.tripleoclient
+            with tripleoclients.messaging_websocket(queue_name) as ws:
+                execution = base.start_workflow(
+                    workflow_client,
+                    wf_name,
+                    workflow_input=inputs
+                )
+
+                # Getting the derive parameters timeout after 600 seconds.
+                for payload in base.wait_for_messages(workflow_client,
+                                                      ws, execution, 600):
+                    if ('message' in payload and
+                            (payload.get('status', 'RUNNING') == "RUNNING")):
+                        print(payload['message'])
+
+            if payload.get('status', 'FAILED') == 'SUCCESS':
+                result = payload.get('result', '')
+                # Prints the workflow result
+                if result:
+                    print('Workflow execution is completed. result:')
+                    print(yaml.safe_dump(result, default_flow_style=False))
+            else:
+                message = payload.get('message', '')
+                msg = ('Workflow execution is failed: %s' % (message))
+                raise exceptions.PlanEnvWorkflowError(msg)

@@ -17,6 +17,7 @@ import uuid
 
 from osc_lib.tests import utils
 
+from tripleoclient import exceptions
 from tripleoclient.workflows import parameters
 
 
@@ -52,3 +53,99 @@ class TestParameterWorkflows(utils.TestCommand):
             'tripleo.plan_management.v1.get_passwords',
             workflow_input={'queue_name': 'UUID4',
                             'container': 'container-name'})
+
+    @mock.patch('yaml.safe_load')
+    @mock.patch("six.moves.builtins.open")
+    def test_invoke_plan_env_workflows(self, mock_open,
+                                       mock_safe_load):
+        plan_env_data = {
+            'name': 'overcloud',
+            'workflow_parameters': {
+                'tripleo.derive_params.v1.derive_parameters': {
+                    'num_phy_cores_per_numa_node_for_pmd': 2
+                }
+            }
+        }
+        mock_safe_load.return_value = plan_env_data
+
+        self.websocket.wait_for_messages.return_value = iter([{
+            "execution": {"id": "IDID"},
+            "status": "SUCCESS",
+            "message": "",
+            "result": {}
+        }])
+
+        parameters.invoke_plan_env_workflows(
+            self.app.client_manager,
+            'overcloud',
+            'the-plan-environment.yaml')
+
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.derive_params.v1.derive_parameters',
+            workflow_input={
+                'plan': 'overcloud',
+                'queue_name': 'UUID4',
+                'user_inputs': {
+                    'num_phy_cores_per_numa_node_for_pmd': 2}})
+
+    @mock.patch('yaml.safe_load')
+    @mock.patch("six.moves.builtins.open")
+    def test_invoke_plan_env_workflow_failed(self, mock_open,
+                                             mock_safe_load):
+        plan_env_data = {
+            'name': 'overcloud',
+            'workflow_parameters': {
+                'tripleo.derive_params.v1.derive_parameters': {
+                    'num_phy_cores_per_numa_node_for_pmd': 2
+                }
+            }
+        }
+        mock_safe_load.return_value = plan_env_data
+
+        self.websocket.wait_for_messages.return_value = iter([{
+            "execution": {"id": "IDID"},
+            "status": "FAILED",
+            "message": "workflow failure",
+            "result": ""
+        }])
+
+        self.assertRaises(exceptions.PlanEnvWorkflowError,
+                          parameters.invoke_plan_env_workflows,
+                          self.app.client_manager, 'overcloud',
+                          'the-plan-environment.yaml')
+
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.derive_params.v1.derive_parameters',
+            workflow_input={
+                'plan': 'overcloud',
+                'queue_name': 'UUID4',
+                'user_inputs': {
+                    'num_phy_cores_per_numa_node_for_pmd': 2}})
+
+    @mock.patch('yaml.safe_load')
+    @mock.patch("six.moves.builtins.open")
+    def test_invoke_plan_env_workflows_no_workflow_params(
+            self, mock_open, mock_safe_load):
+        plan_env_data = {'name': 'overcloud'}
+        mock_safe_load.return_value = plan_env_data
+
+        parameters.invoke_plan_env_workflows(
+            self.app.client_manager,
+            'overcloud',
+            'the-plan-environment.yaml')
+
+        self.workflow.executions.create.assert_not_called()
+
+    @mock.patch('yaml.safe_load')
+    @mock.patch("six.moves.builtins.open")
+    def test_invoke_plan_env_workflows_no_plan_env_file(
+            self, mock_open, mock_safe_load):
+
+        mock_open.side_effect = IOError('')
+
+        self.assertRaises(exceptions.PlanEnvWorkflowError,
+                          parameters.invoke_plan_env_workflows,
+                          self.app.client_manager, 'overcloud',
+                          'the-plan-environment.yaml')
+
+        self.workflow.executions.create.assert_not_called()
