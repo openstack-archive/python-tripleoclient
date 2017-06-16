@@ -106,8 +106,8 @@ class TestCreateRAID(fakes.TestBaremetal):
         ]
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
-        self.assertRaisesRegexp(RuntimeError, 'cannot be parsed as YAML',
-                                self.cmd.take_action, parsed_args)
+        self.assertRaisesRegex(RuntimeError, 'cannot be parsed as YAML',
+                               self.cmd.take_action, parsed_args)
         self.assertFalse(self.workflow.executions.create.called)
 
     def test_bad_type(self):

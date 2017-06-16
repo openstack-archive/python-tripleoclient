@@ -429,9 +429,9 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58,6230""")
         ]
         self.baremetal.http_client.os_ironic_api_version = '1.6'
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-        self.assertRaisesRegexp(exceptions.InvalidConfiguration,
-                                'OS_BAREMETAL_API_VERSION',
-                                self.cmd.take_action, parsed_args)
+        self.assertRaisesRegex(exceptions.InvalidConfiguration,
+                               'OS_BAREMETAL_API_VERSION',
+                               self.cmd.take_action, parsed_args)
         self.workflow.executions.create.assert_not_called()
 
     def test_json_import_detect_suffix(self):
@@ -520,9 +520,9 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58,6230""")
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
-        self.assertRaisesRegexp(exceptions.InvalidConfiguration,
-                                'Invalid file extension',
-                                self.cmd.take_action, parsed_args)
+        self.assertRaisesRegex(exceptions.InvalidConfiguration,
+                               'Invalid file extension',
+                               self.cmd.take_action, parsed_args)
 
     def test_instack_yaml_import(self):
 
