@@ -593,6 +593,23 @@ class DeployOvercloud(command.Command):
                 if parsed_args.validation_warnings_fatal:
                     raise exceptions.InvalidConfiguration()
 
+        if parsed_args.environment_directories:
+            self._validate_args_environment_directory(
+                parsed_args.environment_directories)
+
+    def _validate_args_environment_directory(self, directories):
+        default = os.path.expanduser(constants.DEFAULT_ENV_DIRECTORY)
+        nonexisting_dirs = []
+
+        for d in directories:
+            if not os.path.isdir(d) and d != default:
+                nonexisting_dirs.append(d)
+
+        if nonexisting_dirs:
+            raise oscexc.CommandError(
+                "Error: The following environment directories were not found"
+                ": {0}".format(", ".join(nonexisting_dirs)))
+
     def _get_default_role_counts(self, parsed_args):
 
         if parsed_args.roles_file:
@@ -686,8 +703,7 @@ class DeployOvercloud(command.Command):
         parser.add_argument(
             '--environment-directory', metavar='<HEAT ENVIRONMENT DIRECTORY>',
             action='append', dest='environment_directories',
-            default=[os.path.join(os.environ.get('HOME', ''), '.tripleo',
-                     'environments')],
+            default=[os.path.expanduser(constants.DEFAULT_ENV_DIRECTORY)],
             help=_('Environment file directories that are automatically '
                    ' added to the heat stack-create or heat stack-update'
                    ' commands. Can be specified more than once. Files in'

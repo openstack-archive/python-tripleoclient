@@ -39,3 +39,6 @@ RHEL_REGISTRATION_EXTRACONFIG_NAME = (
 
 # The name of the file which holds the plan environment contents
 PLAN_ENVIRONMENT = 'plan-environment.yaml'
+
+# This directory may contain additional environments to use during deploy
+DEFAULT_ENV_DIRECTORY = "~/.tripleo/environments"
