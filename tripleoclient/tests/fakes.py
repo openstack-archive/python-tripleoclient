@@ -30,6 +30,7 @@ class FakeApp(object):
         self.stdout = _stdout or sys.stdout
         self.stderr = sys.stderr
         self.restapi = None
+        self.command_options = None
 
 
 class FakeClientManager(object):
