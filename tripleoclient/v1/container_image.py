@@ -36,6 +36,7 @@ class UploadImage(command.Command):
             metavar='<yaml config file>',
             default=[],
             action="append",
+            required=True,
             help=_("YAML config file specifying the image build. May be "
                    "specified multiple times. Order is preserved, and later "
                    "files will override some options in previous files. "
@@ -64,6 +65,7 @@ class BuildImage(command.Command):
             metavar='<yaml config file>',
             default=[],
             action="append",
+            required=True,
             help=_("YAML config file specifying the images to build. May be "
                    "specified multiple times. Order is preserved, and later "
                    "files will override some options in previous files. "
@@ -75,6 +77,7 @@ class BuildImage(command.Command):
             metavar='<config file>',
             default=[],
             action="append",
+            required=True,
             help=_("Path to a Kolla config file to use. Multiple config files "
                    "can be specified, with values in later files taking "
                    "precedence."),

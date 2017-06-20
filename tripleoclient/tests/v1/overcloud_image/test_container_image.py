@@ -27,18 +27,18 @@ class TestContainerImageUpload(TestPluginV1):
         # Get the command object to test
         self.cmd = container_image.UploadImage(self.app, None)
 
+    @mock.patch('sys.exit')
     @mock.patch('tripleo_common.image.image_uploader.ImageUploadManager',
                 autospec=True)
-    def test_container_image_upload_noargs(self, mock_manager):
+    def test_container_image_upload_noargs(self, mock_manager, exit_mock):
         arglist = []
         verifylist = []
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.cmd.take_action(parsed_args)
-
-        mock_manager.assert_called_once_with([])
-        mock_manager.return_value.upload.assert_called_once_with()
+        # argparse will complain that --config-file is missing and exit with 2
+        exit_mock.assert_called_with(2)
 
     @mock.patch('tripleo_common.image.image_uploader.ImageUploadManager',
                 autospec=True)
@@ -68,18 +68,19 @@ class TestContainerImageBuild(TestPluginV1):
         # Get the command object to test
         self.cmd = container_image.BuildImage(self.app, None)
 
+    @mock.patch('sys.exit')
     @mock.patch('tripleo_common.image.kolla_builder.KollaImageBuilder',
                 autospec=True)
-    def test_container_image_build_noargs(self, mock_builder):
+    def test_container_image_build_noargs(self, mock_builder, exit_mock):
         arglist = []
         verifylist = []
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.cmd.take_action(parsed_args)
-
-        mock_builder.assert_called_once_with([])
-        mock_builder.return_value.build_images.assert_called_once_with([])
+        # argparse will complain that --config-file and --kolla-config are
+        # missing exit with 2
+        exit_mock.assert_called_with(2)
 
     @mock.patch('tripleo_common.image.kolla_builder.KollaImageBuilder',
                 autospec=True)
