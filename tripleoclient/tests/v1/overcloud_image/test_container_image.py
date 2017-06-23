@@ -13,9 +13,11 @@
 #   under the License.
 #
 
+import fixtures
 import mock
 import os
 import shutil
+import six
 import tempfile
 import yaml
 
@@ -171,6 +173,8 @@ class TestContainerImageBuild(TestPluginV1):
 
         # Get the command object to test
         self.cmd = container_image.BuildImage(self.app, None)
+        self.cmd.app.stdout = six.StringIO()
+        self.temp_dir = self.useFixture(fixtures.TempDir()).join()
 
     @mock.patch('sys.exit')
     @mock.patch('tripleo_common.image.kolla_builder.KollaImageBuilder',
@@ -178,12 +182,16 @@ class TestContainerImageBuild(TestPluginV1):
     def test_container_image_build_noargs(self, mock_builder, exit_mock):
         arglist = []
         verifylist = []
+        mock_builder.return_value.build_images.return_value = 'done'
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
-        self.cmd.take_action(parsed_args)
-        # argparse will complain that --config-file and --kolla-config are
-        # missing exit with 2
+        f, path = tempfile.mkstemp(dir=self.temp_dir)
+        with mock.patch('tempfile.mkstemp') as mock_mkstemp:
+            mock_mkstemp.return_value = f, path
+            self.cmd.take_action(parsed_args)
+
+        # argparse will complain that --config-file is missing and exit with 2
         exit_mock.assert_called_with(2)
 
     @mock.patch('tripleo_common.image.kolla_builder.KollaImageBuilder',
@@ -198,13 +206,122 @@ class TestContainerImageBuild(TestPluginV1):
             '/tmp/kolla.conf'
         ]
         verifylist = []
+        mock_builder.return_value.build_images.return_value = 'done'
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
-        self.cmd.take_action(parsed_args)
+        f, path = tempfile.mkstemp(dir=self.temp_dir)
+        with mock.patch('tempfile.mkstemp') as mock_mkstemp:
+            mock_mkstemp.return_value = f, path
+            self.cmd.take_action(parsed_args)
 
         mock_builder.assert_called_once_with([
             '/tmp/foo.yaml', '/tmp/bar.yaml'])
         mock_builder.return_value.build_images.assert_called_once_with([
-            '/tmp/kolla.conf'
+            '/tmp/kolla.conf',
+            path
         ])
+
+    @mock.patch('tripleo_common.image.kolla_builder.KollaImageBuilder',
+                autospec=True)
+    @mock.patch('os.remove')
+    def test_container_image_build_list_images(self, mock_remove,
+                                               mock_builder):
+        arglist = [
+            '--list-images',
+            '--config-file',
+            '/tmp/bar.yaml',
+            '--kolla-config-file',
+            '/tmp/kolla.conf'
+        ]
+        parsed_args = self.check_parser(self.cmd, arglist, [])
+        deps = '{"base": ["qrouterd"]}'
+        mock_builder.return_value.build_images.return_value = deps
+
+        f, path = tempfile.mkstemp(dir=self.temp_dir)
+        with mock.patch('tempfile.mkstemp') as mock_mkstemp:
+            mock_mkstemp.return_value = f, path
+            self.cmd.take_action(parsed_args)
+            with open(path, 'r') as conf_file:
+                self.assertEqual(
+                    conf_file.readlines(),
+                    ['[DEFAULT]\n', 'list_dependencies=true'])
+        self.assertEqual('- base\n- qrouterd\n',
+                         self.cmd.app.stdout.getvalue())
+
+    @mock.patch('tripleo_common.image.kolla_builder.KollaImageBuilder',
+                autospec=True)
+    @mock.patch('os.remove')
+    def test_container_image_build_list_deps(self, mock_remove, mock_builder):
+        arglist = [
+            '--config-file',
+            '/tmp/bar.yaml',
+            '--kolla-config-file',
+            '/tmp/kolla.conf',
+            '--list-dependencies',
+        ]
+        parsed_args = self.check_parser(self.cmd, arglist, [])
+        deps = '{"base": ["qrouterd"]}'
+        mock_builder.return_value.build_images.return_value = deps
+
+        f, path = tempfile.mkstemp(dir=self.temp_dir)
+        with mock.patch('tempfile.mkstemp') as mock_mkstemp:
+            mock_mkstemp.return_value = f, path
+            self.cmd.take_action(parsed_args)
+            with open(path, 'r') as conf_file:
+                self.assertEqual(
+                    conf_file.readlines(),
+                    ['[DEFAULT]\n', 'list_dependencies=true'])
+        self.assertEqual('base:\n- qrouterd\n',
+                         self.cmd.app.stdout.getvalue())
+
+    def test_images_from_deps(self):
+        deps = yaml.safe_load('''base:
+- qdrouterd
+- cron
+- ceph-base:
+  - ceph-osd
+  - ceph-rgw
+  - ceph-mon
+  - cephfs-fuse
+  - ceph-mds
+- redis
+- etcd
+- kubernetes-entrypoint
+- kolla-toolbox
+- telegraf
+- openstack-base:
+  - swift-base:
+    - swift-proxy-server
+    - swift-account
+    - swift-container
+    - swift-object-expirer
+    - swift-rsyncd
+    - swift-object''')
+
+        images_yaml = '''- base
+- qdrouterd
+- cron
+- ceph-base
+- ceph-osd
+- ceph-rgw
+- ceph-mon
+- cephfs-fuse
+- ceph-mds
+- redis
+- etcd
+- kubernetes-entrypoint
+- kolla-toolbox
+- telegraf
+- openstack-base
+- swift-base
+- swift-proxy-server
+- swift-account
+- swift-container
+- swift-object-expirer
+- swift-rsyncd
+- swift-object
+'''
+        images = []
+        self.cmd.images_from_deps(images, deps)
+        self.assertEqual(yaml.safe_load(images_yaml), images)
