@@ -72,6 +72,14 @@ REQUIRED_PACKAGES = iter([
 ])
 
 
+INSTALLER_ENV = {
+    'OS_AUTH_URL': 'http://127.0.0.1:35358',
+    'OS_USERNAME': 'foo',
+    'OS_PROJECT_NAME': 'foo',
+    'OS_PASSWORD': 'bar'
+}
+
+
 class DeployUndercloud(command.Command):
     """Deploy Undercloud (experimental feature)"""
 
@@ -231,12 +239,6 @@ class DeployUndercloud(command.Command):
     def _fork_heat_event_list(self):
         pid = os.fork()
         if pid == 0:
-            events_env = {
-                'OS_AUTH_URL': 'http://127.0.0.1:35358',
-                'OS_USERNAME': 'foo',
-                'OS_PROJECT_NAME': 'foo',
-                'OS_PASSWORD': 'bar'
-            }
             try:
                 os.setpgrp()
                 os.setgid(pwd.getpwnam('nobody').pw_gid)
@@ -247,7 +249,7 @@ class DeployUndercloud(command.Command):
                     "proceeding.")
             subprocess.check_call(['openstack', 'stack', 'event', 'list',
                                    'undercloud', '--follow',
-                                   '--nested-depth', '6'], env=events_env)
+                                   '--nested-depth', '6'], env=INSTALLER_ENV)
             sys.exit(0)
         else:
             return pid
@@ -385,6 +387,14 @@ class DeployUndercloud(command.Command):
                 # to avoid re-creating them every update
                 self._update_passwords_env(passwords)
             return True
+
+    def _write_credentials(self):
+        fn = os.path.expanduser('~/installer_stackrc')
+        with os.fdopen(os.open(fn, os.O_CREAT | os.O_WRONLY, 0o600), 'w') as f:
+            f.write('# credentials to use while the undercloud '
+                    'installer is running')
+            for k, v in INSTALLER_ENV.items():
+                f.write('export %s=%s\n' % (k, v))
 
     def get_parser(self, prog_name):
         parser = argparse.ArgumentParser(
@@ -536,6 +546,8 @@ class DeployUndercloud(command.Command):
             else:
                 self._wait_local_port_ready(parsed_args.fake_keystone_port)
                 self._wait_local_port_ready(parsed_args.heat_api_port)
+
+                self._write_credentials()
 
                 if self._deploy_tripleo_heat_templates(parsed_args):
                     print("\nDeploy Successful.")
