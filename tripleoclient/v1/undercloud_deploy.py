@@ -105,7 +105,9 @@ class DeployUndercloud(command.Command):
         server_stack_id = None
 
         for X in client.resources.list(stack_id, nested_depth=6):
-            if X.resource_type == 'OS::TripleO::Server':
+            if X.resource_type in (
+                    'OS::TripleO::Server',
+                    'OS::TripleO::UndercloudServer'):
                 server_stack_id = X.physical_resource_id
 
         return server_stack_id
