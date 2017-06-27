@@ -388,11 +388,13 @@ class DeployOvercloud(command.Command):
             # templates.
             plan_management.update_plan_from_templates(
                 self.clients, parsed_args.stack, tht_root,
-                parsed_args.roles_file, generate_passwords)
+                parsed_args.roles_file, generate_passwords,
+                parsed_args.plan_environment_file)
         else:
             plan_management.create_plan_from_templates(
                 self.clients, parsed_args.stack, tht_root,
-                parsed_args.roles_file, generate_passwords)
+                parsed_args.roles_file, generate_passwords,
+                parsed_args.plan_environment_file)
 
         # Get any missing (e.g j2 rendered) files from the plan to tht_root
         self._download_missing_files_from_plan(
@@ -684,6 +686,11 @@ class DeployOvercloud(command.Command):
             '--roles-file', '-r', dest='roles_file',
             help=_('Roles file, overrides the default %s in the --templates '
                    'directory') % constants.OVERCLOUD_ROLES_FILE
+        )
+        parser.add_argument(
+            '--plan-environment-file', '-p',
+            help=_('Plan Environment file, overrides the default %s in the '
+                   '--templates directory') % constants.PLAN_ENVIRONMENT
         )
         parser.add_argument(
             '--no-cleanup', action='store_true',

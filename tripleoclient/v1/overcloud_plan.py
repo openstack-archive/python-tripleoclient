@@ -19,6 +19,7 @@ from osc_lib.command import command
 from osc_lib.i18n import _
 from six.moves.urllib import request
 
+from tripleoclient import constants
 from tripleoclient import exceptions
 from tripleoclient import utils
 from tripleoclient.workflows import deployment
@@ -95,6 +96,11 @@ class CreatePlan(command.Command):
                    'packaged on the Undercloud will be used.'),
         )
         parser.add_argument(
+            '--plan-environment-file', '-p',
+            help=_('Plan Environment file, overrides the default %s in the '
+                   '--templates directory') % constants.PLAN_ENVIRONMENT
+        )
+        parser.add_argument(
             '--disable-password-generation',
             action='store_true',
             default=False,
@@ -125,7 +131,8 @@ class CreatePlan(command.Command):
         if parsed_args.templates:
             plan_management.create_plan_from_templates(
                 clients, name, parsed_args.templates,
-                generate_passwords=generate_passwords)
+                generate_passwords=generate_passwords,
+                plan_env_file=parsed_args.plan_environment_file)
         else:
             plan_management.create_deployment_plan(
                 clients, container=name, queue_name=str(uuid.uuid4()),
