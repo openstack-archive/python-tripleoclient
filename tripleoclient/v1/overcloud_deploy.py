@@ -821,6 +821,7 @@ class DeployOvercloud(command.Command):
         sc_logger.setLevel(logging.CRITICAL)
 
         self._validate_args(parsed_args)
+        utils.store_cli_param(parsed_args)
 
         stack = utils.get_stack(self.orchestration_client, parsed_args.stack)
 
