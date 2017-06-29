@@ -18,8 +18,6 @@
 import logging
 import subprocess
 
-from instack_undercloud import undercloud
-
 from osc_lib.command import command
 from tripleoclient import utils
 
@@ -35,7 +33,7 @@ class InstallUndercloud(command.Command):
 
         utils.ensure_run_as_normal_user()
 
-        undercloud.install('/usr/share/instack-undercloud')
+        subprocess.check_call("instack-install-undercloud")
 
 
 class UpgradeUndercloud(command.Command):
@@ -50,7 +48,7 @@ class UpgradeUndercloud(command.Command):
         utils.ensure_run_as_normal_user()
 
         subprocess.check_call(['sudo', 'yum', 'update', '-y'])
-        undercloud.install('/usr/share/instack-undercloud', upgrade=True)
+        subprocess.check_call("instack-upgrade-undercloud")
         # restart nova-api https://bugzilla.redhat.com/show_bug.cgi?id=1315467
         subprocess.check_call(['sudo', 'systemctl', 'restart',
                               'openstack-nova-api'])
