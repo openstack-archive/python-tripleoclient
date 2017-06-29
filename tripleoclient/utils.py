@@ -48,21 +48,6 @@ def bracket_ipv6(address):
         return address
 
 
-def unbracket_ipv6(address):
-    """Remove a bracket around addresses if it is valid IPv6
-
-    Return it unchanged if it is a hostname or IPv4 address.
-    """
-    if '[' in address and ']' in address:
-        s = address[address.find("[") + 1:address.find("]")]
-        try:
-            socket.inet_pton(socket.AF_INET6, s)
-            return s
-        except socket.error:
-            pass
-    return address
-
-
 def write_overcloudrc(stack_name, overcloudrcs, config_directory='.'):
     """Write the overcloudrc files"""
 
