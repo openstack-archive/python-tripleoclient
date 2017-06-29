@@ -55,11 +55,9 @@ class DeployOvercloud(command.Command):
         self.clients = self.app.client_manager
         self.object_client = self.clients.tripleoclient.object_store
         self.workflow_client = self.clients.workflow_engine
-        self.network_client = self.clients.network
         self.orchestration_client = self.clients.orchestration
         self.compute_client = self.clients.compute
         self.baremetal_client = self.clients.baremetal
-        self.image_client = self.clients.image
 
     def _update_parameters(self, args, stack):
         parameters = {}
@@ -459,9 +457,6 @@ class DeployOvercloud(command.Command):
             messages = 'Failed to deploy: %s' % str(e)
             raise ValueError(messages)
 
-    def _is_tls_enabled(self, overcloud_endpoint):
-        return overcloud_endpoint.startswith('https')
-
     def _get_password(self, stack_name, password_name):
         # NOTE(d0ugal): This method is only used during the post-deploy config
         # steps that are now deprecated. It should be removed when they are.
@@ -472,29 +467,6 @@ class DeployOvercloud(command.Command):
                 queue_name=str(uuid.uuid4()))
 
         return self._password_cache[password_name]
-
-    def _set_service_data(self, service, data, stack):
-        self.log.debug("Setting data for service '%s'" % service)
-        service_data = data.copy()
-        service_data.pop('password_field', None)
-
-        endpoint_map = utils.get_endpoint_map(stack)
-        try:
-            service_data.update(
-                self._get_base_service_data(service, data, stack))
-        except KeyError:
-            output_source = "service IPs"
-            if endpoint_map:
-                output_source = "endpoint map"
-            self.log.debug(
-                ("Skipping \"{}\" postconfig because it wasn't found in the "
-                 "{} output").format(service, output_source))
-            return None
-        if not endpoint_map:
-            return service_data
-        service_data.update(self._get_endpoint_data(service, endpoint_map,
-                                                    stack))
-        return service_data
 
     def _get_base_service_data(self, service, data, stack):
         service_data = {}
