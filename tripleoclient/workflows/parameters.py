@@ -22,11 +22,6 @@ def update_parameters(workflow_client, **input_):
                             **input_)
 
 
-def reset_parameters(workflow_client, **input_):
-    return base.call_action(workflow_client, 'tripleo.parameters.reset',
-                            **input_)
-
-
 def get_overcloud_passwords(clients, **workflow_input):
     """Retrieves overcloud passwords from a plan via a workflow
 
