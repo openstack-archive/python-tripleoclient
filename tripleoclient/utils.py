@@ -387,38 +387,6 @@ def file_checksum(filepath):
     return checksum.hexdigest()
 
 
-def check_nodes_count(baremetal_client, stack, parameters, defaults):
-    """Check if there are enough available nodes for creating/scaling stack"""
-    count = 0
-
-    for param, default in defaults.items():
-        if stack:
-            try:
-                current = int(stack.parameters[param])
-            except KeyError:
-                # We could be adding a new role on stack-update, so there's no
-                # assumption the parameter exists in the stack.
-                current = parameters.get(param, default)
-            count += parameters.get(param, current)
-        else:
-            count += parameters.get(param, default)
-
-    # We get number of nodes usable for the stack by getting already
-    # used (associated) nodes and number of nodes which can be used
-    # (not in maintenance mode).
-    # Assumption is that associated nodes are part of the stack (only
-    # one overcloud is supported).
-    associated = len(baremetal_client.node.list(associated=True))
-    available = len(baremetal_client.node.list(associated=False,
-                                               maintenance=False))
-    ironic_nodes_count = associated + available
-
-    if count > ironic_nodes_count:
-        return False, count, ironic_nodes_count
-    else:
-        return True, count, ironic_nodes_count
-
-
 def ensure_run_as_normal_user():
     """Check if the command runs under normal user (EUID!=0)"""
     if os.geteuid() == 0:

@@ -607,7 +607,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True)
     @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
     @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
-    @mock.patch('tripleoclient.utils.check_nodes_count', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
@@ -617,9 +616,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('shutil.copytree', autospec=True)
     def test_environment_dirs(self, mock_copy, mock_deploy_heat,
                               mock_update_parameters, mock_post_config,
-                              mock_utils_check_nodes, mock_utils_endpoint,
-                              mock_utils_createrc, mock_utils_tempest,
-                              mock_tarball):
+                              mock_utils_endpoint, mock_utils_createrc,
+                              mock_utils_tempest, mock_tarball):
 
         clients = self.app.client_manager
         workflow_client = clients.workflow_engine
@@ -669,7 +667,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
     @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
     @mock.patch('tripleoclient.utils.get_stack', autospec=True)
-    @mock.patch('tripleoclient.utils.check_nodes_count', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
@@ -679,9 +676,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('shutil.copytree', autospec=True)
     def test_environment_dirs_env(self, mock_copy, mock_deploy_heat,
                                   mock_update_parameters, mock_post_config,
-                                  mock_utils_check_nodes, mock_utils_get_stack,
-                                  mock_utils_endpoint, mock_utils_createrc,
-                                  mock_utils_tempest, mock_tarball):
+                                  mock_utils_get_stack, mock_utils_endpoint,
+                                  mock_utils_createrc, mock_utils_tempest,
+                                  mock_tarball):
 
         clients = self.app.client_manager
         workflow_client = clients.workflow_engine
@@ -728,7 +725,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True)
     @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
     @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
-    @mock.patch('tripleoclient.utils.check_nodes_count', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
@@ -740,7 +736,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                                   mock_deploy_heat,
                                                   mock_update_parameters,
                                                   mock_post_config,
-                                                  mock_utils_check_nodes,
                                                   mock_utils_endpoint,
                                                   mock_utils_createrc,
                                                   mock_utils_tempest,
@@ -998,8 +993,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
                 autospec=True)
-    @mock.patch('tripleoclient.utils.check_nodes_count',
-                autospec=True)
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
     @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
@@ -1014,7 +1007,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                           mock_oc_endpoint,
                           mock_create_ocrc,
                           mock_create_tempest_deployer_input,
-                          mock_check_nodes_count, mock_tarball):
+                          mock_tarball):
         clients = self.app.client_manager
 
         workflow_client = clients.workflow_engine
