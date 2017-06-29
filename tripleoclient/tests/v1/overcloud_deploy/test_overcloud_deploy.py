@@ -72,13 +72,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
-    @mock.patch('tripleoclient.utils.check_hypervisor_stats',
-                autospec=True)
     @mock.patch('uuid.uuid1', autospec=True)
     @mock.patch('time.time', autospec=True)
     @mock.patch('shutil.copytree', autospec=True)
     def test_tht_scale(self, mock_copy, mock_time, mock_uuid1,
-                       mock_check_hypervisor_stats,
                        mock_get_template_contents,
                        wait_for_stack_ready_mock,
                        mock_remove_known_hosts,
@@ -113,11 +110,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_env = yaml.safe_dump({'environments': []})
         object_client.get_object.return_value = ({}, mock_env)
 
-        mock_check_hypervisor_stats.return_value = {
-            'count': 4,
-            'memory_mb': 4096,
-            'vcpus': 8,
-        }
         clients.network.api.find_attr.return_value = {
             "id": "network id"
         }
@@ -184,15 +176,12 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
-    @mock.patch('tripleoclient.utils.check_hypervisor_stats',
-                autospec=True)
     @mock.patch('uuid.uuid1', autospec=True)
     @mock.patch('time.time', autospec=True)
     @mock.patch('shutil.copytree', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True)
     def test_tht_deploy(self, mock_tmpdir, mock_copy, mock_time,
                         mock_uuid1,
-                        mock_check_hypervisor_stats,
                         mock_get_template_contents,
                         wait_for_stack_ready_mock,
                         mock_remove_known_hosts,
@@ -230,11 +219,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         orchestration_client.stacks.create.side_effect = _orch_clt_create
 
-        mock_check_hypervisor_stats.return_value = {
-            'count': 4,
-            'memory_mb': 4096,
-            'vcpus': 8,
-        }
         clients.network.api.find_attr.return_value = {
             "id": "network id"
         }
@@ -313,17 +297,14 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
-    @mock.patch('tripleoclient.utils.check_hypervisor_stats',
-                autospec=True)
     @mock.patch('uuid.uuid1', autospec=True)
     @mock.patch('time.time', autospec=True)
     @mock.patch('shutil.copytree', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True)
     def test_tht_deploy_with_plan_environment_file(
         self, mock_tmpdir, mock_copy, mock_time, mock_uuid1,
-        mock_check_hypervisor_stats, mock_get_template_contents,
-        wait_for_stack_ready_mock, mock_remove_known_hosts,
-        mock_overcloudrc, mock_write_overcloudrc,
+        mock_get_template_contents, wait_for_stack_ready_mock,
+        mock_remove_known_hosts, mock_overcloudrc, mock_write_overcloudrc,
         mock_create_tempest_deployer, mock_create_parameters_env,
         mock_validate_args, mock_breakpoints_cleanup,
         mock_tarball, mock_postconfig,
@@ -358,11 +339,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_env = yaml.safe_dump({'environments': []})
         object_client.get_object.return_value = ({}, mock_env)
 
-        mock_check_hypervisor_stats.return_value = {
-            'count': 4,
-            'memory_mb': 4096,
-            'vcpus': 8,
-        }
         clients.network.api.find_attr.return_value = {
             "id": "network id"
         }
@@ -446,8 +422,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
-    @mock.patch('tripleoclient.utils.check_hypervisor_stats',
-                autospec=True)
     @mock.patch('uuid.uuid1', autospec=True)
     @mock.patch('time.time', autospec=True)
     @mock.patch('shutil.rmtree', autospec=True)
@@ -456,7 +430,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_tht_deploy_skip_deploy_identifier(
             self, mock_tmpdir, mock_copy, mock_rm, mock_time,
             mock_uuid1,
-            mock_check_hypervisor_stats,
             mock_get_template_contents,
             wait_for_stack_ready_mock,
             mock_remove_known_hosts,
@@ -494,11 +467,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_env = yaml.safe_dump({'environments': []})
         object_client.get_object.return_value = ({}, mock_env)
 
-        mock_check_hypervisor_stats.return_value = {
-            'count': 4,
-            'memory_mb': 4096,
-            'vcpus': 8,
-        }
         clients.network.api.find_attr.return_value = {
             "id": "network id"
         }
@@ -540,11 +508,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
-    @mock.patch('tripleoclient.utils.check_hypervisor_stats',
-                autospec=True)
     @mock.patch('shutil.copytree', autospec=True)
     def test_deploy_custom_templates(self, mock_copy,
-                                     mock_check_hypervisor_stats,
                                      mock_get_template_contents,
                                      wait_for_stack_ready_mock,
                                      mock_remove_known_hosts,
@@ -564,11 +529,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
         mock_events.return_value = []
 
-        mock_check_hypervisor_stats.return_value = {
-            'count': 4,
-            'memory_mb': 4096,
-            'vcpus': 8,
-        }
         clients.network.api.find_attr.return_value = {
             "id": "network id"
         }
@@ -874,13 +834,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 'process_environment_and_files', autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
-    @mock.patch('tripleoclient.utils.check_hypervisor_stats',
-                autospec=True)
     @mock.patch('shutil.copytree', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True)
     @mock.patch('shutil.rmtree', autospec=True)
     def test_deploy_rhel_reg(self, mock_rmtree, mock_tmpdir, mock_copy,
-                             mock_check_hypervisor_stats,
                              mock_get_template_contents,
                              mock_process_env,
                              wait_for_stack_ready_mock,
@@ -923,11 +880,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_env = yaml.safe_dump({'environments': []})
         object_client.get_object.return_value = ({}, mock_env)
 
-        mock_check_hypervisor_stats.return_value = {
-            'count': 4,
-            'memory_mb': 4096,
-            'vcpus': 8,
-        }
         clients.network.api.find_attr.return_value = {
             "id": "network id"
         }
@@ -1231,14 +1183,11 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 'process_environment_and_files', autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
-    @mock.patch('tripleoclient.utils.check_hypervisor_stats',
-                autospec=True)
     @mock.patch('uuid.uuid1', autospec=True)
     @mock.patch('time.time', autospec=True)
     @mock.patch('shutil.copytree', autospec=True)
     def test_tht_deploy_with_ntp(self, mock_copy, mock_time,
                                  mock_uuid1,
-                                 mock_check_hypervisor_stats,
                                  mock_get_template_contents,
                                  mock_process_env,
                                  wait_for_stack_ready_mock,
@@ -1284,11 +1233,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_env = yaml.safe_dump({'environments': []})
         object_client.get_object.return_value = ({}, mock_env)
 
-        mock_check_hypervisor_stats.return_value = {
-            'count': 4,
-            'memory_mb': 4096,
-            'vcpus': 8,
-        }
         clients.network.api.find_attr.return_value = {
             "id": "network id"
         }
