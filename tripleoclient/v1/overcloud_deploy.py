@@ -225,6 +225,9 @@ class DeployOvercloud(command.Command):
             workflow_params.invoke_plan_env_workflows(self.clients,
                                                       stack_name,
                                                       plan_env_file)
+
+        workflow_params.check_deprecated_parameters(self.clients, stack_name)
+
         if not update_plan_only:
             print("Deploying templates in the directory {0}".format(
                 os.path.abspath(tht_root)))

@@ -411,6 +411,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         clients.tripleoclient.object_store.put_object.assert_called()
         self.assertTrue(mock_invoke_plan_env_wf.called)
 
+    @mock.patch('tripleoclient.workflows.parameters.'
+                'check_deprecated_parameters', autospec=True)
     @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig', autospec=True)
@@ -445,7 +447,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mock_create_tempest_deployer_input,
             mock_create_parameters_env, mock_validate_args,
             mock_breakpoints_cleanup, mock_tarball,
-            mock_postconfig, mock_get_overcloud_endpoint):
+            mock_postconfig, mock_get_overcloud_endpoint,
+            mock_deprecated_params):
 
         arglist = ['--templates', '--skip-deploy-identifier']
         verifylist = [
@@ -1286,6 +1289,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_validate_args.assert_called_once_with(parsed_args)
 
+    @mock.patch('tripleoclient.workflows.parameters.'
+                'check_deprecated_parameters', autospec=True)
     @mock.patch('tripleoclient.workflows.deployment.deploy_and_wait',
                 autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
@@ -1302,7 +1307,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                           mock_get_template_contents,
                                           mock_upload_missing_files,
                                           mock_process_and_upload_env,
-                                          mock_deploy_and_wait):
+                                          mock_deploy_and_wait,
+                                          mock_deprecated_params):
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
         mock_stack = fakes.create_tht_stack()
@@ -1323,6 +1329,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_relpath.return_value = './'
 
         mock_get_template_contents.return_value = [{}, {}]
+
+        self.cmd.clients = {}
 
         self.cmd._heat_deploy(mock_stack, 'mock_stack', '/tmp', {},
                               {}, 1, '/tmp', {}, True, False, False, None)
