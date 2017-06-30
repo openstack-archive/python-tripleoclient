@@ -27,7 +27,7 @@ def check_predeployment_validations(clients, **workflow_input):
     warnings = []
     with tripleoclients.messaging_websocket(queue_name) as ws:
         for payload in base.wait_for_messages(workflow_client, ws, execution):
-            if 'message' in payload:
+            if payload.get('message'):
                 print(payload['message'])
             if 'errors' in payload:
                 errors += payload['errors']
