@@ -237,8 +237,8 @@ class UploadOvercloudImage(command.Command):
             help=_("Path to directory containing image files"),
         )
         parser.add_argument(
-            "--os-image",
-            default=os.environ.get('OS_IMAGE', 'overcloud-full.qcow2'),
+            "--os-image-name",
+            default=os.environ.get('OS_IMAGE_NAME', 'overcloud-full.qcow2'),
             help=_("OpenStack disk image filename"),
         )
         parser.add_argument(
@@ -272,14 +272,14 @@ class UploadOvercloudImage(command.Command):
 
         if parsed_args.whole_disk:
             image_files = [
-                parsed_args.os_image
+                parsed_args.os_image_name
             ]
             overcloud_image_type = 'whole disk'
         else:
             image_files = [
                 '%s.initramfs' % os.environ['AGENT_NAME'],
                 '%s.kernel' % os.environ['AGENT_NAME'],
-                parsed_args.os_image
+                parsed_args.os_image_name
             ]
             overcloud_image_type = 'partition'
 
@@ -287,7 +287,7 @@ class UploadOvercloudImage(command.Command):
             self._check_file_exists(os.path.join(parsed_args.image_path,
                                                  image))
 
-        image_name = parsed_args.os_image.split('.')[0]
+        image_name = parsed_args.os_image_name.split('.')[0]
 
         self.log.debug("uploading %s overcloud images to glance" %
                        overcloud_image_type)
