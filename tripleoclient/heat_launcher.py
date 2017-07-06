@@ -14,10 +14,14 @@
 #
 from __future__ import print_function
 
+import logging
 import os
 import signal
 import subprocess
 import tempfile
+
+
+log = logging.getLogger(__name__)
 
 
 class HeatBaseLauncher(object):
@@ -105,23 +109,25 @@ class HeatDockerLauncher(HeatBaseLauncher):
                                                  container_image, user)
 
     def launch_heat(self):
-
-        subprocess.check_call(
-            ['docker', 'run',
-             '--name', 'heat_all',
-             '--user', self.user,
-             '--net', 'host',
-             '--volume', '%(conf)s:/etc/heat/heat.conf' % {'conf':
-                                                           self.config_file},
-             '--volume', '%(inst_tmp)s:%(inst_tmp)s:rw' % {'inst_tmp':
-                                                           self.install_tmp},
-             '--volume', '%(pfile)s:%(pfile)s:ro' % {'pfile':
-                                                     self.policy_file},
-             self.container_image, 'heat-all'])
+        cmd = [
+            'docker', 'run',
+            '--name', 'heat_all',
+            '--user', self.user,
+            '--net', 'host',
+            '--volume', '%(conf)s:/etc/heat/heat.conf' % {'conf':
+                                                          self.config_file},
+            '--volume', '%(inst_tmp)s:%(inst_tmp)s:rw' % {'inst_tmp':
+                                                          self.install_tmp},
+            '--volume', '%(pfile)s:%(pfile)s:ro' % {'pfile':
+                                                    self.policy_file},
+            self.container_image, 'heat-all'
+        ]
+        log.debug(' '.join(cmd))
+        subprocess.check_call(cmd)
 
     def heat_db_sync(self):
 
-        subprocess.check_call([
+        cmd = [
             'docker', 'run', '--rm',
             '--user', self.user,
             '--volume', '%(conf)s:/etc/heat/heat.conf' % {'conf':
@@ -129,26 +135,42 @@ class HeatDockerLauncher(HeatBaseLauncher):
             '--volume', '%(inst_tmp)s:%(inst_tmp)s:rw' % {'inst_tmp':
                                                           self.install_tmp},
             self.container_image,
-            'heat-manage', 'db_sync'])
+            'heat-manage', 'db_sync']
+        log.debug(' '.join(cmd))
+        subprocess.check_call(cmd)
 
     def get_heat_uid(self):
-        p = subprocess.Popen([
+        cmd = [
             'docker', 'run', '--rm',
             self.container_image,
-            'getent', 'passwd', '|', 'grep', self.user],
-            stdout=subprocess.PIPE)
-        return p.communicate()[0].rstrip().split(':')[2]
+            'getent', 'passwd'
+        ]
+        log.debug(' '.join(cmd))
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+        result = p.communicate()[0]
+        for line in result.split("\n"):
+            if line.startswith('%s:' % self.user):
+                return line.split(':')[2]
+        raise Exception('Could not find heat uid')
 
     def get_heat_gid(self):
-        p = subprocess.Popen([
+        cmd = [
             'docker', 'run', '--rm',
             self.container_image,
-            'getent', 'group', '|', 'grep', self.user],
-            stdout=subprocess.PIPE)
-        return p.communicate()[0].rstrip().split(':')[2]
+            'getent', 'group'
+        ]
+        log.debug(' '.join(cmd))
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+        result = p.communicate()[0]
+        for line in result.split("\n"):
+            if line.startswith('%s:' % self.user):
+                return line.split(':')[2]
+        raise Exception('Could not find heat gid')
 
     def kill_heat(self, pid):
-        subprocess.check_call(['docker', 'rm', '-f', 'heat_all'])
+        cmd = ['docker', 'rm', '-f', 'heat_all']
+        log.debug(' '.join(cmd))
+        subprocess.check_call(cmd)
 
 
 class HeatNativeLauncher(HeatBaseLauncher):
