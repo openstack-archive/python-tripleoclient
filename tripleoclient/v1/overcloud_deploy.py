@@ -694,6 +694,25 @@ class DeployOvercloud(command.Command):
                     "Error: The following files were not found: {0}".format(
                         ", ".join(nonexisting_envs)))
 
+        # Check if disable_upgrade_deployment is set once
+        self.log.debug("Checking that the disable_upgrade_deployment flag "
+                       "is set at least once in the roles file")
+        if parsed_args.roles_file:
+            roles_data = yaml.safe_load(open(parsed_args.roles_file).read())
+            disable_upgrade_deployment_set = False
+            for r in roles_data:
+                if r.get("disable_upgrade_deployment"):
+                    disable_upgrade_deployment_set = True
+                    break
+            if not disable_upgrade_deployment_set:
+                self.log.warning(
+                    "The disable_upgrade_deployment flag is not set in the "
+                    "roles file. This flag is expected when you have a "
+                    "nova-compute or swift-storage role. Please check the "
+                    "contents of the roles file: %s" % roles_data)
+                if parsed_args.validation_warnings_fatal:
+                    raise exceptions.InvalidConfiguration()
+
     def _get_default_role_counts(self, parsed_args):
 
         if parsed_args.roles_file:
