@@ -36,6 +36,10 @@ class DeploymentError(RuntimeError):
     """Deployment failed"""
 
 
+class PlanEnvWorkflowError(RuntimeError):
+    """Plan Environment workflow has failed"""
+
+
 class StackInProgress(RuntimeError):
     """Unable to deploy as the stack is busy"""
 
