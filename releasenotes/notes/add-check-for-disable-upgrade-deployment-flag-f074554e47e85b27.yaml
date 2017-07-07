@@ -1,0 +1,8 @@
+---
+upgrade:
+  - If the operator specifies a roles_data.yaml for the deployment or upgrade
+    this adds a check that the disable_upgrade_deployment flag is set at least
+    once in that file and otherwise logs a warning. If the
+    validation-warnings-fatal parameter is set to True (default is False) then
+    this check will also raise an InvalidConfiguration exception.
+
