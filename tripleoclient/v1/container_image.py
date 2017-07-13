@@ -14,10 +14,12 @@
 #
 
 import datetime
+import json
 import logging
 import os
 import re
 import sys
+import tempfile
 
 from osc_lib.command import command
 from osc_lib.i18n import _
@@ -62,6 +64,19 @@ class BuildImage(command.Command):
     auth_required = False
     log = logging.getLogger(__name__ + ".BuildImage")
 
+    @staticmethod
+    def images_from_deps(images, dep):
+        '''Builds a list from the dependencies depth-first. '''
+        if isinstance(dep, list):
+            for v in dep:
+                BuildImage.images_from_deps(images, v)
+        elif isinstance(dep, dict):
+            for k, v in dep.items():
+                images.append(k)
+                BuildImage.images_from_deps(images, v)
+        else:
+            images.append(dep)
+
     def get_parser(self, prog_name):
         parser = super(BuildImage, self).get_parser(prog_name)
         parser.add_argument(
@@ -87,12 +102,52 @@ class BuildImage(command.Command):
                    "can be specified, with values in later files taking "
                    "precedence."),
         )
+        parser.add_argument(
+            '--list-images',
+            dest='list_images',
+            action='store_true',
+            default=False,
+            help=_('Show the images which would be built instead of '
+                   'building them.')
+        )
+        parser.add_argument(
+            '--list-dependencies',
+            dest='list_dependencies',
+            action='store_true',
+            default=False,
+            help=_('Show the image build dependencies instead of '
+                   'building them.')
+        )
         return parser
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
-        builder = kolla_builder.KollaImageBuilder(parsed_args.config_files)
-        builder.build_images(parsed_args.kolla_config_files)
+
+        fd, path = tempfile.mkstemp(prefix='kolla_conf_')
+        with os.fdopen(fd, 'w') as tmp:
+            tmp.write('[DEFAULT]\n')
+            if parsed_args.list_images or parsed_args.list_dependencies:
+                tmp.write('list_dependencies=true')
+        kolla_config_files = list(parsed_args.kolla_config_files)
+        kolla_config_files.append(path)
+
+        try:
+            builder = kolla_builder.KollaImageBuilder(parsed_args.config_files)
+            result = builder.build_images(kolla_config_files)
+            if parsed_args.list_dependencies:
+                deps = json.loads(result)
+                yaml.safe_dump(deps, self.app.stdout, indent=2,
+                               default_flow_style=False)
+            elif parsed_args.list_images:
+                deps = json.loads(result)
+                images = []
+                BuildImage.images_from_deps(images, deps)
+                yaml.safe_dump(images, self.app.stdout,
+                               default_flow_style=False)
+            elif result:
+                self.app.stdout.write(result)
+        finally:
+            os.remove(path)
 
 
 class PrepareImageFiles(command.Command):
