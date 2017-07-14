@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    A new command "openstack overcloud config download" has been added which
+    enables download of the configuration data used by TripleO for debugging
+    or running outside the control of the overcloud heat stack.  Note that
+    running configuration tools outside of the heat stack experimental at this
+    stage and should be used with caution.
