@@ -21,6 +21,17 @@ from tripleoclient import exceptions
 from tripleoclient.workflows import parameters
 
 
+class TestStringCapture(object):
+    def __init__(self):
+        self.capture_string = ''
+
+    def write(self, msg):
+        self.capture_string = self.capture_string + msg
+
+    def getvalue(self):
+        return self.capture_string
+
+
 class TestParameterWorkflows(utils.TestCommand):
 
     def setUp(self):
@@ -149,3 +160,63 @@ class TestParameterWorkflows(utils.TestCommand):
                           'the-plan-environment.yaml')
 
         self.workflow.executions.create.assert_not_called()
+
+    def test_check_deprecated_params_no_output(self):
+        self.websocket.wait_for_messages.return_value = iter([{
+            "execution": {"id": "IDID"},
+            "status": "SUCCESS",
+        }])
+
+        parameters.check_deprecated_parameters(
+            self.app.client_manager,
+            container='container-name')
+
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.plan_management.v1.get_deprecated_parameters',
+            workflow_input={'queue_name': 'UUID4',
+                            'container': 'container-name'})
+
+    @mock.patch("sys.stdout", new_callable=TestStringCapture)
+    def test_check_deprecated_params_user_defined(self, mock_print):
+        deprecated_params = [{'parameter': 'TestParameter1',
+                              'deprecated': True,
+                              'user_defined': True}]
+        self.websocket.wait_for_messages.return_value = iter([{
+            "execution": {"id": "IDID"},
+            "status": "SUCCESS",
+            "deprecated": deprecated_params
+        }])
+
+        parameters.check_deprecated_parameters(
+            self.app.client_manager,
+            container='container-name')
+
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.plan_management.v1.get_deprecated_parameters',
+            workflow_input={'queue_name': 'UUID4',
+                            'container': 'container-name'})
+
+        std_output = mock_print.getvalue()
+        self.assertIn('TestParameter1', std_output)
+
+    @mock.patch("sys.stdout", new_callable=TestStringCapture)
+    def test_check_deprecated_params_user_not_defined(self, mock_print):
+        deprecated_params = [{'parameter': 'TestParameter1',
+                              'deprecated': True}]
+        self.websocket.wait_for_messages.return_value = iter([{
+            "execution": {"id": "IDID"},
+            "status": "SUCCESS",
+            "deprecated": deprecated_params
+        }])
+
+        parameters.check_deprecated_parameters(
+            self.app.client_manager,
+            container='container-name')
+
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.plan_management.v1.get_deprecated_parameters',
+            workflow_input={'queue_name': 'UUID4',
+                            'container': 'container-name'})
+
+        std_output = mock_print.getvalue()
+        self.assertNotIn('TestParameter1', std_output)

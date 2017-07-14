@@ -9,7 +9,6 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-
 import uuid
 import yaml
 
@@ -95,3 +94,37 @@ def invoke_plan_env_workflows(clients, stack_name, plan_env_file):
                 message = payload.get('message', '')
                 msg = ('Workflow execution is failed: %s' % (message))
                 raise exceptions.PlanEnvWorkflowError(msg)
+
+
+def check_deprecated_parameters(clients, container):
+    """Checks for deprecated parameters in plan and adds warning if present"""
+
+    workflow_client = clients.workflow_engine
+    tripleoclients = clients.tripleoclient
+    queue_name = str(uuid.uuid4())
+    workflow_input = {
+        'container': container,
+        'queue_name': queue_name
+    }
+
+    with tripleoclients.messaging_websocket(queue_name) as ws:
+        execution = base.start_workflow(
+            workflow_client,
+            'tripleo.plan_management.v1.get_deprecated_parameters',
+            workflow_input=workflow_input
+        )
+
+        messages = base.wait_for_messages(workflow_client, ws, execution, 60)
+
+        deprecated_params = []
+        for message in messages:
+            if message['status'] == 'SUCCESS':
+                for param in message.get('deprecated', []):
+                    if param.get('user_defined'):
+                        deprecated_params.append(param['parameter'])
+
+        if deprecated_params:
+            print('WARNING: Following parameters are deprecated and still '
+                  'defined. Deprecated parameters will be removed soon!')
+            print('\n'.join(['  {}'.format(param)
+                            for param in deprecated_params]))
