@@ -928,6 +928,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         # If this call does not raise an error, then call is validated
         self.cmd._validate_args(parsed_args)
 
+        self.assertEqual('', parsed_args.neutron_tunnel_types)
+
     def test_validate_args_tunneling_disabled_with_tunnel_types(self):
         arglist = ['--templates',
                    '--neutron-disable-tunneling',
@@ -940,8 +942,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
-        # If this call does not raise an error, then call is validated
-        self.cmd._validate_args(parsed_args)
+        self.assertRaises(oscexc.CommandError,
+                          self.cmd._validate_args,
+                          parsed_args)
 
     def test_validate_args_vlan_as_network_type_no_vlan_range(self):
         arglist = ['--templates',

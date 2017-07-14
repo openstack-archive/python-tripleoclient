@@ -681,6 +681,16 @@ class DeployOvercloud(command.Command):
         network_type = parsed_args.neutron_network_type
         tunnel_types = parsed_args.neutron_tunnel_types
         tunnel_disabled = parsed_args.neutron_disable_tunneling
+
+        # We are no longer able to disable tunneling via a heat parameter
+        # so the client must set an empty tunnel types value for
+        # NeutronTunnelTypes to get the desired behavior.
+        if tunnel_disabled:
+            if tunnel_types:
+                raise oscexc.CommandError("Cannot specify tunnel types when "
+                                          "disabling tunneling")
+            parsed_args.neutron_tunnel_types = ''
+
         neutron_network_vlan_ranges = parsed_args.neutron_network_vlan_ranges
         if network_type == 'vlan' and not neutron_network_vlan_ranges:
             raise oscexc.CommandError(
