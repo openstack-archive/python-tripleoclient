@@ -11,6 +11,7 @@
 #   under the License.
 
 import mock
+import stat
 
 from mock import call
 from osc_lib.tests import utils
@@ -29,12 +30,8 @@ class TestOvercloudConfig(utils.TestCommand):
         self.app.client_manager.orchestration = mock.Mock()
         self.workflow = self.app.client_manager.workflow_engine
 
-    @mock.patch('os.mkdir')
-    @mock.patch('six.moves.builtins.open')
     @mock.patch('tempfile.mkdtemp', autospec=True)
-    def test_overcloud_config_generate_config(self, mock_tmpdir,
-                                              mock_open, mock_mkdir):
-
+    def test_overcloud_config_generate_config(self, mock_tmpdir):
         arglist = ['--name', 'overcloud', '--config-dir', '/tmp']
         verifylist = [
             ('name', 'overcloud'),
@@ -44,36 +41,37 @@ class TestOvercloudConfig(utils.TestCommand):
                             'logging_sources', 'monitoring_subscriptions',
                             'service_config_settings',
                             'service_metadata_settings',
-                            'service_names', 'step_config',
+                            'service_names',
                             'upgrade_batch_tasks', 'upgrade_tasks']
         fake_role = [role for role in
                      fakes.FAKE_STACK['outputs'][0]['output_value']]
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
         orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
         mock_tmpdir.return_value = "/tmp/tht"
-        self.cmd.take_action(parsed_args)
-        expected_mkdir_calls = [call('/tmp/tht/%s' % r) for r in fake_role]
-        mock_mkdir.assert_has_calls(expected_mkdir_calls, any_order=True)
-        expected_calls = []
-        for config in config_type_list:
-            for role in fake_role:
-                if config == 'step_config':
-                    expected_calls += [call('/tmp/tht/%s/%s.pp' %
-                                            (role, config), 'w')]
-                else:
-                    expected_calls += [call('/tmp/tht/%s/%s.yaml' %
-                                            (role, config), 'w')]
-        mock_open.assert_has_calls(expected_calls, any_order=True)
+        with mock.patch('os.open') as open, \
+                mock.patch('os.fdopen'), mock.patch('os.mkdir') as mkdir:
+            self.cmd.take_action(parsed_args)
+            expected_mkdir_calls = [call('/tmp/tht/%s' % r,
+                                         stat.S_IRWXU) for r in fake_role]
+            mkdir.assert_has_calls(expected_mkdir_calls, any_order=True)
+            expected_calls = []
+            for config in config_type_list:
+                for role in fake_role:
+                    if config == 'step_config':
+                        expected_calls += [call('/tmp/tht/%s/%s.pp' %
+                                                (role, config), 65,
+                                                stat.S_IRUSR | stat.S_IWUSR)]
+                    else:
+                        expected_calls += [call('/tmp/tht/%s/%s.yaml' %
+                                                (role, config), 65,
+                                                stat.S_IRUSR | stat.S_IWUSR)]
+            open.assert_has_calls(expected_calls, any_order=True)
 
-    @mock.patch('os.mkdir')
-    @mock.patch('six.moves.builtins.open')
     @mock.patch('tempfile.mkdtemp', autospec=True)
-    def test_overcloud_config_one_config_type(self, mock_tmpdir,  mock_open,
-                                              mock_mkdir):
+    def test_overcloud_config_one_config_type(self, mock_tmpdir):
 
         arglist = ['--name', 'overcloud', '--config-dir', '/tmp',
                    '--config-type', ['config_settings']]
@@ -92,13 +90,17 @@ class TestOvercloudConfig(utils.TestCommand):
         orchestration_client = clients.orchestration
         orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
         mock_tmpdir.return_value = "/tmp/tht"
-        self.cmd.take_action(parsed_args)
-        expected_mkdir_calls = [call('/tmp/tht/%s' % r) for r in fake_role]
-        mock_mkdir.assert_has_calls(expected_mkdir_calls, any_order=True)
-        expected_calls = [call('/tmp/tht/%s/%s.yaml'
-                          % (r, expected_config_type), 'w')
-                          for r in fake_role]
-        mock_open.assert_has_calls(expected_calls, any_order=True)
+        with mock.patch('os.open') as open, \
+                mock.patch('os.fdopen'), mock.patch('os.mkdir') as mkdir:
+            self.cmd.take_action(parsed_args)
+            expected_mkdir_calls = [call('/tmp/tht/%s' % r,
+                                         stat.S_IRWXU) for r in fake_role]
+            mkdir.assert_has_calls(expected_mkdir_calls, any_order=True)
+            expected_calls = [call('/tmp/tht/%s/%s.yaml' %
+                                   (r, expected_config_type), 65,
+                                   stat.S_IRUSR | stat.S_IWUSR)
+                              for r in fake_role]
+            open.assert_has_calls(expected_calls, any_order=True)
 
     @mock.patch('os.mkdir')
     @mock.patch('six.moves.builtins.open')

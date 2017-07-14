@@ -64,7 +64,7 @@ class DownloadConfig(command.Command):
     def _mkdir(self, dirname):
         if not os.path.exists(dirname):
             try:
-                os.mkdir(dirname)
+                os.mkdir(dirname, 0o700)
             except OSError as e:
                 message = 'Failed to create: %s, error: %s' % (dirname,
                                                                str(e))
@@ -90,7 +90,9 @@ class DownloadConfig(command.Command):
             for config in parsed_args.config_type or role.keys():
                 if config == 'step_config':
                     filepath = os.path.join(role_path, 'step_config.pp')
-                    with open(filepath, 'w') as step_config:
+                    with os.fdopen(os.open(filepath,
+                                           os.O_WRONLY | os.O_CREAT, 0o600),
+                                   'w') as step_config:
                         step_config.write('\n'.join(step for step in
                                                     role[config]
                                                     if step is not None))
@@ -106,7 +108,9 @@ class DownloadConfig(command.Command):
                                                                       str(e))
                             raise KeyError(message)
                     filepath = os.path.join(role_path, '%s.yaml' % config)
-                    with open(filepath, 'w') as conf_file:
+                    with os.fdopen(os.open(filepath,
+                                           os.O_WRONLY | os.O_CREAT, 0o600),
+                                   'w') as conf_file:
                         yaml.safe_dump(data,
                                        conf_file,
                                        default_flow_style=False)
