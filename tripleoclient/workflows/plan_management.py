@@ -74,9 +74,7 @@ def create_default_plan(clients, **workflow_input):
             if 'message' in payload:
                 print(payload['message'])
 
-    if payload['status'] == 'SUCCESS':
-        print("Default plan created")
-    else:
+    if payload['status'] != 'SUCCESS':
         raise exceptions.WorkflowServiceError(
             'Exception creating plan: {}'.format(payload['message']))
 
@@ -105,12 +103,7 @@ def create_deployment_plan(clients, **workflow_input):
         clients, 'tripleo.plan_management.v1.create_deployment_plan',
         **workflow_input)
 
-    if payload['status'] == 'SUCCESS':
-        if 'use_default_templates' in workflow_input:
-            print("Default plan created")
-        else:
-            print("Plan created")
-    else:
+    if payload['status'] != 'SUCCESS':
         raise exceptions.WorkflowServiceError(
             'Exception creating plan: {}'.format(payload['message']))
 
@@ -132,9 +125,7 @@ def update_deployment_plan(clients, **workflow_input):
         clients, 'tripleo.plan_management.v1.update_deployment_plan',
         **workflow_input)
 
-    if payload['status'] == 'SUCCESS':
-        print("Plan updated")
-    else:
+    if payload['status'] != 'SUCCESS':
         raise exceptions.WorkflowServiceError(
             'Exception updating plan: {}'.format(payload['message']))
 
