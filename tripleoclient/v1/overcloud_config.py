@@ -12,6 +12,7 @@
 
 import logging
 import os
+import six
 import tempfile
 import yaml
 
@@ -47,12 +48,8 @@ class DownloadConfig(command.Command):
             '--config-type',
             dest='config_type',
             type=list,
-            default=['config_settings', 'global_config_settings',
-                     'logging_sources', 'monitoring_subscriptions',
-                     'service_config_settings', 'service_metadata_settings',
-                     'service_names', 'step_config', 'upgrade_batch_tasks',
-                     'upgrade_tasks'],
-            help=_('Type of object config to be extract from the deployment'),
+            help=_('Type of object config to be extract from the deployment, '
+                   'defaults to all keys available'),
         )
         return parser
 
@@ -69,7 +66,6 @@ class DownloadConfig(command.Command):
         clients = self.app.client_manager
 
         name = parsed_args.name
-        configs = parsed_args.config_type
         config_dir = parsed_args.config_dir
         if not os.path.exists(config_dir):
             try:
@@ -85,29 +81,29 @@ class DownloadConfig(command.Command):
         self.log.info("Generating configuration under the directory: "
                       "%s" % tmp_path)
         role_data = utils.get_role_data(stack)
-        for role in role_data:
-            for config in configs:
+        for role_name, role in six.iteritems(role_data):
+            for config in parsed_args.config_type or role.keys():
                 if 'step_config' in config:
-                        with open('%s/%s-%s.pp' % (tmp_path,
-                                                   config,
-                                                   role), 'w') as step_config:
+                        with open('%s/%s-%s.pp' %
+                                  (tmp_path, config, role_name),
+                                  'w') as step_config:
                             step_config.write('\n'.join(step for step in
-                                                        role_data[role][config]
+                                                        role[config]
                                                         if step is not None))
                 else:
                     if 'upgrade_tasks' in config:
-                        data = self._convert_playbook(role_data[role][config],
-                                                      role)
+                        data = self._convert_playbook(role[config],
+                                                      role_name)
                     else:
                         try:
-                            data = role_data[role][config]
+                            data = role[config]
                         except KeyError as e:
                             message = 'Invalide key: %s, error: %s' % (config,
                                                                        str(e))
                             raise KeyError(message)
                     with open('%s/%s-%s.yaml' % (tmp_path,
                                                  config,
-                                                 role), 'w') as conf_file:
+                                                 role_name), 'w') as conf_file:
                         yaml.safe_dump(data,
                                        conf_file,
                                        default_flow_style=False)
