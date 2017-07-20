@@ -54,6 +54,12 @@ class DownloadConfig(command.Command):
         )
         return parser
 
+    @staticmethod
+    def _open_file(path):
+        return os.fdopen(os.open(path,
+                                 os.O_WRONLY | os.O_CREAT, 0o600),
+                         'w')
+
     def _step_tags_to_when(self, sorted_tasks):
         for task in sorted_tasks:
             tag = task.get('tags', '')
@@ -76,8 +82,7 @@ class DownloadConfig(command.Command):
         playbook.append({'name': '%s playbook' % role,
                          'hosts': role,
                          'tasks': sorted_tasks})
-        with os.fdopen(os.open(filepath, os.O_WRONLY | os.O_CREAT, 0o600),
-                       'w') as conf_file:
+        with self._open_file(filepath) as conf_file:
             yaml.safe_dump(playbook, conf_file, default_flow_style=False)
         return sorted_tasks
 
@@ -110,9 +115,7 @@ class DownloadConfig(command.Command):
             for config in parsed_args.config_type or role.keys():
                 if config == 'step_config':
                     filepath = os.path.join(role_path, 'step_config.pp')
-                    with os.fdopen(os.open(filepath,
-                                           os.O_WRONLY | os.O_CREAT, 0o600),
-                                   'w') as step_config:
+                    with self._open_file(filepath) as step_config:
                         step_config.write('\n'.join(step for step in
                                                     role[config]
                                                     if step is not None))
@@ -130,11 +133,14 @@ class DownloadConfig(command.Command):
                                                                       str(e))
                             raise KeyError(message)
                     filepath = os.path.join(role_path, '%s.yaml' % config)
-                    with os.fdopen(os.open(filepath,
-                                           os.O_WRONLY | os.O_CREAT, 0o600),
-                                   'w') as conf_file:
+                    with self._open_file(filepath) as conf_file:
                         yaml.safe_dump(data,
                                        conf_file,
                                        default_flow_style=False)
+        role_config = utils.get_role_config(stack)
+        for config_name, config in six.iteritems(role_config):
+            conf_path = os.path.join(tmp_path, config_name + ".yaml")
+            with self._open_file(conf_path) as conf_file:
+                conf_file.write(config)
         print("The TripleO configuration has been successfully generated "
               "into: {0}".format(tmp_path))
