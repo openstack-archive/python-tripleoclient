@@ -61,19 +61,22 @@ class DownloadConfig(command.Command):
                          'tasks': sorted_tasks})
         return playbook
 
+    def _mkdir(self, dirname):
+        if not os.path.exists(dirname):
+            try:
+                os.mkdir(dirname)
+            except OSError as e:
+                message = 'Failed to create: %s, error: %s' % (dirname,
+                                                               str(e))
+                raise OSError(message)
+
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
         clients = self.app.client_manager
 
         name = parsed_args.name
         config_dir = parsed_args.config_dir
-        if not os.path.exists(config_dir):
-            try:
-                os.mkdir(config_dir)
-            except OSError as e:
-                message = 'Failed to create: %s, error: %s' % (config_dir,
-                                                               str(e))
-                raise OSError(message)
+        self._mkdir(config_dir)
         stack = utils.get_stack(clients.orchestration, name)
         tmp_path = tempfile.mkdtemp(prefix='tripleo-',
                                     suffix='-config',
@@ -82,14 +85,15 @@ class DownloadConfig(command.Command):
                       "%s" % tmp_path)
         role_data = utils.get_role_data(stack)
         for role_name, role in six.iteritems(role_data):
+            role_path = os.path.join(tmp_path, role_name)
+            self._mkdir(role_path)
             for config in parsed_args.config_type or role.keys():
-                if 'step_config' in config:
-                        with open('%s/%s-%s.pp' %
-                                  (tmp_path, config, role_name),
-                                  'w') as step_config:
-                            step_config.write('\n'.join(step for step in
-                                                        role[config]
-                                                        if step is not None))
+                if config == 'step_config':
+                    filepath = os.path.join(role_path, 'step_config.pp')
+                    with open(filepath, 'w') as step_config:
+                        step_config.write('\n'.join(step for step in
+                                                    role[config]
+                                                    if step is not None))
                 else:
                     if 'upgrade_tasks' in config:
                         data = self._convert_playbook(role[config],
@@ -98,12 +102,11 @@ class DownloadConfig(command.Command):
                         try:
                             data = role[config]
                         except KeyError as e:
-                            message = 'Invalide key: %s, error: %s' % (config,
-                                                                       str(e))
+                            message = 'Invalid key: %s, error: %s' % (config,
+                                                                      str(e))
                             raise KeyError(message)
-                    with open('%s/%s-%s.yaml' % (tmp_path,
-                                                 config,
-                                                 role_name), 'w') as conf_file:
+                    filepath = os.path.join(role_path, '%s.yaml' % config)
+                    with open(filepath, 'w') as conf_file:
                         yaml.safe_dump(data,
                                        conf_file,
                                        default_flow_style=False)

@@ -29,9 +29,11 @@ class TestOvercloudConfig(utils.TestCommand):
         self.app.client_manager.orchestration = mock.Mock()
         self.workflow = self.app.client_manager.workflow_engine
 
+    @mock.patch('os.mkdir')
     @mock.patch('six.moves.builtins.open')
     @mock.patch('tempfile.mkdtemp', autospec=True)
-    def test_overcloud_config_generate_config(self, mock_tmpdir,  mock_open):
+    def test_overcloud_config_generate_config(self, mock_tmpdir,
+                                              mock_open, mock_mkdir):
 
         arglist = ['--name', 'overcloud', '--config-dir', '/tmp']
         verifylist = [
@@ -54,19 +56,24 @@ class TestOvercloudConfig(utils.TestCommand):
         orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
         mock_tmpdir.return_value = "/tmp/tht"
         self.cmd.take_action(parsed_args)
+        expected_mkdir_calls = [call('/tmp/tht/%s' % r) for r in fake_role]
+        mock_mkdir.assert_has_calls(expected_mkdir_calls, any_order=True)
+        expected_calls = []
         for config in config_type_list:
             for role in fake_role:
-                if 'step_config' in config:
-                    expected_calls = [call('/tmp/tht/%s-%s.pp' %
-                                           (config, role), 'w')]
+                if config == 'step_config':
+                    expected_calls += [call('/tmp/tht/%s/%s.pp' %
+                                            (role, config), 'w')]
                 else:
-                    expected_calls = [call('/tmp/tht/%s-%s.yaml' %
-                                           (config, role), 'w')]
-                mock_open.assert_has_calls(expected_calls, any_order=True)
+                    expected_calls += [call('/tmp/tht/%s/%s.yaml' %
+                                            (role, config), 'w')]
+        mock_open.assert_has_calls(expected_calls, any_order=True)
 
+    @mock.patch('os.mkdir')
     @mock.patch('six.moves.builtins.open')
     @mock.patch('tempfile.mkdtemp', autospec=True)
-    def test_overcloud_config_one_config_type(self, mock_tmpdir,  mock_open):
+    def test_overcloud_config_one_config_type(self, mock_tmpdir,  mock_open,
+                                              mock_mkdir):
 
         arglist = ['--name', 'overcloud', '--config-dir', '/tmp',
                    '--config-type', ['config_settings']]
@@ -75,12 +82,6 @@ class TestOvercloudConfig(utils.TestCommand):
             ('config_dir', '/tmp'),
             ('config_type', ['config_settings'])
         ]
-        config_type_list = ['config_settings', 'global_config_settings',
-                            'logging_sources', 'monitoring_subscriptions',
-                            'service_config_settings',
-                            'service_metadata_settings',
-                            'service_names', 'step_config',
-                            'upgrade_batch_tasks', 'upgrade_tasks']
         expected_config_type = 'config_settings'
         fake_role = [role for role in
                      fakes.FAKE_STACK['outputs'][0]['output_value']]
@@ -92,25 +93,18 @@ class TestOvercloudConfig(utils.TestCommand):
         orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
         mock_tmpdir.return_value = "/tmp/tht"
         self.cmd.take_action(parsed_args)
-        for config in config_type_list:
-            if config == expected_config_type:
-                for role in fake_role:
-                    expected_calls = [call('/tmp/tht/%s-%s.yaml'
-                                           % (config, role), 'w')]
-                    mock_open.assert_has_calls(expected_calls, any_order=True)
-            else:
-                for role in fake_role:
-                    unexpected_calls = [call('/tmp/tht/%s-%s.yaml'
-                                             % (config, role), 'w')]
-                    try:
-                        mock_open.assert_has_calls(unexpected_calls,
-                                                   any_order=True)
-                    except AssertionError:
-                        pass
+        expected_mkdir_calls = [call('/tmp/tht/%s' % r) for r in fake_role]
+        mock_mkdir.assert_has_calls(expected_mkdir_calls, any_order=True)
+        expected_calls = [call('/tmp/tht/%s/%s.yaml'
+                          % (r, expected_config_type), 'w')
+                          for r in fake_role]
+        mock_open.assert_has_calls(expected_calls, any_order=True)
 
+    @mock.patch('os.mkdir')
     @mock.patch('six.moves.builtins.open')
     @mock.patch('tempfile.mkdtemp', autospec=True)
-    def test_overcloud_config_wrong_config_type(self, mock_tmpdir, mock_open):
+    def test_overcloud_config_wrong_config_type(self, mock_tmpdir,
+                                                mock_open, mock_mkdir):
 
         arglist = [
             '--name', 'overcloud',
@@ -123,6 +117,7 @@ class TestOvercloudConfig(utils.TestCommand):
         ]
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         clients = self.app.client_manager
+        mock_tmpdir.return_value = "/tmp/tht"
         orchestration_client = clients.orchestration
         orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
         self.assertRaises(
@@ -130,10 +125,12 @@ class TestOvercloudConfig(utils.TestCommand):
             self.cmd.take_action, parsed_args)
 
     @mock.patch('tripleoclient.utils.get_role_data', autospec=True)
+    @mock.patch('os.mkdir')
     @mock.patch('six.moves.builtins.open')
     @mock.patch('tempfile.mkdtemp', autospec=True)
     def test_overcloud_config_upgrade_tasks(self, mock_tmpdir,
                                             mock_open,
+                                            mock_mkdir,
                                             mock_get_role_data):
 
         clients = self.app.client_manager
