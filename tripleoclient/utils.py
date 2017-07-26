@@ -101,19 +101,15 @@ def create_tempest_deployer_input(config_name='tempest-deployer-input.conf'):
                     'volume', 'volume-feature-enabled'):
         config.add_section(section)
 
-    # Roles to assign to all users created by tempest (list value)
-    # It should be the set of roles which allows an user to use all services
-    config.set('auth', 'tempest_roles', 'swiftoperator')
+    # Dynamic credentials means tempest will create the required credentials if
+    # a test requires a new account to work, tempest will create one just for
+    # that test
+    config.set('auth', 'use_dynamic_credentials', 'true')
 
     # Does the test environment support obtaining instance serial console
     # output? (default: true)
     # set in [nova.serial_console]->enabled
     config.set('compute-feature-enabled', 'console_output', 'false')
-
-    # Role to add to users created for swift tests to enable creating
-    # containers (default: 'Member')
-    # keystone role-list returns this role
-    config.set('object-storage', 'operator_role', 'swiftoperator')
 
     # Role required for users to be able to manage stacks
     # (default: 'heat_stack_owner')
