@@ -639,3 +639,100 @@ class TestConfigureNode(fakes.TestOvercloudNode):
             'tripleo.baremetal.v1.configure',
             workflow_input=self.workflow_input
         )
+
+
+class TestDiscoverNode(fakes.TestOvercloudNode):
+
+    def setUp(self):
+        super(TestDiscoverNode, self).setUp()
+
+        self.workflow = self.app.client_manager.workflow_engine
+        client = self.app.client_manager.tripleoclient
+        self.websocket = client.messaging_websocket()
+
+        self.cmd = overcloud_node.DiscoverNode(self.app, None)
+
+        self.websocket.wait_for_messages.return_value = [{
+            "status": "SUCCESS",
+            "message": "Success",
+            "registered_nodes": [{
+                "uuid": "MOCK_NODE_UUID"
+            }]
+        }]
+
+    def test_with_ip_range(self):
+        argslist = ['--range', '10.0.0.0/24',
+                    '--credentials', 'admin:password']
+        verifylist = [('ip_addresses', '10.0.0.0/24'),
+                      ('credentials', ['admin:password'])]
+
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+        self.cmd.take_action(parsed_args)
+
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.baremetal.v1.discover_and_enroll_nodes',
+            workflow_input={'ip_addresses': '10.0.0.0/24',
+                            'credentials': [['admin', 'password']],
+                            'queue_name': mock.ANY,
+                            'kernel_name': 'bm-deploy-kernel',
+                            'ramdisk_name': 'bm-deploy-ramdisk',
+                            'instance_boot_option': 'local'}
+        )
+
+    def test_with_address_list(self):
+        argslist = ['--ip', '10.0.0.1', '--ip', '10.0.0.2',
+                    '--credentials', 'admin:password']
+        verifylist = [('ip_addresses', ['10.0.0.1', '10.0.0.2']),
+                      ('credentials', ['admin:password'])]
+
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+        self.cmd.take_action(parsed_args)
+
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.baremetal.v1.discover_and_enroll_nodes',
+            workflow_input={'ip_addresses': ['10.0.0.1', '10.0.0.2'],
+                            'credentials': [['admin', 'password']],
+                            'queue_name': mock.ANY,
+                            'kernel_name': 'bm-deploy-kernel',
+                            'ramdisk_name': 'bm-deploy-ramdisk',
+                            'instance_boot_option': 'local'}
+        )
+
+    def test_with_all_options(self):
+        argslist = ['--range', '10.0.0.0/24',
+                    '--credentials', 'admin:password',
+                    '--credentials', 'admin2:password2',
+                    '--port', '623', '--port', '6230',
+                    '--introspect', '--provide', '--run-validations',
+                    '--no-deploy-image', '--instance-boot-option', 'netboot']
+        verifylist = [('ip_addresses', '10.0.0.0/24'),
+                      ('credentials', ['admin:password', 'admin2:password2']),
+                      ('port', [623, 6230]),
+                      ('introspect', True),
+                      ('run_validations', True),
+                      ('provide', True),
+                      ('no_deploy_image', True),
+                      ('instance_boot_option', 'netboot')]
+
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+        self.cmd.take_action(parsed_args)
+
+        workflows_calls = [
+            mock.call('tripleo.baremetal.v1.discover_and_enroll_nodes',
+                      workflow_input={'ip_addresses': '10.0.0.0/24',
+                                      'credentials': [['admin', 'password'],
+                                                      ['admin2', 'password2']],
+                                      'ports': [623, 6230],
+                                      'queue_name': mock.ANY,
+                                      'kernel_name': None,
+                                      'ramdisk_name': None,
+                                      'instance_boot_option': 'netboot'}),
+            mock.call('tripleo.baremetal.v1.introspect',
+                      workflow_input={'node_uuids': ['MOCK_NODE_UUID'],
+                                      'run_validations': True,
+                                      'queue_name': mock.ANY}),
+            mock.call('tripleo.baremetal.v1.provide',
+                      workflow_input={'node_uuids': ['MOCK_NODE_UUID'],
+                                      'queue_name': mock.ANY}),
+        ]
+        self.workflow.executions.create.assert_has_calls(workflows_calls)

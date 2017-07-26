@@ -316,3 +316,83 @@ class ConfigureNode(command.Command):
                 overwrite_root_device_hints=(
                     parsed_args.overwrite_root_device_hints)
             )
+
+
+class DiscoverNode(command.Command):
+    """Discover overcloud nodes by polling their BMCs."""
+
+    log = logging.getLogger(__name__ + ".DiscoverNode")
+
+    def get_parser(self, prog_name):
+        parser = super(DiscoverNode, self).get_parser(prog_name)
+        ip_group = parser.add_mutually_exclusive_group(required=True)
+        ip_group.add_argument('--ip', action='append',
+                              dest='ip_addresses', metavar='<ips>',
+                              help=_('IP address(es) to probe'))
+        ip_group.add_argument('--range', dest='ip_addresses',
+                              metavar='<range>', help=_('IP range to probe'))
+        parser.add_argument('--credentials', metavar='<key:value>',
+                            action='append', required=True,
+                            help=_('Key/value pairs of possible credentials'))
+        parser.add_argument('--port', action='append', metavar='<ports>',
+                            type=int, help=_('BMC port(s) to probe'))
+        parser.add_argument('--introspect', action='store_true',
+                            help=_('Introspect the imported nodes'))
+        parser.add_argument('--run-validations', action='store_true',
+                            default=False,
+                            help=_('Run the pre-deployment validations. These '
+                                   'external validations are from the TripleO '
+                                   'Validations project.'))
+        parser.add_argument('--provide', action='store_true',
+                            help=_('Provide (make available) the nodes'))
+        parser.add_argument('--no-deploy-image', action='store_true',
+                            help=_('Skip setting the deploy kernel and '
+                                   'ramdisk.'))
+        parser.add_argument('--instance-boot-option',
+                            choices=['local', 'netboot'], default='local',
+                            help=_('Whether to set instances for booting from '
+                                   'local hard drive (local) or network '
+                                   '(netboot).'))
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)" % parsed_args)
+
+        queue_name = str(uuid.uuid4())
+
+        if parsed_args.no_deploy_image:
+            deploy_kernel = None
+            deploy_ramdisk = None
+        else:
+            deploy_kernel = 'bm-deploy-kernel'
+            deploy_ramdisk = 'bm-deploy-ramdisk'
+
+        credentials = [list(x.split(':', 1)) for x in parsed_args.credentials]
+        kwargs = {}
+        # Leave it up to the workflow to figure out the defaults
+        if parsed_args.port:
+            kwargs['ports'] = parsed_args.port
+
+        nodes = baremetal.discover_and_enroll(
+            self.app.client_manager,
+            ip_addresses=parsed_args.ip_addresses,
+            credentials=credentials,
+            queue_name=queue_name,
+            kernel_name=deploy_kernel,
+            ramdisk_name=deploy_ramdisk,
+            instance_boot_option=parsed_args.instance_boot_option,
+            **kwargs
+        )
+
+        nodes_uuids = [node['uuid'] for node in nodes]
+
+        if parsed_args.introspect:
+            baremetal.introspect(self.app.client_manager,
+                                 node_uuids=nodes_uuids,
+                                 run_validations=parsed_args.run_validations,
+                                 queue_name=queue_name)
+
+        if parsed_args.provide:
+            baremetal.provide(self.app.client_manager,
+                              node_uuids=nodes_uuids,
+                              queue_name=queue_name)
