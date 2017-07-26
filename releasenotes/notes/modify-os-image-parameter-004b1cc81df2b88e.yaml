@@ -1,0 +1,6 @@
+---
+features:
+  - Added new os-image-name parameter, that replaces
+    os-image one, because it was conflicting with
+    glance parameter naming, causing os-image to
+    don't work properly.
