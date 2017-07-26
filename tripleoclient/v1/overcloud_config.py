@@ -12,15 +12,11 @@
 
 import logging
 import os
-import re
-import six
-import tempfile
-import yaml
 
 from osc_lib.command import command
 from osc_lib.i18n import _
 
-from tripleoclient import utils
+from tripleo_common.utils import config as ooo_config
 
 
 class DownloadConfig(command.Command):
@@ -49,107 +45,20 @@ class DownloadConfig(command.Command):
             '--config-type',
             dest='config_type',
             type=list,
+            default=None,
             help=_('Type of object config to be extract from the deployment, '
                    'defaults to all keys available'),
         )
         return parser
 
-    @staticmethod
-    def _open_file(path):
-        return os.fdopen(os.open(path,
-                                 os.O_WRONLY | os.O_CREAT, 0o600),
-                         'w')
-
-    def _step_tags_to_when(self, sorted_tasks):
-        for task in sorted_tasks:
-            tag = task.get('tags', '')
-            match = re.search('step([0-9]+)', tag)
-            if match:
-                step = match.group(1)
-                whenexpr = task.get('when', None)
-                if whenexpr:
-                    # Handle when: foo and a list of when conditionals
-                    if not isinstance(whenexpr, list):
-                        whenexpr = [whenexpr]
-                    for w in whenexpr:
-                        when_exists = re.search('step|int == [0-9]', w)
-                        if when_exists:
-                            break
-                    if when_exists:
-                        # Skip to the next task,
-                        # there is an existing 'step|int == N'
-                        continue
-                    whenexpr.append("step|int == %s" % step)
-                    task['when'] = whenexpr
-                else:
-                    task.update({"when": "step|int == %s" % step})
-
-    def _write_playbook_get_tasks(self, tasks, role, filepath):
-        playbook = []
-        sorted_tasks = sorted(tasks, key=lambda x: x.get('tags', None))
-        self._step_tags_to_when(sorted_tasks)
-        playbook.append({'name': '%s playbook' % role,
-                         'hosts': role,
-                         'tasks': sorted_tasks})
-        with self._open_file(filepath) as conf_file:
-            yaml.safe_dump(playbook, conf_file, default_flow_style=False)
-        return sorted_tasks
-
-    def _mkdir(self, dirname):
-        if not os.path.exists(dirname):
-            try:
-                os.mkdir(dirname, 0o700)
-            except OSError as e:
-                message = 'Failed to create: %s, error: %s' % (dirname,
-                                                               str(e))
-                raise OSError(message)
-
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+        # Get clients
         clients = self.app.client_manager
 
         name = parsed_args.name
         config_dir = parsed_args.config_dir
-        self._mkdir(config_dir)
-        stack = utils.get_stack(clients.orchestration, name)
-        tmp_path = tempfile.mkdtemp(prefix='tripleo-',
-                                    suffix='-config',
-                                    dir=config_dir)
-        self.log.info("Generating configuration under the directory: "
-                      "%s" % tmp_path)
-        role_data = utils.get_role_data(stack)
-        for role_name, role in six.iteritems(role_data):
-            role_path = os.path.join(tmp_path, role_name)
-            self._mkdir(role_path)
-            for config in parsed_args.config_type or role.keys():
-                if config == 'step_config':
-                    filepath = os.path.join(role_path, 'step_config.pp')
-                    with self._open_file(filepath) as step_config:
-                        step_config.write('\n'.join(step for step in
-                                                    role[config]
-                                                    if step is not None))
-                else:
-                    if 'upgrade_tasks' in config:
-                        filepath = os.path.join(role_path, '%s_playbook.yaml' %
-                                                config)
-                        data = self._write_playbook_get_tasks(
-                            role[config], role_name, filepath)
-                    else:
-                        try:
-                            data = role[config]
-                        except KeyError as e:
-                            message = 'Invalid key: %s, error: %s' % (config,
-                                                                      str(e))
-                            raise KeyError(message)
-                    filepath = os.path.join(role_path, '%s.yaml' % config)
-                    with self._open_file(filepath) as conf_file:
-                        yaml.safe_dump(data,
-                                       conf_file,
-                                       default_flow_style=False)
-        role_config = utils.get_role_config(stack)
-        for config_name, config in six.iteritems(role_config):
-            conf_path = os.path.join(tmp_path, config_name + ".yaml")
-            with self._open_file(conf_path) as conf_file:
-                conf_file.write(config)
-        print("The TripleO configuration has been successfully generated "
-              "into: {0}".format(tmp_path))
+        config_type = parsed_args.config_type
+        # Get config
+        config = ooo_config.Config(clients.orchestration)
+        return config.download_config(name, config_dir, config_type)

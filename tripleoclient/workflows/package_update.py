@@ -12,11 +12,13 @@
 from __future__ import print_function
 
 import pprint
-import uuid
+import time
 
-from tripleo_common import update as update_common
+from heatclient.common import event_utils
+from openstackclient import shell
+from tripleoclient import exceptions
+from tripleoclient import utils
 
-from tripleoclient import utils as oooutils
 from tripleoclient.workflows import base
 
 
@@ -24,6 +26,7 @@ def update(clients, **workflow_input):
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
     queue_name = workflow_input['queue_name']
+    plan_name = workflow_input['container']
 
     with tripleoclients.messaging_websocket(queue_name) as ws:
         execution = base.start_workflow(
@@ -35,48 +38,31 @@ def update(clients, **workflow_input):
         for payload in base.wait_for_messages(workflow_client, ws, execution):
             assert payload['status'] == "SUCCESS", pprint.pformat(payload)
 
+    orchestration_client = clients.orchestration
 
-def update_and_wait(log, clients, stack, plan_name, verbose_level,
-                    timeout=None):
-    """Start the update and wait for it to give breakpoints or finish"""
+    events = event_utils.get_events(orchestration_client,
+                                    stack_id=plan_name,
+                                    event_args={'sort_dir': 'desc',
+                                                'limit': 1})
+    marker = events[0].id if events else None
 
-    log.info("Performing Heat stack update")
-    queue_name = str(uuid.uuid4())
-
-    workflow_input = {
-        "container": plan_name,
-        "queue_name": queue_name,
-    }
-
-    if timeout is not None:
-        workflow_input['timeout'] = timeout
-
-    update(clients, **workflow_input)
-
-    update_manager = update_common.PackageUpdateManager(
-        heatclient=clients.orchestration,
-        novaclient=clients.compute,
-        stack_id=plan_name,
-        stack_fields={})
-
-    update_manager.do_interactive_update()
-
-    stack = oooutils.get_stack(clients.orchestration,
-                               plan_name)
-
-    return stack.status
+    time.sleep(10)
+    create_result = utils.wait_for_stack_ready(
+        orchestration_client, plan_name, marker, 'UPDATE', 1)
+    if not create_result:
+        shell.OpenStackShell().run(["stack", "failures", "list", plan_name])
+        raise exceptions.DeploymentError("Heat Stack update failed.")
 
 
-def clear_breakpoints(clients, **workflow_input):
+def update_ansible(clients, **workflow_input):
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
-    workflow_input['queue_name'] = str(uuid.uuid4())
     queue_name = workflow_input['queue_name']
 
     with tripleoclients.messaging_websocket(queue_name) as ws:
         execution = base.start_workflow(
             workflow_client,
-            'tripleo.package_update.v1.clear_breakpoints',
+            'tripleo.package_update.v1.update_nodes',
             workflow_input=workflow_input
         )
 

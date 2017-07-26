@@ -14,11 +14,13 @@
 #
 
 import logging
+import os
 import uuid
+import yaml
 
 from osc_lib.command import command
 from osc_lib.i18n import _
-from osc_lib import utils
+from oslo_concurrency import processutils
 
 from tripleoclient import constants
 from tripleoclient import exceptions
@@ -33,36 +35,54 @@ class UpdateOvercloud(command.Command):
 
     def get_parser(self, prog_name):
         parser = super(UpdateOvercloud, self).get_parser(prog_name)
-        parser.add_argument('stack', nargs='?',
+        parser.add_argument('--stack',
+                            nargs='?',
+                            dest='stack',
                             help=_('Name or ID of heat stack to scale '
                                    '(default=Env: OVERCLOUD_STACK_NAME)'),
-                            default=utils.env('OVERCLOUD_STACK_NAME'))
-        parser.add_argument(
-            '--templates', nargs='?', const=constants.TRIPLEO_HEAT_TEMPLATES,
-            help=_("The directory containing the Heat templates to deploy. "
-                   "This argument is deprecated. The command now utilizes "
-                   "a deployment plan, which should be updated prior to "
-                   "running this command, should that be required. Otherwise "
-                   "this argument will be silently ignored."),
-        )
-        parser.add_argument('-i', '--interactive', dest='interactive',
-                            action='store_true')
-        parser.add_argument(
-            '-e', '--environment-file', metavar='<HEAT ENVIRONMENT FILE>',
-            action='append', dest='environment_files',
-            help=_("Environment files to be passed to the heat stack-create "
-                   "or heat stack-update command. (Can be specified more than "
-                   "once.) This argument is deprecated. The command now "
-                   "utilizes a deployment plan, which should be updated prior "
-                   "to running this command, should that be required. "
-                   "Otherwise this argument will be silently ignored."),
-        )
-        parser.add_argument(
-            '--answers-file',
-            help=_('Path to a YAML file with arguments and parameters. '
-                   'DEPRECATED. Not necessary when used with a plan. Will '
-                   'be silently ignored, and removed in the "P" release.')
-        )
+                            default='overcloud'
+                            )
+        parser.add_argument('--templates',
+                            nargs='?',
+                            default=constants.TRIPLEO_HEAT_TEMPLATES,
+                            help=_("The directory containing the Heat"
+                                   "templates to deploy. "),
+                            )
+        parser.add_argument('--init-minor-update',
+                            dest='init_minor_update',
+                            action='store_true',
+                            help=_("Init the minor update heat config output."
+                                   "Needs to be run only once"),
+                            )
+        parser.add_argument('--container-registry-file',
+                            dest='container_registry_file',
+                            default=None,
+                            help=_("File which contains the container "
+                                   "registry data for the update"),
+                            )
+        parser.add_argument('--nodes',
+                            action="store",
+                            default=None,
+                            help=_('Nodes to update.')
+                            )
+        parser.add_argument('--playbook',
+                            action="store",
+                            default="update_steps_playbook.yaml",
+                            help=_('Playbook to use for update')
+                            )
+        parser.add_argument('--generate-inventory',
+                            dest='generate_inventory',
+                            action='store_true',
+                            default=True,
+                            help=_("Generate inventory for the ansible "
+                                   "playbook"),
+                            )
+        parser.add_argument('--static-inventory',
+                            dest='static_inventory',
+                            action="store",
+                            default='tripleo-hosts-inventory',
+                            help=_('Path to the static inventory to use')
+                            )
         return parser
 
     def take_action(self, parsed_args):
@@ -73,47 +93,47 @@ class UpdateOvercloud(command.Command):
                                    parsed_args.stack)
 
         stack_name = stack.stack_name
-        if parsed_args.interactive:
-            timeout = 0
+        container_registry = parsed_args.container_registry_file
 
-            status = package_update.update_and_wait(
-                self.log, clients, stack, stack_name,
-                self.app_args.verbose_level, timeout)
-            if status not in ['COMPLETE']:
-                raise exceptions.DeploymentError("Package update failed.")
-        else:
+        if parsed_args.init_minor_update:
+            # Update the container registry:
+            if container_registry:
+                with open(os.path.abspath(container_registry)) as content:
+                    registry = yaml.load(content.read())
+            else:
+                raise exceptions.InvalidConfiguration(
+                    "You need to provide a container registry file in order "
+                    "to update your current containers deployed.")
+            # Execute minor update
             package_update.update(clients, container=stack_name,
+                                  container_registry=registry,
                                   queue_name=str(uuid.uuid4()))
-            print("Package update on stack {0} initiated.".format(
-                parsed_args.stack))
 
-
-class ClearBreakpointsOvercloud(command.Command):
-    """Clears a set of breakpoints on a currently updating overcloud"""
-
-    log = logging.getLogger(__name__ + ".ClearBreakpointsOvercloud")
-
-    def get_parser(self, prog_name):
-        parser = super(ClearBreakpointsOvercloud, self).get_parser(prog_name)
-        parser.add_argument('stack', nargs='?',
-                            help=_('Name or ID of heat stack to clear a '
-                                   'breakpoint or set of breakpoints '
-                                   '(default=Env: OVERCLOUD_STACK_NAME)'),
-                            default=utils.env('OVERCLOUD_STACK_NAME'))
-        parser.add_argument('--ref',
-                            action='append',
-                            dest='refs',
-                            help=_('Breakpoint to clear'))
-
-        return parser
-
-    def take_action(self, parsed_args):
-        self.log.debug("take_action(%s)" % parsed_args)
-        clients = self.app.client_manager
-
-        heat = clients.orchestration
-
-        stack = oooutils.get_stack(heat, parsed_args.stack)
-
-        package_update.clear_breakpoints(clients, stack_id=stack.id,
-                                         refs=parsed_args.refs)
+            print("Minor update init on stack {0} complete.".format(
+                  parsed_args.stack))
+        # Run ansible:
+        nodes = parsed_args.nodes
+        playbook = parsed_args.playbook
+        if nodes is not None:
+            inventory_path = '%s/%s' % (os.path.expanduser('~'),
+                                        parsed_args.static_inventory)
+            if parsed_args.generate_inventory:
+                try:
+                    processutils.execute('/bin/tripleo-ansible-inventory',
+                                         '--static-inventory', inventory_path)
+                except processutils.ProcessExecutionError as e:
+                    message = "Failed to generate inventory file: %s" % str(e)
+                    raise exceptions.InvalidConfiguration(message)
+            if os.path.exists(inventory_path):
+                inventory = open(inventory_path, 'r').read()
+            else:
+                raise exceptions.InvalidConfiguration(
+                    "Inventory file missing, provide an inventory file or "
+                    "generate an inventory by using the --generate-inventory "
+                    "option")
+            output = package_update.update_ansible(
+                clients, nodes=nodes,
+                inventory_file=inventory,
+                playbook=playbook,
+                queue_name=str(uuid.uuid4()))
+            print (output)
