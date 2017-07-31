@@ -22,6 +22,7 @@ import sys
 import tempfile
 
 from osc_lib.command import command
+from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
 import yaml
 
@@ -219,6 +220,13 @@ class PrepareImageFiles(command.Command):
                    "Default is empty."),
         )
         parser.add_argument(
+            '--set',
+            metavar='<variable=value>',
+            action='append',
+            help=_('Set the value of a variable in the template, even if it '
+                   'has no dedicated argument such as "--suffix".')
+        )
+        parser.add_argument(
             "--exclude",
             dest="excludes",
             metavar='<regex>',
@@ -244,6 +252,18 @@ class PrepareImageFiles(command.Command):
         )
         return parser
 
+    def parse_set_values(self, subs, set_values):
+        if not set_values:
+            return
+        for s in set_values:
+            try:
+                (n, v) = s.split(('='), 1)
+                subs[n] = v
+            except ValueError:
+                msg = _('Malformed --set(%s). '
+                        'Use the variable=value format.') % s
+                raise oscexc.CommandError(msg)
+
     def write_env_file(self, params, env_file):
 
         with os.fdopen(os.open(env_file,
@@ -265,6 +285,7 @@ class PrepareImageFiles(command.Command):
             'name_prefix': parsed_args.prefix,
             'name_suffix': parsed_args.suffix,
         }
+        self.parse_set_values(subs, parsed_args.set)
 
         def ffunc(entry):
             imagename = entry.get('imagename', '')

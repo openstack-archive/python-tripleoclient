@@ -120,6 +120,12 @@ class TestContainerImagePrepare(TestPluginV1):
             images_file,
             '--env-file',
             env_file,
+            '--set',
+            'ceph_namespace=myceph',
+            '--set',
+            'ceph_image=mydaemon',
+            '--set',
+            'ceph_tag=mytag',
         ]
         self.cmd.app.command_options = arglist
         verifylist = []
@@ -144,7 +150,10 @@ class TestContainerImagePrepare(TestPluginV1):
             name_prefix='os-',
             name_suffix='foo',
             namespace='tripleo',
-            tag='passed-ci'
+            tag='passed-ci',
+            ceph_image='mydaemon',
+            ceph_namespace='myceph',
+            ceph_tag='mytag'
         )
         ci_data = {
             'container_images': [{
