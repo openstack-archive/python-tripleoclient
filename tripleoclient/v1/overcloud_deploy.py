@@ -265,7 +265,7 @@ class DeployOvercloud(command.Command):
 
         file_prefix = "file://"
 
-        if 'resource_registry' in env:
+        if env.get('resource_registry'):
             for name, path in env['resource_registry'].items():
                 if not isinstance(path, six.string_types):
                     continue
