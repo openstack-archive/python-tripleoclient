@@ -167,6 +167,12 @@ class TestContainerImagePrepare(TestPluginV1):
             images_file,
             '--env-file',
             env_file,
+            '--set',
+            'ceph_namespace=myceph',
+            '--set',
+            'ceph_image=mydaemon',
+            '--set',
+            'ceph_tag=mytag',
             '-e',
             'environment/docker.yaml'
         ]
@@ -202,6 +208,9 @@ class TestContainerImagePrepare(TestPluginV1):
             name_suffix='foo',
             namespace='tripleo',
             tag='passed-ci',
+            ceph_image='mydaemon',
+            ceph_namespace='myceph',
+            ceph_tag='mytag',
             neutron_driver=None
         )
         ci_data = {
