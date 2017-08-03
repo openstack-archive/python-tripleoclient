@@ -2,8 +2,8 @@
 Team and repository tags
 ========================
 
-.. image:: http://governance.openstack.org/badges/python-tripleoclient.svg
-    :target: http://governance.openstack.org/reference/tags/index.html
+.. image:: https://governance.openstack.org/tc/badges/python-tripleoclient.svg
+    :target: https://governance.openstack.org/tc/reference/tags/index.html
 
 .. Change things from this point on
 
@@ -16,5 +16,5 @@ implements commands useful for TripleO and the install and management of
 both an undercloud and an overcloud.
 
 See the
-`TripleO Documentation <http://docs.openstack.org/developer/tripleo-docs/>`_
+`TripleO Documentation <https://docs.openstack.org/tripleo-docs/latest/>`_
 for details on using tripleoclient.
