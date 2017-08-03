@@ -244,20 +244,15 @@ class PrepareImageFiles(command.Command):
         )
         return parser
 
-    def write_env_file(self, result, env_file):
-        params = {}
-        for entry in result:
-            imagename = entry.get('imagename', '')
-            if 'params' in entry:
-                for p in entry.pop('params'):
-                    params[p] = imagename
+    def write_env_file(self, params, env_file):
 
         with os.fdopen(os.open(env_file,
                        os.O_CREAT | os.O_TRUNC | os.O_WRONLY, 0o666),
                        'w') as f:
             f.write('# Generated with the following on %s\n#\n' %
                     datetime.datetime.now().isoformat())
-            f.write('#   %s\n#\n\n' % ' '.join(self.app.command_options))
+            f.write('#   openstack %s\n#\n\n' %
+                    ' '.join(self.app.command_options))
 
             yaml.safe_dump({'parameter_defaults': params}, f,
                            default_flow_style=False)
@@ -285,8 +280,15 @@ class PrepareImageFiles(command.Command):
         builder = kolla_builder.KollaImageBuilder([parsed_args.template_file])
         result = builder.container_images_from_template(filter=ffunc, **subs)
 
+        params = {}
+        for entry in result:
+            imagename = entry.get('imagename', '')
+            if 'params' in entry:
+                for p in entry.pop('params'):
+                    params[p] = imagename
+
         if parsed_args.env_file:
-            self.write_env_file(result, parsed_args.env_file)
+            self.write_env_file(params, parsed_args.env_file)
 
         result_str = yaml.safe_dump({'container_images': result},
                                     default_flow_style=False)
