@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    ``overcloud deploy`` now fails early if a path specified for
+    ``--environment-directory`` does not exist. See `bug 1697031
+    <https://bugs.launchpad.net/tripleo/+bug/1697031>`__.

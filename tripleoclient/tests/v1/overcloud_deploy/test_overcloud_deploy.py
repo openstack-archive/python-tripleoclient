@@ -786,6 +786,47 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                   parsed_args)
         self.assertIn('tmp/doesnexit.yaml', str(error))
 
+    @mock.patch('tripleoclient.workflows.plan_management.tarball',
+                autospec=True)
+    @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
+                autospec=True)
+    @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
+    @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_deploy_postconfig', autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_update_parameters', autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_heat_deploy', autospec=True)
+    @mock.patch('shutil.copytree', autospec=True)
+    def test_environment_dirs_env_dir_not_found(self, mock_copy,
+                                                mock_deploy_heat,
+                                                mock_update_parameters,
+                                                mock_post_config,
+                                                mock_utils_endpoint,
+                                                mock_utils_createrc,
+                                                mock_utils_tempest,
+                                                mock_tarball):
+
+        clients = self.app.client_manager
+        workflow_client = clients.workflow_engine
+        workflow_client.action_executions.create.return_value = mock.MagicMock(
+            output='{"result":[]}')
+
+        mock_update_parameters.return_value = {}
+        mock_utils_endpoint.return_value = 'foo.bar'
+        os.mkdir(self.tmp_dir.join('env'))
+        os.mkdir(self.tmp_dir.join('common'))
+
+        arglist = ['--templates', '--environment-directory', '/tmp/notthere']
+        verifylist = [
+            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
+        ]
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        error = self.assertRaises(oscexc.CommandError, self.cmd.take_action,
+                                  parsed_args)
+        self.assertIn('/tmp/notthere', str(error))
+
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
     @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
@@ -1483,3 +1524,40 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                           self.cmd.take_action,
                           parsed_args)
         self.assertFalse(mock_deploy_tmpdir.called)
+
+
+class TestArgumentValidation(fakes.TestDeployOvercloud):
+
+    def setUp(self):
+        super(TestArgumentValidation, self).setUp()
+
+        def is_dir(arg):
+            if arg == '/tmp/real_dir':
+                return True
+            else:
+                return False
+
+        patcher = mock.patch('os.path.isdir')
+        mock_isdir = patcher.start()
+        mock_isdir.side_effect = is_dir
+        self.addCleanup(patcher.stop)
+
+        app_args = mock.Mock()
+        app_args.verbose_level = 1
+        self.validate = overcloud_deploy.DeployOvercloud(
+            self.app, app_args)._validate_args_environment_directory
+
+    def test_validate_env_dir(self):
+        self.assertIsNone(self.validate(['/tmp/real_dir']))
+
+    def test_validate_env_dir_empty(self):
+        self.assertIsNone(self.validate([]))
+
+    def test_validate_env_dir_not_a_real_directory(self):
+        self.assertRaises(oscexc.CommandError,
+                          self.validate,
+                          ['/tmp/not_a_real_dir'])
+
+    def test_validate_env_dir_ignore_default_not_existing(self):
+        full_path = os.path.expanduser(constants.DEFAULT_ENV_DIRECTORY)
+        self.assertIsNone(self.validate([full_path]))
