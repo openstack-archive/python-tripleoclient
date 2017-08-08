@@ -576,7 +576,7 @@ class DeployUndercloud(command.Command):
                     raise exceptions.DeploymentError("Stack create failed.")
 
         finally:
-            if heat_launch:
+            if heat_launch and heat_pid != 0:
                 print('Log files at: %s' % heat_launch.install_tmp)
                 heat_launch.kill_heat(heat_pid)
             if keystone_pid:
