@@ -141,38 +141,31 @@ class TestOvercloudConfig(utils.TestCommand):
         mock_tmpdir.return_value = "/tmp/tht"
         fake_role = [role for role in
                      fakes.FAKE_STACK['outputs'][0]['output_value']]
-        fake_playbook = {'FakeController': [{'hosts': 'FakeController',
-                                             'name': 'FakeController playbook',
-                                             'tasks': [{'name': 'Stop fake '
-                                                                'service',
-                                                        'service':
-                                                        'name=fake '
-                                                        'state=stopped',
-                                                        'tags': 'step1'}]
-                                             }],
-                         'FakeCompute': [{'hosts': 'FakeCompute',
-                                          'name': 'FakeCompute playbook',
-                                          'tasks': [{'name': 'Stop fake '
-                                                             'service',
-                                                     'service':
-                                                     'name=fake state=stopped',
-                                                     'tags': 'step1'},
-                                                    {'name': 'Stop nova-'
-                                                             'compute service',
-                                                     'service':
-                                                     'name=openstack-nova-'
-                                                     'compute state=stopped',
-                                                     'tags': 'step1'}]
-                                          }]
-                         }
+        fake_tasks = {'FakeController': [{'name': 'Stop fake service',
+                                          'service': 'name=fake '
+                                          'state=stopped',
+                                          'tags': 'step1',
+                                          'when': 'step == 1'}],
+                      'FakeCompute': [{'name': 'Stop fake service',
+                                       'service': 'name=fake state=stopped',
+                                       'tags': 'step1',
+                                       'when': 'step == 1'},
+                                      {'name': 'Stop nova-'
+                                       'compute service',
+                                       'service':
+                                       'name=openstack-nova-'
+                                       'compute state=stopped',
+                                       'tags': 'step1',
+                                       'when': 'step == 1'}]
+                      }
         mock_get_role_data.return_value = fake_role
 
         for role in fake_role:
-            playbook = self.cmd._convert_playbook(fakes.
-                                                  FAKE_STACK['outputs']
-                                                            [0]
-                                                            ['output_value']
-                                                            [role]
-                                                            ['upgrade_tasks'],
-                                                  role)
-            self.assertEqual(fake_playbook[role], playbook)
+            filepath = "/tmp/tht/%s/upgrade_tasks_playbook" % role
+            with mock.patch('os.fdopen'), \
+                    mock.patch('os.mkdir'), mock.patch('os.open') as open:
+                playbook_tasks = self.cmd._write_playbook_get_tasks(
+                    fakes.FAKE_STACK['outputs'][0]['output_value'][role]
+                    ['upgrade_tasks'], role, filepath)
+                self.assertEqual(fake_tasks[role], playbook_tasks)
+                open.assert_called()
