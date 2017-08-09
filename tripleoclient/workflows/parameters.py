@@ -114,7 +114,7 @@ def check_deprecated_parameters(clients, container):
             workflow_input=workflow_input
         )
 
-        messages = base.wait_for_messages(workflow_client, ws, execution, 60)
+        messages = base.wait_for_messages(workflow_client, ws, execution, 120)
 
         deprecated_params = []
         for message in messages:
