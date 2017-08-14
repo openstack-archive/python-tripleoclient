@@ -177,8 +177,7 @@ class PrepareImageFiles(command.Command):
             dest="pull_source",
             metavar='<location>',
             help=_("Location of image registry to pull images from. "
-                   "If specified, a pull_source will be set for every image "
-                   "entry."),
+                   "(DEPRECATED. Include the registry in --namespace)"),
         )
         parser.add_argument(
             "--push-destination",
@@ -199,10 +198,10 @@ class PrepareImageFiles(command.Command):
         parser.add_argument(
             "--namespace",
             dest="namespace",
-            default="tripleoupstream",
+            default="docker.io/tripleoupstream",
             metavar='<namespace>',
             help=_("Override the default namespace substitution.\n"
-                   "Default: tripleoupstream"),
+                   "Default: docker.io/tripleoupstream"),
         )
         parser.add_argument(
             "--prefix",
