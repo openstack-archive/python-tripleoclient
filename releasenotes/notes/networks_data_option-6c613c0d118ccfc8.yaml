@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    A new -n/--networks-data option has been added.  This allows overriding the
+    default network_data.yaml, similar to the existing interface for
+    roles_data.yaml.

@@ -34,6 +34,7 @@ SERVICE_LIST = {
 TRIPLEO_HEAT_TEMPLATES = "/usr/share/openstack-tripleo-heat-templates/"
 OVERCLOUD_YAML_NAME = "overcloud.yaml"
 OVERCLOUD_ROLES_FILE = "roles_data.yaml"
+OVERCLOUD_NETWORKS_FILE = "network_data.yaml"
 RHEL_REGISTRATION_EXTRACONFIG_NAME = (
     "extraconfig/pre_deploy/rhel-registration/")
 
