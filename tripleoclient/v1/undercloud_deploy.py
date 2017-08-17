@@ -38,6 +38,7 @@ except ImportError:
     from urllib.request import urlopen
 
 from cliff import command
+from heatclient.common import event_utils
 from heatclient.common import template_utils
 from openstackclient.i18n import _
 
@@ -199,6 +200,12 @@ class DeployUndercloud(command.Command):
             time.sleep(1)
             server_stack_id = self._lookup_tripleo_server_stackid(
                 orchestration_client, stack_id)
+            status = orchestration_client.stacks.get(stack_id).status
+            if status == 'FAILED':
+                event_utils.poll_for_events(orchestration_client, stack_name)
+                msg = ('Stack failed before deployed-server resource '
+                       'created.')
+                raise Exception(msg)
             if server_stack_id:
                 break
         if not server_stack_id:
