@@ -12,6 +12,7 @@
 
 import logging
 import os
+import re
 import six
 import tempfile
 import yaml
@@ -53,13 +54,32 @@ class DownloadConfig(command.Command):
         )
         return parser
 
-    def _convert_playbook(self, tasks, role):
+    def _step_tags_to_when(self, sorted_tasks):
+        for task in sorted_tasks:
+            tag = task.get('tags', '')
+            match = re.search('step([0-9]+)', tag)
+            if match:
+                step = match.group(1)
+                whenline = task.get('when', None)
+                if whenline:  # how about list of when conditionals
+                    when_exists = re.search('step == [0-9]', whenline)
+                    if when_exists:  # skip if there is an existing 'step == N'
+                        continue
+                    task['when'] = "(%s) and (step == %s)" % (whenline, step)
+                else:
+                    task.update({"when": "step == %s" % step})
+
+    def _write_playbook_get_tasks(self, tasks, role, filepath):
         playbook = []
         sorted_tasks = sorted(tasks, key=lambda x: x.get('tags', None))
+        self._step_tags_to_when(sorted_tasks)
         playbook.append({'name': '%s playbook' % role,
                          'hosts': role,
                          'tasks': sorted_tasks})
-        return playbook
+        with os.fdopen(os.open(filepath, os.O_WRONLY | os.O_CREAT, 0o600),
+                       'w') as conf_file:
+            yaml.safe_dump(playbook, conf_file, default_flow_style=False)
+        return sorted_tasks
 
     def _mkdir(self, dirname):
         if not os.path.exists(dirname):
@@ -98,8 +118,10 @@ class DownloadConfig(command.Command):
                                                     if step is not None))
                 else:
                     if 'upgrade_tasks' in config:
-                        data = self._convert_playbook(role[config],
-                                                      role_name)
+                        filepath = os.path.join(role_path, '%s_playbook.yaml' %
+                                                config)
+                        data = self._write_playbook_get_tasks(
+                            role[config], role_name, filepath)
                     else:
                         try:
                             data = role[config]
