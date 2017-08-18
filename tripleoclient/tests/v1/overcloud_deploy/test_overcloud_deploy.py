@@ -1480,6 +1480,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertRaises(exceptions.InvalidConfiguration,
                           self.cmd.take_action, parsed_args)
 
+    @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
+                autospec=True)
     @mock.patch('tripleoclient.utils.wait_for_provision_state')
     @mock.patch('tripleoclient.workflows.baremetal', autospec=True)
     @mock.patch('tripleoclient.v1.baremetal', autospec=True)
@@ -1493,7 +1495,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                              mock_write_overcloudrc,
                              mock_get_overcloud_endpoint,
                              mock_baremetal, mock_workflows_bm,
-                             mock_provision):
+                             mock_provision, mock_tempest_deploy_input):
         arglist = ['--templates', '--deployed-server', '--disable-validations']
         verifylist = [
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
@@ -1515,6 +1517,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertNotCalled(mock_provision)
         self.assertNotCalled(clients.baremetal)
         self.assertNotCalled(clients.compute)
+        self.assertTrue(mock_tempest_deploy_input.called)
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_tripleo_heat_templates', autospec=True)
