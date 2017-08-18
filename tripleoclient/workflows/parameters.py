@@ -117,14 +117,23 @@ def check_deprecated_parameters(clients, container):
         messages = base.wait_for_messages(workflow_client, ws, execution, 120)
 
         deprecated_params = []
+        unused_params = []
         for message in messages:
             if message['status'] == 'SUCCESS':
                 for param in message.get('deprecated', []):
                     if param.get('user_defined'):
                         deprecated_params.append(param['parameter'])
+                unused_params = message.get('unused', [])
 
         if deprecated_params:
             print('WARNING: Following parameters are deprecated and still '
                   'defined. Deprecated parameters will be removed soon!')
             print('\n'.join(['  {}'.format(param)
                             for param in deprecated_params]))
+
+        if unused_params:
+            print('WARNING: Following parameters are defined but not used in '
+                  'plan. Could be possible that parameter is valid but '
+                  'currently not used.')
+            print('\n'.join(['  {}'.format(param)
+                            for param in unused_params]))

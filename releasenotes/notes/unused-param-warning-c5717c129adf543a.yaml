@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Added a warning message to provide the list of parameters which are
+    not used in a deployment plan, but provided by the user via environments.
