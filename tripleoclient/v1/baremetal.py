@@ -16,8 +16,8 @@
 from __future__ import print_function
 
 import argparse
-import json
 import logging
+import simplejson
 import time
 import uuid
 
@@ -50,7 +50,7 @@ class ValidateInstackEnv(command.Command):
         self.error_count = 0
 
         with open(parsed_args.instackenv, 'r') as net_file:
-            env_data = json.load(net_file)
+            env_data = simplejson.load(net_file)
 
         maclist = []
         baremetal_ips = []
@@ -356,7 +356,7 @@ class ConfigureReadyState(command.Command):
         self.bm_client = self.app.client_manager.baremetal
 
         with open(parsed_args.file, 'r') as fp:
-            self.ready_state_config = json.load(fp)
+            self.ready_state_config = simplejson.load(fp)
 
         drac_nodes = []
         for node in self.bm_client.node.list(detail=True):

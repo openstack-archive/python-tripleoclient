@@ -11,9 +11,9 @@
 #   under the License.
 
 import argparse
-import json
 import logging
 import os
+import simplejson
 import yaml
 
 from osc_lib.command import command
@@ -44,7 +44,7 @@ class SetParameters(command.Command):
         self.log.debug("take_action(%s)" % parsed_args)
 
         if parsed_args.file_in.name.endswith('.json'):
-            params = json.load(parsed_args.file_in)
+            params = simplejson.load(parsed_args.file_in)
         elif parsed_args.file_in.name.endswith('.yaml'):
             params = yaml.safe_load(parsed_args.file_in)
         else:
