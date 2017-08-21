@@ -1,0 +1,5 @@
+---
+features:
+  - The "openstack overcloud container image prepare" command can now filter
+    the image list by the containerized services being deployed. This is done by
+    specifying the heat environment files which enable containerized services.

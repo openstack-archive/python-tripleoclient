@@ -97,13 +97,23 @@ class TestContainerImagePrepare(TestPluginV1):
         )
 
     @mock.patch('tripleo_common.image.kolla_builder.KollaImageBuilder')
-    def test_container_image_prepare(self, mock_builder):
+    @mock.patch('heatclient.common.template_utils.'
+                'process_multiple_environments_and_files')
+    def test_container_image_prepare(self, pmef, mock_builder):
 
         temp = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, temp)
         images_file = os.path.join(temp, 'overcloud_containers.yaml')
         env_file = os.path.join(temp, 'containers_env.yaml')
         tmpl_file = os.path.join(temp, 'overcloud_containers.yaml.j2')
+        aodh_file = os.path.join(temp, 'docker', 'services',
+                                 'overcloud_containers.yaml.j2')
+
+        resource_registry = {'resource_registry': {
+            'OS::TripleO::Services::AodhEvaluator': aodh_file,
+            'OS::TripleO::Services::AodhApi': aodh_file
+        }}
+        pmef.return_value = None, resource_registry
 
         arglist = [
             '--template-file',
@@ -126,6 +136,8 @@ class TestContainerImagePrepare(TestPluginV1):
             'ceph_image=mydaemon',
             '--set',
             'ceph_tag=mytag',
+            '-e',
+            'environment/docker.yaml'
         ]
         self.cmd.app.command_options = arglist
         verifylist = []
@@ -133,9 +145,16 @@ class TestContainerImagePrepare(TestPluginV1):
         cift.return_value = [{
             'imagename': 'tripleo/os-aodh-apifoo:passed-ci',
             'params': ['DockerAodhApiImage', 'DockerAodhConfigImage'],
+            'services': [
+                'OS::TripleO::Services::AodhApi',
+                'OS::TripleO::Services::AodhEvaluator',
+            ],
         }, {
-            'imagename': 'tripleo/os-heat-apifoo:passed-ci',
-            'params': ['DockerHeatApiImage'],
+            'imagename': 'tripleo/os-aodh-evaluatorfoo:passed-ci',
+            'params': ['DockerAodhEvaluatorImage'],
+            'services': [
+                'OS::TripleO::Services::AodhEvaluator',
+            ],
         }]
 
         mock_builder.return_value.container_images_from_template = cift
@@ -145,6 +164,7 @@ class TestContainerImagePrepare(TestPluginV1):
         self.cmd.take_action(parsed_args)
 
         mock_builder.assert_called_once_with([tmpl_file])
+        pmef.assert_called_once_with(['environment/docker.yaml'])
         cift.assert_called_once_with(
             filter=mock.ANY,
             name_prefix='os-',
@@ -159,14 +179,15 @@ class TestContainerImagePrepare(TestPluginV1):
             'container_images': [{
                 'imagename': 'tripleo/os-aodh-apifoo:passed-ci',
             }, {
-                'imagename': 'tripleo/os-heat-apifoo:passed-ci',
+                'imagename': 'tripleo/os-aodh-evaluatorfoo:passed-ci',
             }]
         }
         env_data = {
             'parameter_defaults': {
                 'DockerAodhApiImage': 'tripleo/os-aodh-apifoo:passed-ci',
                 'DockerAodhConfigImage': 'tripleo/os-aodh-apifoo:passed-ci',
-                'DockerHeatApiImage': 'tripleo/os-heat-apifoo:passed-ci',
+                'DockerAodhEvaluatorImage':
+                    'tripleo/os-aodh-evaluatorfoo:passed-ci'
             }
         }
         with open(images_file) as f:

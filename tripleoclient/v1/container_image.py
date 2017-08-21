@@ -21,6 +21,7 @@ import re
 import sys
 import tempfile
 
+from heatclient.common import template_utils
 from osc_lib.command import command
 from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
@@ -244,6 +245,14 @@ class PrepareImageFiles(command.Command):
                    "stdout. Any existing file will be overwritten."),
         )
         parser.add_argument(
+            '--service-environment-file', '-e', metavar='<file path>',
+            action='append', dest='environment_files',
+            help=_('Environment files specifying which services are '
+                   'containerized. Entries will be filtered to only contain '
+                   'images used by containerized services. (Can be specified '
+                   'more than once.)')
+        )
+        parser.add_argument(
             "--env-file",
             dest="env_file",
             metavar='<file path>',
@@ -277,6 +286,21 @@ class PrepareImageFiles(command.Command):
             yaml.safe_dump({'parameter_defaults': params}, f,
                            default_flow_style=False)
 
+    def build_service_filter(self, environment_files):
+        if not environment_files:
+            return None
+
+        service_filter = set()
+        env_files, env = (
+            template_utils.process_multiple_environments_and_files(
+                environment_files))
+        for service, env_path in env.get('resource_registry', {}).items():
+            # Use the template path to determine if it represents a
+            # containerized service
+            if '/docker/services/' in env_path:
+                service_filter.add(service)
+        return service_filter
+
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
         subs = {
@@ -287,10 +311,18 @@ class PrepareImageFiles(command.Command):
         }
         self.parse_set_values(subs, parsed_args.set)
 
+        service_filter = self.build_service_filter(
+            parsed_args.environment_files)
+
         def ffunc(entry):
             imagename = entry.get('imagename', '')
             for p in parsed_args.excludes:
                 if re.search(p, imagename):
+                    return None
+            if service_filter is not None:
+                # check the entry is for a service being deployed
+                image_services = set(entry.get('services', []))
+                if not service_filter.intersection(image_services):
                     return None
             if parsed_args.pull_source:
                 entry['pull_source'] = parsed_args.pull_source
@@ -307,6 +339,8 @@ class PrepareImageFiles(command.Command):
             if 'params' in entry:
                 for p in entry.pop('params'):
                     params[p] = imagename
+            if 'services' in entry:
+                del(entry['services'])
 
         if parsed_args.env_file:
             self.write_env_file(params, parsed_args.env_file)
