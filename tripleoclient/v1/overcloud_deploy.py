@@ -121,9 +121,43 @@ class DeployOvercloud(command.Command):
                     'rhel_reg_activation_key': args.reg_activation_key}
         return [registry], {"parameter_defaults": user_env}
 
-    def _create_parameters_env(self, parameters):
+    def _create_parameters_env(self, parameters, tht_root, container_name):
         parameter_defaults = {"parameter_defaults": parameters}
+        env_path, swift_path = self._write_user_environment(
+            parameter_defaults,
+            'tripleoclient-parameters.yaml',
+            tht_root,
+            container_name)
         return parameter_defaults
+
+    def _write_user_environment(self, env_map, abs_env_path, tht_root,
+                                container_name):
+        # We write the env_map to the local /tmp tht_root and also
+        # to the swift plan container.
+        contents = yaml.safe_dump(env_map, default_flow_style=False)
+        env_dirname = os.path.dirname(abs_env_path)
+        user_env_dir = os.path.join(
+            tht_root, 'user-environments', env_dirname[1:])
+        user_env_path = os.path.join(
+            user_env_dir, os.path.basename(abs_env_path))
+        self.log.debug("user_env_path=%s" % user_env_path)
+        if not os.path.exists(user_env_dir):
+            os.makedirs(user_env_dir)
+        with open(user_env_path, 'w') as f:
+            self.log.debug("Writing user environment %s" % user_env_path)
+            f.write(contents)
+
+        # Upload to swift
+        if abs_env_path.startswith("/"):
+            swift_path = "user-environments/{}".format(abs_env_path[1:])
+        else:
+            swift_path = "user-environments/{}".format(abs_env_path)
+        contents = yaml.safe_dump(env_map, default_flow_style=False)
+        self.log.debug("Uploading %s to swift at %s"
+                       % (abs_env_path, swift_path))
+        self.object_client.put_object(container_name, swift_path, contents)
+
+        return user_env_path, swift_path
 
     def _process_multiple_environments(self, created_env_files, tht_root,
                                        user_tht_root, cleanup=True):
@@ -290,7 +324,7 @@ class DeployOvercloud(command.Command):
                 self.workflow_client, container=container_name,
                 parameters=params)
 
-        contents = yaml.safe_dump(env)
+        contents = yaml.safe_dump(env, default_flow_style=False)
 
         # Until we have a well defined plan update workflow in tripleo-common
         # we need to manually add an environment in swift and for users
@@ -421,7 +455,10 @@ class DeployOvercloud(command.Command):
         if parsed_args.environment_directories:
             created_env_files.extend(self._load_environment_directories(
                 parsed_args.environment_directories))
-        env.update(self._create_parameters_env(parameters))
+
+        env.update(self._create_parameters_env(parameters,
+                                               tht_root,
+                                               parsed_args.stack))
 
         if parsed_args.rhel_reg:
             reg_env_files, reg_env = self._create_registration_env(parsed_args)
