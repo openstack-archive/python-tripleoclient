@@ -1,0 +1,9 @@
+---
+features:
+
+  - The "openstack overcloud container image tag discover" command is provided
+    to discover the version-based tag by inspecting the image from a stable tag
+    like 'current-tripleo-rdo'. Stable tags like 'latest' or 'pike' can't be used
+    for container updates because something needs to change to trigger the new
+    containers being pulled. Without this command it would be up to the user to
+    find out what versioned tag to specify when calling prepare.

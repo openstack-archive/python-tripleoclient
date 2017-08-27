@@ -385,3 +385,38 @@ class PrepareImageFiles(command.Command):
                            os.O_CREAT | os.O_TRUNC | os.O_WRONLY, 0o666),
                            'w') as f:
                 f.write(result_str)
+
+
+class DiscoverImageTag(command.Command):
+    """Discover the versioned tag for an image."""
+
+    auth_required = False
+    log = logging.getLogger(__name__ + ".DiscoverImageTag")
+
+    def get_parser(self, prog_name):
+        parser = super(DiscoverImageTag, self).get_parser(prog_name)
+        parser.add_argument(
+            "--image",
+            dest="image",
+            metavar='<container image>',
+            required=True,
+            help=_("Fully qualified name of the image to discover the tag for "
+                   "(Including registry and stable tag)."),
+        )
+        parser.add_argument(
+            "--tag-from-label",
+            dest="tag_from_label",
+            metavar='<image label>',
+            help=_("Use the value of the specified label to discover the "
+                   "tag."),
+        )
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)" % parsed_args)
+
+        uploader = image_uploader.ImageUploadManager([])
+        print(uploader.discover_image_tag(
+            image=parsed_args.image,
+            tag_from_label=parsed_args.tag_from_label
+        ))
