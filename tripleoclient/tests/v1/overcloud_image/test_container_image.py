@@ -130,6 +130,7 @@ class TestContainerImagePrepare(TestPluginV1):
             name_prefix='centos-binary-',
             name_suffix='',
             namespace='docker.io/tripleoupstream',
+            neutron_driver=None,
             tag='latest'
         )
 
@@ -209,7 +210,8 @@ class TestContainerImagePrepare(TestPluginV1):
             tag='passed-ci',
             ceph_image='mydaemon',
             ceph_namespace='myceph',
-            ceph_tag='mytag'
+            ceph_tag='mytag',
+            neutron_driver=None
         )
         ci_data = {
             'container_images': [{
@@ -230,6 +232,214 @@ class TestContainerImagePrepare(TestPluginV1):
             self.assertEqual(ci_data, yaml.safe_load(f))
         with open(env_file) as f:
             self.assertEqual(env_data, yaml.safe_load(f))
+
+    def _test_container_image_prepare_helper(
+            self, pmef, mock_builder, pmef_call_args,
+            arg_list, neutron_driver, expected_container_template_params,
+            expected_oc_yaml_contents, expected_env_contents):
+        temp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, temp)
+        images_file = os.path.join(temp, 'overcloud_containers.yaml')
+        env_file = os.path.join(temp, 'containers_env.yaml')
+        tmpl_file = os.path.join(temp, 'overcloud_containers.yaml.j2')
+
+        resource_registry = {}
+        if neutron_driver == 'odl':
+            odlapi_file = os.path.join(temp, 'docker', 'services',
+                                       'opendaylight.yaml')
+
+            resource_registry = {'resource_registry': {
+                'OS::TripleO::Services::OpenDaylightApi': odlapi_file
+            }}
+        elif neutron_driver == 'ovn':
+            ovnapi_file = os.path.join(temp, 'docker', 'services',
+                                       'overcloud_containers.yaml.j2')
+
+            resource_registry = {'resource_registry': {
+                'OS::TripleO::Services::OVNController': ovnapi_file
+            }}
+
+        pmef.return_value = None, resource_registry
+        cmd_arglist = [
+            '--template-file',
+            tmpl_file,
+            '--tag',
+            'passed-ci',
+            '--namespace',
+            'tripleo',
+            '--prefix',
+            'os-',
+            '--suffix',
+            'foo',
+            '--images-file',
+            images_file,
+            '--env-file',
+            env_file,
+        ]
+
+        cmd_arglist.extend(arg_list)
+        self.cmd.app.command_options = cmd_arglist
+        verifylist = []
+        cift = mock.MagicMock()
+        cift.return_value = expected_container_template_params
+        mock_builder.return_value.container_images_from_template = cift
+        parsed_args = self.check_parser(self.cmd, cmd_arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
+
+        mock_builder.assert_called_once_with([tmpl_file])
+        pmef.assert_called_once_with(pmef_call_args)
+        cift.assert_called_once_with(
+            filter=mock.ANY,
+            name_prefix='os-',
+            name_suffix='foo',
+            namespace='tripleo',
+            tag='passed-ci',
+            neutron_driver=neutron_driver,
+        )
+
+        with open(images_file) as f:
+            self.assertEqual(expected_oc_yaml_contents, yaml.safe_load(f))
+        with open(env_file) as f:
+            self.assertEqual(expected_env_contents, yaml.safe_load(f))
+
+    @mock.patch('tripleo_common.image.kolla_builder.KollaImageBuilder')
+    @mock.patch('heatclient.common.template_utils.'
+                'process_multiple_environments_and_files')
+    @mock.patch('tripleoclient.v1.container_image.PrepareImageFiles.'
+                'get_enabled_services')
+    def test_container_image_prepare_for_odl(self, ges, pmef, mock_builder):
+        arglist = [
+            '-e',
+            'environments/services-docker/neutron-opendaylight.yaml',
+        ]
+
+        expected_container_template_params = [{
+            'imagename':
+                'tripleo/os-neutron-server-opendaylightfoo:passed-ci',
+            'params':
+                ['DockerNeutronApiImage', 'DockerNeutronConfigImage'],
+            'services': [
+                'OS::TripleO::Services::NeutronApi',
+                'OS::TripleO::Services::NeutronDhcpAgent',
+                'OS::TripleO::Services::NeutronMetadataAgent',
+                'OS::TripleO::Services::NeutronServer',
+                'OS::TripleO::Services::OpenDaylightApi',
+                ],
+            }, {
+            'imagename': 'tripleo/os-opendaylightfoo:passed-ci',
+            'params':
+                ['DockerOpendaylightApiImage',
+                 'DockerOpendaylightConfigImage'],
+            'services': [
+                'OS::TripleO::Services::OpenDaylightApi',
+                ],
+            }
+        ]
+
+        ges.return_value = (
+            set(['OS::TripleO::Services::NeutronApi',
+                 'OS::TripleO::Services::NeutronDhcpAgent',
+                 'OS::TripleO::Services::NeutronMetadataAgent',
+                 'OS::TripleO::Services::NeutronServer',
+                 'OS::TripleO::Services::OpenDaylightApi']))
+
+        pmef_call_args = [
+            'environments/services-docker/neutron-opendaylight.yaml']
+
+        expected_oc_yaml_contents = {
+            'container_images': [{
+                'imagename':
+                    'tripleo/os-neutron-server-opendaylightfoo:passed-ci',
+            }, {
+                'imagename': 'tripleo/os-opendaylightfoo:passed-ci',
+            }]
+        }
+        expected_env_contents = {
+            'parameter_defaults': {
+                'DockerNeutronApiImage':
+                    'tripleo/os-neutron-server-opendaylightfoo:passed-ci',
+                'DockerNeutronConfigImage':
+                    'tripleo/os-neutron-server-opendaylightfoo:passed-ci',
+                'DockerOpendaylightApiImage':
+                    'tripleo/os-opendaylightfoo:passed-ci',
+                'DockerOpendaylightConfigImage':
+                    'tripleo/os-opendaylightfoo:passed-ci',
+            }
+        }
+
+        self._test_container_image_prepare_helper(
+            pmef, mock_builder, pmef_call_args, arglist, 'odl',
+            expected_container_template_params, expected_oc_yaml_contents,
+            expected_env_contents)
+
+    @mock.patch('tripleo_common.image.kolla_builder.KollaImageBuilder')
+    @mock.patch('heatclient.common.template_utils.'
+                'process_multiple_environments_and_files')
+    @mock.patch('tripleoclient.v1.container_image.PrepareImageFiles.'
+                'get_enabled_services')
+    def test_container_image_prepare_for_ovn(self, ges, pmef, mock_builder):
+        arglist = [
+            '-e',
+            'environments/services-docker/neutron-ovn.yaml',
+        ]
+
+        expected_container_template_params = [{
+            'imagename':
+                'tripleo/os-neutron-server-ovnfoo:passed-ci',
+            'params':
+                ['DockerNeutronApiImage', 'DockerNeutronConfigImage'],
+            'services': [
+                'OS::TripleO::Services::NeutronApi',
+                'OS::TripleO::Services::NeutronServer',
+                'OS::TripleO::Services::OVNController',
+                'OS::TripleO::Services::OVNDBs',
+                ],
+            }, {
+            'imagename': 'tripleo/os-ovn-controllerfoo:passed-ci',
+            'params':
+                ['DockerOvnControllerImage',
+                 'DockerOvnControllerConfigImage'],
+            'services': [
+                'OS::TripleO::Services::OVNController',
+                ],
+            }
+        ]
+
+        ges.return_value = (
+            set(['OS::TripleO::Services::NeutronApi',
+                 'OS::TripleO::Services::NeutronServer',
+                 'OS::TripleO::Services::OVNController',
+                 'OS::TripleO::Services::OVNDBs']))
+
+        pmef_call_args = [
+            'environments/services-docker/neutron-ovn.yaml']
+
+        expected_oc_yaml_contents = {
+            'container_images': [{
+                'imagename':
+                    'tripleo/os-neutron-server-ovnfoo:passed-ci',
+            }, {
+                'imagename': 'tripleo/os-ovn-controllerfoo:passed-ci',
+            }]
+        }
+        expected_env_contents = {
+            'parameter_defaults': {
+                'DockerNeutronApiImage':
+                    'tripleo/os-neutron-server-ovnfoo:passed-ci',
+                'DockerNeutronConfigImage':
+                    'tripleo/os-neutron-server-ovnfoo:passed-ci',
+                'DockerOvnControllerImage':
+                    'tripleo/os-ovn-controllerfoo:passed-ci',
+                'DockerOvnControllerConfigImage':
+                    'tripleo/os-ovn-controllerfoo:passed-ci',
+            }
+        }
+
+        self._test_container_image_prepare_helper(
+            pmef, mock_builder, pmef_call_args, arglist, 'ovn',
+            expected_container_template_params, expected_oc_yaml_contents,
+            expected_env_contents)
 
 
 class TestContainerImageBuild(TestPluginV1):

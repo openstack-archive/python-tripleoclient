@@ -334,16 +334,25 @@ class PrepareImageFiles(command.Command):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+
+        service_filter = self.build_service_filter(
+            parsed_args.environment_files,  parsed_args.roles_file)
+
+        neutron_driver = None
+        if service_filter:
+            if 'OS::TripleO::Services::OpenDaylightApi' in service_filter:
+                neutron_driver = 'odl'
+            elif 'OS::TripleO::Services::OVNController' in service_filter:
+                neutron_driver = 'ovn'
+
         subs = {
             'tag': parsed_args.tag,
             'namespace': parsed_args.namespace,
             'name_prefix': parsed_args.prefix,
             'name_suffix': parsed_args.suffix,
+            'neutron_driver': neutron_driver,
         }
         self.parse_set_values(subs, parsed_args.set)
-
-        service_filter = self.build_service_filter(
-            parsed_args.environment_files, parsed_args.roles_file)
 
         def ffunc(entry):
             imagename = entry.get('imagename', '')
