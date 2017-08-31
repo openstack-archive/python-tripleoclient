@@ -30,6 +30,8 @@ import yaml
 from tripleo_common.image import image_uploader
 from tripleo_common.image import kolla_builder
 
+from tripleoclient import constants
+
 
 class UploadImage(command.Command):
     """Push overcloud container images to registries."""
@@ -163,6 +165,8 @@ class PrepareImageFiles(command.Command):
         template_file = os.path.join(sys.prefix, 'share', 'tripleo-common',
                                      'container-images',
                                      'overcloud_containers.yaml.j2')
+        roles_file = os.path.join(constants.TRIPLEO_HEAT_TEMPLATES,
+                                  constants.OVERCLOUD_ROLES_FILE)
         parser.add_argument(
             "--template-file",
             dest="template_file",
@@ -258,6 +262,12 @@ class PrepareImageFiles(command.Command):
             help=_("File to write heat environment file which specifies all "
                    "image parameters. Any existing file will be overwritten."),
         )
+        parser.add_argument(
+            '--roles-file', '-r', dest='roles_file',
+            default=roles_file,
+            help=_('Roles file, overrides the default %s'
+                   ) % constants.OVERCLOUD_ROLES_FILE
+        )
         return parser
 
     def parse_set_values(self, subs, set_values):
@@ -285,20 +295,42 @@ class PrepareImageFiles(command.Command):
             yaml.safe_dump({'parameter_defaults': params}, f,
                            default_flow_style=False)
 
-    def build_service_filter(self, environment_files):
+    def get_enabled_services(self, environment, roles_file):
+        enabled_services = set()
+        try:
+            roles_data = yaml.safe_load(open(roles_file).read())
+        except IOError:
+            return enabled_services
+
+        parameter_defaults = environment.get('parameter_defaults', {})
+
+        for role in roles_data:
+            count = parameter_defaults.get('%sCount' % role['name'],
+                                           role.get('CountDefault', 0))
+            if count > 0:
+                enabled_services.update(
+                    parameter_defaults.get('%sServices' % role['name'],
+                                           role.get('ServicesDefault', [])))
+
+        return enabled_services
+
+    def build_service_filter(self, environment_files, roles_file):
+        # Do not filter unless asked for it
         if not environment_files:
             return None
 
-        service_filter = set()
         env_files, env = (
             template_utils.process_multiple_environments_and_files(
                 environment_files))
+        enabled_services = self.get_enabled_services(env, roles_file)
+        containerized_services = set()
         for service, env_path in env.get('resource_registry', {}).items():
             # Use the template path to determine if it represents a
             # containerized service
             if '/docker/services/' in env_path:
-                service_filter.add(service)
-        return service_filter
+                containerized_services.add(service)
+
+        return containerized_services.intersection(enabled_services)
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
@@ -311,7 +343,7 @@ class PrepareImageFiles(command.Command):
         self.parse_set_values(subs, parsed_args.set)
 
         service_filter = self.build_service_filter(
-            parsed_args.environment_files)
+            parsed_args.environment_files, parsed_args.roles_file)
 
         def ffunc(entry):
             imagename = entry.get('imagename', '')
