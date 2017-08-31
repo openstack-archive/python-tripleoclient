@@ -74,6 +74,43 @@ class TestContainerImagePrepare(TestPluginV1):
         # Get the command object to test
         self.cmd = container_image.PrepareImageFiles(self.app, None)
 
+    def test_get_enabled_services(self):
+        temp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, temp)
+        resource_registry = {'parameter_defaults': {
+            'RoleDisabledViaEnvironmentCount': 0,
+            'RoleOverwrittenViaEnvironmentServices': [
+                'OS::TripleO::Services::FromResourceRegistry'
+            ]
+        }}
+        roles_file = '/foo/roles_data.yaml'
+        roles_yaml = '''
+        - name: EnabledRole
+          CountDefault: 1
+          ServicesDefault:
+            - OS::TripleO::Services::AodhEvaluator
+        - name: RoleDisabledViaRolesData
+          CountDefault: 0
+          ServicesDefault:
+            - OS::TripleO::Services::AodhApi
+        - name: RoleDisabledViaEnvironment
+          CountDefault: 1
+          ServicesDefault:
+            - OS::TripleO::Services::Disabled
+        - name: RoleOverwrittenViaEnvironment
+          CountDefault: 1
+          ServicesDefault:
+            - OS::TripleO::Services::Overwritten
+        '''
+        mock_open_context = mock.mock_open(read_data=roles_yaml)
+        with mock.patch('six.moves.builtins.open', mock_open_context):
+            enabled_services = self.cmd.get_enabled_services(resource_registry,
+                                                             roles_file)
+        mock_open_context.assert_called_once_with(roles_file)
+        self.assertEqual(set(['OS::TripleO::Services::AodhEvaluator',
+                              'OS::TripleO::Services::FromResourceRegistry']),
+                         enabled_services)
+
     @mock.patch('tripleo_common.image.kolla_builder.KollaImageBuilder')
     def test_container_image_prepare_noargs(self, mock_builder):
         arglist = []
@@ -106,8 +143,7 @@ class TestContainerImagePrepare(TestPluginV1):
         images_file = os.path.join(temp, 'overcloud_containers.yaml')
         env_file = os.path.join(temp, 'containers_env.yaml')
         tmpl_file = os.path.join(temp, 'overcloud_containers.yaml.j2')
-        aodh_file = os.path.join(temp, 'docker', 'services',
-                                 'overcloud_containers.yaml.j2')
+        aodh_file = os.path.join(temp, 'docker', 'services', 'aodh.yaml')
 
         resource_registry = {'resource_registry': {
             'OS::TripleO::Services::AodhEvaluator': aodh_file,
