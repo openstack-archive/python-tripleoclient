@@ -90,14 +90,49 @@ class ListProfiles(command.Lister):
 
     log = logging.getLogger(__name__ + ".ListProfiles")
 
+    def get_parser(self, prog_name):
+        parser = super(ListProfiles, self).get_parser(prog_name)
+        parser.add_argument(
+            '--all',
+            action='store_true',
+            default=False,
+            help=_('List all nodes, even those not available to Nova.')
+        )
+        utils.add_deployment_plan_arguments(parser)
+        return parser
+
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
-        client = self.app.client_manager.baremetal
+        bm_client = self.app.client_manager.baremetal
+        compute_client = self.app.client_manager.compute
 
+        hypervisors = {h.hypervisor_hostname: h
+                       for h in compute_client.hypervisors.list()
+                       if h.hypervisor_type == 'ironic'}
         result = []
 
-        for node in client.node.list(detail=True, maintenance=False):
+        maintenance = None if parsed_args.all else False
+        for node in bm_client.node.list(detail=True, maintenance=maintenance):
+            error = ''
+
             if node.provision_state not in ('active', 'available'):
+                error = "Provision state %s" % node.provision_state
+            elif node.power_state in (None, 'error'):
+                error = "Power state %s" % node.power_state
+            elif node.maintenance:
+                error = "Maintenance"
+            else:
+                try:
+                    hypervisor = hypervisors[node.uuid]
+                except KeyError:
+                    error = 'No hypervisor record'
+                else:
+                    if hypervisor.status != 'enabled':
+                        error = 'Compute service disabled'
+                    elif hypervisor.state != 'up':
+                        error = 'Compute service down'
+
+            if error and not parsed_args.all:
                 continue
 
             caps = utils.node_get_capabilities(node)
@@ -108,11 +143,15 @@ class ListProfiles(command.Lister):
                                  v.lower() in ('1', 'true')]
             # sorting for convenient display and testing
             possible_profiles.sort()
-            result.append((node.uuid, node.name or '', node.provision_state,
-                           profile, ', '.join(possible_profiles)))
 
-        return (
-            ("Node UUID", "Node Name", "Provision State", "Current Profile",
-             "Possible Profiles"),
-            result
-        )
+            record = (node.uuid, node.name or '', node.provision_state,
+                      profile, ', '.join(possible_profiles))
+            if parsed_args.all:
+                record += (error,)
+            result.append(record)
+
+        cols = ("Node UUID", "Node Name", "Provision State", "Current Profile",
+                "Possible Profiles")
+        if parsed_args.all:
+            cols += ('Error',)
+        return (cols, result)

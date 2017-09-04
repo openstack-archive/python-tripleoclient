@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Add ``--all`` argument to the ``overcloud profiles list`` command to
+    also display nodes that cannot be deployed on. A new ``Error`` column
+    is displayed when this argument is provided.
+fixes:
+  - |
+    Exclude from the output of ``overcloud profiles list`` nodes that:
+
+    * have error power state
+    * do not have a matching hypervisor request
+    * have their compute service down.
