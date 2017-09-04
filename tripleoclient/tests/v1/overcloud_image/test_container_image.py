@@ -18,6 +18,7 @@ import mock
 import os
 import shutil
 import six
+import sys
 import tempfile
 import yaml
 
@@ -241,6 +242,10 @@ class TestContainerImageBuild(TestPluginV1):
         self.cmd = container_image.BuildImage(self.app, None)
         self.cmd.app.stdout = six.StringIO()
         self.temp_dir = self.useFixture(fixtures.TempDir()).join()
+        # Default conf file
+        self.default_kolla_conf = os.path.join(
+            sys.prefix, 'share', 'tripleo-common', 'container-images',
+            'tripleo_kolla_config_overrides.conf')
 
     @mock.patch('sys.exit')
     @mock.patch('tripleo_common.image.kolla_builder.KollaImageBuilder',
@@ -284,7 +289,7 @@ class TestContainerImageBuild(TestPluginV1):
         mock_builder.assert_called_once_with([
             '/tmp/foo.yaml', '/tmp/bar.yaml'])
         mock_builder.return_value.build_images.assert_called_once_with([
-            '/tmp/kolla.conf',
+            self.default_kolla_conf, '/tmp/kolla.conf',
             path
         ])
 
