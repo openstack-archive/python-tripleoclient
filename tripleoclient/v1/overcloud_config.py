@@ -65,9 +65,10 @@ class DownloadConfig(command.Command):
                     when_exists = re.search('step == [0-9]', whenline)
                     if when_exists:  # skip if there is an existing 'step == N'
                         continue
-                    task['when'] = "(%s) and (step == %s)" % (whenline, step)
+                    task['when'] = "(%s) and (step|int == %s)" % (whenline,
+                                                                  step)
                 else:
-                    task.update({"when": "step == %s" % step})
+                    task.update({"when": "step|int == %s" % step})
 
     def _write_playbook_get_tasks(self, tasks, role, filepath):
         playbook = []

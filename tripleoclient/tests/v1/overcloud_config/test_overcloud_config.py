@@ -145,18 +145,18 @@ class TestOvercloudConfig(utils.TestCommand):
                                           'service': 'name=fake '
                                           'state=stopped',
                                           'tags': 'step1',
-                                          'when': 'step == 1'}],
+                                          'when': 'step|int == 1'}],
                       'FakeCompute': [{'name': 'Stop fake service',
                                        'service': 'name=fake state=stopped',
                                        'tags': 'step1',
-                                       'when': 'step == 1'},
+                                       'when': 'step|int == 1'},
                                       {'name': 'Stop nova-'
                                        'compute service',
                                        'service':
                                        'name=openstack-nova-'
                                        'compute state=stopped',
                                        'tags': 'step1',
-                                       'when': 'step == 1'}]
+                                       'when': 'step|int == 1'}]
                       }
         mock_get_role_data.return_value = fake_role
 
