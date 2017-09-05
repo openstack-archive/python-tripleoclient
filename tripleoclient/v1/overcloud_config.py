@@ -62,7 +62,7 @@ class DownloadConfig(command.Command):
                 step = match.group(1)
                 whenline = task.get('when', None)
                 if whenline:  # how about list of when conditionals
-                    when_exists = re.search('step == [0-9]', whenline)
+                    when_exists = re.search('step.* == [0-9]', whenline)
                     if when_exists:  # skip if there is an existing 'step == N'
                         continue
                     task['when'] = "(%s) and (step|int == %s)" % (whenline,
