@@ -671,7 +671,7 @@ def prompt_user_for_confirmation(message, logger, positive_response='y'):
     :param message: Confirmation string prompt
     :param logger: logger object used to write info logs
     :param positive_response: Beginning character for a positive user input
-    :return boolean true for valid confirmation, false for all others
+    :return: boolean true for valid confirmation, false for all others
     """
     try:
         if not sys.stdin.isatty():
