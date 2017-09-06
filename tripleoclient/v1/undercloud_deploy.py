@@ -286,7 +286,7 @@ class DeployUndercloud(command.Command):
         stack_env = {'parameter_defaults': {}}
         if os.path.exists(pw_file):
             with open(pw_file) as pf:
-                stack_env = yaml.load(pf.read())
+                stack_env = yaml.safe_load(pf.read())
 
         pw = password_utils.generate_passwords(stack_env=stack_env)
         stack_env['parameter_defaults'].update(pw)
