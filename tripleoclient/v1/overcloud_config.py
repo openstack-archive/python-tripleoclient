@@ -66,13 +66,21 @@ class DownloadConfig(command.Command):
             match = re.search('step([0-9]+)', tag)
             if match:
                 step = match.group(1)
-                whenline = task.get('when', None)
-                if whenline:  # how about list of when conditionals
-                    when_exists = re.search('step.* == [0-9]', whenline)
-                    if when_exists:  # skip if there is an existing 'step == N'
+                whenexpr = task.get('when', None)
+                if whenexpr:
+                    # Handle when: foo and a list of when conditionals
+                    if not isinstance(whenexpr, list):
+                        whenexpr = [whenexpr]
+                    for w in whenexpr:
+                        when_exists = re.search('step|int == [0-9]', w)
+                        if when_exists:
+                            break
+                    if when_exists:
+                        # Skip to the next task,
+                        # there is an existing 'step|int == N'
                         continue
-                    task['when'] = "(%s) and (step|int == %s)" % (whenline,
-                                                                  step)
+                    whenexpr.append("step|int == %s" % step)
+                    task['when'] = whenexpr
                 else:
                     task.update({"when": "step|int == %s" % step})
 
