@@ -24,13 +24,12 @@ import os
 
 from oslo_utils import timeutils
 
-TOMORROW = timeutils.isotime(at=(timeutils.utcnow()
-                                 + datetime.timedelta(days=1)))
+TOMORROW = (timeutils.utcnow() + datetime.timedelta(days=1)).isoformat()
 
 VERSION_RESPONSE_GET = {
     "version": {
         "status": "stable",
-        "updated": timeutils.isotime(),
+        "updated": datetime.datetime.utcnow().isoformat(),
         "media-types": [{
             "base": "application/json",
             "type": "application/vnd.openstack.identity-v3+json"
@@ -116,7 +115,7 @@ TOKEN_RESPONSE_POST = {
             "name": "admin"
         },
         "audit_ids": ["F6ONJ8fCT6i_CFTbmC0vBA"],
-        "issued_at": timeutils.isotime()
+        "issued_at": datetime.datetime.utcnow().isoformat()
     }
 }
 
@@ -151,7 +150,7 @@ STACK_USER_POST = {
 
 AUTH_TOKEN_GET = {
     "token": {
-        "issued_at": timeutils.isotime(),
+        "issued_at": datetime.datetime.utcnow().isoformat(),
         "audit_ids": ["PUrztDYYRBeq-C8CKr-kEw"],
         "methods": ["password"],
         "expires_at": TOMORROW,
