@@ -50,11 +50,13 @@ FAKE_STACK = {
                  'upgrade_batch_tasks': [],
                  'upgrade_tasks': [{'name': 'Stop fake service',
                                     'service': 'name=fake state=stopped',
-                                    'tags': 'step1'},
+                                    'tags': 'step1',
+                                    'when': 'existingcondition'},
                                    {'name': 'Stop nova-compute service',
                                     'service': 'name=openstack-nova-compute '
                                                'state=stopped',
-                                    'tags': 'step1'}]
+                                    'tags': 'step1',
+                                    'when': ['existing', 'list']}]
                  },
              'FakeController': {
                  'config_settings': {'tripleo::haproxy::user': 'admin'},

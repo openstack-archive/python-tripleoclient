@@ -10,7 +10,9 @@
 #   License for the specific language governing permissions and limitations
 #   under the License.
 
+import fixtures
 import mock
+import os
 
 from mock import call
 from mock import patch
@@ -127,45 +129,41 @@ class TestOvercloudConfig(utils.TestCommand):
             self.cmd.take_action, parsed_args)
 
     @mock.patch('tripleoclient.utils.get_role_data', autospec=True)
-    @mock.patch('os.mkdir')
-    @mock.patch('six.moves.builtins.open')
-    @mock.patch('tempfile.mkdtemp', autospec=True)
-    def test_overcloud_config_upgrade_tasks(self, mock_tmpdir,
-                                            mock_open,
-                                            mock_mkdir,
-                                            mock_get_role_data):
+    def test_overcloud_config_upgrade_tasks(self, mock_get_role_data):
 
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
         orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
-        mock_tmpdir.return_value = "/tmp/tht"
+        self.tmp_dir = self.useFixture(fixtures.TempDir()).path
         fake_role = [role for role in
                      fakes.FAKE_STACK['outputs'][1]['output_value']]
-        fake_tasks = {'FakeController': [{'name': 'Stop fake service',
-                                          'service': 'name=fake '
-                                          'state=stopped',
-                                          'tags': 'step1',
-                                          'when': 'step|int == 1'}],
-                      'FakeCompute': [{'name': 'Stop fake service',
-                                       'service': 'name=fake state=stopped',
-                                       'tags': 'step1',
-                                       'when': 'step|int == 1'},
-                                      {'name': 'Stop nova-'
-                                       'compute service',
-                                       'service':
-                                       'name=openstack-nova-'
-                                       'compute state=stopped',
-                                       'tags': 'step1',
-                                       'when': 'step|int == 1'}]
-                      }
+        expected_tasks = {'FakeController': [{'name': 'Stop fake service',
+                                              'service': 'name=fake '
+                                              'state=stopped',
+                                              'tags': 'step1',
+                                              'when': 'step|int == 1'}],
+                          'FakeCompute': [{'name': 'Stop fake service',
+                                           'service':
+                                           'name=fake state=stopped',
+                                           'tags': 'step1',
+                                           'when': ['existingcondition',
+                                                    'step|int == 1']},
+                                          {'name': 'Stop nova-'
+                                           'compute service',
+                                           'service':
+                                           'name=openstack-nova-'
+                                           'compute state=stopped',
+                                           'tags': 'step1',
+                                           'when': ['existing',
+                                                    'list', 'step|int == 1']}]}
         mock_get_role_data.return_value = fake_role
 
         for role in fake_role:
-            filepath = "/tmp/tht/%s/upgrade_tasks_playbook" % role
-            with mock.patch('os.fdopen'), \
-                    mock.patch('os.mkdir'), mock.patch('os.open') as open:
-                playbook_tasks = self.cmd._write_playbook_get_tasks(
-                    fakes.FAKE_STACK['outputs'][1]['output_value'][role]
-                    ['upgrade_tasks'], role, filepath)
-                self.assertEqual(fake_tasks[role], playbook_tasks)
-                open.assert_called()
+            filedir = os.path.join(self.tmp_dir, role)
+            os.makedirs(filedir)
+            filepath = os.path.join(filedir, "upgrade_tasks_playbook.yaml")
+            playbook_tasks = self.cmd._write_playbook_get_tasks(
+                fakes.FAKE_STACK['outputs'][1]['output_value'][role]
+                ['upgrade_tasks'], role, filepath)
+            self.assertTrue(os.path.isfile(filepath))
+            self.assertEqual(expected_tasks[role], playbook_tasks)
