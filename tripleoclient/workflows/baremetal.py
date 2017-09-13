@@ -122,14 +122,10 @@ def introspect(clients, **workflow_input):
             if 'message' in payload:
                 print(payload['message'])
 
-        if payload['status'] == 'SUCCESS':
-            print('Successfully introspected all nodes.')
-        else:
+        if payload['status'] != 'SUCCESS':
             raise exceptions.IntrospectionError(
                 "Introspection completed with errors:\n%s" % '\n'
                 .join(msg for msg in payload['message'] if msg))
-
-    print("Introspection completed.")
 
 
 def introspect_manageable_nodes(clients, **workflow_input):
