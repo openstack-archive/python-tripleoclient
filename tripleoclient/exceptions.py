@@ -88,8 +88,8 @@ class WorkflowActionError(Exception):
     """Workflow action failed"""
     msg_format = "Action {} execution failed: {}"
 
-    def __init__(self, message, action='', output=''):
-        message = message.format(action, output)
+    def __init__(self, action='', output=''):
+        message = self.msg_format.format(action, output)
         super(WorkflowActionError, self).__init__(message)
 
 
