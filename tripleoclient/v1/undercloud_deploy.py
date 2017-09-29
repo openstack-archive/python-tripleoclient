@@ -322,6 +322,9 @@ class DeployUndercloud(command.Command):
         hostname = self._get_hostname()
 
         data = {
+            'HostnameMap': {
+                'undercloud-undercloud-0': '%s' % hostname
+            },
             'DeployedServerPortMap': {
                 ('%s-ctlplane' % hostname): {
                     'fixed_ips': [{'ip_address': ip_addr}],
