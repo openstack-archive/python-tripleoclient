@@ -112,10 +112,48 @@ class HeatBaseLauncher(object):
     # and chown them accordingly for the heat user
     def __init__(self, api_port, container_image, user='heat'):
         self.api_port = api_port
+        tmpdir = '/var/tmp/undercloud'
+
+        if os.path.isdir(tmpdir):
+            # This one may fail but it's just cleanup.
+            p = subprocess.Popen(['umount', tmpdir],
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+            cmd_stdout, cmd_stderr = p.communicate()
+            retval = p.returncode
+            if retval != 0:
+                log.info('Cleanup unmount of %s failed (probably because '
+                         'it was not mounted): %s' % (tmpdir, cmd_stderr))
+            else:
+                log.info('umount of %s success' % (tmpdir))
+        else:
+            # Create the directory if it doesn't exist.
+            try:
+                os.makedirs(tmpdir, mode=0o755)
+            except Exception as e:
+                log.error('Creating temp directory "%s" failed: %s' %
+                          (tmpdir, e))
+                raise Exception('Could not create temp directory %s: %s' %
+                                (tmpdir, e))
+        # As an optimization we mount the tmp directory in a tmpfs (in memory)
+        # filesystem.  Depending on your system this can cut the heat
+        # deployment times by half.
+        p = subprocess.Popen(['mount', '-t', 'tmpfs', '-o', 'size=500M',
+                              'tmpfs', tmpdir],
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+        cmd_stdout, cmd_stderr = p.communicate()
+        retval = p.returncode
+        if retval != 0:
+            # It's ok if this fails, it will still work.  It just won't
+            # be on tmpfs.
+            log.warning('Unable to mount tmpfs for logs and database %s: %s' %
+                        (tmpdir, cmd_stderr))
 
         self.policy_file = os.path.join(os.path.dirname(__file__),
                                         'noauth_policy.json')
-        self.install_tmp = tempfile.mkdtemp(prefix='undercloud_deploy-')
+        self.install_tmp = tempfile.mkdtemp(prefix='%s/undercloud_deploy-' %
+                                            tmpdir)
         self.container_image = container_image
         self.user = user
         self.sql_db = os.path.join(self.install_tmp, 'heat.sqlite')
