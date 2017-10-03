@@ -167,7 +167,7 @@ class ClientWrapper(object):
         self._object_store = None
         self._local_orchestration = None
 
-    def local_orchestration(self, api_port, keystone_port):
+    def local_orchestration(self, api_port):
         """Returns an local_orchestration service client"""
 
         if self._local_orchestration is not None:
@@ -185,7 +185,6 @@ class ClientWrapper(object):
 
         client = heat_client(
             endpoint='http://127.0.0.1:%s/v1/admin' % api_port,
-            auth_url='http://127.0.0.1:%s/v3' % keystone_port,
             username='admin',
             password='fake',
             region_name='regionOne',

@@ -15,16 +15,16 @@
 from __future__ import print_function
 
 import argparse
-import itertools
+import glob
 import logging
 import netaddr
 import os
 import pwd
-import signal
 import subprocess
 import sys
 import tempfile
 import time
+import traceback
 import yaml
 
 try:
@@ -40,41 +40,28 @@ except ImportError:
 from cliff import command
 from heatclient.common import event_utils
 from heatclient.common import template_utils
+from heatclient.common import utils as heat_utils
 from openstackclient.i18n import _
 
 from tripleoclient import constants
 from tripleoclient import exceptions
-from tripleoclient import fake_keystone
 from tripleoclient import heat_launcher
 
 from tripleo_common.utils import passwords as password_utils
 
-REQUIRED_PACKAGES = iter([
-    'python-heat-agent',
-    'python-heat-agent-apply-config',
-    'python-heat-agent-hiera',
-    'python-heat-agent-puppet',
-    'python-heat-agent-docker-cmd',
-    'python-heat-agent-json-file',
-    'python-heat-agent-ansible',
-    'python-ipaddr',
-    'python-tripleoclient',
-    'docker',
-    'openvswitch',
-    'puppet-tripleo',
-    'yum-plugin-priorities',
-    'openstack-tripleo-common',
-    'openstack-tripleo-heat-templates',
-    'deltarpm'
-])
+# For ansible download
+from tripleo_common.utils import config
 
+ANSIBLE_INVENTORY = """
+[targets]
+overcloud ansible_connection=local
 
-INSTALLER_ENV = {
-    'OS_AUTH_URL': 'http://127.0.0.1:35358',
-    'OS_USERNAME': 'foo',
-    'OS_PROJECT_NAME': 'foo',
-    'OS_PASSWORD': 'bar'
-}
+[Undercloud]
+overcloud
+
+[{hostname}]
+overcloud
+"""
 
 
 class DeployUndercloud(command.Command):
@@ -82,36 +69,11 @@ class DeployUndercloud(command.Command):
 
     log = logging.getLogger(__name__ + ".DeployUndercloud")
     auth_required = False
-    prerequisites = REQUIRED_PACKAGES
+    heat_pid = None
 
     def _get_hostname(self):
         p = subprocess.Popen(["hostname", "-s"], stdout=subprocess.PIPE)
         return p.communicate()[0].rstrip()
-
-    def _install_prerequisites(self, install_heat_native):
-        print('Checking for installed prerequisites ...')
-        processed = []
-
-        if install_heat_native:
-            self.prerequisites = itertools.chain(
-                self.prerequisites,
-                ['openstack-heat-api', 'openstack-heat-engine',
-                 'openstack-heat-monolith'])
-
-        for p in self.prerequisites:
-            try:
-                subprocess.check_call(['rpm', '-q', p])
-            except subprocess.CalledProcessError as e:
-                if e.returncode == 1:
-                    processed.append(p)
-                elif e.returncode != 0:
-                    raise Exception('Failed to check for prerequisites: '
-                                    '%s, the exit status %s'
-                                    % (p, e.returncode))
-
-        if len(processed) > 0:
-            print('Installing prerequisites ...')
-            subprocess.check_call(['yum', '-y', 'install'] + processed)
 
     def _configure_puppet(self):
         print('Configuring puppet modules symlinks ...')
@@ -125,29 +87,6 @@ class DeployUndercloud(command.Command):
             os.symlink(os.path.join(src, obj), tmpf)
             os.rename(tmpf, os.path.join(dst, obj))
         os.rmdir(tmp)
-
-    def _lookup_tripleo_server_stackid(self, client, stack_id):
-        server_stack_id = None
-
-        for X in client.resources.list(stack_id, nested_depth=6):
-            if X.resource_type in (
-                    'OS::TripleO::Server',
-                    'OS::TripleO::UndercloudServer'):
-                server_stack_id = X.physical_resource_id
-
-        return server_stack_id
-
-    def _launch_os_collect_config(self, keystone_port, stack_id):
-        print('Launching os-collect-config ...')
-        os.execvp('os-collect-config',
-                  ['os-collect-config',
-                   '--polling-interval', '3',
-                   '--heat-auth-url', 'http://127.0.0.1:%s/v3' % keystone_port,
-                   '--heat-password', 'fake',
-                   '--heat-user-id', 'admin',
-                   '--heat-project-id', 'admin',
-                   '--heat-stack-id', stack_id,
-                   '--heat-resource-name', 'deployed-server', 'heat'])
 
     def _wait_local_port_ready(self, api_port):
         count = 0
@@ -163,135 +102,6 @@ class DeployUndercloud(command.Command):
             except URLError:
                 pass
         return False
-
-    def _heat_deploy(self, stack_name, template_path, parameters,
-                     environments, timeout, api_port, ks_port):
-        self.log.debug("Processing environment files")
-        env_files, env = (
-            template_utils.process_multiple_environments_and_files(
-                environments))
-
-        self.log.debug("Getting template contents")
-        template_files, template = template_utils.get_template_contents(
-            template_path)
-
-        files = dict(list(template_files.items()) + list(env_files.items()))
-
-        # NOTE(dprince): we use our own client here because we set
-        # auth_required=False above because keystone isn't running when this
-        # command starts
-        tripleoclients = self.app.client_manager.tripleoclient
-        orchestration_client = tripleoclients.local_orchestration(api_port,
-                                                                  ks_port)
-
-        self.log.debug("Deploying stack: %s", stack_name)
-        self.log.debug("Deploying template: %s", template)
-        self.log.debug("Deploying parameters: %s", parameters)
-        self.log.debug("Deploying environment: %s", env)
-        self.log.debug("Deploying files: %s", files)
-
-        stack_args = {
-            'stack_name': stack_name,
-            'template': template,
-            'environment': env,
-            'files': files,
-        }
-
-        if timeout:
-            stack_args['timeout_mins'] = timeout
-
-        self.log.info("Performing Heat stack create")
-        stack = orchestration_client.stacks.create(**stack_args)
-        stack_id = stack['stack']['id']
-
-        event_list_pid = self._fork_heat_event_list()
-
-        self.log.info("Looking up server stack id...")
-        server_stack_id = None
-        # NOTE(dprince) wait a bit to create the server_stack_id resource
-        for c in range(timeout * 60):
-            time.sleep(1)
-            server_stack_id = self._lookup_tripleo_server_stackid(
-                orchestration_client, stack_id)
-            status = orchestration_client.stacks.get(stack_id).status
-            if status == 'FAILED':
-                event_utils.poll_for_events(orchestration_client, stack_name)
-                msg = ('Stack failed before deployed-server resource '
-                       'created.')
-                raise Exception(msg)
-            if server_stack_id:
-                break
-        if not server_stack_id:
-            msg = ('Unable to find deployed server stack id. '
-                   'See tripleo-heat-templates to ensure proper '
-                   '"deployed-server" usage.')
-            raise Exception(msg)
-        self.log.debug("server_stack_id: %s" % server_stack_id)
-
-        pid = None
-        status = 'FAILED'
-        try:
-            pid = os.fork()
-            if pid == 0:
-                self._launch_os_collect_config(ks_port, server_stack_id)
-            else:
-                while True:
-                    status = orchestration_client.stacks.get(stack_id).status
-                    self.log.info(status)
-                    if status in ['COMPLETE', 'FAILED']:
-                        break
-                    time.sleep(5)
-
-        finally:
-            if pid:
-                os.kill(pid, signal.SIGKILL)
-            if event_list_pid:
-                os.kill(event_list_pid, signal.SIGKILL)
-        stack_get = orchestration_client.stacks.get(stack_id)
-        status = stack_get.status
-        if status != 'FAILED':
-            pw_rsrc = orchestration_client.resources.get(
-                stack_id, 'DefaultPasswords')
-            passwords = {p.title().replace("_", ""): v for p, v in
-                         pw_rsrc.attributes.get('passwords', {}).items()}
-            return passwords
-        else:
-            msg = "Stack create failed, reason: %s" % stack_get.reason
-            raise Exception(msg)
-
-    def _fork_heat_event_list(self):
-        pid = os.fork()
-        if pid == 0:
-            try:
-                os.setpgrp()
-                os.setgid(pwd.getpwnam('nobody').pw_gid)
-                os.setuid(pwd.getpwnam('nobody').pw_uid)
-            except KeyError:
-                raise exceptions.DeploymentError(
-                    "Please create a 'nobody' user account before "
-                    "proceeding.")
-            subprocess.check_call(['openstack', 'stack', 'event', 'list',
-                                   'undercloud', '--follow',
-                                   '--nested-depth', '6'], env=INSTALLER_ENV)
-            sys.exit(0)
-        else:
-            return pid
-
-    def _fork_fake_keystone(self):
-        pid = os.fork()
-        if pid == 0:
-            try:
-                os.setpgrp()
-                os.setgid(pwd.getpwnam('nobody').pw_gid)
-                os.setuid(pwd.getpwnam('nobody').pw_uid)
-            except KeyError:
-                raise exceptions.DeploymentError(
-                    "Please create a 'nobody' user account before "
-                    "proceeding.")
-            fake_keystone.launch()
-            sys.exit(0)
-        else:
-            return pid
 
     def _update_passwords_env(self, passwords=None):
         pw_file = os.path.join(os.environ.get('HOME', ''),
@@ -351,10 +161,57 @@ class DeployUndercloud(command.Command):
         }
         return data
 
-    def _deploy_tripleo_heat_templates(self, parsed_args):
-        """Deploy the fixed templates in TripleO Heat Templates"""
-        parameters = {}
+    def _kill_heat(self):
+        if self.heat_pid:
+            self.heat_launch.kill_heat(self.heat_pid)
+            pid, ret = os.waitpid(self.heat_pid, 0)
+            self.heat_pid = None
 
+    def _launch_heat(self, parsed_args):
+
+        # we do this as root to chown config files properly for docker, etc.
+        if parsed_args.heat_native:
+            self.heat_launch = heat_launcher.HeatNativeLauncher(
+                parsed_args.heat_api_port,
+                parsed_args.heat_container_image,
+                parsed_args.heat_user)
+        else:
+            self.heat_launch = heat_launcher.HeatDockerLauncher(
+                parsed_args.heat_api_port,
+                parsed_args.heat_container_image,
+                parsed_args.heat_user)
+
+        # NOTE(dprince): we launch heat with fork exec because
+        # we don't want it to inherit our args. Launching heat
+        # as a "library" would be cool... but that would require
+        # more refactoring. It runs a single process and we kill
+        # it always below.
+        self.heat_pid = os.fork()
+        if self.heat_pid == 0:
+            if parsed_args.heat_native:
+                try:
+                    uid = pwd.getpwnam(parsed_args.heat_user).pw_uid
+                    gid = pwd.getpwnam(parsed_args.heat_user).pw_gid
+                except KeyError:
+                    raise exceptions.DeploymentError(
+                        "Please create a %s user account before "
+                        "proceeding." % parsed_args.heat_user)
+                os.setgid(gid)
+                os.setuid(uid)
+            self.heat_launch.heat_db_sync()
+            # Exec() never returns.
+            self.heat_launch.launch_heat()
+
+        # NOTE(dprince): we use our own client here because we set
+        # auth_required=False above because keystone isn't running when this
+        # command starts
+        tripleoclients = self.app.client_manager.tripleoclient
+        orchestration_client = \
+            tripleoclients.local_orchestration(parsed_args.heat_api_port)
+
+        return orchestration_client
+
+    def _setup_heat_environments(self, parsed_args):
         tht_root = parsed_args.templates
         # generate jinja templates
         args = ['python', 'tools/process-templates.py', '--roles-data',
@@ -382,13 +239,19 @@ class DeployUndercloud(command.Command):
         # use deployed-server because we run os-collect-config locally
         deployed_server_env = os.path.join(
             tht_root, 'environments',
+            'config-download-environment.yaml')
+        environments.append(deployed_server_env)
+
+        # use deployed-server because we run os-collect-config locally
+        deployed_server_env = os.path.join(
+            tht_root, 'environments',
             'deployed-server-noop-ctlplane.yaml')
         environments.append(deployed_server_env)
 
         if parsed_args.environment_files:
             environments.extend(parsed_args.environment_files)
 
-        with tempfile.NamedTemporaryFile() as tmp_env_file:
+        with tempfile.NamedTemporaryFile(delete=False) as tmp_env_file:
             tmp_env = self._generate_hosts_parameters()
 
             ip_nw = netaddr.IPNetwork(parsed_args.local_ip)
@@ -401,26 +264,112 @@ class DeployUndercloud(command.Command):
                                default_flow_style=False)
             environments.append(tmp_env_file.name)
 
-            undercloud_yaml = os.path.join(tht_root, 'overcloud.yaml')
-            passwords = self._heat_deploy(parsed_args.stack, undercloud_yaml,
-                                          parameters, environments,
-                                          parsed_args.timeout,
-                                          parsed_args.heat_api_port,
-                                          parsed_args.fake_keystone_port)
-            if passwords:
-                # Get legacy passwords/secrets generated via heat
-                # These need to be written to the passwords file
-                # to avoid re-creating them every update
-                self._update_passwords_env(passwords)
-            return True
+        return environments
 
-    def _write_credentials(self):
-        fn = os.path.expanduser('~/installer_stackrc')
-        with os.fdopen(os.open(fn, os.O_CREAT | os.O_WRONLY, 0o600), 'w') as f:
-            f.write('# credentials to use while the undercloud '
-                    'installer is running')
-            for k, v in INSTALLER_ENV.items():
-                f.write('export %s=%s\n' % (k, v))
+    def _deploy_tripleo_heat_templates(self, orchestration_client,
+                                       parsed_args):
+        """Deploy the fixed templates in TripleO Heat Templates"""
+
+        environments = self._setup_heat_environments(parsed_args)
+
+        self.log.debug("Processing environment files")
+        env_files, env = (
+            template_utils.process_multiple_environments_and_files(
+                environments))
+
+        self.log.debug("Getting template contents")
+        template_path = os.path.join(parsed_args.templates, 'overcloud.yaml')
+        template_files, template = \
+            template_utils.get_template_contents(template_path)
+
+        files = dict(list(template_files.items()) + list(env_files.items()))
+
+        stack_name = parsed_args.stack
+
+        self.log.debug("Deploying stack: %s", stack_name)
+        self.log.debug("Deploying template: %s", template)
+        self.log.debug("Deploying environment: %s", env)
+        self.log.debug("Deploying files: %s", files)
+
+        stack_args = {
+            'stack_name': stack_name,
+            'template': template,
+            'environment': env,
+            'files': files,
+        }
+
+        if parsed_args.timeout:
+            stack_args['timeout_mins'] = parsed_args.timeout
+
+        self.log.info("Performing Heat stack create")
+        stack = orchestration_client.stacks.create(**stack_args)
+        stack_id = stack['stack']['id']
+
+        return stack_id
+
+    def _wait_for_heat_complete(self, orchestration_client, stack_id, timeout):
+
+        # Wait for the stack to go to COMPLETE.
+        timeout_t = time.time() + 60 * timeout
+        marker = None
+        event_log_context = heat_utils.EventLogContext()
+        kwargs = {
+            'sort_dir': 'asc',
+            'nested_depth': '6'
+        }
+        while True:
+            time.sleep(2)
+            events = event_utils.get_events(
+                orchestration_client,
+                stack_id=stack_id,
+                event_args=kwargs,
+                marker=marker)
+            if events:
+                marker = getattr(events[-1], 'id', None)
+                events_log = heat_utils.event_log_formatter(
+                    events, event_log_context)
+                print(events_log)
+
+            status = orchestration_client.stacks.get(stack_id).status
+            if status == 'FAILED':
+                raise Exception('Stack create failed')
+            if status == 'COMPLETE':
+                break
+            if time.time() > timeout_t:
+                msg = 'Stack creation timeout: %d minutes elapsed' % (timeout)
+                raise Exception(msg)
+
+    def _download_ansible_playbooks(self, client):
+        stack_config = config.Config(client)
+        output_dir = os.environ.get('HOME')
+        print('** Downloading undercloud ansible.. **')
+        # python output buffering is making this seem to take forever..
+        sys.stdout.flush()
+        stack_config.download_config('undercloud', output_dir)
+
+        # Sadly the above writes the ansible config to a new directory each
+        # time.  This finds the newest new entry.
+        ansible_dir = max(glob.iglob('%s/tripleo-*-config' % output_dir),
+                          key=os.path.getctime)
+        # Write out the inventory file.
+        with open('%s/inventory' % ansible_dir, 'w') as f:
+            f.write(ANSIBLE_INVENTORY.format(hostname=self._get_hostname()))
+
+        print('** Downloaded undercloud ansible to %s **' % ansible_dir)
+        sys.stdout.flush()
+        return ansible_dir
+
+    # Never returns, calls exec()
+    def _launch_ansible(self, ansible_dir):
+        os.chdir(ansible_dir)
+        playbook_inventory = "%s/inventory" % (ansible_dir)
+        cmd = ['ansible-playbook', '-i', playbook_inventory,
+               'deploy_steps_playbook.yaml', '-e', 'role_name=Undercloud',
+               '-e', 'deploy_server_id=undercloud', '-e',
+               'bootstrap_server_id=undercloud']
+        print('Running Ansible: %s' % (' '.join(cmd)))
+        # execvp() doesn't return.
+        os.execvp(cmd[0], cmd)
 
     def get_parser(self, prog_name):
         parser = argparse.ArgumentParser(
@@ -451,13 +400,6 @@ class DeployUndercloud(command.Command):
             default='8006',
             help=_('Heat API port to use for the installers private'
                    ' Heat API instance. Optional. Default: 8006.)')
-        )
-        parser.add_argument(
-            '--fake-keystone-port', metavar='<FAKE_KEYSTONE_PORT>',
-            dest='fake_keystone_port',
-            default='35358',
-            help=_('Keystone API port to use for the installers private'
-                   ' fake Keystone API instance. Optional. Default: 35358.)')
         )
         parser.add_argument(
             '--heat-user', metavar='<HEAT_USER>',
@@ -509,13 +451,6 @@ class DeployUndercloud(command.Command):
                   'for this machine.')
             return
 
-        # NOTE(dprince): It would be nice if heat supported true 'noauth'
-        # use in a local format for our use case here (or perhaps dev testing)
-        # but until it does running our own lightweight shim to mock out
-        # the required API calls works just as well. To keep fake keystone
-        # light we run it in a thread.
-        if not os.environ.get('FAKE_KEYSTONE_PORT'):
-            os.environ['FAKE_KEYSTONE_PORT'] = parsed_args.fake_keystone_port
         if not os.environ.get('HEAT_API_PORT'):
             os.environ['HEAT_API_PORT'] = parsed_args.heat_api_port
 
@@ -525,73 +460,34 @@ class DeployUndercloud(command.Command):
         if os.geteuid() != 0:
             raise exceptions.DeploymentError("Please run as root.")
 
-        # Install required packages and configure puppet
-        self._install_prerequisites(parsed_args.heat_native)
+        # configure puppet
         self._configure_puppet()
 
-        keystone_pid = self._fork_fake_keystone()
-
-        # we do this as root to chown config files properly for docker, etc.
-        if parsed_args.heat_native:
-            heat_launch = heat_launcher.HeatNativeLauncher(
-                parsed_args.heat_api_port,
-                parsed_args.fake_keystone_port,
-                parsed_args.heat_container_image,
-                parsed_args.heat_user)
-        else:
-            heat_launch = heat_launcher.HeatDockerLauncher(
-                parsed_args.heat_api_port,
-                parsed_args.fake_keystone_port,
-                parsed_args.heat_container_image,
-                parsed_args.heat_user)
-
-        heat_pid = None
         try:
-            # NOTE(dprince): we launch heat with fork exec because
-            # we don't want it to inherit our args. Launching heat
-            # as a "library" would be cool... but that would require
-            # more refactoring. It runs a single process and we kill
-            # it always below.
-            heat_pid = os.fork()
-            if heat_pid == 0:
-                os.setpgrp()
-                if parsed_args.heat_native:
-                    try:
-                        uid = pwd.getpwnam(parsed_args.heat_user).pw_uid
-                        gid = pwd.getpwnam(parsed_args.heat_user).pw_gid
-                    except KeyError:
-                        raise exceptions.DeploymentError(
-                            "Please create a %s user account before "
-                            "proceeding." % parsed_args.heat_user)
-                    os.setgid(gid)
-                    os.setuid(uid)
-                    heat_launch.heat_db_sync()
-                    heat_launch.launch_heat()
-                else:
-                    heat_launch.heat_db_sync()
-                    heat_launch.launch_heat()
-            else:
-                self._wait_local_port_ready(parsed_args.fake_keystone_port)
-                self._wait_local_port_ready(parsed_args.heat_api_port)
-
-                self._write_credentials()
-
-                if self._deploy_tripleo_heat_templates(parsed_args):
-                    print("\nDeploy Successful.")
-                else:
-                    print("\nUndercloud deployment failed: "
-                          "press ctrl-c to exit.")
-                    while parsed_args.keep_running:
-                        try:
-                            time.sleep(1)
-                        except KeyboardInterrupt:
-                            break
-
-                    raise exceptions.DeploymentError("Stack create failed.")
-
+            # Launch heat.
+            orchestration_client = self._launch_heat(parsed_args)
+            # Wait for heat to be ready.
+            self._wait_local_port_ready(parsed_args.heat_api_port)
+            # Deploy TripleO Heat templates.
+            stack_id = \
+                self._deploy_tripleo_heat_templates(orchestration_client,
+                                                    parsed_args)
+            # Wait for complete..
+            self._wait_for_heat_complete(orchestration_client, stack_id,
+                                         parsed_args.timeout)
+            # download the ansible playbooks and execute them.
+            ansible_dir = \
+                self._download_ansible_playbooks(orchestration_client)
+            # Kill heat, we're done with it now.
+            self._kill_heat()
+            # Never returns..  We exec() it directly.
+            self._launch_ansible(ansible_dir)
+        except Exception as e:
+            print("Exception: %s" % e)
+            print(traceback.format_exception(*sys.exc_info()))
+            raise
         finally:
-            if heat_launch and heat_pid != 0:
-                print('Log files at: %s' % heat_launch.install_tmp)
-                heat_launch.kill_heat(heat_pid)
-            if keystone_pid:
-                os.kill(keystone_pid, signal.SIGKILL)
+            # We only get here on error.
+            print('ERROR: Heat log files: %s' % (self.heat_launch.install_tmp))
+            self._kill_heat()
+            return 1
