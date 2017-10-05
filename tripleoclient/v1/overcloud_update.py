@@ -63,7 +63,9 @@ class UpdateOvercloud(command.Command):
         parser.add_argument('--nodes',
                             action="store",
                             default=None,
-                            help=_('Nodes to update.')
+                            help=_('Nodes to update. If none and the '
+                                   '--init-minor-update set to false, it '
+                                   'will run the update on all nodes.')
                             )
         parser.add_argument('--playbook',
                             action="store",
@@ -111,10 +113,10 @@ class UpdateOvercloud(command.Command):
 
             print("Minor update init on stack {0} complete.".format(
                   parsed_args.stack))
-        # Run ansible:
-        nodes = parsed_args.nodes
-        playbook = parsed_args.playbook
-        if nodes is not None:
+        else:
+            # Run ansible:
+            nodes = parsed_args.nodes
+            playbook = parsed_args.playbook
             inventory_path = '%s/%s' % (os.path.expanduser('~'),
                                         parsed_args.static_inventory)
             if parsed_args.generate_inventory:
