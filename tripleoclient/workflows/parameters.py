@@ -9,7 +9,6 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-import uuid
 import yaml
 
 from tripleoclient import exceptions
@@ -31,9 +30,8 @@ def get_overcloud_passwords(clients, **workflow_input):
 
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
-    queue_name = workflow_input['queue_name']
 
-    with tripleoclients.messaging_websocket(queue_name) as ws:
+    with tripleoclients.messaging_websocket() as ws:
         execution = base.start_workflow(
             workflow_client,
             'tripleo.plan_management.v1.get_passwords',
@@ -63,14 +61,10 @@ def invoke_plan_env_workflows(clients, stack_name, plan_env_file):
         for wf_name, wf_inputs in plan_env_data["workflow_parameters"].items():
             print('Invoking workflow (%s) specified in plan-environment '
                   'file' % wf_name)
-            inputs = {}
-            inputs['plan'] = stack_name
-            queue_name = str(uuid.uuid4())
-            inputs['queue_name'] = queue_name
-            inputs['user_inputs'] = wf_inputs
+            inputs = {'plan': stack_name, 'user_inputs': wf_inputs}
             workflow_client = clients.workflow_engine
             tripleoclients = clients.tripleoclient
-            with tripleoclients.messaging_websocket(queue_name) as ws:
+            with tripleoclients.messaging_websocket() as ws:
                 execution = base.start_workflow(
                     workflow_client,
                     wf_name,
@@ -101,13 +95,11 @@ def check_deprecated_parameters(clients, container):
 
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
-    queue_name = str(uuid.uuid4())
     workflow_input = {
-        'container': container,
-        'queue_name': queue_name
+        'container': container
     }
 
-    with tripleoclients.messaging_websocket(queue_name) as ws:
+    with tripleoclients.messaging_websocket() as ws:
         execution = base.start_workflow(
             workflow_client,
             'tripleo.plan_management.v1.get_deprecated_parameters',

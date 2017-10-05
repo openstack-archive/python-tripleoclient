@@ -63,7 +63,6 @@ class TestCreateRAID(fakes.TestBaremetal):
             workflow_input={
                 'node_uuids': ['uuid1', 'uuid2'],
                 'configuration': self.conf,
-                'queue_name': mock.ANY,
             }
         )
 
@@ -85,7 +84,6 @@ class TestCreateRAID(fakes.TestBaremetal):
             workflow_input={
                 'node_uuids': ['uuid1', 'uuid2'],
                 'configuration': self.conf,
-                'queue_name': mock.ANY,
             }
         )
 

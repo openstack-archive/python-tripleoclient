@@ -14,8 +14,6 @@
 # under the License.
 from __future__ import print_function
 
-import uuid
-
 from tripleoclient.exceptions import InvalidConfiguration
 from tripleoclient.workflows import base
 
@@ -24,9 +22,8 @@ def delete_node(clients, **workflow_input):
 
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
-    queue_name = workflow_input['queue_name']
 
-    with tripleoclients.messaging_websocket(queue_name) as ws:
+    with tripleoclients.messaging_websocket() as ws:
         execution = base.start_workflow(
             workflow_client,
             'tripleo.scale.v1.delete_node',
@@ -51,7 +48,6 @@ def scale_down(clients, plan_name, nodes, timeout=None):
     workflow_input = {
         "container": plan_name,
         "nodes": nodes,
-        "queue_name": str(uuid.uuid4()),
     }
 
     if timeout is not None:

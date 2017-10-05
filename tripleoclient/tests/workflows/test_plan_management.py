@@ -39,10 +39,6 @@ class TestPlanCreationWorkflows(utils.TestCommand):
             "status": "SUCCESS",
         }])
 
-        uuid4_patcher = mock.patch('uuid.uuid4', return_value="UUID4")
-        self.mock_uuid4 = uuid4_patcher.start()
-        self.addCleanup(self.mock_uuid4.stop)
-
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
                 autospec=True)
     def test_create_plan_from_templates_success(self, mock_tarball):
@@ -62,8 +58,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
 
         self.workflow.executions.create.assert_called_once_with(
             'tripleo.plan_management.v1.create_deployment_plan',
-            workflow_input={'queue_name': 'UUID4',
-                            'container': 'test-overcloud',
+            workflow_input={'container': 'test-overcloud',
                             'generate_passwords': True})
 
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
@@ -108,8 +103,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
 
         self.workflow.executions.create.assert_called_once_with(
             'tripleo.plan_management.v1.create_deployment_plan',
-            workflow_input={'queue_name': 'UUID4',
-                            'container': 'test-overcloud',
+            workflow_input={'container': 'test-overcloud',
                             'generate_passwords': True})
 
         mock_open_context.assert_has_calls(
@@ -140,8 +134,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
 
         self.workflow.executions.create.assert_called_once_with(
             'tripleo.plan_management.v1.create_deployment_plan',
-            workflow_input={'queue_name': 'UUID4',
-                            'container': 'test-overcloud',
+            workflow_input={'container': 'test-overcloud',
                             'generate_passwords': True})
 
         mock_open_context.assert_has_calls(
@@ -172,8 +165,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
 
         self.workflow.executions.create.assert_called_once_with(
             'tripleo.plan_management.v1.create_deployment_plan',
-            workflow_input={'queue_name': 'UUID4',
-                            'container': 'test-overcloud',
+            workflow_input={'container': 'test-overcloud',
                             'generate_passwords': True})
 
         mock_open_context.assert_has_calls(
@@ -215,8 +207,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
 
         self.workflow.executions.create.assert_called_once_with(
             'tripleo.plan_management.v1.create_deployment_plan',
-            workflow_input={'queue_name': 'UUID4',
-                            'container': 'test-overcloud',
+            workflow_input={'container': 'test-overcloud',
                             'generate_passwords': False})
 
 

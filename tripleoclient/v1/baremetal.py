@@ -19,7 +19,6 @@ import argparse
 import logging
 import simplejson
 import time
-import uuid
 
 import ironic_inspector_client
 from osc_lib.command import command
@@ -178,8 +177,6 @@ class ImportBaremetal(command.Command):
                     _("OS_BAREMETAL_API_VERSION must be >=1.11 for use of "
                       "'enroll' provision state; currently %s") % api_version)
 
-        queue_name = str(uuid.uuid4())
-
         if parsed_args.no_deploy_image:
             deploy_kernel = None
             deploy_ramdisk = None
@@ -190,7 +187,6 @@ class ImportBaremetal(command.Command):
         baremetal.register_or_update(
             self.app.client_manager,
             nodes_json=nodes_config,
-            queue_name=queue_name,
             kernel_name=deploy_kernel,
             ramdisk_name=deploy_ramdisk,
             instance_boot_option=parsed_args.instance_boot_option,
@@ -224,7 +220,6 @@ class StartBaremetalIntrospectionBulk(command.Command):
                          'overcloud node introspect" to introspect manageable '
                          'nodes instead.')
 
-        queue_name = str(uuid.uuid4())
         clients = self.app.client_manager
         client = self.app.client_manager.baremetal
 
@@ -242,13 +237,12 @@ class StartBaremetalIntrospectionBulk(command.Command):
         print("Starting introspection of manageable nodes")
         baremetal.introspect_manageable_nodes(
             clients,
-            run_validations=parsed_args.run_validations,
-            queue_name=queue_name)
-
+            run_validations=parsed_args.run_validations
+        )
         print("Setting manageable nodes to available...")
         self.log.debug("Moving manageable nodes to available state.")
 
-        baremetal.provide_manageable_nodes(clients, queue_name=queue_name)
+        baremetal.provide_manageable_nodes(clients)
 
 
 class StatusBaremetalIntrospectionBulk(command.Lister):
@@ -417,7 +411,6 @@ class ConfigureBaremetalBoot(command.Command):
                          'overcloud node configure" to configure manageable '
                          'nodes instead.')
 
-        queue_name = str(uuid.uuid4())
         bm_client = self.app.client_manager.baremetal
 
         for node in bm_client.node.list(maintenance=False):
@@ -445,7 +438,6 @@ class ConfigureBaremetalBoot(command.Command):
             baremetal.configure(
                 self.app.client_manager,
                 node_uuids=[node.uuid],
-                queue_name=queue_name,
                 kernel_name=parsed_args.deploy_kernel,
                 ramdisk_name=parsed_args.deploy_ramdisk,
                 root_device=parsed_args.root_device,

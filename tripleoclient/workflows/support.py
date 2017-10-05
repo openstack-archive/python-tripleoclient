@@ -14,7 +14,6 @@
 #
 
 import os
-import uuid
 
 from osc_lib.i18n import _
 
@@ -74,7 +73,6 @@ def fetch_logs(clients, container, server_name, timeout=None,
     workflow_input = {
         "container": container,
         "server_name": server_name,
-        "queue_name": str(uuid.uuid4()),
     }
 
     if timeout is not None:
@@ -84,7 +82,6 @@ def fetch_logs(clients, container, server_name, timeout=None,
 
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
-    queue_name = workflow_input['queue_name']
 
     execution = base.start_workflow(
         workflow_client,
@@ -92,7 +89,7 @@ def fetch_logs(clients, container, server_name, timeout=None,
         workflow_input=workflow_input
     )
 
-    websocket = tripleoclients.messaging_websocket(queue_name)
+    websocket = tripleoclients.messaging_websocket()
     messages = base.wait_for_messages(workflow_client,
                                       websocket,
                                       execution,
@@ -115,7 +112,6 @@ def delete_container(clients, container, timeout=None, concurrency=None):
     """
     workflow_input = {
         "container": container,
-        "queue_name": str(uuid.uuid4()),
     }
 
     if timeout is not None:
@@ -125,7 +121,6 @@ def delete_container(clients, container, timeout=None, concurrency=None):
 
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
-    queue_name = workflow_input['queue_name']
 
     execution = base.start_workflow(
         workflow_client,
@@ -133,7 +128,7 @@ def delete_container(clients, container, timeout=None, concurrency=None):
         workflow_input=workflow_input
     )
 
-    websocket = tripleoclients.messaging_websocket(queue_name)
+    websocket = tripleoclients.messaging_websocket()
     messages = base.wait_for_messages(workflow_client,
                                       websocket,
                                       execution,

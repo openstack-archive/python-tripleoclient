@@ -26,7 +26,7 @@ class FakeClientWrapper(object):
             return_value=self._mock_websocket)
         self._mock_websocket.__exit__ = mock.Mock()
 
-    def messaging_websocket(self, queue_name='tripleo'):
+    def messaging_websocket(self):
         return self._mock_websocket
 
 
@@ -48,7 +48,3 @@ class TestOvercloudNode(utils.TestCommand):
         self.app.client_manager.baremetal = mock.Mock()
         self.app.client_manager.workflow_engine = mock.Mock()
         self.app.client_manager.tripleoclient = FakeClientWrapper()
-
-        uuid4_patcher = mock.patch('uuid.uuid4', return_value="UUID4")
-        self.mock_uuid4 = uuid4_patcher.start()
-        self.addCleanup(self.mock_uuid4.stop)

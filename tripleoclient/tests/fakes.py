@@ -62,5 +62,5 @@ class FakeClientWrapper(object):
     def __init__(self):
         self.ws = FakeWebSocket()
 
-    def messaging_websocket(self, queue_name="tripleo"):
+    def messaging_websocket(self):
         return self.ws

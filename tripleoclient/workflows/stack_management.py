@@ -14,8 +14,6 @@
 # under the License.
 from __future__ import print_function
 
-import uuid
-
 from tripleoclient.exceptions import InvalidConfiguration
 from tripleoclient.workflows import base
 
@@ -31,13 +29,10 @@ def delete_stack(clients, stack):
     tripleoclient = clients.tripleoclient
 
     workflow_input = {
-        'stack': stack,
-        'queue_name': str(uuid.uuid4()),
+        'stack': stack
     }
 
-    queue_name = workflow_input['queue_name']
-
-    with tripleoclient.messaging_websocket(queue_name) as ws:
+    with tripleoclient.messaging_websocket() as ws:
         execution = base.start_workflow(
             workflow_client,
             'tripleo.stack.v1.delete_stack',

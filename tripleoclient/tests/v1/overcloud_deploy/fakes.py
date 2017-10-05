@@ -110,7 +110,7 @@ class FakeClientWrapper(object):
         self._instance = mock.Mock()
         self.object_store = FakeObjectClient()
 
-    def messaging_websocket(self, queue_name="tripleo"):
+    def messaging_websocket(self):
         return fakes.FakeWebSocket()
 
 

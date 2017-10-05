@@ -17,7 +17,6 @@ import argparse
 import logging
 import os.path
 import re
-import uuid
 
 from osc_lib.command import command
 
@@ -44,8 +43,7 @@ class RemoteExecute(command.Command):
         config = parsed_args.file_in.read()
         workflow_client = self.app.client_manager.workflow_engine
         tripleoclients = self.app.client_manager.tripleoclient
-        queue_name = str(uuid.uuid4())
-        messaging_websocket = tripleoclients.messaging_websocket(queue_name)
+        messaging_websocket = tripleoclients.messaging_websocket()
 
         # no special characters here
         config_name = re.sub('[^\w]*', '',
@@ -58,8 +56,7 @@ class RemoteExecute(command.Command):
             'server_name': parsed_args.server_name,
             'config_name': config_name,
             'group': parsed_args.group,
-            'config': config,
-            'queue_name': queue_name
+            'config': config
         }
 
         workflow_client.executions.create(

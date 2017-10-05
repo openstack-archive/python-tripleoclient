@@ -22,7 +22,6 @@ import re
 import shutil
 import six
 import tempfile
-import uuid
 import yaml
 
 from heatclient.common import template_utils
@@ -519,8 +518,8 @@ class DeployOvercloud(command.Command):
         if self._password_cache is None:
             self._password_cache = workflow_params.get_overcloud_passwords(
                 self.clients,
-                container=stack_name,
-                queue_name=str(uuid.uuid4()))
+                container=stack_name
+            )
 
         return self._password_cache[password_name]
 
@@ -688,7 +687,6 @@ class DeployOvercloud(command.Command):
             'parameters': parameters,
             'default_role_counts': self._get_default_role_counts(parsed_args),
             'run_validations': True,
-            'queue_name': str(uuid.uuid4()),
         }
 
         errors, warnings = validations.check_predeployment_validations(

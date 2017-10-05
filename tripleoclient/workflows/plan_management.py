@@ -11,7 +11,6 @@
 # under the License.
 import logging
 import tempfile
-import uuid
 import yaml
 
 from swiftclient import exceptions as swift_exc
@@ -67,9 +66,8 @@ def _upload_templates(swift_client, container_name, tht_root, roles_file=None,
 def _create_update_deployment_plan(clients, workflow, **workflow_input):
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
-    queue_name = workflow_input['queue_name']
 
-    with tripleoclients.messaging_websocket(queue_name) as ws:
+    with tripleoclients.messaging_websocket() as ws:
         execution = base.start_workflow(
             workflow_client, workflow,
             workflow_input=workflow_input
@@ -144,7 +142,6 @@ def create_plan_from_templates(clients, name, tht_root, roles_file=None,
 
     try:
         create_deployment_plan(clients, container=name,
-                               queue_name=str(uuid.uuid4()),
                                generate_passwords=generate_passwords)
     except exceptions.WorkflowServiceError:
         swiftutils.delete_container(swift_client, name)
@@ -188,7 +185,6 @@ def update_plan_from_templates(clients, name, tht_root, roles_file=None,
                       networks_file)
     _update_passwords(swift_client, name, passwords)
     update_deployment_plan(clients, container=name,
-                           queue_name=str(uuid.uuid4()),
                            generate_passwords=generate_passwords,
                            source_url=None)
 
@@ -215,7 +211,6 @@ def _update_passwords(swift_client, name, passwords):
 def export_deployment_plan(clients, **workflow_input):
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
-    queue_name = workflow_input['queue_name']
 
     execution = base.start_workflow(
         workflow_client,
@@ -223,7 +218,7 @@ def export_deployment_plan(clients, **workflow_input):
         workflow_input=workflow_input
     )
 
-    with tripleoclients.messaging_websocket(queue_name) as ws:
+    with tripleoclients.messaging_websocket() as ws:
         for payload in base.wait_for_messages(workflow_client, ws, execution,
                                               _WORKFLOW_TIMEOUT):
             if 'message' in payload:
