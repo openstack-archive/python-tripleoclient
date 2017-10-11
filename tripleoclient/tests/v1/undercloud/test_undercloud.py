@@ -46,6 +46,36 @@ class TestUndercloudInstall(TestPluginV1):
 
         mock_subprocess.assert_called_with('instack-install-undercloud')
 
+    @mock.patch('subprocess.check_call', autospec=True)
+    def test_undercloud_install_with_heat(self, mock_subprocess):
+        arglist = ['--use-heat']
+        verifylist = []
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        # DisplayCommandBase.take_action() returns two tuples
+        self.cmd.take_action(parsed_args)
+
+        mock_subprocess.assert_called_with(
+            ['sudo', 'openstack', 'undercloud',
+             'deploy', '--local-ip=192.168.24.1',
+             '--templates=/usr/share/openstack-tripleo-heat-templates/',
+             '--heat-native', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'services-docker/ironic.yaml',
+             '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'services-docker/ironic-inspector.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'services-docker/mistral.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'services-docker/zaqar.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'docker.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'config-download-environment.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'undercloud.yaml', '-e', '/tmp/undercloud_parameters.yaml'])
+
 
 class TestUndercloudUpgrade(TestPluginV1):
     def setUp(self):
@@ -73,3 +103,36 @@ class TestUndercloudUpgrade(TestPluginV1):
                           'openstack-nova-api'])
             ]
         )
+
+    @mock.patch('subprocess.check_call', autospec=True)
+    def test_undercloud_upgrade_with_heat(self, mock_subprocess):
+        arglist = ['--use-heat']
+        verifylist = []
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        # DisplayCommandBase.take_action() returns two tuples
+        self.cmd.take_action(parsed_args)
+
+        mock_subprocess.assert_called_with(
+            ['sudo', 'openstack', 'undercloud',
+             'deploy', '--local-ip=192.168.24.1',
+             '--templates=/usr/share/openstack-tripleo-heat-templates/',
+             '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'major-upgrade-composable-steps-docker.yaml',
+             '--heat-native', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'services-docker/ironic.yaml',
+             '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'services-docker/ironic-inspector.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'services-docker/mistral.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'services-docker/zaqar.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'docker.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'config-download-environment.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'undercloud.yaml', '-e', '/tmp/undercloud_parameters.yaml'])
