@@ -1,0 +1,9 @@
+---
+deprecations:
+  - |
+    Renamed some options to the `openstack overcloud container image prepare`
+    command for clarity.  The '--images-file' option was renamed to
+    '--output-images-file'.  The '--env-file' option was renamed to
+    '--output-env-file'.  The '--service-environment-file' option was renamed
+    to '--environment-file'. The old options are still in place and show
+    a deprecation warning in the help message.
