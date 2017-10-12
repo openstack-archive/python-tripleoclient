@@ -15,7 +15,6 @@
 from __future__ import print_function
 
 import argparse
-import glob
 import logging
 import os
 import os.path
@@ -239,20 +238,6 @@ class DeployOvercloud(command.Command):
                 run_validations=run_validations,
                 skip_deploy_identifier=skip_deploy_identifier)
 
-    def _load_environment_directories(self, directories):
-        if os.environ.get('TRIPLEO_ENVIRONMENT_DIRECTORY'):
-            directories.append(os.environ.get('TRIPLEO_ENVIRONMENT_DIRECTORY'))
-
-        environments = []
-        for d in directories:
-            if os.path.exists(d) and d != '.':
-                self.log.debug("Environment directory: %s" % d)
-                for f in sorted(glob.glob(os.path.join(d, '*.yaml'))):
-                    self.log.debug("Environment directory file: %s" % f)
-                    if os.path.isfile(f):
-                        environments.append(f)
-        return environments
-
     def _process_and_upload_environment(self, container_name,
                                         env, moved_files, tht_root):
         """Process the environment and upload to Swift
@@ -419,7 +404,7 @@ class DeployOvercloud(command.Command):
         created_env_files = []
 
         if parsed_args.environment_directories:
-            created_env_files.extend(self._load_environment_directories(
+            created_env_files.extend(utils.load_environment_directories(
                 parsed_args.environment_directories))
         env.update(self._create_parameters_env(parameters))
 

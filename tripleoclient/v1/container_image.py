@@ -32,6 +32,7 @@ from tripleo_common.image import image_uploader
 from tripleo_common.image import kolla_builder
 
 from tripleoclient import constants
+from tripleoclient import utils
 
 
 class UploadImage(command.Command):
@@ -274,6 +275,17 @@ class PrepareImageFiles(command.Command):
                    'more than once.)')
         )
         parser.add_argument(
+            '--environment-directory', metavar='<HEAT ENVIRONMENT DIRECTORY>',
+            action='append', dest='environment_directories',
+            default=[os.path.join(os.environ.get('HOME', ''), '.tripleo',
+                                  'environments')],
+            help=_('Environment file directories that are automatically '
+                   'added to the update command. Entries will be filtered '
+                   'to only contain images used by containerized services. '
+                   'Can be specified more than once. Files in directories are '
+                   'loaded in ascending sort order.')
+        )
+        parser.add_argument(
             "--env-file",
             dest="output_env_file",
             metavar='<file path>',
@@ -382,8 +394,16 @@ class PrepareImageFiles(command.Command):
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
 
+        env_files = []
+
+        if parsed_args.environment_directories:
+            env_files.extend(utils.load_environment_directories(
+                parsed_args.environment_directories))
+        if parsed_args.environment_files:
+            env_files.extend(parsed_args.environment_files)
+
         service_filter = self.build_service_filter(
-            parsed_args.environment_files,  parsed_args.roles_file)
+            env_files,  parsed_args.roles_file)
 
         neutron_driver = None
         if service_filter:
