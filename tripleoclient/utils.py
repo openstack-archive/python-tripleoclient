@@ -16,6 +16,7 @@
 from __future__ import print_function
 import csv
 import datetime
+import glob
 import hashlib
 import logging
 import os
@@ -768,3 +769,20 @@ def relative_link_replacement(link_replacement, current_dir):
 
     return {k: os.path.relpath(v, current_dir)
             for k, v in six.iteritems(link_replacement)}
+
+
+def load_environment_directories(directories):
+    log = logging.getLogger(__name__ + ".load_environment_directories")
+
+    if os.environ.get('TRIPLEO_ENVIRONMENT_DIRECTORY'):
+        directories.append(os.environ.get('TRIPLEO_ENVIRONMENT_DIRECTORY'))
+
+    environments = []
+    for d in directories:
+        if os.path.exists(d) and d != '.':
+            log.debug("Environment directory: %s" % d)
+            for f in sorted(glob.glob(os.path.join(d, '*.yaml'))):
+                log.debug("Environment directory file: %s" % f)
+                if os.path.isfile(f):
+                    environments.append(f)
+    return environments
