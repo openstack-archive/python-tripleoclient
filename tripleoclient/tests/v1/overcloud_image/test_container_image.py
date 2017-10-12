@@ -163,9 +163,9 @@ class TestContainerImagePrepare(TestPluginV1):
             'os-',
             '--suffix',
             'foo',
-            '--images-file',
+            '--output-images-file',
             images_file,
-            '--env-file',
+            '--output-env-file',
             env_file,
             '--set',
             'ceph_namespace=myceph',
@@ -271,9 +271,9 @@ class TestContainerImagePrepare(TestPluginV1):
             'os-',
             '--suffix',
             'foo',
-            '--images-file',
+            '--output-images-file',
             images_file,
-            '--env-file',
+            '--output-env-file',
             env_file,
         ]
 

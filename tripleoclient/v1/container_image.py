@@ -242,13 +242,30 @@ class PrepareImageFiles(command.Command):
         )
         parser.add_argument(
             "--images-file",
-            dest="images_file",
+            dest="output_images_file",
+            metavar='<file path>',
+            help=_("File to write resulting image entries to, as well as "
+                   "stdout. Any existing file will be overwritten."
+                   "(DEPRECATED. Use --output-images-file instead)"),
+        )
+        parser.add_argument(
+            "--output-images-file",
+            dest="output_images_file",
             metavar='<file path>',
             help=_("File to write resulting image entries to, as well as "
                    "stdout. Any existing file will be overwritten."),
         )
         parser.add_argument(
-            '--service-environment-file', '-e', metavar='<file path>',
+            '--service-environment-file', metavar='<file path>',
+            action='append', dest='environment_files',
+            help=_('Environment files specifying which services are '
+                   'containerized. Entries will be filtered to only contain '
+                   'images used by containerized services. (Can be specified '
+                   'more than once.)'
+                   "(DEPRECATED. Use --environment-file instead)"),
+        )
+        parser.add_argument(
+            '--environment-file', '-e', metavar='<file path>',
             action='append', dest='environment_files',
             help=_('Environment files specifying which services are '
                    'containerized. Entries will be filtered to only contain '
@@ -257,7 +274,15 @@ class PrepareImageFiles(command.Command):
         )
         parser.add_argument(
             "--env-file",
-            dest="env_file",
+            dest="output_env_file",
+            metavar='<file path>',
+            help=_("File to write heat environment file which specifies all "
+                   "image parameters. Any existing file will be overwritten."
+                   "(DEPRECATED. Use --output-env-file instead)"),
+        )
+        parser.add_argument(
+            "--output-env-file",
+            dest="output_env_file",
             metavar='<file path>',
             help=_("File to write heat environment file which specifies all "
                    "image parameters. Any existing file will be overwritten."),
@@ -382,15 +407,15 @@ class PrepareImageFiles(command.Command):
             if 'services' in entry:
                 del(entry['services'])
 
-        if parsed_args.env_file:
-            self.write_env_file(params, parsed_args.env_file)
+        if parsed_args.output_env_file:
+            self.write_env_file(params, parsed_args.output_env_file)
 
         result_str = yaml.safe_dump({'container_images': result},
                                     default_flow_style=False)
         sys.stdout.write(result_str)
 
-        if parsed_args.images_file:
-            with os.fdopen(os.open(parsed_args.images_file,
+        if parsed_args.output_images_file:
+            with os.fdopen(os.open(parsed_args.output_images_file,
                            os.O_CREAT | os.O_TRUNC | os.O_WRONLY, 0o666),
                            'w') as f:
                 f.write(result_str)
