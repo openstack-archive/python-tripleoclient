@@ -61,7 +61,7 @@ REQUIRED_PACKAGES = iter([
     'python-tripleoclient',
     'docker',
     'openvswitch',
-    'openstack-puppet-modules',
+    'puppet-tripleo',
     'yum-plugin-priorities',
     'openstack-tripleo-common',
     'openstack-tripleo-heat-templates',
