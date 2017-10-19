@@ -114,10 +114,10 @@ class HeatDockerLauncher(HeatBaseLauncher):
             '--name', 'heat_all',
             '--user', self.user,
             '--net', 'host',
-            '--volume', '%(conf)s:/etc/heat/heat.conf' % {'conf':
-                                                          self.config_file},
-            '--volume', '%(inst_tmp)s:%(inst_tmp)s:rw' % {'inst_tmp':
-                                                          self.install_tmp},
+            '--volume', '%(conf)s:/etc/heat/heat.conf:Z' % {'conf':
+                                                            self.config_file},
+            '--volume', '%(inst_tmp)s:%(inst_tmp)s:Z' % {'inst_tmp':
+                                                         self.install_tmp},
             '--volume', '%(pfile)s:%(pfile)s:ro' % {'pfile':
                                                     self.policy_file},
             self.container_image, 'heat-all'
@@ -130,10 +130,10 @@ class HeatDockerLauncher(HeatBaseLauncher):
         cmd = [
             'docker', 'run', '--rm',
             '--user', self.user,
-            '--volume', '%(conf)s:/etc/heat/heat.conf' % {'conf':
-                                                          self.config_file},
-            '--volume', '%(inst_tmp)s:%(inst_tmp)s:rw' % {'inst_tmp':
-                                                          self.install_tmp},
+            '--volume', '%(conf)s:/etc/heat/heat.conf:Z' % {'conf':
+                                                            self.config_file},
+            '--volume', '%(inst_tmp)s:%(inst_tmp)s:Z' % {'inst_tmp':
+                                                         self.install_tmp},
             self.container_image,
             'heat-manage', 'db_sync']
         log.debug(' '.join(cmd))
