@@ -136,4 +136,4 @@ class UpdateOvercloud(command.Command):
                 inventory_file=inventory,
                 playbook=playbook,
                 queue_name=str(uuid.uuid4()))
-            print (output)
+            print(output)
