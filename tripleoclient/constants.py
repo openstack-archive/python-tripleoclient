@@ -40,3 +40,7 @@ RHEL_REGISTRATION_EXTRACONFIG_NAME = (
 
 # The name of the file which holds the plan environment contents
 PLAN_ENVIRONMENT = 'plan-environment.yaml'
+
+TRIPLEO_PUPPET_MODULES = "/usr/share/openstack-puppet/modules/"
+PUPPET_MODULES = "/etc/puppet/modules/"
+PUPPET_BASE = "/etc/puppet/"
