@@ -97,7 +97,7 @@ def overcloudrc(workflow_client, **input_):
 
 
 def config_download(log, clients, stack, templates, deployed_server,
-                    ssh_user, ssh_key):
+                    ssh_user, ssh_key, output_dir):
     role_net_hostname_map = utils.get_role_net_hostname_map(stack)
     hostnames = []
     for role in role_net_hostname_map:
@@ -138,11 +138,15 @@ def config_download(log, clients, stack, templates, deployed_server,
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
 
+    workflow_input = {}
+    if output_dir:
+        workflow_input.update(dict(work_dir=output_dir))
+
     with tripleoclients.messaging_websocket() as ws:
         execution = base.start_workflow(
             workflow_client,
             'tripleo.deployment.v1.config_download_deploy',
-            workflow_input={}
+            workflow_input=workflow_input
         )
 
         for payload in base.wait_for_messages(workflow_client, ws, execution,
