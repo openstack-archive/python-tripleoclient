@@ -11,7 +11,10 @@
 # under the License.
 from __future__ import print_function
 
+import os
 import pprint
+import re
+import subprocess
 import time
 
 from heatclient.common import event_utils
@@ -91,3 +94,62 @@ def deploy_and_wait(log, clients, stack, plan_name, verbose_level,
 def overcloudrc(workflow_client, **input_):
     return base.call_action(workflow_client, 'tripleo.deployment.overcloudrc',
                             **input_)
+
+
+def config_download(log, clients, stack, templates, deployed_server,
+                    ssh_user, ssh_key):
+    role_net_hostname_map = utils.get_role_net_hostname_map(stack)
+    hostnames = []
+    for role in role_net_hostname_map:
+        hostnames.extend(role_net_hostname_map[role]['ctlplane'])
+
+    ips = []
+    hosts_entry = utils.get_hosts_entry(stack)
+    for hostname in hostnames:
+        for line in hosts_entry.split('\n'):
+            match = re.search('\s*%s\s*' % hostname, line)
+            if match:
+                ips.append(line.split(' ')[0])
+
+    if deployed_server:
+        script_path = os.path.join(templates,
+                                   'deployed-server',
+                                   'scripts',
+                                   'enable-ssh-admin.sh')
+
+        env = os.environ.copy()
+        env.update(dict(OVERCLOUD_HOSTS=' '.join(ips),
+                        OVERCLOUD_SSH_USER=ssh_user,
+                        OVERCLOUD_SSH_KEY=ssh_key))
+
+        proc = subprocess.Popen([script_path], env=env, shell=True,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT)
+
+        while True:
+            line = proc.stdout.readline().decode('utf-8')
+            if line:
+                log.info(line.rstrip())
+            if line == '' and proc.poll() is not None:
+                break
+        if proc.returncode != 0:
+            raise RuntimeError('%s failed.' % script_path)
+
+    workflow_client = clients.workflow_engine
+    tripleoclients = clients.tripleoclient
+
+    with tripleoclients.messaging_websocket() as ws:
+        execution = base.start_workflow(
+            workflow_client,
+            'tripleo.deployment.v1.config_download_deploy',
+            workflow_input={}
+        )
+
+        for payload in base.wait_for_messages(workflow_client, ws, execution,
+                                              3600):
+            print(payload['message'])
+
+    if payload['status'] == 'SUCCESS':
+        print("Overcloud configuration completed.")
+    else:
+        raise exceptions.DeploymentError("Overcloud configuration failed.")

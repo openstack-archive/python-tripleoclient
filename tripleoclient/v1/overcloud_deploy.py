@@ -18,6 +18,7 @@ import argparse
 import logging
 import os
 import os.path
+import pwd
 import re
 import shutil
 import six
@@ -737,6 +738,11 @@ class DeployOvercloud(command.Command):
             help=_('User for ssh access to overcloud nodes')
         )
         parser.add_argument(
+            '--overcloud-ssh-key',
+            default=pwd.getpwuid(os.getuid()).pw_name,
+            help=_('Key path for ssh access to overcloud nodes.')
+        )
+        parser.add_argument(
             '--environment-file', '-e', metavar='<HEAT ENVIRONMENT FILE>',
             action='append', dest='environment_files',
             help=_('Environment files to be passed to the heat stack-create '
@@ -890,7 +896,12 @@ class DeployOvercloud(command.Command):
                    'undercloud node. Must only be used with the'
                    '--disable-validations.')
         )
-
+        parser.add_argument(
+            '--config-download',
+            action='store_true',
+            default=False,
+            help=_('Run deployment via config-download mechanism')
+        )
         return parser
 
     def take_action(self, parsed_args):
@@ -979,6 +990,15 @@ class DeployOvercloud(command.Command):
             # stack yet or there wont be any changes and the following code
             # wont do anything.
             return
+
+        if parsed_args.config_download:
+            print("Deploying overcloud configuration")
+
+            deployment.config_download(self.log, self.clients, stack,
+                                       parsed_args.templates,
+                                       parsed_args.deployed_server,
+                                       parsed_args.overcloud_ssh_user,
+                                       parsed_args.overcloud_ssh_key)
 
         # Force fetching of attributes
         stack.get()
