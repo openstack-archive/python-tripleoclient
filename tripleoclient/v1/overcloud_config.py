@@ -61,4 +61,6 @@ class DownloadConfig(command.Command):
         config_type = parsed_args.config_type
         # Get config
         config = ooo_config.Config(clients.orchestration)
-        return config.download_config(name, config_dir, config_type)
+        config_path = config.download_config(name, config_dir, config_type)
+        print("The TripleO configuration has been successfully generated "
+              "into: {0}".format(config_path))
