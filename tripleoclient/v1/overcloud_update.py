@@ -80,18 +80,13 @@ class UpdateOvercloud(command.Command):
                             default="update_steps_playbook.yaml",
                             help=_('Playbook to use for update')
                             )
-        parser.add_argument('--generate-inventory',
-                            dest='generate_inventory',
-                            action='store_true',
-                            default=True,
-                            help=_("Generate inventory for the ansible "
-                                   "playbook"),
-                            )
         parser.add_argument('--static-inventory',
                             dest='static_inventory',
                             action="store",
-                            default='tripleo-hosts-inventory',
-                            help=_('Path to the static inventory to use')
+                            default=None,
+                            help=_('Path to an existing ansible inventory to '
+                                   'use.  If not specified, one will be '
+                                   'generated in ~/tripleo-ansible-inventory')
                             )
         return parser
 
@@ -131,22 +126,21 @@ class UpdateOvercloud(command.Command):
             # Run ansible:
             nodes = parsed_args.nodes
             playbook = parsed_args.playbook
-            inventory_path = '%s/%s' % (os.path.expanduser('~'),
-                                        parsed_args.static_inventory)
-            if parsed_args.generate_inventory:
+            inventory_file = parsed_args.static_inventory
+            if inventory_file is None:
+                inventory_file = '%s/%s' % (os.path.expanduser('~'),
+                                            'tripleo-ansible-inventory')
                 try:
                     processutils.execute('/bin/tripleo-ansible-inventory',
-                                         '--static-inventory', inventory_path)
+                                         '--static-inventory', inventory_file)
                 except processutils.ProcessExecutionError as e:
-                    message = "Failed to generate inventory file: %s" % str(e)
+                    message = "Failed to generate inventory: %s" % str(e)
                     raise exceptions.InvalidConfiguration(message)
-            if os.path.exists(inventory_path):
-                inventory = open(inventory_path, 'r').read()
+            if os.path.exists(inventory_file):
+                inventory = open(inventory_file, 'r').read()
             else:
                 raise exceptions.InvalidConfiguration(
-                    "Inventory file missing, provide an inventory file or "
-                    "generate an inventory by using the --generate-inventory "
-                    "option")
+                    "Inventory file %s can not be found." % inventory_file)
             output = package_update.update_ansible(
                 clients, nodes=nodes,
                 inventory_file=inventory,
