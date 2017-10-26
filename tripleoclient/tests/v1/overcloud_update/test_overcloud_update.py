@@ -63,7 +63,9 @@ class TestOvercloudUpdate(fakes.TestOvercloudUpdate):
         mock_update.assert_called_once_with(
             self.app.client_manager,
             container='mystack',
-            container_registry={'fake_container': 'fake_value'}
+            container_registry={'fake_container': 'fake_value'},
+            ceph_ansible_playbook='/usr/share/ceph-ansible/infrastructure-'
+                                  'playbooks/rolling_update.yml',
         )
 
     @mock.patch('tripleoclient.workflows.package_update.update',
