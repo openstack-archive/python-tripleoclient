@@ -171,6 +171,10 @@ class PrepareImageFiles(command.Command):
                                      'overcloud_containers.yaml.j2')
         roles_file = os.path.join(constants.TRIPLEO_HEAT_TEMPLATES,
                                   constants.OVERCLOUD_ROLES_FILE)
+
+        builder = kolla_builder.KollaImageBuilder([template_file])
+        defaults = builder.container_images_template_inputs()
+
         parser.add_argument(
             "--template-file",
             dest="template_file",
@@ -198,34 +202,34 @@ class PrepareImageFiles(command.Command):
         parser.add_argument(
             "--tag",
             dest="tag",
-            default="latest",
+            default=defaults['tag'],
             metavar='<tag>',
             help=_("Override the default tag substitution.\n"
-                   "Default: latest"),
+                   "Default: %s") % defaults['tag'],
         )
         parser.add_argument(
             "--namespace",
             dest="namespace",
-            default="docker.io/tripleoupstream",
+            default=defaults['namespace'],
             metavar='<namespace>',
             help=_("Override the default namespace substitution.\n"
-                   "Default: docker.io/tripleoupstream"),
+                   "Default: %s") % defaults['namespace'],
         )
         parser.add_argument(
             "--prefix",
             dest="prefix",
-            default="centos-binary-",
+            default=defaults['name_prefix'],
             metavar='<prefix>',
             help=_("Override the default name prefix substitution.\n"
-                   "Default: centos-binary-"),
+                   "Default: %s") % defaults['name_prefix'],
         )
         parser.add_argument(
             "--suffix",
             dest="suffix",
-            default="",
+            default=defaults['name_suffix'],
             metavar='<suffix>',
             help=_("Override the default name suffix substitution.\n"
-                   "Default is empty."),
+                   "Default: %s") % defaults['name_suffix'],
         )
         parser.add_argument(
             '--set',
