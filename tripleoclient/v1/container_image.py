@@ -25,6 +25,7 @@ from heatclient.common import template_utils
 from osc_lib.command import command
 from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
+import requests
 import yaml
 
 from tripleo_common.image import image_uploader
@@ -318,6 +319,27 @@ class PrepareImageFiles(command.Command):
                         'Use the variable=value format.') % s
                 raise oscexc.CommandError(msg)
 
+    def detect_insecure_registries(self, params):
+        insecure = []
+        hosts = set()
+        for image in params.values():
+            hosts.add(image.split('/')[0])
+
+        for host in hosts:
+            try:
+                requests.get('https://%s/' % host)
+            except requests.exceptions.SSLError:
+                insecure.append(host)
+            except Exception:
+                # for any other error assume it is a secure registry, because:
+                # - it is secure registry
+                # - the host is not accessible
+                # - the namespace doesn't include a host name
+                pass
+        if not insecure:
+            return {}
+        return {'DockerInsecureRegistryAddress': sorted(insecure)}
+
     def write_env_file(self, params, env_file):
 
         with os.fdopen(os.open(env_file,
@@ -427,6 +449,8 @@ class PrepareImageFiles(command.Command):
                 del(entry['services'])
 
         if parsed_args.output_env_file:
+            params.update(
+                self.detect_insecure_registries(params))
             self.write_env_file(params, parsed_args.output_env_file)
 
         result_str = yaml.safe_dump({'container_images': result},

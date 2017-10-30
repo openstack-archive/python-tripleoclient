@@ -16,6 +16,7 @@
 import fixtures
 import mock
 import os
+import requests
 import shutil
 import six
 import tempfile
@@ -112,7 +113,8 @@ class TestContainerImagePrepare(TestPluginV1):
                          enabled_services)
 
     @mock.patch('tripleo_common.image.kolla_builder.KollaImageBuilder')
-    def test_container_image_prepare_noargs(self, mock_builder):
+    @mock.patch('requests.get')
+    def test_container_image_prepare_noargs(self, mock_get, mock_builder):
         arglist = []
         verifylist = []
         cift = mock.MagicMock()
@@ -137,7 +139,8 @@ class TestContainerImagePrepare(TestPluginV1):
     @mock.patch('tripleo_common.image.kolla_builder.KollaImageBuilder')
     @mock.patch('heatclient.common.template_utils.'
                 'process_multiple_environments_and_files')
-    def test_container_image_prepare(self, pmef, mock_builder):
+    @mock.patch('requests.get')
+    def test_container_image_prepare(self, mock_get, pmef, mock_builder):
 
         temp = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, temp)
@@ -145,6 +148,7 @@ class TestContainerImagePrepare(TestPluginV1):
         env_file = os.path.join(temp, 'containers_env.yaml')
         tmpl_file = os.path.join(temp, 'overcloud_containers.yaml.j2')
         aodh_file = os.path.join(temp, 'docker', 'services', 'aodh.yaml')
+        mock_get.side_effect = requests.exceptions.SSLError('ouch')
 
         resource_registry = {'resource_registry': {
             'OS::TripleO::Services::AodhEvaluator': aodh_file,
@@ -158,7 +162,7 @@ class TestContainerImagePrepare(TestPluginV1):
             '--tag',
             'passed-ci',
             '--namespace',
-            'tripleo',
+            '192.0.2.0:8787/t',
             '--prefix',
             'os-',
             '--suffix',
@@ -180,14 +184,14 @@ class TestContainerImagePrepare(TestPluginV1):
         verifylist = []
         cift = mock.MagicMock()
         cift.return_value = [{
-            'imagename': 'tripleo/os-aodh-apifoo:passed-ci',
+            'imagename': '192.0.2.0:8787/t/os-aodh-apifoo:passed-ci',
             'params': ['DockerAodhApiImage', 'DockerAodhConfigImage'],
             'services': [
                 'OS::TripleO::Services::AodhApi',
                 'OS::TripleO::Services::AodhEvaluator',
             ],
         }, {
-            'imagename': 'tripleo/os-aodh-evaluatorfoo:passed-ci',
+            'imagename': '192.0.2.0:8787/t/os-aodh-evaluatorfoo:passed-ci',
             'params': ['DockerAodhEvaluatorImage'],
             'services': [
                 'OS::TripleO::Services::AodhEvaluator',
@@ -206,7 +210,7 @@ class TestContainerImagePrepare(TestPluginV1):
             filter=mock.ANY,
             name_prefix='os-',
             name_suffix='foo',
-            namespace='tripleo',
+            namespace='192.0.2.0:8787/t',
             tag='passed-ci',
             ceph_image='mydaemon',
             ceph_namespace='myceph',
@@ -215,17 +219,20 @@ class TestContainerImagePrepare(TestPluginV1):
         )
         ci_data = {
             'container_images': [{
-                'imagename': 'tripleo/os-aodh-apifoo:passed-ci',
+                'imagename': '192.0.2.0:8787/t/os-aodh-apifoo:passed-ci',
             }, {
-                'imagename': 'tripleo/os-aodh-evaluatorfoo:passed-ci',
+                'imagename': '192.0.2.0:8787/t/os-aodh-evaluatorfoo:passed-ci',
             }]
         }
         env_data = {
             'parameter_defaults': {
-                'DockerAodhApiImage': 'tripleo/os-aodh-apifoo:passed-ci',
-                'DockerAodhConfigImage': 'tripleo/os-aodh-apifoo:passed-ci',
+                'DockerAodhApiImage':
+                    '192.0.2.0:8787/t/os-aodh-apifoo:passed-ci',
+                'DockerAodhConfigImage':
+                    '192.0.2.0:8787/t/os-aodh-apifoo:passed-ci',
                 'DockerAodhEvaluatorImage':
-                    'tripleo/os-aodh-evaluatorfoo:passed-ci'
+                    '192.0.2.0:8787/t/os-aodh-evaluatorfoo:passed-ci',
+                'DockerInsecureRegistryAddress': ['192.0.2.0:8787']
             }
         }
         with open(images_file) as f:
@@ -308,7 +315,9 @@ class TestContainerImagePrepare(TestPluginV1):
                 'process_multiple_environments_and_files')
     @mock.patch('tripleoclient.v1.container_image.PrepareImageFiles.'
                 'get_enabled_services')
-    def test_container_image_prepare_for_odl(self, ges, pmef, mock_builder):
+    @mock.patch('requests.get')
+    def test_container_image_prepare_for_odl(self, mock_get, ges, pmef,
+                                             mock_builder):
         arglist = [
             '-e',
             'environments/services-docker/neutron-opendaylight.yaml',
@@ -378,7 +387,9 @@ class TestContainerImagePrepare(TestPluginV1):
                 'process_multiple_environments_and_files')
     @mock.patch('tripleoclient.v1.container_image.PrepareImageFiles.'
                 'get_enabled_services')
-    def test_container_image_prepare_for_ovn(self, ges, pmef, mock_builder):
+    @mock.patch('requests.get')
+    def test_container_image_prepare_for_ovn(self, mock_get, ges, pmef,
+                                             mock_builder):
         arglist = [
             '-e',
             'environments/services-docker/neutron-ovn.yaml',
@@ -440,6 +451,39 @@ class TestContainerImagePrepare(TestPluginV1):
             pmef, mock_builder, pmef_call_args, arglist, 'ovn',
             expected_container_template_params, expected_oc_yaml_contents,
             expected_env_contents)
+
+    @mock.patch('requests.get')
+    def test_detect_insecure_registry(self, mock_get):
+        self.assertEqual(
+            {},
+            self.cmd.detect_insecure_registries(
+                {'foo': 'docker.io/tripleo'}))
+        self.assertEqual(
+            {},
+            self.cmd.detect_insecure_registries(
+                {'foo': 'tripleo'}))
+
+        mock_get.side_effect = requests.exceptions.ReadTimeout('ouch')
+        self.assertEqual(
+            {},
+            self.cmd.detect_insecure_registries(
+                {'foo': '192.0.2.0:8787/tripleo'}))
+
+        mock_get.side_effect = requests.exceptions.SSLError('ouch')
+        self.assertEqual(
+            {'DockerInsecureRegistryAddress': ['192.0.2.0:8787']},
+            self.cmd.detect_insecure_registries(
+                {'foo': '192.0.2.0:8787/tripleo'}))
+
+        self.assertEqual(
+            {'DockerInsecureRegistryAddress': [
+                '192.0.2.0:8787',
+                '192.0.2.1:8787']},
+            self.cmd.detect_insecure_registries({
+                'foo': '192.0.2.0:8787/tripleo/foo',
+                'bar': '192.0.2.0:8787/tripleo/bar',
+                'baz': '192.0.2.1:8787/tripleo/baz',
+            }))
 
 
 class TestContainerImageBuild(TestPluginV1):
