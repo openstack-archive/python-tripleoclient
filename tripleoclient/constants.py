@@ -43,3 +43,7 @@ PLAN_ENVIRONMENT = 'plan-environment.yaml'
 
 # This directory may contain additional environments to use during deploy
 DEFAULT_ENV_DIRECTORY = "~/.tripleo/environments"
+
+TRIPLEO_PUPPET_MODULES = "/usr/share/openstack-puppet/modules/"
+PUPPET_MODULES = "/etc/puppet/modules/"
+PUPPET_BASE = "/etc/puppet/"
