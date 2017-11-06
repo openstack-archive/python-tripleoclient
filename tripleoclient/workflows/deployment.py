@@ -157,3 +157,21 @@ def config_download(log, clients, stack, templates, deployed_server,
         print("Overcloud configuration completed.")
     else:
         raise exceptions.DeploymentError("Overcloud configuration failed.")
+
+
+def get_horizon_url(clients, **workflow_input):
+    workflow_client = clients.workflow_engine
+    tripleoclients = clients.tripleoclient
+
+    with tripleoclients.messaging_websocket() as ws:
+        execution = base.start_workflow(
+            workflow_client,
+            'tripleo.deployment.v1.get_horizon_url',
+            workflow_input=workflow_input
+        )
+
+        for payload in base.wait_for_messages(workflow_client, ws, execution,
+                                              360):
+            assert payload['status'] == "SUCCESS"
+
+            return payload['horizon_url']
