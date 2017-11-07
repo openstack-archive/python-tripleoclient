@@ -101,9 +101,13 @@ class UpdateOvercloud(command.Command):
                 with open(os.path.abspath(container_registry)) as content:
                     registry = yaml.load(content.read())
             else:
-                raise exceptions.InvalidConfiguration(
-                    "You need to provide a container registry file in order "
-                    "to update your current containers deployed.")
+                self.log.warning(
+                    "You have not provided a container registry file. Note "
+                    "that none of the containers on your environement will be "
+                    "updated. If you want to update your container you have "
+                    "to re-run this command and provide the registry file "
+                    "with: --container-registry-file option.")
+                registry = None
             # Execute minor update
             package_update.update(clients, container=stack_name,
                                   container_registry=registry,
