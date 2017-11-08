@@ -1,0 +1,5 @@
+---
+deprecations:
+- The command "openstack overcloud container image prepare" has deprecated
+  the --pull-source argument. The source registry should now be specified as
+  part of the --namespace argument.
