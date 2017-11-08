@@ -14,23 +14,104 @@
 #
 from __future__ import print_function
 
+import datetime
+import json
 import logging
 import os
 import signal
 import subprocess
 import tempfile
 
+from oslo_utils import timeutils
 
 log = logging.getLogger(__name__)
+
+NEXT_DAY = (timeutils.utcnow() + datetime.timedelta(days=2)).isoformat()
+
+FAKE_TOKEN_RESPONSE = {
+    "token": {
+        "is_domain": False,
+        "methods": ["password"],
+        "roles": [{
+            "id": "4c8de39b96794ab28bf37a0b842b8bc8",
+            "name": "admin"
+        }],
+        "expires_at": NEXT_DAY,
+        "project": {
+            "domain": {
+                "id": "default",
+                "name": "Default"
+            },
+            "id": "admin",
+            "name": "admin"
+        },
+        "catalog": [{
+            "endpoints": [{
+                "url": "http://127.0.0.1:%(heat_port)s/v1/admin",
+                "interface": "public",
+                "region": "regionOne",
+                "region_id": "regionOne",
+                "id": "2809305628004fb391b3d0254fb5b4f7"
+            }, {
+                "url": "http://127.0.0.1:%(heat_port)s/v1/admin",
+                "interface": "internal",
+                "region": "regionOne",
+                "region_id": "regionOne",
+                "id": "2809305628004fb391b3d0254fb5b4f7"
+            }, {
+                "url": "http://127.0.0.1:%(heat_port)s/v1/admin",
+                "interface": "admin",
+                "region": "regionOne",
+                "region_id": "regionOne",
+                "id": "2809305628004fb391b3d0254fb5b4f7"
+            }],
+            "type": "orchestration",
+            "id": "96a549e3961d45cabe883dd17c5835be",
+            "name": "heat"
+        }, {
+            "endpoints": [{
+                "url": "http://127.0.0.1/v3",
+                "interface": "public",
+                "region": "regionOne",
+                "region_id": "regionOne",
+                "id": "eca215878e404a2d9dcbcc7f6a027165"
+            }, {
+                "url": "http://127.0.0.1/v3",
+                "interface": "internal",
+                "region": "regionOne",
+                "region_id": "regionOne",
+                "id": "eca215878e404a2d9dcbcc7f6a027165"
+            }, {
+                "url": "http://127.0.0.1/v3",
+                "interface": "admin",
+                "region": "regionOne",
+                "region_id": "regionOne",
+                "id": "eca215878e404a2d9dcbcc7f6a027165"
+            }],
+            "type": "identity",
+            "id": "a785f0b7603042d1bf59237c71af2f15",
+            "name": "keystone"
+        }],
+        "user": {
+            "domain": {
+                "id": "default",
+                "name": "Default"
+            },
+            "id": "8b7b4c094f934e8c83aa7fe12591dc6c",
+            "name": "admin"
+        },
+        "audit_ids": ["F6ONJ8fCT6i_CFTbmC0vBA"],
+        "issued_at": datetime.datetime.utcnow().isoformat()
+    }
+}
 
 
 class HeatBaseLauncher(object):
 
     # The init function will need permission to touch these files
     # and chown them accordingly for the heat user
-    def __init__(self, api_port, ks_port, container_image, user='heat'):
+    def __init__(self, api_port, container_image, user='heat'):
         self.api_port = api_port
-        self.ks_port = ks_port
 
         self.policy_file = os.path.join(os.path.dirname(__file__),
                                         'noauth_policy.json')
@@ -40,19 +121,21 @@ class HeatBaseLauncher(object):
         self.sql_db = os.path.join(self.install_tmp, 'heat.sqlite')
         self.log_file = os.path.join(self.install_tmp, 'heat.log')
         self.config_file = os.path.join(self.install_tmp, 'heat.conf')
+        self.token_file = os.path.join(self.install_tmp, 'token_file.json')
+        self._write_fake_keystone_token(api_port, self.token_file)
         self._write_heat_config(self.config_file,
                                 self.sql_db,
                                 self.log_file,
                                 api_port,
-                                ks_port,
-                                self.policy_file)
+                                self.policy_file,
+                                self.token_file)
         uid = int(self.get_heat_uid())
         gid = int(self.get_heat_gid())
         os.chown(self.install_tmp, uid, gid)
         os.chown(self.config_file, uid, gid)
 
     def _write_heat_config(self, config_file, sqlite_db, log_file, api_port,
-                           ks_port, policy_file):
+                           policy_file, token_file):
         heat_config = '''
 [DEFAULT]
 log_file = %(log_file)s
@@ -63,9 +146,14 @@ deferred_auth_method = password
 num_engine_workers=1
 convergence_engine = false
 max_json_body_size = 8388608
-
+heat_metadata_server_url=http://127.0.0.1:%(api_port)s/
 default_deployment_signal_transport = HEAT_SIGNAL
 max_nested_stack_depth = 6
+keystone_backend = heat.engine.clients.os.keystone.fake_keystoneclient\
+.FakeKeystoneClient
+
+[noauth]
+token_response = %(token_file)s
 
 [heat_all]
 enabled_services = api,engine
@@ -85,28 +173,27 @@ api_paste_config = /usr/share/heat/api-paste-dist.ini
 [oslo_policy]
 policy_file = %(policy_file)s
 
-[clients_keystone]
-auth_uri=http://127.0.0.1:%(ks_port)s
-
-[keystone_authtoken]
-auth_type = password
-auth_url=http://127.0.0.1:%(ks_port)s
-
 [yaql]
 memory_quota=900000
 limit_iterators=9000
         ''' % {'sqlite_db': sqlite_db, 'log_file': log_file,
-               'api_port': api_port, 'ks_port': ks_port,
-               'policy_file': policy_file}
+               'api_port': api_port, 'policy_file': policy_file,
+               'token_file': token_file}
         with open(config_file, 'w') as temp_file:
             temp_file.write(heat_config)
+
+    def _write_fake_keystone_token(self, heat_api_port, config_file):
+        ks_token = json.dumps(FAKE_TOKEN_RESPONSE) % {'heat_port':
+                                                      heat_api_port}
+        with open(config_file, 'w') as temp_file:
+            temp_file.write(ks_token)
 
 
 class HeatDockerLauncher(HeatBaseLauncher):
 
-    def __init__(self, api_port, ks_port, container_image, user='heat'):
-        super(HeatDockerLauncher, self).__init__(api_port, ks_port,
-                                                 container_image, user)
+    def __init__(self, api_port, container_image, user='heat'):
+        super(HeatDockerLauncher, self).__init__(api_port, container_image,
+                                                 user)
 
     def launch_heat(self):
         cmd = [
@@ -175,9 +262,9 @@ class HeatDockerLauncher(HeatBaseLauncher):
 
 class HeatNativeLauncher(HeatBaseLauncher):
 
-    def __init__(self, api_port, ks_port, container_image, user='heat'):
-        super(HeatNativeLauncher, self).__init__(api_port, ks_port,
-                                                 container_image, user)
+    def __init__(self, api_port, container_image, user='heat'):
+        super(HeatNativeLauncher, self).__init__(api_port, container_image,
+                                                 user)
 
     def launch_heat(self):
         os.execvp('heat-all', ['heat-all', '--config-file', self.config_file])

@@ -15,7 +15,6 @@
 
 import mock
 import os
-import subprocess
 
 from tripleoclient.tests.v1.test_plugin import TestPluginV1
 
@@ -86,37 +85,3 @@ class TestUndercloudDeploy(TestPluginV1):
         mock_dump.assert_called_once_with(expected_dict,
                                           mock_open_handle,
                                           default_flow_style=False)
-
-    @mock.patch('subprocess.check_call', autospec=True)
-    def test_install_prerequisites(self, mock_check_call):
-        mock_check_call.side_effect = [
-            True, True,
-            subprocess.CalledProcessError(1, ''), True]
-        arglist = []
-        verifylist = []
-        self.check_parser(self.cmd, arglist, verifylist)
-        self.cmd._install_prerequisites(False)
-
-        mock_check_call.assert_has_calls([
-            mock.call(['rpm', '-q', 'foo']),
-            mock.call(['rpm', '-q', 'bar']),
-            mock.call(['rpm', '-q', 'baz']),
-            mock.call(['yum', '-y', 'install', 'baz'])
-        ])
-
-    @mock.patch('subprocess.check_call', autospec=True)
-    def test_fail_prerequisites(self, mock_check_call):
-        mock_check_call.side_effect = [
-            True, subprocess.CalledProcessError(127, ''), True, True]
-        arglist = []
-        verifylist = []
-        self.check_parser(self.cmd, arglist, verifylist)
-        try:
-            self.cmd._install_prerequisites(False)
-        except Exception as e:
-            self.assertTrue('Failed to check for prerequisites: '
-                            'bar, the exit status 127' in str(e))
-
-        mock_check_call.assert_has_calls([
-            mock.call(['rpm', '-q', 'foo']),
-            mock.call(['rpm', '-q', 'bar'])])
