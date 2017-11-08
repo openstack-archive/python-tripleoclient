@@ -67,7 +67,7 @@ def build_option_parser(parser):
 
 class WebsocketClient(object):
 
-    def __init__(self, instance, queue_name):
+    def __init__(self, instance, queue_name="tripleo"):
         self._project_id = None
         self._ws = None
         self._websocket_client_id = None
@@ -194,9 +194,9 @@ class ClientWrapper(object):
         self._local_orchestration = client
         return self._local_orchestration
 
-    def messaging_websocket(self, queue_name='tripleo'):
+    def messaging_websocket(self):
         """Returns a websocket for the messaging service"""
-        return WebsocketClient(self._instance, queue_name)
+        return WebsocketClient(self._instance)
 
     @property
     def object_store(self):

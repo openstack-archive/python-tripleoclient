@@ -33,10 +33,6 @@ class TestSupportFetchLogs(fakes.TestDeployOvercloud):
         self.tripleoclient.messaging_websocket.return_value = self.websocket
         self.app.client_manager.tripleoclient = self.tripleoclient
 
-        uuid4_patcher = mock.patch('uuid.uuid4', return_value="UUID4")
-        self.mock_uuid4 = uuid4_patcher.start()
-        self.addCleanup(self.mock_uuid4.stop)
-
     @mock.patch('tripleoclient.workflows.base.wait_for_messages')
     @mock.patch('tripleoclient.workflows.base.start_workflow')
     def test_fetch_logs(self, start_wf_mock, messages_mock):
@@ -44,8 +40,7 @@ class TestSupportFetchLogs(fakes.TestDeployOvercloud):
         fetch_name = 'tripleo.support.v1.fetch_logs'
         fetch_input = {
             'server_name': 'test',
-            'container': 'test',
-            'queue_name': 'UUID4'
+            'container': 'test'
         }
         support.fetch_logs(self.app.client_manager, 'test', 'test')
         start_wf_mock.assert_called_once_with(self.workflow,
@@ -60,8 +55,7 @@ class TestSupportFetchLogs(fakes.TestDeployOvercloud):
         fetch_input = {
             'server_name': 'test',
             'container': 'test',
-            'queue_name': 'UUID4',
-            'timeout': 59,
+            'timeout': 59
         }
         support.fetch_logs(self.app.client_manager, 'test', 'test', timeout=59)
         start_wf_mock.assert_called_once_with(self.workflow,
@@ -76,8 +70,7 @@ class TestSupportFetchLogs(fakes.TestDeployOvercloud):
         fetch_input = {
             'server_name': 'test',
             'container': 'test',
-            'queue_name': 'UUID4',
-            'concurrency': 10,
+            'concurrency': 10
         }
         support.fetch_logs(self.app.client_manager, 'test', 'test',
                            concurrency=10)
@@ -99,18 +92,13 @@ class TestSupportDeleteContainer(fakes.TestDeployOvercloud):
         self.tripleoclient.messaging_websocket.return_value = self.websocket
         self.app.client_manager.tripleoclient = self.tripleoclient
 
-        uuid4_patcher = mock.patch('uuid.uuid4', return_value="UUID4")
-        self.mock_uuid4 = uuid4_patcher.start()
-        self.addCleanup(self.mock_uuid4.stop)
-
     @mock.patch('tripleoclient.workflows.base.wait_for_messages')
     @mock.patch('tripleoclient.workflows.base.start_workflow')
     def test_delete_container(self, start_wf_mock, messages_mock):
         messages_mock.return_value = []
         fetch_name = 'tripleo.support.v1.delete_container'
         fetch_input = {
-            'container': 'test',
-            'queue_name': 'UUID4'
+            'container': 'test'
         }
         support.delete_container(self.app.client_manager, 'test')
         start_wf_mock.assert_called_once_with(self.workflow,
@@ -124,8 +112,7 @@ class TestSupportDeleteContainer(fakes.TestDeployOvercloud):
         fetch_name = 'tripleo.support.v1.delete_container'
         fetch_input = {
             'container': 'test',
-            'queue_name': 'UUID4',
-            'timeout': 59,
+            'timeout': 59
         }
         support.delete_container(self.app.client_manager, 'test', timeout=59)
         start_wf_mock.assert_called_once_with(self.workflow,
@@ -140,8 +127,7 @@ class TestSupportDeleteContainer(fakes.TestDeployOvercloud):
         fetch_name = 'tripleo.support.v1.delete_container'
         fetch_input = {
             'container': 'test',
-            'queue_name': 'UUID4',
-            'concurrency': 10,
+            'concurrency': 10
         }
         support.delete_container(self.app.client_manager, 'test',
                                  concurrency=10)

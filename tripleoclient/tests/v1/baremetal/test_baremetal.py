@@ -355,10 +355,6 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58,6230""")
         websocket.wait_for_messages.return_value = self.mock_websocket_success
         self.websocket = websocket
 
-        uuid4_patcher = mock.patch('uuid.uuid4', return_value="UUID4")
-        self.mock_uuid4 = uuid4_patcher.start()
-        self.addCleanup(self.mock_uuid4.stop)
-
     def tearDown(self):
 
         super(TestImportBaremetal, self).tearDown()
@@ -376,7 +372,6 @@ pxe_ssh,192.168.122.2,stack,"KEY2",00:0b:d0:69:7e:58,6230""")
             'tripleo.baremetal.v1.register_or_update', workflow_input={
                 'kernel_name': kernel_name,
                 'nodes_json': self.nodes_list,
-                'queue_name': 'UUID4',
                 'ramdisk_name': ramdisk_name,
                 'instance_boot_option': 'local' if local else 'netboot',
                 'initial_state': 'available',
@@ -596,10 +591,6 @@ class TestStartBaremetalIntrospectionBulk(fakes.TestBaremetal):
         websocket = tripleoclients.messaging_websocket()
         self.websocket = websocket
 
-        uuid4_patcher = mock.patch('uuid.uuid4', return_value="UUID4")
-        self.mock_uuid4 = uuid4_patcher.start()
-        self.addCleanup(self.mock_uuid4.stop)
-
         # Get the command object to test
         self.cmd = baremetal.StartBaremetalIntrospectionBulk(self.app, None)
 
@@ -609,14 +600,13 @@ class TestStartBaremetalIntrospectionBulk(fakes.TestBaremetal):
             'tripleo.baremetal.v1.introspect_manageable_nodes',
             workflow_input={
                 'run_validations': False,
-                'queue_name': 'UUID4'
             }
         )]
 
         if provide:
             call_list.append(mock.call(
                 'tripleo.baremetal.v1.provide_manageable_nodes',
-                workflow_input={'queue_name': 'UUID4'}
+                workflow_input={}
             ))
 
         self.workflow.executions.create.assert_has_calls(call_list)
@@ -900,12 +890,7 @@ class TestConfigureBaremetalBoot(fakes.TestBaremetal):
             "message": ""
         }] * 2)
 
-        uuid4_patcher = mock.patch('uuid.uuid4', return_value="UUID4")
-        self.mock_uuid4 = uuid4_patcher.start()
-        self.addCleanup(self.mock_uuid4.stop)
-
-        self.workflow_input = {'queue_name': 'UUID4',
-                               'node_uuids': ['ABCDEFGH'],
+        self.workflow_input = {'node_uuids': ['ABCDEFGH'],
                                'kernel_name': 'bm-deploy-kernel',
                                'ramdisk_name': 'bm-deploy-ramdisk',
                                'root_device': None,

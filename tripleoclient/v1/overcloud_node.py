@@ -15,7 +15,6 @@
 
 import argparse
 import logging
-import uuid
 
 from osc_lib.command import command
 from osc_lib.i18n import _
@@ -104,15 +103,11 @@ class ProvideNode(command.Command):
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
 
-        queue_name = str(uuid.uuid4())
-
         if parsed_args.node_uuids:
             baremetal.provide(self.app.client_manager,
-                              node_uuids=parsed_args.node_uuids,
-                              queue_name=queue_name)
+                              node_uuids=parsed_args.node_uuids)
         else:
-            baremetal.provide_manageable_nodes(self.app.client_manager,
-                                               queue_name=queue_name)
+            baremetal.provide_manageable_nodes(self.app.client_manager)
 
 
 class IntrospectNode(command.Command):
@@ -147,28 +142,26 @@ class IntrospectNode(command.Command):
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
 
-        queue_name = str(uuid.uuid4())
         nodes = parsed_args.node_uuids
 
         if nodes:
             baremetal.introspect(self.app.client_manager,
                                  node_uuids=nodes,
-                                 run_validations=parsed_args.run_validations,
-                                 queue_name=queue_name)
+                                 run_validations=parsed_args.run_validations
+                                 )
         else:
             baremetal.introspect_manageable_nodes(
                 self.app.client_manager,
-                run_validations=parsed_args.run_validations,
-                queue_name=queue_name)
+                run_validations=parsed_args.run_validations
+            )
 
         if parsed_args.provide:
             if nodes:
                 baremetal.provide(self.app.client_manager,
                                   node_uuids=nodes,
-                                  queue_name=queue_name)
+                                  )
             else:
-                baremetal.provide_manageable_nodes(self.app.client_manager,
-                                                   queue_name=queue_name)
+                baremetal.provide_manageable_nodes(self.app.client_manager)
 
 
 class ImportNode(command.Command):
@@ -208,8 +201,6 @@ class ImportNode(command.Command):
 
         nodes_config = oooutils.parse_env_file(parsed_args.env_file)
 
-        queue_name = str(uuid.uuid4())
-
         if parsed_args.no_deploy_image:
             deploy_kernel = None
             deploy_ramdisk = None
@@ -220,7 +211,6 @@ class ImportNode(command.Command):
         nodes = baremetal.register_or_update(
             self.app.client_manager,
             nodes_json=nodes_config,
-            queue_name=queue_name,
             kernel_name=deploy_kernel,
             ramdisk_name=deploy_ramdisk,
             instance_boot_option=parsed_args.instance_boot_option
@@ -231,13 +221,13 @@ class ImportNode(command.Command):
         if parsed_args.introspect:
             baremetal.introspect(self.app.client_manager,
                                  node_uuids=nodes_uuids,
-                                 run_validations=parsed_args.run_validations,
-                                 queue_name=queue_name)
+                                 run_validations=parsed_args.run_validations
+                                 )
 
         if parsed_args.provide:
             baremetal.provide(self.app.client_manager,
                               node_uuids=nodes_uuids,
-                              queue_name=queue_name)
+                              )
 
 
 class ConfigureNode(command.Command):
@@ -289,13 +279,10 @@ class ConfigureNode(command.Command):
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
 
-        queue_name = str(uuid.uuid4())
-
         if parsed_args.node_uuids:
             baremetal.configure(
                 self.app.client_manager,
                 node_uuids=parsed_args.node_uuids,
-                queue_name=queue_name,
                 kernel_name=parsed_args.deploy_kernel,
                 ramdisk_name=parsed_args.deploy_ramdisk,
                 instance_boot_option=parsed_args.instance_boot_option,
@@ -307,7 +294,6 @@ class ConfigureNode(command.Command):
         else:
             baremetal.configure_manageable_nodes(
                 self.app.client_manager,
-                queue_name=queue_name,
                 kernel_name=parsed_args.deploy_kernel,
                 ramdisk_name=parsed_args.deploy_ramdisk,
                 instance_boot_option=parsed_args.instance_boot_option,
@@ -358,8 +344,6 @@ class DiscoverNode(command.Command):
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
 
-        queue_name = str(uuid.uuid4())
-
         if parsed_args.no_deploy_image:
             deploy_kernel = None
             deploy_ramdisk = None
@@ -377,7 +361,6 @@ class DiscoverNode(command.Command):
             self.app.client_manager,
             ip_addresses=parsed_args.ip_addresses,
             credentials=credentials,
-            queue_name=queue_name,
             kernel_name=deploy_kernel,
             ramdisk_name=deploy_ramdisk,
             instance_boot_option=parsed_args.instance_boot_option,
@@ -389,10 +372,9 @@ class DiscoverNode(command.Command):
         if parsed_args.introspect:
             baremetal.introspect(self.app.client_manager,
                                  node_uuids=nodes_uuids,
-                                 run_validations=parsed_args.run_validations,
-                                 queue_name=queue_name)
-
+                                 run_validations=parsed_args.run_validations
+                                 )
         if parsed_args.provide:
             baremetal.provide(self.app.client_manager,
-                              node_uuids=nodes_uuids,
-                              queue_name=queue_name)
+                              node_uuids=nodes_uuids
+                              )

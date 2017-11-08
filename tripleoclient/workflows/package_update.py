@@ -14,6 +14,7 @@ from __future__ import print_function
 import pprint
 import time
 
+
 from heatclient.common import event_utils
 from openstackclient import shell
 from tripleoclient import exceptions
@@ -25,10 +26,9 @@ from tripleoclient.workflows import base
 def update(clients, **workflow_input):
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
-    queue_name = workflow_input['queue_name']
     plan_name = workflow_input['container']
 
-    with tripleoclients.messaging_websocket(queue_name) as ws:
+    with tripleoclients.messaging_websocket() as ws:
         execution = base.start_workflow(
             workflow_client,
             'tripleo.package_update.v1.package_update_plan',
@@ -57,9 +57,8 @@ def update(clients, **workflow_input):
 def update_ansible(clients, **workflow_input):
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
-    queue_name = workflow_input['queue_name']
 
-    with tripleoclients.messaging_websocket(queue_name) as ws:
+    with tripleoclients.messaging_websocket() as ws:
         execution = base.start_workflow(
             workflow_client,
             'tripleo.package_update.v1.update_nodes',

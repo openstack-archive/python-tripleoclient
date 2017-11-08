@@ -15,8 +15,8 @@
 
 import logging
 import os
-import uuid
 import yaml
+
 
 from osc_lib.command import command
 from osc_lib.i18n import _
@@ -106,8 +106,8 @@ class UpdateOvercloud(command.Command):
                     "to update your current containers deployed.")
             # Execute minor update
             package_update.update(clients, container=stack_name,
-                                  container_registry=registry,
-                                  queue_name=str(uuid.uuid4()))
+                                  container_registry=registry
+                                  )
 
             print("Minor update init on stack {0} complete.".format(
                   parsed_args.stack))
@@ -134,6 +134,6 @@ class UpdateOvercloud(command.Command):
             output = package_update.update_ansible(
                 clients, nodes=nodes,
                 inventory_file=inventory,
-                playbook=playbook,
-                queue_name=str(uuid.uuid4()))
+                playbook=playbook
+            )
             print(output)

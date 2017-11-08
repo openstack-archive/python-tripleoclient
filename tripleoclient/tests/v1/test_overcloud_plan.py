@@ -108,11 +108,6 @@ class TestOvercloudCreatePlan(utils.TestCommand):
         self.workflow = self.app.client_manager.workflow_engine
         self.swift = self.app.client_manager.tripleoclient.object_store
 
-        # Mock UUID4 generation for every test
-        uuid4_patcher = mock.patch('uuid.uuid4', return_value="UUID4")
-        self.mock_uuid4 = uuid4_patcher.start()
-        self.addCleanup(self.mock_uuid4.stop)
-
     def test_create_default_plan(self):
 
         # Setup
@@ -136,7 +131,6 @@ class TestOvercloudCreatePlan(utils.TestCommand):
             'tripleo.plan_management.v1.create_deployment_plan',
             workflow_input={
                 'container': 'overcast',
-                'queue_name': 'UUID4',
                 'generate_passwords': True,
                 'use_default_templates': True,
                 'source_url': None
@@ -166,7 +160,6 @@ class TestOvercloudCreatePlan(utils.TestCommand):
             'tripleo.plan_management.v1.create_deployment_plan',
             workflow_input={
                 'container': 'overcast',
-                'queue_name': 'UUID4',
                 'generate_passwords': True,
                 'use_default_templates': True,
                 'source_url': None
@@ -203,7 +196,6 @@ class TestOvercloudCreatePlan(utils.TestCommand):
             'tripleo.plan_management.v1.create_deployment_plan',
             workflow_input={
                 'container': 'overcast',
-                'queue_name': 'UUID4',
                 'generate_passwords': True
             })
 
@@ -261,7 +253,6 @@ class TestOvercloudCreatePlan(utils.TestCommand):
             'tripleo.plan_management.v1.create_deployment_plan',
             workflow_input={
                 'container': 'overcast',
-                'queue_name': 'UUID4',
                 'generate_passwords': True
             })
 
@@ -307,7 +298,6 @@ class TestOvercloudCreatePlan(utils.TestCommand):
             'tripleo.plan_management.v1.create_deployment_plan',
             workflow_input={
                 'container': 'overcast',
-                'queue_name': 'UUID4',
                 'generate_passwords': True
             })
 
@@ -341,7 +331,6 @@ class TestOvercloudCreatePlan(utils.TestCommand):
             'tripleo.plan_management.v1.create_deployment_plan',
             workflow_input={
                 'container': 'overcast',
-                'queue_name': 'UUID4',
                 'use_default_templates': True,
                 'generate_passwords': False,
                 'source_url': None
@@ -366,11 +355,6 @@ class TestOvercloudDeployPlan(utils.TestCommand):
         self.tripleoclient = mock.Mock()
         self.tripleoclient.messaging_websocket.return_value = self.websocket
         self.app.client_manager.tripleoclient = self.tripleoclient
-
-        # Mock UUID4 generation for every test
-        uuid4_patcher = mock.patch('uuid.uuid4', return_value="UUID4")
-        self.mock_uuid4 = uuid4_patcher.start()
-        self.addCleanup(self.mock_uuid4.stop)
 
         sleep_patch = mock.patch('time.sleep')
         self.addCleanup(sleep_patch.stop)
@@ -406,7 +390,6 @@ class TestOvercloudDeployPlan(utils.TestCommand):
             workflow_input={
                 'container': 'overcast',
                 'run_validations': True,
-                'queue_name': 'UUID4',
                 'skip_deploy_identifier': False
             }
         )
@@ -419,11 +402,6 @@ class TestOvercloudExportPlan(utils.TestCommand):
         self.cmd = overcloud_plan.ExportPlan(self.app, None)
         self.app.client_manager = mock.Mock()
         self.clients = self.app.client_manager
-
-        # Mock UUID4 generation for every test
-        uuid4_patcher = mock.patch('uuid.uuid4', return_value="UUID4")
-        self.mock_uuid4 = uuid4_patcher.start()
-        self.addCleanup(self.mock_uuid4.stop)
 
         # Mock urlopen
         f = mock.Mock()
@@ -446,7 +424,7 @@ class TestOvercloudExportPlan(utils.TestCommand):
             self.cmd.take_action(parsed_args)
 
         export_deployment_plan_mock.assert_called_once_with(
-            self.clients, plan='test-plan', queue_name='UUID4')
+            self.clients, plan='test-plan')
 
     @mock.patch('os.path.exists')
     def test_export_plan_outfile_exists(self, exists_mock):
@@ -478,4 +456,4 @@ class TestOvercloudExportPlan(utils.TestCommand):
             self.cmd.take_action(parsed_args)
 
         export_deployment_plan_mock.assert_called_once_with(
-            self.clients, plan='test-plan', queue_name='UUID4')
+            self.clients, plan='test-plan')

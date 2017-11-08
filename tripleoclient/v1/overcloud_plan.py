@@ -13,7 +13,6 @@
 import json
 import logging
 import os.path
-import uuid
 
 from osc_lib.command import command
 from osc_lib.i18n import _
@@ -135,8 +134,9 @@ class CreatePlan(command.Command):
                 plan_env_file=parsed_args.plan_environment_file)
         else:
             plan_management.create_deployment_plan(
-                clients, container=name, queue_name=str(uuid.uuid4()),
-                generate_passwords=generate_passwords, source_url=source_url,
+                clients, container=name,
+                generate_passwords=generate_passwords,
+                source_url=source_url,
                 use_default_templates=use_default_templates)
 
 
@@ -201,7 +201,9 @@ class ExportPlan(command.Command):
         print("Exporting plan %s..." % plan)
 
         tempurl = plan_management.export_deployment_plan(
-            self.app.client_manager, plan=plan, queue_name=str(uuid.uuid4()))
+            self.app.client_manager,
+            plan=plan
+        )
         f = request.urlopen(tempurl)
         tarball_contents = f.read()
 

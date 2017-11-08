@@ -47,11 +47,6 @@ class TestDeleteNode(fakes.TestDeleteNode):
         self.stack_name = self.app.client_manager.orchestration.stacks.get
         self.stack_name.return_value = mock.Mock(stack_name="overcloud")
 
-        # Mock UUID4 generation for every test
-        uuid4_patcher = mock.patch('uuid.uuid4', return_value="UUID4")
-        self.mock_uuid4 = uuid4_patcher.start()
-        self.addCleanup(self.mock_uuid4.stop)
-
     # TODO(someone): This test does not pass with autospec=True, it should
     # probably be fixed so that it can pass with that.
     def test_node_delete(self):
@@ -77,7 +72,6 @@ class TestDeleteNode(fakes.TestDeleteNode):
             'tripleo.scale.v1.delete_node',
             workflow_input={
                 'container': 'overcast',
-                'queue_name': 'UUID4',
                 'nodes': ['instance1', 'instance2']
             })
 
@@ -121,7 +115,6 @@ class TestDeleteNode(fakes.TestDeleteNode):
             'tripleo.scale.v1.delete_node',
             workflow_input={
                 'container': 'overcloud',
-                'queue_name': 'UUID4',
                 'nodes': ['instance1', ]
             })
 
@@ -149,7 +142,6 @@ class TestDeleteNode(fakes.TestDeleteNode):
             'tripleo.scale.v1.delete_node',
             workflow_input={
                 'container': 'overcloud',
-                'queue_name': 'UUID4',
                 'nodes': ['wrong_instance', ]
             })
 
@@ -180,7 +172,7 @@ class TestProvideNode(fakes.TestOvercloudNode):
 
         self.workflow.executions.create.assert_called_once_with(
             'tripleo.baremetal.v1.provide_manageable_nodes',
-            workflow_input={'queue_name': 'UUID4'}
+            workflow_input={}
         )
 
     def test_provide_one_node(self):
@@ -192,9 +184,8 @@ class TestProvideNode(fakes.TestOvercloudNode):
         self.cmd.take_action(parsed_args)
 
         self.workflow.executions.create.assert_called_once_with(
-            'tripleo.baremetal.v1.provide', workflow_input={
-                'node_uuids': [node_id],
-                'queue_name': 'UUID4'}
+            'tripleo.baremetal.v1.provide',
+            workflow_input={'node_uuids': [node_id]}
         )
 
     def test_provide_multiple_nodes(self):
@@ -209,8 +200,7 @@ class TestProvideNode(fakes.TestOvercloudNode):
 
         self.workflow.executions.create.assert_called_once_with(
             'tripleo.baremetal.v1.provide', workflow_input={
-                'node_uuids': [node_id1, node_id2],
-                'queue_name': 'UUID4'
+                'node_uuids': [node_id1, node_id2]
             }
         )
 
@@ -251,16 +241,13 @@ class TestIntrospectNode(fakes.TestOvercloudNode):
 
         call_list = [mock.call(
             'tripleo.baremetal.v1.introspect_manageable_nodes',
-            workflow_input={
-                'run_validations': False,
-                'queue_name': 'UUID4'
-            }
+            workflow_input={'run_validations': False}
         )]
 
         if provide:
             call_list.append(mock.call(
                 'tripleo.baremetal.v1.provide_manageable_nodes',
-                workflow_input={'queue_name': 'UUID4'}
+                workflow_input={}
             ))
 
         self.workflow.executions.create.assert_has_calls(call_list)
@@ -278,15 +265,13 @@ class TestIntrospectNode(fakes.TestOvercloudNode):
         call_list = [mock.call(
             'tripleo.baremetal.v1.introspect', workflow_input={
                 'node_uuids': nodes,
-                'run_validations': False,
-                'queue_name': 'UUID4'}
+                'run_validations': False}
         )]
 
         if provide:
             call_list.append(mock.call(
                 'tripleo.baremetal.v1.provide', workflow_input={
-                    'node_uuids': nodes,
-                    'queue_name': 'UUID4'}
+                    'node_uuids': nodes}
             ))
 
         self.workflow.executions.create.assert_has_calls(call_list)
@@ -391,7 +376,6 @@ class TestImportNode(fakes.TestOvercloudNode):
         call_list = [mock.call(
             'tripleo.baremetal.v1.register_or_update', workflow_input={
                 'nodes_json': nodes_list,
-                'queue_name': 'UUID4',
                 'kernel_name': None if no_deploy_image else 'bm-deploy-kernel',
                 'ramdisk_name': (None
                                  if no_deploy_image else 'bm-deploy-ramdisk'),
@@ -404,16 +388,14 @@ class TestImportNode(fakes.TestOvercloudNode):
             call_list.append(mock.call(
                 'tripleo.baremetal.v1.introspect', workflow_input={
                     'node_uuids': ['MOCK_NODE_UUID'],
-                    'run_validations': False,
-                    'queue_name': 'UUID4'}
+                    'run_validations': False}
             ))
 
         if provide:
             call_count += 1
             call_list.append(mock.call(
                 'tripleo.baremetal.v1.provide', workflow_input={
-                    'node_uuids': ['MOCK_NODE_UUID'],
-                    'queue_name': 'UUID4'
+                    'node_uuids': ['MOCK_NODE_UUID']
                 }
             ))
 
@@ -484,8 +466,7 @@ class TestConfigureNode(fakes.TestOvercloudNode):
         # Get the command object to test
         self.cmd = overcloud_node.ConfigureNode(self.app, None)
 
-        self.workflow_input = {'queue_name': 'UUID4',
-                               'kernel_name': 'bm-deploy-kernel',
+        self.workflow_input = {'kernel_name': 'bm-deploy-kernel',
                                'ramdisk_name': 'bm-deploy-ramdisk',
                                'instance_boot_option': None,
                                'root_device': None,
@@ -673,7 +654,6 @@ class TestDiscoverNode(fakes.TestOvercloudNode):
             'tripleo.baremetal.v1.discover_and_enroll_nodes',
             workflow_input={'ip_addresses': '10.0.0.0/24',
                             'credentials': [['admin', 'password']],
-                            'queue_name': mock.ANY,
                             'kernel_name': 'bm-deploy-kernel',
                             'ramdisk_name': 'bm-deploy-ramdisk',
                             'instance_boot_option': 'local'}
@@ -692,7 +672,6 @@ class TestDiscoverNode(fakes.TestOvercloudNode):
             'tripleo.baremetal.v1.discover_and_enroll_nodes',
             workflow_input={'ip_addresses': ['10.0.0.1', '10.0.0.2'],
                             'credentials': [['admin', 'password']],
-                            'queue_name': mock.ANY,
                             'kernel_name': 'bm-deploy-kernel',
                             'ramdisk_name': 'bm-deploy-ramdisk',
                             'instance_boot_option': 'local'}
@@ -723,16 +702,14 @@ class TestDiscoverNode(fakes.TestOvercloudNode):
                                       'credentials': [['admin', 'password'],
                                                       ['admin2', 'password2']],
                                       'ports': [623, 6230],
-                                      'queue_name': mock.ANY,
                                       'kernel_name': None,
                                       'ramdisk_name': None,
                                       'instance_boot_option': 'netboot'}),
             mock.call('tripleo.baremetal.v1.introspect',
                       workflow_input={'node_uuids': ['MOCK_NODE_UUID'],
-                                      'run_validations': True,
-                                      'queue_name': mock.ANY}),
+                                      'run_validations': True}),
             mock.call('tripleo.baremetal.v1.provide',
-                      workflow_input={'node_uuids': ['MOCK_NODE_UUID'],
-                                      'queue_name': mock.ANY}),
+                      workflow_input={'node_uuids': ['MOCK_NODE_UUID']}
+                      )
         ]
         self.workflow.executions.create.assert_has_calls(workflows_calls)

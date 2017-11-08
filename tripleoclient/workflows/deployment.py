@@ -13,7 +13,6 @@ from __future__ import print_function
 
 import pprint
 import time
-import uuid
 
 from heatclient.common import event_utils
 from openstackclient import shell
@@ -28,9 +27,8 @@ def deploy(clients, **workflow_input):
 
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
-    queue_name = workflow_input['queue_name']
 
-    with tripleoclients.messaging_websocket(queue_name) as ws:
+    with tripleoclients.messaging_websocket() as ws:
         execution = base.start_workflow(
             workflow_client,
             'tripleo.deployment.v1.deploy_plan',
@@ -53,8 +51,7 @@ def deploy_and_wait(log, clients, stack, plan_name, verbose_level,
     workflow_input = {
         "container": plan_name,
         "run_validations": run_validations,
-        "skip_deploy_identifier": skip_deploy_identifier,
-        "queue_name": str(uuid.uuid4()),
+        "skip_deploy_identifier": skip_deploy_identifier
     }
 
     if timeout is not None:

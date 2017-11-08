@@ -18,7 +18,6 @@ import os
 
 from osc_lib.command import command
 from osc_lib.i18n import _
-import uuid
 import yaml
 
 from tripleoclient.workflows import baremetal
@@ -71,9 +70,7 @@ class CreateRAID(command.Command):
                 _('Logical disks list is expected to be a list of objects, '
                   'got %r instead') % disks)
 
-        queue_name = str(uuid.uuid4())
         clients = self.app.client_manager
         baremetal.create_raid_configuration(clients,
-                                            queue_name=queue_name,
                                             node_uuids=parsed_args.node,
                                             configuration=configuration)

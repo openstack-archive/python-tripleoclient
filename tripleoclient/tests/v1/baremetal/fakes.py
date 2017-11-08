@@ -103,7 +103,7 @@ class ClientWrapper(object):
             return_value=self._mock_websocket)
         self._mock_websocket.__exit__ = mock.Mock()
 
-    def messaging_websocket(self, queue_name='tripleo'):
+    def messaging_websocket(self):
         return self._mock_websocket
 
 

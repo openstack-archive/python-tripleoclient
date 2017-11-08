@@ -13,7 +13,6 @@
 # under the License.
 
 import mock
-import uuid
 
 from osc_lib.tests import utils
 
@@ -44,10 +43,6 @@ class TestParameterWorkflows(utils.TestCommand):
         self.tripleoclient.messaging_websocket.return_value = self.websocket
         self.app.client_manager.tripleoclient = self.tripleoclient
 
-        uuid4_patcher = mock.patch('uuid.uuid4', return_value="UUID4")
-        self.mock_uuid4 = uuid4_patcher.start()
-        self.addCleanup(self.mock_uuid4.stop)
-
     def test_get_overcloud_passwords(self):
         self.websocket.wait_for_messages.return_value = iter([{
             "execution": {"id": "IDID"},
@@ -57,13 +52,12 @@ class TestParameterWorkflows(utils.TestCommand):
 
         parameters.get_overcloud_passwords(
             self.app.client_manager,
-            container='container-name',
-            queue_name=str(uuid.uuid4()))
+            container='container-name'
+        )
 
         self.workflow.executions.create.assert_called_once_with(
             'tripleo.plan_management.v1.get_passwords',
-            workflow_input={'queue_name': 'UUID4',
-                            'container': 'container-name'})
+            workflow_input={'container': 'container-name'})
 
     @mock.patch('yaml.safe_load')
     @mock.patch("six.moves.builtins.open")
@@ -95,7 +89,6 @@ class TestParameterWorkflows(utils.TestCommand):
             'tripleo.derive_params.v1.derive_parameters',
             workflow_input={
                 'plan': 'overcloud',
-                'queue_name': 'UUID4',
                 'user_inputs': {
                     'num_phy_cores_per_numa_node_for_pmd': 2}})
 
@@ -129,7 +122,6 @@ class TestParameterWorkflows(utils.TestCommand):
             'tripleo.derive_params.v1.derive_parameters',
             workflow_input={
                 'plan': 'overcloud',
-                'queue_name': 'UUID4',
                 'user_inputs': {
                     'num_phy_cores_per_numa_node_for_pmd': 2}})
 
@@ -173,8 +165,7 @@ class TestParameterWorkflows(utils.TestCommand):
 
         self.workflow.executions.create.assert_called_once_with(
             'tripleo.plan_management.v1.get_deprecated_parameters',
-            workflow_input={'queue_name': 'UUID4',
-                            'container': 'container-name'})
+            workflow_input={'container': 'container-name'})
 
     @mock.patch("sys.stdout", new_callable=TestStringCapture)
     def test_check_deprecated_params_user_defined(self, mock_print):
@@ -193,8 +184,7 @@ class TestParameterWorkflows(utils.TestCommand):
 
         self.workflow.executions.create.assert_called_once_with(
             'tripleo.plan_management.v1.get_deprecated_parameters',
-            workflow_input={'queue_name': 'UUID4',
-                            'container': 'container-name'})
+            workflow_input={'container': 'container-name'})
 
         std_output = mock_print.getvalue()
         self.assertIn('TestParameter1', std_output)
@@ -215,8 +205,7 @@ class TestParameterWorkflows(utils.TestCommand):
 
         self.workflow.executions.create.assert_called_once_with(
             'tripleo.plan_management.v1.get_deprecated_parameters',
-            workflow_input={'queue_name': 'UUID4',
-                            'container': 'container-name'})
+            workflow_input={'container': 'container-name'})
 
         std_output = mock_print.getvalue()
         self.assertNotIn('TestParameter1', std_output)

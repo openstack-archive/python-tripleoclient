@@ -14,7 +14,6 @@
 #
 
 import mock
-import uuid
 
 from tripleoclient import exceptions
 from tripleoclient.tests.v1.overcloud_update import fakes
@@ -64,8 +63,8 @@ class TestOvercloudUpdate(fakes.TestOvercloudUpdate):
         mock_update.assert_called_once_with(
             self.app.client_manager,
             container='mystack',
-            container_registry={'fake_container': 'fake_value'},
-            queue_name=str(uuid.uuid4()))
+            container_registry={'fake_container': 'fake_value'}
+        )
 
     @mock.patch('tripleoclient.workflows.package_update.update',
                 autospec=True)
@@ -116,4 +115,4 @@ class TestOvercloudUpdate(fakes.TestOvercloudUpdate):
                 nodes='Compute',
                 inventory_file=mock_open().read(),
                 playbook='fake-playbook.yaml',
-                queue_name=str(uuid.uuid4()))
+            )

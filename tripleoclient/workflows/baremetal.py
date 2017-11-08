@@ -26,9 +26,8 @@ def register_or_update(clients, **workflow_input):
 
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
-    queue_name = workflow_input['queue_name']
 
-    with tripleoclients.messaging_websocket(queue_name) as ws:
+    with tripleoclients.messaging_websocket() as ws:
         execution = base.start_workflow(
             workflow_client,
             'tripleo.baremetal.v1.register_or_update',
@@ -72,14 +71,12 @@ def provide(clients, **workflow_input):
 
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
-    queue_name = workflow_input['queue_name']
 
-    with tripleoclients.messaging_websocket(queue_name) as ws:
+    with tripleoclients.messaging_websocket() as ws:
         execution = base.start_workflow(
             workflow_client,
             'tripleo.baremetal.v1.provide',
-            workflow_input={'node_uuids': workflow_input['node_uuids'],
-                            'queue_name': queue_name}
+            workflow_input={'node_uuids': workflow_input['node_uuids']}
         )
 
         for payload in base.wait_for_messages(workflow_client, ws, execution):
@@ -103,19 +100,16 @@ def introspect(clients, **workflow_input):
 
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
-    queue_name = workflow_input['queue_name']
 
     print("Waiting for introspection to finish...")
 
-    with tripleoclients.messaging_websocket(queue_name) as ws:
+    with tripleoclients.messaging_websocket() as ws:
         execution = base.start_workflow(
             workflow_client,
             'tripleo.baremetal.v1.introspect',
             workflow_input={
                 'node_uuids': workflow_input['node_uuids'],
-                'run_validations': workflow_input['run_validations'],
-                'queue_name': queue_name
-            }
+                'run_validations': workflow_input['run_validations']}
         )
 
         for payload in base.wait_for_messages(workflow_client, ws, execution):
@@ -136,20 +130,17 @@ def introspect_manageable_nodes(clients, **workflow_input):
 
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
-    queue_name = workflow_input['queue_name']
 
     print("Waiting for introspection to finish...")
 
     errors = []
 
-    with tripleoclients.messaging_websocket(queue_name) as ws:
+    with tripleoclients.messaging_websocket() as ws:
         execution = base.start_workflow(
             workflow_client,
             'tripleo.baremetal.v1.introspect_manageable_nodes',
             workflow_input={
-                'run_validations': workflow_input['run_validations'],
-                'queue_name': queue_name,
-            }
+                'run_validations': workflow_input['run_validations']}
         )
 
         for payload in base.wait_for_messages(workflow_client, ws, execution):
@@ -181,13 +172,12 @@ def provide_manageable_nodes(clients, **workflow_input):
 
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
-    queue_name = workflow_input['queue_name']
 
-    with tripleoclients.messaging_websocket(queue_name) as ws:
+    with tripleoclients.messaging_websocket() as ws:
         execution = base.start_workflow(
             workflow_client,
             'tripleo.baremetal.v1.provide_manageable_nodes',
-            workflow_input={"queue_name": queue_name, }
+            workflow_input=workflow_input
         )
 
         for payload in base.wait_for_messages(workflow_client, ws, execution):
@@ -209,9 +199,8 @@ def configure(clients, **workflow_input):
 
     workflow_client = clients.workflow_engine
     ooo_client = clients.tripleoclient
-    queue_name = workflow_input['queue_name']
 
-    with ooo_client.messaging_websocket(queue_name) as ws:
+    with ooo_client.messaging_websocket() as ws:
         execution = base.start_workflow(
             workflow_client,
             'tripleo.baremetal.v1.configure',
@@ -235,9 +224,8 @@ def configure_manageable_nodes(clients, **workflow_input):
 
     workflow_client = clients.workflow_engine
     ooo_client = clients.tripleoclient
-    queue_name = workflow_input['queue_name']
 
-    with ooo_client.messaging_websocket(queue_name) as ws:
+    with ooo_client.messaging_websocket() as ws:
         execution = base.start_workflow(
             workflow_client,
             'tripleo.baremetal.v1.configure_manageable_nodes',
@@ -263,11 +251,10 @@ def create_raid_configuration(clients, **workflow_input):
 
     workflow_client = clients.workflow_engine
     ooo_client = clients.tripleoclient
-    queue_name = workflow_input['queue_name']
 
     print('Creating RAID configuration for given nodes, this may take time')
 
-    with ooo_client.messaging_websocket(queue_name) as ws:
+    with ooo_client.messaging_websocket() as ws:
         execution = base.start_workflow(
             workflow_client,
             'tripleo.baremetal.v1.create_raid_configuration',
@@ -293,9 +280,8 @@ def discover_and_enroll(clients, **workflow_input):
 
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
-    queue_name = workflow_input['queue_name']
 
-    with tripleoclients.messaging_websocket(queue_name) as ws:
+    with tripleoclients.messaging_websocket() as ws:
         execution = base.start_workflow(
             workflow_client,
             'tripleo.baremetal.v1.discover_and_enroll_nodes',
