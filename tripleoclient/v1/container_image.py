@@ -22,10 +22,12 @@ import sys
 import tempfile
 
 from heatclient.common import template_utils
+from heatclient.common import utils as heat_utils
 from osc_lib.command import command
 from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
 import requests
+from six.moves.urllib import request
 import yaml
 
 from tripleo_common.image import image_uploader
@@ -377,9 +379,16 @@ class PrepareImageFiles(command.Command):
         if not environment_files:
             return None
 
+        def get_env_file(method, path):
+            if not os.path.exists(path):
+                return '{}'
+            env_url = heat_utils.normalise_file_path_to_url(path)
+            return request.urlopen(env_url).read()
+
         env_files, env = (
             template_utils.process_multiple_environments_and_files(
-                environment_files))
+                environment_files, env_path_is_object=lambda path: True,
+                object_request=get_env_file))
         enabled_services = self.get_enabled_services(env, roles_file)
         containerized_services = set()
         for service, env_path in env.get('resource_registry', {}).items():
