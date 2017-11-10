@@ -419,12 +419,12 @@ class DeployUndercloud(command.Command):
         parser.add_argument(
             '--heat-native',
             action='store_true',
-            default=False,
+            default=True,
             help=_('Execute the heat-all process natively on this host. '
                    'This option requires that the heat-all binaries '
                    'be installed locally on this machine. '
-                   'This option is off by default which means heat-all is '
-                   'executed in a docker container.')
+                   'This option is enabled by default which means heat-all is '
+                   'executed on the host OS directly.')
         )
         parser.add_argument(
             '--local-ip', metavar='<LOCAL_IP>',
