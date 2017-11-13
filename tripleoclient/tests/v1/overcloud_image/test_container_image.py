@@ -205,7 +205,9 @@ class TestContainerImagePrepare(TestPluginV1):
         self.cmd.take_action(parsed_args)
 
         mock_builder.assert_called_once_with([tmpl_file])
-        pmef.assert_called_once_with(['environment/docker.yaml'])
+        pmef.assert_called_once_with(['environment/docker.yaml'],
+                                     env_path_is_object=mock.ANY,
+                                     object_request=mock.ANY)
         cift.assert_called_once_with(
             filter=mock.ANY,
             name_prefix='os-',
@@ -295,7 +297,9 @@ class TestContainerImagePrepare(TestPluginV1):
         self.cmd.take_action(parsed_args)
 
         mock_builder.assert_called_once_with([tmpl_file])
-        pmef.assert_called_once_with(pmef_call_args)
+        pmef.assert_called_once_with(pmef_call_args,
+                                     env_path_is_object=mock.ANY,
+                                     object_request=mock.ANY)
         cift.assert_called_once_with(
             filter=mock.ANY,
             name_prefix='os-',
