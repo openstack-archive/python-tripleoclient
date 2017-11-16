@@ -257,7 +257,8 @@ class HeatDockerLauncher(HeatBaseLauncher):
     def kill_heat(self, pid):
         cmd = ['docker', 'rm', '-f', 'heat_all']
         log.debug(' '.join(cmd))
-        subprocess.check_call(cmd)
+        # We don't want to hear from this command..
+        subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
 class HeatNativeLauncher(HeatBaseLauncher):
