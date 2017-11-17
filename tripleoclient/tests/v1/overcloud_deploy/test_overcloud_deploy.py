@@ -57,9 +57,14 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         history_patcher.start()
         self.addCleanup(history_patcher.stop)
 
+        # Mock this function to avoid file creation
+        self.real_download_missing = self.cmd._download_missing_files_from_plan
+        self.cmd._download_missing_files_from_plan = mock.Mock()
+
     def tearDown(self):
         super(TestDeployOvercloud, self).tearDown()
         os.unlink(self.parameter_defaults_env_file)
+        self.cmd._download_missing_files_from_plan = self.real_download_missing
 
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
                 autospec=True)
@@ -206,7 +211,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             ('ceph_storage_scale', 3)
         ]
 
-        mock_tmpdir.return_value = "/tmp/tht"
+        mock_tmpdir.return_value = self.tmp_dir.path
         mock_uuid1.return_value = "uuid"
         mock_time.return_value = 123456789
 
@@ -280,7 +285,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_validate_args.assert_called_once_with(parsed_args)
 
         mock_tarball.create_tarball.assert_called_with(
-            '/tmp/tht/tripleo-heat-templates', mock.ANY)
+            self.tmp_dir.join('tripleo-heat-templates'), mock.ANY)
         mock_tarball.tarball_extract_to_swift_container.assert_called_with(
             clients.tripleoclient.object_store, mock.ANY, 'overcloud')
         self.assertFalse(mock_invoke_plan_env_wf.called)
@@ -757,6 +762,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                                   mock_utils_createrc,
                                                   mock_utils_tempest,
                                                   mock_tarball):
+        # Restore the real function so that the directory structure
+        # gets created in the temporary dir
+        self.cmd._download_missing_files_from_plan = self.real_download_missing
 
         clients = self.app.client_manager
         workflow_client = clients.workflow_engine
@@ -1489,3 +1497,24 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                           self.cmd.take_action,
                           parsed_args)
         self.assertFalse(mock_deploy_tmpdir.called)
+
+    def test_download_missing_files_from_plan(self):
+        # Restore the real function so we don't accidentally call the mock
+        self.cmd._download_missing_files_from_plan = self.real_download_missing
+
+        # Set up the client mocks
+        self.cmd._setup_clients(mock.Mock())
+
+        dirname = '/tmp/tht-missing'
+
+        mock_open = mock.mock_open()
+        mock_makedirs = mock.Mock()
+        builtin_mod = six.moves.builtins.__name__
+
+        with mock.patch('os.makedirs', mock_makedirs):
+            with mock.patch('%s.open' % builtin_mod, mock_open):
+                self.cmd._download_missing_files_from_plan(dirname,
+                                                           'overcast')
+
+        mock_makedirs.assert_called_with(dirname)
+        mock_open.assert_called()
