@@ -72,8 +72,8 @@ def store_cli_param(parsed_args):
         try:
             os.mkdir(history_path)
         except OSError as e:
-            messages = "Unable to create TripleO history directory: "
-            "{0}, {1}".format(history_path, e)
+            messages = "Unable to create TripleO history directory: " \
+                       "{0}, {1}".format(history_path, e)
             raise OSError(messages)
     if os.path.isdir(history_path):
         try:
