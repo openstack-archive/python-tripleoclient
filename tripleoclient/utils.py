@@ -342,6 +342,18 @@ def get_role_config(stack):
     return role_data
 
 
+def get_role_net_hostname_map(stack):
+    for output in stack.to_dict().get('outputs', {}):
+        if output['output_key'] == 'RoleNetHostnameMap':
+            return output['output_value']
+
+
+def get_hosts_entry(stack):
+    for output in stack.to_dict().get('outputs', {}):
+        if output['output_key'] == 'HostsEntry':
+            return output['output_value']
+
+
 def get_endpoint(key, stack):
     endpoint_map = get_endpoint_map(stack)
     if endpoint_map:
