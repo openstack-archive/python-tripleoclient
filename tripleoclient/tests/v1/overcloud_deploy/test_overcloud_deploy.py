@@ -51,6 +51,12 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             tempfile.NamedTemporaryFile(mode='w', delete=False).name)
         self.tmp_dir = self.useFixture(fixtures.TempDir())
 
+        # Mock the history command to avoid leaking files
+        history_patcher = mock.patch('tripleoclient.utils.store_cli_param',
+                                     autospec=True)
+        history_patcher.start()
+        self.addCleanup(history_patcher.stop)
+
     def tearDown(self):
         super(TestDeployOvercloud, self).tearDown()
         os.unlink(self.parameter_defaults_env_file)
