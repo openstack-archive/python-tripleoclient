@@ -902,6 +902,16 @@ class DeployOvercloud(command.Command):
             default=False,
             help=_('Run deployment via config-download mechanism')
         )
+        parser.add_argument(
+            '--output-dir',
+            action='store',
+            default=None,
+            help=_('Directory to use for saved output when using '
+                   '--config-download. The directory must be '
+                   'writeable by the mistral user. When not '
+                   'specified, the default server side value '
+                   'will be used (/var/lib/mistral/<execution id>.')
+        )
         return parser
 
     def take_action(self, parsed_args):
@@ -998,7 +1008,8 @@ class DeployOvercloud(command.Command):
                                        parsed_args.templates,
                                        parsed_args.deployed_server,
                                        parsed_args.overcloud_ssh_user,
-                                       parsed_args.overcloud_ssh_key)
+                                       parsed_args.overcloud_ssh_key,
+                                       parsed_args.output_dir)
 
         # Force fetching of attributes
         stack.get()
