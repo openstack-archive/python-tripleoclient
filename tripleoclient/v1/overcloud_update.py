@@ -141,9 +141,9 @@ class UpdateOvercloud(command.Command):
             else:
                 raise exceptions.InvalidConfiguration(
                     "Inventory file %s can not be found." % inventory_file)
-            output = package_update.update_ansible(
+            package_update.update_ansible(
                 clients, nodes=nodes,
                 inventory_file=inventory,
                 playbook=playbook,
-                queue_name=str(uuid.uuid4()))
-            print(output)
+                queue_name=str(uuid.uuid4()),
+                ansible_queue_name=constants.UPDATE_QUEUE)
