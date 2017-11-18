@@ -47,3 +47,5 @@ DEFAULT_ENV_DIRECTORY = "~/.tripleo/environments"
 TRIPLEO_PUPPET_MODULES = "/usr/share/openstack-puppet/modules/"
 PUPPET_MODULES = "/etc/puppet/modules/"
 PUPPET_BASE = "/etc/puppet/"
+# Update Queue
+UPDATE_QUEUE = 'update'

@@ -57,6 +57,8 @@ def update(clients, **workflow_input):
 def update_ansible(clients, **workflow_input):
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
+    zaqar = clients.messaging
+    queue = zaqar.queue(workflow_input['ansible_queue_name'])
 
     with tripleoclients.messaging_websocket() as ws:
         execution = base.start_workflow(
@@ -64,6 +66,24 @@ def update_ansible(clients, **workflow_input):
             'tripleo.package_update.v1.update_nodes',
             workflow_input=workflow_input
         )
+        timeout = time.time() + 600
+        # First we need to wait for the first item in the queue
+        while queue.stats['messages']['total'] == 0 or time.time() == timeout:
+            pass
+        # Then we can start to claim the queue
+        while workflow_client.executions.get(execution.id).state == 'RUNNING':
+            claim = queue.claim(ttl=600, grace=600)
+            for message in claim:
+                pprint.pprint(message.body['payload']['message'].splitlines())
+                message.delete()
+        # clean the Queue
+        queue.delete()
 
         for payload in base.wait_for_messages(workflow_client, ws, execution):
-            assert payload['status'] == "SUCCESS", pprint.pformat(payload)
+            if payload.get('message'):
+                print(payload)
+
+    if payload['status'] == 'SUCCESS':
+        print('Success')
+    else:
+        raise RuntimeError('Minor update failed with: {}'.format(payload))

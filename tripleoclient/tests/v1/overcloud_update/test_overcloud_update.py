@@ -15,6 +15,7 @@
 
 import mock
 
+from tripleoclient import constants
 from tripleoclient import exceptions
 from tripleoclient.tests.v1.overcloud_update import fakes
 from tripleoclient.v1 import overcloud_update
@@ -116,4 +117,5 @@ class TestOvercloudUpdate(fakes.TestOvercloudUpdate):
                 nodes='Compute',
                 inventory_file=mock_open().read(),
                 playbook='fake-playbook.yaml',
+                ansible_queue_name=constants.UPDATE_QUEUE
             )
