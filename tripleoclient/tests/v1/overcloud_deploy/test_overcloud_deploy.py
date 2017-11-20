@@ -193,7 +193,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                         mock_postconfig, mock_get_overcloud_endpoint,
                         mock_invoke_plan_env_wf):
 
-        arglist = ['--templates', '--ceph-storage-scale', '3', '--no-cleanup']
+        arglist = ['--templates', '--ceph-storage-scale', '3',
+                   '--control-flavor', 'oooq_control', '--no-cleanup']
         verifylist = [
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
             ('ceph_storage_scale', 3)
@@ -236,6 +237,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         parameters_env = {
             'parameter_defaults': {
                 'CephStorageCount': 3,
+                'OvercloudControlFlavor': 'oooq_control',
+                'OvercloudControllerFlavor': 'oooq_control',
                 'StackAction': 'CREATE',
                 'UpdateIdentifier': ''}}
 

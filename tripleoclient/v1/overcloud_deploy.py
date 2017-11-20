@@ -87,8 +87,10 @@ class DeployOvercloud(command.Command):
             ('BlockStorageCount', 'block_storage_scale'),
             ('CephStorageCount', 'ceph_storage_scale'),
             ('OvercloudControlFlavor', 'control_flavor'),
+            ('OvercloudControllerFlavor', 'control_flavor'),
             ('OvercloudComputeFlavor', 'compute_flavor'),
             ('OvercloudBlockStorageFlavor', 'block_storage_flavor'),
+            ('OvercloudObjectStorageFlavor', 'swift_storage_flavor'),
             ('OvercloudSwiftStorageFlavor', 'swift_storage_flavor'),
             ('OvercloudCephStorageFlavor', 'ceph_storage_flavor'),
         )
