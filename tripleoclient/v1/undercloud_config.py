@@ -15,6 +15,7 @@
 
 """Plugin action implementation"""
 
+import copy
 import logging
 import netaddr
 import os
@@ -356,6 +357,10 @@ _opts = [
 CONF.register_opts(_opts)
 
 LOG = logging.getLogger(__name__ + ".undercloud_config")
+
+
+def list_opts():
+    return [(None, copy.deepcopy(_opts))]
 
 
 def _load_config():
