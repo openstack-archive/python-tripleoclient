@@ -60,6 +60,14 @@ class UpdateOvercloud(command.Command):
                             help=_("File which contains the container "
                                    "registry data for the update"),
                             )
+        parser.add_argument('--ceph-ansible-playbook',
+                            action="store",
+                            default="/usr/share/ceph-ansible/infrastructure-"
+                                    "playbooks/rolling_update.yml",
+                            help=_('Path to switch the ceph-ansible playbook '
+                                   'used for update. This value should be set '
+                                   'during the init-minor-update step.')
+                            )
         parser.add_argument('--nodes',
                             action="store",
                             default=None,
@@ -109,8 +117,10 @@ class UpdateOvercloud(command.Command):
                     "with: --container-registry-file option.")
                 registry = None
             # Execute minor update
+            ceph_ansible_playbook = parsed_args.ceph_ansible_playbook
             package_update.update(clients, container=stack_name,
                                   container_registry=registry,
+                                  ceph_ansible_playbook=ceph_ansible_playbook,
                                   queue_name=str(uuid.uuid4()))
 
             print("Minor update init on stack {0} complete.".format(
