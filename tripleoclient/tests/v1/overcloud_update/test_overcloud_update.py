@@ -103,8 +103,7 @@ class TestOvercloudUpdate(fakes.TestOvercloudUpdate):
         verifylist = [
             ('stack', 'overcloud'),
             ('nodes', 'Compute'),
-            ('generate_inventory', True),
-            ('static_inventory', 'tripleo-hosts-inventory'),
+            ('static_inventory', None),
             ('playbook', 'fake-playbook.yaml')
         ]
 
