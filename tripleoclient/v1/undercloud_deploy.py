@@ -63,6 +63,11 @@ overcloud
 overcloud
 """
 
+ANSIBLE_SERVICE_INVENTORY = """
+[{service}]
+overcloud
+"""
+
 
 class DeployUndercloud(command.Command):
     """Deploy Undercloud (experimental feature)"""
@@ -339,9 +344,11 @@ class DeployUndercloud(command.Command):
                 msg = 'Stack creation timeout: %d minutes elapsed' % (timeout)
                 raise Exception(msg)
 
-    def _download_ansible_playbooks(self, client):
+    def _download_ansible_playbooks(self, client, stack_id):
         stack_config = config.Config(client)
         output_dir = os.environ.get('HOME')
+        stack = client.stacks.get(stack_id)
+
         print('** Downloading undercloud ansible.. **')
         # python output buffering is making this seem to take forever..
         sys.stdout.flush()
@@ -351,9 +358,16 @@ class DeployUndercloud(command.Command):
         # time.  This finds the newest new entry.
         ansible_dir = max(glob.iglob('%s/tripleo-*-config' % output_dir),
                           key=os.path.getctime)
+
+        inventory = ANSIBLE_INVENTORY
+        outputs = {i['output_key']: i['output_value'] for i in stack.outputs}
+
+        for service in outputs['EnabledServices']['Undercloud']:
+            inventory += ANSIBLE_SERVICE_INVENTORY.format(service=service)
+
         # Write out the inventory file.
         with open('%s/inventory' % ansible_dir, 'w') as f:
-            f.write(ANSIBLE_INVENTORY.format(hostname=self._get_hostname()))
+            f.write(inventory.format(hostname=self._get_hostname()))
 
         print('** Downloaded undercloud ansible to %s **' % ansible_dir)
         sys.stdout.flush()
@@ -477,7 +491,8 @@ class DeployUndercloud(command.Command):
                                          parsed_args.timeout)
             # download the ansible playbooks and execute them.
             ansible_dir = \
-                self._download_ansible_playbooks(orchestration_client)
+                self._download_ansible_playbooks(orchestration_client,
+                                                 stack_id)
             # Kill heat, we're done with it now.
             self._kill_heat()
             # Never returns..  We exec() it directly.
