@@ -13,10 +13,10 @@
 import logging
 import os
 
-from osc_lib.command import command
 from osc_lib.i18n import _
-
 from tripleo_common.utils import config as ooo_config
+
+from tripleoclient import command
 
 
 class DownloadConfig(command.Command):

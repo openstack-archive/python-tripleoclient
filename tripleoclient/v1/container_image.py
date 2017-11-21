@@ -23,7 +23,6 @@ import tempfile
 
 from heatclient.common import template_utils
 from heatclient.common import utils as heat_utils
-from osc_lib.command import command
 from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
 import requests
@@ -33,6 +32,7 @@ import yaml
 from tripleo_common.image import image_uploader
 from tripleo_common.image import kolla_builder
 
+from tripleoclient import command
 from tripleoclient import constants
 from tripleoclient import utils
 

@@ -18,7 +18,7 @@ import logging
 import os.path
 import re
 
-from osc_lib.command import command
+from tripleoclient import command
 
 
 class RemoteExecute(command.Command):

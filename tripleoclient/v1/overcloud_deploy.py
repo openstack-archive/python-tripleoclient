@@ -27,12 +27,12 @@ import yaml
 
 from heatclient.common import template_utils
 from heatclient import exc as hc_exc
-from osc_lib.command import command
 from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
 from swiftclient.exceptions import ClientException
 from tripleo_common import update
 
+from tripleoclient import command
 from tripleoclient import constants
 from tripleoclient import exceptions
 from tripleoclient import utils
@@ -928,7 +928,6 @@ class DeployOvercloud(command.Command):
         sc_logger.setLevel(logging.CRITICAL)
 
         self._validate_args(parsed_args)
-        utils.store_cli_param(parsed_args)
 
         stack = utils.get_stack(self.orchestration_client, parsed_args.stack)
 

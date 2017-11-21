@@ -15,11 +15,11 @@
 
 import logging
 
-from osc_lib.command import command
 from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
 from osc_lib import utils as osc_utils
 
+from tripleoclient import command
 from tripleoclient import utils
 from tripleoclient.workflows import plan_management
 from tripleoclient.workflows import stack_management

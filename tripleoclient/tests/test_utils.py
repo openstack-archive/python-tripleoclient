@@ -13,13 +13,13 @@
 #   under the License.
 #
 
-from uuid import uuid4
 
 import argparse
+import datetime
 import mock
-from mock import call
 import os.path
 import tempfile
+from uuid import uuid4
 
 from unittest import TestCase
 import yaml
@@ -588,7 +588,8 @@ class TestStoreCliParam(TestCase):
     def test_fail_to_create_file(self, mock_exists, mock_mkdir):
         mock_exists.return_value = False
         mock_mkdir.side_effect = OSError()
-        self.assertRaises(OSError, utils.store_cli_param, self.args)
+        command = "undercloud install"
+        self.assertRaises(OSError, utils.store_cli_param, command, self.args)
 
     @mock.patch('os.path.isdir')
     @mock.patch('os.path.exists')
@@ -597,18 +598,31 @@ class TestStoreCliParam(TestCase):
         mock_isdir.return_value = False
         self.assertRaises(exceptions.InvalidConfiguration,
                           utils.store_cli_param,
-                          self.args)
+                          "overcloud deploy", self.args)
 
-    @mock.patch('six.moves.builtins.open')
     @mock.patch('os.path.isdir')
     @mock.patch('os.path.exists')
-    def test_write_cli_param(self, mock_exists, mock_isdir, mock_open):
+    def test_write_cli_param(self, mock_exists, mock_isdir):
         history_path = os.path.join(os.path.expanduser("~"), '.tripleo')
         mock_exists.return_value = True
         mock_isdir.return_value = True
-        utils.store_cli_param(self.args)
-        expected_call = [call("%s/history" % history_path, 'a')]
-        mock_open.assert_has_calls(expected_call)
+        mock_file = mock.mock_open()
+
+        class ArgsFake(object):
+            def __init__(self):
+                self.a = 1
+
+        dt = datetime.datetime(2017, 11, 22)
+        with mock.patch("six.moves.builtins.open", mock_file):
+            with mock.patch('tripleoclient.utils.datetime') as mock_date:
+                mock_date.datetime.now.return_value = dt
+                utils.store_cli_param("overcloud plan list", ArgsFake())
+
+        expected_call = [
+            mock.call("%s/history" % history_path, 'a'),
+            mock.call().write('2017-11-22 00:00:00 overcloud-plan-list a=1 \n')
+        ]
+        mock_file.assert_has_calls(expected_call, any_order=True)
 
     @mock.patch('six.moves.builtins.open')
     @mock.patch('os.path.isdir')
@@ -617,4 +631,4 @@ class TestStoreCliParam(TestCase):
         mock_exists.return_value = True
         mock_isdir.return_value = True
         mock_open.side_effect = IOError()
-        self.assertRaises(IOError, utils.store_cli_param, self.args)
+        self.assertRaises(IOError, utils.store_cli_param, "command", self.args)

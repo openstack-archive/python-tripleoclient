@@ -19,9 +19,10 @@ import collections
 import os
 import sys
 
-from osc_lib.command import command
 from tripleo_common.exception import NotFound
 from tripleo_common.utils import roles as rolesutils
+
+from tripleoclient import command
 from tripleoclient.constants import TRIPLEO_HEAT_TEMPLATES
 
 

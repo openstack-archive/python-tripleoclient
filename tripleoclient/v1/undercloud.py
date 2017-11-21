@@ -20,7 +20,8 @@ import logging
 import subprocess
 
 from openstackclient.i18n import _
-from osc_lib.command import command
+
+from tripleoclient import command
 from tripleoclient import utils
 from tripleoclient.v1 import undercloud_config
 

@@ -64,8 +64,13 @@ def write_overcloudrc(stack_name, overcloudrcs, config_directory='.'):
     os.chmod(rcv3path, 0o600)
 
 
-def store_cli_param(parsed_args):
+def store_cli_param(command_name, parsed_args):
     """write the cli parameters into an history file"""
+
+    # The command name is the part after "openstack" with spaces. Switching
+    # to "-" makes it easier to read. "openstack undercloud install" will be
+    # stored as "undercloud-install" for example.
+    command_name = command_name.replace(" ", "-")
 
     history_path = os.path.join(os.path.expanduser("~"), '.tripleo')
     if not os.path.exists(history_path):
@@ -83,7 +88,7 @@ def store_cli_param(parsed_args):
                 used_args = ', '.join('%s=%s' % (key, value)
                                       for key, value in args.items())
                 history.write(' '.join([str(datetime.datetime.now()),
-                                       used_args]))
+                                       str(command_name), used_args, "\n"]))
         except IOError as e:
             messages = "Unable to write into TripleO history file: "
             "{0}, {1}".format(history_path, e)
