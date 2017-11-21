@@ -62,6 +62,7 @@ def write_overcloudrc(stack_name, overcloudrcs, config_directory='.'):
     with open(rcv3path, 'w') as rcv3file:
         rcv3file.write(overcloudrcs['overcloudrc.v3'])
     os.chmod(rcv3path, 0o600)
+    return os.path.abspath(rcpath)
 
 
 def store_cli_param(parsed_args):

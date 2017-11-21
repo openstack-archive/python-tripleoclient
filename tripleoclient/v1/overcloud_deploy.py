@@ -1018,7 +1018,7 @@ class DeployOvercloud(command.Command):
             self.workflow_client, container=stack.stack_name,
             no_proxy=parsed_args.no_proxy)
 
-        utils.write_overcloudrc(stack.stack_name, overcloudrcs)
+        rcpath = utils.write_overcloudrc(stack.stack_name, overcloudrcs)
         utils.create_tempest_deployer_input()
 
         # Run postconfig on create or force. Use force to makes sure endpoints
@@ -1029,4 +1029,5 @@ class DeployOvercloud(command.Command):
 
         overcloud_endpoint = utils.get_overcloud_endpoint(stack)
         print("Overcloud Endpoint: {0}".format(overcloud_endpoint))
+        print("Overcloud rc file: {0}".format(rcpath))
         print("Overcloud Deployed")
