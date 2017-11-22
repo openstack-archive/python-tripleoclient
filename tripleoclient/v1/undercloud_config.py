@@ -36,6 +36,7 @@ PARAMETER_MAPPING = {
     'undercloud_debug': 'Debug',
     'ipxe_enabled': 'IronicInspectorIPXEEnabled',
     'certificate_generation_ca': 'CertmongerCA',
+    'undercloud_public_host': 'CloudName',
 }
 
 THT_HOME = os.environ.get('THT_HOME',
