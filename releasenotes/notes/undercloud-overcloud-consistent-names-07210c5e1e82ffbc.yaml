@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    For containerized undercloud deploy, a new option `--local_domain`
+    allows to override undercloud domain name and endpoints' FQDNs, which
+    default to 'undercloud'.

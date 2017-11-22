@@ -126,9 +126,9 @@ class DeployUndercloud(command.Command):
 
         return pw_file
 
-    def _generate_hosts_parameters(self):
+    def _generate_hosts_parameters(self, parsed_args):
         hostname = self._get_hostname()
-        domain = 'undercloud'
+        domain = parsed_args.local_domain
 
         data = {
             'CloudName': hostname,
@@ -252,7 +252,7 @@ class DeployUndercloud(command.Command):
             environments.extend(parsed_args.environment_files)
 
         with tempfile.NamedTemporaryFile(delete=False) as tmp_env_file:
-            tmp_env = self._generate_hosts_parameters()
+            tmp_env = self._generate_hosts_parameters(parsed_args)
 
             ip_nw = netaddr.IPNetwork(parsed_args.local_ip)
             ip = str(ip_nw.ip)
@@ -430,6 +430,12 @@ class DeployUndercloud(command.Command):
             '--local-ip', metavar='<LOCAL_IP>',
             dest='local_ip',
             help=_('Local IP/CIDR for undercloud traffic. Required.')
+        )
+        parser.add_argument(
+            '--local-domain', metavar='<LOCAL_DOMAIN>',
+            dest='local_domain',
+            default='undercloud',
+            help=_('Local domain for undercloud and its API endpoints')
         )
         parser.add_argument(
             '-k',
