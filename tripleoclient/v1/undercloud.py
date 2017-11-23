@@ -58,10 +58,11 @@ class InstallUndercloud(command.Command):
 
         utils.ensure_run_as_normal_user()
         if parsed_args.use_heat:
-            subprocess.check_call(
-                undercloud_config.
+            cmd = undercloud_config.\
                 prepare_undercloud_deploy(no_validations=parsed_args.
-                                          no_validations))
+                                          no_validations)
+            print("Running: %s" % ' '.join(cmd))
+            subprocess.check_call(cmd)
         else:
             subprocess.check_call("instack-install-undercloud")
 
@@ -77,11 +78,12 @@ class UpgradeUndercloud(InstallUndercloud):
 
         utils.ensure_run_as_normal_user()
         if parsed_args.use_heat:
-            subprocess.check_call(
-                undercloud_config.
+            cmd = undercloud_config.\
                 prepare_undercloud_deploy(upgrade=True,
                                           no_validations=parsed_args.
-                                          no_validations))
+                                          no_validations)
+            print("Running: %s" % ' '.join(cmd))
+            subprocess.check_call(cmd)
         else:
             subprocess.check_call(['sudo', 'yum', 'update', '-y',
                                   'instack-undercloud'])
