@@ -119,15 +119,24 @@ class TestContainerImagePrepare(TestPluginV1):
         verifylist = []
         cift = mock.MagicMock()
         cift.return_value = {}
+        citi = mock.MagicMock()
+        citi.return_value = {
+            'name_prefix': 'centos-binary-',
+            'name_suffix': '',
+            'namespace': 'docker.io/tripleoupstream',
+            'neutron_driver': None,
+            'tag': 'latest'
+        }
 
         mock_builder.return_value.container_images_from_template = cift
+        mock_builder.return_value.container_images_template_inputs = citi
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.cmd.take_action(parsed_args)
 
-        mock_builder.assert_called_once_with([parsed_args.template_file])
-        cift.assert_called_once_with(
+        mock_builder.assert_called_with([parsed_args.template_file])
+        cift.assert_called_with(
             filter=mock.ANY,
             name_prefix='centos-binary-',
             name_suffix='',
@@ -204,7 +213,7 @@ class TestContainerImagePrepare(TestPluginV1):
 
         self.cmd.take_action(parsed_args)
 
-        mock_builder.assert_called_once_with([tmpl_file])
+        mock_builder.assert_called_with([tmpl_file])
         pmef.assert_called_once_with(['environment/docker.yaml'],
                                      env_path_is_object=mock.ANY,
                                      object_request=mock.ANY)
@@ -296,7 +305,7 @@ class TestContainerImagePrepare(TestPluginV1):
 
         self.cmd.take_action(parsed_args)
 
-        mock_builder.assert_called_once_with([tmpl_file])
+        mock_builder.assert_called_with([tmpl_file])
         pmef.assert_called_once_with(pmef_call_args,
                                      env_path_is_object=mock.ANY,
                                      object_request=mock.ANY)
