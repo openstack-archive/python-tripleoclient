@@ -61,6 +61,13 @@ class DeleteNode(command.Command):
                    "Otherwise this argument will be silently ignored."),
         )
 
+        parser.add_argument(
+            '--timeout', metavar='<TIMEOUT>',
+            type=int, default=constants.STACK_TIMEOUT, dest='timeout',
+            help=_("Timeout in minutes to wait for the nodes to be deleted. "
+                   "Keep in mind that due to keystone session duration "
+                   "that timeout has an upper bound of 4 hours ")
+        )
         return parser
 
     def take_action(self, parsed_args):
@@ -78,7 +85,12 @@ class DeleteNode(command.Command):
         print("Deleting the following nodes from stack {stack}:\n{nodes}"
               .format(stack=stack.stack_name, nodes=nodes))
 
-        scale.scale_down(clients, stack.stack_name, parsed_args.nodes)
+        scale.scale_down(
+            clients,
+            stack.stack_name,
+            parsed_args.nodes,
+            parsed_args.timeout
+        )
 
 
 class ProvideNode(command.Command):

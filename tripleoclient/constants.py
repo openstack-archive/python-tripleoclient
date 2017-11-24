@@ -46,3 +46,4 @@ PUPPET_MODULES = "/etc/puppet/modules/"
 PUPPET_BASE = "/etc/puppet/"
 # Update Queue
 UPDATE_QUEUE = 'update'
+STACK_TIMEOUT = 240
