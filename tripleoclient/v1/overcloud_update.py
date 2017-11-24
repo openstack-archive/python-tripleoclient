@@ -62,8 +62,8 @@ class UpdateOvercloud(command.Command):
                             )
         parser.add_argument('--ceph-ansible-playbook',
                             action="store",
-                            default="/usr/share/ceph-ansible/infrastructure-"
-                                    "playbooks/rolling_update.yml",
+                            default="/usr/share/ceph-ansible"
+                                    "/site-docker.yml.sample",
                             help=_('Path to switch the ceph-ansible playbook '
                                    'used for update. This value should be set '
                                    'during the init-minor-update step.')
