@@ -65,8 +65,8 @@ class TestOvercloudUpdate(fakes.TestOvercloudUpdate):
             self.app.client_manager,
             container='mystack',
             container_registry={'fake_container': 'fake_value'},
-            ceph_ansible_playbook='/usr/share/ceph-ansible/infrastructure-'
-                                  'playbooks/rolling_update.yml',
+            ceph_ansible_playbook='/usr/share/ceph-ansible'
+                                  '/site-docker.yml.sample',
             queue_name=str(uuid.uuid4()))
 
     @mock.patch('tripleoclient.workflows.package_update.update',
