@@ -20,6 +20,7 @@ import logging
 import netaddr
 import os
 import pwd
+import re
 import subprocess
 import sys
 import tempfile
@@ -93,9 +94,10 @@ class DeployUndercloud(command.Command):
                 pass
         return False
 
-    def _update_passwords_env(self, passwords=None):
-        pw_file = os.path.join(os.environ.get('HOME', ''),
-                               'tripleo-undercloud-passwords.yaml')
+    def _update_passwords_env(self, output_dir, passwords=None):
+        pw_file = os.path.join(output_dir, 'tripleo-undercloud-passwords.yaml')
+        undercloud_pw_file = os.path.join(output_dir,
+                                          'undercloud-passwords.conf')
         stack_env = {'parameter_defaults': {}}
         if os.path.exists(pw_file):
             with open(pw_file) as pf:
@@ -111,8 +113,26 @@ class DeployUndercloud(command.Command):
                 if p not in stack_env['parameter_defaults']:
                     stack_env['parameter_defaults'][p] = v
 
+        # Write out the password file in yaml for heat.
+        # This contains sensitive data so ensure it's not world-readable
         with open(pw_file, 'w') as pf:
             yaml.safe_dump(stack_env, pf, default_flow_style=False)
+        # Using chmod here instead of permissions on the open above so we don't
+        # have to fight with umask.
+        os.chmod(pw_file, 0o600)
+        # Write out an instack undercloud compatible version.
+        # This contains sensitive data so ensure it's not world-readable
+        with open(undercloud_pw_file, 'w') as pf:
+            pf.write('[auth]\n')
+            for p, v in stack_env['parameter_defaults'].items():
+                if 'Password' in p or 'Token' in p:
+                    # Convert camelcase from heat templates into the underscore
+                    # format used by instack undercloud.
+                    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', p)
+                    pw_key = re.sub('([a-z0-9])([A-Z])',
+                                    r'\1_\2', s1).lower()
+                    pf.write('undercloud_%s: %s\n' % (pw_key, v))
+        os.chmod(undercloud_pw_file, 0o600)
 
         return pw_file
 
@@ -219,7 +239,7 @@ class DeployUndercloud(command.Command):
         environments.insert(0, resource_registry_path)
 
         # this will allow the user to overwrite passwords with custom envs
-        pw_file = self._update_passwords_env()
+        pw_file = self._update_passwords_env(parsed_args.output_dir)
         environments.insert(1, pw_file)
 
         undercloud_env_path = os.path.join(
@@ -329,9 +349,8 @@ class DeployUndercloud(command.Command):
                 msg = 'Stack creation timeout: %d minutes elapsed' % (timeout)
                 raise Exception(msg)
 
-    def _download_ansible_playbooks(self, client, stack_name):
+    def _download_ansible_playbooks(self, client, stack_name, output_dir):
         stack_config = config.Config(client)
-        output_dir = os.environ.get('HOME')
 
         print('** Downloading undercloud ansible.. **')
         # python output buffering is making this seem to take forever..
@@ -381,6 +400,11 @@ class DeployUndercloud(command.Command):
         parser.add_argument('--stack',
                             help=_("Stack name to create"),
                             default='undercloud')
+        parser.add_argument('--output-dir',
+                            dest='output_dir',
+                            help=_("Directory to output state and ansible"
+                                   " deployment files."),
+                            default=os.environ.get('HOME', ''))
         parser.add_argument('-t', '--timeout', metavar='<TIMEOUT>',
                             type=int, default=30,
                             help=_('Deployment timeout in minutes.'))
@@ -481,7 +505,8 @@ class DeployUndercloud(command.Command):
             # download the ansible playbooks and execute them.
             ansible_dir = \
                 self._download_ansible_playbooks(orchestration_client,
-                                                 parsed_args.stack)
+                                                 parsed_args.stack,
+                                                 parsed_args.output_dir)
             # Kill heat, we're done with it now.
             self._kill_heat()
             # Never returns..  We exec() it directly.

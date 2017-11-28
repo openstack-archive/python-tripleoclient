@@ -568,6 +568,8 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False):
     env_file = _write_env_file(env_data)
     deploy_args += ['-e', env_file]
 
+    deploy_args += ['--output-dir=%s' % os.environ.get('HOME', '')]
+
     if CONF.get('custom_env_files'):
         for custom_file in CONF['custom_env_files']:
             deploy_args += ['-e', custom_file]

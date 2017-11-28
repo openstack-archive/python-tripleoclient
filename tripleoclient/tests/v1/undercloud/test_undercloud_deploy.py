@@ -38,50 +38,65 @@ class TestUndercloudDeploy(TestPluginV1):
         # Substitute required packages
         self.cmd.prerequisites = iter(['foo', 'bar', 'baz'])
 
+    @mock.patch('os.chmod')
     @mock.patch('os.path.exists')
     @mock.patch('tripleo_common.utils.passwords.generate_passwords')
     @mock.patch('yaml.safe_dump')
-    def test_update_passwords_env_init(self, mock_dump, mock_pw, mock_exists):
+    def test_update_passwords_env_init(self, mock_dump, mock_pw,
+                                       mock_exists, mock_chmod):
         pw_dict = {"GeneratedPassword": 123}
-        pw_env_path = os.path.join(self.temp_homedir,
-                                   'tripleo-undercloud-passwords.yaml')
+        pw_conf_path = os.path.join(self.temp_homedir,
+                                    'undercloud-passwords.conf')
+        t_pw_conf_path = os.path.join(
+            self.temp_homedir, 'tripleo-undercloud-passwords.yaml')
 
         mock_pw.return_value = pw_dict
         mock_exists.return_value = False
+
         mock_open_context = mock.mock_open()
         with mock.patch('six.moves.builtins.open', mock_open_context):
-            self.cmd._update_passwords_env()
+            self.cmd._update_passwords_env(self.temp_homedir)
 
-        mock_exists.assert_called_once_with(pw_env_path)
-        mock_open_context.assert_called_once_with(pw_env_path, 'w')
+        mock_open_context.assert_called_with(pw_conf_path, 'w')
         mock_open_handle = mock_open_context()
         mock_dump.assert_called_once_with({'parameter_defaults': pw_dict},
                                           mock_open_handle,
                                           default_flow_style=False)
+        chmod_calls = [mock.call(t_pw_conf_path, 0o600),
+                       mock.call(pw_conf_path, 0o600)]
+        mock_chmod.assert_has_calls(chmod_calls)
 
+    @mock.patch('os.chmod')
     @mock.patch('os.path.exists')
     @mock.patch('tripleo_common.utils.passwords.generate_passwords')
     @mock.patch('yaml.safe_dump')
     def test_update_passwords_env_update(self, mock_dump, mock_pw,
-                                         mock_exists):
+                                         mock_exists, mock_chmod):
         pw_dict = {"GeneratedPassword": 123}
-        pw_env_path = os.path.join(self.temp_homedir,
-                                   'tripleo-undercloud-passwords.yaml')
+        pw_conf_path = os.path.join(self.temp_homedir,
+                                    'undercloud-passwords.conf')
+        t_pw_conf_path = os.path.join(
+            self.temp_homedir, 'tripleo-undercloud-passwords.yaml')
 
         mock_pw.return_value = pw_dict
         mock_exists.return_value = True
+        with open(t_pw_conf_path, 'w') as t_pw:
+            t_pw.write('parameter_defaults: {ExistingKey: xyz}\n')
+
         mock_open_context = mock.mock_open(
             read_data='parameter_defaults: {ExistingKey: xyz}\n')
         with mock.patch('six.moves.builtins.open', mock_open_context):
-            self.cmd._update_passwords_env(
-                passwords={'ADefault': 456, 'ExistingKey': 'dontupdate'})
-
-        mock_exists.assert_called_once_with(pw_env_path)
-        mock_open_context.assert_called_with(pw_env_path, 'w')
-        mock_open_handle = mock_open_context()
+            self.cmd._update_passwords_env(self.temp_homedir,
+                                           passwords={'ADefault': 456,
+                                                      'ExistingKey':
+                                                      'dontupdate'})
+        mock_open_context.assert_called_with(pw_conf_path, 'w')
         expected_dict = {'parameter_defaults': {'GeneratedPassword': 123,
                                                 'ExistingKey': 'xyz',
                                                 'ADefault': 456}}
         mock_dump.assert_called_once_with(expected_dict,
-                                          mock_open_handle,
+                                          mock.ANY,
                                           default_flow_style=False)
+        chmod_calls = [mock.call(t_pw_conf_path, 0o600),
+                       mock.call(pw_conf_path, 0o600)]
+        mock_chmod.assert_has_calls(chmod_calls)
