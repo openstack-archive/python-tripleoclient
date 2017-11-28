@@ -101,7 +101,7 @@ def config_download(log, clients, stack, templates, deployed_server,
     role_net_hostname_map = utils.get_role_net_hostname_map(stack)
     hostnames = []
     for role in role_net_hostname_map:
-        hostnames.extend(role_net_hostname_map[role]['ctlplane'])
+        hostnames.extend(role_net_hostname_map[role].get('ctlplane', []))
 
     ips = []
     hosts_entry = utils.get_hosts_entry(stack)
