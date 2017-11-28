@@ -51,7 +51,7 @@ class TestDeleteNode(fakes.TestDeleteNode):
     # probably be fixed so that it can pass with that.
     def test_node_delete(self):
         argslist = ['instance1', 'instance2', '--templates',
-                    '--stack', 'overcast']
+                    '--stack', 'overcast', '--timeout', '90']
         verifylist = [
             ('stack', 'overcast'),
             ('nodes', ['instance1', 'instance2'])
@@ -72,7 +72,8 @@ class TestDeleteNode(fakes.TestDeleteNode):
             'tripleo.scale.v1.delete_node',
             workflow_input={
                 'container': 'overcast',
-                'nodes': ['instance1', 'instance2']
+                'nodes': ['instance1', 'instance2'],
+                'timeout': 90
             })
 
     def test_node_wrong_stack(self):
@@ -115,7 +116,8 @@ class TestDeleteNode(fakes.TestDeleteNode):
             'tripleo.scale.v1.delete_node',
             workflow_input={
                 'container': 'overcloud',
-                'nodes': ['instance1', ]
+                'nodes': ['instance1', ],
+                'timeout': 240
             })
 
     def test_node_delete_wrong_instance(self):
@@ -142,7 +144,8 @@ class TestDeleteNode(fakes.TestDeleteNode):
             'tripleo.scale.v1.delete_node',
             workflow_input={
                 'container': 'overcloud',
-                'nodes': ['wrong_instance', ]
+                'nodes': ['wrong_instance', ],
+                'timeout': 240
             })
 
 
