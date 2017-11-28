@@ -19,7 +19,7 @@ TRIPLEO_HEAT_TEMPLATES = "/usr/share/openstack-tripleo-heat-templates/"
 OVERCLOUD_YAML_NAME = "overcloud.yaml"
 OVERCLOUD_ROLES_FILE = "roles_data.yaml"
 UNDERCLOUD_ROLES_FILE = "roles_data_undercloud.yaml"
-UNDERCLOUD_OUTPUT_DIR = os.path.join(os.environ.get('HOME'))
+UNDERCLOUD_OUTPUT_DIR = os.path.join(os.environ.get('HOME', '~/'))
 STANDALONE_EPHEMERAL_STACK_VSTATE = '/var/lib/tripleo-heat-installer'
 UNDERCLOUD_LOG_FILE = "install-undercloud.log"
 UNDERCLOUD_CONF_PATH = os.path.join(UNDERCLOUD_OUTPUT_DIR, "undercloud.conf")
@@ -35,7 +35,7 @@ USER_ENVIRONMENT = 'user-environment.yaml'
 USER_PARAMETERS = 'user-environments/tripleoclient-parameters.yaml'
 
 # This directory may contain additional environments to use during deploy
-DEFAULT_ENV_DIRECTORY = os.path.join(os.environ.get('HOME'),
+DEFAULT_ENV_DIRECTORY = os.path.join(os.environ.get('HOME', '~/'),
                                      '.tripleo', 'environments')
 
 TRIPLEO_PUPPET_MODULES = "/usr/share/openstack-puppet/modules/"
