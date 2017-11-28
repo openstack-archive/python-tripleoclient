@@ -21,6 +21,7 @@ from tripleoclient import exceptions
 from tripleoclient import utils
 
 from tripleoclient.workflows import base
+from zaqarclient.transport import errors as zaqar_errors
 
 
 def update(clients, **workflow_input):
@@ -72,10 +73,14 @@ def update_ansible(clients, **workflow_input):
             pass
         # Then we can start to claim the queue
         while workflow_client.executions.get(execution.id).state == 'RUNNING':
-            claim = queue.claim(ttl=600, grace=600)
-            for message in claim:
-                pprint.pprint(message.body['payload']['message'].splitlines())
-                message.delete()
+            try:
+                claim = queue.claim(ttl=600, grace=600)
+                for message in claim:
+                    pprint.pprint(
+                        message.body['payload']['message'].splitlines())
+                    message.delete()
+            except zaqar_errors.ServiceUnavailableError:
+                pass
         # clean the Queue
         queue.delete()
 
