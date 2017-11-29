@@ -111,29 +111,28 @@ def config_download(log, clients, stack, templates, deployed_server,
             if match:
                 ips.append(line.split(' ')[0])
 
-    if deployed_server:
-        script_path = os.path.join(templates,
-                                   'deployed-server',
-                                   'scripts',
-                                   'enable-ssh-admin.sh')
+    script_path = os.path.join(templates,
+                               'deployed-server',
+                               'scripts',
+                               'enable-ssh-admin.sh')
 
-        env = os.environ.copy()
-        env.update(dict(OVERCLOUD_HOSTS=' '.join(ips),
-                        OVERCLOUD_SSH_USER=ssh_user,
-                        OVERCLOUD_SSH_KEY=ssh_key))
+    env = os.environ.copy()
+    env.update(dict(OVERCLOUD_HOSTS=' '.join(ips),
+                    OVERCLOUD_SSH_USER=ssh_user,
+                    OVERCLOUD_SSH_KEY=ssh_key))
 
-        proc = subprocess.Popen([script_path], env=env, shell=True,
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT)
+    proc = subprocess.Popen([script_path], env=env, shell=True,
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT)
 
-        while True:
-            line = proc.stdout.readline().decode('utf-8')
-            if line:
-                log.info(line.rstrip())
-            if line == '' and proc.poll() is not None:
-                break
-        if proc.returncode != 0:
-            raise RuntimeError('%s failed.' % script_path)
+    while True:
+        line = proc.stdout.readline().decode('utf-8')
+        if line:
+            log.info(line.rstrip())
+        if line == '' and proc.poll() is not None:
+            break
+    if proc.returncode != 0:
+        raise RuntimeError('%s failed.' % script_path)
 
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
