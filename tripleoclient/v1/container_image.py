@@ -86,6 +86,9 @@ class BuildImage(command.Command):
             images.append(dep)
 
     def get_parser(self, prog_name):
+        default_kolla_conf = os.path.join(
+            sys.prefix, 'share', 'tripleo-common', 'container-images',
+            'tripleo_kolla_config_overrides.conf')
         parser = super(BuildImage, self).get_parser(prog_name)
         parser.add_argument(
             "--config-file",
@@ -103,12 +106,13 @@ class BuildImage(command.Command):
             "--kolla-config-file",
             dest="kolla_config_files",
             metavar='<config file>',
-            default=[],
+            default=[default_kolla_conf],
             action="append",
             required=True,
             help=_("Path to a Kolla config file to use. Multiple config files "
                    "can be specified, with values in later files taking "
-                   "precedence."),
+                   "precedence. By default, tripleo kolla conf file {conf} "
+                   "is added.").format(conf=default_kolla_conf),
         )
         parser.add_argument(
             '--list-images',
