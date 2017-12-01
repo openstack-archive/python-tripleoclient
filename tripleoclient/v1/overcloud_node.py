@@ -16,10 +16,10 @@
 import argparse
 import logging
 
-from osc_lib.command import command
 from osc_lib.i18n import _
 from osc_lib import utils
 
+from tripleoclient import command
 from tripleoclient import constants
 from tripleoclient.exceptions import InvalidConfiguration
 from tripleoclient import utils as oooutils

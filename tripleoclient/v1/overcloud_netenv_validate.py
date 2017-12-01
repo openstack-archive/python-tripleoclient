@@ -19,10 +19,11 @@ import logging
 import os
 
 import ipaddress
-from osc_lib.command import command
 from osc_lib.i18n import _
 import six
 import yaml
+
+from tripleoclient import command
 
 
 class ValidateOvercloudNetenv(command.Command):

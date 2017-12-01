@@ -14,10 +14,10 @@ import json
 import logging
 import os.path
 
-from osc_lib.command import command
 from osc_lib.i18n import _
 from six.moves.urllib import request
 
+from tripleoclient import command
 from tripleoclient import constants
 from tripleoclient import exceptions
 from tripleoclient import utils

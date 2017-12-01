@@ -15,10 +15,10 @@
 
 import logging
 
-from tripleoclient.workflows import support
-
-from osc_lib.command import command
 from osc_lib.i18n import _
+
+from tripleoclient import command
+from tripleoclient.workflows import support
 
 
 class ReportExecute(command.Command):

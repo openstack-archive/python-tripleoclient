@@ -16,10 +16,10 @@
 import logging
 import os
 
-from osc_lib.command import command
 from osc_lib.i18n import _
 import yaml
 
+from tripleoclient import command
 from tripleoclient.workflows import baremetal
 
 

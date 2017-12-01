@@ -12,8 +12,7 @@
 
 import logging
 
-from osc_lib.command import command
-
+from tripleoclient import command
 from tripleoclient import utils
 from tripleoclient.workflows import deployment
 

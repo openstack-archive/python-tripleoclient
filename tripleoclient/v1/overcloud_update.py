@@ -18,10 +18,10 @@ import os
 import yaml
 
 
-from osc_lib.command import command
 from osc_lib.i18n import _
 from oslo_concurrency import processutils
 
+from tripleoclient import command
 from tripleoclient import constants
 from tripleoclient import exceptions
 from tripleoclient import utils as oooutils

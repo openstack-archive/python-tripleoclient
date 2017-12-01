@@ -21,13 +21,13 @@ import re
 import subprocess
 import sys
 
-from osc_lib.command import command
 from osc_lib import exceptions
 from osc_lib.i18n import _
 from osc_lib import utils
 from prettytable import PrettyTable
-
 from tripleo_common.image import build
+
+from tripleoclient import command
 from tripleoclient import utils as plugin_utils
 
 

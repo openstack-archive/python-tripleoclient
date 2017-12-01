@@ -16,9 +16,9 @@ import os
 import simplejson
 import yaml
 
-from osc_lib.command import command
 from osc_lib.i18n import _
 
+from tripleoclient import command
 from tripleoclient import exceptions
 from tripleoclient import utils
 from tripleoclient.workflows import base
