@@ -19,9 +19,9 @@ import copy
 import logging
 import netaddr
 import os
-import yaml
-
 from oslo_config import cfg
+from tripleoclient.v1 import undercloud_preflight
+import yaml
 
 
 PARAMETER_MAPPING = {
@@ -373,7 +373,7 @@ def _load_config():
     CONF(conf_params)
 
 
-def prepare_undercloud_deploy(upgrade=False):
+def prepare_undercloud_deploy(upgrade=False, no_validations=False):
     """Prepare Undercloud deploy command based on undercloud.conf"""
 
     env_data = {}
@@ -480,6 +480,9 @@ def prepare_undercloud_deploy(upgrade=False):
     if CONF.get('custom_env_files'):
         for custom_file in CONF['custom_env_files']:
             deploy_args += ['-e', custom_file]
+
+    if CONF.get('enable_validations') and not no_validations:
+        undercloud_preflight.check()
 
     cmd = ["sudo", "openstack", "undercloud", "deploy"]
     cmd += deploy_args[:]

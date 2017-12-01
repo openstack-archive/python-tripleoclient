@@ -48,7 +48,7 @@ class TestUndercloudInstall(TestPluginV1):
 
     @mock.patch('subprocess.check_call', autospec=True)
     def test_undercloud_install_with_heat(self, mock_subprocess):
-        arglist = ['--use-heat']
+        arglist = ['--use-heat', '--no-validations']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
@@ -106,7 +106,7 @@ class TestUndercloudUpgrade(TestPluginV1):
 
     @mock.patch('subprocess.check_call', autospec=True)
     def test_undercloud_upgrade_with_heat(self, mock_subprocess):
-        arglist = ['--use-heat']
+        arglist = ['--use-heat', '--no-validations']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
