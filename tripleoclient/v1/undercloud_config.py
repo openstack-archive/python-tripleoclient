@@ -236,10 +236,11 @@ _opts = [
                       'information for newly enrolled nodes.')
                 ),
     cfg.StrOpt('discovery_default_driver',
-               default='pxe_ipmitool',
-               help=('The default driver to use for newly discovered nodes '
-                     '(requires enable_node_discovery set to True). This '
-                     'driver is automatically added to enabled_drivers.')
+               default='ipmi',
+               help=('The default driver or hardware type to use for newly '
+                     'discovered nodes (requires enable_node_discovery set to '
+                     'True). It is automatically added to enabled_drivers '
+                     'or enabled_hardware_types accordingly.')
                ),
     cfg.BoolOpt('undercloud_debug',
                 default=True,
@@ -308,9 +309,12 @@ _opts = [
                       'between deployments and after the introspection.')),
     cfg.ListOpt('enabled_drivers',
                 default=['pxe_ipmitool', 'pxe_drac', 'pxe_ilo'],
-                help=('List of enabled bare metal drivers.')),
+                help=('List of enabled bare metal drivers.'),
+                deprecated_for_removal=True,
+                deprecated_reason=('Please switch to hardware types and '
+                                   'the enabled_hardware_types option.')),
     cfg.ListOpt('enabled_hardware_types',
-                default=['ipmi', 'redfish'],
+                default=['ipmi', 'redfish', 'ilo', 'idrac'],
                 help=('List of enabled bare metal hardware types (next '
                       'generation drivers).')),
     cfg.StrOpt('docker_registry_mirror',
@@ -373,6 +377,76 @@ def _load_config():
     CONF(conf_params)
 
 
+def _is_classic_driver(name):
+    """Poor man's way to detect if something is a driver or a hardware type.
+
+    To be removed when we remove support for classic drivers.
+    """
+    return (name == 'fake' or
+            name.startswith('fake_') or
+            name.startswith('pxe_') or
+            name.startswith('agent_') or
+            name.startswith('iscsi_'))
+
+
+def _process_drivers_and_hardware_types(conf, env):
+    """Populate the environment with ironic driver information."""
+    # Ensure correct rendering of the list and uniqueness of the items
+    enabled_drivers = set(conf.enabled_drivers)
+    enabled_hardware_types = set(conf.enabled_hardware_types)
+    if conf.enable_node_discovery:
+        if _is_classic_driver(conf.discovery_default_driver):
+            if conf.discovery_default_driver not in enabled_drivers:
+                enabled_drivers.add(conf.discovery_default_driver)
+        else:
+            if conf.discovery_default_driver not in enabled_hardware_types:
+                enabled_hardware_types.add(conf.discovery_default_driver)
+        env['IronicInspectorEnableNodeDiscovery'] = True
+        env['IronicInspectorDiscoveryDefaultDriver'] = (
+            conf.discovery_default_driver)
+
+    # In most cases power and management interfaces are called the same, so we
+    # use one variable for them.
+    mgmt_interfaces = {'fake', 'ipmitool'}
+    # TODO(dtantsur): can we somehow avoid hardcoding hardware types here?
+    for hw_type in ('redfish', 'idrac', 'ilo', 'irmc', 'staging-ovirt'):
+        if hw_type in enabled_hardware_types:
+            mgmt_interfaces.add(hw_type)
+    for (hw_type, iface) in [('cisco-ucs-managed', 'ucsm'),
+                             ('cisco-ucs-standalone', 'cimc')]:
+        if hw_type in enabled_hardware_types:
+            mgmt_interfaces.add(iface)
+
+    # Two hardware types use non-default boot interfaces.
+    boot_interfaces = {'pxe'}
+    for hw_type in ('ilo', 'irmc'):
+        if hw_type in enabled_hardware_types:
+            boot_interfaces.add('%s-pxe' % hw_type)
+
+    raid_interfaces = {'no-raid'}
+    if 'idrac' in enabled_hardware_types:
+        raid_interfaces.add('idrac')
+
+    vendor_interfaces = {'no-vendor'}
+    for (hw_type, iface) in [('ipmi', 'ipmitool'),
+                             ('idrac', 'idrac')]:
+        if hw_type in enabled_hardware_types:
+            vendor_interfaces.add(iface)
+
+    env['IronicEnabledDrivers'] = sorted(enabled_drivers)
+    env['IronicEnabledHardwareTypes'] = sorted(enabled_hardware_types)
+
+    env['IronicEnabledBootInterfaces'] = sorted(boot_interfaces)
+    env['IronicEnabledManagementInterfaces'] = sorted(mgmt_interfaces)
+    env['IronicEnabledRaidInterfaces'] = sorted(raid_interfaces)
+    env['IronicEnabledVendorInterfaces'] = sorted(vendor_interfaces)
+
+    # The snmp hardware type uses fake management and snmp power
+    if 'snmp' in enabled_hardware_types:
+        mgmt_interfaces.add('snmp')
+    env['IronicEnabledPowerInterfaces'] = sorted(mgmt_interfaces)
+
+
 def prepare_undercloud_deploy(upgrade=False, no_validations=False):
     """Prepare Undercloud deploy command based on undercloud.conf"""
 
@@ -428,10 +502,13 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False):
         deploy_args += ['-e', os.path.join(
             tht_templates, "environments/services-docker/ironic.yaml")]
 
-    if CONF.get('enable_ironic_inspector'):
-        deploy_args += ['-e', os.path.join(
-            tht_templates,
-            "environments/services-docker/ironic-inspector.yaml")]
+        # ironic-inspector can only work if ironic is enabled
+        if CONF.get('enable_ironic_inspector'):
+            deploy_args += ['-e', os.path.join(
+                tht_templates,
+                "environments/services-docker/ironic-inspector.yaml")]
+
+        _process_drivers_and_hardware_types(CONF, env_data)
 
     if CONF.get('enable_mistral'):
         deploy_args += ['-e', os.path.join(
