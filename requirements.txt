@@ -6,7 +6,7 @@ pbr!=2.1.0,>=2.0.0 # Apache-2.0
 Babel!=2.4.0,>=2.3.4 # BSD
 ipaddress>=1.0.16;python_version<'3.3' # PSF
 passlib>=1.7.0 # BSD
-psutil>=3.2.2  # BSD
+psutil>=3.2.2 # BSD
 python-ironic-inspector-client>=1.5.0 # Apache-2.0
 python-heatclient>=1.10.0 # Apache-2.0
 python-ironicclient>=1.14.0 # Apache-2.0
