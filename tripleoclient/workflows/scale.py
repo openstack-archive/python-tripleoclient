@@ -33,8 +33,7 @@ def delete_node(clients, **workflow_input):
             workflow_input=workflow_input
         )
 
-        for payload in base.wait_for_messages(workflow_client, ws, execution,
-                                              360):
+        for payload in base.wait_for_messages(workflow_client, ws, execution):
             if payload['status'] != "SUCCESS":
                 raise InvalidConfiguration(payload['message'])
 
