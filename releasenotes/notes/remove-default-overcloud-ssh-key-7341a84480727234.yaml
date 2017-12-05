@@ -1,0 +1,5 @@
+---
+fixes:
+  - The default value for --overcloud-ssh-key was wrong (it was actually a
+    username). Instead of using a default value at all, just remove the default
+    since we can't sanely pick one.

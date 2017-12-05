@@ -18,7 +18,6 @@ import argparse
 import logging
 import os
 import os.path
-import pwd
 import re
 import shutil
 import six
@@ -741,7 +740,6 @@ class DeployOvercloud(command.Command):
         )
         parser.add_argument(
             '--overcloud-ssh-key',
-            default=pwd.getpwuid(os.getuid()).pw_name,
             help=_('Key path for ssh access to overcloud nodes.')
         )
         parser.add_argument(

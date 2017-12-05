@@ -118,8 +118,10 @@ def config_download(log, clients, stack, templates, deployed_server,
 
     env = os.environ.copy()
     env.update(dict(OVERCLOUD_HOSTS=' '.join(ips),
-                    OVERCLOUD_SSH_USER=ssh_user,
-                    OVERCLOUD_SSH_KEY=ssh_key))
+                    OVERCLOUD_SSH_USER=ssh_user))
+
+    if ssh_key:
+        env['OVERCLOUD_SSH_KEY'] = ssh_key
 
     proc = subprocess.Popen([script_path], env=env, shell=True,
                             stdout=subprocess.PIPE,
