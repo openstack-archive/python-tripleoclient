@@ -28,6 +28,7 @@ PLAN_ENVIRONMENT = 'plan-environment.yaml'
 DEFAULT_ENV_DIRECTORY = "~/.tripleo/environments"
 
 TRIPLEO_PUPPET_MODULES = "/usr/share/openstack-puppet/modules/"
+UPGRADE_CONVERGE_FILE = "major-upgrade-converge-docker.yaml"
 PUPPET_MODULES = "/etc/puppet/modules/"
 PUPPET_BASE = "/etc/puppet/"
 # Update Queue
