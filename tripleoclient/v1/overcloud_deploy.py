@@ -518,47 +518,6 @@ class DeployOvercloud(command.Command):
             messages = 'Failed to deploy: %s' % str(e)
             raise ValueError(messages)
 
-    def _get_password(self, stack_name, password_name):
-        # NOTE(d0ugal): This method is only used during the post-deploy config
-        # steps that are now deprecated. It should be removed when they are.
-        if self._password_cache is None:
-            self._password_cache = workflow_params.get_overcloud_passwords(
-                self.clients,
-                container=stack_name
-            )
-
-        return self._password_cache[password_name]
-
-    def _get_base_service_data(self, service, data, stack):
-        service_data = {}
-        password_field = data.get('password_field')
-        if password_field:
-            service_data['password'] = self._get_password(
-                stack.stack_name,
-                password_field)
-
-        # Set internal endpoint
-        service_name_internal = self._format_endpoint_name(service, 'internal')
-        service_data['internal_host'] = utils.get_endpoint(
-            service_name_internal, stack)
-        return service_data
-
-    def _get_endpoint_data(self, service, endpoint_map, stack):
-        endpoint_data = {}
-        # Set standard port
-        service_name_internal = self._format_endpoint_name(service, 'internal')
-        endpoint_data['port'] = endpoint_map[service_name_internal]['port']
-
-        # Set public endpoint
-        service_name_public = self._format_endpoint_name(service, 'public')
-        public_endpoint_data = endpoint_map.get(service_name_public)
-        endpoint_data['public_host'] = public_endpoint_data['host']
-
-        # Set SSL port
-        if public_endpoint_data['uri'].startswith('https'):
-            endpoint_data['ssl_port'] = public_endpoint_data['port']
-        return endpoint_data
-
     def _format_endpoint_name(self, service, interface):
         return re.sub('v[0-9]+', '',
                       service.capitalize() + interface.capitalize())
