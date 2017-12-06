@@ -322,6 +322,11 @@ _opts = [
                help=('An optional docker \'registry-mirror\' that will be'
                      'configured in /etc/docker/daemon.json.')
                ),
+    cfg.ListOpt('docker_insecure_registries',
+                default=[],
+                help=('Used to add custom insecure registries in '
+                      '/etc/sysconfig/docker.')
+                ),
     cfg.StrOpt('templates',
                default='',
                help=('heat templates file to override.')
@@ -450,6 +455,10 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False):
     deploy_args = []
     _load_config()
 
+    # Set the undercloud home dir parameter so that stackrc is produced in
+    # the users home directory.
+    env_data['UndercloudHomeDir'] = os.environ.get('HOME', '')
+
     for param_key, param_value in PARAMETER_MAPPING.items():
         if param_key in CONF.keys():
             env_data[param_value] = CONF[param_key]
@@ -464,6 +473,15 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False):
 
     if CONF.get('undercloud_ntp_servers', None):
         env_data['NtpServer'] = CONF['undercloud_ntp_servers'][0]
+
+    # FIXME need to add admin VIP as well
+    env_data['DockerInsecureRegistryAddress'] = [
+        '%s:8787' % CONF['local_ip'].split('/')[0]]
+    env_data['DockerInsecureRegistryAddress'].extend(
+        CONF['docker_insecure_registries'])
+
+    if CONF.get('docker_registry_mirror', None):
+        env_data['DockerRegistryMirror'] = CONF['docker_registry_mirror']
 
     if CONF.get('local_ip', None):
         # local_ip is defined as a CIDR
