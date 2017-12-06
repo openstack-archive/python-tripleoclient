@@ -20,7 +20,6 @@ from tripleoclient import exceptions
 from tripleoclient import utils
 
 from tripleoclient.workflows import base
-from zaqarclient.transport import errors as zaqar_errors
 
 
 def update(clients, **workflow_input):
@@ -79,8 +78,7 @@ def update_ansible(clients, **workflow_input):
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
     queue_name = workflow_input['queue_name']
-    zaqar = clients.messaging
-    queue = zaqar.queue(workflow_input['ansible_queue_name'])
+    ansible_queue = workflow_input['ansible_queue_name']
 
     with tripleoclients.messaging_websocket(queue_name) as ws:
         execution = base.start_workflow(
@@ -88,22 +86,17 @@ def update_ansible(clients, **workflow_input):
             'tripleo.package_update.v1.update_nodes',
             workflow_input=workflow_input
         )
-        timeout = time.time() + 600
-        # First we need to wait for the first item in the queue
-        while queue.stats['messages']['total'] == 0 or time.time() == timeout:
-            pass
-        # Then we can start to claim the queue
-        while workflow_client.executions.get(execution.id).state == 'RUNNING':
-            try:
-                claim = queue.claim(ttl=600, grace=600)
-                for message in claim:
-                    pprint.pprint(
-                        message.body['payload']['message'].splitlines())
-                    message.delete()
-            except zaqar_errors.ServiceUnavailableError:
-                pass
-        # clean the Queue
-        queue.delete()
+
+        with tripleoclients.messaging_websocket(ansible_queue) as update_ws:
+            for payload in base.wait_for_messages(workflow_client,
+                                                  update_ws,
+                                                  execution):
+                # Need to sleep a little, to let the time for the execution
+                # to get the right status in between. It avoid to fall in the
+                # while True loop to get messages
+                time.sleep(5)
+                if payload.get('message'):
+                    pprint.pprint(payload['message'].splitlines())
 
         for payload in base.wait_for_messages(workflow_client, ws, execution):
             if payload.get('message'):
