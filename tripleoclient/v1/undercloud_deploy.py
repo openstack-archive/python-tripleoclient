@@ -425,10 +425,10 @@ class DeployUndercloud(command.Command):
         parser.add_argument(
             '--heat-container-image', metavar='<HEAT_CONTAINER_IMAGE>',
             dest='heat_container_image',
-            default='tripleoupstream/centos-binary-heat-all',
+            default='tripleomaster/centos-binary-heat-all',
             help=_('The container image to use when launching the heat-all '
                    'process. Defaults to: '
-                   'tripleoupstream/centos-binary-heat-all')
+                   'tripleomaster/centos-binary-heat-all')
         )
         parser.add_argument(
             '--heat-native',
