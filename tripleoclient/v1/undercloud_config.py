@@ -32,7 +32,6 @@ PARAMETER_MAPPING = {
     'dhcp_start': 'UndercloudDhcpRangeStart',
     'dhcp_end': 'UndercloudDhcpRangeEnd',
     'network_cidr': 'UndercloudNetworkCidr',
-    'docker_namespace': 'DockerNamespace',
     'undercloud_debug': 'Debug',
     'ipxe_enabled': 'IronicInspectorIPXEEnabled',
     'certificate_generation_ca': 'CertmongerCA',
@@ -337,10 +336,6 @@ _opts = [
                default='',
                help=('Container yaml file with all available images in the'
                      'registry')
-               ),
-    cfg.StrOpt('docker_namespace',
-               default='',
-               help=('Docker namespace to use to get the container images')
                ),
     cfg.BoolOpt('enable_ironic',
                 default=True,
