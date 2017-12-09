@@ -136,12 +136,12 @@ class DeployUndercloud(command.Command):
 
         return pw_file
 
-    def _generate_hosts_parameters(self, parsed_args):
+    def _generate_hosts_parameters(self, parsed_args, p_ip):
         hostname = self._get_hostname()
         domain = parsed_args.local_domain
 
         data = {
-            'CloudName': hostname,
+            'CloudName': p_ip,
             'CloudDomain': domain,
             'CloudNameInternal': '%s.internalapi.%s' % (hostname, domain),
             'CloudNameStorage': '%s.storage.%s' % (hostname, domain),
@@ -151,21 +151,41 @@ class DeployUndercloud(command.Command):
         }
         return data
 
-    def _generate_portmap_parameters(self, ip_addr, cidr):
+    def _generate_portmap_parameters(self, ip_addr, cidr, ctlplane_vip_addr,
+                                     ctlplane_vip_cidr, public_vip_addr,
+                                     public_vip_cidr):
         hostname = self._get_hostname()
 
         data = {
             'HostnameMap': {
                 'undercloud-undercloud-0': '%s' % hostname
             },
+            # The settings below allow us to inject a custom public
+            # VIP. This requires use of the generated
+            # ../network/ports/external_from_pool.yaml resource in t-h-t.
+            'IPPool': {
+                'external': [public_vip_addr]
+            },
+            'ExternalNetCidr': {
+                '%s:%s' % (public_vip_addr, public_vip_cidr)
+            },
+            # This requires use of the
+            # ../deployed-server/deployed-neutron-port.yaml resource in t-h-t
+            # We use this for the control plane VIP and also via
+            # the environments/deployed-server-noop-ctlplane.yaml
+            # for the server IP itself
             'DeployedServerPortMap': {
                 ('%s-ctlplane' % hostname): {
                     'fixed_ips': [{'ip_address': ip_addr}],
                     'subnets': [{'cidr': cidr}]
                 },
                 'control_virtual_ip': {
-                    'fixed_ips': [{'ip_address': ip_addr}],
-                    'subnets': [{'cidr': cidr}]
+                    'fixed_ips': [{'ip_address': ctlplane_vip_addr}],
+                    'subnets': [{'cidr': ctlplane_vip_cidr}]
+                },
+                'public_virtual_ip': {
+                    'fixed_ips': [{'ip_address': public_vip_addr}],
+                    'subnets': [{'cidr': public_vip_cidr}]
                 }
             }
         }
@@ -263,12 +283,31 @@ class DeployUndercloud(command.Command):
             environments.extend(parsed_args.environment_files)
 
         with tempfile.NamedTemporaryFile(delete=False) as tmp_env_file:
-            tmp_env = self._generate_hosts_parameters(parsed_args)
 
             ip_nw = netaddr.IPNetwork(parsed_args.local_ip)
             ip = str(ip_nw.ip)
             cidr = str(ip_nw.netmask)
-            tmp_env.update(self._generate_portmap_parameters(ip, cidr))
+
+            if parsed_args.control_virtual_ip:
+                c_ip_nw = netaddr.IPNetwork(parsed_args.control_virtual_ip)
+                c_ip = str(c_ip_nw.ip)
+                c_cidr = str(c_ip_nw.netmask)
+            else:
+                c_ip = ip
+                c_cidr = cidr
+
+            if parsed_args.public_virtual_ip:
+                p_ip_nw = netaddr.IPNetwork(parsed_args.public_virtual_ip)
+                p_ip = str(p_ip_nw.ip)
+                p_cidr = str(p_ip_nw.netmask)
+            else:
+                p_ip = ip
+                p_cidr = cidr
+
+            tmp_env = self._generate_hosts_parameters(parsed_args, p_ip)
+            tmp_env.update(self._generate_portmap_parameters(ip, cidr, c_ip,
+                                                             c_cidr, p_ip,
+                                                             p_cidr))
 
             with open(tmp_env_file.name, 'w') as env_file:
                 yaml.safe_dump({'parameter_defaults': tmp_env}, env_file,
@@ -458,6 +497,18 @@ class DeployUndercloud(command.Command):
             '--local-ip', metavar='<LOCAL_IP>',
             dest='local_ip',
             help=_('Local IP/CIDR for undercloud traffic. Required.')
+        )
+        parser.add_argument(
+            '--control-virtual-ip', metavar='<CONTROL_VIRTUAL_IP>',
+            dest='control_virtual_ip',
+            help=_('Control plane VIP. This allows the undercloud installer '
+                   'to configure a custom VIP on the control plane.')
+        )
+        parser.add_argument(
+            '--public-virtual-ip', metavar='<PUBLIC_VIRTUAL_IP>',
+            dest='public_virtual_ip',
+            help=_('Public nw VIP. This allows the undercloud installer '
+                   'to configure a custom VIP on the public (external) NW.')
         )
         parser.add_argument(
             '--local-domain', metavar='<LOCAL_DOMAIN>',
