@@ -568,6 +568,40 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False):
             'environments/services-docker/undercloud-haproxy.yaml',
             '-e', 'environments/services-docker/undercloud-keepalived.yaml']
 
+    if (CONF.get('generate_service_certificate') or
+            CONF.get('undercloud_service_certificate')):
+
+        try:
+            public_host = CONF.get('undercloud_public_host')
+            netaddr.IPAddress(public_host)
+            deploy_args += ['--public-virtual-ip', public_host]
+
+            admin_host = CONF.get('undercloud_admin_host')
+            netaddr.IPAddress(admin_host)
+            deploy_args += ['--control-virtual-ip', admin_host]
+            endpoint_environment = os.path.join(
+                tht_templates,
+                "environments/tls-endpoints-public-ip.yaml")
+        except netaddr.core.AddrFormatError:
+            endpoint_environment = os.path.join(
+                tht_templates,
+                "environments/tls-endpoints-public-dns.yaml")
+
+        deploy_args += [
+            '-e', os.path.join(
+                tht_templates,
+                'environments/public-tls-undercloud.yaml'),
+            '-e', endpoint_environment,
+            '-e', os.path.join(
+                tht_templates,
+                'environments/use-dns-for-vips.yaml'),
+            '-e', os.path.join(
+                tht_templates,
+                'environments/services-docker/undercloud-haproxy.yaml'),
+            '-e', os.path.join(
+                tht_templates,
+                'environments/services-docker/undercloud-keepalived.yaml')]
+
     deploy_args += [
         "-e", os.path.join(tht_templates, "environments/docker.yaml"),
         "-e",
