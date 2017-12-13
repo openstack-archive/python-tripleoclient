@@ -119,7 +119,10 @@ class UpdateOvercloud(command.Command):
                                   container_registry=registry,
                                   ceph_ansible_playbook=ceph_ansible_playbook)
 
-            print("Minor update init on stack {0} complete.".format(
+            print("Heat stack update init on {0} complete.".format(
+                  parsed_args.stack))
+            package_update.get_config(clients, container=stack_name)
+            print("Init minor update on stack {0} complete.".format(
                   parsed_args.stack))
         else:
             # Run ansible:
