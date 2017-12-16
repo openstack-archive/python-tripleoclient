@@ -124,7 +124,7 @@ class TestContainerImagePrepare(TestPluginV1):
         citi.return_value = {
             'name_prefix': 'centos-binary-',
             'name_suffix': '',
-            'namespace': 'docker.io/tripleoupstream',
+            'namespace': 'docker.io/tripleomaster',
             'neutron_driver': None,
             'tag': 'latest'
         }
@@ -141,7 +141,7 @@ class TestContainerImagePrepare(TestPluginV1):
             filter=mock.ANY,
             name_prefix='centos-binary-',
             name_suffix='',
-            namespace='docker.io/tripleoupstream',
+            namespace='docker.io/tripleomaster',
             neutron_driver=None,
             tag='latest'
         )
