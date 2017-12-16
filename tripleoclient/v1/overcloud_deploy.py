@@ -986,6 +986,11 @@ class DeployOvercloud(command.Command):
             self._deploy_postconfig(stack, parsed_args)
 
         overcloud_endpoint = utils.get_overcloud_endpoint(stack)
+
+        horizon_url = deployment.get_horizon_url(
+            self.clients, stack=stack.stack_name)
+
         print("Overcloud Endpoint: {0}".format(overcloud_endpoint))
+        print("Overcloud Horizon Dashboard URL: {0}".format(horizon_url))
         print("Overcloud rc file: {0}".format(rcpath))
         print("Overcloud Deployed")
