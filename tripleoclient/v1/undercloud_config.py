@@ -36,6 +36,7 @@ PARAMETER_MAPPING = {
     'ipxe_enabled': 'IronicInspectorIPXEEnabled',
     'certificate_generation_ca': 'CertmongerCA',
     'undercloud_public_host': 'CloudName',
+    'scheduler_max_attempts': 'NovaSchedulerMaxAttempts',
 }
 
 THT_HOME = os.environ.get('THT_HOME',
