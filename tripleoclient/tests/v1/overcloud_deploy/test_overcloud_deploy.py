@@ -1592,7 +1592,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True)
     @mock.patch('tripleoclient.utils.wait_for_provision_state')
     @mock.patch('tripleoclient.workflows.baremetal', autospec=True)
-    @mock.patch('tripleoclient.v1.baremetal', autospec=True)
     @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
     @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
     @mock.patch('tripleoclient.workflows.deployment.overcloudrc',
@@ -1602,7 +1601,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_deployed_server(self, mock_deploy_tmpdir, mock_overcloudrc,
                              mock_write_overcloudrc,
                              mock_get_overcloud_endpoint,
-                             mock_baremetal, mock_workflows_bm,
+                             mock_workflows_bm,
                              mock_provision, mock_tempest_deploy_input,
                              mock_get_horizon_url):
         arglist = ['--templates', '--deployed-server', '--disable-validations']
