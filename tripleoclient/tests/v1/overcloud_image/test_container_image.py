@@ -155,7 +155,8 @@ class TestContainerImagePrepare(TestPluginV1):
             output_images_file='container_images.yaml',
             pull_source=None,
             push_destination=None,
-            service_filter=None
+            service_filter=None,
+            tag_from_label=None
         )
 
     @mock.patch('tripleo_common.image.kolla_builder.'
@@ -253,7 +254,8 @@ class TestContainerImagePrepare(TestPluginV1):
             push_destination=None,
             service_filter=set([
                 'OS::TripleO::Services::AodhEvaluator',
-            ])
+            ]),
+            tag_from_label=None
         )
         ci_data = {
             'container_images': [{
@@ -352,7 +354,8 @@ class TestContainerImagePrepare(TestPluginV1):
             output_images_file=images_file,
             pull_source=None,
             push_destination=None,
-            service_filter=service_filter
+            service_filter=service_filter,
+            tag_from_label=None
         )
 
         with open(images_file) as f:

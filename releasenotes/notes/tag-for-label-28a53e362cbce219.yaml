@@ -1,0 +1,6 @@
+---
+features:
+  Specifying --tag-from-label will trigger tag discovery to be performed on
+  every image entry during a prepare run. This allow image registries to host
+  images with a mixture of versioned tags, removing the need to always rebuild
+  all images.

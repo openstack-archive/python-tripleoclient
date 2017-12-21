@@ -201,8 +201,17 @@ class PrepareImageFiles(command.Command):
             dest="tag",
             default=defaults['tag'],
             metavar='<tag>',
-            help=_("Override the default tag substitution.\n"
+            help=_("Override the default tag substitution. "
+                   "If --tag-from-label is specified, "
+                   "start discovery with this tag.\n"
                    "Default: %s") % defaults['tag'],
+        )
+        parser.add_argument(
+            "--tag-from-label",
+            dest="tag_from_label",
+            metavar='<image label>',
+            help=_("Use the value of the specified label to discover the "
+                   "versioned tag."),
         )
         parser.add_argument(
             "--namespace",
@@ -419,7 +428,8 @@ class PrepareImageFiles(command.Command):
             push_destination=parsed_args.push_destination,
             mapping_args=subs,
             output_env_file=parsed_args.output_env_file,
-            output_images_file=output_images_file
+            output_images_file=output_images_file,
+            tag_from_label=parsed_args.tag_from_label
         )
         if parsed_args.output_env_file:
             params = prepare_data[parsed_args.output_env_file]
