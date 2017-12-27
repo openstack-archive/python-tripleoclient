@@ -102,27 +102,65 @@ class TestListProfiles(test_plugin.TestPluginV1):
         self.cmd = overcloud_profiles.ListProfiles(self.app, None)
         self.app.client_manager.tripleoclient = mock.Mock()
         self.app.client_manager.baremetal = mock.Mock()
+        self.app.client_manager.compute = mock.Mock()
         self.nodes = [
             mock.Mock(uuid='uuid1', provision_state='active',
-                      properties={}),
+                      properties={}, maintenance=False),
             mock.Mock(uuid='uuid2', provision_state='enroll',
-                      properties={'capabilities': 'profile:compute'}),
+                      properties={'capabilities': 'profile:compute'},
+                      maintenance=False),
             mock.Mock(uuid='uuid3', provision_state='available',
                       properties={'capabilities': 'profile:compute,'
-                                  'compute_profile:1,control_profile:true'}),
+                                  'compute_profile:1,control_profile:true'},
+                      maintenance=False),
             mock.Mock(uuid='uuid4', provision_state='available',
                       properties={'capabilities': 'profile:compute,'
-                                  'compute_profile:0'}),
+                                  'compute_profile:0'}, maintenance=False),
+            mock.Mock(uuid='uuid5', provision_state='available',
+                      properties={}, maintenance=False),
+            mock.Mock(uuid='uuid6', provision_state='available',
+                      properties={}, maintenance=False),
+            mock.Mock(uuid='uuid7', provision_state='active',
+                      properties={}, maintenance=True),
         ]
+        self.hypervisors = [
+            mock.Mock(hypervisor_type='ironic',
+                      hypervisor_hostname='uuid%d' % i,
+                      status='enabled', state='up')
+            for i in range(1, 6)
+        ]
+        self.hypervisors[-1].status = 'disabled'
         self.bm_client = self.app.client_manager.baremetal
         self.bm_client.node.list.return_value = self.nodes
+        self.compute_client = self.app.client_manager.compute
+        self.compute_client.hypervisors.list.return_value = self.hypervisors
 
     def test_list(self):
-        result = self.cmd.take_action(None)
+        parsed_args = self.check_parser(self.cmd, [], [])
+        result = self.cmd.take_action(parsed_args)
         self.assertEqual(5, len(result[0]))
         self.assertEqual(
             [('uuid1', self.nodes[0].name, 'active', None, ''),
              ('uuid3', self.nodes[2].name, 'available', 'compute',
               'compute, control'),
              ('uuid4', self.nodes[3].name, 'available', 'compute', '')],
+            result[1])
+
+    def test_all(self):
+        parsed_args = self.check_parser(self.cmd, ['--all'], [('all', True)])
+        result = self.cmd.take_action(parsed_args)
+        self.assertEqual(6, len(result[0]))
+        self.assertEqual(
+            [('uuid1', self.nodes[0].name, 'active', None, '', ''),
+             ('uuid2', self.nodes[1].name, 'enroll', 'compute', '',
+              'Provision state enroll'),
+             ('uuid3', self.nodes[2].name, 'available', 'compute',
+              'compute, control', ''),
+             ('uuid4', self.nodes[3].name, 'available', 'compute', '', ''),
+             ('uuid5', self.nodes[4].name, 'available', None, '',
+              'Compute service disabled'),
+             ('uuid6', self.nodes[5].name, 'available', None, '',
+              'No hypervisor record'),
+             ('uuid7', self.nodes[6].name, 'active', None, '',
+              'Maintenance')],
             result[1])
