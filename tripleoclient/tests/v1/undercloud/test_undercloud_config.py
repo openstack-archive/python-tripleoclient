@@ -12,8 +12,18 @@
 #   License for the specific language governing permissions and limitations
 #   under the License.
 #
-
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives import serialization
+from cryptography import x509
+from cryptography.x509.oid import NameOID
+from datetime import datetime
+from datetime import timedelta
 import mock
+import os
+import tempfile
+import yaml
 
 from tripleoclient.tests import base
 from tripleoclient.v1 import undercloud_config
@@ -90,3 +100,144 @@ class TestProcessDriversAndHardwareTypes(base.TestCase):
             'IronicEnabledRaidInterfaces': ['idrac', 'no-raid'],
             'IronicEnabledVendorInterfaces': ['idrac', 'ipmitool', 'no-vendor']
         }, env)
+
+
+class TestTLSSettings(base.TestCase):
+    def test_public_host_with_ip_should_give_ip_endpoint_environment(self):
+        expected_env_file = os.path.join(
+            undercloud_config.THT_HOME,
+            "environments/tls-endpoints-public-ip.yaml")
+
+        resulting_env_file1 = undercloud_config._get_tls_endpoint_environment(
+            '127.0.0.1', undercloud_config.THT_HOME)
+
+        self.assertEqual(expected_env_file, resulting_env_file1)
+
+        resulting_env_file2 = undercloud_config._get_tls_endpoint_environment(
+            '192.168.1.1', undercloud_config.THT_HOME)
+
+        self.assertEqual(expected_env_file, resulting_env_file2)
+
+    def test_public_host_with_fqdn_should_give_dns_endpoint_environment(self):
+        expected_env_file = os.path.join(
+            undercloud_config.THT_HOME,
+            "environments/tls-endpoints-public-dns.yaml")
+
+        resulting_env_file1 = undercloud_config._get_tls_endpoint_environment(
+            'controller-1', undercloud_config.THT_HOME)
+
+        self.assertEqual(expected_env_file, resulting_env_file1)
+
+        resulting_env_file2 = undercloud_config._get_tls_endpoint_environment(
+            'controller-1.tripleodomain.com', undercloud_config.THT_HOME)
+
+        self.assertEqual(expected_env_file, resulting_env_file2)
+
+    def get_certificate_and_private_key(self):
+        private_key = rsa.generate_private_key(public_exponent=3,
+                                               key_size=1024,
+                                               backend=default_backend())
+        issuer = x509.Name([
+            x509.NameAttribute(NameOID.COUNTRY_NAME, u"FI"),
+            x509.NameAttribute(NameOID.LOCALITY_NAME, u"Helsinki"),
+            x509.NameAttribute(NameOID.ORGANIZATION_NAME, u"Some Company"),
+            x509.NameAttribute(NameOID.COMMON_NAME, u"Test Certificate"),
+        ])
+        cert_builder = x509.CertificateBuilder(
+            issuer_name=issuer, subject_name=issuer,
+            public_key=private_key.public_key(),
+            serial_number=x509.random_serial_number(),
+            not_valid_before=datetime.utcnow(),
+            not_valid_after=datetime.utcnow() + timedelta(days=10)
+        )
+        cert = cert_builder.sign(private_key,
+                                 hashes.SHA256(),
+                                 default_backend())
+        cert_pem = cert.public_bytes(encoding=serialization.Encoding.PEM)
+        key_pem = private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.TraditionalOpenSSL,
+            encryption_algorithm=serialization.NoEncryption())
+        return cert_pem, key_pem
+
+    def test_get_dict_with_cert_and_key_from_bundled_pem(self):
+        cert_pem, key_pem = self.get_certificate_and_private_key()
+
+        with tempfile.NamedTemporaryFile() as tempbundle:
+            tempbundle.write(cert_pem)
+            tempbundle.write(key_pem)
+            tempbundle.seek(0)
+
+            tls_parameters = undercloud_config._get_public_tls_parameters(
+                tempbundle.name)
+
+        self.assertEqual(cert_pem, tls_parameters['SSLCertificate'])
+        self.assertEqual(key_pem, tls_parameters['SSLKey'])
+
+    def test_get_tls_parameters_fails_cause_of_missing_cert(self):
+        _, key_pem = self.get_certificate_and_private_key()
+
+        with tempfile.NamedTemporaryFile() as tempbundle:
+            tempbundle.write(key_pem)
+            tempbundle.seek(0)
+
+            self.assertRaises(ValueError,
+                              undercloud_config._get_public_tls_parameters,
+                              tempbundle.name)
+
+    def test_get_tls_parameters_fails_cause_of_missing_key(self):
+        cert_pem, _ = self.get_certificate_and_private_key()
+
+        with tempfile.NamedTemporaryFile() as tempbundle:
+            tempbundle.write(cert_pem)
+            tempbundle.seek(0)
+
+            self.assertRaises(ValueError,
+                              undercloud_config._get_public_tls_parameters,
+                              tempbundle.name)
+
+    def test_get_tls_parameters_fails_cause_of_unexistent_file(self):
+        self.assertRaises(IOError,
+                          undercloud_config._get_public_tls_parameters,
+                          '/tmp/unexistent-file-12345.pem')
+
+    def test_get_resource_registry_overwrites(self):
+        enable_tls_yaml = {
+            "parameter_defaults": {
+                "SSLCertificate": "12345"
+            },
+            "resource_registry": {
+                "registry_overwrite_key": "registry_overwrite_value"
+            }
+        }
+        with tempfile.NamedTemporaryFile() as enable_tls_file:
+            enable_tls_file.write(yaml.dump(enable_tls_yaml, encoding='utf-8'))
+            enable_tls_file.seek(0)
+
+            overwrites = \
+                undercloud_config._get_public_tls_resource_registry_overwrites(
+                    enable_tls_file.name)
+
+            self.assertEqual(enable_tls_yaml["resource_registry"], overwrites)
+
+    def test_get_resource_registry_overwrites_fails_cause_no_registry_entry(
+            self):
+        enable_tls_yaml = {
+            "parameter_defaults": {
+                "SSLCertificate": "12345"
+            },
+        }
+        with tempfile.NamedTemporaryFile() as enable_tls_file:
+            enable_tls_file.write(yaml.dump(enable_tls_yaml, encoding='utf-8'))
+            enable_tls_file.seek(0)
+
+            self.assertRaises(
+                RuntimeError,
+                undercloud_config._get_public_tls_resource_registry_overwrites,
+                enable_tls_file.name)
+
+    def test_get_resource_registry_overwrites_fails_cause_missing_file(self):
+        self.assertRaises(
+            IOError,
+            undercloud_config._get_public_tls_resource_registry_overwrites,
+            '/tmp/unexistent-file-12345.yaml')
