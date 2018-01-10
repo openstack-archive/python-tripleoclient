@@ -307,8 +307,8 @@ class UploadOvercloudImage(command.Command):
 
         # vmlinuz and initrd only need to be uploaded for a partition image
         if not parsed_args.whole_disk:
-            oc_vmlinuz_name = '%s-vmlinuz' % image_name
-            oc_vmlinuz_extension = '.vmlinuz'
+            (oc_vmlinuz_name,
+             oc_vmlinuz_extension) = plugin_utils.overcloud_kernel(image_name)
             oc_vmlinuz_file = os.path.join(parsed_args.image_path,
                                            image_name +
                                            oc_vmlinuz_extension)
@@ -323,8 +323,8 @@ class UploadOvercloudImage(command.Command):
                               parsed_args.image_path, oc_vmlinuz_file)
             ))
 
-            oc_initrd_name = '%s-initrd' % image_name
-            oc_initrd_extension = '.initrd'
+            (oc_initrd_name,
+             oc_initrd_extension) = plugin_utils.overcloud_ramdisk(image_name)
             oc_initrd_file = os.path.join(parsed_args.image_path,
                                           image_name +
                                           oc_initrd_extension)
@@ -339,8 +339,8 @@ class UploadOvercloudImage(command.Command):
                                parsed_args.image_path, oc_initrd_file)
             ))
 
-            oc_name = image_name
-            oc_extension = '.qcow2'
+            (oc_name,
+             oc_extension) = plugin_utils.overcloud_image(image_name)
             oc_file = os.path.join(parsed_args.image_path,
                                    image_name +
                                    oc_extension)
@@ -368,8 +368,8 @@ class UploadOvercloudImage(command.Command):
                                'image. You can keep it or fix it manually.')
 
         else:
-            oc_name = image_name
-            oc_extension = '.qcow2'
+            (oc_name,
+             oc_extension) = plugin_utils.overcloud_image(image_name)
             oc_file = os.path.join(parsed_args.image_path,
                                    image_name +
                                    oc_extension)
@@ -387,8 +387,8 @@ class UploadOvercloudImage(command.Command):
 
         self.log.debug("uploading bm images to glance")
 
-        deploy_kernel_name = 'bm-deploy-kernel'
-        deploy_kernel_extension = '.kernel'
+        (deploy_kernel_name,
+         deploy_kernel_extension) = plugin_utils.deploy_kernel()
         deploy_kernel_file = os.path.join(parsed_args.image_path,
                                           parsed_args.ipa_name +
                                           deploy_kernel_extension)
@@ -402,8 +402,8 @@ class UploadOvercloudImage(command.Command):
                     parsed_args.image_path,
                     deploy_kernel_file))
 
-        deploy_ramdisk_name = 'bm-deploy-ramdisk'
-        deploy_ramdisk_extension = '.initramfs'
+        (deploy_ramdisk_name,
+         deploy_ramdisk_extension) = plugin_utils.deploy_ramdisk()
         deploy_ramdisk_file = os.path.join(parsed_args.image_path,
                                            parsed_args.ipa_name +
                                            deploy_ramdisk_extension)

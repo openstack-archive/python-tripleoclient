@@ -24,6 +24,7 @@ from heatclient import exc as hc_exc
 
 from uuid import uuid4
 
+from testscenarios import TestWithScenarios
 from unittest import TestCase
 import yaml
 
@@ -767,3 +768,41 @@ class GetTripleoAnsibleInventory(TestCase):
                 ssh_user='heat_admin',
                 stack='foo-overcloud'
             )
+
+
+class TestOvercloudNameScenarios(TestWithScenarios):
+    scenarios = [
+        ('kernel_default',
+         dict(func=utils.overcloud_kernel,
+              basename='overcloud-full',
+              expected=('overcloud-full-vmlinuz', '.vmlinuz'))),
+        ('ramdisk_default',
+         dict(func=utils.overcloud_ramdisk,
+              basename='overcloud-full',
+              expected=('overcloud-full-initrd', '.initrd'))),
+        ('image_default',
+         dict(func=utils.overcloud_image,
+              basename='overcloud-full',
+              expected=('overcloud-full', '.qcow2'))),
+    ]
+
+    def test_overcloud_params(self):
+        observed = self.func(self.basename)
+
+        self.assertEqual(self.expected, observed)
+
+
+class TestDeployNameScenarios(TestWithScenarios):
+    scenarios = [
+        ('kernel_default',
+         dict(func=utils.deploy_kernel,
+              expected=('bm-deploy-kernel', '.kernel'))),
+        ('ramdisk_default',
+         dict(func=utils.deploy_ramdisk,
+              expected=('bm-deploy-ramdisk', '.initramfs'))),
+    ]
+
+    def test_deploy_params(self):
+        observed = self.func()
+
+        self.assertEqual(self.expected, observed)

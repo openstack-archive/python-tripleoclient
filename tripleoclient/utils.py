@@ -1184,3 +1184,28 @@ def configure_logging(log, level, log_file):
 
     fhandler.setFormatter(formatter)
     log.addHandler(fhandler)
+
+
+def overcloud_kernel(basename):
+    return ('%s-vmlinuz' % basename,
+            '.vmlinuz')
+
+
+def overcloud_ramdisk(basename):
+    return ('%s-initrd' % basename,
+            '.initrd')
+
+
+def overcloud_image(basename):
+    return (basename,
+            '.qcow2')
+
+
+def deploy_kernel():
+    return ('bm-deploy-kernel',
+            '.kernel')
+
+
+def deploy_ramdisk():
+    return ('bm-deploy-ramdisk',
+            '.initramfs')
