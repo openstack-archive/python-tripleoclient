@@ -1268,3 +1268,28 @@ def run_command_and_log(log, cmd, cwd=None, env=None, retcode_only=True):
         return proc.wait()
     else:
         return proc
+
+
+def overcloud_kernel(basename):
+    return ('%s-vmlinuz' % basename,
+            '.vmlinuz')
+
+
+def overcloud_ramdisk(basename):
+    return ('%s-initrd' % basename,
+            '.initrd')
+
+
+def overcloud_image(basename):
+    return (basename,
+            '.qcow2')
+
+
+def deploy_kernel():
+    return ('bm-deploy-kernel',
+            '.kernel')
+
+
+def deploy_ramdisk():
+    return ('bm-deploy-ramdisk',
+            '.initramfs')
