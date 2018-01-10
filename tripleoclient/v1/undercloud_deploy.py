@@ -50,8 +50,23 @@ from tripleoclient import heat_launcher
 from tripleo_common.utils import passwords as password_utils
 
 # For ansible download
-from tripleo_common.inventory import TripleoInventory
 from tripleo_common.utils import config
+
+ANSIBLE_INVENTORY = """
+[targets]
+overcloud ansible_connection=local
+
+[Undercloud]
+overcloud
+
+[{hostname}]
+overcloud
+"""
+
+ANSIBLE_SERVICE_INVENTORY = """
+[{service}]
+overcloud
+"""
 
 
 class DeployUndercloud(command.Command):
@@ -329,9 +344,10 @@ class DeployUndercloud(command.Command):
                 msg = 'Stack creation timeout: %d minutes elapsed' % (timeout)
                 raise Exception(msg)
 
-    def _download_ansible_playbooks(self, client, stack_name):
+    def _download_ansible_playbooks(self, client, stack_id):
         stack_config = config.Config(client)
         output_dir = os.environ.get('HOME')
+        stack = client.stacks.get(stack_id)
 
         print('** Downloading undercloud ansible.. **')
         # python output buffering is making this seem to take forever..
@@ -343,14 +359,15 @@ class DeployUndercloud(command.Command):
         ansible_dir = max(glob.iglob('%s/tripleo-*-config' % output_dir),
                           key=os.path.getctime)
 
-        inventory = TripleoInventory(
-            hclient=client,
-            plan_name=stack_name,
-            ansible_ssh_user='root')
+        inventory = ANSIBLE_INVENTORY
+        outputs = {i['output_key']: i['output_value'] for i in stack.outputs}
 
-        inv_path = os.path.join(ansible_dir, 'inventory.yaml')
-        extra_vars = {'undercloud': {'ansible_connection': 'local'}}
-        inventory.write_static_inventory(inv_path, extra_vars)
+        for service in outputs['EnabledServices']['Undercloud']:
+            inventory += ANSIBLE_SERVICE_INVENTORY.format(service=service)
+
+        # Write out the inventory file.
+        with open('%s/inventory' % ansible_dir, 'w') as f:
+            f.write(inventory.format(hostname=self._get_hostname()))
 
         print('** Downloaded undercloud ansible to %s **' % ansible_dir)
         sys.stdout.flush()
@@ -359,7 +376,7 @@ class DeployUndercloud(command.Command):
     # Never returns, calls exec()
     def _launch_ansible(self, ansible_dir):
         os.chdir(ansible_dir)
-        playbook_inventory = os.path.join(ansible_dir, 'inventory.yaml')
+        playbook_inventory = "%s/inventory" % (ansible_dir)
         cmd = ['ansible-playbook', '-i', playbook_inventory,
                'deploy_steps_playbook.yaml', '-e', 'role_name=Undercloud',
                '-e', 'deploy_server_id=undercloud', '-e',
@@ -481,7 +498,7 @@ class DeployUndercloud(command.Command):
             # download the ansible playbooks and execute them.
             ansible_dir = \
                 self._download_ansible_playbooks(orchestration_client,
-                                                 parsed_args.stack)
+                                                 stack_id)
             # Kill heat, we're done with it now.
             self._kill_heat()
             # Never returns..  We exec() it directly.
