@@ -209,6 +209,12 @@ class TestUploadOvercloudImage(TestPluginV1):
             self.cmd._copy_file.call_count
         )
 
+    def test_platform_without_architecture_fail(self):
+        parsed_args = self.check_parser(self.cmd, ['--platform', 'SNB'], [])
+        self.assertRaises(exceptions.CommandError,
+                          self.cmd.take_action,
+                          parsed_args)
+
     @mock.patch('os.path.isfile', autospec=True)
     @mock.patch('subprocess.check_call', autospec=True)
     def test_overcloud_create_images_v2(self, mock_subprocess_call,
@@ -646,6 +652,9 @@ class TestUploadOvercloudImageFullMultiArch(TestPluginV1):
         mock.Mock(id=13, name='ppc64le-overcloud-full'),
         mock.Mock(id=14, name='ppc64le-bm-deploy-kernel'),
         mock.Mock(id=15, name='ppc64le-bm-deploy-initrd'),
+        mock.Mock(id=16, name='p9-ppc64le-overcloud-full'),
+        mock.Mock(id=17, name='p9-ppc64le-bm-deploy-kernel'),
+        mock.Mock(id=18, name='p9-ppc64le-bm-deploy-initrd'),
     ]
 
     def setUp(self):
@@ -739,4 +748,109 @@ class TestUploadOvercloudImageFullMultiArch(TestPluginV1):
                           '"/httpboot/ppc64le/agent.kernel"', shell=True),
                 mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
                           '"/httpboot/ppc64le/agent.ramdisk"', shell=True),
+            ])
+
+    @mock.patch('os.path.isfile', autospec=True)
+    @mock.patch('subprocess.check_call', autospec=True)
+    def test_overcloud_create_images_with_arch_and_pltform(self,
+                                                           mock_subprocess,
+                                                           mock_isfile):
+        mock_isfile.return_value = False
+
+        self.cmd._get_image = mock.Mock(return_value=None)
+        mock.patch
+
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--whole-disk'],
+                                        [])
+        self.cmd.take_action(parsed_args)
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--whole-disk',
+                                         '--http-boot', '/httpboot/ppc64le',
+                                         '--architecture', 'ppc64le'],
+                                        [])
+        self.cmd.take_action(parsed_args)
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--whole-disk',
+                                         '--http-boot', '/httpboot/p9-ppc64le',
+                                         '--architecture', 'ppc64le',
+                                         '--platform', 'p9'],
+                                        [])
+        self.cmd.take_action(parsed_args)
+
+        self.assertEqual(
+            0,
+            self.app.client_manager.image.images.delete.call_count
+        )
+        self.assertEqual(
+            9,
+            self.app.client_manager.image.images.create.call_count
+        )
+
+        self.assertEqual(
+            [mock.call(name='overcloud-full',
+                       disk_format='qcow2',
+                       container_format='bare',
+                       visibility='public'),
+             mock.call(name='bm-deploy-kernel',
+                       disk_format='aki',
+                       container_format='bare',
+                       visibility='public'),
+             mock.call(name='bm-deploy-ramdisk',
+                       disk_format='ari',
+                       container_format='bare',
+                       visibility='public'),
+             mock.call(name='ppc64le-overcloud-full',
+                       disk_format='qcow2',
+                       container_format='bare',
+                       visibility='public'),
+             mock.call(name='ppc64le-bm-deploy-kernel',
+                       disk_format='aki',
+                       container_format='bare',
+                       visibility='public'),
+             mock.call(name='ppc64le-bm-deploy-ramdisk',
+                       disk_format='ari',
+                       container_format='bare',
+                       visibility='public'),
+             mock.call(name='p9-ppc64le-overcloud-full',
+                       disk_format='qcow2',
+                       container_format='bare',
+                       visibility='public'),
+             mock.call(name='p9-ppc64le-bm-deploy-kernel',
+                       disk_format='aki',
+                       container_format='bare',
+                       visibility='public'),
+             mock.call(name='p9-ppc64le-bm-deploy-ramdisk',
+                       disk_format='ari',
+                       container_format='bare',
+                       visibility='public')
+             ], self.app.client_manager.image.images.create.call_args_list
+        )
+
+        self.assertEqual(
+            [mock.call(13, hw_architecture='ppc64le'),
+             mock.call(14, hw_architecture='ppc64le'),
+             mock.call(15, hw_architecture='ppc64le'),
+             mock.call(16, hw_architecture='ppc64le', tripleo_platform='p9'),
+             mock.call(17, hw_architecture='ppc64le', tripleo_platform='p9'),
+             mock.call(18, hw_architecture='ppc64le', tripleo_platform='p9'),
+             ], self.app.client_manager.image.images.update.call_args_list
+        )
+        self.assertEqual(mock_subprocess.call_count, 6)
+        # FIXME(tonyb): this is the wrong way around
+        self.assertEqual(
+            mock_subprocess.call_args_list, [
+                mock.call('sudo cp -f "./ironic-python-agent.kernel" '
+                          '"/httpboot/agent.kernel"', shell=True),
+                mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
+                          '"/httpboot/agent.ramdisk"', shell=True),
+                mock.call('sudo cp -f "./ironic-python-agent.kernel" '
+                          '"/httpboot/ppc64le/agent.kernel"', shell=True),
+                mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
+                          '"/httpboot/ppc64le/agent.ramdisk"', shell=True),
+                # FIXME(tonyb): wrong
+                mock.call('sudo cp -f "./ironic-python-agent.kernel" '
+                          '"/httpboot/p9-ppc64le/agent.kernel"', shell=True),
+                mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
+                          '"/httpboot/p9-ppc64le/agent.ramdisk"', shell=True),
             ])
