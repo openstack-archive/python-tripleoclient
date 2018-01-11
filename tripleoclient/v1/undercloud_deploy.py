@@ -224,8 +224,9 @@ class DeployUndercloud(command.Command):
     def _setup_heat_environments(self, parsed_args):
         tht_root = parsed_args.templates
         # generate jinja templates
+        self.log.debug("Using roles file %s" % parsed_args.roles_file)
         args = ['python', 'tools/process-templates.py', '--roles-data',
-                'roles_data_undercloud.yaml']
+                parsed_args.roles_file]
         subprocess.check_call(args, cwd=tht_root)
 
         print("Deploying templates in the directory {0}".format(
@@ -414,6 +415,12 @@ class DeployUndercloud(command.Command):
             help=_('Environment files to be passed to the heat stack-create '
                    'or heat stack-update command. (Can be specified more than '
                    'once.)')
+        )
+        parser.add_argument(
+            '--roles-file', '-r', dest='roles_file',
+            help=_('Roles file, overrides the default %s in the --templates '
+                   'directory') % constants.UNDERCLOUD_ROLES_FILE,
+            default=constants.UNDERCLOUD_ROLES_FILE
         )
         parser.add_argument(
             '--heat-api-port', metavar='<HEAT_API_PORT>',
