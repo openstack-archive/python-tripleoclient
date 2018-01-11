@@ -781,6 +781,17 @@ class TestOvercloudNameScenarios(TestWithScenarios):
               basename='overcloud-full',
               arch='x86_64',
               expected=('x86_64-overcloud-full-vmlinuz', '.vmlinuz'))),
+        ('kernel_arch_platform',
+         dict(func=utils.overcloud_kernel,
+              basename='overcloud-full',
+              arch='x86_64',
+              platform='SNB',
+              expected=('SNB-x86_64-overcloud-full-vmlinuz', '.vmlinuz'))),
+        ('kernel_platform',
+         dict(func=utils.overcloud_kernel,
+              basename='overcloud-full',
+              platform='SNB',
+              expected=('overcloud-full-vmlinuz', '.vmlinuz'))),
         ('ramdisk_default',
          dict(func=utils.overcloud_ramdisk,
               basename='overcloud-full',
@@ -790,6 +801,17 @@ class TestOvercloudNameScenarios(TestWithScenarios):
               basename='overcloud-full',
               arch='x86_64',
               expected=('x86_64-overcloud-full-initrd', '.initrd'))),
+        ('ramdisk_arch_platform',
+         dict(func=utils.overcloud_ramdisk,
+              basename='overcloud-full',
+              arch='x86_64',
+              platform='SNB',
+              expected=('SNB-x86_64-overcloud-full-initrd', '.initrd'))),
+        ('ramdisk_platform',
+         dict(func=utils.overcloud_ramdisk,
+              basename='overcloud-full',
+              platform='SNB',
+              expected=('overcloud-full-initrd', '.initrd'))),
         ('image_default',
          dict(func=utils.overcloud_image,
               basename='overcloud-full',
@@ -799,11 +821,22 @@ class TestOvercloudNameScenarios(TestWithScenarios):
               basename='overcloud-full',
               arch='x86_64',
               expected=('x86_64-overcloud-full', '.qcow2'))),
+        ('image_arch_platform',
+         dict(func=utils.overcloud_image,
+              basename='overcloud-full',
+              arch='x86_64',
+              platform='SNB',
+              expected=('SNB-x86_64-overcloud-full', '.qcow2'))),
+        ('image_platform',
+         dict(func=utils.overcloud_image,
+              basename='overcloud-full',
+              platform='SNB',
+              expected=('overcloud-full', '.qcow2'))),
     ]
 
     def test_overcloud_params(self):
         kwargs = dict()
-        for attr in ['arch']:
+        for attr in ['arch', 'platform']:
             if hasattr(self, attr):
                 kwargs[attr] = getattr(self, attr)
 
@@ -824,6 +857,15 @@ class TestDeployNameScenarios(TestWithScenarios):
          dict(func=utils.deploy_kernel,
               arch='x86_64',
               expected=('x86_64-bm-deploy-kernel', '.kernel'))),
+        ('kernel_arch_platform',
+         dict(func=utils.deploy_kernel,
+              arch='x86_64',
+              platform='SNB',
+              expected=('SNB-x86_64-bm-deploy-kernel', '.kernel'))),
+        ('kernel_platform',
+         dict(func=utils.deploy_kernel,
+              platform='SNB',
+              expected=('bm-deploy-kernel', '.kernel'))),
         ('ramdisk_default',
          dict(func=utils.deploy_ramdisk,
               expected=('bm-deploy-ramdisk', '.initramfs'))),
@@ -831,11 +873,20 @@ class TestDeployNameScenarios(TestWithScenarios):
          dict(func=utils.deploy_ramdisk,
               arch='x86_64',
               expected=('x86_64-bm-deploy-ramdisk', '.initramfs'))),
+        ('ramdisk_arch_platform',
+         dict(func=utils.deploy_ramdisk,
+              arch='x86_64',
+              platform='SNB',
+              expected=('SNB-x86_64-bm-deploy-ramdisk', '.initramfs'))),
+        ('ramdisk_platform',
+         dict(func=utils.deploy_ramdisk,
+              platform='SNB',
+              expected=('bm-deploy-ramdisk', '.initramfs'))),
     ]
 
     def test_deploy_params(self):
         kwargs = {}
-        for attr in ['arch']:
+        for attr in ['arch', 'platform']:
             if hasattr(self, attr):
                 kwargs[attr] = getattr(self, attr)
 

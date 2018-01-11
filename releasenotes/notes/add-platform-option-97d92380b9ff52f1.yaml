@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    In certain situations it may be desirable to provide optimised overcloud
+    images for deployed nodes.  In order to achieve this add a ``--platform``
+    option to ``openstack overcloud image upload``.  This option will then be
+    used to select appropriate images based on the combination of architecture
+    and platform.
