@@ -282,11 +282,13 @@ class TestUploadOvercloudImage(TestPluginV1):
             self.app.client_manager.image.images.create.call_count
         )
         self.assertEqual(
-            [mock.call(data=b'IMGDATA',
+            [mock.call(properties={},
+                       data=b'IMGDATA',
                        name='overcloud-full-vmlinuz',
                        disk_format='aki',
                        is_public=True),
-             mock.call(data=b'IMGDATA',
+             mock.call(properties={},
+                       data=b'IMGDATA',
                        name='overcloud-full-initrd',
                        disk_format='ari',
                        is_public=True),
@@ -296,11 +298,13 @@ class TestUploadOvercloudImage(TestPluginV1):
                        container_format='bare',
                        disk_format='qcow2',
                        is_public=True),
-             mock.call(data=b'IMGDATA',
+             mock.call(properties={},
+                       data=b'IMGDATA',
                        name='bm-deploy-kernel',
                        disk_format='aki',
                        is_public=True),
-             mock.call(data=b'IMGDATA',
+             mock.call(properties={},
+                       data=b'IMGDATA',
                        name='bm-deploy-ramdisk',
                        disk_format='ari',
                        is_public=True)
