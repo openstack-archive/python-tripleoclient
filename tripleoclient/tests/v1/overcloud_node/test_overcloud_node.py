@@ -478,6 +478,167 @@ class TestImportNode(fakes.TestOvercloudNode):
         self._check_workflow_call(parsed_args, no_deploy_image=True)
 
 
+class TestImportNodeMultiArch(fakes.TestOvercloudNode):
+
+    def setUp(self):
+        super(TestImportNodeMultiArch, self).setUp()
+        self.nodes_list = [{
+            "pm_user": "stack",
+            "pm_addr": "192.168.122.1",
+            "pm_password": "KEY1",
+            "pm_type": "pxe_ssh",
+            "mac": [
+                "00:0b:d0:69:7e:59"
+            ],
+        }, {
+            "pm_user": "stack",
+            "pm_addr": "192.168.122.2",
+            "pm_password": "KEY2",
+            "pm_type": "pxe_ssh",
+            "arch": "x86_64",
+            "mac": [
+                "00:0b:d0:69:7e:58"
+            ]
+        }, {
+            "pm_user": "stack",
+            "pm_addr": "192.168.122.3",
+            "pm_password": "KEY3",
+            "pm_type": "pxe_ssh",
+            "arch": "x86_64",
+            "platform": "SNB",
+            "mac": [
+                "00:0b:d0:69:7e:58"
+            ]
+        }]
+        self.json_file = tempfile.NamedTemporaryFile(
+            mode='w', delete=False, suffix='.json')
+        json.dump(self.nodes_list, self.json_file)
+        self.json_file.close()
+        self.addCleanup(os.unlink, self.json_file.name)
+
+        self.workflow = self.app.client_manager.workflow_engine
+        execution = mock.Mock()
+        execution.id = "IDID"
+        self.workflow.executions.create.return_value = execution
+        client = self.app.client_manager.tripleoclient
+        self.websocket = client.messaging_websocket()
+
+        # Get the command object to test
+        self.cmd = overcloud_node.ImportNode(self.app, None)
+
+        image = collections.namedtuple('image', ['id', 'name'])
+        self.app.client_manager.image = mock.Mock()
+        self.app.client_manager.image.images.list.return_value = [
+            image(id=1, name='bm-deploy-kernel'),
+            image(id=2, name='bm-deploy-ramdisk'),
+            image(id=3, name='overcloud-full'),
+            image(id=4, name='x86_64-bm-deploy-kernel'),
+            image(id=5, name='x86_64-bm-deploy-ramdisk'),
+            image(id=6, name='x86_64-overcloud-full'),
+            image(id=7, name='SNB-x86_64-bm-deploy-kernel'),
+            image(id=8, name='SNB-x86_64-bm-deploy-ramdisk'),
+            image(id=9, name='SNB-x86_64-overcloud-full'),
+        ]
+
+    def _check_workflow_call(self, parsed_args, introspect=False,
+                             provide=False, local=True, no_deploy_image=False):
+        self.websocket.wait_for_messages.return_value = [{
+            "status": "SUCCESS",
+            "message": "Success",
+            "registered_nodes": [{
+                "uuid": "MOCK_NODE_UUID"
+            }],
+            "execution_id": "IDID"
+        }]
+
+        self.cmd.take_action(parsed_args)
+
+        nodes_list = copy.deepcopy(self.nodes_list)
+        # We expect update_nodes_deploy_data() to set these values for the
+        # nodes with an 'arch' field
+        nodes_list[1]['kernel_id'] = 4
+        nodes_list[1]['ramdisk_id'] = 5
+        nodes_list[2]['kernel_id'] = 7
+        nodes_list[2]['ramdisk_id'] = 8
+
+        call_count = 1
+        call_list = [mock.call(
+            'tripleo.baremetal.v1.register_or_update', workflow_input={
+                'nodes_json': nodes_list,
+                'kernel_name': None if no_deploy_image else 'bm-deploy-kernel',
+                'ramdisk_name': (None
+                                 if no_deploy_image else 'bm-deploy-ramdisk'),
+                'instance_boot_option': 'local' if local else 'netboot'
+            }
+        )]
+
+        if introspect:
+            call_count += 1
+            call_list.append(mock.call(
+                'tripleo.baremetal.v1.introspect', workflow_input={
+                    'node_uuids': ['MOCK_NODE_UUID'],
+                    'run_validations': False}
+            ))
+
+        if provide:
+            call_count += 1
+            call_list.append(mock.call(
+                'tripleo.baremetal.v1.provide', workflow_input={
+                    'node_uuids': ['MOCK_NODE_UUID']
+                }
+            ))
+
+        self.workflow.executions.create.assert_has_calls(call_list)
+        self.assertEqual(self.workflow.executions.create.call_count,
+                         call_count)
+
+    def test_import_only(self):
+        argslist = [self.json_file.name]
+        verifylist = [('introspect', False),
+                      ('provide', False)]
+
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+        self._check_workflow_call(parsed_args)
+
+    def test_import_and_introspect(self):
+        argslist = [self.json_file.name, '--introspect']
+        verifylist = [('introspect', True),
+                      ('provide', False)]
+
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+        self._check_workflow_call(parsed_args, introspect=True)
+
+    def test_import_and_provide(self):
+        argslist = [self.json_file.name, '--provide']
+        verifylist = [('introspect', False),
+                      ('provide', True)]
+
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+        self._check_workflow_call(parsed_args, provide=True)
+
+    def test_import_and_introspect_and_provide(self):
+        argslist = [self.json_file.name, '--introspect', '--provide']
+        verifylist = [('introspect', True),
+                      ('provide', True)]
+
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+        self._check_workflow_call(parsed_args, introspect=True, provide=True)
+
+    def test_import_with_netboot(self):
+        arglist = [self.json_file.name, '--instance-boot-option', 'netboot']
+        verifylist = [('instance_boot_option', 'netboot')]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        self._check_workflow_call(parsed_args, local=False)
+
+    def test_import_with_no_deployed_image(self):
+        arglist = [self.json_file.name, '--no-deploy-image']
+        verifylist = [('no_deploy_image', True)]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        self._check_workflow_call(parsed_args, no_deploy_image=True)
+
+
 class TestConfigureNode(fakes.TestOvercloudNode):
 
     def setUp(self):

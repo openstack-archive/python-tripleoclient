@@ -1306,3 +1306,38 @@ def deploy_kernel(arch=None, platform=None):
 def deploy_ramdisk(arch=None, platform=None):
     return (_name_helper('bm-deploy-ramdisk', arch=arch, platform=platform),
             '.initramfs')
+
+
+def update_nodes_deploy_data(imageclient, nodes):
+    """Add specific kernel and ramdisk IDs to a node.
+
+    Look at all images and update node data with the most specific
+    deploy_kernel and deploy_ramdisk for the architecture/platform comination
+    platform.
+    """
+    img_map = {}
+    for image in imageclient.images.list():
+        name = image.name
+        # NOTE(tonyb): We don't want to include the default kernel or ramdisk
+        # in the map as that will short-circuit logic elesewhere.
+        if name != deploy_kernel()[0] and name != deploy_ramdisk()[0]:
+            img_map[image.name] = image.id
+
+    for node in nodes:
+        arch = node.get('arch')
+        platform = node.get('platform')
+
+        # NOTE(tonyb): Check to see if we have a specific kernel for this node
+        # and use that.
+        for kernel in [deploy_kernel(arch=arch, platform=platform)[0],
+                       deploy_kernel(arch=arch)[0]]:
+            if 'kernel_id' not in node and kernel in img_map:
+                node['kernel_id'] = img_map[kernel]
+                break
+
+        # NOTE(tonyb): As above except for ramdisks
+        for ramdisk in [deploy_ramdisk(arch=arch, platform=platform)[0],
+                        deploy_ramdisk(arch=arch)[0]]:
+            if 'ramdisk_id' not in node and ramdisk in img_map:
+                node['ramdisk_id'] = img_map[ramdisk]
+                break
