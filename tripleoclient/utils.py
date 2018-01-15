@@ -1186,26 +1186,32 @@ def configure_logging(log, level, log_file):
     log.addHandler(fhandler)
 
 
-def overcloud_kernel(basename):
-    return ('%s-vmlinuz' % basename,
+def _name_helper(basename, arch=None):
+    if arch:
+        basename = arch + '-' + basename
+    return basename
+
+
+def overcloud_kernel(basename, arch=None):
+    return (_name_helper('%s-vmlinuz' % basename, arch=arch),
             '.vmlinuz')
 
 
-def overcloud_ramdisk(basename):
-    return ('%s-initrd' % basename,
+def overcloud_ramdisk(basename, arch=None):
+    return (_name_helper('%s-initrd' % basename, arch=arch),
             '.initrd')
 
 
-def overcloud_image(basename):
-    return (basename,
+def overcloud_image(basename, arch=None):
+    return (_name_helper(basename, arch=arch),
             '.qcow2')
 
 
-def deploy_kernel():
-    return ('bm-deploy-kernel',
+def deploy_kernel(arch=None):
+    return (_name_helper('bm-deploy-kernel', arch=arch),
             '.kernel')
 
 
-def deploy_ramdisk():
-    return ('bm-deploy-ramdisk',
+def deploy_ramdisk(arch=None):
+    return (_name_helper('bm-deploy-ramdisk', arch=arch),
             '.initramfs')
