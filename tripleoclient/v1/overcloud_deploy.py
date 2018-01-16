@@ -269,14 +269,8 @@ class DeployOvercloud(command.Command):
                         path = path[1:]
                     env['resource_registry'][name] = path
 
-        # Parameters are removed from the environment and sent to the update
-        # parameters action, this stores them in the plan environment and
-        # means the UI can find them.
-        if 'parameter_defaults' in env:
-            params = env.pop('parameter_defaults')
-            workflow_params.update_parameters(
-                self.workflow_client, container=container_name,
-                parameters=params)
+        # Parameters are removed from the environment
+        params = env.pop('parameter_defaults', None)
 
         contents = yaml.safe_dump(env)
 
@@ -297,6 +291,13 @@ class DeployOvercloud(command.Command):
             yaml_string = yaml.safe_dump(env, default_flow_style=False)
             self.object_client.put_object(
                 container_name, constants.PLAN_ENVIRONMENT, yaml_string)
+
+        # Parameters are sent to the update parameters action, this stores them
+        # in the plan environment and means the UI can find them.
+        if params:
+            workflow_params.update_parameters(
+                self.workflow_client, container=container_name,
+                parameters=params)
 
     def _upload_missing_files(self, container_name, files_dict, tht_root):
         """Find the files referenced in custom environments and upload them
