@@ -97,7 +97,7 @@ def overcloudrc(workflow_client, **input_):
 
 
 def config_download(log, clients, stack, templates, deployed_server,
-                    ssh_user, ssh_key, output_dir):
+                    ssh_user, ssh_key, output_dir, verbosity=1):
     role_net_hostname_map = utils.get_role_net_hostname_map(stack)
     hostnames = []
     for role in role_net_hostname_map:
@@ -139,7 +139,9 @@ def config_download(log, clients, stack, templates, deployed_server,
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
 
-    workflow_input = {}
+    workflow_input = {
+        'verbosity': verbosity
+    }
     if output_dir:
         workflow_input.update(dict(work_dir=output_dir))
 
