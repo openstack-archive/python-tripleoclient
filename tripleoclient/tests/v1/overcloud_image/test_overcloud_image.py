@@ -234,38 +234,36 @@ class TestUploadOvercloudImage(TestPluginV1):
             5,
             self.app.client_manager.image.images.create.call_count
         )
-        self.assertEqual(
-            [mock.call(name='overcloud-full-vmlinuz',
-                       disk_format='aki',
-                       container_format='bare',
-                       visibility='public'),
-             mock.call(name='overcloud-full-initrd',
-                       disk_format='ari',
-                       container_format='bare',
-                       visibility='public'),
-             mock.call(name='overcloud-full',
-                       disk_format='qcow2',
-                       container_format='bare',
-                       visibility='public'),
-             mock.call(name='bm-deploy-kernel',
-                       disk_format='aki',
-                       container_format='bare',
-                       visibility='public'),
-             mock.call(name='bm-deploy-ramdisk',
-                       disk_format='ari',
-                       container_format='bare',
-                       visibility='public')
-             ], self.app.client_manager.image.images.create.call_args_list
-        )
+        self.app.client_manager.image.images.create.assert_has_calls([
+            mock.call(name='overcloud-full-vmlinuz',
+                      disk_format='aki',
+                      container_format='bare',
+                      visibility='public'),
+            mock.call(name='overcloud-full-initrd',
+                      disk_format='ari',
+                      container_format='bare',
+                      visibility='public'),
+            mock.call(name='overcloud-full',
+                      disk_format='qcow2',
+                      container_format='bare',
+                      visibility='public'),
+            mock.call(name='bm-deploy-kernel',
+                      disk_format='aki',
+                      container_format='bare',
+                      visibility='public'),
+            mock.call(name='bm-deploy-ramdisk',
+                      disk_format='ari',
+                      container_format='bare',
+                      visibility='public')
+        ])
 
         self.assertEqual(mock_subprocess_call.call_count, 2)
-        self.assertEqual(
-            mock_subprocess_call.call_args_list, [
-                mock.call('sudo cp -f "./ironic-python-agent.kernel" '
-                          '"/httpboot/agent.kernel"', shell=True),
-                mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
-                          '"/httpboot/agent.ramdisk"', shell=True)
-            ])
+        mock_subprocess_call.assert_has_calls([
+            mock.call('sudo cp -f "./ironic-python-agent.kernel" '
+                      '"/httpboot/agent.kernel"', shell=True),
+            mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
+                      '"/httpboot/agent.ramdisk"', shell=True)
+        ])
 
     @mock.patch('os.path.isfile', autospec=True)
     @mock.patch('subprocess.check_call', autospec=True)
@@ -287,35 +285,34 @@ class TestUploadOvercloudImage(TestPluginV1):
             5,
             self.app.client_manager.image.images.create.call_count
         )
-        self.assertEqual(
-            [mock.call(properties={},
-                       data=b'IMGDATA',
-                       name='overcloud-full-vmlinuz',
-                       disk_format='aki',
-                       is_public=True),
-             mock.call(properties={},
-                       data=b'IMGDATA',
-                       name='overcloud-full-initrd',
-                       disk_format='ari',
-                       is_public=True),
-             mock.call(properties={'kernel_id': 10, 'ramdisk_id': 10},
-                       name='overcloud-full',
-                       data=b'IMGDATA',
-                       container_format='bare',
-                       disk_format='qcow2',
-                       is_public=True),
-             mock.call(properties={},
-                       data=b'IMGDATA',
-                       name='bm-deploy-kernel',
-                       disk_format='aki',
-                       is_public=True),
-             mock.call(properties={},
-                       data=b'IMGDATA',
-                       name='bm-deploy-ramdisk',
-                       disk_format='ari',
-                       is_public=True)
-             ], self.app.client_manager.image.images.create.call_args_list
-        )
+        self.app.client_manager.image.images.create.assert_has_calls([
+            mock.call(properties={},
+                      data=b'IMGDATA',
+                      name='overcloud-full-vmlinuz',
+                      disk_format='aki',
+                      is_public=True),
+            mock.call(properties={},
+                      data=b'IMGDATA',
+                      name='overcloud-full-initrd',
+                      disk_format='ari',
+                      is_public=True),
+            mock.call(properties={'kernel_id': 10, 'ramdisk_id': 10},
+                      name='overcloud-full',
+                      data=b'IMGDATA',
+                      container_format='bare',
+                      disk_format='qcow2',
+                      is_public=True),
+            mock.call(properties={},
+                      data=b'IMGDATA',
+                      name='bm-deploy-kernel',
+                      disk_format='aki',
+                      is_public=True),
+            mock.call(properties={},
+                      data=b'IMGDATA',
+                      name='bm-deploy-ramdisk',
+                      disk_format='ari',
+                      is_public=True)
+        ])
 
     @mock.patch('os.path.isfile', autospec=True)
     @mock.patch('subprocess.check_call', autospec=True)
@@ -337,46 +334,43 @@ class TestUploadOvercloudImage(TestPluginV1):
             5,
             self.app.client_manager.image.images.create.call_count
         )
-        self.assertEqual(
-            [mock.call(properties={'hw_architecture': 'x86_64'},
-                       data=b'IMGDATA',
-                       name='x86_64-overcloud-full-vmlinuz',
-                       disk_format='aki',
-                       is_public=True),
-             mock.call(properties={'hw_architecture': 'x86_64'},
-                       data=b'IMGDATA',
-                       name='x86_64-overcloud-full-initrd',
-                       disk_format='ari',
-                       is_public=True),
-             mock.call(properties={'hw_architecture': 'x86_64',
-                                   'kernel_id': 10, 'ramdisk_id': 10},
-                       name='x86_64-overcloud-full',
-                       data=b'IMGDATA',
-                       container_format='bare',
-                       disk_format='qcow2',
-                       is_public=True),
-             mock.call(properties={'hw_architecture': 'x86_64'},
-                       data=b'IMGDATA',
-                       name='x86_64-bm-deploy-kernel',
-                       disk_format='aki',
-                       is_public=True),
-             mock.call(properties={'hw_architecture': 'x86_64'},
-                       data=b'IMGDATA',
-                       name='x86_64-bm-deploy-ramdisk',
-                       disk_format='ari',
-                       is_public=True)
-             ], self.app.client_manager.image.images.create.call_args_list
-        )
+        self.app.client_manager.image.images.create.assert_has_calls([
+            mock.call(properties={'hw_architecture': 'x86_64'},
+                      data=b'IMGDATA',
+                      name='x86_64-overcloud-full-vmlinuz',
+                      disk_format='aki',
+                      is_public=True),
+            mock.call(properties={'hw_architecture': 'x86_64'},
+                      data=b'IMGDATA',
+                      name='x86_64-overcloud-full-initrd',
+                      disk_format='ari',
+                      is_public=True),
+            mock.call(properties={'hw_architecture': 'x86_64',
+                                  'kernel_id': 10, 'ramdisk_id': 10},
+                      name='x86_64-overcloud-full',
+                      data=b'IMGDATA',
+                      container_format='bare',
+                      disk_format='qcow2',
+                      is_public=True),
+            mock.call(properties={'hw_architecture': 'x86_64'},
+                      data=b'IMGDATA',
+                      name='x86_64-bm-deploy-kernel',
+                      disk_format='aki',
+                      is_public=True),
+            mock.call(properties={'hw_architecture': 'x86_64'},
+                      data=b'IMGDATA',
+                      name='x86_64-bm-deploy-ramdisk',
+                      disk_format='ari',
+                      is_public=True)
+        ])
 
         self.assertEqual(mock_subprocess_call.call_count, 2)
-        # FIXME(tonyb): this is the wrong way around
-        self.assertEqual(
-            mock_subprocess_call.call_args_list, [
-                mock.call('sudo cp -f "./ironic-python-agent.kernel" '
-                          '"/httpboot/agent.kernel"', shell=True),
-                mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
-                          '"/httpboot/agent.ramdisk"', shell=True)
-            ])
+        mock_subprocess_call.assert_has_calls([
+            mock.call('sudo cp -f "./ironic-python-agent.kernel" '
+                      '"/httpboot/agent.kernel"', shell=True),
+            mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
+                      '"/httpboot/agent.ramdisk"', shell=True)
+        ])
 
     @mock.patch('os.path.isfile')
     @mock.patch('subprocess.check_call', autospec=True)
@@ -390,7 +384,7 @@ class TestUploadOvercloudImage(TestPluginV1):
 
         self.cmd.take_action(parsed_args)
 
-        expected = [
+        self.cmd._image_try_update.assert_has_calls([
             mock.call('overcloud-full-vmlinuz', '/foo/overcloud-full.vmlinuz',
                       mock.ANY),
             mock.call('overcloud-full-initrd', '/foo/overcloud-full.initrd',
@@ -402,8 +396,7 @@ class TestUploadOvercloudImage(TestPluginV1):
             mock.call('bm-deploy-ramdisk',
                       '/foo/ironic-python-agent.initramfs',
                       mock.ANY),
-            ]
-        self.assertEqual(expected, self.cmd._image_try_update.mock_calls)
+        ])
 
     @mock.patch('os.path.isfile', autospec=True)
     @mock.patch('subprocess.check_call', autospec=True)
@@ -501,30 +494,28 @@ class TestUploadOvercloudImageFull(TestPluginV1):
             self.app.client_manager.image.images.create.call_count
         )
 
-        self.assertEqual(
-            [mock.call(name='overcloud-full',
-                       disk_format='qcow2',
-                       container_format='bare',
-                       visibility='public'),
-             mock.call(name='bm-deploy-kernel',
-                       disk_format='aki',
-                       container_format='bare',
-                       visibility='public'),
-             mock.call(name='bm-deploy-ramdisk',
-                       disk_format='ari',
-                       container_format='bare',
-                       visibility='public')
-             ], self.app.client_manager.image.images.create.call_args_list
-        )
+        self.app.client_manager.image.images.create.assert_has_calls([
+            mock.call(name='overcloud-full',
+                      disk_format='qcow2',
+                      container_format='bare',
+                      visibility='public'),
+            mock.call(name='bm-deploy-kernel',
+                      disk_format='aki',
+                      container_format='bare',
+                      visibility='public'),
+            mock.call(name='bm-deploy-ramdisk',
+                      disk_format='ari',
+                      container_format='bare',
+                      visibility='public')
+        ])
 
         self.assertEqual(mock_subprocess_call.call_count, 2)
-        self.assertEqual(
-            mock_subprocess_call.call_args_list, [
-                mock.call('sudo cp -f "./ironic-python-agent.kernel" '
-                          '"/httpboot/agent.kernel"', shell=True),
-                mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
-                          '"/httpboot/agent.ramdisk"', shell=True)
-            ])
+        mock_subprocess_call.assert_has_calls([
+            mock.call('sudo cp -f "./ironic-python-agent.kernel" '
+                      '"/httpboot/agent.kernel"', shell=True),
+            mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
+                      '"/httpboot/agent.ramdisk"', shell=True)
+        ])
 
     @mock.patch('os.path.isfile', autospec=True)
     @mock.patch('subprocess.check_call', autospec=True)
@@ -548,36 +539,33 @@ class TestUploadOvercloudImageFull(TestPluginV1):
             self.app.client_manager.image.images.create.call_count
         )
 
-        self.assertEqual(
-            [mock.call(name='x86_64-overcloud-full',
-                       disk_format='qcow2',
-                       container_format='bare',
-                       visibility='public'),
-             mock.call(name='x86_64-bm-deploy-kernel',
-                       disk_format='aki',
-                       container_format='bare',
-                       visibility='public'),
-             mock.call(name='x86_64-bm-deploy-ramdisk',
-                       disk_format='ari',
-                       container_format='bare',
-                       visibility='public')
-             ], self.app.client_manager.image.images.create.call_args_list
-        )
+        self.app.client_manager.image.images.create.assert_has_calls([
+            mock.call(name='x86_64-overcloud-full',
+                      disk_format='qcow2',
+                      container_format='bare',
+                      visibility='public'),
+            mock.call(name='x86_64-bm-deploy-kernel',
+                      disk_format='aki',
+                      container_format='bare',
+                      visibility='public'),
+            mock.call(name='x86_64-bm-deploy-ramdisk',
+                      disk_format='ari',
+                      container_format='bare',
+                      visibility='public')
+        ])
 
-        self.assertEqual(
-            [mock.call(mock.ANY, hw_architecture='x86_64'),
-             mock.call(mock.ANY, hw_architecture='x86_64'),
-             mock.call(mock.ANY, hw_architecture='x86_64'),
-             ], self.app.client_manager.image.images.update.call_args_list
-        )
+        self.app.client_manager.image.images.update.assert_has_calls([
+            mock.call(mock.ANY, hw_architecture='x86_64'),
+            mock.call(mock.ANY, hw_architecture='x86_64'),
+            mock.call(mock.ANY, hw_architecture='x86_64'),
+        ])
         self.assertEqual(mock_subprocess_call.call_count, 2)
-        self.assertEqual(
-            mock_subprocess_call.call_args_list, [
-                mock.call('sudo cp -f "./ironic-python-agent.kernel" '
-                          '"/httpboot/agent.kernel"', shell=True),
-                mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
-                          '"/httpboot/agent.ramdisk"', shell=True)
-            ])
+        mock_subprocess_call.assert_has_calls([
+            mock.call('sudo cp -f "./ironic-python-agent.kernel" '
+                      '"/httpboot/agent.kernel"', shell=True),
+            mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
+                      '"/httpboot/agent.ramdisk"', shell=True)
+        ])
 
     @mock.patch('os.path.isfile', autospec=True)
     @mock.patch('subprocess.check_call', autospec=True)
@@ -700,53 +688,49 @@ class TestUploadOvercloudImageFullMultiArch(TestPluginV1):
             self.app.client_manager.image.images.create.call_count
         )
 
-        self.assertEqual(
-            [mock.call(name='overcloud-full',
-                       disk_format='qcow2',
-                       container_format='bare',
-                       visibility='public'),
-             mock.call(name='bm-deploy-kernel',
-                       disk_format='aki',
-                       container_format='bare',
-                       visibility='public'),
-             mock.call(name='bm-deploy-ramdisk',
-                       disk_format='ari',
-                       container_format='bare',
-                       visibility='public'),
-             mock.call(name='ppc64le-overcloud-full',
-                       disk_format='qcow2',
-                       container_format='bare',
-                       visibility='public'),
-             mock.call(name='ppc64le-bm-deploy-kernel',
-                       disk_format='aki',
-                       container_format='bare',
-                       visibility='public'),
-             mock.call(name='ppc64le-bm-deploy-ramdisk',
-                       disk_format='ari',
-                       container_format='bare',
-                       visibility='public')
-             ], self.app.client_manager.image.images.create.call_args_list
-        )
+        self.app.client_manager.image.images.create.assert_has_calls([
+            mock.call(name='overcloud-full',
+                      disk_format='qcow2',
+                      container_format='bare',
+                      visibility='public'),
+            mock.call(name='bm-deploy-kernel',
+                      disk_format='aki',
+                      container_format='bare',
+                      visibility='public'),
+            mock.call(name='bm-deploy-ramdisk',
+                      disk_format='ari',
+                      container_format='bare',
+                      visibility='public'),
+            mock.call(name='ppc64le-overcloud-full',
+                      disk_format='qcow2',
+                      container_format='bare',
+                      visibility='public'),
+            mock.call(name='ppc64le-bm-deploy-kernel',
+                      disk_format='aki',
+                      container_format='bare',
+                      visibility='public'),
+            mock.call(name='ppc64le-bm-deploy-ramdisk',
+                      disk_format='ari',
+                      container_format='bare',
+                      visibility='public')
+        ])
 
-        self.assertEqual(
-            [mock.call(13, hw_architecture='ppc64le'),
-             mock.call(14, hw_architecture='ppc64le'),
-             mock.call(15, hw_architecture='ppc64le'),
-             ], self.app.client_manager.image.images.update.call_args_list
-        )
+        self.app.client_manager.image.images.update.assert_has_calls([
+            mock.call(13, hw_architecture='ppc64le'),
+            mock.call(14, hw_architecture='ppc64le'),
+            mock.call(15, hw_architecture='ppc64le'),
+        ])
         self.assertEqual(mock_subprocess_call.call_count, 4)
-        # FIXME(tonyb): this is the wrong way around
-        self.assertEqual(
-            mock_subprocess_call.call_args_list, [
-                mock.call('sudo cp -f "./ironic-python-agent.kernel" '
-                          '"/httpboot/agent.kernel"', shell=True),
-                mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
-                          '"/httpboot/agent.ramdisk"', shell=True),
-                mock.call('sudo cp -f "./ironic-python-agent.kernel" '
-                          '"/httpboot/ppc64le/agent.kernel"', shell=True),
-                mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
-                          '"/httpboot/ppc64le/agent.ramdisk"', shell=True),
-            ])
+        mock_subprocess_call.assert_has_calls([
+            mock.call('sudo cp -f "./ironic-python-agent.kernel" '
+                      '"/httpboot/agent.kernel"', shell=True),
+            mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
+                      '"/httpboot/agent.ramdisk"', shell=True),
+            mock.call('sudo cp -f "./ironic-python-agent.kernel" '
+                      '"/httpboot/ppc64le/agent.kernel"', shell=True),
+            mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
+                      '"/httpboot/ppc64le/agent.ramdisk"', shell=True),
+        ])
 
     @mock.patch('os.path.isfile', autospec=True)
     @mock.patch('subprocess.check_call', autospec=True)
@@ -785,70 +769,65 @@ class TestUploadOvercloudImageFullMultiArch(TestPluginV1):
             self.app.client_manager.image.images.create.call_count
         )
 
-        self.assertEqual(
-            [mock.call(name='overcloud-full',
-                       disk_format='qcow2',
-                       container_format='bare',
-                       visibility='public'),
-             mock.call(name='bm-deploy-kernel',
-                       disk_format='aki',
-                       container_format='bare',
-                       visibility='public'),
-             mock.call(name='bm-deploy-ramdisk',
-                       disk_format='ari',
-                       container_format='bare',
-                       visibility='public'),
-             mock.call(name='ppc64le-overcloud-full',
-                       disk_format='qcow2',
-                       container_format='bare',
-                       visibility='public'),
-             mock.call(name='ppc64le-bm-deploy-kernel',
-                       disk_format='aki',
-                       container_format='bare',
-                       visibility='public'),
-             mock.call(name='ppc64le-bm-deploy-ramdisk',
-                       disk_format='ari',
-                       container_format='bare',
-                       visibility='public'),
-             mock.call(name='p9-ppc64le-overcloud-full',
-                       disk_format='qcow2',
-                       container_format='bare',
-                       visibility='public'),
-             mock.call(name='p9-ppc64le-bm-deploy-kernel',
-                       disk_format='aki',
-                       container_format='bare',
-                       visibility='public'),
-             mock.call(name='p9-ppc64le-bm-deploy-ramdisk',
-                       disk_format='ari',
-                       container_format='bare',
-                       visibility='public')
-             ], self.app.client_manager.image.images.create.call_args_list
-        )
+        self.app.client_manager.image.images.create.assert_has_calls([
+            mock.call(name='overcloud-full',
+                      disk_format='qcow2',
+                      container_format='bare',
+                      visibility='public'),
+            mock.call(name='bm-deploy-kernel',
+                      disk_format='aki',
+                      container_format='bare',
+                      visibility='public'),
+            mock.call(name='bm-deploy-ramdisk',
+                      disk_format='ari',
+                      container_format='bare',
+                      visibility='public'),
+            mock.call(name='ppc64le-overcloud-full',
+                      disk_format='qcow2',
+                      container_format='bare',
+                      visibility='public'),
+            mock.call(name='ppc64le-bm-deploy-kernel',
+                      disk_format='aki',
+                      container_format='bare',
+                      visibility='public'),
+            mock.call(name='ppc64le-bm-deploy-ramdisk',
+                      disk_format='ari',
+                      container_format='bare',
+                      visibility='public'),
+            mock.call(name='p9-ppc64le-overcloud-full',
+                      disk_format='qcow2',
+                      container_format='bare',
+                      visibility='public'),
+            mock.call(name='p9-ppc64le-bm-deploy-kernel',
+                      disk_format='aki',
+                      container_format='bare',
+                      visibility='public'),
+            mock.call(name='p9-ppc64le-bm-deploy-ramdisk',
+                      disk_format='ari',
+                      container_format='bare',
+                      visibility='public')
+        ])
 
-        self.assertEqual(
-            [mock.call(13, hw_architecture='ppc64le'),
-             mock.call(14, hw_architecture='ppc64le'),
-             mock.call(15, hw_architecture='ppc64le'),
-             mock.call(16, hw_architecture='ppc64le', tripleo_platform='p9'),
-             mock.call(17, hw_architecture='ppc64le', tripleo_platform='p9'),
-             mock.call(18, hw_architecture='ppc64le', tripleo_platform='p9'),
-             ], self.app.client_manager.image.images.update.call_args_list
-        )
+        self.app.client_manager.image.images.update.assert_has_calls([
+            mock.call(13, hw_architecture='ppc64le'),
+            mock.call(14, hw_architecture='ppc64le'),
+            mock.call(15, hw_architecture='ppc64le'),
+            mock.call(16, hw_architecture='ppc64le', tripleo_platform='p9'),
+            mock.call(17, hw_architecture='ppc64le', tripleo_platform='p9'),
+            mock.call(18, hw_architecture='ppc64le', tripleo_platform='p9'),
+        ])
         self.assertEqual(mock_subprocess.call_count, 6)
-        # FIXME(tonyb): this is the wrong way around
-        self.assertEqual(
-            mock_subprocess.call_args_list, [
-                mock.call('sudo cp -f "./ironic-python-agent.kernel" '
-                          '"/httpboot/agent.kernel"', shell=True),
-                mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
-                          '"/httpboot/agent.ramdisk"', shell=True),
-                mock.call('sudo cp -f "./ironic-python-agent.kernel" '
-                          '"/httpboot/ppc64le/agent.kernel"', shell=True),
-                mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
-                          '"/httpboot/ppc64le/agent.ramdisk"', shell=True),
-                # FIXME(tonyb): wrong
-                mock.call('sudo cp -f "./ironic-python-agent.kernel" '
-                          '"/httpboot/p9-ppc64le/agent.kernel"', shell=True),
-                mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
-                          '"/httpboot/p9-ppc64le/agent.ramdisk"', shell=True),
-            ])
+        mock_subprocess.assert_has_calls([
+            mock.call('sudo cp -f "./ironic-python-agent.kernel" '
+                      '"/httpboot/agent.kernel"', shell=True),
+            mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
+                      '"/httpboot/agent.ramdisk"', shell=True),
+            mock.call('sudo cp -f "./ironic-python-agent.kernel" '
+                      '"/httpboot/ppc64le/agent.kernel"', shell=True),
+            mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
+                      '"/httpboot/ppc64le/agent.ramdisk"', shell=True),
+            mock.call('sudo cp -f "./ironic-python-agent.kernel" '
+                      '"/httpboot/p9-ppc64le/agent.kernel"', shell=True),
+            mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
+                      '"/httpboot/p9-ppc64le/agent.ramdisk"', shell=True),
+        ])
