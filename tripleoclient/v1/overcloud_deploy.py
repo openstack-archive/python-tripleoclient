@@ -967,7 +967,8 @@ class DeployOvercloud(command.Command):
                                        parsed_args.deployed_server,
                                        parsed_args.overcloud_ssh_user,
                                        parsed_args.overcloud_ssh_key,
-                                       parsed_args.output_dir)
+                                       parsed_args.output_dir,
+                                       verbosity=self.app_args.verbose_level)
 
         # Force fetching of attributes
         stack.get()
