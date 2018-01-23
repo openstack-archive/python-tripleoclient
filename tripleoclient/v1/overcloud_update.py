@@ -85,8 +85,9 @@ class UpdateOvercloud(command.Command):
                             action="store",
                             default=None,
                             help=_('Path to an existing ansible inventory to '
-                                   'use.  If not specified, one will be '
-                                   'generated in ~/tripleo-ansible-inventory')
+                                   'use. If not specified, one will be '
+                                   'generated in '
+                                   '~/tripleo-ansible-inventory.yaml')
                             )
         return parser
 
@@ -131,10 +132,11 @@ class UpdateOvercloud(command.Command):
             inventory_file = parsed_args.static_inventory
             if inventory_file is None:
                 inventory_file = '%s/%s' % (os.path.expanduser('~'),
-                                            'tripleo-ansible-inventory')
+                                            'tripleo-ansible-inventory.yaml')
                 try:
-                    processutils.execute('/bin/tripleo-ansible-inventory',
-                                         '--static-inventory', inventory_file)
+                    processutils.execute(
+                        '/usr/bin/tripleo-ansible-inventory',
+                        '--static-yaml-inventory', inventory_file)
                 except processutils.ProcessExecutionError as e:
                     message = "Failed to generate inventory: %s" % str(e)
                     raise exceptions.InvalidConfiguration(message)
