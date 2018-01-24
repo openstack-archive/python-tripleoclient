@@ -17,7 +17,6 @@ import datetime
 import json
 import logging
 import os
-import re
 import sys
 import tempfile
 
@@ -25,7 +24,6 @@ from heatclient.common import template_utils
 from heatclient.common import utils as heat_utils
 from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
-import requests
 from six.moves.urllib import request
 import yaml
 
@@ -170,23 +168,18 @@ class PrepareImageFiles(command.Command):
 
     def get_parser(self, prog_name):
         parser = super(PrepareImageFiles, self).get_parser(prog_name)
-        template_file = os.path.join(sys.prefix, 'share', 'tripleo-common',
-                                     'container-images',
-                                     'overcloud_containers.yaml.j2')
         roles_file = os.path.join(constants.TRIPLEO_HEAT_TEMPLATES,
                                   constants.OVERCLOUD_ROLES_FILE)
-
-        builder = kolla_builder.KollaImageBuilder([template_file])
-        defaults = builder.container_images_template_inputs()
+        defaults = kolla_builder.container_images_prepare_defaults()
 
         parser.add_argument(
             "--template-file",
             dest="template_file",
-            default=template_file,
+            default=kolla_builder.DEFAULT_TEMPLATE_FILE,
             metavar='<yaml template file>',
             help=_("YAML template file which the images config file will be "
                    "built from.\n"
-                   "Default: %s") % template_file,
+                   "Default: %s") % kolla_builder.DEFAULT_TEMPLATE_FILE,
         )
         parser.add_argument(
             "--pull-source",
@@ -329,27 +322,6 @@ class PrepareImageFiles(command.Command):
                         'Use the variable=value format.') % s
                 raise oscexc.CommandError(msg)
 
-    def detect_insecure_registries(self, params):
-        insecure = []
-        hosts = set()
-        for image in params.values():
-            hosts.add(image.split('/')[0])
-
-        for host in hosts:
-            try:
-                requests.get('https://%s/' % host)
-            except requests.exceptions.SSLError:
-                insecure.append(host)
-            except Exception:
-                # for any other error assume it is a secure registry, because:
-                # - it is secure registry
-                # - the host is not accessible
-                # - the namespace doesn't include a host name
-                pass
-        if not insecure:
-            return {}
-        return {'DockerInsecureRegistryAddress': sorted(insecure)}
-
     def write_env_file(self, params, env_file):
 
         with os.fdopen(os.open(env_file,
@@ -437,39 +409,23 @@ class PrepareImageFiles(command.Command):
         }
         self.parse_set_values(subs, parsed_args.set)
 
-        def ffunc(entry):
-            imagename = entry.get('imagename', '')
-            for p in parsed_args.excludes:
-                if re.search(p, imagename):
-                    return None
-            if service_filter is not None:
-                # check the entry is for a service being deployed
-                image_services = set(entry.get('services', []))
-                if not service_filter.intersection(image_services):
-                    return None
-            if parsed_args.pull_source:
-                entry['pull_source'] = parsed_args.pull_source
-            if parsed_args.push_destination:
-                entry['push_destination'] = parsed_args.push_destination
-            return entry
+        output_images_file = (parsed_args.output_images_file
+                              or 'container_images.yaml')
 
-        builder = kolla_builder.KollaImageBuilder([parsed_args.template_file])
-        result = builder.container_images_from_template(filter=ffunc, **subs)
-
-        params = {}
-        for entry in result:
-            imagename = entry.get('imagename', '')
-            if 'params' in entry:
-                for p in entry.pop('params'):
-                    params[p] = imagename
-            if 'services' in entry:
-                del(entry['services'])
-
+        prepare_data = kolla_builder.container_images_prepare(
+            excludes=parsed_args.excludes,
+            service_filter=service_filter,
+            pull_source=parsed_args.pull_source,
+            push_destination=parsed_args.push_destination,
+            mapping_args=subs,
+            output_env_file=parsed_args.output_env_file,
+            output_images_file=output_images_file
+        )
         if parsed_args.output_env_file:
-            params.update(
-                self.detect_insecure_registries(params))
+            params = prepare_data[parsed_args.output_env_file]
             self.write_env_file(params, parsed_args.output_env_file)
 
+        result = prepare_data[output_images_file]
         result_str = yaml.safe_dump({'container_images': result},
                                     default_flow_style=False)
         sys.stdout.write(result_str)
