@@ -210,8 +210,9 @@ class PrepareImageFiles(command.Command):
             "--tag-from-label",
             dest="tag_from_label",
             metavar='<image label>',
-            help=_("Use the value of the specified label to discover the "
-                   "versioned tag."),
+            help=_("Use the value of the specified label(s) to discover the "
+                   "tag. Labels can be combined in a template format, "
+                   "for example: {version}-{release}"),
         )
         parser.add_argument(
             "--namespace",
@@ -467,8 +468,9 @@ class DiscoverImageTag(command.Command):
             "--tag-from-label",
             dest="tag_from_label",
             metavar='<image label>',
-            help=_("Use the value of the specified label to discover the "
-                   "tag."),
+            help=_("Use the value of the specified label(s) to discover the "
+                   "tag. Labels can be combined in a template format, "
+                   "for example: {version}-{release}"),
         )
         return parser
 
