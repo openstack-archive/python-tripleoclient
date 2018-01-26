@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Similar to what instack-undercloud does, the containerized undercloud can
+    now take user-provided certificates/keys in the bundled PEM format. This is
+    done through the service_certificate option and is processed tripleoclient.

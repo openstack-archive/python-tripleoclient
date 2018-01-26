@@ -16,6 +16,9 @@
 """Plugin action implementation"""
 
 import copy
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
+from cryptography import x509
 import logging
 import netaddr
 import os
@@ -452,6 +455,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False):
     """Prepare Undercloud deploy command based on undercloud.conf"""
 
     env_data = {}
+    registry_overwrites = {}
     deploy_args = []
     _load_config()
 
@@ -542,21 +546,27 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False):
             "environments/services-docker/undercloud-cinder.yaml")]
 
     if CONF.get('generate_service_certificate'):
-        try:
-            public_host = CONF.get('undercloud_public_host')
-            netaddr.IPAddress(public_host)
-            endpoint_environment = os.path.join(
-                tht_templates,
-                "environments/tls-endpoints-public-ip.yaml")
-        except netaddr.core.AddrFormatError:
-            endpoint_environment = os.path.join(
-                tht_templates,
-                "environments/tls-endpoints-public-dns.yaml")
+        endpoint_environment = _get_tls_endpoint_environment(
+            CONF.get('undercloud_public_host'), tht_templates)
 
         deploy_args += ['-e', os.path.join(
             tht_templates,
             "environments/public-tls-undercloud.yaml"),
             '-e', endpoint_environment]
+    elif CONF.get('undercloud_service_certificate'):
+        endpoint_environment = _get_tls_endpoint_environment(
+            CONF.get('undercloud_public_host'), tht_templates)
+        enable_tls_yaml_path = os.path.join(tht_templates,
+                                            "environments/ssl/enable-tls.yaml")
+        env_data.update(
+            _get_public_tls_parameters(
+                CONF.get('undercloud_service_certificate')))
+        registry_overwrites.update(
+            _get_public_tls_resource_registry_overwrites(enable_tls_yaml_path))
+        deploy_args += [
+            '-e', endpoint_environment, '-e',
+            'environments/services-docker/undercloud-haproxy.yaml',
+            '-e', 'environments/services-docker/undercloud-keepalived.yaml']
 
     deploy_args += [
         "-e", os.path.join(tht_templates, "environments/docker.yaml"),
@@ -565,7 +575,8 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False):
                      "environments/config-download-environment.yaml"),
         "-e", os.path.join(tht_templates, "environments/undercloud.yaml")]
 
-    env_file = _write_env_file(env_data)
+    env_file = _write_env_file(
+        env_data, registry_overwrites=registry_overwrites)
     deploy_args += ['-e', env_file]
 
     deploy_args += ['--output-dir=%s' % os.environ.get('HOME', '')]
@@ -583,11 +594,54 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False):
     return cmd
 
 
+def _get_tls_endpoint_environment(public_host, tht_templates):
+    try:
+        netaddr.IPAddress(public_host)
+        return os.path.join(tht_templates,
+                            "environments/tls-endpoints-public-ip.yaml")
+    except netaddr.core.AddrFormatError:
+        return os.path.join(tht_templates,
+                            "environments/tls-endpoints-public-dns.yaml")
+
+
+def _get_public_tls_parameters(service_certificate_path):
+    with open(service_certificate_path, "rb") as pem_file:
+        pem_data = pem_file.read()
+        cert = x509.load_pem_x509_certificate(pem_data, default_backend())
+        private_key = serialization.load_pem_private_key(
+            pem_data,
+            password=None,
+            backend=default_backend())
+
+        key_pem = private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.TraditionalOpenSSL,
+            encryption_algorithm=serialization.NoEncryption())
+        cert_pem = cert.public_bytes(serialization.Encoding.PEM)
+        return {
+            'SSLCertificate': cert_pem,
+            'SSLKey': key_pem
+        }
+
+
+def _get_public_tls_resource_registry_overwrites(enable_tls_yaml_path):
+    with open(enable_tls_yaml_path, 'rb') as enable_tls_file:
+        enable_tls_dict = yaml.load(enable_tls_file.read())
+        try:
+            return enable_tls_dict['resource_registry']
+        except KeyError:
+            raise RuntimeError('%s is malformed and is missing the resource '
+                               'registry.' % enable_tls_yaml_path)
+
+
 def _write_env_file(env_data,
-                    env_file="/tmp/undercloud_parameters.yaml"):
+                    env_file="/tmp/undercloud_parameters.yaml",
+                    registry_overwrites={}):
     """Write the undercloud parameters to yaml"""
 
     data = {'parameter_defaults': env_data}
+    if registry_overwrites:
+        data['resource_registry'] = registry_overwrites
     env_file = os.path.abspath(env_file)
     with open(env_file, "w") as f:
         try:
