@@ -31,6 +31,7 @@ class TestOvercloudCredentials(test_plugin.TestPluginV1):
             output=json.dumps({
                 "result": {
                     "overcloudrc": "OVERCLOUDRC CONTENTS",
+                    "overcloudrc.v3": "OVERCLOUDRC.v3 CONTENTS",
                 }
             })
         )
@@ -48,8 +49,10 @@ class TestOvercloudCredentials(test_plugin.TestPluginV1):
             self.cmd.take_action(parsed_args)
 
         self.assertIn(mock.call('./overcloudrc', 'w'), m.call_args_list)
+        self.assertIn(mock.call('./overcloudrc.v3', 'w'), m.call_args_list)
         mock_chmod.assert_has_calls([
-            mock.call('./overcloudrc', 384)])
+            mock.call('./overcloudrc', 384),
+            mock.call('./overcloudrc.v3', 384)])
 
         self.workflow.action_executions.create.assert_called_once_with(
             'tripleo.deployment.overcloudrc', {'container': 'overcloud'},
@@ -72,10 +75,13 @@ class TestOvercloudCredentials(test_plugin.TestPluginV1):
             self.cmd.take_action(parsed_args)
 
         path = "{}/overcloudrc".format(temp)
+        pathv3 = "{}/overcloudrc.v3".format(temp)
 
         self.assertIn(mock.call(path, 'w'), m.call_args_list)
+        self.assertIn(mock.call(pathv3, 'w'), m.call_args_list)
         mock_chmod.assert_has_calls([
-            mock.call(path, 384)])
+            mock.call(path, 384),
+            mock.call(pathv3, 384)])
 
         self.workflow.action_executions.create.assert_called_once_with(
             'tripleo.deployment.overcloudrc', {'container': 'overcloud'},

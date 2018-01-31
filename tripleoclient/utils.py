@@ -53,11 +53,15 @@ def write_overcloudrc(stack_name, overcloudrcs, config_directory='.'):
     """Write the overcloudrc files"""
 
     rcpath = os.path.join(config_directory, '%src' % stack_name)
+    rcv3path = os.path.join(config_directory, '%src.v3' % stack_name)
 
     with open(rcpath, 'w') as rcfile:
         rcfile.write(overcloudrcs['overcloudrc'])
     os.chmod(rcpath, 0o600)
 
+    with open(rcv3path, 'w') as rcv3file:
+        rcv3file.write(overcloudrcs['overcloudrc.v3'])
+    os.chmod(rcv3path, 0o600)
     return os.path.abspath(rcpath)
 
 
