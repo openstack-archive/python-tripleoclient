@@ -51,11 +51,11 @@ class TestOvercloudUpdate(fakes.TestOvercloudUpdate):
         mock_get_stack.return_value = mock_stack
         mock_abspath.return_value = '/home/fake/my-fake-registry.yaml'
         mock_yaml.return_value = {'fake_container': 'fake_value'}
-        argslist = ['--stack', 'overcloud', '--init-minor-update',
+        argslist = ['--stack', 'overcloud', '--init-update',
                     '--container-registry-file', 'my-fake-registry.yaml']
         verifylist = [
             ('stack', 'overcloud'),
-            ('init_minor_update', True),
+            ('init_update', True),
             ('container_registry_file', 'my-fake-registry.yaml')
         ]
 
@@ -67,6 +67,7 @@ class TestOvercloudUpdate(fakes.TestOvercloudUpdate):
             container_registry={'fake_container': 'fake_value'},
             ceph_ansible_playbook='/usr/share/ceph-ansible'
                                   '/site-docker.yml.sample',
+            environments={}
         )
 
     @mock.patch('tripleoclient.workflows.package_update.update',
@@ -79,11 +80,11 @@ class TestOvercloudUpdate(fakes.TestOvercloudUpdate):
         mock_update.side_effect = exceptions.DeploymentError()
         mock_abspath.return_value = '/home/fake/my-fake-registry.yaml'
         mock_yaml.return_value = {'fake_container': 'fake_value'}
-        argslist = ['--stack', 'overcloud', '--init-minor-update',
+        argslist = ['--stack', 'overcloud', '--init-update',
                     '--container-registry-file', 'my-fake-registry.yaml']
         verifylist = [
             ('stack', 'overcloud'),
-            ('init_minor_update', True),
+            ('init_update', True),
             ('container_registry_file', 'my-fake-registry.yaml')
         ]
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)

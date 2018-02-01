@@ -111,4 +111,35 @@ def update_ansible(clients, **workflow_input):
     if payload['status'] == 'SUCCESS':
         print('Success')
     else:
-        raise RuntimeError('Minor update failed with: {}'.format(payload))
+        raise RuntimeError('Update failed with: {}'.format(payload))
+
+
+def converge_nodes(clients, **workflow_input):
+    workflow_client = clients.workflow_engine
+    tripleoclients = clients.tripleoclient
+    plan_name = workflow_input['container']
+
+    with tripleoclients.messaging_websocket() as ws:
+        execution = base.start_workflow(
+            workflow_client,
+            'tripleo.package_update.v1.converge_upgrade_plan',
+            workflow_input=workflow_input
+        )
+
+        for payload in base.wait_for_messages(workflow_client, ws, execution):
+            assert payload['status'] == "SUCCESS", pprint.pformat(payload)
+
+    orchestration_client = clients.orchestration
+
+    events = event_utils.get_events(orchestration_client,
+                                    stack_id=plan_name,
+                                    event_args={'sort_dir': 'desc',
+                                                'limit': 1})
+    marker = events[0].id if events else None
+
+    time.sleep(10)
+    create_result = utils.wait_for_stack_ready(
+        orchestration_client, plan_name, marker, 'UPDATE', 1)
+    if not create_result:
+        shell.OpenStackShell().run(["stack", "failures", "list", plan_name])
+        raise exceptions.DeploymentError("Heat Stack update failed.")
