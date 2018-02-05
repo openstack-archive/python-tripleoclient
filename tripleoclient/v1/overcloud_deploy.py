@@ -423,7 +423,6 @@ class DeployOvercloud(command.Command):
     def _deploy_tripleo_heat_templates(self, stack, parsed_args,
                                        tht_root, user_tht_root):
         """Deploy the fixed templates in TripleO Heat Templates"""
-        parameters = self._update_parameters(parsed_args, stack)
 
         plans = plan_management.list_deployment_plans(self.workflow_client)
         generate_passwords = not parsed_args.disable_password_generation
@@ -459,10 +458,18 @@ class DeployOvercloud(command.Command):
         if parsed_args.environment_directories:
             created_env_files.extend(utils.load_environment_directories(
                 parsed_args.environment_directories))
-
-        env.update(self._create_parameters_env(parameters,
-                                               tht_root,
-                                               parsed_args.stack))
+        parameters = {}
+        if stack:
+            try:
+                # If user environment already exist then keep it
+                user_env = yaml.safe_load(self.object_client.get_object(
+                    parsed_args.stack, constants.USER_ENVIRONMENT)[1])
+                template_utils.deep_update(env, user_env)
+            except ClientException:
+                pass
+        parameters.update(self._update_parameters(parsed_args, stack))
+        template_utils.deep_update(env, self._create_parameters_env(
+            parameters, tht_root, parsed_args.stack))
 
         if parsed_args.rhel_reg:
             reg_env_files, reg_env = self._create_registration_env(

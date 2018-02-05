@@ -695,13 +695,18 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                               env, update_plan_only, run_validations,
                               skip_deploy_identifier, plan_env_file):
             assertEqual(
-                {'parameter_defaults': {},
+                {'parameter_defaults': {'NovaComputeLibvirtType': 'qemu'},
                  'resource_registry': {
                      'Test': 'OS::Heat::None',
                      'resources': {'*': {'*': {
                          'UpdateDeployment': {'hooks': []}}}}}}, env)
 
         mock_deploy_heat.side_effect = _fake_heat_deploy
+        object_client = clients.tripleoclient.object_store
+        object_client.get_object = mock.Mock()
+        mock_env = yaml.safe_dump({'parameter_defaults':
+                                  {'NovaComputeLibvirtType': 'qemu'}})
+        object_client.get_object.return_value = ({}, mock_env)
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         self.cmd.take_action(parsed_args)
@@ -815,6 +820,12 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.useFixture(
             fixtures.EnvironmentVariable('TRIPLEO_ENVIRONMENT_DIRECTORY',
                                          self.tmp_dir.join('env')))
+
+        object_client = clients.tripleoclient.object_store
+        object_client.get_object = mock.Mock()
+        mock_env = yaml.safe_dump({'parameter_defaults':
+                                  {'NovaComputeLibvirtType': 'qemu'}})
+        object_client.get_object.return_value = ({}, mock_env)
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         error = self.assertRaises(hc_exc.CommandError, self.cmd.take_action,
@@ -993,6 +1004,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.cmd.take_action(parsed_args)
 
         user_env = {
+            'environments': [],
             'resource_registry': {'Test': 'OS::Heat::None',
                                   'Cleanup': 'OS::Heat::None'}}
         parameters_env = {
@@ -1203,6 +1215,12 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             ('block_storage_scale', 3),
             ('disable_password_generation', True)]
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        object_client = clients.tripleoclient.object_store
+        object_client.get_object = mock.Mock()
+        mock_env = yaml.safe_dump({'parameter_defaults':
+                                  {'NovaComputeLibvirtType': 'qemu'}})
+        object_client.get_object.return_value = ({}, mock_env)
 
         self.cmd.take_action(parsed_args)
 
