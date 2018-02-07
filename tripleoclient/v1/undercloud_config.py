@@ -413,7 +413,8 @@ def _process_drivers_and_hardware_types(conf, env):
     # use one variable for them.
     mgmt_interfaces = {'fake', 'ipmitool'}
     # TODO(dtantsur): can we somehow avoid hardcoding hardware types here?
-    for hw_type in ('redfish', 'idrac', 'ilo', 'irmc', 'staging-ovirt'):
+    for hw_type in ('redfish', 'idrac', 'ilo', 'irmc', 'staging-ovirt',
+                    'xclarity'):
         if hw_type in enabled_hardware_types:
             mgmt_interfaces.add(hw_type)
     for (hw_type, iface) in [('cisco-ucs-managed', 'ucsm'),
