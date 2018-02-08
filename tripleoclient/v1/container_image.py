@@ -61,7 +61,10 @@ class UploadImage(command.Command):
         self.log.debug("take_action(%s)" % parsed_args)
         uploader = image_uploader.ImageUploadManager(
             parsed_args.config_files)
-        uploader.upload()
+        try:
+            uploader.upload()
+        except KeyboardInterrupt:  # ctrl-c
+            self.log.warning('Upload was interrupted by ctrl-c.')
 
 
 class BuildImage(command.Command):
