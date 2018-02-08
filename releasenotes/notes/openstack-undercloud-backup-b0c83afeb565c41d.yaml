@@ -1,0 +1,5 @@
+---
+features:
+  - Add a new option to the TripleO client in order to create an Undercloud
+    backup.
+    Usage, openstack undercloud backup [--add-path ADD_FILES_TO_BACKUP]
