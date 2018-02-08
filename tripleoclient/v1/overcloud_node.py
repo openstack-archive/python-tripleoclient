@@ -194,6 +194,10 @@ class ImportNode(command.Command):
                             help=_('Run the pre-deployment validations. These '
                                    'external validations are from the TripleO '
                                    'Validations project.'))
+        parser.add_argument('--validate-only', action='store_true',
+                            default=False,
+                            help=_('Validate the env_file and then exit '
+                                   'without actually importing the nodes.'))
         parser.add_argument('--provide',
                             action='store_true',
                             help=_('Provide (make available) the nodes'))
@@ -212,6 +216,10 @@ class ImportNode(command.Command):
         self.log.debug("take_action(%s)" % parsed_args)
 
         nodes_config = oooutils.parse_env_file(parsed_args.env_file)
+
+        if parsed_args.validate_only:
+            return baremetal.validate_nodes(self.app.client_manager,
+                                            nodes_json=nodes_config)
 
         if parsed_args.no_deploy_image:
             deploy_kernel = None
