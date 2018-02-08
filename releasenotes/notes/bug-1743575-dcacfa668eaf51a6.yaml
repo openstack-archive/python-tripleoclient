@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    This patch fixes https://bugs.launchpad.net/tripleo/+bug/1743575
+    The bug prevents a successeful stack creation when using a custom role with
+    a composable service.
