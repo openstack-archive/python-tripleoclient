@@ -27,15 +27,18 @@ import six
 import socket
 import subprocess
 import sys
+import tempfile
 import time
 import yaml
 
 from heatclient.common import event_utils
+from heatclient.common import template_utils
 from heatclient.exc import HTTPNotFound
 from osc_lib.i18n import _
 from oslo_concurrency import processutils
 from six.moves import configparser
 
+from heatclient import exc as hc_exc
 from tripleoclient import exceptions
 
 
@@ -830,6 +833,88 @@ def get_tripleo_ansible_inventory(inventory_file=''):
     else:
         raise exceptions.InvalidConfiguration(
             "Inventory file %s can not be found." % inventory_file)
+
+
+def process_multiple_environments(created_env_files, tht_root,
+                                  user_tht_root, cleanup=True):
+    log = logging.getLogger(__name__ + ".process_multiple_environments")
+    env_files = {}
+    localenv = {}
+    # Normalize paths for full match checks
+    user_tht_root = os.path.normpath(user_tht_root)
+    tht_root = os.path.normpath(tht_root)
+    for env_path in created_env_files:
+        log.debug("Processing environment files %s" % env_path)
+        abs_env_path = os.path.abspath(env_path)
+        if (abs_env_path.startswith(user_tht_root) and
+            ((user_tht_root + '/') in env_path or
+             (user_tht_root + '/') in abs_env_path or
+             user_tht_root == abs_env_path or
+             user_tht_root == env_path)):
+            new_env_path = env_path.replace(user_tht_root + '/',
+                                            tht_root + '/')
+            log.debug("Redirecting env file %s to %s"
+                      % (abs_env_path, new_env_path))
+            env_path = new_env_path
+        try:
+            files, env = template_utils.process_environment_and_files(
+                env_path=env_path)
+        except hc_exc.CommandError as ex:
+            # This provides fallback logic so that we can reference files
+            # inside the resource_registry values that may be rendered via
+            # j2.yaml templates, where the above will fail because the
+            # file doesn't exist in user_tht_root, but it is in tht_root
+            # See bug https://bugs.launchpad.net/tripleo/+bug/1625783
+            # for details on why this is needed (backwards-compatibility)
+            log.debug("Error %s processing environment file %s"
+                      % (six.text_type(ex), env_path))
+            # Use the temporary path as it's possible the environment
+            # itself was rendered via jinja.
+            with open(env_path, 'r') as f:
+                env_map = yaml.safe_load(f)
+            env_registry = env_map.get('resource_registry', {})
+            env_dirname = os.path.dirname(os.path.abspath(env_path))
+            for rsrc, rsrc_path in six.iteritems(env_registry):
+                # We need to calculate the absolute path relative to
+                # env_path not cwd (which is what abspath uses).
+                abs_rsrc_path = os.path.normpath(
+                    os.path.join(env_dirname, rsrc_path))
+                # If the absolute path matches user_tht_root, rewrite
+                # a temporary environment pointing at tht_root instead
+                if (abs_rsrc_path.startswith(user_tht_root) and
+                    ((user_tht_root + '/') in abs_rsrc_path or
+                     abs_rsrc_path == user_tht_root)):
+                    new_rsrc_path = abs_rsrc_path.replace(
+                        user_tht_root + '/', tht_root + '/')
+                    log.debug("Rewriting %s %s path to %s"
+                              % (env_path, rsrc, new_rsrc_path))
+                    env_registry[rsrc] = new_rsrc_path
+                else:
+                    # Skip any resources that are mapping to OS::*
+                    # resource names as these aren't paths
+                    if not rsrc_path.startswith("OS::"):
+                        env_registry[rsrc] = abs_rsrc_path
+            env_map['resource_registry'] = env_registry
+            f_name = os.path.basename(os.path.splitext(abs_env_path)[0])
+            with tempfile.NamedTemporaryFile(dir=tht_root,
+                                             prefix="env-%s-" % f_name,
+                                             suffix=".yaml",
+                                             mode="w",
+                                             delete=cleanup) as f:
+                log.debug("Rewriting %s environment to %s"
+                          % (env_path, f.name))
+                f.write(yaml.safe_dump(env_map, default_flow_style=False))
+                f.flush()
+                files, env = template_utils.process_environment_and_files(
+                    env_path=f.name)
+        if files:
+            log.debug("Adding files %s for %s" % (files, env_path))
+            env_files.update(files)
+
+        # 'env' can be a deeply nested dictionary, so a simple update is
+        # not enough
+        localenv = template_utils.deep_update(localenv, env)
+    return env_files, localenv
 
 
 def run_update_ansible_action(log, clients, nodes, inventory, playbook,

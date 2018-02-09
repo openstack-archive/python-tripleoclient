@@ -25,7 +25,6 @@ import tempfile
 import yaml
 
 from heatclient.common import template_utils
-from heatclient import exc as hc_exc
 from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
 from swiftclient.exceptions import ClientException
@@ -180,76 +179,6 @@ class DeployOvercloud(command.Command):
         self.object_client.put_object(container_name, swift_path, contents)
 
         return user_env_path, swift_path
-
-    def _process_multiple_environments(self, created_env_files, tht_root,
-                                       user_tht_root, cleanup=True):
-        env_files = {}
-        localenv = {}
-        for env_path in created_env_files:
-            self.log.debug("Processing environment files %s" % env_path)
-            abs_env_path = os.path.abspath(env_path)
-            if abs_env_path.startswith(user_tht_root):
-                new_env_path = abs_env_path.replace(user_tht_root, tht_root)
-                self.log.debug("Redirecting env file %s to %s"
-                               % (abs_env_path, new_env_path))
-                env_path = new_env_path
-            try:
-                files, env = template_utils.process_environment_and_files(
-                    env_path=env_path)
-            except hc_exc.CommandError as ex:
-                # This provides fallback logic so that we can reference files
-                # inside the resource_registry values that may be rendered via
-                # j2.yaml templates, where the above will fail because the
-                # file doesn't exist in user_tht_root, but it is in tht_root
-                # See bug https://bugs.launchpad.net/tripleo/+bug/1625783
-                # for details on why this is needed (backwards-compatibility)
-                self.log.debug("Error %s processing environment file %s"
-                               % (six.text_type(ex), env_path))
-                # Use the temporary path as it's possible the environment
-                # itself was rendered via jinja.
-                with open(env_path, 'r') as f:
-                    env_map = yaml.safe_load(f)
-                env_registry = env_map.get('resource_registry', {})
-                env_dirname = os.path.dirname(os.path.abspath(env_path))
-                for rsrc, rsrc_path in six.iteritems(env_registry):
-                    # We need to calculate the absolute path relative to
-                    # env_path not cwd (which is what abspath uses).
-                    abs_rsrc_path = os.path.normpath(
-                        os.path.join(env_dirname, rsrc_path))
-                    # If the absolute path matches user_tht_root, rewrite
-                    # a temporary environment pointing at tht_root instead
-                    if abs_rsrc_path.startswith(user_tht_root):
-                        new_rsrc_path = abs_rsrc_path.replace(user_tht_root,
-                                                              tht_root)
-                        self.log.debug("Rewriting %s %s path to %s"
-                                       % (env_path, rsrc, new_rsrc_path))
-                        env_registry[rsrc] = new_rsrc_path
-                    else:
-                        # Skip any resources that are mapping to OS::*
-                        # resource names as these aren't paths
-                        if not rsrc_path.startswith("OS::"):
-                            env_registry[rsrc] = abs_rsrc_path
-                env_map['resource_registry'] = env_registry
-                f_name = os.path.basename(os.path.splitext(abs_env_path)[0])
-                with tempfile.NamedTemporaryFile(dir=tht_root,
-                                                 prefix="env-%s-" % f_name,
-                                                 suffix=".yaml",
-                                                 mode="w",
-                                                 delete=cleanup) as f:
-                    self.log.debug("Rewriting %s environment to %s"
-                                   % (env_path, f.name))
-                    f.write(yaml.safe_dump(env_map, default_flow_style=False))
-                    f.flush()
-                    files, env = template_utils.process_environment_and_files(
-                        env_path=f.name)
-            if files:
-                self.log.debug("Adding files %s for %s" % (files, env_path))
-                env_files.update(files)
-
-            # 'env' can be a deeply nested dictionary, so a simple update is
-            # not enough
-            localenv = template_utils.deep_update(localenv, env)
-        return env_files, localenv
 
     def _heat_deploy(self, stack, stack_name, template_path, parameters,
                      env_files, timeout, tht_root, env, update_plan_only,
@@ -489,7 +418,7 @@ class DeployOvercloud(command.Command):
             created_env_files.extend(parsed_args.environment_files)
 
         self.log.debug("Processing environment files %s" % created_env_files)
-        env_files, localenv = self._process_multiple_environments(
+        env_files, localenv = utils.process_multiple_environments(
             created_env_files, tht_root, user_tht_root,
             cleanup=not parsed_args.no_cleanup)
         template_utils.deep_update(env, localenv)

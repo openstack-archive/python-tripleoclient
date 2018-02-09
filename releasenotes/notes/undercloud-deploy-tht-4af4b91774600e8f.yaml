@@ -1,0 +1,22 @@
+---
+fixes:
+  - |
+    Fix undercloud heat installer renders Heat templates in
+    `/usr/share`, which contains t-h-t installed from the package.
+features:
+  - |
+    New command line arguments `--output-dir` and `--cleanup`
+    define the heat templates processing rules for undercloud:
+    ``undercloud deploy --cleanup --output-dir /tmp/tht``.
+
+    The `output_dir` and `cleanup` configuration options
+    for `undercloud.conf` may be used the same way and allow to
+    configure ``undercloud install --use-heat`` behavior.
+upgrade:
+  - |
+    The default value for `--output-dir` is changed for
+    undercloud heat installer to `$HOME/.undercloud-heat-installer`.
+    The content of the processed heat templates will be persisted
+    under the given path as `$output_dir/$tempdir/templates`, for
+    each run of the undercloud deploy or install commands, unless
+    the `cleanup` mode is requested.

@@ -49,6 +49,7 @@ from six.moves import configparser
 from tripleoclient import constants
 from tripleoclient import exceptions
 from tripleoclient import heat_launcher
+from tripleoclient import utils
 
 from tripleo_common.utils import passwords as password_utils
 
@@ -63,6 +64,8 @@ class DeployUndercloud(command.Command):
     log = logging.getLogger(__name__ + ".DeployUndercloud")
     auth_required = False
     heat_pid = None
+    tht_render = None
+    tmp_env_dir = None
     tmp_env_file_name = None
 
     def _symlink(self, src, dst, tmpd='/tmp'):
@@ -225,7 +228,24 @@ class DeployUndercloud(command.Command):
         }
         return data
 
-    def _kill_heat(self):
+    def _kill_heat(self, parsed_args):
+        """Tear down heat installer and temp files
+
+        Kill the heat launcher/installer process.
+        Teardown temp files created in the deployment process,
+        when cleanup is requested.
+
+        """
+
+        if not parsed_args.cleanup and self.tmp_env_dir:
+            self.log.warning("Not cleaning temporary directory %s"
+                             % self.tmp_env_dir)
+        elif self.tht_render:
+            shutil.rmtree(self.tmp_env_dir, ignore_errors=True)
+            # tht_render is a sub-dir of tmp_env_dir
+            self.tht_render = None
+            self.tmp_env_dir = None
+
         if self.tmp_env_file_name:
             try:
                 os.remove(self.tmp_env_file_name)
@@ -239,6 +259,9 @@ class DeployUndercloud(command.Command):
             self.heat_pid = None
 
     def _launch_heat(self, parsed_args):
+
+        if not os.path.isdir(parsed_args.output_dir):
+            os.mkdir(parsed_args.output_dir)
 
         # we do this as root to chown config files properly for docker, etc.
         if parsed_args.heat_native:
@@ -283,23 +306,38 @@ class DeployUndercloud(command.Command):
         return orchestration_client
 
     def _setup_heat_environments(self, parsed_args):
-        tht_root = parsed_args.templates
-        # generate jinja templates
+        """Process tripleo heat templates with jinja
+
+        * Copy --templates content into a temporary working dir
+          created under the --output_dir path as output_dir/tempwd/templates.
+        * Process j2 templates there
+        * Return the environments list for futher processing.
+
+        The first two items are reserved for the
+        overcloud-resource-registry-puppet.yaml and passwords files.
+        """
+
+        self.tmp_env_dir = tempfile.mkdtemp(prefix='tripleoclient-',
+                                            dir=parsed_args.output_dir)
+        self.tht_render = os.path.join(self.tmp_env_dir, 'templates')
+        shutil.copytree(parsed_args.templates, self.tht_render, symlinks=True)
+
+        # generate jinja templates by its work dir location
         self.log.debug("Using roles file %s" % parsed_args.roles_file)
-        process_templates = os.path.join(tht_root,
+        process_templates = os.path.join(parsed_args.templates,
                                          'tools/process-templates.py')
         args = ['python', process_templates, '--roles-data',
-                parsed_args.roles_file]
-        subprocess.check_call(args, cwd=tht_root)
+                parsed_args.roles_file, '--output-dir', self.tht_render]
+        subprocess.check_call(args, cwd=self.tht_render)
 
         print("Deploying templates in the directory {0}".format(
-            os.path.abspath(tht_root)))
+            os.path.abspath(self.tht_render)))
 
         self.log.debug("Creating Environment file")
         environments = []
 
         resource_registry_path = os.path.join(
-            tht_root, 'overcloud-resource-registry-puppet.yaml')
+            self.tht_render, 'overcloud-resource-registry-puppet.yaml')
         environments.insert(0, resource_registry_path)
 
         # this will allow the user to overwrite passwords with custom envs
@@ -307,18 +345,18 @@ class DeployUndercloud(command.Command):
         environments.insert(1, pw_file)
 
         undercloud_env_path = os.path.join(
-            tht_root, 'environments', 'undercloud.yaml')
+            self.tht_render, 'environments', 'undercloud.yaml')
         environments.append(undercloud_env_path)
 
         # use deployed-server because we run os-collect-config locally
         deployed_server_env = os.path.join(
-            tht_root, 'environments',
+            self.tht_render, 'environments',
             'config-download-environment.yaml')
         environments.append(deployed_server_env)
 
         # use deployed-server because we run os-collect-config locally
         deployed_server_env = os.path.join(
-            tht_root, 'environments',
+            self.tht_render, 'environments',
             'deployed-server-noop-ctlplane.yaml')
         environments.append(deployed_server_env)
 
@@ -364,15 +402,16 @@ class DeployUndercloud(command.Command):
                                        parsed_args):
         """Deploy the fixed templates in TripleO Heat Templates"""
 
+        # sets self.tht_render to the temporary work dir after it's done
         environments = self._setup_heat_environments(parsed_args)
 
-        self.log.debug("Processing environment files")
-        env_files, env = (
-            template_utils.process_multiple_environments_and_files(
-                environments))
+        self.log.debug("Processing environment files %s" % environments)
+        env_files, env = utils.process_multiple_environments(
+            environments, self.tht_render, parsed_args.templates,
+            cleanup=parsed_args.cleanup)
 
         self.log.debug("Getting template contents")
-        template_path = os.path.join(parsed_args.templates, 'overcloud.yaml')
+        template_path = os.path.join(self.tht_render, 'overcloud.yaml')
         template_files, template = \
             template_utils.get_template_contents(template_path)
 
@@ -454,9 +493,9 @@ class DeployUndercloud(command.Command):
                             default='undercloud')
         parser.add_argument('--output-dir',
                             dest='output_dir',
-                            help=_("Directory to output state and ansible"
-                                   " deployment files."),
-                            default=os.environ.get('HOME', ''))
+                            help=_("Directory to output state, processed heat "
+                                   "templates, ansible deployment files."),
+                            default=constants.UNDERCLOUD_OUTPUT_DIR)
         parser.add_argument('--output-only',
                             dest='output_only',
                             action='store_true',
@@ -535,6 +574,11 @@ class DeployUndercloud(command.Command):
             default='undercloud',
             help=_('Local domain for undercloud and its API endpoints')
         )
+        parser.add_argument(
+            '--cleanup',
+            action='store_true', default=False,
+            help=_('Cleanup temporary files')
+        )
         return parser
 
     def take_action(self, parsed_args):
@@ -581,7 +625,7 @@ class DeployUndercloud(command.Command):
                                                  parsed_args.stack,
                                                  parsed_args.output_dir)
             # Kill heat, we're done with it now.
-            self._kill_heat()
+            self._kill_heat(parsed_args)
             if not parsed_args.output_only:
                 # Never returns..  We exec() it directly.
                 self._launch_ansible(ansible_dir)
@@ -590,7 +634,7 @@ class DeployUndercloud(command.Command):
             print(traceback.format_exception(*sys.exc_info()))
             raise
         finally:
-            self._kill_heat()
+            self._kill_heat(parsed_args)
             if not parsed_args.output_only:
                 # We only get here on error.
                 print('ERROR: Heat log files: %s' %

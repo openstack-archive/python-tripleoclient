@@ -16,17 +16,22 @@
 """Plugin action implementation"""
 
 import copy
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import serialization
-from cryptography import x509
 import logging
 import netaddr
 import os
+import yaml
+
+from cryptography import x509
+
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
+
 from oslo_config import cfg
 from tripleo_common.image import kolla_builder
+from tripleoclient import constants
 from tripleoclient import utils
+
 from tripleoclient.v1 import undercloud_preflight
-import yaml
 
 
 PARAMETER_MAPPING = {
@@ -70,6 +75,15 @@ PATHS = Paths()
 # sample config by running "tox -e genconfig" in the project root.
 ci_defaults = kolla_builder.container_images_prepare_defaults()
 _opts = [
+    cfg.StrOpt('output_dir',
+               default=constants.UNDERCLOUD_OUTPUT_DIR,
+               help=('Directory to output state, processed heat templates, '
+                     'ansible deployment files.'),
+               ),
+    cfg.BoolOpt('cleanup',
+                default=False,
+                help=('Cleanup temporary files'),
+                ),
     cfg.StrOpt('deployment_user',
                help=('User used to run openstack undercloud install command '
                      'which will be used to add the user to the docker group, '
@@ -652,7 +666,13 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False):
         env_data, registry_overwrites=registry_overwrites)
     deploy_args += ['-e', env_file]
 
-    deploy_args += ['--output-dir=%s' % os.environ.get('HOME', '')]
+    if CONF.get('output_dir'):
+        deploy_args += ['--output-dir=%s' % CONF['output_dir']]
+        if not os.path.isdir(CONF['output_dir']):
+            os.mkdir(CONF['output_dir'])
+
+    if CONF.get('cleanup'):
+        deploy_args.append('--cleanup')
 
     if CONF.get('custom_env_files'):
         for custom_file in CONF['custom_env_files']:

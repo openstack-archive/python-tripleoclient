@@ -13,10 +13,14 @@
 #   under the License.
 #
 
+import os
+
 TRIPLEO_HEAT_TEMPLATES = "/usr/share/openstack-tripleo-heat-templates/"
 OVERCLOUD_YAML_NAME = "overcloud.yaml"
 OVERCLOUD_ROLES_FILE = "roles_data.yaml"
 UNDERCLOUD_ROLES_FILE = "roles_data_undercloud.yaml"
+UNDERCLOUD_OUTPUT_DIR = os.path.join(os.environ.get('HOME'),
+                                     '.undercloud-heat-installer')
 OVERCLOUD_NETWORKS_FILE = "network_data.yaml"
 RHEL_REGISTRATION_EXTRACONFIG_NAME = (
     "extraconfig/pre_deploy/rhel-registration/")
@@ -27,7 +31,8 @@ USER_ENVIRONMENT = 'user-environment.yaml'
 USER_PARAMETERS = 'user-environments/tripleoclient-parameters.yaml'
 
 # This directory may contain additional environments to use during deploy
-DEFAULT_ENV_DIRECTORY = "~/.tripleo/environments"
+DEFAULT_ENV_DIRECTORY = os.path.join(os.environ.get('HOME'),
+                                     '.tripleo', 'environments')
 
 TRIPLEO_PUPPET_MODULES = "/usr/share/openstack-puppet/modules/"
 UPGRADE_CONVERGE_FILE = "major-upgrade-converge-docker.yaml"
