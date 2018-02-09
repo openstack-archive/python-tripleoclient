@@ -21,6 +21,8 @@ import netaddr
 import os
 import pwd
 import re
+import shutil
+import six
 import subprocess
 import sys
 import tempfile
@@ -61,6 +63,23 @@ class DeployUndercloud(command.Command):
     log = logging.getLogger(__name__ + ".DeployUndercloud")
     auth_required = False
     heat_pid = None
+    tmp_env_file_name = None
+
+    def _symlink(self, src, dst, tmpd='/tmp'):
+        self.log.debug("Symlinking %s to %s, via temp dir %s" %
+                       (src, dst, tmpd))
+        try:
+            tmp = tempfile.mkdtemp(dir=tmpd)
+            subprocess.check_call(['mkdir', '-p', dst])
+            os.chmod(tmp, 0o755)
+            for obj in os.listdir(src):
+                tmpf = os.path.join(tmp, obj)
+                os.symlink(os.path.join(src, obj), tmpf)
+                os.rename(tmpf, os.path.join(dst, obj))
+        except Exception:
+            raise
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
 
     def _get_hostname(self):
         p = subprocess.Popen(["hostname", "-s"], stdout=subprocess.PIPE)
@@ -68,16 +87,9 @@ class DeployUndercloud(command.Command):
 
     def _configure_puppet(self):
         print('Configuring puppet modules symlinks ...')
-        src = constants.TRIPLEO_PUPPET_MODULES
-        dst = constants.PUPPET_MODULES
-        subprocess.check_call(['mkdir', '-p', dst])
-        tmp = tempfile.mkdtemp(dir=constants.PUPPET_BASE)
-        os.chmod(tmp, 0o755)
-        for obj in os.listdir(src):
-            tmpf = os.path.join(tmp, obj)
-            os.symlink(os.path.join(src, obj), tmpf)
-            os.rename(tmpf, os.path.join(dst, obj))
-        os.rmdir(tmp)
+        self._symlink(constants.TRIPLEO_PUPPET_MODULES,
+                      constants.PUPPET_MODULES,
+                      constants.PUPPET_BASE)
 
     def _wait_local_port_ready(self, api_port):
         count = 0
@@ -192,6 +204,13 @@ class DeployUndercloud(command.Command):
         return data
 
     def _kill_heat(self):
+        if self.tmp_env_file_name:
+            try:
+                os.remove(self.tmp_env_file_name)
+            except Exception as ex:
+                if 'No such file or directory' in six.text_type(ex):
+                    pass
+
         if self.heat_pid:
             self.heat_launch.kill_heat(self.heat_pid)
             pid, ret = os.waitpid(self.heat_pid, 0)
@@ -283,6 +302,7 @@ class DeployUndercloud(command.Command):
             environments.extend(parsed_args.environment_files)
 
         with tempfile.NamedTemporaryFile(delete=False) as tmp_env_file:
+            self.tmp_env_file_name = tmp_env_file.name
 
             ip_nw = netaddr.IPNetwork(parsed_args.local_ip)
             ip = str(ip_nw.ip)
@@ -309,10 +329,10 @@ class DeployUndercloud(command.Command):
                                                              c_cidr, p_ip,
                                                              p_cidr))
 
-            with open(tmp_env_file.name, 'w') as env_file:
+            with open(self.tmp_env_file_name, 'w') as env_file:
                 yaml.safe_dump({'parameter_defaults': tmp_env}, env_file,
                                default_flow_style=False)
-            environments.append(tmp_env_file.name)
+            environments.append(self.tmp_env_file_name)
 
         return environments
 
