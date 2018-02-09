@@ -63,8 +63,8 @@ class BackupUndercloud(command.Command):
             output = undercloud_backup.backup(clients, workflow_input)
             LOG.info(output)
         except Exception as e:
-            print ("Undercloud backup finished with errors")
-            print ('Output: {}'.format(e))
+            print("Undercloud backup finished with errors")
+            print('Output: {}'.format(e))
             LOG.info(e)
 
     def take_action(self, parsed_args):
