@@ -35,21 +35,24 @@ from tripleoclient.v1 import undercloud_preflight
 
 
 PARAMETER_MAPPING = {
-    'network_gateway': 'UndercloudNetworkGateway',
-    'enabled_drivers': 'IronicEnabledDrivers',
-    'inspection_iprange': 'IronicInspectorIpRange',
     'inspection_interface': 'IronicInspectorInterface',
-    'dhcp_start': 'UndercloudDhcpRangeStart',
-    'dhcp_end': 'UndercloudDhcpRangeEnd',
-    'network_cidr': 'UndercloudNetworkCidr',
+    'enabled_drivers': 'IronicEnabledDrivers',
     'undercloud_debug': 'Debug',
     'ipxe_enabled': 'IronicInspectorIPXEEnabled',
     'certificate_generation_ca': 'CertmongerCA',
     'undercloud_public_host': 'CloudName',
     'scheduler_max_attempts': 'NovaSchedulerMaxAttempts',
     'local_mtu': 'UndercloudLocalMtu',
-    'undercloud_nameservers': 'DnsServers',
     'clean_nodes': 'IronicAutomatedClean',
+    'local_subnet': 'UndercloudCtlplaneLocalSubnet',
+    'enable_routed_networks': 'UndercloudEnableRoutedNetworks'
+}
+
+SUBNET_PARAMETER_MAPPING = {
+    'cidr': 'NetworkCidr',
+    'gateway': 'NetworkGateway',
+    'dhcp_start': 'DhcpRangeStart',
+    'dhcp_end': 'DhcpRangeEnd',
 }
 
 THT_HOME = os.environ.get('THT_HOME',
@@ -61,6 +64,9 @@ TELEMETRY_DOCKER_ENV_YAML = [
     'environments/services-docker/undercloud-panko.yaml',
     'environments/services-docker/undercloud-ceilometer.yaml']
 
+# Control plane network name
+SUBNETS_DEFAULT = ['ctlplane-subnet']
+
 
 class Paths(object):
     @property
@@ -71,6 +77,16 @@ class Paths(object):
 CONF = cfg.CONF
 PATHS = Paths()
 
+# Deprecated options
+_deprecated_opt_network_gateway = [cfg.DeprecatedOpt(
+    'network_gateway', group='DEFAULT')]
+_deprecated_opt_network_cidr = [cfg.DeprecatedOpt(
+    'network_cidr', group='DEFAULT')]
+_deprecated_opt_dhcp_start = [cfg.DeprecatedOpt(
+    'dhcp_start', group='DEFAULT')]
+_deprecated_opt_dhcp_end = [cfg.DeprecatedOpt('dhcp_end', group='DEFAULT')]
+_deprecated_opt_inspection_iprange = [cfg.DeprecatedOpt(
+    'inspection_iprange', group='DEFAULT')]
 
 # When adding new options to the lists below, make sure to regenerate the
 # sample config by running "tox -e genconfig" in the project root.
@@ -107,12 +123,6 @@ _opts = [
                      'local_interface, with the netmask defined by the '
                      'prefix portion of the value.')
                ),
-    cfg.StrOpt('network_gateway',
-               default='192.168.24.1',
-               help=('Network gateway for the Neutron-managed network for '
-                     'Overcloud instances. This should match the local_ip '
-                     'above when using masquerading.')
-               ),
     cfg.StrOpt('undercloud_public_host',
                deprecated_name='undercloud_public_vip',
                default='192.168.24.2',
@@ -138,6 +148,36 @@ _opts = [
                      'The overcloud parameter "CloudDomain" must be set to a '
                      'matching value.')
                ),
+    cfg.ListOpt('subnets',
+                default=SUBNETS_DEFAULT,
+                help=('List of routed network subnets for provisioning '
+                      'and introspection. Comma separated list of names/tags. '
+                      'For each network a section/group needs to be added to '
+                      'the configuration file with these parameters set: '
+                      'cidr, dhcp_start, dhcp_end, inspection_iprange, '
+                      'gateway and masquerade_network.'
+                      '\n\n'
+                      'Example:\n\n'
+                      'subnets = subnet1,subnet2\n'
+                      '\n'
+                      'An example section/group in config file:\n'
+                      '\n'
+                      '[subnet1]\n'
+                      'cidr = 192.168.10.0/24\n'
+                      'dhcp_start = 192.168.10.100\n'
+                      'dhcp_end = 192.168.10.200\n'
+                      'inspection_iprange = 192.168.10.20,192.168.10.90\n'
+                      'gateway = 192.168.10.254\n'
+                      'masquerade = True'
+                      '\n'
+                      '[subnet2]\n'
+                      '. . .\n')),
+    cfg.StrOpt('local_subnet',
+               default=SUBNETS_DEFAULT[0],
+               help=('Name of the local subnet, where the PXE boot and DHCP '
+                     'interfaces for overcloud instances is located. The IP '
+                     'address of the local_ip/local_interface should reside '
+                     'in this subnet.')),
     cfg.StrOpt('undercloud_service_certificate',
                default='',
                help=('Certificate file to use for OpenStack service SSL '
@@ -182,22 +222,6 @@ _opts = [
                default=1500,
                help=('MTU to use for the local_interface.')
                ),
-    cfg.StrOpt('network_cidr',
-               default='192.168.24.0/24',
-               help=('Network CIDR for the Neutron-managed network for '
-                     'Overcloud instances. This should be the subnet used '
-                     'for PXE booting.')
-               ),
-    cfg.StrOpt('dhcp_start',
-               default='192.168.24.5',
-               help=('Start of DHCP allocation range for PXE and DHCP of '
-                     'Overcloud instances.')
-               ),
-    cfg.StrOpt('dhcp_end',
-               default='192.168.24.24',
-               help=('End of DHCP allocation range for PXE and DHCP of '
-                     'Overcloud instances.')
-               ),
     cfg.StrOpt('hieradata_override',
                default='',
                help=('Path to hieradata override file. If set, the file will '
@@ -221,14 +245,6 @@ _opts = [
                deprecated_name='discovery_interface',
                help=('Network interface on which inspection dnsmasq will '
                      'listen.  If in doubt, use the default value.')
-               ),
-    cfg.StrOpt('inspection_iprange',
-               default='192.168.24.100,192.168.24.120',
-               deprecated_name='discovery_iprange',
-               help=('Temporary IP range that will be given to nodes during '
-                     'the inspection process.  Should not overlap with the '
-                     'range defined by dhcp_start and dhcp_end, but should '
-                     'be in the same network.')
                ),
     cfg.BoolOpt('inspection_extras',
                 default=True,
@@ -398,15 +414,60 @@ _opts = [
     cfg.ListOpt('custom_env_files',
                 default=[],
                 help=('List of any custom environment yaml files to use')),
+    cfg.BoolOpt('enable_routed_networks',
+                default=False,
+                help=('Enable support for routed ctlplane networks.')),
+]
+
+# Routed subnets
+_subnets_opts = [
+    cfg.StrOpt('cidr',
+               default='192.168.24.0/24',
+               deprecated_opts=_deprecated_opt_network_cidr,
+               help=('Network CIDR for the Neutron-managed subnet for '
+                     'Overcloud instances.')),
+    cfg.StrOpt('dhcp_start',
+               default='192.168.24.5',
+               deprecated_opts=_deprecated_opt_dhcp_start,
+               help=('Start of DHCP allocation range for PXE and DHCP of '
+                     'Overcloud instances on this network.')),
+    cfg.StrOpt('dhcp_end',
+               default='192.168.24.24',
+               deprecated_opts=_deprecated_opt_dhcp_end,
+               help=('End of DHCP allocation range for PXE and DHCP of '
+                     'Overcloud instances on this network.')),
+    cfg.StrOpt('inspection_iprange',
+               default='192.168.24.100,192.168.24.120',
+               deprecated_opts=_deprecated_opt_inspection_iprange,
+               help=('Temporary IP range that will be given to nodes on this '
+                     'network during the inspection process. Should not '
+                     'overlap with the range defined by dhcp_start and '
+                     'dhcp_end, but should be in the same ip subnet.')),
+    cfg.StrOpt('gateway',
+               default='192.168.24.1',
+               deprecated_opts=_deprecated_opt_network_gateway,
+               help=('Network gateway for the Neutron-managed network for '
+                     'Overcloud instances on this network.')),
+    cfg.BoolOpt('masquerade',
+                default=False,
+                help=('The network will be masqueraded for external access.')),
 ]
 
 CONF.register_opts(_opts)
+
+
+def _load_subnets_config_groups():
+    for group in CONF.subnets:
+        g = cfg.OptGroup(name=group, title=group)
+        CONF.register_opts(_subnets_opts, group=g)
+
 
 LOG = logging.getLogger(__name__ + ".undercloud_config")
 
 
 def list_opts():
-    return [(None, copy.deepcopy(_opts))]
+    return [(None, copy.deepcopy(_opts)),
+            (SUBNETS_DEFAULT[0], copy.deepcopy(_subnets_opts))]
 
 
 def _load_config():
@@ -505,6 +566,66 @@ def _process_ipa_args(conf, env):
     env['IronicInspectorKernelArgs'] = ' '.join(inspection_kernel_args)
 
 
+def _generate_inspection_subnets():
+    env_list = []
+    for subnet in CONF.subnets:
+        env_dict = {}
+        s = CONF.get(subnet)
+        env_dict['tag'] = subnet
+        env_dict['ip_range'] = s.inspection_iprange
+        env_dict['netmask'] = str(netaddr.IPNetwork(s.cidr).netmask)
+        env_dict['gateway'] = s.gateway
+        env_list.append(env_dict)
+    return env_list
+
+
+def _generate_subnets_static_routes():
+    env_list = []
+    local_router = CONF.get(CONF.local_subnet).gateway
+    for subnet in CONF.subnets:
+        if subnet == str(CONF.local_subnet):
+            continue
+        s = CONF.get(subnet)
+        env_list.append({'ip_netmask': s.cidr, 'next_hop': local_router})
+    return env_list
+
+
+def _generate_masquerade_networks():
+    """Create input for OS::TripleO::Services::MasqueradeNetworks
+
+    The service use parameter MasqueradeNetworks with the following
+    formating:
+        {'source_cidr_A': ['destination_cidr_A', 'destination_cidr_B'],
+         'source_cidr_B': ['destination_cidr_A', 'destination_cidr_B']}
+    """
+    network_cidrs = []
+    for subnet in CONF.subnets:
+        s = CONF.get(subnet)
+        network_cidrs.append(s.cidr)
+
+    masqurade_networks = {}
+    for subnet in CONF.subnets:
+        s = CONF.get(subnet)
+        if s.masquerade:
+            masqurade_networks.update({s.cidr: network_cidrs})
+
+    return masqurade_networks
+
+# def _generate_subnets_cidr_nat_rules():
+#     env_list = []
+#     for subnet in CONF.subnets:
+#         env_dict = {}
+#         s = CONF.get(subnet)
+#         env_dict['140 ' + subnet + ' cidr nat'] = {
+#             'chain': 'FORWARD',
+#             'destination': s.cidr
+#         }
+#         # NOTE(hjensas): sort_keys=True because unit test reference is static
+#         env_list.append(json.dumps(env_dict, sort_keys=True)[1:-1])
+#     # Whitespace after newline required for indentation in templated yaml
+#     return '\n  '.join(env_list)
+
+
 def prepare_undercloud_deploy(upgrade=False, no_validations=False):
     """Prepare Undercloud deploy command based on undercloud.conf"""
 
@@ -512,6 +633,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False):
     registry_overwrites = {}
     deploy_args = []
     _load_config()
+    _load_subnets_config_groups()
 
     # Set the undercloud home dir parameter so that stackrc is produced in
     # the users home directory.
@@ -521,13 +643,21 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False):
         if param_key in CONF.keys():
             env_data[param_value] = CONF[param_key]
 
+    # Set up parameters for undercloud networking
+    env_data['IronicInspectorSubnets'] = _generate_inspection_subnets()
+    env_data['ControlPlaneStaticRoutes'] = _generate_subnets_static_routes()
+    env_data['UndercloudCtlplaneSubnets'] = {}
+    for subnet in CONF.subnets:
+        s = CONF.get(subnet)
+        env_data['UndercloudCtlplaneSubnets'][subnet] = {}
+        for param_key, param_value in SUBNET_PARAMETER_MAPPING.items():
+            env_data['UndercloudCtlplaneSubnets'][subnet].update(
+                {param_value: s[param_key]})
+    env_data['MasqueradeNetworks'] = _generate_masquerade_networks()
+    env_data['DnsServers'] = ','.join(CONF['undercloud_nameservers'])
+
     # Parse the undercloud.conf options to include necessary args and
     # yaml files for undercloud deploy command
-
-    # we use this to set --dns-nameserver for the ctlplane network
-    # so just pick the first entry
-    if CONF.get('undercloud_nameservers', None):
-        env_data['UndercloudNameserver'] = CONF['undercloud_nameservers'][0]
 
     if CONF.get('undercloud_ntp_servers', None):
         env_data['NtpServer'] = CONF['undercloud_ntp_servers'][0]
@@ -757,7 +887,9 @@ def _write_env_file(env_data,
     env_file = os.path.abspath(env_file)
     with open(env_file, "w") as f:
         try:
-            yaml.dump(data, f, default_flow_style=False)
+            dumper = yaml.dumper.SafeDumper
+            dumper.ignore_aliases = lambda self, data: True
+            yaml.dump(data, f, default_flow_style=False, Dumper=dumper)
         except yaml.YAMLError as exc:
             raise exc
     return env_file
