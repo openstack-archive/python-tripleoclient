@@ -152,7 +152,6 @@ def update_plan_from_templates(clients, name, tht_root, roles_file=None,
     # 'passwords' if they exist as they can't be recreated from the
     # templates content.
     passwords = []
-    user_env = {}
     # If the user provides a plan-environment files, then used it
     if plan_env_file:
         with open(os.path.abspath(plan_env_file)) as content:
@@ -163,12 +162,15 @@ def update_plan_from_templates(clients, name, tht_root, roles_file=None,
                 name, constants.PLAN_ENVIRONMENT)[1])
         except swift_exc.ClientException:
             pass
-    try:
-        # Get user environment
-        user_env = yaml.safe_load(swift_client.get_object(
-            name, constants.USER_ENVIRONMENT)[1])
-    except swift_exc.ClientException:
-        pass
+
+    keep_file_contents = _load_content_or_file(
+        swift_client,
+        name,
+        {
+            constants.USER_ENVIRONMENT: None,
+        }
+    )
+
     passwords = env.get('passwords', [])
     # TODO(dmatthews): Removing the existing plan files should probably be
     #                  a Mistral action.
@@ -191,11 +193,43 @@ def update_plan_from_templates(clients, name, tht_root, roles_file=None,
                       networks_file)
     # Update password and user parameters into swift
     _update_passwords(swift_client, name, passwords)
-    _update_user_environment(swift_client, name, user_env,
-                             constants.USER_ENVIRONMENT)
+
+    for filename in keep_file_contents:
+        _upload_file_content(swift_client, name, filename,
+                             keep_file_contents[filename])
+
     update_deployment_plan(clients, container=name,
                            generate_passwords=generate_passwords,
                            source_url=None, plan_environment=env)
+
+
+def _load_content_or_file(swift_client, container, remote_and_local_map):
+    # mapping (remote_name, content)
+    file_contents = {}
+
+    plan_files = list(map(lambda i: i['name'],
+                          swift_client.get_container(
+                              container, full_listing=True)[1]))
+
+    for remote_name in remote_and_local_map:
+        LOG.debug("Attempting to load {0}".format(remote_name))
+        local_name = remote_and_local_map[remote_name]
+        # it's possible that the file doesn't exist in Swift and isn't
+        # passed on filesystem, in which case we won't do anything
+        content = None
+        # local override takes priority
+        if local_name:
+            LOG.debug("Using provided file {0}".format(local_name))
+            with open(os.path.abspath(local_name)) as local_content:
+                content = local_content.read()
+        elif remote_name in plan_files:
+            LOG.debug("Preserving plan file {0}".format(remote_name))
+            content = swift_client.get_object(container, remote_name)[1]
+
+        if content:
+            file_contents[remote_name] = content
+
+    return file_contents
 
 
 def _upload_file(swift_client, container, filename, local_filename):
@@ -205,18 +239,8 @@ def _upload_file(swift_client, container, filename, local_filename):
 
 # short function, just alias for interface parity with _upload_plan_file
 def _upload_file_content(swift_client, container, filename, content):
+    LOG.debug("Uploading {0} to plan".format(filename))
     swift_client.put_object(container, filename, content)
-
-
-def _update_user_environment(swift_client, name, user_params, filename):
-    if user_params:
-        try:
-            swift_client.put_object(name,
-                                    filename,
-                                    yaml.safe_dump(user_params,
-                                                   default_flow_style=False))
-        except swift_exc.ClientException:
-            LOG.debug("Unable to put %s in %s", filename, name)
 
 
 def _update_passwords(swift_client, name, passwords):
