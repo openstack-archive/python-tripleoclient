@@ -39,29 +39,23 @@ def _upload_templates(swift_client, container_name, tht_root, roles_file=None,
         tarball.tarball_extract_to_swift_container(
             swift_client, tmp_tarball.name, container_name)
 
-    # Allow optional override of the roles_data.yaml file
+    # Optional override of the roles_data.yaml file
     if roles_file:
-        with open(roles_file) as rf:
-            swift_client.put_object(container_name,
-                                    constants.OVERCLOUD_ROLES_FILE,
-                                    rf)
+        _upload_file(swift_client, container_name,
+                     constants.OVERCLOUD_ROLES_FILE, roles_file)
 
-    # Allow optional override of the network_data.yaml file
+    # Optional override of the network_data.yaml file
     if networks_file:
-        with open(networks_file) as rf:
-            swift_client.put_object(container_name,
-                                    constants.OVERCLOUD_NETWORKS_FILE,
-                                    rf)
+        _upload_file(swift_client, container_name,
+                     constants.OVERCLOUD_NETWORKS_FILE, networks_file)
 
     # Optional override of the plan-environment.yaml file
     if plan_env_file:
         # TODO(jpalanis): Instead of overriding default file,
         # merging the user override plan-environment with default
         # plan-environment file will avoid explict merging issues.
-        with open(plan_env_file) as pf:
-            swift_client.put_object(container_name,
-                                    constants.PLAN_ENVIRONMENT,
-                                    pf)
+        _upload_file(swift_client, container_name,
+                     constants.PLAN_ENVIRONMENT, plan_env_file)
 
 
 def _create_update_deployment_plan(clients, workflow, **workflow_input):
@@ -202,6 +196,16 @@ def update_plan_from_templates(clients, name, tht_root, roles_file=None,
     update_deployment_plan(clients, container=name,
                            generate_passwords=generate_passwords,
                            source_url=None, plan_environment=env)
+
+
+def _upload_file(swift_client, container, filename, local_filename):
+    with open(local_filename) as file_content:
+        swift_client.put_object(container, filename, file_content)
+
+
+# short function, just alias for interface parity with _upload_plan_file
+def _upload_file_content(swift_client, container, filename, content):
+    swift_client.put_object(container, filename, content)
 
 
 def _update_user_environment(swift_client, name, user_params, filename):
