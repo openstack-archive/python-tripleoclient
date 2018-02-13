@@ -1,0 +1,5 @@
+---
+features:
+  - The ``openstack undercloud install`` command now has a ``--dry-run``
+    argument which will print the resulting install command instead of
+    executing it.

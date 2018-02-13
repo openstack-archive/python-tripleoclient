@@ -44,7 +44,7 @@ class TestUndercloudInstall(TestPluginV1):
         # DisplayCommandBase.take_action() returns two tuples
         self.cmd.take_action(parsed_args)
 
-        mock_subprocess.assert_called_with('instack-install-undercloud')
+        mock_subprocess.assert_called_with(['instack-install-undercloud'])
 
     @mock.patch('subprocess.check_call', autospec=True)
     def test_undercloud_install_with_heat(self, mock_subprocess):

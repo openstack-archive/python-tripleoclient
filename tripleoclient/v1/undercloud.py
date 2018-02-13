@@ -52,6 +52,13 @@ class InstallUndercloud(command.Command):
             default=False,
             help=_("Do not perform undercloud configuration validations"),
         )
+        parser.add_argument(
+            '--dry-run',
+            dest='dry_run',
+            action='store_true',
+            default=False,
+            help=_("Print the install command instead of running it"),
+        )
         return parser
 
     def take_action(self, parsed_args):
@@ -59,13 +66,15 @@ class InstallUndercloud(command.Command):
 
         utils.ensure_run_as_normal_user()
         if parsed_args.use_heat:
+            no_validations = parsed_args.dry_run or parsed_args.no_validations
             cmd = undercloud_config.\
-                prepare_undercloud_deploy(no_validations=parsed_args.
-                                          no_validations)
-            print("Running: %s" % ' '.join(cmd))
-            subprocess.check_call(cmd)
+                prepare_undercloud_deploy(no_validations=no_validations)
         else:
-            subprocess.check_call("instack-install-undercloud")
+            cmd = ["instack-install-undercloud"]
+        if parsed_args.dry_run:
+            print(' '.join(cmd))
+        else:
+            subprocess.check_call(cmd)
 
 
 class UpgradeUndercloud(InstallUndercloud):
