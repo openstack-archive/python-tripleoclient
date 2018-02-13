@@ -211,6 +211,107 @@ class TestPlanCreationWorkflows(utils.TestCommand):
                             'generate_passwords': False})
 
 
+class TestPlanUpdateWorkflows(base.TestCommand):
+
+    def setUp(self):
+        super(TestPlanUpdateWorkflows, self).setUp()
+        self.app.client_manager.workflow_engine = self.workflow = mock.Mock()
+        self.app.client_manager.tripleoclient = self.tripleoclient = \
+            mock.Mock()
+        self.tripleoclient.object_store = self.object_store = mock.Mock()
+
+        self.websocket = mock.Mock()
+        self.websocket.__enter__ = lambda s: self.websocket
+        self.websocket.__exit__ = lambda s, *exc: None
+        self.tripleoclient.messaging_websocket.return_value = self.websocket
+        self.workflow.action_executions.create.return_value = mock.Mock(
+            output='{"result": ""}')
+        self.message_success = iter([{
+            "execution": {"id": "IDID"},
+            "status": "SUCCESS",
+        }])
+        self.websocket.wait_for_messages.return_value = self.message_success
+
+        self.object_store.get_container.return_value = (
+            {},
+            [
+                {'name': 'plan-environment.yaml'},
+                {'name': 'user-environment.yaml'},
+            ]
+        )
+
+        def get_object(*args, **kwargs):
+            if args[0] != 'test-overcloud':
+                raise RuntimeError('Unexpected container')
+            if args[1] == 'plan-environment.yaml':
+                return {}, ('passwords: somepasswords\n'
+                            'plan-environment.yaml: mock content\n')
+            # Generic return valuebased on param,
+            # e.g. 'plan-environment.yaml: mock content'
+            return {}, '{0}: mock content\n'.format(args[1])
+        self.object_store.get_object.side_effect = get_object
+
+    @mock.patch('tripleoclient.workflows.plan_management.tarball',
+                autospec=True)
+    @mock.patch('tripleo_common.utils.swift.empty_container',
+                autospec=True)
+    def test_update_plan_from_templates_keep_env(
+            self, mock_empty_container, mock_tarball):
+
+        plan_management.update_plan_from_templates(
+            self.app.client_manager,
+            'test-overcloud',
+            '/tht-root/',
+            keep_env=True)
+
+        mock_empty_container.assert_called_once_with(
+            self.object_store, 'test-overcloud')
+
+        # make sure we're pushing the saved files back to plan
+        self.object_store.put_object.assert_has_calls(
+            [
+                mock.call('test-overcloud', 'plan-environment.yaml',
+                          'passwords: somepasswords\n'
+                          'plan-environment.yaml: mock content\n'),
+                mock.call('test-overcloud', 'user-environment.yaml',
+                          'user-environment.yaml: mock content\n'),
+            ],
+            any_order=True,
+        )
+
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.plan_management.v1.update_deployment_plan',
+            workflow_input={'container': 'test-overcloud',
+                            'generate_passwords': True, 'source_url': None})
+
+    @mock.patch('tripleoclient.workflows.plan_management.tarball',
+                autospec=True)
+    @mock.patch('tripleo_common.utils.swift.empty_container',
+                autospec=True)
+    def test_update_plan_from_templates_recreate_env(
+            self, mock_empty_container, mock_tarball):
+
+        plan_management.update_plan_from_templates(
+            self.app.client_manager,
+            'test-overcloud',
+            '/tht-root/')
+
+        mock_empty_container.assert_called_once_with(
+            self.object_store, 'test-overcloud')
+
+        # make sure passwords got persisted
+        self.object_store.put_object.assert_called_with(
+            'test-overcloud', 'plan-environment.yaml',
+            'passwords: somepasswords\n'
+            'plan-environment.yaml: mock content\n'
+        )
+
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.plan_management.v1.update_deployment_plan',
+            workflow_input={'container': 'test-overcloud',
+                            'generate_passwords': True, 'source_url': None})
+
+
 class TestUpdatePasswords(base.TestCase):
 
     YAML_CONTENTS = """version: 1.0
