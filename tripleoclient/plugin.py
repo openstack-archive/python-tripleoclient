@@ -194,9 +194,9 @@ class ClientWrapper(object):
         self._local_orchestration = client
         return self._local_orchestration
 
-    def messaging_websocket(self):
+    def messaging_websocket(self, queue_name='tripleo'):
         """Returns a websocket for the messaging service"""
-        return WebsocketClient(self._instance)
+        return WebsocketClient(self._instance, queue_name)
 
     @property
     def object_store(self):
