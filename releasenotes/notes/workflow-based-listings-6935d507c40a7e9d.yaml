@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    New ``openstack overcloud roles`` ``list`` and ``show`` commands
+    were added in order to look at the roles as they are defined in the
+    plan in the Swift container.
+deprecations:
+  - |
+    ``openstack overcloud role list`` and ``openstack overcloud role
+    show`` are deprecated in favour of ``openstack overcloud roles
+    list`` and ``openstack overcloud roles show`` respectively. The new
+    commands operate directly on the plan rather than on the local
+    filesystem.
