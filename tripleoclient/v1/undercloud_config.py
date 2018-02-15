@@ -570,9 +570,11 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False):
         registry_overwrites.update(
             _get_public_tls_resource_registry_overwrites(enable_tls_yaml_path))
         deploy_args += [
-            '-e', endpoint_environment, '-e',
-            'environments/services-docker/undercloud-haproxy.yaml',
-            '-e', 'environments/services-docker/undercloud-keepalived.yaml']
+            '-e', endpoint_environment,
+            '-e', os.path.join(tht_templates, 'environments/services-docker/'
+                               'undercloud-haproxy.yaml'),
+            '-e', os.path.join(tht_templates, 'environments/services-docker/'
+                               'undercloud-keepalived.yaml')]
 
     if (CONF.get('generate_service_certificate') or
             CONF.get('undercloud_service_certificate')):
