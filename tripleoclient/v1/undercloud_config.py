@@ -23,6 +23,7 @@ import logging
 import netaddr
 import os
 from oslo_config import cfg
+from tripleoclient import utils
 from tripleoclient.v1 import undercloud_preflight
 import yaml
 
@@ -65,6 +66,11 @@ PATHS = Paths()
 # When adding new options to the lists below, make sure to regenerate the
 # sample config by running "tox -e genconfig" in the project root.
 _opts = [
+    cfg.StrOpt('deployment_user',
+               help=('User used to run openstack undercloud install command '
+                     'which will be used to add the user to the docker group, '
+                     'required to upload containers'),
+               ),
     cfg.StrOpt('undercloud_hostname',
                help=('Fully qualified hostname (including domain) to set on '
                      'the Undercloud. If left unset, the '
@@ -601,6 +607,9 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False):
             '-e', os.path.join(
                 tht_templates,
                 'environments/services-docker/undercloud-keepalived.yaml')]
+
+    u = CONF.get('deployment_user') or utils.get_deployment_user()
+    env_data['DeploymentUser'] = u
 
     deploy_args += [
         "-e", os.path.join(tht_templates, "environments/docker.yaml"),
