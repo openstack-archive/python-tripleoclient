@@ -36,3 +36,7 @@ PUPPET_BASE = "/etc/puppet/"
 # Update Queue
 UPDATE_QUEUE = 'update'
 STACK_TIMEOUT = 240
+
+# The default minor update ansible playbooks generated from heat stack output
+MINOR_UPDATE_PLAYBOOKS = ['update_steps_playbook.yaml',
+                          'deploy_steps_playbook.yaml']
