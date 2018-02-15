@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Introduce deployment_user parameter, default to the current user,
+    will feed DeploymentUser parameter in THT, primarly used to add the
+    user to the 'docker' group, so our operators can run the `overcloud
+    container` commands when the undercloud is containerized.

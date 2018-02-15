@@ -204,6 +204,12 @@ class TestEnsureRunAsNormalUser(TestCase):
         self.assertRaises(exceptions.RootUserExecution,
                           utils.ensure_run_as_normal_user)
 
+    @mock.patch('getpass.getuser')
+    def test_get_deployment_user(self, mock_getpass):
+        mock_getpass.return_value = 'stack'
+        u = utils.get_deployment_user()
+        self.assertEqual('stack', u)
+
 
 class TestCreateOvercloudRC(TestCase):
 

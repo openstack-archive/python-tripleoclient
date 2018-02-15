@@ -16,6 +16,7 @@
 from __future__ import print_function
 import csv
 import datetime
+import getpass
 import glob
 import hashlib
 import logging
@@ -426,6 +427,11 @@ def ensure_run_as_normal_user():
         raise exceptions.RootUserExecution(
             'This command cannot run under root user.'
             ' Switch to a normal user.')
+
+
+def get_deployment_user():
+    """Return the user name which is used to deploy the cloud"""
+    return getpass.getuser()
 
 
 def capabilities_to_dict(caps):
