@@ -894,8 +894,8 @@ class DeployOvercloud(command.Command):
         # Force fetching of attributes
         stack.get()
 
-        overcloudrcs = deployment.overcloudrc(
-            self.workflow_client, container=stack.stack_name,
+        overcloudrcs = deployment.create_overcloudrc(
+            self.clients, container=stack.stack_name,
             no_proxy=parsed_args.no_proxy)
 
         rcpath = utils.write_overcloudrc(stack.stack_name, overcloudrcs)

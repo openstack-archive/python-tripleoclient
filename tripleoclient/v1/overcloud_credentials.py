@@ -34,9 +34,9 @@ class OvercloudCredentials(command.Command):
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
 
-        workflow_engine = self.app.client_manager.workflow_engine
+        clients = self.app.client_manager
         plan = parsed_args.plan
         dir_ = parsed_args.directory
 
-        overcloudrcs = deployment.overcloudrc(workflow_engine, container=plan)
+        overcloudrcs = deployment.create_overcloudrc(clients, container=plan)
         utils.write_overcloudrc(plan, overcloudrcs, dir_)
