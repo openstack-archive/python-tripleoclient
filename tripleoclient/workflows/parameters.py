@@ -112,15 +112,18 @@ def check_deprecated_parameters(clients, container):
 
         deprecated_params = []
         unused_params = []
+        invalid_role_specific_params = []
         for message in messages:
             if message['status'] == 'SUCCESS':
                 for param in message.get('deprecated', []):
                     if param.get('user_defined'):
                         deprecated_params.append(param['parameter'])
                 unused_params = message.get('unused', [])
+                invalid_role_specific_params = message.get(
+                    'invalid_role_specific', [])
 
         if deprecated_params:
-            print('WARNING: Following parameters are deprecated and still '
+            print('WARNING: Following parameter(s) are deprecated and still '
                   'defined. Deprecated parameters will be removed soon!')
             print('\n'.join(['  {}'.format(param)
                             for param in deprecated_params]))
@@ -137,3 +140,9 @@ def check_deprecated_parameters(clients, container):
                   'may be valid but not in use due to the service or '
                   'deployment configuration.'
                   ' {unused_join}'.format(unused_join=unused_join))
+
+        if invalid_role_specific_params:
+            print('WARNING: Following parameter(s) are not supported as '
+                  'role-specific inputs.')
+            print('\n'.join(['  {}'.format(param)
+                            for param in invalid_role_specific_params]))

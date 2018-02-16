@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Added a warning message if user has provided an invalid role-specific
+    parameter in the environment file.
