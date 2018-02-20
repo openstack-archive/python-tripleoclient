@@ -66,6 +66,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         os.unlink(self.parameter_defaults_env_file)
         self.cmd._download_missing_files_from_plan = self.real_download_missing
 
+    @mock.patch(
+        'tripleoclient.workflows.plan_management.list_deployment_plans',
+        autospec=True)
     @mock.patch('tripleoclient.workflows.deployment.get_horizon_url',
                 autospec=True)
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
@@ -98,7 +101,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                        mock_create_parameters_env,
                        mock_breakpoints_cleanupm,
                        mock_events, mock_tarball,
-                       mock_get_horizon_url):
+                       mock_get_horizon_url,
+                       mock_list_plans):
 
         arglist = ['--templates', '--ceph-storage-scale', '3']
         verifylist = [
@@ -115,6 +119,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_event = mock.Mock()
         mock_event.id = '1234'
         mock_events.return_value = [mock_events]
+        mock_list_plans.return_value = []
         workflow_client = clients.workflow_engine
         workflow_client.action_executions.create.return_value = mock.MagicMock(
             output='{"result":[]}')
@@ -170,6 +175,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_create_tempest_deployer_input.assert_called_with()
 
+    @mock.patch(
+        'tripleoclient.workflows.plan_management.list_deployment_plans',
+        autospec=True)
     @mock.patch('tripleoclient.workflows.deployment.get_horizon_url',
                 autospec=True)
     @mock.patch('tripleoclient.workflows.parameters.invoke_plan_env_workflows',
@@ -208,7 +216,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                         mock_breakpoints_cleanup, mock_tarball,
                         mock_postconfig, mock_get_overcloud_endpoint,
                         mock_invoke_plan_env_wf,
-                        mock_get_horizon_url):
+                        mock_get_horizon_url,
+                        mock_list_plans):
 
         arglist = ['--templates', '--ceph-storage-scale', '3',
                    '--control-flavor', 'oooq_control', '--no-cleanup']
@@ -226,6 +235,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         orchestration_client = clients.orchestration
         mock_stack = fakes.create_tht_stack()
         orchestration_client.stacks.get.side_effect = [None, mock.Mock()]
+        mock_list_plans.return_value = []
         workflow_client = clients.workflow_engine
         workflow_client.action_executions.create.return_value = mock.MagicMock(
             output='{"result":[]}')
@@ -302,6 +312,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertEqual(env_map.get('parameter_defaults'),
                          parameters_env.get('parameter_defaults'))
 
+    @mock.patch(
+        'tripleoclient.workflows.plan_management.list_deployment_plans',
+        autospec=True)
     @mock.patch('tripleoclient.workflows.deployment.get_horizon_url',
                 autospec=True)
     @mock.patch('tripleoclient.workflows.parameters.invoke_plan_env_workflows',
@@ -340,7 +353,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_validate_args, mock_breakpoints_cleanup,
         mock_tarball, mock_postconfig,
         mock_get_overcloud_endpoint, mock_shutil_rmtree,
-            mock_invoke_plan_env_wf, mock_get_horizon_url):
+        mock_invoke_plan_env_wf, mock_get_horizon_url,
+            mock_list_plans):
         arglist = ['--templates', '-p', 'the-plan-environment.yaml']
         verifylist = [
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
@@ -355,6 +369,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         orchestration_client = clients.orchestration
         mock_stack = fakes.create_tht_stack()
         orchestration_client.stacks.get.side_effect = [None, mock.Mock()]
+        mock_list_plans.return_value = []
         workflow_client = clients.workflow_engine
         workflow_client.environments.get.return_value = mock.MagicMock(
             variables={'environments': []})
@@ -437,6 +452,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         clients.tripleoclient.object_store.put_object.assert_called()
         self.assertTrue(mock_invoke_plan_env_wf.called)
 
+    @mock.patch(
+        'tripleoclient.workflows.plan_management.list_deployment_plans',
+        autospec=True)
     @mock.patch('tripleoclient.workflows.deployment.get_horizon_url',
                 autospec=True)
     @mock.patch('tripleoclient.workflows.parameters.'
@@ -476,7 +494,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mock_create_parameters_env, mock_validate_args,
             mock_breakpoints_cleanup, mock_tarball,
             mock_postconfig, mock_get_overcloud_endpoint,
-            mock_deprecated_params, mock_get_horizon_url):
+            mock_deprecated_params, mock_get_horizon_url,
+            mock_list_plans):
 
         arglist = ['--templates', '--skip-deploy-identifier']
         verifylist = [
@@ -492,6 +511,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         orchestration_client = clients.orchestration
         mock_stack = fakes.create_tht_stack()
         orchestration_client.stacks.get.side_effect = [None, mock.Mock()]
+        mock_list_plans.return_value = []
         workflow_client = clients.workflow_engine
         workflow_client.action_executions.create.return_value = mock.MagicMock(
             output='{"result":[]}')
@@ -533,6 +553,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         deploy_plan_call_input = deploy_plan_call[1]['workflow_input']
         self.assertTrue(deploy_plan_call_input['skip_deploy_identifier'])
 
+    @mock.patch(
+        'tripleoclient.workflows.plan_management.list_deployment_plans',
+        autospec=True)
     @mock.patch('tripleoclient.workflows.deployment.get_horizon_url',
                 autospec=True)
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
@@ -560,7 +583,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                      mock_deploy_postconfig,
                                      mock_breakpoints_cleanup,
                                      mock_events, mock_tarball,
-                                     mock_get_horizon_url):
+                                     mock_get_horizon_url,
+                                     mock_list_plans):
 
         arglist = ['--templates', '/home/stack/tripleo-heat-templates']
         verifylist = [
@@ -583,6 +607,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         baremetal = clients.baremetal
         baremetal.node.list.return_value = range(10)
 
+        mock_list_plans.return_value = []
         workflow_client = clients.workflow_engine
         workflow_client.action_executions.create.return_value = mock.MagicMock(
             output='{"result":[]}')
@@ -644,6 +669,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             self.cmd.take_action, parsed_args)
         self.assertFalse(mock_deploy_tht.called)
 
+    @mock.patch(
+        'tripleoclient.workflows.plan_management.list_deployment_plans',
+        autospec=True)
     @mock.patch('tripleoclient.workflows.deployment.get_horizon_url',
                 autospec=True)
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
@@ -663,9 +691,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                               mock_update_parameters, mock_post_config,
                               mock_utils_endpoint, mock_utils_createrc,
                               mock_utils_tempest, mock_tarball,
-                              mock_get_horizon_url):
+                              mock_get_horizon_url, mock_list_plans):
 
         clients = self.app.client_manager
+        mock_list_plans.return_value = []
         workflow_client = clients.workflow_engine
         workflow_client.action_executions.create.return_value = mock.MagicMock(
             output='{"result":[]}')
@@ -711,6 +740,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         self.cmd.take_action(parsed_args)
 
+    @mock.patch(
+        'tripleoclient.workflows.plan_management.list_deployment_plans',
+        autospec=True)
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
                 autospec=True)
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
@@ -729,9 +761,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                   mock_update_parameters, mock_post_config,
                                   mock_utils_get_stack, mock_utils_endpoint,
                                   mock_utils_createrc, mock_utils_tempest,
-                                  mock_tarball):
+                                  mock_tarball, mock_list_plans):
 
         clients = self.app.client_manager
+        mock_list_plans.return_value = []
         workflow_client = clients.workflow_engine
         workflow_client.action_executions.create.return_value = mock.MagicMock(
             output='{"result":[]}')
@@ -770,6 +803,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         self.cmd.take_action(parsed_args)
 
+    @mock.patch(
+        'tripleoclient.workflows.plan_management.list_deployment_plans',
+        autospec=True)
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
                 autospec=True)
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
@@ -790,9 +826,11 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                                   mock_utils_endpoint,
                                                   mock_utils_createrc,
                                                   mock_utils_tempest,
-                                                  mock_tarball):
+                                                  mock_tarball,
+                                                  mock_list_plans):
 
         clients = self.app.client_manager
+        mock_list_plans.return_value = []
         workflow_client = clients.workflow_engine
         workflow_client.action_executions.create.return_value = mock.MagicMock(
             output='{"result":[]}')
@@ -913,6 +951,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_create_tempest_deployer_input.assert_called_with()
 
+    @mock.patch(
+        'tripleoclient.workflows.plan_management.list_deployment_plans',
+        autospec=True)
     @mock.patch('tripleoclient.workflows.deployment.get_horizon_url',
                 autospec=True)
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
@@ -945,7 +986,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                              mock_deploy_postconfig,
                              mock_breakpoints_cleanup,
                              mock_events, mock_tarball,
-                             mock_get_horizon_url):
+                             mock_get_horizon_url,
+                             mock_list_plans):
 
         arglist = ['--templates', '--rhel-reg',
                    '--reg-sat-url', 'https://example.com',
@@ -983,6 +1025,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         orchestration_client = clients.orchestration
         orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
         mock_events.return_value = []
+        mock_list_plans.return_value = []
         workflow_client = clients.workflow_engine
         workflow_client.action_executions.create.return_value = mock.MagicMock(
             output='{"result":[]}')
@@ -1155,6 +1198,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertFalse(mock_create_ocrc.called)
         self.assertFalse(mock_create_tempest_deployer_input.called)
 
+    @mock.patch(
+        'tripleoclient.workflows.plan_management.list_deployment_plans',
+        autospec=True)
     @mock.patch('tripleoclient.workflows.deployment.get_horizon_url',
                 autospec=True)
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
@@ -1173,8 +1219,11 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                           mock_oc_endpoint,
                           mock_create_ocrc,
                           mock_create_tempest_deployer_input,
-                          mock_tarball, mock_get_horizon_url):
+                          mock_tarball, mock_get_horizon_url,
+                          mock_list_plans):
         clients = self.app.client_manager
+
+        mock_list_plans.return_value = []
 
         workflow_client = clients.workflow_engine
         workflow_client.action_executions.create.return_value = mock.MagicMock(
@@ -1280,6 +1329,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             role_counts,
             self.cmd._get_default_role_counts(parsed_args))
 
+    @mock.patch(
+        'tripleoclient.workflows.plan_management.list_deployment_plans',
+        autospec=True)
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
                 autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
@@ -1295,7 +1347,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                   mock_process_env,
                                   mock_write_overcloudrc,
                                   mock_create_parameters_env,
-                                  mock_tarball):
+                                  mock_tarball,
+                                  mock_list_plans):
 
         arglist = ['--templates', '--control-scale', '3']
         verifylist = [
@@ -1307,6 +1360,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         workflow_client = clients.workflow_engine
         workflow_client.action_executions.create.return_value = mock.MagicMock(
             output='{"result":[]}')
+        mock_list_plans.return_value = []
 
         object_client = clients.tripleoclient.object_store
         object_client.get_object = mock.Mock()
@@ -1330,6 +1384,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                           self.cmd.take_action,
                           parsed_args)
 
+    @mock.patch(
+        'tripleoclient.workflows.plan_management.list_deployment_plans',
+        autospec=True)
     @mock.patch('tripleoclient.workflows.deployment.get_horizon_url',
                 autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
@@ -1367,7 +1424,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                  mock_breakpoints_cleanup,
                                  mock_tarball,
                                  mock_deploy_post_config,
-                                 mock_get_horizon_url):
+                                 mock_get_horizon_url,
+                                 mock_list_plans):
 
         arglist = ['--templates', '--ceph-storage-scale', '3',
                    '--control-scale', '3', '--ntp-server', 'ntp']
@@ -1392,6 +1450,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             orchestration_client.stacks.get.return_value = mock_stack
 
         orchestration_client.stacks.create.side_effect = _orch_clt_create
+
+        mock_list_plans.return_value = []
 
         workflow_client = clients.workflow_engine
         workflow_client.action_executions.create.return_value = mock.MagicMock(
