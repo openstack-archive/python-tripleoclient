@@ -51,6 +51,7 @@ from tripleoclient import exceptions
 from tripleoclient import heat_launcher
 from tripleoclient import utils
 
+from tripleo_common.image import kolla_builder
 from tripleo_common.utils import passwords as password_utils
 
 # For ansible download
@@ -391,6 +392,22 @@ class DeployUndercloud(command.Command):
 
         return environments
 
+    def _prepare_container_images(self, env, roles_file):
+        if roles_file:
+            with open(roles_file) as f:
+                roles_data = yaml.safe_load(f)
+        else:
+            roles_data = None
+        image_params = kolla_builder.container_images_prepare_multi(
+            env, roles_data)
+
+        # use setdefault to ensure every needed image parameter is
+        # populated without replacing user-set values
+        if image_params:
+            pd = env.get('parameter_defaults', {})
+            for k, v in image_params.items():
+                pd.setdefault(k, v)
+
     def _deploy_tripleo_heat_templates(self, orchestration_client,
                                        parsed_args):
         """Deploy the fixed templates in TripleO Heat Templates"""
@@ -402,6 +419,10 @@ class DeployUndercloud(command.Command):
         env_files, env = utils.process_multiple_environments(
             environments, self.tht_render, parsed_args.templates,
             cleanup=parsed_args.cleanup)
+
+        roles_file = os.path.join(
+            parsed_args.templates, parsed_args.roles_file)
+        self._prepare_container_images(env, roles_file)
 
         self.log.debug("Getting template contents")
         template_path = os.path.join(self.tht_render, 'overcloud.yaml')
