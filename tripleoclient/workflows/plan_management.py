@@ -151,16 +151,21 @@ def update_plan_from_templates(clients, name, tht_root, roles_file=None,
     keep_file_contents = {}
 
     if keep_env:
+        # Dict items are (remote_name, local_name). local_name may be
+        # None in which case we only try to load from Swift (remote).
+        keep_map = {
+            constants.PLAN_ENVIRONMENT: plan_env_file,
+            constants.USER_ENVIRONMENT: None,
+            constants.OVERCLOUD_ROLES_FILE: roles_file,
+            constants.OVERCLOUD_NETWORKS_FILE: networks_file,
+        }
+        # Also try to fetch any files under 'user-files/'
+        # dir. local_name is always None for these
+        keep_map.update(dict(map(
+            lambda path: (path, None),
+            _list_user_files(swift_client, name))))
         keep_file_contents = _load_content_or_file(
-            swift_client,
-            name,
-            {
-                constants.PLAN_ENVIRONMENT: plan_env_file,
-                constants.USER_ENVIRONMENT: None,
-                constants.OVERCLOUD_ROLES_FILE: roles_file,
-                constants.OVERCLOUD_NETWORKS_FILE: networks_file,
-            }
-        )
+            swift_client, name, keep_map)
     elif not plan_env_file:
         passwords = _load_passwords(swift_client, name)
 
@@ -200,9 +205,7 @@ def _load_content_or_file(swift_client, container, remote_and_local_map):
     # mapping (remote_name, content)
     file_contents = {}
 
-    plan_files = list(map(lambda i: i['name'],
-                          swift_client.get_container(
-                              container, full_listing=True)[1]))
+    plan_files = _list_plan_files(swift_client, container)
 
     for remote_name in remote_and_local_map:
         LOG.debug("Attempting to load {0}".format(remote_name))
@@ -223,6 +226,17 @@ def _load_content_or_file(swift_client, container, remote_and_local_map):
             file_contents[remote_name] = content
 
     return file_contents
+
+
+def _list_user_files(swift_client, container):
+    return list(filter(lambda path: path.startswith('user-files/'),
+                       _list_plan_files(swift_client, container)))
+
+
+def _list_plan_files(swift_client, container):
+    return list(map(lambda i: i['name'],
+                    swift_client.get_container(
+                        container, full_listing=True)[1]))
 
 
 def _upload_file(swift_client, container, filename, local_filename):
