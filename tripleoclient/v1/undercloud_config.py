@@ -229,11 +229,6 @@ _opts = [
                 help=('Whether to run benchmarks when inspecting nodes. '
                       'Requires inspection_extras set to True.')
                 ),
-    cfg.BoolOpt('inspection_enable_uefi',
-                default=True,
-                help=('Whether to support introspection of nodes that have '
-                      'UEFI-only firmware.')
-                ),
     cfg.BoolOpt('enable_node_discovery',
                 default=False,
                 help=('Makes ironic-inspector enroll any unknown node that '
