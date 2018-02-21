@@ -169,12 +169,6 @@ _opts = [
                      'Overcloud instances. This should be the subnet used '
                      'for PXE booting.')
                ),
-    cfg.StrOpt('masquerade_network',
-               default='192.168.24.0/24',
-               help=('Network that will be masqueraded for external access, '
-                     'if required. This should be the subnet used for PXE '
-                     'booting.')
-               ),
     cfg.StrOpt('dhcp_start',
                default='192.168.24.5',
                help=('Start of DHCP allocation range for PXE and DHCP of '
