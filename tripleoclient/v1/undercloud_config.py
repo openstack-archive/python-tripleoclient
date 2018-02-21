@@ -43,7 +43,8 @@ PARAMETER_MAPPING = {
     'undercloud_public_host': 'CloudName',
     'scheduler_max_attempts': 'NovaSchedulerMaxAttempts',
     'local_mtu': 'UndercloudLocalMtu',
-    'undercloud_nameservers': 'DnsServers'
+    'undercloud_nameservers': 'DnsServers',
+    'clean_nodes': 'IronicAutomatedClean',
 }
 
 THT_HOME = os.environ.get('THT_HOME',
