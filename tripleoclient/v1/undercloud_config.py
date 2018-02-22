@@ -631,6 +631,9 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False):
     if CONF.get('enable_validations') and not no_validations:
         undercloud_preflight.check()
 
+    if CONF.get('undercloud_debug', None):
+        deploy_args.append('--debug')
+
     cmd = ["sudo", "openstack", "undercloud", "deploy"]
     cmd += deploy_args[:]
 
