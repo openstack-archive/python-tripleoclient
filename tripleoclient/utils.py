@@ -33,6 +33,7 @@ import yaml
 from heatclient.common import event_utils
 from heatclient.exc import HTTPNotFound
 from osc_lib.i18n import _
+from oslo_concurrency import processutils
 from six.moves import configparser
 
 from tripleoclient import exceptions
@@ -810,3 +811,22 @@ def load_environment_directories(directories):
                 if os.path.isfile(f):
                     environments.append(f)
     return environments
+
+
+def get_tripleo_ansible_inventory(inventory_file=''):
+    if not inventory_file:
+        inventory_file = '%s/%s' % (os.path.expanduser('~'),
+                                    'tripleo-ansible-inventory.yaml')
+        try:
+            processutils.execute(
+                '/usr/bin/tripleo-ansible-inventory',
+                '--static-yaml-inventory', inventory_file)
+        except processutils.ProcessExecutionError as e:
+                message = "Failed to generate inventory: %s" % str(e)
+                raise exceptions.InvalidConfiguration(message)
+    if os.path.exists(inventory_file):
+        inventory = open(inventory_file, 'r').read()
+        return inventory
+    else:
+        raise exceptions.InvalidConfiguration(
+            "Inventory file %s can not be found." % inventory_file)

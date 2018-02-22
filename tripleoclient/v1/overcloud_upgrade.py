@@ -1,4 +1,4 @@
-#   Copyright 2015 Red Hat, Inc.
+#   Copyright 2018 Red Hat, Inc.
 #
 #   Licensed under the Apache License, Version 2.0 (the "License"); you may
 #   not use this file except in compliance with the License. You may obtain
@@ -12,7 +12,6 @@
 #   License for the specific language governing permissions and limitations
 #   under the License.
 #
-
 import logging
 import os
 import yaml
@@ -26,15 +25,15 @@ from tripleoclient.v1.overcloud_deploy import DeployOvercloud
 from tripleoclient.workflows import package_update
 
 
-class UpdatePrepare(DeployOvercloud):
+class UpgradePrepare(DeployOvercloud):
     """Run heat stack update for overcloud nodes to refresh heat stack outputs.
 
        The heat stack outputs are what we use later on to generate ansible
-       playbooks which deliver the minor update workflow. This is used as the
-       first step for a minor update of your overcloud.
+       playbooks which deliver the major upgrade workflow. This is used as the
+       first step for a major upgrade of your overcloud.
     """
 
-    log = logging.getLogger(__name__ + ".MinorUpdatePrepare")
+    log = logging.getLogger(__name__ + ".MajorUpgradePrepare")
 
     # enable preservation of all important files (plan env, user env,
     # roles/network data, user files) so that we don't have to pass
@@ -42,19 +41,19 @@ class UpdatePrepare(DeployOvercloud):
     _keep_env_on_update = True
 
     def get_parser(self, prog_name):
-        parser = super(UpdatePrepare, self).get_parser(prog_name)
+        parser = super(UpgradePrepare, self).get_parser(prog_name)
         parser.add_argument('--container-registry-file',
                             dest='container_registry_file',
                             default=None,
                             help=_("File which contains the container "
-                                   "registry data for the update"),
+                                   "registry data for the upgrade"),
                             )
         parser.add_argument('--ceph-ansible-playbook',
                             action="store",
                             default="/usr/share/ceph-ansible"
                                     "/site-docker.yml.sample",
                             help=_('Path to switch the ceph-ansible playbook '
-                                   'used for update. '),
+                                   'used for upgrade. '),
                             )
         return parser
 
@@ -87,7 +86,7 @@ class UpdatePrepare(DeployOvercloud):
         # update_plan_only. The heat stack update is done by the
         # packag_update mistral action
         parsed_args.update_plan_only = True
-        super(UpdatePrepare, self).take_action(parsed_args)
+        super(UpgradePrepare, self).take_action(parsed_args)
         package_update.update(clients, container=stack_name,
                               container_registry=registry,
                               ceph_ansible_playbook=ceph_ansible_playbook)
@@ -96,41 +95,39 @@ class UpdatePrepare(DeployOvercloud):
               parsed_args.stack))
 
 
-class UpdateRun(command.Command):
-    """Run minor update ansible playbooks on Overcloud nodes"""
+class UpgradeRun(command.Command):
+    """Run major upgrade ansible playbooks on Overcloud nodes"""
 
-    log = logging.getLogger(__name__ + ".MinorUpdateRun")
+    log = logging.getLogger(__name__ + ".MajorUpgradeRun")
 
     def get_parser(self, prog_name):
-        parser = super(UpdateRun, self).get_parser(prog_name)
+        parser = super(UpgradeRun, self).get_parser(prog_name)
         parser.add_argument('--nodes',
                             action="store",
                             required=True,
                             help=_("Required parameter. This specifies the "
-                                   "overcloud nodes to run the minor update "
+                                   "overcloud nodes to run the major upgrade "
                                    "playbooks on. You can use the name of "
                                    "a specific node, or the name of the role "
-                                   "(e.g. Compute). You may also use the "
-                                   "special value 'all' to run the minor "
-                                   "on all nodes. In all cases the minor "
-                                   "update ansible playbook is executed on "
-                                   "one node at a time (with serial 1)")
+                                   "(e.g. Compute).")
                             )
         parser.add_argument('--playbook',
                             action="store",
                             default="all",
-                            help=_("Ansible playbook to use for the minor "
-                                   "update. Defaults to the special value "
-                                   "\'all\' which causes all the update "
-                                   "playbooks to be executed. That is the "
-                                   "update_steps_playbook.yaml and then the"
-                                   "deploy_steps_playbook.yaml. "
-                                   "Set this to each of those playbooks in "
+                            help=_("Ansible playbook to use for the major "
+                                   "upgrade. Defaults to the special value "
+                                   "\'all\' which causes all the upgrade "
+                                   "playbooks to run. That is the "
+                                   "upgrade_steps_playbook.yaml "
+                                   "then deploy_steps_playbook.yaml and then "
+                                   "post_upgrade_steps_playbooks.yaml. Set "
+                                   "this to each of those playbooks in "
                                    "consecutive invocations of this command "
                                    "if you prefer to run them manually. Note: "
-                                   "make sure to run both those playbooks so "
-                                   "that all services are updated and running "
-                                   "with the target version configuration.")
+                                   "you will have to run all of those "
+                                   "playbooks so that all services are "
+                                   "upgraded and running with the target "
+                                   "version configuration.")
                             )
         parser.add_argument('--static-inventory',
                             dest='static_inventory',
@@ -149,19 +146,39 @@ class UpdateRun(command.Command):
 
         # Run ansible:
         nodes = parsed_args.nodes
-        if nodes == 'all':
-            # unset this, the ansible action deals with unset 'limithosts'
-            nodes = None
         playbook = parsed_args.playbook
         inventory = oooutils.get_tripleo_ansible_inventory(
             parsed_args.static_inventory)
-        update_playbooks = [playbook]
+        upgrade_playbooks = [playbook]
         if playbook == "all":
-            update_playbooks = constants.MINOR_UPDATE_PLAYBOOKS
-        for book in update_playbooks:
-            self.log.debug("Running minor update ansible playbook %s " % book)
+            upgrade_playbooks = constants.MAJOR_UPGRADE_PLAYBOOKS
+        for book in upgrade_playbooks:
+            self.log.debug("Running major upgrade ansible playbook %s " % book)
             package_update.update_ansible(
                 clients, nodes=nodes,
                 inventory_file=inventory,
                 playbook=book,
-                ansible_queue_name=constants.UPDATE_QUEUE)
+                ansible_queue_name=constants.UPGRADE_QUEUE)
+
+
+class UpgradeConvergeOvercloud(DeployOvercloud):
+    """Converge the upgrade on Overcloud Nodes"""
+
+    log = logging.getLogger(__name__ + ".UpgradeConvergeOvercloud")
+
+    def get_parser(self, prog_name):
+        parser = super(UpgradeConvergeOvercloud, self).get_parser(prog_name)
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)" % parsed_args)
+        clients = self.app.client_manager
+
+        stack = oooutils.get_stack(clients.orchestration,
+                                   parsed_args.stack)
+        stack_name = stack.stack_name
+
+        parsed_args.update_plan_only = True
+        super(UpgradeConvergeOvercloud, self).take_action(parsed_args)
+        # Run converge steps
+        package_update.converge_nodes(clients, container=stack_name)
