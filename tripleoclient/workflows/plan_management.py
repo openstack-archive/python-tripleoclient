@@ -145,7 +145,7 @@ def create_plan_from_templates(clients, name, tht_root, roles_file=None,
 
 def update_plan_from_templates(clients, name, tht_root, roles_file=None,
                                generate_passwords=True, plan_env_file=None,
-                               networks_file=None):
+                               networks_file=None, keep_env=False):
     swift_client = clients.tripleoclient.object_store
 
     # If the plan environment was migrated to Swift, save the generated
@@ -191,16 +191,20 @@ def update_plan_from_templates(clients, name, tht_root, roles_file=None,
     print("Uploading new plan files")
     _upload_templates(swift_client, name, tht_root, roles_file, plan_env_file,
                       networks_file)
-    # Update password and user parameters into swift
-    _update_passwords(swift_client, name, passwords)
 
-    for filename in keep_file_contents:
-        _upload_file_content(swift_client, name, filename,
-                             keep_file_contents[filename])
+    if keep_env:
+        for filename in keep_file_contents:
+            _upload_file_content(swift_client, name, filename,
+                                 keep_file_contents[filename])
 
-    update_deployment_plan(clients, container=name,
-                           generate_passwords=generate_passwords,
-                           source_url=None, plan_environment=env)
+        update_deployment_plan(clients, container=name,
+                               generate_passwords=generate_passwords,
+                               source_url=None, plan_environment=env)
+    else:
+        _update_passwords(swift_client, name, passwords)
+        update_deployment_plan(clients, container=name,
+                               generate_passwords=generate_passwords,
+                               source_url=None)
 
 
 def _load_content_or_file(swift_client, container, remote_and_local_map):
