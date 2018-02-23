@@ -239,6 +239,9 @@ class TestPlanUpdateWorkflows(base.TestCommand):
                 {'name': 'user-environment.yaml'},
                 {'name': 'roles_data.yaml'},
                 {'name': 'network_data.yaml'},
+                {'name': 'user-files/somecustomfile.yaml'},
+                {'name': 'user-files/othercustomfile.yaml'},
+                {'name': 'this-should-not-be-persisted.yaml'},
             ]
         )
 
@@ -281,6 +284,10 @@ class TestPlanUpdateWorkflows(base.TestCommand):
                           'roles_data.yaml: mock content\n'),
                 mock.call('test-overcloud', 'network_data.yaml',
                           'network_data.yaml: mock content\n'),
+                mock.call('test-overcloud', 'user-files/somecustomfile.yaml',
+                          'user-files/somecustomfile.yaml: mock content\n'),
+                mock.call('test-overcloud', 'user-files/othercustomfile.yaml',
+                          'user-files/othercustomfile.yaml: mock content\n'),
             ],
             any_order=True,
         )
