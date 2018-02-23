@@ -157,6 +157,8 @@ def update_plan_from_templates(clients, name, tht_root, roles_file=None,
             {
                 constants.PLAN_ENVIRONMENT: plan_env_file,
                 constants.USER_ENVIRONMENT: None,
+                constants.OVERCLOUD_ROLES_FILE: roles_file,
+                constants.OVERCLOUD_NETWORKS_FILE: networks_file,
             }
         )
     elif not plan_env_file:
@@ -180,8 +182,7 @@ def update_plan_from_templates(clients, name, tht_root, roles_file=None,
 
     print("Uploading new plan files")
     if keep_env:
-        _upload_templates(swift_client, name, tht_root, roles_file=roles_file,
-                          plan_env_file=None, networks_file=networks_file)
+        _upload_templates(swift_client, name, tht_root)
         for filename in keep_file_contents:
             _upload_file_content(swift_client, name, filename,
                                  keep_file_contents[filename])

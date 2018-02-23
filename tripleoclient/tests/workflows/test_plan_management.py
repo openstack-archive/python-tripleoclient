@@ -237,6 +237,8 @@ class TestPlanUpdateWorkflows(base.TestCommand):
             [
                 {'name': 'plan-environment.yaml'},
                 {'name': 'user-environment.yaml'},
+                {'name': 'roles_data.yaml'},
+                {'name': 'network_data.yaml'},
             ]
         )
 
@@ -275,6 +277,10 @@ class TestPlanUpdateWorkflows(base.TestCommand):
                           'plan-environment.yaml: mock content\n'),
                 mock.call('test-overcloud', 'user-environment.yaml',
                           'user-environment.yaml: mock content\n'),
+                mock.call('test-overcloud', 'roles_data.yaml',
+                          'roles_data.yaml: mock content\n'),
+                mock.call('test-overcloud', 'network_data.yaml',
+                          'network_data.yaml: mock content\n'),
             ],
             any_order=True,
         )
