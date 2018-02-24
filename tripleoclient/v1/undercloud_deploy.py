@@ -465,6 +465,13 @@ class DeployUndercloud(command.Command):
                             help=_("Directory to output state and ansible"
                                    " deployment files."),
                             default=os.environ.get('HOME', ''))
+        parser.add_argument('--output-only',
+                            dest='output_only',
+                            action='store_true',
+                            default=True,
+                            help=_("Do not execute the Ansible playbooks. By"
+                                   " default the playbooks are saved to the"
+                                   " output-dir and then executed.")),
         parser.add_argument('-t', '--timeout', metavar='<TIMEOUT>',
                             type=int, default=30,
                             help=_('Deployment timeout in minutes.'))
@@ -587,14 +594,19 @@ class DeployUndercloud(command.Command):
                                                  parsed_args.output_dir)
             # Kill heat, we're done with it now.
             self._kill_heat()
-            # Never returns..  We exec() it directly.
-            self._launch_ansible(ansible_dir)
+            if not parsed_args.output_only:
+                # Never returns..  We exec() it directly.
+                self._launch_ansible(ansible_dir)
         except Exception as e:
             print("Exception: %s" % e)
             print(traceback.format_exception(*sys.exc_info()))
             raise
         finally:
-            # We only get here on error.
-            print('ERROR: Heat log files: %s' % (self.heat_launch.install_tmp))
             self._kill_heat()
-            return 1
+            if not parsed_args.output_only:
+                # We only get here on error.
+                print('ERROR: Heat log files: %s' %
+                      (self.heat_launch.install_tmp))
+                return 1
+            else:
+                return 0
