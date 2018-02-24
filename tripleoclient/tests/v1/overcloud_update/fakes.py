@@ -39,13 +39,23 @@ class FakeObjectClient(object):
         return
 
 
-class TestOvercloudUpdate(utils.TestCommand):
+class TestOvercloudUpdatePrepare(utils.TestCommand):
 
     def setUp(self):
-        super(TestOvercloudUpdate, self).setUp()
+        super(TestOvercloudUpdatePrepare, self).setUp()
 
         self.app.client_manager.auth_ref = mock.Mock(auth_token="TOKEN")
         self.app.client_manager.baremetal = mock.Mock()
         self.app.client_manager.orchestration = mock.Mock()
+        self.app.client_manager.tripleoclient = FakeClientWrapper()
+        self.app.client_manager.workflow_engine = mock.Mock()
+
+
+class TestOvercloudUpdateRun(utils.TestCommand):
+
+    def setUp(self):
+        super(TestOvercloudUpdateRun, self).setUp()
+
+        self.app.client_manager.auth_ref = mock.Mock(auth_token="TOKEN")
         self.app.client_manager.tripleoclient = FakeClientWrapper()
         self.app.client_manager.workflow_engine = mock.Mock()
