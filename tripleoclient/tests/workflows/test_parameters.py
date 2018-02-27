@@ -209,3 +209,17 @@ class TestParameterWorkflows(utils.TestCommand):
 
         std_output = mock_print.getvalue()
         self.assertNotIn('TestParameter1', std_output)
+
+    def test_generate_fencing_parameters(self):
+        self.websocket.wait_for_messages.return_value = iter([{
+            "execution": {"id": "IDID"},
+            "status": "SUCCESS",
+            "fencing_parameters": "{}"
+        }])
+
+        parameters.generate_fencing_parameters(
+            self.app.client_manager, **{})
+
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.parameters.v1.generate_fencing_parameters',
+            workflow_input={})

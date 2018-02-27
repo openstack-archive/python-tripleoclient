@@ -92,15 +92,13 @@ class TestGenerateFencingParameters(utils.TestCommand):
 
         self.cmd = overcloud_parameters.GenerateFencingParameters(self.app,
                                                                   None)
-        self.app.client_manager.workflow_engine = mock.Mock()
+        self.app.client_manager = mock.Mock()
 
-        self.workflow = self.app.client_manager.workflow_engine
-
-    def test_generate_parameters(self):
-        nodes_file = tempfile.NamedTemporaryFile(suffix='.json', delete=False,
-                                                 mode="wt")
-        self.addCleanup(os.unlink, nodes_file.name)
-        nodes_file.write("""
+    @mock.patch(
+        'tripleoclient.workflows.parameters.generate_fencing_parameters',
+        autospec=True)
+    def test_generate_parameters(self, mock_gen_fence):
+        mock_open_context = mock.mock_open(read_data="""
 {
   "nodes": [
       {
@@ -127,24 +125,24 @@ class TestGenerateFencingParameters(utils.TestCommand):
   ]
 }
         """)
-        nodes_file.close()
 
         os.environ["OS_USERNAME"] = "test_os_username"
         os.environ["OS_PASSWORD"] = "test_os_password"
         os.environ["OS_AUTH_URL"] = "test://auth.url"
         os.environ["OS_TENANT_NAME"] = "test_os_tenant_name"
 
-        arglist = [nodes_file.name]
+        arglist = ['node_file.json']
         verifylist = []
 
-        self.workflow.action_executions.create.return_value = mock.MagicMock(
-            output='{"result":[]}')
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-        self.cmd.take_action(parsed_args)
+        mock_gen_fence.return_value = '{"result":[]}'
 
-        self.workflow.action_executions.create.assert_called_once_with(
-            'tripleo.parameters.generate_fencing',
-            {
+        with mock.patch('six.moves.builtins.open', mock_open_context):
+            parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+            self.cmd.take_action(parsed_args)
+
+        mock_gen_fence.assert_called_once_with(
+            self.app.client_manager,
+            **{
                 'nodes_json': [
                     {
                         u'mac': [u'00:11:22:33:44:55'],
@@ -168,5 +166,4 @@ class TestGenerateFencingParameters(utils.TestCommand):
                 'ipmi_cipher': None,
                 'ipmi_lanplus': False,
                 'ipmi_level': None
-            },
-            run_sync=True, save_result=True)
+            })

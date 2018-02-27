@@ -138,3 +138,24 @@ def check_deprecated_parameters(clients, container):
                   'role-specific inputs.')
             print('\n'.join(['  {}'.format(param)
                             for param in invalid_role_specific_params]))
+
+
+def generate_fencing_parameters(clients, **workflow_input):
+    workflow_client = clients.workflow_engine
+    tripleoclients = clients.tripleoclient
+
+    with tripleoclients.messaging_websocket() as ws:
+        execution = base.start_workflow(
+            workflow_client,
+            'tripleo.parameters.v1.generate_fencing_parameters',
+            workflow_input=workflow_input)
+
+        for payload in base.wait_for_messages(workflow_client,
+                                              ws, execution, 600):
+            if payload['status'] != 'SUCCESS':
+                raise exceptions.WorkflowServiceError(
+                    'Exception generating fencing parameters: {}'.format(
+                        payload['message']))
+            if ('fencing_parameters' in payload and
+                    (payload.get('status', 'FAILED') == "SUCCESS")):
+                return payload['fencing_parameters']
