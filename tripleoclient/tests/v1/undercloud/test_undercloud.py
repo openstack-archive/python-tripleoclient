@@ -75,7 +75,7 @@ class TestUndercloudInstall(TestPluginV1):
              'config-download-environment.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'undercloud.yaml', '-e', '/tmp/undercloud_parameters.yaml',
-             mock.ANY])
+             mock.ANY, '--debug'])
 
 
 class TestUndercloudUpgrade(TestPluginV1):
@@ -137,4 +137,4 @@ class TestUndercloudUpgrade(TestPluginV1):
              'config-download-environment.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'undercloud.yaml', '-e', '/tmp/undercloud_parameters.yaml',
-             mock.ANY])
+             mock.ANY, '--debug'])
