@@ -543,13 +543,6 @@ class DeployUndercloud(command.Command):
             default='undercloud',
             help=_('Local domain for undercloud and its API endpoints')
         )
-        parser.add_argument(
-            '-k',
-            '--keep-running',
-            action='store_true',
-            dest='keep_running',
-            help=_('Keep the process running on failures for debugging')
-        )
         return parser
 
     def take_action(self, parsed_args):
