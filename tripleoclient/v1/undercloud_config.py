@@ -668,11 +668,9 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
         deploy_args.append('--templates=%s' % THT_HOME)
 
     if upgrade:
-        # Containerized undercloud upgrade is still WIP
-        # We're in upgrade scenario, include the major upgrade steps
         deploy_args += ['-e', os.path.join(
             tht_templates,
-            "environments/major-upgrade-composable-steps-docker.yaml")]
+            "environments/lifecycle/undercloud-upgrade-prepare.yaml")]
 
     if CONF.get('heat_native', None):
         deploy_args.append('--heat-native')
