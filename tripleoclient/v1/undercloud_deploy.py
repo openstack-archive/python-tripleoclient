@@ -468,7 +468,7 @@ class DeployUndercloud(command.Command):
         parser.add_argument('--output-only',
                             dest='output_only',
                             action='store_true',
-                            default=True,
+                            default=False,
                             help=_("Do not execute the Ansible playbooks. By"
                                    " default the playbooks are saved to the"
                                    " output-dir and then executed.")),
