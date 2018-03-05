@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Bind ``undercloud_nameservers`` defined in `undercloud.conf` to the
+    ``DnsServers`` heat stack parameter. This ensures DNS
+    configuration applied via os-net-config undercloud install time as well.
+    That works additionally to ``UndercloudNameserver`` limited to the
+    ctlplane subnet DNS configuration executed at post-install steps only.
