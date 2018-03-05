@@ -120,13 +120,13 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
     @mock.patch('six.moves.builtins.open')
-    def test_upgrade_with_playbook(self, mock_open, mock_execute,
-                                   mock_expanduser, upgrade_ansible):
+    def test_upgrade_roles_with_playbook(
+            self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
         mock_expanduser.return_value = '/home/fake/'
-        argslist = ['--nodes', 'Compute', '--playbook',
-                    'fake-playbook.yaml']
+        argslist = ['--roles', 'Compute', 'Controller',
+                    '--playbook', 'fake-playbook.yaml']
         verifylist = [
-            ('nodes', 'Compute'),
+            ('roles', ['Compute', 'Controller']),
             ('static_inventory', None),
             ('playbook', 'fake-playbook.yaml')
         ]
@@ -137,7 +137,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
             self.cmd.take_action(parsed_args)
             upgrade_ansible.assert_called_once_with(
                 self.app.client_manager,
-                nodes='Compute',
+                nodes=['Compute', 'Controller'],
                 inventory_file=mock_open().read(),
                 playbook='fake-playbook.yaml',
                 ansible_queue_name=constants.UPGRADE_QUEUE
@@ -148,12 +148,12 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
     @mock.patch('six.moves.builtins.open')
-    def test_upgrade_with_all_playbooks(self, mock_open, mock_execute,
-                                        mock_expanduser, upgrade_ansible):
+    def test_upgrade_role_all_playbooks(
+            self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
         mock_expanduser.return_value = '/home/fake/'
-        argslist = ['--nodes', 'Compute', '--playbook', 'all']
+        argslist = ['--roles', 'Compute', '--playbook', 'all']
         verifylist = [
-            ('nodes', 'Compute'),
+            ('roles', ['Compute']),
             ('static_inventory', None),
             ('playbook', 'all')
         ]
@@ -165,7 +165,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
             for book in constants.MAJOR_UPGRADE_PLAYBOOKS:
                 upgrade_ansible.assert_any_call(
                     self.app.client_manager,
-                    nodes='Compute',
+                    nodes=['Compute'],
                     inventory_file=mock_open().read(),
                     playbook=book,
                     ansible_queue_name=constants.UPGRADE_QUEUE
@@ -176,11 +176,82 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
     @mock.patch('six.moves.builtins.open')
-    def test_upgrade_with_no_nodes(self, mock_open, mock_execute,
-                                   mock_expanduser, upgrade_ansible):
+    def test_upgrade_nodes_with_playbook(
+            self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
+        mock_expanduser.return_value = '/home/fake/'
+        argslist = ['--nodes', 'compute-0', 'compute-1',
+                    '--playbook', 'fake-playbook.yaml']
+        verifylist = [
+            ('nodes', ['compute-0', 'compute-1']),
+            ('static_inventory', None),
+            ('playbook', 'fake-playbook.yaml')
+        ]
+
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+        with mock.patch('os.path.exists') as mock_exists:
+            mock_exists.return_value = True
+            self.cmd.take_action(parsed_args)
+            upgrade_ansible.assert_called_once_with(
+                self.app.client_manager,
+                nodes=['compute-0', 'compute-1'],
+                inventory_file=mock_open().read(),
+                playbook='fake-playbook.yaml',
+                ansible_queue_name=constants.UPGRADE_QUEUE
+            )
+
+    @mock.patch('tripleoclient.workflows.package_update.update_ansible',
+                autospec=True)
+    @mock.patch('os.path.expanduser')
+    @mock.patch('oslo_concurrency.processutils.execute')
+    @mock.patch('six.moves.builtins.open')
+    def test_upgrade_node_all_playbooks(
+            self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
+        mock_expanduser.return_value = '/home/fake/'
+        argslist = ['--nodes', 'swift-1', '--playbook', 'all']
+        verifylist = [
+            ('nodes', ['swift-1']),
+            ('static_inventory', None),
+            ('playbook', 'all')
+        ]
+
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+        with mock.patch('os.path.exists') as mock_exists:
+            mock_exists.return_value = True
+            self.cmd.take_action(parsed_args)
+            for book in constants.MAJOR_UPGRADE_PLAYBOOKS:
+                upgrade_ansible.assert_any_call(
+                    self.app.client_manager,
+                    nodes=['swift-1'],
+                    inventory_file=mock_open().read(),
+                    playbook=book,
+                    ansible_queue_name=constants.UPGRADE_QUEUE
+                )
+
+    @mock.patch('tripleoclient.workflows.package_update.update_ansible',
+                autospec=True)
+    @mock.patch('os.path.expanduser')
+    @mock.patch('oslo_concurrency.processutils.execute')
+    @mock.patch('six.moves.builtins.open')
+    def test_upgrade_no_nodes_or_roles(self, mock_open, mock_execute,
+                                       mock_expanduser, upgrade_ansible):
         mock_expanduser.return_value = '/home/fake/'
         argslist = []
+        verifylist = []
+        self.assertRaises(ParserException, lambda: self.check_parser(
+            self.cmd, argslist, verifylist))
+
+    @mock.patch('tripleoclient.workflows.package_update.update_ansible',
+                autospec=True)
+    @mock.patch('os.path.expanduser')
+    @mock.patch('oslo_concurrency.processutils.execute')
+    @mock.patch('six.moves.builtins.open')
+    def test_upgrade_nodes_and_roles(self, mock_open, mock_execute,
+                                     mock_expanduser, upgrade_ansible):
+        mock_expanduser.return_value = '/home/fake/'
+        argslist = ['--roles', 'Compute', '--nodes', 'overcloud-controller-1']
         verifylist = [
+            ('roles', ['Compute']),
+            ('nodes', ['overcloud-controller-1']),
             ('static_inventory', None),
             ('playbook', 'all')
         ]
