@@ -169,7 +169,7 @@ def wait_for_stack_ready(orchestration_client, stack_name, marker=None,
     stack = get_stack(orchestration_client, stack_name)
     if not stack:
         return False
-    stack_name = stack.stack_name
+    stack_name = "%s/%s" % (stack.stack_name, stack.id)
 
     if verbose:
         out = sys.stdout

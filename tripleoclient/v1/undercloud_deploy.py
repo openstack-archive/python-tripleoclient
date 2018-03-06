@@ -43,7 +43,6 @@ except ImportError:
 from cliff import command
 from heatclient.common import event_utils
 from heatclient.common import template_utils
-from heatclient.common import utils as heat_utils
 from openstackclient.i18n import _
 from six.moves import configparser
 
@@ -398,39 +397,7 @@ class DeployUndercloud(command.Command):
         stack = orchestration_client.stacks.create(**stack_args)
         stack_id = stack['stack']['id']
 
-        return stack_id
-
-    def _wait_for_heat_complete(self, orchestration_client, stack_id, timeout):
-
-        # Wait for the stack to go to COMPLETE.
-        timeout_t = time.time() + 60 * timeout
-        marker = None
-        event_log_context = heat_utils.EventLogContext()
-        kwargs = {
-            'sort_dir': 'asc',
-            'nested_depth': '6'
-        }
-        while True:
-            time.sleep(2)
-            events = event_utils.get_events(
-                orchestration_client,
-                stack_id=stack_id,
-                event_args=kwargs,
-                marker=marker)
-            if events:
-                marker = getattr(events[-1], 'id', None)
-                events_log = heat_utils.event_log_formatter(
-                    events, event_log_context)
-                print(events_log)
-
-            status = orchestration_client.stacks.get(stack_id).status
-            if status == 'FAILED':
-                raise Exception('Stack create failed')
-            if status == 'COMPLETE':
-                break
-            if time.time() > timeout_t:
-                msg = 'Stack creation timeout: %d minutes elapsed' % (timeout)
-                raise Exception(msg)
+        return "%s/%s" % (stack_name, stack_id)
 
     def _download_ansible_playbooks(self, client, stack_name, output_dir):
         stack_config = config.Config(client)
@@ -601,8 +568,11 @@ class DeployUndercloud(command.Command):
                 self._deploy_tripleo_heat_templates(orchestration_client,
                                                     parsed_args)
             # Wait for complete..
-            self._wait_for_heat_complete(orchestration_client, stack_id,
-                                         parsed_args.timeout)
+            status, msg = event_utils.poll_for_events(
+                orchestration_client, stack_id, nested_depth=6)
+            if status != "CREATE_COMPLETE":
+                raise Exception("Stack create failed; %s" % msg)
+
             # download the ansible playbooks and execute them.
             ansible_dir = \
                 self._download_ansible_playbooks(orchestration_client,
