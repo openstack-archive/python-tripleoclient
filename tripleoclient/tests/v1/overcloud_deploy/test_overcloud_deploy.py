@@ -15,6 +15,7 @@
 
 import fixtures
 import os
+import shutil
 import six
 import tempfile
 import yaml
@@ -61,10 +62,13 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.real_download_missing = self.cmd._download_missing_files_from_plan
         self.cmd._download_missing_files_from_plan = mock.Mock()
 
+        self.real_shutil = shutil.rmtree
+
     def tearDown(self):
         super(TestDeployOvercloud, self).tearDown()
         os.unlink(self.parameter_defaults_env_file)
         self.cmd._download_missing_files_from_plan = self.real_download_missing
+        shutil.rmtree = self.real_shutil
 
     @mock.patch('tripleoclient.workflows.deployment.get_horizon_url',
                 autospec=True)
@@ -259,7 +263,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 'StackAction': 'CREATE',
                 'UpdateIdentifier': ''}}
 
+        mock_rm = shutil.rmtree = mock.MagicMock()
         self.cmd.take_action(parsed_args)
+        mock_rm.assert_not_called()
 
         self.assertFalse(orchestration_client.stacks.create.called)
 
@@ -527,7 +533,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_create_parameters_env.side_effect = _custom_create_params_env
 
+        mock_rm = shutil.rmtree = mock.MagicMock()
         self.cmd.take_action(parsed_args)
+        mock_rm.assert_called_once()
         execution_calls = workflow_client.executions.create.call_args_list
         deploy_plan_call = execution_calls[1]
         deploy_plan_call_input = deploy_plan_call[1]['workflow_input']
