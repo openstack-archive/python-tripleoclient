@@ -57,7 +57,6 @@ class TestUndercloudDeploy(TestPluginV1):
         with mock.patch('six.moves.builtins.open', mock_open_context):
             self.cmd._update_passwords_env(self.temp_homedir)
 
-        mock_open_context.assert_called_with(pw_conf_path, 'w')
         mock_open_handle = mock_open_context()
         mock_dump.assert_called_once_with({'parameter_defaults': pw_dict},
                                           mock_open_handle,
@@ -83,16 +82,16 @@ class TestUndercloudDeploy(TestPluginV1):
         with open(t_pw_conf_path, 'w') as t_pw:
             t_pw.write('parameter_defaults: {ExistingKey: xyz}\n')
 
-        mock_open_context = mock.mock_open(
-            read_data='parameter_defaults: {ExistingKey: xyz}\n')
-        with mock.patch('six.moves.builtins.open', mock_open_context):
-            self.cmd._update_passwords_env(self.temp_homedir,
-                                           passwords={'ADefault': 456,
-                                                      'ExistingKey':
-                                                      'dontupdate'})
-        mock_open_context.assert_called_with(pw_conf_path, 'w')
+        with open(pw_conf_path, 'w') as t_pw:
+            t_pw.write('[auth]\nundercloud_db_password = abc\n')
+
+        self.cmd._update_passwords_env(self.temp_homedir,
+                                       passwords={'ADefault': 456,
+                                                  'ExistingKey':
+                                                  'dontupdate'})
         expected_dict = {'parameter_defaults': {'GeneratedPassword': 123,
                                                 'ExistingKey': 'xyz',
+                                                'MysqlRootPassword': 'abc',
                                                 'ADefault': 456}}
         mock_dump.assert_called_once_with(expected_dict,
                                           mock.ANY,
