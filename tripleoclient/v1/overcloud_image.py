@@ -143,9 +143,6 @@ class UploadOvercloudImage(command.Command):
     """Create overcloud glance images from existing image files."""
     log = logging.getLogger(__name__ + ".UploadOvercloudImage")
 
-    def _env_variable_or_set(self, key_name, default_value):
-        os.environ[key_name] = os.environ.get(key_name, default_value)
-
     def _get_image(self, name):
         try:
             image = utils.find_resource(self.app.client_manager.image.images,
@@ -229,21 +226,39 @@ class UploadOvercloudImage(command.Command):
         else:
             return GlanceV1ClientAdapter(self.app.client_manager.image)
 
+    def _get_environment_var(self, envvar, default, deprecated=[]):
+        for env_key in deprecated:
+            if env_key in os.environ:
+                self.log.warn(('Found deprecated environment var \'%s\', '
+                               'please use \'%s\' instead' % (env_key,
+                                                              envvar)))
+                return os.environ.get(env_key)
+        return os.environ.get(envvar, default)
+
     def get_parser(self, prog_name):
         parser = super(UploadOvercloudImage, self).get_parser(prog_name)
         parser.add_argument(
             "--image-path",
-            default=os.environ.get('IMAGE_PATH', './'),
+            default=self._get_environment_var('IMAGE_PATH', './'),
             help=_("Path to directory containing image files"),
         )
         parser.add_argument(
             "--os-image-name",
-            default=os.environ.get('OS_IMAGE_NAME', 'overcloud-full.qcow2'),
+            default=self._get_environment_var('OS_IMAGE_NAME',
+                                              'overcloud-full.qcow2'),
             help=_("OpenStack disk image filename"),
         )
         parser.add_argument(
+            "--ironic-python-agent-name",
+            dest='ipa_name',
+            default=self._get_environment_var('IRONIC_PYTHON_AGENT_NAME',
+                                              'ironic-python-agent',
+                                              deprecated=['AGENT_NAME']),
+            help=_("OpenStack ironic-python-agent (agent) image filename"),
+        )
+        parser.add_argument(
             "--http-boot",
-            default=os.environ.get('HTTP_BOOT', '/httpboot'),
+            default=self._get_environment_var('HTTP_BOOT', '/httpboot'),
             help=_("Root directory for the introspection image")
         )
         parser.add_argument(
@@ -266,8 +281,6 @@ class UploadOvercloudImage(command.Command):
         self.log.debug("take_action(%s)" % parsed_args)
         glance_client_adaptor = self._get_glance_client_adaptor()
 
-        self._env_variable_or_set('AGENT_NAME', 'ironic-python-agent')
-
         self.log.debug("checking if image files exist")
 
         if parsed_args.whole_disk:
@@ -277,8 +290,8 @@ class UploadOvercloudImage(command.Command):
             overcloud_image_type = 'whole disk'
         else:
             image_files = [
-                '%s.initramfs' % os.environ['AGENT_NAME'],
-                '%s.kernel' % os.environ['AGENT_NAME'],
+                '%s.initramfs' % parsed_args.ipa_name,
+                '%s.kernel' % parsed_args.ipa_name,
                 parsed_args.os_image_name
             ]
             overcloud_image_type = 'partition'
@@ -377,7 +390,7 @@ class UploadOvercloudImage(command.Command):
         deploy_kernel_name = 'bm-deploy-kernel'
         deploy_kernel_extension = '.kernel'
         deploy_kernel_file = os.path.join(parsed_args.image_path,
-                                          os.environ['AGENT_NAME'] +
+                                          parsed_args.ipa_name +
                                           deploy_kernel_extension)
         self._image_try_update(deploy_kernel_name, deploy_kernel_file,
                                parsed_args) or \
@@ -392,7 +405,7 @@ class UploadOvercloudImage(command.Command):
         deploy_ramdisk_name = 'bm-deploy-ramdisk'
         deploy_ramdisk_extension = '.initramfs'
         deploy_ramdisk_file = os.path.join(parsed_args.image_path,
-                                           os.environ['AGENT_NAME'] +
+                                           parsed_args.ipa_name +
                                            deploy_ramdisk_extension)
         self._image_try_update(deploy_ramdisk_name, deploy_ramdisk_file,
                                parsed_args) or \
@@ -407,14 +420,14 @@ class UploadOvercloudImage(command.Command):
 
         self._file_create_or_update(
             os.path.join(parsed_args.image_path,
-                         '%s.kernel' % os.environ['AGENT_NAME']),
+                         '%s.kernel' % parsed_args.ipa_name),
             os.path.join(parsed_args.http_boot, 'agent.kernel'),
             parsed_args.update_existing
         )
 
         self._file_create_or_update(
             os.path.join(parsed_args.image_path,
-                         '%s.initramfs' % os.environ['AGENT_NAME']),
+                         '%s.initramfs' % parsed_args.ipa_name),
             os.path.join(parsed_args.http_boot, 'agent.ramdisk'),
             parsed_args.update_existing
         )
