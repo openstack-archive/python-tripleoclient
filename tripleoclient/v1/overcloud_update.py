@@ -17,7 +17,7 @@ import logging
 import os
 import yaml
 
-
+from heatclient.common import template_utils
 from osc_lib.i18n import _
 from oslo_concurrency import processutils
 
@@ -48,10 +48,11 @@ class UpdateOvercloud(command.Command):
                             help=_("The directory containing the Heat"
                                    "templates to deploy. "),
                             )
-        parser.add_argument('--init-minor-update',
-                            dest='init_minor_update',
+        parser.add_argument('--init-update',
+                            dest='init_update',
                             action='store_true',
-                            help=_("Init the minor update heat config output."
+                            help=_("Run a heat stack update to generate the "
+                                   "ansible playbooks."
                                    "Needs to be run only once"),
                             )
         parser.add_argument('--container-registry-file',
@@ -68,17 +69,24 @@ class UpdateOvercloud(command.Command):
                                    'used for update. This value should be set '
                                    'during the init-minor-update step.')
                             )
+        parser.add_argument('--extra-environment', '-e',
+                            action='append',
+                            dest='environment_files',
+                            default=[],
+                            help=_("Extra environment required for the "
+                                   "major update"),
+                            )
         parser.add_argument('--nodes',
                             action="store",
                             default=None,
-                            help=_('Nodes to update. If none and the '
-                                   '--init-minor-update set to false, it '
-                                   'will run the update on all nodes.')
+                            help=_("Nodes to update. If none and the "
+                                   "--init-update set to false, it "
+                                   "will run the update on all nodes.")
                             )
         parser.add_argument('--playbook',
                             action="store",
                             default="update_steps_playbook.yaml",
-                            help=_('Playbook to use for update')
+                            help=_("Playbook to use for update/upgrade.")
                             )
         parser.add_argument('--static-inventory',
                             dest='static_inventory',
@@ -100,8 +108,9 @@ class UpdateOvercloud(command.Command):
 
         stack_name = stack.stack_name
         container_registry = parsed_args.container_registry_file
+        init_update = parsed_args.init_update
 
-        if parsed_args.init_minor_update:
+        if init_update:
             # Update the container registry:
             if container_registry:
                 with open(os.path.abspath(container_registry)) as content:
@@ -114,16 +123,21 @@ class UpdateOvercloud(command.Command):
                     "to re-run this command and provide the registry file "
                     "with: --container-registry-file option.")
                 registry = None
-            # Execute minor update
+            # Extra env file
+            environment_files = parsed_args.environment_files
+            env = {}
+            if environment_files:
+                env_files, env = (
+                    template_utils.process_multiple_environments_and_files(
+                        env_paths=environment_files))
+            # Run update
             ceph_ansible_playbook = parsed_args.ceph_ansible_playbook
             package_update.update(clients, container=stack_name,
                                   container_registry=registry,
-                                  ceph_ansible_playbook=ceph_ansible_playbook)
-
-            print("Heat stack update init on {0} complete.".format(
-                  parsed_args.stack))
+                                  ceph_ansible_playbook=ceph_ansible_playbook,
+                                  environments=env)
             package_update.get_config(clients, container=stack_name)
-            print("Init minor update on stack {0} complete.".format(
+            print("Update init on stack {0} complete.".format(
                   parsed_args.stack))
         else:
             # Run ansible:
@@ -150,3 +164,49 @@ class UpdateOvercloud(command.Command):
                 inventory_file=inventory,
                 playbook=playbook,
                 ansible_queue_name=constants.UPDATE_QUEUE)
+
+
+class UpgradeOvercloud(UpdateOvercloud):
+    """Upgrade Overcloud Nodes"""
+
+    log = logging.getLogger(__name__ + ".UpgradeOvercloud")
+
+    def get_parser(self, prog_name):
+        parser = super(UpgradeOvercloud, self).get_parser(prog_name)
+        parser.add_argument('--converge',
+                            dest='converge',
+                            action='store_true',
+                            help=_("Upgrade converge step"),
+                            )
+        parser.add_argument('--upgrade-converge-environment-file',
+                            dest='upgrade_converge_file',
+                            default="%senvironments/%s" % (
+                                constants.TRIPLEO_HEAT_TEMPLATES,
+                                constants.UPGRADE_CONVERGE_FILE),
+                            help=_("Upgrade environment file which perform "
+                                   "the converge of the Overcloud"),
+                            )
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)" % parsed_args)
+        clients = self.app.client_manager
+
+        stack = oooutils.get_stack(clients.orchestration,
+                                   parsed_args.stack)
+
+        stack_name = stack.stack_name
+        converge = parsed_args.converge
+
+        if converge:
+            converge_file = parsed_args.upgrade_converge_file
+            # Add the converge file to the user environment:
+            if converge_file:
+                with open(os.path.abspath(converge_file)) as conv_content:
+                    converge_env = yaml.load(conv_content.read())
+            # Run converge steps
+            package_update.converge_nodes(clients,
+                                          converge_env=converge_env,
+                                          container=stack_name)
+        else:
+            super(UpgradeOvercloud, self).take_action(parsed_args)
