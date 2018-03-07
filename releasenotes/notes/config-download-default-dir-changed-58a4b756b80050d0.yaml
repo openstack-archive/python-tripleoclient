@@ -1,0 +1,6 @@
+---
+upgrade:
+  - The default location for ``openstack overcloud config download`` has
+    changed to ``~/tripleo-config``.  ``config download`` also no longer
+    uses tmpdirs and will overwrite files on subsequent runs to the same
+    ``--config-dir`` location.
