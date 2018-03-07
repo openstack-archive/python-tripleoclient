@@ -432,7 +432,7 @@ class DeployOvercloud(command.Command):
                                        tht_root, user_tht_root):
         """Deploy the fixed templates in TripleO Heat Templates"""
 
-        plans = plan_management.list_deployment_plans(self.workflow_client)
+        plans = plan_management.list_deployment_plans(self.clients)
         generate_passwords = not parsed_args.disable_password_generation
 
         # TODO(d0ugal): We need to put a more robust strategy in place here to

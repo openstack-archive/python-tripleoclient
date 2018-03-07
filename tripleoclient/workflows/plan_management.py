@@ -108,8 +108,24 @@ def update_deployment_plan(clients, **workflow_input):
             'Exception updating plan: {}'.format(payload['message']))
 
 
-def list_deployment_plans(workflow_client, **input_):
-    return base.call_action(workflow_client, 'tripleo.plan.list', **input_)
+def list_deployment_plans(clients, **workflow_input):
+    workflow_client = clients.workflow_engine
+    tripleoclients = clients.tripleoclient
+
+    with tripleoclients.messaging_websocket() as ws:
+        execution = base.start_workflow(
+            workflow_client,
+            'tripleo.plan_management.v1.list_plans',
+            workflow_input=workflow_input
+        )
+
+        for payload in base.wait_for_messages(workflow_client, ws, execution,
+                                              _WORKFLOW_TIMEOUT):
+            if payload['status'] != 'SUCCESS':
+                raise exceptions.WorkflowServiceError(
+                    'Exception listing plans: {}'.format(payload['message']))
+
+            return payload['plans']
 
 
 def create_container(workflow_client, **input_):

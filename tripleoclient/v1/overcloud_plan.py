@@ -10,7 +10,6 @@
 #   License for the specific language governing permissions and limitations
 #   under the License.
 
-import json
 import logging
 import os.path
 
@@ -33,18 +32,12 @@ class ListPlans(command.Lister):
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
 
-        workflow_client = self.app.client_manager.workflow_engine
-        execution = workflow_client.action_executions.create(
-            'tripleo.plan.list')
+        clients = self.app.client_manager
 
-        try:
-            json_results = json.loads(execution.output)['result']
-        except Exception:
-            self.log.exception("Error parsing JSON %s", execution.output)
-            json_results = []
+        plans = plan_management.list_deployment_plans(clients)
 
         result = []
-        for r in json_results:
+        for r in plans:
             result.append((r,))
 
         return (("Plan Name",), result)
