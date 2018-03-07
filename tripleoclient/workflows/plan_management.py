@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import logging
+import os
 import tempfile
 import yaml
 
@@ -157,13 +158,24 @@ def update_plan_from_templates(clients, name, tht_root, roles_file=None,
     # 'passwords' if they exist as they can't be recreated from the
     # templates content.
     passwords = []
+    user_env = {}
+    # If the user provides a plan-environment files, then used it
+    if plan_env_file:
+        with open(os.path.abspath(plan_env_file)) as content:
+            env = yaml.load(content.read())
+    else:
+        try:
+            env = yaml.safe_load(swift_client.get_object(
+                name, constants.PLAN_ENVIRONMENT)[1])
+        except swift_exc.ClientException:
+            pass
     try:
-        env = yaml.safe_load(swift_client.get_object(
-            name, constants.PLAN_ENVIRONMENT)[1])
-        passwords = env.get('passwords', [])
+        # Get user environment
+        user_env = yaml.safe_load(swift_client.get_object(
+            name, constants.USER_ENVIRONMENT)[1])
     except swift_exc.ClientException:
         pass
-
+    passwords = env.get('passwords', [])
     # TODO(dmatthews): Removing the existing plan files should probably be
     #                  a Mistral action.
     print("Removing the current plan files")
@@ -183,10 +195,24 @@ def update_plan_from_templates(clients, name, tht_root, roles_file=None,
     print("Uploading new plan files")
     _upload_templates(swift_client, name, tht_root, roles_file, plan_env_file,
                       networks_file)
+    # Update password and user parameters into swift
     _update_passwords(swift_client, name, passwords)
+    _update_user_environment(swift_client, name, user_env,
+                             constants.USER_ENVIRONMENT)
     update_deployment_plan(clients, container=name,
                            generate_passwords=generate_passwords,
-                           source_url=None)
+                           source_url=None, plan_environment=env)
+
+
+def _update_user_environment(swift_client, name, user_params, filename):
+    if user_params:
+        try:
+            swift_client.put_object(name,
+                                    filename,
+                                    yaml.safe_dump(user_params,
+                                                   default_flow_style=False))
+        except swift_exc.ClientException:
+            LOG.debug("Unable to put %s in %s", filename, name)
 
 
 def _update_passwords(swift_client, name, passwords):

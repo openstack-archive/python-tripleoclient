@@ -41,20 +41,26 @@ class TestOvercloudUpdate(fakes.TestOvercloudUpdate):
                 autospec=True)
     @mock.patch('tripleoclient.workflows.package_update.update',
                 autospec=True)
-    @mock.patch('six.moves.builtins.open')
     @mock.patch('os.path.abspath')
     @mock.patch('yaml.load')
-    def test_update_out(self, mock_yaml, mock_abspath, mock_open, mock_update,
-                        mock_logger, mock_get_stack):
+    @mock.patch('shutil.copytree', autospec=True)
+    @mock.patch('six.moves.builtins.open')
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_deploy_tripleo_heat_templates', autospec=True)
+    def test_update_out(self, mock_deploy, mock_open, mock_copy, mock_yaml,
+                        mock_abspath, mock_update, mock_logger,
+                        mock_get_stack):
         mock_stack = mock.Mock()
         mock_stack.stack_name = 'mystack'
         mock_get_stack.return_value = mock_stack
         mock_abspath.return_value = '/home/fake/my-fake-registry.yaml'
         mock_yaml.return_value = {'fake_container': 'fake_value'}
-        argslist = ['--stack', 'overcloud', '--init-update',
+
+        argslist = ['--stack', 'overcloud', '--init-update', '--templates',
                     '--container-registry-file', 'my-fake-registry.yaml']
         verifylist = [
             ('stack', 'overcloud'),
+            ('templates', constants.TRIPLEO_HEAT_TEMPLATES),
             ('init_update', True),
             ('container_registry_file', 'my-fake-registry.yaml')
         ]
@@ -66,8 +72,7 @@ class TestOvercloudUpdate(fakes.TestOvercloudUpdate):
             container='mystack',
             container_registry={'fake_container': 'fake_value'},
             ceph_ansible_playbook='/usr/share/ceph-ansible'
-                                  '/site-docker.yml.sample',
-            environments={}
+                                  '/site-docker.yml.sample'
         )
 
     @mock.patch('tripleoclient.workflows.package_update.update',
@@ -75,15 +80,19 @@ class TestOvercloudUpdate(fakes.TestOvercloudUpdate):
     @mock.patch('six.moves.builtins.open')
     @mock.patch('os.path.abspath')
     @mock.patch('yaml.load')
-    def test_update_failed(self, mock_yaml, mock_abspath, mock_open,
-                           mock_update):
+    @mock.patch('shutil.copytree', autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_deploy_tripleo_heat_templates', autospec=True)
+    def test_update_failed(self, mock_deploy, mock_copy, mock_yaml,
+                           mock_abspath, mock_open, mock_update):
         mock_update.side_effect = exceptions.DeploymentError()
         mock_abspath.return_value = '/home/fake/my-fake-registry.yaml'
         mock_yaml.return_value = {'fake_container': 'fake_value'}
-        argslist = ['--stack', 'overcloud', '--init-update',
+        argslist = ['--stack', 'overcloud', '--init-update', '--templates',
                     '--container-registry-file', 'my-fake-registry.yaml']
         verifylist = [
             ('stack', 'overcloud'),
+            ('templates', constants.TRIPLEO_HEAT_TEMPLATES),
             ('init_update', True),
             ('container_registry_file', 'my-fake-registry.yaml')
         ]

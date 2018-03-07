@@ -17,37 +17,23 @@ import logging
 import os
 import yaml
 
-from heatclient.common import template_utils
 from osc_lib.i18n import _
 from oslo_concurrency import processutils
 
-from tripleoclient import command
 from tripleoclient import constants
 from tripleoclient import exceptions
 from tripleoclient import utils as oooutils
+from tripleoclient.v1.overcloud_deploy import DeployOvercloud
 from tripleoclient.workflows import package_update
 
 
-class UpdateOvercloud(command.Command):
+class UpdateOvercloud(DeployOvercloud):
     """Updates packages on overcloud nodes"""
 
     log = logging.getLogger(__name__ + ".UpdateOvercloud")
 
     def get_parser(self, prog_name):
         parser = super(UpdateOvercloud, self).get_parser(prog_name)
-        parser.add_argument('--stack',
-                            nargs='?',
-                            dest='stack',
-                            help=_('Name or ID of heat stack to scale '
-                                   '(default=Env: OVERCLOUD_STACK_NAME)'),
-                            default='overcloud'
-                            )
-        parser.add_argument('--templates',
-                            nargs='?',
-                            default=constants.TRIPLEO_HEAT_TEMPLATES,
-                            help=_("The directory containing the Heat"
-                                   "templates to deploy. "),
-                            )
         parser.add_argument('--init-update',
                             dest='init_update',
                             action='store_true',
@@ -68,13 +54,6 @@ class UpdateOvercloud(command.Command):
                             help=_('Path to switch the ceph-ansible playbook '
                                    'used for update. This value should be set '
                                    'during the init-minor-update step.')
-                            )
-        parser.add_argument('--extra-environment', '-e',
-                            action='append',
-                            dest='environment_files',
-                            default=[],
-                            help=_("Extra environment required for the "
-                                   "major update"),
                             )
         parser.add_argument('--nodes',
                             action="store",
@@ -123,19 +102,17 @@ class UpdateOvercloud(command.Command):
                     "to re-run this command and provide the registry file "
                     "with: --container-registry-file option.")
                 registry = None
-            # Extra env file
-            environment_files = parsed_args.environment_files
-            env = {}
-            if environment_files:
-                env_files, env = (
-                    template_utils.process_multiple_environments_and_files(
-                        env_paths=environment_files))
             # Run update
             ceph_ansible_playbook = parsed_args.ceph_ansible_playbook
+            # Run Overcloud deploy (stack update)
+            # In case of update and upgrade we need to force the
+            # update_plan_only. The heat stack update is done by the
+            # packag_update mistral action
+            parsed_args.update_plan_only = True
+            super(UpdateOvercloud, self).take_action(parsed_args)
             package_update.update(clients, container=stack_name,
                                   container_registry=registry,
-                                  ceph_ansible_playbook=ceph_ansible_playbook,
-                                  environments=env)
+                                  ceph_ansible_playbook=ceph_ansible_playbook)
             package_update.get_config(clients, container=stack_name)
             print("Update init on stack {0} complete.".format(
                   parsed_args.stack))
@@ -197,7 +174,6 @@ class UpgradeOvercloud(UpdateOvercloud):
 
         stack_name = stack.stack_name
         converge = parsed_args.converge
-
         if converge:
             converge_file = parsed_args.upgrade_converge_file
             # Add the converge file to the user environment:
