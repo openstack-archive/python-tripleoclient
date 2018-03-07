@@ -486,6 +486,9 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False):
     if CONF.get('undercloud_ntp_servers', None):
         env_data['NtpServer'] = CONF['undercloud_ntp_servers'][0]
 
+    if CONF.get('overcloud_domain_name', None):
+        env_data['NeutronDnsDomain'] = CONF['overcloud_domain_name']
+
     # FIXME need to add admin VIP as well
     env_data['DockerInsecureRegistryAddress'] = [
         '%s:8787' % CONF['local_ip'].split('/')[0]]
