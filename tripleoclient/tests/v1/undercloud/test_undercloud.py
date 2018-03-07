@@ -15,6 +15,9 @@
 
 import mock
 
+from oslo_config import cfg
+from oslo_config import fixture as oslo_fixture
+
 from tripleoclient.tests.v1.test_plugin import TestPluginV1
 
 # Load the plugin init module for the plugin list and show commands
@@ -32,6 +35,8 @@ class TestUndercloudInstall(TestPluginV1):
     def setUp(self):
         super(TestUndercloudInstall, self).setUp()
 
+        conf = self.useFixture(oslo_fixture.Config(cfg.CONF))
+        conf.config(container_images_file='/home/stack/foo.yaml')
         # Get the command object to test
         self.cmd = undercloud.InstallUndercloud(self.app, None)
 
@@ -59,7 +64,7 @@ class TestUndercloudInstall(TestPluginV1):
             ['sudo', 'openstack', 'undercloud',
              'deploy', '--local-ip=192.168.24.1',
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
-             '--heat-native', '-e',
+             '--heat-native', '-e', '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services-docker/ironic.yaml',
              '-e',
@@ -82,6 +87,8 @@ class TestUndercloudUpgrade(TestPluginV1):
     def setUp(self):
         super(TestUndercloudUpgrade, self).setUp()
 
+        conf = self.useFixture(oslo_fixture.Config(cfg.CONF))
+        conf.config(container_images_file='/home/stack/foo.yaml')
         # Get the command object to test
         self.cmd = undercloud.UpgradeUndercloud(self.app, None)
 
@@ -121,7 +128,7 @@ class TestUndercloudUpgrade(TestPluginV1):
              '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'major-upgrade-composable-steps-docker.yaml',
-             '--heat-native', '-e',
+             '--heat-native', '-e', '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services-docker/ironic.yaml',
              '-e',

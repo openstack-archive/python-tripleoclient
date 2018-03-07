@@ -349,8 +349,9 @@ _opts = [
                default='',
                help=('URL for the heat container image to use.')
                ),
+    # NOTE(aschultz): LP#1754067 - required until we can do this automatically
     cfg.StrOpt('container_images_file',
-               default='',
+               required=True,
                help=('Container yaml file with all available images in the'
                      'registry')
                ),
