@@ -49,6 +49,13 @@ class DeployOvercloud(command.Command):
     predeploy_warnings = 0
     _password_cache = None
 
+    # This may be switched on by default in the future, but for now
+    # we'll want this behavior only in `overcloud update stack` and
+    # `overcloud upgrade stack`, as enabling it here by default might
+    # mean e.g. it might mean never deleting files under user-files/
+    # directory in the plan.
+    _keep_env_on_update = False
+
     def _setup_clients(self, parsed_args):
         self.clients = self.app.client_manager
         self.object_client = self.clients.tripleoclient.object_store
@@ -436,7 +443,8 @@ class DeployOvercloud(command.Command):
                 self.clients, parsed_args.stack, tht_root,
                 parsed_args.roles_file, generate_passwords,
                 parsed_args.plan_environment_file,
-                parsed_args.networks_file)
+                parsed_args.networks_file,
+                type(self)._keep_env_on_update)
         else:
             plan_management.create_plan_from_templates(
                 self.clients, parsed_args.stack, tht_root,
