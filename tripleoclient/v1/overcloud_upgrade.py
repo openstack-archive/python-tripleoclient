@@ -102,15 +102,26 @@ class UpgradeRun(command.Command):
 
     def get_parser(self, prog_name):
         parser = super(UpgradeRun, self).get_parser(prog_name)
-        parser.add_argument('--nodes',
-                            action="store",
-                            required=True,
-                            help=_("Required parameter. This specifies the "
-                                   "overcloud nodes to run the major upgrade "
-                                   "playbooks on. You can use the name of "
-                                   "a specific node, or the name of the role "
-                                   "(e.g. Compute).")
-                            )
+        nodes_or_roles = parser.add_mutually_exclusive_group(required=True)
+        nodes_or_roles.add_argument(
+            '--nodes', action="store", nargs='+', help=_(
+                "Use this to identify a single node or list of nodes to be "
+                "upgraded in parallel in this upgrade run invocation. "
+                "NOTE: Using this parameter with nodes of controlplane roles "
+                "(e.g. \"Controller\") is NOT supported and WILL end badly "
+                "unless you include ALL nodes of that role. It is preferable "
+                "to instead specify the role name with the --roles parameter.")
+        )
+        nodes_or_roles.add_argument(
+            '--roles', action="store", nargs='+', help=_(
+                "Specify the role or list of roles to be upgraded in this "
+                "upgrade run invocation. "
+                "NOTE: nodes of specified role(s) are upgraded in parallel. "
+                "This is REQUIRED for controlplane roles. For non "
+                "controlplane roles (e.g., \"Compute\"), you may consider "
+                "instead using the --nodes argument to limit the upgrade to "
+                "a specific node or nodes.")
+        )
         parser.add_argument('--playbook',
                             action="store",
                             default="all",
@@ -143,9 +154,10 @@ class UpgradeRun(command.Command):
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
         clients = self.app.client_manager
-
         # Run ansible:
+        roles = parsed_args.roles
         nodes = parsed_args.nodes
+        limit_hosts = roles or nodes
         playbook = parsed_args.playbook
         inventory = oooutils.get_tripleo_ansible_inventory(
             parsed_args.static_inventory)
@@ -155,7 +167,7 @@ class UpgradeRun(command.Command):
         for book in upgrade_playbooks:
             self.log.debug("Running major upgrade ansible playbook %s " % book)
             package_update.update_ansible(
-                clients, nodes=nodes,
+                clients, nodes=limit_hosts,
                 inventory_file=inventory,
                 playbook=book,
                 ansible_queue_name=constants.UPGRADE_QUEUE)
