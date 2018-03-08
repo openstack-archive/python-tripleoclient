@@ -1,0 +1,6 @@
+---
+other:
+  - |
+    When using containerized undercloud installation with `openstack undercloud
+    install --use-heat`, the container_images_file is a required configuration
+    parmeter.
