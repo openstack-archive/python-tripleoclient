@@ -506,6 +506,9 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False):
     if CONF.get('undercloud_ntp_servers', None):
         env_data['NtpServer'] = CONF['undercloud_ntp_servers'][0]
 
+    if CONF.get('enable_validations', False) and not no_validations:
+        env_data['EnableValidations'] = CONF['enable_validations']
+
     if CONF.get('overcloud_domain_name', None):
         env_data['NeutronDnsDomain'] = CONF['overcloud_domain_name']
 
