@@ -161,16 +161,11 @@ class UpgradeRun(command.Command):
         playbook = parsed_args.playbook
         inventory = oooutils.get_tripleo_ansible_inventory(
             parsed_args.static_inventory)
-        upgrade_playbooks = [playbook]
-        if playbook == "all":
-            upgrade_playbooks = constants.MAJOR_UPGRADE_PLAYBOOKS
-        for book in upgrade_playbooks:
-            self.log.debug("Running major upgrade ansible playbook %s " % book)
-            package_update.update_ansible(
-                clients, nodes=limit_hosts,
-                inventory_file=inventory,
-                playbook=book,
-                ansible_queue_name=constants.UPGRADE_QUEUE)
+        oooutils.run_update_ansible_action(self.log, clients, limit_hosts,
+                                           inventory, playbook,
+                                           constants.UPGRADE_QUEUE,
+                                           constants.MAJOR_UPGRADE_PLAYBOOKS,
+                                           package_update)
 
 
 class UpgradeConvergeOvercloud(DeployOvercloud):

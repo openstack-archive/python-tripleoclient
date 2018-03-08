@@ -155,13 +155,7 @@ class UpdateRun(command.Command):
         playbook = parsed_args.playbook
         inventory = oooutils.get_tripleo_ansible_inventory(
             parsed_args.static_inventory)
-        update_playbooks = [playbook]
-        if playbook == "all":
-            update_playbooks = constants.MINOR_UPDATE_PLAYBOOKS
-        for book in update_playbooks:
-            self.log.debug("Running minor update ansible playbook %s " % book)
-            package_update.update_ansible(
-                clients, nodes=nodes,
-                inventory_file=inventory,
-                playbook=book,
-                ansible_queue_name=constants.UPDATE_QUEUE)
+        oooutils.run_update_ansible_action(self.log, clients, nodes, inventory,
+                                           playbook, constants.UPDATE_QUEUE,
+                                           constants.MINOR_UPDATE_PLAYBOOKS,
+                                           package_update)
