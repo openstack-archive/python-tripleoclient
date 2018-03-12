@@ -241,3 +241,76 @@ class TestTLSSettings(base.TestCase):
             IOError,
             undercloud_config._get_public_tls_resource_registry_overwrites,
             '/tmp/unexistent-file-12345.yaml')
+
+
+class TestContainerImageConfig(base.TestCase):
+    def setUp(self):
+        super(TestContainerImageConfig, self).setUp()
+        conf_keys = (
+            'container_images_file',
+            'container_image_namespace',
+            'container_image_name_prefix',
+            'container_image_name_suffix',
+            'container_image_tag',
+            'container_image_tag_from_label'
+        )
+        self.conf = mock.Mock(**{key: getattr(undercloud_config.CONF, key)
+                                 for key in conf_keys})
+
+    def test_mandatory_conf(self):
+        self.assertRaises(RuntimeError,
+                          undercloud_config._container_images_config,
+                          self.conf, [], {})
+
+    def test_defaults(self):
+        env = {}
+        deploy_args = []
+        self.conf.container_image_namespace = 'foo'
+        undercloud_config._container_images_config(self.conf, deploy_args, env)
+        self.assertEqual([], deploy_args)
+        cip = env['ContainerImagePrepare'][0]
+
+        self.assertEqual(
+            'foo', cip['namespace'])
+        self.assertEqual(
+            self.conf.container_image_name_prefix, cip['name_prefix'])
+        self.assertEqual(
+            self.conf.container_image_name_suffix, cip['name_suffix'])
+        self.assertEqual(
+            self.conf.container_image_tag, cip['tag'])
+        self.assertEqual(
+            self.conf.container_image_tag_from_label,
+            cip.get('tag_from_label'))
+
+    def test_container_images_file(self):
+        env = {}
+        deploy_args = []
+        self.conf.container_images_file = '/tmp/container_images_file.yaml'
+        undercloud_config._container_images_config(self.conf, deploy_args, env)
+        self.assertEqual(['-e', '/tmp/container_images_file.yaml'],
+                         deploy_args)
+        self.assertEqual({}, env)
+
+    def test_custom(self):
+        env = {}
+        deploy_args = []
+        self.conf.container_image_namespace = 'one'
+        self.conf.container_image_name_prefix = 'two'
+        self.conf.container_image_name_suffix = 'three'
+        self.conf.container_image_tag = 'four'
+        self.conf.container_image_tag_from_label = 'five'
+
+        undercloud_config._container_images_config(self.conf, deploy_args, env)
+        self.assertEqual([], deploy_args)
+
+        cip = env['ContainerImagePrepare'][0]
+        self.assertEqual(
+            'one', cip['namespace'])
+        self.assertEqual(
+            'two', cip['name_prefix'])
+        self.assertEqual(
+            'three', cip['name_suffix'])
+        self.assertEqual(
+            'four', cip['tag'])
+        self.assertEqual(
+            'five', cip['tag_from_label'])
