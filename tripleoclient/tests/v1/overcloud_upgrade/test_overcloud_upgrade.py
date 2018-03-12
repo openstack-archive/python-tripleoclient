@@ -140,7 +140,8 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                 nodes='Compute, Controller',
                 inventory_file=mock_open().read(),
                 playbook='fake-playbook.yaml',
-                ansible_queue_name=constants.UPGRADE_QUEUE
+                ansible_queue_name=constants.UPGRADE_QUEUE,
+                skip_tags=''
             )
 
     @mock.patch('tripleoclient.workflows.package_update.update_ansible',
@@ -148,14 +149,16 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
     @mock.patch('six.moves.builtins.open')
-    def test_upgrade_role_all_playbooks(
+    def test_upgrade_role_all_playbooks_skip_validation(
             self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
         mock_expanduser.return_value = '/home/fake/'
-        argslist = ['--roles', 'Compute', '--playbook', 'all']
+        argslist = ['--roles', 'Compute', '--playbook', 'all',
+                    '--skip-tags', 'validation']
         verifylist = [
             ('roles', 'Compute'),
             ('static_inventory', None),
-            ('playbook', 'all')
+            ('playbook', 'all'),
+            ('skip_tags', 'validation')
         ]
 
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
@@ -168,7 +171,8 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                     nodes='Compute',
                     inventory_file=mock_open().read(),
                     playbook=book,
-                    ansible_queue_name=constants.UPGRADE_QUEUE
+                    ansible_queue_name=constants.UPGRADE_QUEUE,
+                    skip_tags='validation'
                 )
 
     @mock.patch('tripleoclient.workflows.package_update.update_ansible',
@@ -176,15 +180,15 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
     @mock.patch('six.moves.builtins.open')
-    def test_upgrade_nodes_with_playbook(
+    def test_upgrade_nodes_with_playbook_no_skip_tags(
             self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
         mock_expanduser.return_value = '/home/fake/'
         argslist = ['--nodes', 'compute-0, compute-1',
-                    '--playbook', 'fake-playbook.yaml']
+                    '--playbook', 'fake-playbook.yaml', ]
         verifylist = [
             ('nodes', 'compute-0, compute-1'),
             ('static_inventory', None),
-            ('playbook', 'fake-playbook.yaml')
+            ('playbook', 'fake-playbook.yaml'),
         ]
 
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
@@ -196,7 +200,8 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                 nodes='compute-0, compute-1',
                 inventory_file=mock_open().read(),
                 playbook='fake-playbook.yaml',
-                ansible_queue_name=constants.UPGRADE_QUEUE
+                ansible_queue_name=constants.UPGRADE_QUEUE,
+                skip_tags=''
             )
 
     @mock.patch('tripleoclient.workflows.package_update.update_ansible',
@@ -204,14 +209,14 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
     @mock.patch('six.moves.builtins.open')
-    def test_upgrade_node_all_playbooks(
+    def test_upgrade_node_all_playbooks_skip_tags_default(
             self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
         mock_expanduser.return_value = '/home/fake/'
         argslist = ['--nodes', 'swift-1', '--playbook', 'all']
         verifylist = [
             ('nodes', 'swift-1'),
             ('static_inventory', None),
-            ('playbook', 'all')
+            ('playbook', 'all'),
         ]
 
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
@@ -224,7 +229,39 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                     nodes='swift-1',
                     inventory_file=mock_open().read(),
                     playbook=book,
-                    ansible_queue_name=constants.UPGRADE_QUEUE
+                    ansible_queue_name=constants.UPGRADE_QUEUE,
+                    skip_tags=''
+                )
+
+    @mock.patch('tripleoclient.workflows.package_update.update_ansible',
+                autospec=True)
+    @mock.patch('os.path.expanduser')
+    @mock.patch('oslo_concurrency.processutils.execute')
+    @mock.patch('six.moves.builtins.open')
+    def test_upgrade_node_all_playbooks_skip_tags_all_supported(
+            self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
+        mock_expanduser.return_value = '/home/fake/'
+        argslist = ['--nodes', 'swift-1', '--playbook', 'all',
+                    '--skip-tags', 'pre-upgrade,validation']
+        verifylist = [
+            ('nodes', 'swift-1'),
+            ('static_inventory', None),
+            ('playbook', 'all'),
+            ('skip_tags', 'pre-upgrade,validation')
+        ]
+
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+        with mock.patch('os.path.exists') as mock_exists:
+            mock_exists.return_value = True
+            self.cmd.take_action(parsed_args)
+            for book in constants.MAJOR_UPGRADE_PLAYBOOKS:
+                upgrade_ansible.assert_any_call(
+                    self.app.client_manager,
+                    nodes='swift-1',
+                    inventory_file=mock_open().read(),
+                    playbook=book,
+                    ansible_queue_name=constants.UPGRADE_QUEUE,
+                    skip_tags='pre-upgrade,validation'
                 )
 
     @mock.patch('tripleoclient.workflows.package_update.update_ansible',
@@ -250,10 +287,79 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
         mock_expanduser.return_value = '/home/fake/'
         argslist = ['--roles', 'Compute', '--nodes', 'overcloud-controller-1']
         verifylist = [
-            ('roles', ['Compute']),
-            ('nodes', ['overcloud-controller-1']),
+            ('roles', 'Compute'),
+            ('nodes', 'overcloud-controller-1'),
             ('static_inventory', None),
             ('playbook', 'all')
         ]
         self.assertRaises(ParserException, lambda: self.check_parser(
             self.cmd, argslist, verifylist))
+
+    @mock.patch('tripleoclient.workflows.package_update.update_ansible',
+                autospec=True)
+    @mock.patch('os.path.expanduser')
+    @mock.patch('oslo_concurrency.processutils.execute')
+    @mock.patch('six.moves.builtins.open')
+    # it is 'validation' not 'validations'
+    def test_upgrade_skip_tags_validations(self, mock_open, mock_execute,
+                                           mock_expanduser, upgrade_ansible):
+        mock_expanduser.return_value = '/home/fake/'
+        argslist = ['--nodes', 'overcloud-compute-1',
+                    '--skip-tags', 'validations']
+        verifylist = [
+            ('nodes', 'overcloud-compute-1'),
+            ('static_inventory', None),
+            ('playbook', 'all'),
+            ('skip_tags', 'validations'),
+        ]
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+        with mock.patch('os.path.exists') as mock_exists:
+            mock_exists.return_value = True
+            self.assertRaises(exceptions.InvalidConfiguration,
+                              lambda: self.cmd.take_action(parsed_args))
+
+    @mock.patch('tripleoclient.workflows.package_update.update_ansible',
+                autospec=True)
+    @mock.patch('os.path.expanduser')
+    @mock.patch('oslo_concurrency.processutils.execute')
+    @mock.patch('six.moves.builtins.open')
+    # should only support the constants.MAJOR_UPGRADE_SKIP_TAGS
+    def test_upgrade_skip_tags_unsupported_validation_anything_else(
+            self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
+        mock_expanduser.return_value = '/home/fake/'
+        argslist = ['--nodes', 'overcloud-compute-1',
+                    '--skip-tags', 'validation,anything-else']
+        verifylist = [
+            ('nodes', 'overcloud-compute-1'),
+            ('static_inventory', None),
+            ('playbook', 'all'),
+            ('skip_tags', 'validation,anything-else'),
+        ]
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+        with mock.patch('os.path.exists') as mock_exists:
+            mock_exists.return_value = True
+            self.assertRaises(exceptions.InvalidConfiguration,
+                              lambda: self.cmd.take_action(parsed_args))
+
+    @mock.patch('tripleoclient.workflows.package_update.update_ansible',
+                autospec=True)
+    @mock.patch('os.path.expanduser')
+    @mock.patch('oslo_concurrency.processutils.execute')
+    @mock.patch('six.moves.builtins.open')
+    # should only support the constants.MAJOR_UPGRADE_SKIP_TAGS
+    def test_upgrade_skip_tags_unsupported_pre_upgrade_anything_else(
+            self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
+        mock_expanduser.return_value = '/home/fake/'
+        argslist = ['--nodes', 'overcloud-compute-1',
+                    '--skip-tags', 'pre-upgrade,anything-else']
+        verifylist = [
+            ('nodes', 'overcloud-compute-1'),
+            ('static_inventory', None),
+            ('playbook', 'all'),
+            ('skip_tags', 'pre-upgrade,anything-else'),
+        ]
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+        with mock.patch('os.path.exists') as mock_exists:
+            mock_exists.return_value = True
+            self.assertRaises(exceptions.InvalidConfiguration,
+                              lambda: self.cmd.take_action(parsed_args))

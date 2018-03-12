@@ -45,3 +45,4 @@ MINOR_UPDATE_PLAYBOOKS = ['update_steps_playbook.yaml',
 MAJOR_UPGRADE_PLAYBOOKS = ["upgrade_steps_playbook.yaml",
                            "deploy_steps_playbook.yaml",
                            "post_upgrade_steps_playbook.yaml"]
+MAJOR_UPGRADE_SKIP_TAGS = ['validation', 'pre-upgrade']
