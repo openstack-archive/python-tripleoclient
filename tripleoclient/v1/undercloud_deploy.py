@@ -286,7 +286,9 @@ class DeployUndercloud(command.Command):
         tht_root = parsed_args.templates
         # generate jinja templates
         self.log.debug("Using roles file %s" % parsed_args.roles_file)
-        args = ['python', 'tools/process-templates.py', '--roles-data',
+        process_templates = os.path.join(tht_root,
+                                         'tools/process-templates.py')
+        args = ['python', process_templates, '--roles-data',
                 parsed_args.roles_file]
         subprocess.check_call(args, cwd=tht_root)
 
