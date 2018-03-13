@@ -140,7 +140,8 @@ def config_download(log, clients, stack, templates, deployed_server,
     tripleoclients = clients.tripleoclient
 
     workflow_input = {
-        'verbosity': verbosity or 1
+        'verbosity': verbosity or 1,
+        'plan_name': stack.stack_name
     }
     if output_dir:
         workflow_input.update(dict(work_dir=output_dir))
