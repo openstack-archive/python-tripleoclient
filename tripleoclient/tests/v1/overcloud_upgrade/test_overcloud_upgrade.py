@@ -123,10 +123,10 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
     def test_upgrade_roles_with_playbook(
             self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
         mock_expanduser.return_value = '/home/fake/'
-        argslist = ['--roles', 'Compute', 'Controller',
+        argslist = ['--roles', 'Compute, Controller',
                     '--playbook', 'fake-playbook.yaml']
         verifylist = [
-            ('roles', ['Compute', 'Controller']),
+            ('roles', 'Compute, Controller'),
             ('static_inventory', None),
             ('playbook', 'fake-playbook.yaml')
         ]
@@ -137,7 +137,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
             self.cmd.take_action(parsed_args)
             upgrade_ansible.assert_called_once_with(
                 self.app.client_manager,
-                nodes=['Compute', 'Controller'],
+                nodes='Compute, Controller',
                 inventory_file=mock_open().read(),
                 playbook='fake-playbook.yaml',
                 ansible_queue_name=constants.UPGRADE_QUEUE
@@ -153,7 +153,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
         mock_expanduser.return_value = '/home/fake/'
         argslist = ['--roles', 'Compute', '--playbook', 'all']
         verifylist = [
-            ('roles', ['Compute']),
+            ('roles', 'Compute'),
             ('static_inventory', None),
             ('playbook', 'all')
         ]
@@ -165,7 +165,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
             for book in constants.MAJOR_UPGRADE_PLAYBOOKS:
                 upgrade_ansible.assert_any_call(
                     self.app.client_manager,
-                    nodes=['Compute'],
+                    nodes='Compute',
                     inventory_file=mock_open().read(),
                     playbook=book,
                     ansible_queue_name=constants.UPGRADE_QUEUE
@@ -179,10 +179,10 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
     def test_upgrade_nodes_with_playbook(
             self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
         mock_expanduser.return_value = '/home/fake/'
-        argslist = ['--nodes', 'compute-0', 'compute-1',
+        argslist = ['--nodes', 'compute-0, compute-1',
                     '--playbook', 'fake-playbook.yaml']
         verifylist = [
-            ('nodes', ['compute-0', 'compute-1']),
+            ('nodes', 'compute-0, compute-1'),
             ('static_inventory', None),
             ('playbook', 'fake-playbook.yaml')
         ]
@@ -193,7 +193,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
             self.cmd.take_action(parsed_args)
             upgrade_ansible.assert_called_once_with(
                 self.app.client_manager,
-                nodes=['compute-0', 'compute-1'],
+                nodes='compute-0, compute-1',
                 inventory_file=mock_open().read(),
                 playbook='fake-playbook.yaml',
                 ansible_queue_name=constants.UPGRADE_QUEUE
@@ -209,7 +209,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
         mock_expanduser.return_value = '/home/fake/'
         argslist = ['--nodes', 'swift-1', '--playbook', 'all']
         verifylist = [
-            ('nodes', ['swift-1']),
+            ('nodes', 'swift-1'),
             ('static_inventory', None),
             ('playbook', 'all')
         ]
@@ -221,7 +221,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
             for book in constants.MAJOR_UPGRADE_PLAYBOOKS:
                 upgrade_ansible.assert_any_call(
                     self.app.client_manager,
-                    nodes=['swift-1'],
+                    nodes='swift-1',
                     inventory_file=mock_open().read(),
                     playbook=book,
                     ansible_queue_name=constants.UPGRADE_QUEUE

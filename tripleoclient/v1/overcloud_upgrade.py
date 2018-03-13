@@ -104,23 +104,26 @@ class UpgradeRun(command.Command):
         parser = super(UpgradeRun, self).get_parser(prog_name)
         nodes_or_roles = parser.add_mutually_exclusive_group(required=True)
         nodes_or_roles.add_argument(
-            '--nodes', action="store", nargs='+', help=_(
-                "Use this to identify a single node or list of nodes to be "
-                "upgraded in parallel in this upgrade run invocation. "
+            '--nodes', action="store", help=_(
+                "A string that identifies a single node or comma-separated "
+                "list of nodes to be upgraded in parallel in this upgrade run "
+                "invocation. For example: --nodes \"compute-0, compute-1, "
+                "compute-5\". "
                 "NOTE: Using this parameter with nodes of controlplane roles "
-                "(e.g. \"Controller\") is NOT supported and WILL end badly "
-                "unless you include ALL nodes of that role. It is preferable "
-                "to instead specify the role name with the --roles parameter.")
+                "(e.g. \"--nodes controller-1\") is NOT supported and WILL "
+                "end badly unless you include ALL nodes of that role as a "
+                "comma separated string. You should instead use the --roles "
+                "parameter for controlplane roles and specify the role name.")
         )
         nodes_or_roles.add_argument(
-            '--roles', action="store", nargs='+', help=_(
-                "Specify the role or list of roles to be upgraded in this "
-                "upgrade run invocation. "
+            '--roles', action="store", help=_(
+                "A string that identifies the role or comma-separated list of"
+                "roles to be upgraded in this upgrade run invocation. "
                 "NOTE: nodes of specified role(s) are upgraded in parallel. "
                 "This is REQUIRED for controlplane roles. For non "
                 "controlplane roles (e.g., \"Compute\"), you may consider "
                 "instead using the --nodes argument to limit the upgrade to "
-                "a specific node or nodes.")
+                "a specific node or list (comma separated string) of nodes.")
         )
         parser.add_argument('--playbook',
                             action="store",
