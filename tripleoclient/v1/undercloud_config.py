@@ -566,6 +566,11 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False):
         deploy_args += ['-e', os.path.join(
             tht_templates, "environments/services-docker/mistral.yaml")]
 
+    if CONF.get('enable_novajoin'):
+        deploy_args += ['-e', os.path.join(
+            tht_templates, "environments/services-docker/novajoin.yaml")]
+        env_data['NovajoinIpaOtp'] = CONF['ipa_otp']
+
     if CONF.get('enable_zaqar'):
         deploy_args += ['-e', os.path.join(
             tht_templates, "environments/services-docker/zaqar.yaml")]
