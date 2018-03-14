@@ -511,6 +511,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False):
 
     if CONF.get('overcloud_domain_name', None):
         env_data['NeutronDnsDomain'] = CONF['overcloud_domain_name']
+        deploy_args.append('--local-domain=%s' % CONF['overcloud_domain_name'])
 
     # FIXME need to add admin VIP as well
     env_data['DockerInsecureRegistryAddress'] = [
