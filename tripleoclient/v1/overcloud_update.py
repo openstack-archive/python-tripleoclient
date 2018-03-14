@@ -20,6 +20,7 @@ import yaml
 from osc_lib.i18n import _
 from oslo_concurrency import processutils
 
+from tripleoclient import command
 from tripleoclient import constants
 from tripleoclient import exceptions
 from tripleoclient import utils as oooutils
@@ -27,10 +28,15 @@ from tripleoclient.v1.overcloud_deploy import DeployOvercloud
 from tripleoclient.workflows import package_update
 
 
-class UpdateOvercloud(DeployOvercloud):
-    """Updates packages on overcloud nodes"""
+class UpdatePrepare(DeployOvercloud):
+    """Run heat stack update for overcloud nodes to refresh heat stack outputs.
 
-    log = logging.getLogger(__name__ + ".UpdateOvercloud")
+       The heat stack outputs are what we use later on to generate ansible
+       playbooks which deliver the minor update workflow. This is used as the
+       first step for a minor update of your overcloud.
+    """
+
+    log = logging.getLogger(__name__ + ".MinorUpdatePrepare")
 
     # enable preservation of all important files (plan env, user env,
     # roles/network data, user files) so that we don't have to pass
@@ -38,14 +44,7 @@ class UpdateOvercloud(DeployOvercloud):
     _keep_env_on_update = True
 
     def get_parser(self, prog_name):
-        parser = super(UpdateOvercloud, self).get_parser(prog_name)
-        parser.add_argument('--init-update',
-                            dest='init_update',
-                            action='store_true',
-                            help=_("Run a heat stack update to generate the "
-                                   "ansible playbooks."
-                                   "Needs to be run only once"),
-                            )
+        parser = super(UpdatePrepare, self).get_parser(prog_name)
         parser.add_argument('--container-registry-file',
                             dest='container_registry_file',
                             default=None,
@@ -57,20 +56,83 @@ class UpdateOvercloud(DeployOvercloud):
                             default="/usr/share/ceph-ansible"
                                     "/site-docker.yml.sample",
                             help=_('Path to switch the ceph-ansible playbook '
-                                   'used for update. This value should be set '
-                                   'during the init-minor-update step.')
+                                   'used for update. '),
                             )
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)" % parsed_args)
+        clients = self.app.client_manager
+
+        stack = oooutils.get_stack(clients.orchestration,
+                                   parsed_args.stack)
+
+        stack_name = stack.stack_name
+        container_registry = parsed_args.container_registry_file
+
+        # Update the container registry:
+        if container_registry:
+            with open(os.path.abspath(container_registry)) as content:
+                registry = yaml.load(content.read())
+        else:
+            self.log.warning(
+                "You have not provided a container registry file. Note "
+                "that none of the containers on your environement will be "
+                "updated. If you want to update your container you have "
+                "to re-run this command and provide the registry file "
+                "with: --container-registry-file option.")
+            registry = None
+        # Run update
+        ceph_ansible_playbook = parsed_args.ceph_ansible_playbook
+        # Run Overcloud deploy (stack update)
+        # In case of update and upgrade we need to force the
+        # update_plan_only. The heat stack update is done by the
+        # packag_update mistral action
+        parsed_args.update_plan_only = True
+        super(UpdatePrepare, self).take_action(parsed_args)
+        package_update.update(clients, container=stack_name,
+                              container_registry=registry,
+                              ceph_ansible_playbook=ceph_ansible_playbook)
+        package_update.get_config(clients, container=stack_name)
+        print("Update init on stack {0} complete.".format(
+              parsed_args.stack))
+
+
+class UpdateRun(command.Command):
+    """Run minor update ansible playbooks on Overcloud nodes"""
+
+    log = logging.getLogger(__name__ + ".MinorUpdateRun")
+
+    def get_parser(self, prog_name):
+        parser = super(UpdateRun, self).get_parser(prog_name)
         parser.add_argument('--nodes',
                             action="store",
-                            default=None,
-                            help=_("Nodes to update. If none and the "
-                                   "--init-update set to false, it "
-                                   "will run the update on all nodes.")
+                            required=True,
+                            help=_("Required parameter. This specifies the "
+                                   "overcloud nodes to run the minor update "
+                                   "playbooks on. You can use the name of "
+                                   "a specific node, or the name of the role "
+                                   "(e.g. Compute). You may also use the "
+                                   "special value 'all' to run the minor "
+                                   "on all nodes. In all cases the minor "
+                                   "update ansible playbook is executed on "
+                                   "one node at a time (with serial 1)")
                             )
         parser.add_argument('--playbook',
                             action="store",
-                            default="update_steps_playbook.yaml",
-                            help=_("Playbook to use for update/upgrade.")
+                            default="all",
+                            help=_("Ansible playbook to use for the minor "
+                                   "update. Defaults to the special value "
+                                   "\'all\' which causes all the update "
+                                   "playbooks to be executed. That is the "
+                                   "update_steps_playbook.yaml and then the"
+                                   "deploy_steps_playbook.yaml. "
+                                   "Set this to each of those playbooks in "
+                                   "consecutive invocations of this command "
+                                   "if you prefer to run them manually. Note: "
+                                   "make sure to run both those playbooks so "
+                                   "that all services are updated and running "
+                                   "with the target version configuration.")
                             )
         parser.add_argument('--static-inventory',
                             dest='static_inventory',
@@ -87,87 +149,47 @@ class UpdateOvercloud(DeployOvercloud):
         self.log.debug("take_action(%s)" % parsed_args)
         clients = self.app.client_manager
 
-        stack = oooutils.get_stack(clients.orchestration,
-                                   parsed_args.stack)
-
-        stack_name = stack.stack_name
-        container_registry = parsed_args.container_registry_file
-        init_update = parsed_args.init_update
-
-        if init_update:
-            # Update the container registry:
-            if container_registry:
-                with open(os.path.abspath(container_registry)) as content:
-                    registry = yaml.load(content.read())
-            else:
-                self.log.warning(
-                    "You have not provided a container registry file. Note "
-                    "that none of the containers on your environement will be "
-                    "updated. If you want to update your container you have "
-                    "to re-run this command and provide the registry file "
-                    "with: --container-registry-file option.")
-                registry = None
-            # Run update
-            ceph_ansible_playbook = parsed_args.ceph_ansible_playbook
-            # Run Overcloud deploy (stack update)
-            # In case of update and upgrade we need to force the
-            # update_plan_only. The heat stack update is done by the
-            # packag_update mistral action
-            parsed_args.update_plan_only = True
-            super(UpdateOvercloud, self).take_action(parsed_args)
-            package_update.update(clients, container=stack_name,
-                                  container_registry=registry,
-                                  ceph_ansible_playbook=ceph_ansible_playbook)
-            package_update.get_config(clients, container=stack_name)
-            print("Update init on stack {0} complete.".format(
-                  parsed_args.stack))
+        # Run ansible:
+        nodes = parsed_args.nodes
+        if nodes == 'all':
+            # unset this, the ansible action deals with unset 'limithosts'
+            nodes = None
+        playbook = parsed_args.playbook
+        inventory_file = parsed_args.static_inventory
+        if inventory_file is None:
+            inventory_file = '%s/%s' % (os.path.expanduser('~'),
+                                        'tripleo-ansible-inventory.yaml')
+            try:
+                processutils.execute(
+                    '/usr/bin/tripleo-ansible-inventory',
+                    '--static-yaml-inventory', inventory_file)
+            except processutils.ProcessExecutionError as e:
+                message = "Failed to generate inventory: %s" % str(e)
+                raise exceptions.InvalidConfiguration(message)
+        if os.path.exists(inventory_file):
+            inventory = open(inventory_file, 'r').read()
         else:
-            # Run ansible:
-            nodes = parsed_args.nodes
-            playbook = parsed_args.playbook
-            inventory_file = parsed_args.static_inventory
-            if inventory_file is None:
-                inventory_file = '%s/%s' % (os.path.expanduser('~'),
-                                            'tripleo-ansible-inventory.yaml')
-                try:
-                    processutils.execute(
-                        '/usr/bin/tripleo-ansible-inventory',
-                        '--static-yaml-inventory', inventory_file)
-                except processutils.ProcessExecutionError as e:
-                    message = "Failed to generate inventory: %s" % str(e)
-                    raise exceptions.InvalidConfiguration(message)
-            if os.path.exists(inventory_file):
-                inventory = open(inventory_file, 'r').read()
-            else:
-                raise exceptions.InvalidConfiguration(
-                    "Inventory file %s can not be found." % inventory_file)
+            raise exceptions.InvalidConfiguration(
+                "Inventory file %s can not be found." % inventory_file)
+        update_playbooks = [playbook]
+        if playbook == "all":
+            update_playbooks = constants.MINOR_UPDATE_PLAYBOOKS
+        for book in update_playbooks:
+            self.log.debug("Running minor update ansible playbook %s " % book)
             package_update.update_ansible(
                 clients, nodes=nodes,
                 inventory_file=inventory,
-                playbook=playbook,
+                playbook=book,
                 ansible_queue_name=constants.UPDATE_QUEUE)
 
 
-class UpgradeOvercloud(UpdateOvercloud):
-    """Upgrade Overcloud Nodes"""
+class UpgradeConvergeOvercloud(DeployOvercloud):
+    """Converge the upgrade on Overcloud Nodes"""
 
-    log = logging.getLogger(__name__ + ".UpgradeOvercloud")
+    log = logging.getLogger(__name__ + ".UpgradeConvergeOvercloud")
 
     def get_parser(self, prog_name):
-        parser = super(UpgradeOvercloud, self).get_parser(prog_name)
-        parser.add_argument('--converge',
-                            dest='converge',
-                            action='store_true',
-                            help=_("Upgrade converge step"),
-                            )
-        parser.add_argument('--upgrade-converge-environment-file',
-                            dest='upgrade_converge_file',
-                            default="%senvironments/%s" % (
-                                constants.TRIPLEO_HEAT_TEMPLATES,
-                                constants.UPGRADE_CONVERGE_FILE),
-                            help=_("Upgrade environment file which perform "
-                                   "the converge of the Overcloud"),
-                            )
+        parser = super(UpgradeConvergeOvercloud, self).get_parser(prog_name)
         return parser
 
     def take_action(self, parsed_args):
@@ -176,18 +198,9 @@ class UpgradeOvercloud(UpdateOvercloud):
 
         stack = oooutils.get_stack(clients.orchestration,
                                    parsed_args.stack)
-
         stack_name = stack.stack_name
-        converge = parsed_args.converge
-        if converge:
-            converge_file = parsed_args.upgrade_converge_file
-            # Add the converge file to the user environment:
-            if converge_file:
-                with open(os.path.abspath(converge_file)) as conv_content:
-                    converge_env = yaml.load(conv_content.read())
-            # Run converge steps
-            package_update.converge_nodes(clients,
-                                          converge_env=converge_env,
-                                          container=stack_name)
-        else:
-            super(UpgradeOvercloud, self).take_action(parsed_args)
+
+        parsed_args.update_plan_only = True
+        super(UpgradeConvergeOvercloud, self).take_action(parsed_args)
+        # Run converge steps
+        package_update.converge_nodes(clients, container=stack_name)

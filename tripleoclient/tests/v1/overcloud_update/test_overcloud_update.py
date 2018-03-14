@@ -15,21 +15,22 @@
 
 import mock
 
+from osc_lib.tests.utils import ParserException
 from tripleoclient import constants
 from tripleoclient import exceptions
 from tripleoclient.tests.v1.overcloud_update import fakes
 from tripleoclient.v1 import overcloud_update
 
 
-class TestOvercloudUpdate(fakes.TestOvercloudUpdate):
+class TestOvercloudUpdatePrepare(fakes.TestOvercloudUpdatePrepare):
 
     def setUp(self):
-        super(TestOvercloudUpdate, self).setUp()
+        super(TestOvercloudUpdatePrepare, self).setUp()
 
         # Get the command object to test
         app_args = mock.Mock()
         app_args.verbose_level = 1
-        self.cmd = overcloud_update.UpdateOvercloud(self.app, app_args)
+        self.cmd = overcloud_update.UpdatePrepare(self.app, app_args)
 
         uuid4_patcher = mock.patch('uuid.uuid4', return_value="UUID4")
         self.mock_uuid4 = uuid4_patcher.start()
@@ -37,7 +38,7 @@ class TestOvercloudUpdate(fakes.TestOvercloudUpdate):
 
     @mock.patch('tripleoclient.utils.get_stack',
                 autospec=True)
-    @mock.patch('tripleoclient.v1.overcloud_update.UpdateOvercloud.log',
+    @mock.patch('tripleoclient.v1.overcloud_update.UpdatePrepare.log',
                 autospec=True)
     @mock.patch('tripleoclient.workflows.package_update.update',
                 autospec=True)
@@ -56,12 +57,11 @@ class TestOvercloudUpdate(fakes.TestOvercloudUpdate):
         mock_abspath.return_value = '/home/fake/my-fake-registry.yaml'
         mock_yaml.return_value = {'fake_container': 'fake_value'}
 
-        argslist = ['--stack', 'overcloud', '--init-update', '--templates',
+        argslist = ['--stack', 'overcloud', '--templates',
                     '--container-registry-file', 'my-fake-registry.yaml']
         verifylist = [
             ('stack', 'overcloud'),
             ('templates', constants.TRIPLEO_HEAT_TEMPLATES),
-            ('init_update', True),
             ('container_registry_file', 'my-fake-registry.yaml')
         ]
 
@@ -88,12 +88,11 @@ class TestOvercloudUpdate(fakes.TestOvercloudUpdate):
         mock_update.side_effect = exceptions.DeploymentError()
         mock_abspath.return_value = '/home/fake/my-fake-registry.yaml'
         mock_yaml.return_value = {'fake_container': 'fake_value'}
-        argslist = ['--stack', 'overcloud', '--init-update', '--templates',
+        argslist = ['--stack', 'overcloud', '--templates',
                     '--container-registry-file', 'my-fake-registry.yaml']
         verifylist = [
             ('stack', 'overcloud'),
             ('templates', constants.TRIPLEO_HEAT_TEMPLATES),
-            ('init_update', True),
             ('container_registry_file', 'my-fake-registry.yaml')
         ]
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
@@ -101,18 +100,32 @@ class TestOvercloudUpdate(fakes.TestOvercloudUpdate):
         self.assertRaises(exceptions.DeploymentError,
                           self.cmd.take_action, parsed_args)
 
+
+class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
+
+    def setUp(self):
+        super(TestOvercloudUpdateRun, self).setUp()
+
+        # Get the command object to test
+        app_args = mock.Mock()
+        app_args.verbose_level = 1
+        self.cmd = overcloud_update.UpdateRun(self.app, app_args)
+
+        uuid4_patcher = mock.patch('uuid.uuid4', return_value="UUID4")
+        self.mock_uuid4 = uuid4_patcher.start()
+        self.addCleanup(self.mock_uuid4.stop)
+
     @mock.patch('tripleoclient.workflows.package_update.update_ansible',
                 autospec=True)
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
     @mock.patch('six.moves.builtins.open')
-    def test_update_ansible(self, mock_open, mock_execute,
-                            mock_expanduser, update_ansible):
+    def test_update_with_playbook(self, mock_open, mock_execute,
+                                  mock_expanduser, update_ansible):
         mock_expanduser.return_value = '/home/fake/'
-        argslist = ['--stack', 'overcloud', '--nodes', 'Compute', '--playbook',
+        argslist = ['--nodes', 'Compute', '--playbook',
                     'fake-playbook.yaml']
         verifylist = [
-            ('stack', 'overcloud'),
             ('nodes', 'Compute'),
             ('static_inventory', None),
             ('playbook', 'fake-playbook.yaml')
@@ -129,3 +142,74 @@ class TestOvercloudUpdate(fakes.TestOvercloudUpdate):
                 playbook='fake-playbook.yaml',
                 ansible_queue_name=constants.UPDATE_QUEUE
             )
+
+    @mock.patch('tripleoclient.workflows.package_update.update_ansible',
+                autospec=True)
+    @mock.patch('os.path.expanduser')
+    @mock.patch('oslo_concurrency.processutils.execute')
+    @mock.patch('six.moves.builtins.open')
+    def test_update_with_all_playbooks(self, mock_open, mock_execute,
+                                       mock_expanduser, update_ansible):
+        mock_expanduser.return_value = '/home/fake/'
+        argslist = ['--nodes', 'Compute', '--playbook', 'all']
+        verifylist = [
+            ('nodes', 'Compute'),
+            ('static_inventory', None),
+            ('playbook', 'all')
+        ]
+
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+        with mock.patch('os.path.exists') as mock_exists:
+            mock_exists.return_value = True
+            self.cmd.take_action(parsed_args)
+            for book in constants.MINOR_UPDATE_PLAYBOOKS:
+                update_ansible.assert_any_call(
+                    self.app.client_manager,
+                    nodes='Compute',
+                    inventory_file=mock_open().read(),
+                    playbook=book,
+                    ansible_queue_name=constants.UPDATE_QUEUE
+                )
+
+    @mock.patch('tripleoclient.workflows.package_update.update_ansible',
+                autospec=True)
+    @mock.patch('os.path.expanduser')
+    @mock.patch('oslo_concurrency.processutils.execute')
+    @mock.patch('six.moves.builtins.open')
+    def test_update_with_all_nodes_default_all_playbooks(
+            self, mock_open, mock_execute, mock_expanduser, update_ansible):
+        mock_expanduser.return_value = '/home/fake/'
+        argslist = ['--nodes', 'all']
+        verifylist = [
+            ('static_inventory', None),
+            ('playbook', 'all'),
+            ('nodes', 'all')
+        ]
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+        with mock.patch('os.path.exists') as mock_exists:
+            mock_exists.return_value = True
+            self.cmd.take_action(parsed_args)
+            for book in constants.MINOR_UPDATE_PLAYBOOKS:
+                update_ansible.assert_any_call(
+                    self.app.client_manager,
+                    nodes=None,
+                    inventory_file=mock_open().read(),
+                    playbook=book,
+                    ansible_queue_name=constants.UPDATE_QUEUE
+                )
+
+    @mock.patch('tripleoclient.workflows.package_update.update_ansible',
+                autospec=True)
+    @mock.patch('os.path.expanduser')
+    @mock.patch('oslo_concurrency.processutils.execute')
+    @mock.patch('six.moves.builtins.open')
+    def test_update_with_no_nodes(self, mock_open, mock_execute,
+                                  mock_expanduser, update_ansible):
+        mock_expanduser.return_value = '/home/fake/'
+        argslist = []
+        verifylist = [
+            ('static_inventory', None),
+            ('playbook', 'all')
+        ]
+        self.assertRaises(ParserException, lambda: self.check_parser(
+            self.cmd, argslist, verifylist))
