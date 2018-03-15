@@ -1,0 +1,16 @@
+---
+upgrade:
+  - |
+    This adds the new --roles and --nodes parameters for the Queens major
+    upgrade cli, specifically for the 'openstack overcloud upgrade run' which
+    executes the ansible playbooks on overcloud nodes.
+
+        openstack overcloud upgrade run --nodes compute-0 compute-1
+        openstack overcloud upgrade run --roles Controller
+
+    Nodes for controlplane roles (the default 'Controller' role for example)
+    need to be upgraded using the --roles parameter as these nodes must be
+    upgraded together/in parallel.
+
+    For non controlplane roles the --nodes parameter can be used to limit the
+    upgrade run to one or more nodes as specified by the operator.
