@@ -49,6 +49,16 @@ class DownloadConfig(command.Command):
             help=_('Type of object config to be extract from the deployment, '
                    'defaults to all keys available'),
         )
+        parser.add_argument(
+            '--no-preserve-config',
+            dest='preserve_config_dir',
+            action='store_false',
+            default=True,
+            help=('If specified, will delete and recreate the --config-dir '
+                  'if it already exists. Default is to use the existing dir '
+                  'location and overwrite files. Files in --config-dir not '
+                  'from the stack will be preserved by default.')
+        )
         return parser
 
     def take_action(self, parsed_args):
@@ -59,8 +69,10 @@ class DownloadConfig(command.Command):
         name = parsed_args.name
         config_dir = parsed_args.config_dir
         config_type = parsed_args.config_type
+        preserve_config_dir = parsed_args.preserve_config_dir
         # Get config
         config = ooo_config.Config(clients.orchestration)
-        config_path = config.download_config(name, config_dir, config_type)
+        config_path = config.download_config(name, config_dir, config_type,
+                                             preserve_config_dir)
         print("The TripleO configuration has been successfully generated "
               "into: {0}".format(config_path))
