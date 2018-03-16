@@ -57,6 +57,8 @@ from tripleo_common.utils import passwords as password_utils
 from tripleo_common.inventory import TripleoInventory
 from tripleo_common.utils import config
 
+VIP_CIDR_PREFIX_LEN = 32
+
 
 class DeployUndercloud(command.Command):
     """Deploy Undercloud (experimental feature)"""
@@ -188,12 +190,12 @@ class DeployUndercloud(command.Command):
         }
         return data
 
-    def _generate_portmap_parameters(self, ip_addr, cidr, ctlplane_vip_addr,
-                                     ctlplane_vip_cidr, public_vip_addr,
-                                     public_vip_cidr):
+    def _generate_portmap_parameters(self, ip_addr, cidr_prefixlen,
+                                     ctlplane_vip_addr, public_vip_addr):
         hostname = self._get_hostname()
 
         data = {
+            'ControlPlaneSubnetCidr': '%s' % cidr_prefixlen,
             'HostnameMap': {
                 'undercloud-undercloud-0': '%s' % hostname
             },
@@ -203,9 +205,7 @@ class DeployUndercloud(command.Command):
             'IPPool': {
                 'external': [public_vip_addr]
             },
-            'ExternalNetCidr': {
-                '%s:%s' % (public_vip_addr, public_vip_cidr)
-            },
+            'ExternalNetCidr': '%s/%s' % (public_vip_addr, cidr_prefixlen),
             # This requires use of the
             # ../deployed-server/deployed-neutron-port.yaml resource in t-h-t
             # We use this for the control plane VIP and also via
@@ -214,15 +214,15 @@ class DeployUndercloud(command.Command):
             'DeployedServerPortMap': {
                 ('%s-ctlplane' % hostname): {
                     'fixed_ips': [{'ip_address': ip_addr}],
-                    'subnets': [{'cidr': cidr}]
+                    'subnets': [{'cidr': cidr_prefixlen}]
                 },
                 'control_virtual_ip': {
                     'fixed_ips': [{'ip_address': ctlplane_vip_addr}],
-                    'subnets': [{'cidr': ctlplane_vip_cidr}]
+                    'subnets': [{'cidr': VIP_CIDR_PREFIX_LEN}]
                 },
                 'public_virtual_ip': {
                     'fixed_ips': [{'ip_address': public_vip_addr}],
-                    'subnets': [{'cidr': public_vip_cidr}]
+                    'subnets': [{'cidr': VIP_CIDR_PREFIX_LEN}]
                 }
             }
         }
@@ -368,28 +368,21 @@ class DeployUndercloud(command.Command):
 
             ip_nw = netaddr.IPNetwork(parsed_args.local_ip)
             ip = str(ip_nw.ip)
-            cidr = str(ip_nw.netmask)
+            cidr_prefixlen = ip_nw.prefixlen
 
             if parsed_args.control_virtual_ip:
-                c_ip_nw = netaddr.IPNetwork(parsed_args.control_virtual_ip)
-                c_ip = str(c_ip_nw.ip)
-                c_cidr = str(c_ip_nw.netmask)
+                c_ip = parsed_args.control_virtual_ip
             else:
                 c_ip = ip
-                c_cidr = cidr
 
             if parsed_args.public_virtual_ip:
-                p_ip_nw = netaddr.IPNetwork(parsed_args.public_virtual_ip)
-                p_ip = str(p_ip_nw.ip)
-                p_cidr = str(p_ip_nw.netmask)
+                p_ip = parsed_args.public_virtual_ip
             else:
                 p_ip = ip
-                p_cidr = cidr
 
             tmp_env = self._generate_hosts_parameters(parsed_args, p_ip)
-            tmp_env.update(self._generate_portmap_parameters(ip, cidr, c_ip,
-                                                             c_cidr, p_ip,
-                                                             p_cidr))
+            tmp_env.update(self._generate_portmap_parameters(
+                ip, cidr_prefixlen, c_ip, p_ip))
 
             with open(self.tmp_env_file_name, 'w') as env_file:
                 yaml.safe_dump({'parameter_defaults': tmp_env}, env_file,

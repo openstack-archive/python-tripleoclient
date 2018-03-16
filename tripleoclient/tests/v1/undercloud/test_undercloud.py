@@ -62,7 +62,8 @@ class TestUndercloudInstall(TestPluginV1):
 
         mock_subprocess.assert_called_with(
             ['sudo', 'openstack', 'undercloud',
-             'deploy', '--local-domain=localdomain', '--local-ip=192.168.24.1',
+             'deploy', '--local-domain=localdomain',
+             '--local-ip=192.168.24.1/24',
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
              '--heat-native', '-e', '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -123,7 +124,8 @@ class TestUndercloudUpgrade(TestPluginV1):
 
         mock_subprocess.assert_called_with(
             ['sudo', 'openstack', 'undercloud',
-             'deploy', '--local-domain=localdomain', '--local-ip=192.168.24.1',
+             'deploy', '--local-domain=localdomain',
+             '--local-ip=192.168.24.1/24',
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
              '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'

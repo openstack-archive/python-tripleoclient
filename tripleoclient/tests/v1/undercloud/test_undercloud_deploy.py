@@ -132,7 +132,7 @@ class TestDeployUndercloud(TestPluginV1):
                                                  mock_hc_get_templ_cont,
                                                  mock_hc_process):
         parsed_args = self.check_parser(self.cmd,
-                                        ['--local-ip', '127.0.0.1',
+                                        ['--local-ip', '127.0.0.1/8',
                                          '--templates', '/tmp/thtroot'], [])
 
         mock_setup_heat_envs.return_value = [
@@ -186,7 +186,7 @@ class TestDeployUndercloud(TestPluginV1):
         mock_hc_process.side_effect = hc_process
 
         parsed_args = self.check_parser(self.cmd,
-                                        ['--local-ip', '127.0.0.1',
+                                        ['--local-ip', '127.0.0.1/8',
                                          '--templates', '/tmp/thtroot'], [])
 
         rewritten_env = {'resource_registry': {
@@ -229,13 +229,11 @@ class TestDeployUndercloud(TestPluginV1):
     @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
                 '_update_passwords_env', autospec=True)
     @mock.patch('subprocess.check_call', autospec=True)
-    @mock.patch('netaddr.IPNetwork', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True, return_value='/twd')
     @mock.patch('shutil.copytree', autospec=True)
     def test_setup_heat_environments(self,
                                      mock_copy,
                                      mock_mktemp,
-                                     mock_netaddr,
                                      mock_exec,
                                      mock_update_pass_env,
                                      mock_process_multiple_environments,
@@ -243,7 +241,7 @@ class TestDeployUndercloud(TestPluginV1):
                                      mock_hc_process):
 
         parsed_args = self.check_parser(self.cmd,
-                                        ['--local-ip', '127.0.0.1',
+                                        ['--local-ip', '127.0.0.1/8',
                                          '--templates', '/tmp/thtroot',
                                          '--output-dir', '/my',
                                          '-e', '/tmp/thtroot/puppet/foo.yaml',

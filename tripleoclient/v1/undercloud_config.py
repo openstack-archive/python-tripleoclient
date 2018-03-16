@@ -549,9 +549,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False):
         env_data['DockerRegistryMirror'] = CONF['docker_registry_mirror']
 
     if CONF.get('local_ip', None):
-        # local_ip is defined as a CIDR
-        just_local_ip = CONF['local_ip'].split('/')[0]
-        deploy_args.append('--local-ip=%s' % just_local_ip)
+        deploy_args.append('--local-ip=%s' % CONF['local_ip'])
 
     if CONF.get('templates', None):
         tht_templates = CONF['templates']
