@@ -37,7 +37,7 @@ class DownloadConfig(command.Command):
         parser.add_argument(
             '--config-dir',
             dest='config_dir',
-            default=os.path.expanduser("~"),
+            default=os.path.expanduser("~")+'/tripleo-config',
             help=_('The directory where the configuration files will be '
                    'pushed'),
         )
