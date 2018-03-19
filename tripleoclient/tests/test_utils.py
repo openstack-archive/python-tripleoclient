@@ -19,6 +19,9 @@ import datetime
 import mock
 import os.path
 import tempfile
+
+from heatclient import exc as hc_exc
+
 from uuid import uuid4
 
 from unittest import TestCase
@@ -638,3 +641,100 @@ class TestStoreCliParam(TestCase):
         mock_isdir.return_value = True
         mock_open.side_effect = IOError()
         self.assertRaises(IOError, utils.store_cli_param, "command", self.args)
+
+
+class ProcessMultipleEnvironments(TestCase):
+
+    def setUp(self):
+        self.tht_root = '/twd/templates'
+        self.user_tht_root = '/tmp/thtroot/'
+        self.created_env_files = [
+            './inside.yaml', '/tmp/thtroot/abs.yaml',
+            '/tmp/thtroot/puppet/foo.yaml',
+            '/tmp/thtroot/environments/myenv.yaml',
+            '/tmp/thtroot42/notouch.yaml',
+            './tmp/thtroot/notouch2.yaml',
+            '../outside.yaml']
+
+    @mock.patch('heatclient.common.template_utils.'
+                'process_environment_and_files', return_value=({}, {}),
+                autospec=True)
+    @mock.patch('heatclient.common.template_utils.'
+                'get_template_contents', return_value=({}, {}),
+                autospec=True)
+    @mock.patch('heatclient.common.environment_format.'
+                'parse', autospec=True, return_value=dict())
+    @mock.patch('heatclient.common.template_format.'
+                'parse', autospec=True, return_value=dict())
+    def test_redirect_templates_paths(self,
+                                      mock_hc_templ_parse,
+                                      mock_hc_env_parse,
+                                      mock_hc_get_templ_cont,
+                                      mock_hc_process):
+        utils.process_multiple_environments(self.created_env_files,
+                                            self.tht_root,
+                                            self.user_tht_root)
+
+        mock_hc_process.assert_has_calls([
+            mock.call(env_path='./inside.yaml'),
+            mock.call(env_path='/twd/templates/abs.yaml'),
+            mock.call(env_path='/twd/templates/puppet/foo.yaml'),
+            mock.call(env_path='/twd/templates/environments/myenv.yaml'),
+            mock.call(env_path='/tmp/thtroot42/notouch.yaml'),
+            mock.call(env_path='./tmp/thtroot/notouch2.yaml'),
+            mock.call(env_path='../outside.yaml')])
+
+    @mock.patch('heatclient.common.template_utils.'
+                'process_environment_and_files', return_value=({}, {}),
+                autospec=True)
+    @mock.patch('heatclient.common.template_utils.'
+                'get_template_contents', return_value=({}, {}),
+                autospec=True)
+    @mock.patch('heatclient.common.environment_format.'
+                'parse', autospec=True, return_value=dict())
+    @mock.patch('heatclient.common.template_format.'
+                'parse', autospec=True, return_value=dict())
+    @mock.patch('yaml.safe_dump', autospec=True)
+    @mock.patch('yaml.safe_load', autospec=True)
+    @mock.patch('six.moves.builtins.open')
+    @mock.patch('tempfile.NamedTemporaryFile', autospec=True)
+    def test_rewrite_env_files(self,
+                               mock_temp, mock_open,
+                               mock_yaml_load,
+                               mock_yaml_dump,
+                               mock_hc_templ_parse,
+                               mock_hc_env_parse,
+                               mock_hc_get_templ_cont,
+                               mock_hc_process):
+
+        def hc_process(*args, **kwargs):
+            if 'abs.yaml' in kwargs['env_path']:
+                raise hc_exc.CommandError
+            else:
+                return ({}, {})
+
+        mock_hc_process.side_effect = hc_process
+        rewritten_env = {'resource_registry': {
+            'OS::Foo::Bar': '/twd/outside.yaml',
+            'OS::Foo::Baz': '/twd/templates/inside.yaml',
+            'OS::Foo::Qux': '/twd/templates/abs.yaml',
+            'OS::Foo::Quux': '/tmp/thtroot42/notouch.yaml',
+            'OS::Foo::Corge': '/twd/templates/puppet/foo.yaml'
+            }
+        }
+        myenv = {'resource_registry': {
+            'OS::Foo::Bar': '../outside.yaml',
+            'OS::Foo::Baz': './inside.yaml',
+            'OS::Foo::Qux': '/tmp/thtroot/abs.yaml',
+            'OS::Foo::Quux': '/tmp/thtroot42/notouch.yaml',
+            'OS::Foo::Corge': '/tmp/thtroot/puppet/foo.yaml'
+            }
+        }
+        mock_yaml_load.return_value = myenv
+
+        utils.process_multiple_environments(self.created_env_files,
+                                            self.tht_root,
+                                            self.user_tht_root, False)
+
+        mock_yaml_dump.assert_has_calls([mock.call(rewritten_env,
+                                        default_flow_style=False)])
