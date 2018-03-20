@@ -357,32 +357,10 @@ _opts = [
                ),
     cfg.StrOpt('container_images_file',
                default='',
-               help=('Container yaml file with all available images in the '
-                     'registry. When not specified, the values provided by '
-                     'this file will be generated using the '
-                     'container_image_* options.')
-               ),
-    cfg.StrOpt('container_image_namespace',
-               default='',
-               help=('Namespace portion of image path, for example: %s' %
-                     ci_defaults.get('namespace'))
-               ),
-    cfg.StrOpt('container_image_name_prefix',
-               default=ci_defaults.get('name_prefix'),
-               help=('Name prefix of container image names')
-               ),
-    cfg.StrOpt('container_image_name_suffix',
-               default=ci_defaults.get('name_suffix'),
-               help=('Name suffix of container image names')
-               ),
-    cfg.StrOpt('container_image_tag',
-               default=ci_defaults.get('tag'),
-               help=('Tag of undercloud images to deploy')
-               ),
-    cfg.StrOpt('container_image_tag_from_label',
-               default=ci_defaults.get('tag_from_label'),
-               help=('Image label to use to discover versioned tag')
-               ),
+               help=('Heat environment file with parameters for all required '
+                     'container images. Or alternatively, parameter '
+                     '"ContainerImagePrepare" to drive the required image '
+                     'preparation.')),
     cfg.BoolOpt('enable_ironic',
                 default=True,
                 help=('Whether to enable the ironic service.')),
@@ -750,19 +728,8 @@ def _write_env_file(env_data,
 def _container_images_config(conf, deploy_args, env_data):
     if conf.container_images_file:
         deploy_args += ['-e', conf.container_images_file]
-    elif conf.container_image_namespace:
-        pd = kolla_builder.container_images_prepare_defaults()
-        if conf.container_image_namespace:
-            pd['namespace'] = conf.container_image_namespace
-        if conf.container_image_name_prefix:
-            pd['name_prefix'] = conf.container_image_name_prefix
-        if conf.container_image_name_suffix:
-            pd['name_suffix'] = conf.container_image_name_suffix
-        if conf.container_image_tag:
-            pd['tag'] = conf.container_image_tag
-        if conf.container_image_tag_from_label:
-            pd['tag_from_label'] = conf.container_image_tag_from_label
-        env_data['ContainerImagePrepare'] = [pd]
     else:
-        raise RuntimeError('Either "container_images_file" or '
-                           '"container_image_namespace" must be specified.')
+        # no images file was provided. Set a default ContainerImagePrepare
+        # parameter to trigger the preparation of the required container list
+        cip = kolla_builder.CONTAINER_IMAGE_PREPARE_PARAM
+        env_data['ContainerImagePrepare'] = cip
