@@ -267,3 +267,84 @@ class TestDeployUndercloud(TestPluginV1):
         environment = self.cmd._setup_heat_environments(parsed_args)
 
         self.assertEqual(environment, expected_env)
+
+    @mock.patch('tripleoclient.v1.undercloud_deploy.TripleoInventory',
+                autospec=True)
+    @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
+                '_launch_heat', autospec=True)
+    @mock.patch('tripleo_common.utils.config.Config',
+                autospec=True)
+    @mock.patch('tripleoclient.v1.undercloud_deploy.sys.stdout.flush')
+    @mock.patch('os.path.getctime')
+    @mock.patch('os.path.join', return_value='/tmp/inventory.yaml')
+    @mock.patch('glob.glob', return_value=['/tmp'])
+    def test_download_ansible_playbooks(self, mock_glob, mock_join,
+                                        mock_getctime,  mock_flush,
+                                        mock_stack_config, mock_launch_heat,
+                                        mock_importInv):
+
+        fake_output_dir = '/tmp'
+        extra_vars = {'Undercloud': {'ansible_connection': 'local'}}
+        mock_getctime.return_value = '1522692811'
+        mock_inventory = mock.Mock()
+        mock_importInv.return_value = mock_inventory
+        self.cmd._download_ansible_playbooks(mock_launch_heat,
+                                             'undercloud',
+                                             fake_output_dir)
+        self.assertEqual(mock_flush.call_count, 2)
+        mock_glob.assert_called_once_with('/tmp/tripleo-*-config')
+        mock_getctime.assert_called()
+        mock_inventory.write_static_inventory.assert_called_once_with(
+            fake_output_dir + '/inventory.yaml', extra_vars)
+
+    @mock.patch('os.chdir')
+    @mock.patch('os.execvp')
+    def test_launch_ansible(self, mock_execvp, mock_chdir):
+
+        self.cmd._launch_ansible('/tmp')
+        mock_chdir.assert_called_once()
+        mock_execvp.assert_called_once()
+
+    @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
+                '_wait_local_port_ready', autospec=True)
+    @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
+                '_deploy_tripleo_heat_templates', autospec=True,
+                return_value='undercloud, 0')
+    @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
+                '_download_ansible_playbooks', autospec=True)
+    @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
+                '_launch_heat')
+    @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
+                '_kill_heat')
+    @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
+                '_configure_puppet')
+    @mock.patch('os.geteuid', return_value=0)
+    @mock.patch('os.environ', return_value='CREATE_COMPLETE')
+    @mock.patch('tripleoclient.v1.undercloud_deploy.'
+                'event_utils.poll_for_events',
+                return_value=('CREATE_COMPLETE', 0))
+    def test_take_action(self, mock_poll, mock_environ, mock_geteuid,
+                         mock_puppet, mock_killheat, mock_launchheat,
+                         mock_download, mock_tht, mock_wait_for_port):
+
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--local-ip', '127.0.0.1',
+                                         '--templates', '/tmp/thtroot',
+                                         '--stack', 'undercloud',
+                                         '--output-dir', '/my',
+                                         '-e', '/tmp/thtroot/puppet/foo.yaml',
+                                         '-e', '/tmp/thtroot//docker/bar.yaml',
+                                         '-e', '/tmp/thtroot42/notouch.yaml',
+                                         '-e', '~/custom.yaml',
+                                         '-e', 'something.yaml',
+                                         '-e', '../../../outside.yaml'], [])
+
+        fake_orchestration = mock_launchheat(parsed_args)
+        self.cmd.take_action(parsed_args)
+        mock_launchheat.assert_called_with(parsed_args)
+        mock_tht.assert_called_once_with(self.cmd, fake_orchestration,
+                                         parsed_args)
+        mock_download.assert_called_with(self.cmd, fake_orchestration,
+                                         'undercloud', '/my')
+
+        self.assertEqual(mock_killheat.call_count, 2)
