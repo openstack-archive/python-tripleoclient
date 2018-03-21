@@ -19,8 +19,7 @@ TRIPLEO_HEAT_TEMPLATES = "/usr/share/openstack-tripleo-heat-templates/"
 OVERCLOUD_YAML_NAME = "overcloud.yaml"
 OVERCLOUD_ROLES_FILE = "roles_data.yaml"
 UNDERCLOUD_ROLES_FILE = "roles_data_undercloud.yaml"
-UNDERCLOUD_OUTPUT_DIR = os.path.join(os.environ.get('HOME'),
-                                     '.undercloud-heat-installer')
+UNDERCLOUD_OUTPUT_DIR = os.path.join(os.environ.get('HOME'))
 OVERCLOUD_NETWORKS_FILE = "network_data.yaml"
 RHEL_REGISTRATION_EXTRACONFIG_NAME = (
     "extraconfig/pre_deploy/rhel-registration/")

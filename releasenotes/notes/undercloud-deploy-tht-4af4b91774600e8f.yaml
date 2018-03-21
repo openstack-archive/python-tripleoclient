@@ -14,8 +14,6 @@ features:
     configure ``undercloud install --use-heat`` behavior.
 upgrade:
   - |
-    The default value for `--output-dir` is changed for
-    undercloud heat installer to `$HOME/.undercloud-heat-installer`.
     The content of the processed heat templates will be persisted
     under the given path as `$output_dir/$tempdir/templates`, for
     each run of the undercloud deploy or install commands, unless
