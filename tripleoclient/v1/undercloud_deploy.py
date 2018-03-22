@@ -443,8 +443,16 @@ class DeployUndercloud(command.Command):
 
         # Sadly the above writes the ansible config to a new directory each
         # time.  This finds the newest new entry.
-        ansible_dir = max(glob.iglob('%s/tripleo-*-config' % output_dir),
-                          key=os.path.getctime)
+        # The use of tmpdirs is going away, but we need to remain
+        # backwards compatible for now to pass the gate.  lp:17252118
+        def find_ansible_dir():
+            tmpdirs = glob.glob('%s/tripleo-*-config' % output_dir)
+            if not tmpdirs:
+                return output_dir
+            else:
+                return max(tmpdirs, key=os.path.getctime)
+
+        ansible_dir = find_ansible_dir()
 
         inventory = TripleoInventory(
             hclient=client,
