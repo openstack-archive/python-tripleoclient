@@ -101,7 +101,6 @@ class WebsocketClient(object):
         })
 
     def cleanup(self):
-        self.send('queue_delete', {'queue_name': self._queue_name})
         self._ws.close()
 
     def send(self, action, body=None, extra_headers=None):
