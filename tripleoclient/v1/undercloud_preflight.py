@@ -334,7 +334,7 @@ def _validate_no_ip_change():
     if existing_ip != CONF.local_ip:
         message = ('Changing the local_ip is not allowed.  Existing IP: '
                    '%s, Configured IP: %s') % (existing_ip,
-                                               CONF.network_cidr)
+                                               CONF.local_ip)
         LOG.error(message)
         raise FailedValidation(message)
 
