@@ -1,0 +1,16 @@
+---
+upgrade:
+  - |
+    This adds a --skip-tags parameter to the openstack overcloud upgrade run
+    command
+
+    .. code-block:: bash
+
+        openstack overcloud upgrade run --nodes compute-0 --skip-tags validation
+
+    This is useful for skipping those step 0 tasks (tagged "validation") that
+    check if services are running before allowing the upgrade to proceed, especially
+    if you must re-run the upgrade after a failed attempt and some services
+    cannot easily be started. The currently supported values for this are
+    validation and pre-upgrade, and they can be combined as "--skip-tags
+    'validation,pre-upgrade'" if required.

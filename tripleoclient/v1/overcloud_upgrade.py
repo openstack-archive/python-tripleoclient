@@ -20,6 +20,7 @@ from osc_lib.i18n import _
 
 from tripleoclient import command
 from tripleoclient import constants
+from tripleoclient import exceptions
 from tripleoclient import utils as oooutils
 from tripleoclient.v1.overcloud_deploy import DeployOvercloud
 from tripleoclient.workflows import package_update
@@ -152,7 +153,31 @@ class UpgradeRun(command.Command):
                                    'generated in '
                                    '~/tripleo-ansible-inventory.yaml')
                             )
+        parser.add_argument('--skip-tags',
+                            dest='skip_tags',
+                            action="store",
+                            default="",
+                            help=_('A string specifying the tag or comma '
+                                   'separated list of tags to be passed '
+                                   'as --skip-tags to ansible-playbook. '
+                                   'The currently supported values are '
+                                   '\'validation\' and \'pre-upgrade\'. '
+                                   'In particular \'validation\' is useful '
+                                   'if you must re-run following a failed '
+                                   'upgrade and some services cannot be '
+                                   'started. ')
+                            )
         return parser
+
+    def _validate_skip_tags(self, skip_tags):
+        tags_list = skip_tags.split(',')
+        for tag in tags_list:
+            tag = tag.strip()
+            if tag and tag not in constants.MAJOR_UPGRADE_SKIP_TAGS:
+                raise exceptions.InvalidConfiguration(
+                    "Unexpected tag %s. Supported values are %s" % (
+                        tag, constants.MAJOR_UPGRADE_SKIP_TAGS))
+        return skip_tags
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
@@ -164,11 +189,12 @@ class UpgradeRun(command.Command):
         playbook = parsed_args.playbook
         inventory = oooutils.get_tripleo_ansible_inventory(
             parsed_args.static_inventory)
+        skip_tags = self._validate_skip_tags(parsed_args.skip_tags)
         oooutils.run_update_ansible_action(self.log, clients, limit_hosts,
                                            inventory, playbook,
                                            constants.UPGRADE_QUEUE,
                                            constants.MAJOR_UPGRADE_PLAYBOOKS,
-                                           package_update)
+                                           package_update, skip_tags)
 
 
 class UpgradeConvergeOvercloud(DeployOvercloud):
