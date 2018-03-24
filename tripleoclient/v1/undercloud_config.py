@@ -488,6 +488,23 @@ def _process_drivers_and_hardware_types(conf, env):
     env['IronicEnabledPowerInterfaces'] = sorted(mgmt_interfaces)
 
 
+def _process_ipa_args(conf, env):
+    """Populate the environment with IPA kernal args ."""
+    inspection_kernel_args = []
+    if conf.undercloud_debug:
+        inspection_kernel_args.append('ipa-debug=1')
+    if conf.inspection_runbench:
+        inspection_kernel_args.append('ipa-inspection-benchmarks=cpu,mem,disk')
+    if conf.inspection_extras:
+        inspection_kernel_args.append('ipa-inspection-dhcp-all-interfaces=1')
+        inspection_kernel_args.append('ipa-collect-lldp=1')
+        env['IronicInspectorCollectors'] = ('default,extra-hardware,'
+                                            'numa-topology,logs')
+    else:
+        env['IronicInspectorCollectors'] = 'default,logs'
+    env['IronicInspectorKernelArgs'] = ' '.join(inspection_kernel_args)
+
+
 def prepare_undercloud_deploy(upgrade=False, no_validations=False):
     """Prepare Undercloud deploy command based on undercloud.conf"""
 
@@ -570,6 +587,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False):
                 "environments/services-docker/ironic-inspector.yaml")]
 
         _process_drivers_and_hardware_types(CONF, env_data)
+        _process_ipa_args(CONF, env_data)
 
     if CONF.get('enable_mistral'):
         deploy_args += ['-e', os.path.join(
