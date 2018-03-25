@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    The ```action``` parameter for overcloud fencing generation is now ignored.
+    This is because recent versions of the underlying fencing agents now
+    produce an error if the action parameter is used. Previously the use of the
+    parameter was discouraged.
