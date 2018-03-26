@@ -75,10 +75,7 @@ class GenerateFencingParameters(command.Command):
     def get_parser(self, prog_name):
         parser = super(GenerateFencingParameters, self).get_parser(prog_name)
         parser.add_argument('-a', '--action', dest='fence_action',
-                            help=_('Operation to perform. Valid operations: '
-                                   'on, off, reboot, status, list, diag, '
-                                   'monitor or metadata. You should generally '
-                                   'not use this option.'))
+                            help=_('DEPRECATED: This option is ignored.'))
         parser.add_argument('--delay', type=int,
                             help=_('Wait DELAY seconds before fencing is '
                                    'started'))
@@ -124,7 +121,6 @@ class GenerateFencingParameters(command.Command):
         workflow_input = {
             'nodes_json': nodes_config,
             'os_auth': os_auth,
-            'fence_action': parsed_args.fence_action,
             'delay': parsed_args.delay,
             'ipmi_level': parsed_args.ipmi_level,
             'ipmi_cipher': parsed_args.ipmi_cipher,
