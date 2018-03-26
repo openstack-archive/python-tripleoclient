@@ -42,6 +42,7 @@ UPGRADE_QUEUE = 'upgrade'
 FFWD_UPGRADE_QUEUE = 'ffwdupgrade'
 STACK_TIMEOUT = 240
 
+IRONIC_HTTP_BOOT_BIND_MOUNT = '/var/lib/ironic/httpboot'
 
 # The default ffwd upgrade ansible playbooks generated from heat stack output
 FFWD_UPGRADE_PLAYBOOK = "fast_forward_upgrade_playbook.yaml"
