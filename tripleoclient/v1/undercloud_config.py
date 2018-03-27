@@ -59,10 +59,10 @@ THT_HOME = os.environ.get('THT_HOME',
                           "/usr/share/openstack-tripleo-heat-templates/")
 
 TELEMETRY_DOCKER_ENV_YAML = [
-    'environments/services-docker/undercloud-gnocchi.yaml',
-    'environments/services-docker/undercloud-aodh.yaml',
-    'environments/services-docker/undercloud-panko.yaml',
-    'environments/services-docker/undercloud-ceilometer.yaml']
+    'environments/services/undercloud-gnocchi.yaml',
+    'environments/services/undercloud-aodh.yaml',
+    'environments/services/undercloud-panko.yaml',
+    'environments/services/undercloud-ceilometer.yaml']
 
 # Control plane network name
 SUBNETS_DEFAULT = ['ctlplane-subnet']
@@ -688,29 +688,29 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False):
 
     if CONF.get('enable_ironic'):
         deploy_args += ['-e', os.path.join(
-            tht_templates, "environments/services-docker/ironic.yaml")]
+            tht_templates, "environments/services/ironic.yaml")]
 
         # ironic-inspector can only work if ironic is enabled
         if CONF.get('enable_ironic_inspector'):
             deploy_args += ['-e', os.path.join(
                 tht_templates,
-                "environments/services-docker/ironic-inspector.yaml")]
+                "environments/services/ironic-inspector.yaml")]
 
         _process_drivers_and_hardware_types(CONF, env_data)
         _process_ipa_args(CONF, env_data)
 
     if CONF.get('enable_mistral'):
         deploy_args += ['-e', os.path.join(
-            tht_templates, "environments/services-docker/mistral.yaml")]
+            tht_templates, "environments/services/mistral.yaml")]
 
     if CONF.get('enable_novajoin'):
         deploy_args += ['-e', os.path.join(
-            tht_templates, "environments/services-docker/novajoin.yaml")]
+            tht_templates, "environments/services/novajoin.yaml")]
         env_data['NovajoinIpaOtp'] = CONF['ipa_otp']
 
     if CONF.get('enable_zaqar'):
         deploy_args += ['-e', os.path.join(
-            tht_templates, "environments/services-docker/zaqar.yaml")]
+            tht_templates, "environments/services/zaqar.yaml")]
 
     if CONF.get('enable_telemetry'):
         for env_file in TELEMETRY_DOCKER_ENV_YAML:
@@ -723,7 +723,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False):
     if CONF.get('enable_cinder'):
         deploy_args += ['-e', os.path.join(
             tht_templates,
-            "environments/services-docker/undercloud-cinder.yaml")]
+            "environments/services/undercloud-cinder.yaml")]
 
     if CONF.get('generate_service_certificate'):
         deploy_args += ['-e', os.path.join(
@@ -738,9 +738,9 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False):
         registry_overwrites.update(
             _get_public_tls_resource_registry_overwrites(enable_tls_yaml_path))
         deploy_args += [
-            '-e', os.path.join(tht_templates, 'environments/services-docker/'
+            '-e', os.path.join(tht_templates, 'environments/services/'
                                'undercloud-haproxy.yaml'),
-            '-e', os.path.join(tht_templates, 'environments/services-docker/'
+            '-e', os.path.join(tht_templates, 'environments/services/'
                                'undercloud-keepalived.yaml')]
 
     if (CONF.get('generate_service_certificate') or
@@ -767,10 +767,10 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False):
                 'environments/use-dns-for-vips.yaml'),
             '-e', os.path.join(
                 tht_templates,
-                'environments/services-docker/undercloud-haproxy.yaml'),
+                'environments/services/undercloud-haproxy.yaml'),
             '-e', os.path.join(
                 tht_templates,
-                'environments/services-docker/undercloud-keepalived.yaml')]
+                'environments/services/undercloud-keepalived.yaml')]
 
     u = CONF.get('deployment_user') or utils.get_deployment_user()
     env_data['DeploymentUser'] = u

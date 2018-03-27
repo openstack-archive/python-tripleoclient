@@ -67,14 +67,14 @@ class TestUndercloudInstall(TestPluginV1):
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
              '--heat-native', '-e', '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services-docker/ironic.yaml',
+             'services/ironic.yaml',
              '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services-docker/ironic-inspector.yaml', '-e',
+             'services/ironic-inspector.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services-docker/mistral.yaml', '-e',
+             'services/mistral.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services-docker/zaqar.yaml', '-e',
+             'services/zaqar.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services-docker/tripleo-ui.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -86,9 +86,9 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'use-dns-for-vips.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services-docker/undercloud-haproxy.yaml', '-e',
+             'services/undercloud-haproxy.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services-docker/undercloud-keepalived.yaml', '-e',
+             'services/undercloud-keepalived.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'docker.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -146,14 +146,14 @@ class TestUndercloudUpgrade(TestPluginV1):
              'major-upgrade-composable-steps-docker.yaml',
              '--heat-native', '-e', '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services-docker/ironic.yaml',
+             'services/ironic.yaml',
              '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services-docker/ironic-inspector.yaml', '-e',
+             'services/ironic-inspector.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services-docker/mistral.yaml', '-e',
+             'services/mistral.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services-docker/zaqar.yaml', '-e',
+             'services/zaqar.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services-docker/tripleo-ui.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -165,9 +165,9 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'use-dns-for-vips.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services-docker/undercloud-haproxy.yaml', '-e',
+             'services/undercloud-haproxy.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services-docker/undercloud-keepalived.yaml', '-e',
+             'services/undercloud-keepalived.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'docker.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
