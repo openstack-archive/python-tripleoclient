@@ -30,11 +30,12 @@ def deploy(clients, **workflow_input):
 
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
+    wf_name = 'tripleo.deployment.v1.deploy_plan'
 
     with tripleoclients.messaging_websocket() as ws:
         execution = base.start_workflow(
             workflow_client,
-            'tripleo.deployment.v1.deploy_plan',
+            wf_name,
             workflow_input=workflow_input
         )
 
@@ -43,7 +44,14 @@ def deploy(clients, **workflow_input):
         # messages from the workflow.
         for payload in base.wait_for_messages(workflow_client, ws, execution,
                                               360):
-            assert payload['status'] == "SUCCESS", pprint.pformat(payload)
+            status = payload.get('status', 'RUNNING')
+            if 'message' in payload and status == "RUNNING":
+                print(payload['message'])
+
+        if payload['status'] != "SUCCESS":
+            pprint.pformat(payload)
+            raise ValueError("Unexpected status %s for %s"
+                             % (payload['status'], wf_name))
 
 
 def deploy_and_wait(log, clients, stack, plan_name, verbose_level,
