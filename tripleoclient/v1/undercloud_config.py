@@ -610,16 +610,10 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False):
             "environments/services-docker/undercloud-cinder.yaml")]
 
     if CONF.get('generate_service_certificate'):
-        endpoint_environment = _get_tls_endpoint_environment(
-            CONF.get('undercloud_public_host'), tht_templates)
-
         deploy_args += ['-e', os.path.join(
             tht_templates,
-            "environments/public-tls-undercloud.yaml"),
-            '-e', endpoint_environment]
+            "environments/public-tls-undercloud.yaml")]
     elif CONF.get('undercloud_service_certificate'):
-        endpoint_environment = _get_tls_endpoint_environment(
-            CONF.get('undercloud_public_host'), tht_templates)
         enable_tls_yaml_path = os.path.join(tht_templates,
                                             "environments/ssl/enable-tls.yaml")
         env_data.update(
@@ -628,7 +622,6 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False):
         registry_overwrites.update(
             _get_public_tls_resource_registry_overwrites(enable_tls_yaml_path))
         deploy_args += [
-            '-e', endpoint_environment,
             '-e', os.path.join(tht_templates, 'environments/services-docker/'
                                'undercloud-haproxy.yaml'),
             '-e', os.path.join(tht_templates, 'environments/services-docker/'
@@ -636,7 +629,8 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False):
 
     if (CONF.get('generate_service_certificate') or
             CONF.get('undercloud_service_certificate')):
-
+        endpoint_environment = _get_tls_endpoint_environment(
+            CONF.get('undercloud_public_host'), tht_templates)
         try:
             public_host = CONF.get('undercloud_public_host')
             netaddr.IPAddress(public_host)
@@ -645,18 +639,12 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False):
             admin_host = CONF.get('undercloud_admin_host')
             netaddr.IPAddress(admin_host)
             deploy_args += ['--control-virtual-ip', admin_host]
-            endpoint_environment = os.path.join(
-                tht_templates,
-                "environments/tls-endpoints-public-ip.yaml")
         except netaddr.core.AddrFormatError:
-            endpoint_environment = os.path.join(
-                tht_templates,
-                "environments/tls-endpoints-public-dns.yaml")
+            # TODO(jaosorior): We could do a reverse lookup for the hostnames
+            # if the *_host variables are DNS names and not IPs.
+            pass
 
         deploy_args += [
-            '-e', os.path.join(
-                tht_templates,
-                'environments/public-tls-undercloud.yaml'),
             '-e', endpoint_environment,
             '-e', os.path.join(
                 tht_templates,
