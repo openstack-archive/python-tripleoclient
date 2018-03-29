@@ -803,14 +803,14 @@ def load_environment_directories(directories):
     return environments
 
 
-def get_tripleo_ansible_inventory(inventory_file=''):
+def get_tripleo_ansible_inventory(inventory_file='', ssh_user='heat-admin'):
     if not inventory_file:
         inventory_file = '%s/%s' % (os.path.expanduser('~'),
                                     'tripleo-ansible-inventory.yaml')
         try:
             processutils.execute(
                 '/usr/bin/tripleo-ansible-inventory',
-                '--ansible_ssh_user', 'tripleo-admin',
+                '--ansible_ssh_user', ssh_user,
                 '--static-yaml-inventory', inventory_file)
         except processutils.ProcessExecutionError as e:
                 message = "Failed to generate inventory: %s" % str(e)
@@ -824,7 +824,8 @@ def get_tripleo_ansible_inventory(inventory_file=''):
 
 
 def run_update_ansible_action(log, clients, nodes, inventory, playbook,
-                              queue, all_playbooks, action, skip_tags=''):
+                              queue, all_playbooks, action, ssh_user,
+                              skip_tags=''):
     playbooks = [playbook]
     if playbook == "all":
         playbooks = all_playbooks
@@ -832,4 +833,4 @@ def run_update_ansible_action(log, clients, nodes, inventory, playbook,
         log.debug("Running ansible playbook %s " % book)
         action.update_ansible(clients, nodes=nodes, inventory_file=inventory,
                               playbook=book, ansible_queue_name=queue,
-                              skip_tags=skip_tags)
+                              node_user=ssh_user, skip_tags=skip_tags)

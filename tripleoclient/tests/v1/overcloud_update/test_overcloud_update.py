@@ -120,11 +120,12 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
     @mock.patch('six.moves.builtins.open')
-    def test_update_with_playbook(self, mock_open, mock_execute,
-                                  mock_expanduser, update_ansible):
+    def test_update_with_playbook_and_user(self, mock_open, mock_execute,
+                                           mock_expanduser, update_ansible):
         mock_expanduser.return_value = '/home/fake/'
-        argslist = ['--nodes', 'Compute', '--playbook',
-                    'fake-playbook.yaml']
+        argslist = ['--nodes', 'Compute',
+                    '--playbook', 'fake-playbook.yaml',
+                    '--ssh-user', 'tripleo-admin']
         verifylist = [
             ('nodes', 'Compute'),
             ('static_inventory', None),
@@ -141,6 +142,7 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
                 inventory_file=mock_open().read(),
                 playbook='fake-playbook.yaml',
                 ansible_queue_name=constants.UPDATE_QUEUE,
+                node_user='tripleo-admin',
                 skip_tags=''
             )
 
@@ -170,6 +172,7 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
                     inventory_file=mock_open().read(),
                     playbook=book,
                     ansible_queue_name=constants.UPDATE_QUEUE,
+                    node_user='heat-admin',
                     skip_tags=''
                 )
 
@@ -198,6 +201,7 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
                     inventory_file=mock_open().read(),
                     playbook=book,
                     ansible_queue_name=constants.UPDATE_QUEUE,
+                    node_user='heat-admin',
                     skip_tags=''
                 )
 

@@ -120,11 +120,12 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
     @mock.patch('six.moves.builtins.open')
-    def test_upgrade_roles_with_playbook(
+    def test_upgrade_roles_with_playbook_and_user(
             self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
         mock_expanduser.return_value = '/home/fake/'
         argslist = ['--roles', 'Compute, Controller',
-                    '--playbook', 'fake-playbook.yaml']
+                    '--playbook', 'fake-playbook.yaml',
+                    '--ssh-user', 'tripleo-admin']
         verifylist = [
             ('roles', 'Compute, Controller'),
             ('static_inventory', None),
@@ -141,6 +142,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                 inventory_file=mock_open().read(),
                 playbook='fake-playbook.yaml',
                 ansible_queue_name=constants.UPGRADE_QUEUE,
+                node_user='tripleo-admin',
                 skip_tags=''
             )
 
@@ -172,6 +174,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                     inventory_file=mock_open().read(),
                     playbook=book,
                     ansible_queue_name=constants.UPGRADE_QUEUE,
+                    node_user='heat-admin',
                     skip_tags='validation'
                 )
 
@@ -201,6 +204,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                 inventory_file=mock_open().read(),
                 playbook='fake-playbook.yaml',
                 ansible_queue_name=constants.UPGRADE_QUEUE,
+                node_user='heat-admin',
                 skip_tags=''
             )
 
@@ -230,6 +234,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                     inventory_file=mock_open().read(),
                     playbook=book,
                     ansible_queue_name=constants.UPGRADE_QUEUE,
+                    node_user='heat-admin',
                     skip_tags=''
                 )
 
@@ -261,6 +266,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                     inventory_file=mock_open().read(),
                     playbook=book,
                     ansible_queue_name=constants.UPGRADE_QUEUE,
+                    node_user='heat-admin',
                     skip_tags='pre-upgrade,validation'
                 )
 
