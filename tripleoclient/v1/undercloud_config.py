@@ -145,7 +145,7 @@ _opts = [
                      'OpenStack API endpoints, leaving it unset disables SSL.')
                ),
     cfg.BoolOpt('generate_service_certificate',
-                default=False,
+                default=True,
                 help=('When set to True, an SSL certificate will be generated '
                       'as part of the undercloud install and this certificate '
                       'will be used in place of the value for '

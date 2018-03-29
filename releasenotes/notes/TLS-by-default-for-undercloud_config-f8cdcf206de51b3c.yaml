@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    TLS is now used by default for the containerized undercloud. This is done
+    by setting the ``generate_service_certificate`` parameter to True by
+    default.
