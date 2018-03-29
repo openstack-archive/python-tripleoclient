@@ -194,7 +194,7 @@ def _validate_ips():
             msg = '%s "%s" must be a valid IP address' % \
                   (param_name, value)
             raise FailedValidation(msg)
-    for ip in CONF['undercloud_nameservers']:
+    for ip in CONF.undercloud_nameservers:
         is_ip(ip, 'undercloud_nameservers')
 
 
@@ -206,7 +206,7 @@ def _validate_value_formats():
     hostname must be a FQDN.
     """
     try:
-        local_ip = netaddr.IPNetwork(CONF['local_ip'])
+        local_ip = netaddr.IPNetwork(CONF.local_ip)
         if local_ip.prefixlen == 32:
             raise netaddr.AddrFormatError('Invalid netmask')
         # If IPv6 the ctlplane network uses the EUI-64 address format,
@@ -216,7 +216,7 @@ def _validate_value_formats():
     except netaddr.core.AddrFormatError as e:
         message = ('local_ip "%s" not valid: "%s" '
                    'Value must be in CIDR format.' %
-                   (CONF['local_ip'], str(e)))
+                   (CONF.local_ip, str(e)))
         raise FailedValidation(message)
     hostname = CONF['undercloud_hostname']
     if hostname is not None and '.' not in hostname:
@@ -224,8 +224,8 @@ def _validate_value_formats():
         raise FailedValidation(message)
 
 
-def _validate_in_cidr():
-    cidr = netaddr.IPNetwork(CONF['network_cidr'])
+def _validate_in_cidr(subnet_props, subnet_name):
+    cidr = netaddr.IPNetwork(subnet_props.cidr)
 
     def validate_addr_in_cidr(addr, pretty_name=None, require_ip=True):
         try:
@@ -238,79 +238,67 @@ def _validate_in_cidr():
                 message = 'Invalid IP address: %s' % addr
                 raise FailedValidation(message)
 
-    just_local_ip = CONF['local_ip'].split('/')[0]
-    # What is this about?  They have invalidated the configuration
-    # specification here..  - imain
-    #
-    # undercloud.conf uses inspection_iprange, the configuration wizard
-    # tool passes the values separately.
-    # if 'inspection_iprange' in CONF:
-    # inspection_iprange = CONF['inspection_iprange'].split(',')
-    # CONF['inspection_start'] = inspection_iprange[0]
-    # CONF['inspection_end'] = inspection_iprange[1]
-    validate_addr_in_cidr(just_local_ip, 'local_ip')
-    validate_addr_in_cidr(CONF['network_gateway'], 'network_gateway')
+    if subnet_name == CONF.local_subnet:
+        validate_addr_in_cidr(str(netaddr.IPNetwork(CONF.local_ip).ip),
+                              'local_ip')
+    validate_addr_in_cidr(subnet_props.gateway, 'gateway')
     # NOTE(bnemec): The ui needs to be externally accessible, which means in
     # many cases we can't have the public vip on the provisioning network.
     # In that case users are on their own to ensure they've picked valid
     # values for the VIP hosts.
-    if ((CONF['undercloud_service_certificate'] or
-            CONF['generate_service_certificate']) and
-            not CONF['enable_ui']):
+    if ((CONF.undercloud_service_certificate or
+            CONF.generate_service_certificate) and
+            not CONF.enable_ui):
         validate_addr_in_cidr(CONF['undercloud_public_host'],
                               'undercloud_public_host',
                               require_ip=False)
         validate_addr_in_cidr(CONF['undercloud_admin_host'],
                               'undercloud_admin_host',
                               require_ip=False)
-    validate_addr_in_cidr(CONF['dhcp_start'], 'dhcp_start')
-    validate_addr_in_cidr(CONF['dhcp_end'], 'dhcp_end')
-    # validate_addr_in_cidr(CONF, 'inspection_start', 'Inspection range start')
-    # validate_addr_in_cidr(CONF, 'inspection_end', 'Inspection range end')
+    validate_addr_in_cidr(subnet_props.dhcp_start, 'dhcp_start')
+    validate_addr_in_cidr(subnet_props.dhcp_end, 'dhcp_end')
 
 
-def _validate_dhcp_range():
-    dhcp_start = netaddr.IPAddress(CONF['dhcp_start'])
-    dhcp_end = netaddr.IPAddress(CONF['dhcp_end'])
-    if dhcp_start >= dhcp_end:
+def _validate_dhcp_range(subnet_props):
+    start = netaddr.IPAddress(subnet_props.dhcp_start)
+    end = netaddr.IPAddress(subnet_props.dhcp_end)
+    if start >= end:
         message = ('Invalid dhcp range specified, dhcp_start "%s" does '
-                   'not come before dhcp_end "%s"' %
-                   (dhcp_start, dhcp_end))
+                   'not come before dhcp_end "%s"' % (start, end))
         raise FailedValidation(message)
 
 
-def _validate_inspection_range():
-    inspection_start = netaddr.IPAddress(CONF['inspection_start'])
-    inspection_end = netaddr.IPAddress(CONF['inspection_end'])
-    if inspection_start >= inspection_end:
-        message = ('Invalid inspection range specified, inspection_start '
-                   '"%s" does not come before inspection_end "%s"' %
-                   (inspection_start, inspection_end))
+def _validate_inspection_range(subnet_props):
+    start = netaddr.IPAddress(subnet_props.inspection_iprange.split(',')[0])
+    end = netaddr.IPAddress(subnet_props.inspection_iprange.split(',')[1])
+    if start >= end:
+        message = ('Invalid inspection range specified, inspection_iprange '
+                   '"%s" does not come before "%s"' % (start, end))
         raise FailedValidation(message)
 
 
-def _validate_no_overlap():
+def _validate_no_overlap(subnet_props):
     """Validate the provisioning and inspection ip ranges do not overlap"""
-    dhcp_set = netaddr.IPSet(netaddr.IPRange(CONF['dhcp_start'],
-                                             CONF['dhcp_end']))
-    inspection_set = netaddr.IPSet(netaddr.IPRange(CONF['inspection_start'],
-                                                   CONF['inspection_end']))
-    # If there is any intersection of the two sets then we have a problem
-    if dhcp_set & inspection_set:
+    dhcp_set = netaddr.IPSet(netaddr.IPRange(subnet_props.dhcp_start,
+                                             subnet_props.dhcp_end))
+    inspection_set = netaddr.IPSet(netaddr.IPRange(
+        subnet_props.inspection_iprange.split(',')[0],
+        subnet_props.inspection_iprange.split(',')[1]))
+    if dhcp_set.intersection(inspection_set):
         message = ('Inspection DHCP range "%s-%s" overlaps provisioning '
                    'DHCP range "%s-%s".' %
-                   (CONF['inspection_start'], CONF['inspection_end'],
-                    CONF['dhcp_start'], CONF['dhcp_end']))
+                   (subnet_props.inspection_iprange.split(',')[0],
+                    subnet_props.inspection_iprange.split(',')[1],
+                    subnet_props.dhcp_start, subnet_props.dhcp_end))
         raise FailedValidation(message)
 
 
 def _validate_interface_exists():
     """Validate the provided local interface exists"""
-    local_interface = CONF['local_interface']
-    net_override = CONF['net_config_override']
-    if not net_override and local_interface not in netifaces.interfaces():
+    if (not CONF.net_config_override
+            and CONF.local_interface not in netifaces.interfaces()):
         message = ('Invalid local_interface specified. %s is not available.' %
-                   local_interface)
+                   CONF.local_interface)
         raise FailedValidation(message)
 
 
@@ -384,10 +372,12 @@ def check():
         _validate_passwords_file()
         # Networking validations
         _validate_value_formats()
-        _validate_in_cidr()
-        _validate_dhcp_range()
-        # _validate_inspection_range()
-        # _validate_no_overlap()
+        for subnet in CONF.subnets:
+            s = CONF.get(subnet)
+            _validate_in_cidr(s, subnet)
+            _validate_dhcp_range(s)
+            _validate_inspection_range(s)
+            _validate_no_overlap(s)
         _validate_ips()
         _validate_interface_exists()
         _validate_no_ip_change()
