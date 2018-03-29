@@ -153,6 +153,13 @@ class UpgradeRun(command.Command):
                                    'generated in '
                                    '~/tripleo-ansible-inventory.yaml')
                             )
+        parser.add_argument("--ssh-user",
+                            dest="ssh_user",
+                            action="store",
+                            default="heat-admin",
+                            help=_("The ssh user name for connecting to "
+                                   "the overcloud nodes.")
+                            )
         parser.add_argument('--skip-tags',
                             dest='skip_tags',
                             action="store",
@@ -188,13 +195,14 @@ class UpgradeRun(command.Command):
         limit_hosts = roles or nodes
         playbook = parsed_args.playbook
         inventory = oooutils.get_tripleo_ansible_inventory(
-            parsed_args.static_inventory)
+            parsed_args.static_inventory, parsed_args.ssh_user)
         skip_tags = self._validate_skip_tags(parsed_args.skip_tags)
         oooutils.run_update_ansible_action(self.log, clients, limit_hosts,
                                            inventory, playbook,
                                            constants.UPGRADE_QUEUE,
                                            constants.MAJOR_UPGRADE_PLAYBOOKS,
-                                           package_update, skip_tags)
+                                           package_update,
+                                           parsed_args.ssh_user, skip_tags)
 
 
 class UpgradeConvergeOvercloud(DeployOvercloud):
