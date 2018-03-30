@@ -35,8 +35,12 @@ PUPPET_BASE = "/etc/puppet/"
 # Update Queue
 UPDATE_QUEUE = 'update'
 UPGRADE_QUEUE = 'upgrade'
+FFWD_UPGRADE_QUEUE = 'ffwdupgrade'
 STACK_TIMEOUT = 240
 
+
+# The default ffwd upgrade ansible playbooks generated from heat stack output
+FFWD_UPGRADE_PLAYBOOK = "fast_forward_upgrade_playbook.yaml"
 # The default minor update ansible playbooks generated from heat stack output
 MINOR_UPDATE_PLAYBOOKS = ['update_steps_playbook.yaml',
                           'deploy_steps_playbook.yaml']
@@ -51,3 +55,5 @@ UPDATE_PREPARE_ENV = "environments/lifecycle/update-prepare.yaml"
 UPDATE_CONVERGE_ENV = "environments/lifecycle/update-converge.yaml"
 UPGRADE_PREPARE_ENV = "environments/lifecycle/upgrade-prepare.yaml"
 UPGRADE_CONVERGE_ENV = "environments/lifecycle/upgrade-converge.yaml"
+FFWD_UPGRADE_PREPARE_ENV = "environments/lifecycle/ffwd-upgrade-prepare.yaml"
+FFWD_UPGRADE_CONVERGE_ENV = "environments/lifecycle/ffwd-upgrade-converge.yaml"
