@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Adds a cli for fast forward upgrades, in particular the
+
+      openstack overcloud ffwd-upgrade prepare
+      openstack overcloud ffwd-upgrade run
+      openstack overcloud ffwd-upgrade converge
+
+    Which are meant to be the first, second and final step in the fast-forward
+    upgrade workflow. See the ffwd upgrade docs for more information on how to
+    use these cli commands, and the list of parameters is available with
+    openstack overcloud ffwd-upgrade [prepare,run,converge] --help
