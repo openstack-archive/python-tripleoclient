@@ -60,11 +60,11 @@ class DeletePlan(command.Command):
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
 
-        workflow_client = self.app.client_manager.workflow_engine
+        clients = self.app.client_manager
 
         for plan in parsed_args.plans:
             print("Deleting plan %s..." % plan)
-            plan_management.delete_deployment_plan(workflow_client,
+            plan_management.delete_deployment_plan(clients,
                                                    container=plan)
 
 

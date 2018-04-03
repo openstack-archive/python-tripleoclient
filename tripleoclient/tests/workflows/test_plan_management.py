@@ -175,17 +175,17 @@ class TestPlanCreationWorkflows(utils.TestCommand):
             'test-overcloud', 'network_data.yaml', mock_open_context())
 
     def test_delete_plan(self):
-        self.workflow.action_executions.create.return_value = (
-            mock.Mock(output='{"result": null}'))
+        output = mock.Mock(output='{"result": ""}')
+        self.workflow.action_executions.create.return_value = output
+        self.websocket.wait_for_messages.return_value = self.message_success
 
         plan_management.delete_deployment_plan(
-            self.workflow,
-            container='overcloud')
+            self.app.client_manager,
+            container='test-overcloud')
 
-        self.workflow.action_executions.create.assert_called_once_with(
-            'tripleo.plan.delete',
-            {'container': 'overcloud'},
-            run_sync=True, save_result=True)
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.plan_management.v1.delete_deployment_plan',
+            workflow_input={'container': 'test-overcloud'})
 
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
                 autospec=True)

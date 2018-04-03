@@ -58,37 +58,50 @@ class TestOvercloudDeletePlan(utils.TestCommand):
 
         self.cmd = overcloud_plan.DeletePlan(self.app, None)
         self.app.client_manager.workflow_engine = mock.Mock()
+        self.tripleoclient = mock.Mock()
+
+        self.websocket = mock.Mock()
+        self.websocket.__enter__ = lambda s: self.websocket
+        self.websocket.__exit__ = lambda s, *exc: None
+        self.tripleoclient = mock.Mock()
+        self.tripleoclient.messaging_websocket.return_value = self.websocket
+        self.app.client_manager.tripleoclient = self.tripleoclient
+
         self.workflow = self.app.client_manager.workflow_engine
 
-    @mock.patch(
-        'tripleoclient.workflows.plan_management.delete_deployment_plan',
-        autospec=True)
-    def test_delete_plan(self, delete_deployment_plan_mock):
+    def test_delete_plan(self):
         parsed_args = self.check_parser(self.cmd, ['test-plan'],
                                         [('plans', ['test-plan'])])
 
+        self.websocket.wait_for_messages.return_value = iter([{
+            "execution": {"id": "IDID"},
+            "status": "SUCCESS"
+        }])
+
         self.cmd.take_action(parsed_args)
 
-        delete_deployment_plan_mock.assert_called_once_with(
-            self.workflow,
-            container='test-plan')
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.plan_management.v1.delete_deployment_plan',
+            workflow_input={'container': 'test-plan'})
 
-    @mock.patch(
-        'tripleoclient.workflows.plan_management.delete_deployment_plan',
-        autospec=True)
-    def test_delete_multiple_plans(self, delete_deployment_plan_mock):
+    def test_delete_multiple_plans(self):
         argslist = ['test-plan1', 'test-plan2']
         verifylist = [('plans', ['test-plan1', 'test-plan2'])]
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
 
+        self.websocket.wait_for_messages.return_value = iter([{
+            "execution": {"id": "IDID"},
+            "status": "SUCCESS"
+        }])
+
         self.cmd.take_action(parsed_args)
 
-        expected = [
-            mock.call(self.workflow, container='test-plan1'),
-            mock.call(self.workflow, container='test-plan2'),
-        ]
-        self.assertEqual(delete_deployment_plan_mock.call_args_list,
-                         expected)
+        self.workflow.executions.create.assert_has_calls([
+            mock.call('tripleo.plan_management.v1.delete_deployment_plan',
+                      workflow_input={'container': 'test-plan1'}),
+            mock.call('tripleo.plan_management.v1.delete_deployment_plan',
+                      workflow_input={'container': 'test-plan2'}),
+        ], any_order=True)
 
 
 class TestOvercloudCreatePlan(utils.TestCommand):
