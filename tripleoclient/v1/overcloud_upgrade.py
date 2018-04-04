@@ -87,6 +87,12 @@ class UpgradePrepare(DeployOvercloud):
         # update_plan_only. The heat stack update is done by the
         # packag_update mistral action
         parsed_args.update_plan_only = True
+        # Add the upgrade-prepare.yaml environment to set noops etc
+        templates_dir = (parsed_args.templates or
+                         constants.TRIPLEO_HEAT_TEMPLATES)
+        parsed_args.environment_files = oooutils.prepend_environment(
+            parsed_args.environment_files, templates_dir,
+            constants.UPGRADE_PREPARE_ENV)
         super(UpgradePrepare, self).take_action(parsed_args)
         package_update.update(clients, container=stack_name,
                               container_registry=registry,
@@ -223,6 +229,13 @@ class UpgradeConvergeOvercloud(DeployOvercloud):
         stack_name = stack.stack_name
 
         parsed_args.update_plan_only = True
+        # Add the converge environment into the args to unset noop etc
+        templates_dir = (parsed_args.templates or
+                         constants.TRIPLEO_HEAT_TEMPLATES)
+        parsed_args.environment_files = oooutils.prepend_environment(
+            parsed_args.environment_files, templates_dir,
+            constants.UPGRADE_CONVERGE_ENV)
+
         super(UpgradeConvergeOvercloud, self).take_action(parsed_args)
         # Run converge steps
         package_update.converge_nodes(clients, container=stack_name)
