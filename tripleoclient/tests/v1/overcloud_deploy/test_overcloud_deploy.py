@@ -70,6 +70,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.cmd._download_missing_files_from_plan = self.real_download_missing
         shutil.rmtree = self.real_shutil
 
+    @mock.patch('tripleoclient.workflows.deployment.config_download')
     @mock.patch(
         'tripleoclient.workflows.plan_management.list_deployment_plans',
         autospec=True)
@@ -80,6 +81,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch("heatclient.common.event_utils.get_events")
     @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env',
                 autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_inject_config_download_env')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_create_parameters_env', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
@@ -93,9 +96,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
     @mock.patch('uuid.uuid1', autospec=True)
+    @mock.patch('time.sleep', autospec=True)
     @mock.patch('time.time', autospec=True)
     @mock.patch('shutil.copytree', autospec=True)
-    def test_tht_scale(self, mock_copy, mock_time, mock_uuid1,
+    def test_tht_scale(self, mock_copy, mock_time, mock_sleep, mock_uuid1,
                        mock_get_template_contents,
                        wait_for_stack_ready_mock,
                        mock_remove_known_hosts,
@@ -103,10 +107,12 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                        mock_create_tempest_deployer_input,
                        mock_deploy_postconfig,
                        mock_create_parameters_env,
+                       mock_config_download_env,
                        mock_breakpoints_cleanupm,
                        mock_events, mock_tarball,
                        mock_get_horizon_url,
-                       mock_list_plans):
+                       mock_list_plans,
+                       mock_config_download):
 
         arglist = ['--templates', '--ceph-storage-scale', '3']
         verifylist = [
@@ -179,6 +185,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_create_tempest_deployer_input.assert_called_with()
 
+    @mock.patch('tripleoclient.workflows.deployment.config_download')
     @mock.patch(
         'tripleoclient.workflows.plan_management.list_deployment_plans',
         autospec=True)
@@ -194,6 +201,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env',
                 autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_inject_config_download_env')
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_validate_args')
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
@@ -205,10 +214,11 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True)
     @mock.patch('uuid.uuid1', autospec=True)
     @mock.patch('uuid.uuid4', autospec=True)
+    @mock.patch('time.sleep', autospec=True)
     @mock.patch('time.time', autospec=True)
     @mock.patch('shutil.copytree', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True)
-    def test_tht_deploy(self, mock_tmpdir, mock_copy, mock_time,
+    def test_tht_deploy(self, mock_tmpdir, mock_copy, mock_time, mock_sleep,
                         mock_uuid4,
                         mock_uuid1,
                         mock_get_template_contents,
@@ -217,11 +227,13 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                         mock_write_overcloudrc,
                         mock_create_tempest_deployer_input,
                         mock_validate_args,
+                        mock_config_download_env,
                         mock_breakpoints_cleanup, mock_tarball,
                         mock_postconfig, mock_get_overcloud_endpoint,
                         mock_invoke_plan_env_wf,
                         mock_get_horizon_url,
-                        mock_list_plans):
+                        mock_list_plans,
+                        mock_config_download):
 
         arglist = ['--templates', '--ceph-storage-scale', '3',
                    '--control-flavor', 'oooq_control', '--no-cleanup']
@@ -318,6 +330,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertEqual(env_map.get('parameter_defaults'),
                          parameters_env.get('parameter_defaults'))
 
+    @mock.patch('tripleoclient.workflows.deployment.config_download')
     @mock.patch(
         'tripleoclient.workflows.plan_management.list_deployment_plans',
         autospec=True)
@@ -334,6 +347,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env',
                 autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_inject_config_download_env')
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_validate_args')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_create_parameters_env', autospec=True)
@@ -349,18 +364,20 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True)
     @mock.patch('uuid.uuid1', autospec=True)
     @mock.patch('time.time', autospec=True)
+    @mock.patch('time.sleep', autospec=True)
     @mock.patch('shutil.copytree', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True)
     def test_tht_deploy_with_plan_environment_file(
-        self, mock_tmpdir, mock_copy, mock_time, mock_uuid1,
+        self, mock_tmpdir, mock_copy, mock_time, mock_sleep, mock_uuid1,
         mock_get_template_contents, wait_for_stack_ready_mock,
         mock_remove_known_hosts, mock_overcloudrc, mock_write_overcloudrc,
         mock_create_tempest_deployer, mock_create_parameters_env,
-        mock_validate_args, mock_breakpoints_cleanup,
+        mock_validate_args, mock_inject_config_download_env,
+        mock_breakpoints_cleanup,
         mock_tarball, mock_postconfig,
         mock_get_overcloud_endpoint, mock_shutil_rmtree,
         mock_invoke_plan_env_wf, mock_get_horizon_url,
-            mock_list_plans):
+            mock_list_plans, mock_config_download):
         arglist = ['--templates', '-p', 'the-plan-environment.yaml']
         verifylist = [
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
@@ -433,6 +450,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_create_parameters_env.side_effect = _custom_create_params_env
 
         mock_open_context = mock.mock_open()
+
         with mock.patch('six.moves.builtins.open', mock_open_context):
             self.cmd.take_action(parsed_args)
 
@@ -444,6 +462,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_create_tempest_deployer.assert_called_with()
         mock_validate_args.assert_called_once_with(parsed_args)
+        mock_inject_config_download_env.assert_called()
 
         mock_tarball.create_tarball.assert_called_with(
             '/tmp/tht/tripleo-heat-templates', mock.ANY)
@@ -458,6 +477,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         clients.tripleoclient.object_store.put_object.assert_called()
         self.assertTrue(mock_invoke_plan_env_wf.called)
 
+    @mock.patch('tripleoclient.workflows.deployment.config_download')
     @mock.patch(
         'tripleoclient.workflows.plan_management.list_deployment_plans',
         autospec=True)
@@ -473,6 +493,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env',
                 autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_inject_config_download_env')
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_validate_args')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_create_parameters_env', autospec=True)
@@ -485,12 +507,14 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
     @mock.patch('uuid.uuid1', autospec=True)
+    @mock.patch('time.sleep', autospec=True)
     @mock.patch('time.time', autospec=True)
     @mock.patch('shutil.rmtree', autospec=True)
     @mock.patch('shutil.copytree', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True)
     def test_tht_deploy_skip_deploy_identifier(
             self, mock_tmpdir, mock_copy, mock_rm, mock_time,
+            mock_sleep,
             mock_uuid1,
             mock_get_template_contents,
             wait_for_stack_ready_mock,
@@ -498,10 +522,11 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mock_write_overcloudrc,
             mock_create_tempest_deployer_input,
             mock_create_parameters_env, mock_validate_args,
+            mock_config_download_env,
             mock_breakpoints_cleanup, mock_tarball,
             mock_postconfig, mock_get_overcloud_endpoint,
             mock_deprecated_params, mock_get_horizon_url,
-            mock_list_plans):
+            mock_list_plans, mock_config_downlad):
 
         arglist = ['--templates', '--skip-deploy-identifier']
         verifylist = [
@@ -561,6 +586,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         deploy_plan_call_input = deploy_plan_call[1]['workflow_input']
         self.assertTrue(deploy_plan_call_input['skip_deploy_identifier'])
 
+    @mock.patch('tripleoclient.workflows.deployment.config_download')
     @mock.patch(
         'tripleoclient.workflows.plan_management.list_deployment_plans',
         autospec=True)
@@ -572,6 +598,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env',
                 autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_inject_config_download_env')
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig', autospec=True)
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
@@ -582,17 +610,20 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
     @mock.patch('shutil.copytree', autospec=True)
-    def test_deploy_custom_templates(self, mock_copy,
+    @mock.patch('time.sleep', autospec=True)
+    def test_deploy_custom_templates(self, mock_sleep, mock_copy,
                                      mock_get_template_contents,
                                      wait_for_stack_ready_mock,
                                      mock_remove_known_hosts,
                                      mock_write_overcloudrc,
                                      mock_create_tempest_deployer_input,
                                      mock_deploy_postconfig,
+                                     mock_config_download_env,
                                      mock_breakpoints_cleanup,
                                      mock_events, mock_tarball,
                                      mock_get_horizon_url,
-                                     mock_list_plans):
+                                     mock_list_plans,
+                                     mock_config_download):
 
         arglist = ['--templates', '/home/stack/tripleo-heat-templates']
         verifylist = [
@@ -677,6 +708,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             self.cmd.take_action, parsed_args)
         self.assertFalse(mock_deploy_tht.called)
 
+    @mock.patch('tripleoclient.workflows.deployment.config_download')
     @mock.patch(
         'tripleoclient.workflows.plan_management.list_deployment_plans',
         autospec=True)
@@ -689,6 +721,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
     @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_inject_config_download_env')
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_update_parameters', autospec=True)
@@ -697,9 +731,11 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('shutil.copytree', autospec=True)
     def test_environment_dirs(self, mock_copy, mock_deploy_heat,
                               mock_update_parameters, mock_post_config,
+                              mock_config_download_env,
                               mock_utils_endpoint, mock_utils_createrc,
                               mock_utils_tempest, mock_tarball,
-                              mock_get_horizon_url, mock_list_plans):
+                              mock_get_horizon_url, mock_list_plans,
+                              mock_config_download):
 
         clients = self.app.client_manager
         mock_list_plans.return_value = []
@@ -759,6 +795,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
     @mock.patch('tripleoclient.utils.get_stack', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_inject_config_download_env')
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_update_parameters', autospec=True)
@@ -767,6 +805,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('shutil.copytree', autospec=True)
     def test_environment_dirs_env(self, mock_copy, mock_deploy_heat,
                                   mock_update_parameters, mock_post_config,
+                                  mock_config_download_env,
                                   mock_utils_get_stack, mock_utils_endpoint,
                                   mock_utils_createrc, mock_utils_tempest,
                                   mock_tarball, mock_list_plans):
@@ -821,6 +860,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
     @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_inject_config_download_env')
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_update_parameters', autospec=True)
@@ -831,6 +872,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                                   mock_deploy_heat,
                                                   mock_update_parameters,
                                                   mock_post_config,
+                                                  mock_config_download_env,
                                                   mock_utils_endpoint,
                                                   mock_utils_createrc,
                                                   mock_utils_tempest,
@@ -919,6 +961,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                   parsed_args)
         self.assertIn('/tmp/notthere', str(error))
 
+    @mock.patch('tripleoclient.workflows.deployment.config_download')
     @mock.patch('tripleoclient.workflows.deployment.get_horizon_url',
                 autospec=True)
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
@@ -932,7 +975,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                       mock_oc_endpoint,
                                       mock_create_ocrc,
                                       mock_create_tempest_deployer_input,
-                                      mock_get_horizon_url):
+                                      mock_get_horizon_url,
+                                      mock_config_download):
 
         clients = self.app.client_manager
         workflow_client = clients.workflow_engine
@@ -959,6 +1003,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_create_tempest_deployer_input.assert_called_with()
 
+    @mock.patch('tripleoclient.workflows.deployment.config_download')
     @mock.patch(
         'tripleoclient.workflows.plan_management.list_deployment_plans',
         autospec=True)
@@ -969,6 +1014,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch("heatclient.common.event_utils.get_events", autospec=True)
     @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env',
                 autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_inject_config_download_env')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig', autospec=True)
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
@@ -982,9 +1029,11 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('shutil.copytree', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True)
     @mock.patch('shutil.rmtree', autospec=True)
+    @mock.patch('time.sleep', autospec=True)
     @mock.patch('time.time', autospec=True)
     @mock.patch('uuid.uuid4', autospec=True)
-    def test_deploy_rhel_reg(self, mock_uuid4, mock_time, mock_rmtree,
+    def test_deploy_rhel_reg(self, mock_uuid4, mock_time, mock_sleep,
+                             mock_rmtree,
                              mock_tmpdir, mock_copy,
                              mock_get_template_contents,
                              wait_for_stack_ready_mock,
@@ -992,10 +1041,12 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                              mock_write_overcloudrc,
                              mock_create_tempest_deployer_input,
                              mock_deploy_postconfig,
+                             mock_config_download_env,
                              mock_breakpoints_cleanup,
                              mock_events, mock_tarball,
                              mock_get_horizon_url,
-                             mock_list_plans):
+                             mock_list_plans,
+                             mock_config_download):
 
         arglist = ['--templates', '--rhel-reg',
                    '--reg-sat-url', 'https://example.com',
@@ -1206,6 +1257,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertFalse(mock_create_ocrc.called)
         self.assertFalse(mock_create_tempest_deployer_input.called)
 
+    @mock.patch('tripleoclient.workflows.deployment.config_download')
     @mock.patch(
         'tripleoclient.workflows.plan_management.list_deployment_plans',
         autospec=True)
@@ -1218,17 +1270,23 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
     @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_inject_config_download_env')
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_heat_deploy', autospec=True)
     @mock.patch('shutil.copytree', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True)
     @mock.patch('shutil.rmtree', autospec=True)
-    def test_answers_file(self, mock_rmtree, mock_tmpdir, mock_copy,
+    @mock.patch('time.sleep', autospec=True)
+    def test_answers_file(self, mock_sleep, mock_rmtree, mock_tmpdir,
+                          mock_copy,
                           mock_heat_deploy,
+                          mock_config_download_env,
                           mock_oc_endpoint,
                           mock_create_ocrc,
                           mock_create_tempest_deployer_input,
                           mock_tarball, mock_get_horizon_url,
-                          mock_list_plans):
+                          mock_list_plans,
+                          mock_config_download):
         clients = self.app.client_manager
 
         mock_list_plans.return_value = []
@@ -1392,6 +1450,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                           self.cmd.take_action,
                           parsed_args)
 
+    @mock.patch('tripleoclient.workflows.deployment.config_download')
     @mock.patch(
         'tripleoclient.workflows.plan_management.list_deployment_plans',
         autospec=True)
@@ -1405,6 +1464,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_validate_args')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_inject_config_download_env')
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_create_parameters_env', autospec=True)
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
@@ -1417,9 +1478,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
     @mock.patch('uuid.uuid1', autospec=True)
+    @mock.patch('time.sleep', autospec=True)
     @mock.patch('time.time', autospec=True)
     @mock.patch('shutil.copytree', autospec=True)
-    def test_tht_deploy_with_ntp(self, mock_copy, mock_time,
+    def test_tht_deploy_with_ntp(self, mock_copy, mock_time, mock_sleep,
                                  mock_uuid1,
                                  mock_get_template_contents,
                                  mock_process_env,
@@ -1428,12 +1490,14 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                  mock_write_overcloudrc,
                                  mock_create_tempest_deployer_input,
                                  mock_create_parameters_env,
+                                 mock_config_download_env,
                                  mock_validate_args,
                                  mock_breakpoints_cleanup,
                                  mock_tarball,
                                  mock_deploy_post_config,
                                  mock_get_horizon_url,
-                                 mock_list_plans):
+                                 mock_list_plans,
+                                 mock_config_download):
 
         arglist = ['--templates', '--ceph-storage-scale', '3',
                    '--control-scale', '3', '--ntp-server', 'ntp']
@@ -1585,6 +1649,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertRaises(exceptions.StackInProgress,
                           self.cmd.take_action, parsed_args)
 
+    @mock.patch('tripleoclient.workflows.deployment.config_download')
     @mock.patch('tripleoclient.workflows.deployment.get_horizon_url',
                 autospec=True)
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
@@ -1600,7 +1665,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mock_overcloudrc, mock_write_overcloudrc,
             mock_overcloud_endpoint,
             mock_create_tempest_deployer_input,
-            mock_get_horizon_url):
+            mock_get_horizon_url,
+            mock_config_download):
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
         orchestration_client.stacks.get.return_value = mock.Mock()
@@ -1615,6 +1681,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertNotCalled(self.cmd._predeploy_verify_capabilities)
         mock_create_tempest_deployer_input.assert_called_with()
 
+    @mock.patch('tripleoclient.workflows.deployment.config_download')
     @mock.patch('tripleoclient.workflows.deployment.get_horizon_url',
                 autospec=True)
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
@@ -1630,7 +1697,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mock_overcloudrc, mock_write_overcloudrc,
             mock_overcloud_endpoint,
             mock_create_tempest_deployer_input,
-            mock_get_horizon_url):
+            mock_get_horizon_url,
+            mock_config_download):
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
         orchestration_client.stacks.get.return_value = mock.Mock()
@@ -1672,12 +1740,12 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertRaises(exceptions.InvalidConfiguration,
                           self.cmd.take_action, parsed_args)
 
+    @mock.patch('tripleoclient.workflows.deployment.config_download')
     @mock.patch('tripleoclient.workflows.deployment.get_horizon_url',
                 autospec=True)
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
     @mock.patch('tripleoclient.utils.wait_for_provision_state')
-    @mock.patch('tripleoclient.workflows.baremetal', autospec=True)
     @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
     @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
     @mock.patch('tripleoclient.workflows.deployment.overcloudrc',
@@ -1687,9 +1755,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_deployed_server(self, mock_deploy_tmpdir, mock_overcloudrc,
                              mock_write_overcloudrc,
                              mock_get_overcloud_endpoint,
-                             mock_workflows_bm,
                              mock_provision, mock_tempest_deploy_input,
-                             mock_get_horizon_url):
+                             mock_get_horizon_url,
+                             mock_config_download):
         arglist = ['--templates', '--deployed-server', '--disable-validations']
         verifylist = [
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
