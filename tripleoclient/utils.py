@@ -929,3 +929,20 @@ def run_update_ansible_action(log, clients, nodes, inventory, playbook,
         action.update_ansible(clients, nodes=nodes, inventory_file=inventory,
                               playbook=book, ansible_queue_name=queue,
                               node_user=ssh_user, skip_tags=skip_tags)
+
+
+def prepend_environment(environment_files, templates_dir, environment):
+    if not environment_files:
+        environment_files = []
+
+    full_path = os.path.join(templates_dir, environment)
+    # sanity check it exists before proceeding
+    if os.path.exists(full_path):
+        # We need to prepend before the files provided by user.
+        environment_files.insert(0, full_path)
+    else:
+        raise exceptions.InvalidConfiguration(
+            "Expected environment file %s not found in %s cannot proceed."
+            % (environment, templates_dir))
+
+    return environment_files
