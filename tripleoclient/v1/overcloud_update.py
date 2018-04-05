@@ -132,6 +132,13 @@ class UpdateRun(command.Command):
                                    "that all services are updated and running "
                                    "with the target version configuration.")
                             )
+        parser.add_argument("--ssh-user",
+                            dest="ssh_user",
+                            action="store",
+                            default="heat-admin",
+                            help=_("The ssh user name for connecting to "
+                                   "the overcloud nodes.")
+                            )
         parser.add_argument('--static-inventory',
                             dest='static_inventory',
                             action="store",
@@ -154,8 +161,9 @@ class UpdateRun(command.Command):
             nodes = None
         playbook = parsed_args.playbook
         inventory = oooutils.get_tripleo_ansible_inventory(
-            parsed_args.static_inventory)
+            parsed_args.static_inventory, parsed_args.ssh_user)
         oooutils.run_update_ansible_action(self.log, clients, nodes, inventory,
                                            playbook, constants.UPDATE_QUEUE,
                                            constants.MINOR_UPDATE_PLAYBOOKS,
-                                           package_update)
+                                           package_update,
+                                           parsed_args.ssh_user)
