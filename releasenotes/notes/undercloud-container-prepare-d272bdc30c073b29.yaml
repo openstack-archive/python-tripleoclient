@@ -1,16 +1,8 @@
 ---
 features:
   - |
-    Parameters for undercloud container images can now be populated during the
-    run of `openstack undercloud install --use-heat`. This is controlled by the
-    new `undercloud.conf` options:
 
-    * container_image_namespace
-    * container_image_name_prefix
-    * container_image_name_suffix
-    * container_image_tag
-    * container_image_tag_from_label
-
-    If the option `container_images_file` is set then the above options are
-    ignored. Generally default values will be sufficient, resulting in the
-    undercloud being deployed with the recommended images using versioned tags.
+    If no undercloud.conf `container_images_file` is set then `openstack
+    undercloud install --use-heat` will deploy an undercloud with the latest
+    containers as specified by the defaults. This allows the
+    `container_images_file` option to be not mandatory.
