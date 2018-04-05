@@ -604,7 +604,8 @@ def _generate_masquerade_networks():
 #     return '\n  '.join(env_list)
 
 
-def prepare_undercloud_deploy(upgrade=False, no_validations=False):
+def prepare_undercloud_deploy(upgrade=False, no_validations=False,
+                              verbose_level=1):
     """Prepare Undercloud deploy command based on undercloud.conf"""
 
     env_data = {}
@@ -801,7 +802,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False):
     if CONF.get('enable_validations') and not no_validations:
         undercloud_preflight.check()
 
-    if CONF.get('undercloud_debug', None):
+    if verbose_level > 1:
         deploy_args.append('--debug')
 
     cmd = ["sudo", "openstack", "undercloud", "deploy"]
