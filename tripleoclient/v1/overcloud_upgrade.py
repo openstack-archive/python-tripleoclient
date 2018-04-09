@@ -36,11 +36,6 @@ class UpgradePrepare(DeployOvercloud):
 
     log = logging.getLogger(__name__ + ".MajorUpgradePrepare")
 
-    # enable preservation of all important files (plan env, user env,
-    # roles/network data, user files) so that we don't have to pass
-    # all env files on update command
-    _keep_env_on_update = True
-
     def get_parser(self, prog_name):
         parser = super(UpgradePrepare, self).get_parser(prog_name)
         parser.add_argument('--container-registry-file',
