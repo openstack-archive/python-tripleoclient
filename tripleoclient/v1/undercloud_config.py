@@ -718,7 +718,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False):
 
     if CONF.get('enable_ui'):
         deploy_args += ['-e', os.path.join(
-            tht_templates, "environments/services-docker/tripleo-ui.yaml")]
+            tht_templates, "environments/services/tripleo-ui.yaml")]
 
     if CONF.get('enable_cinder'):
         deploy_args += ['-e', os.path.join(
