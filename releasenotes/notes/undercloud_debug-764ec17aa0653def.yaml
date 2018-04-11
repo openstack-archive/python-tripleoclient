@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Verbosity is disabled by default when deploying or upgrading a containerized
+    undercloud; but it can be enabled with the option: --verbose
