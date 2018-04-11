@@ -12,8 +12,6 @@
 #   License for the specific language governing permissions and limitations
 #   under the License.
 #
-from __future__ import print_function
-
 import argparse
 import logging
 import netaddr
@@ -24,12 +22,14 @@ import shutil
 import six
 import subprocess
 import sys
+import tarfile
 import tempfile
 import time
 import traceback
 import yaml
 
 from cliff import command
+from datetime import datetime
 from heatclient.common import event_utils
 from heatclient.common import template_utils
 from openstackclient.i18n import _
@@ -59,8 +59,10 @@ class DeployUndercloud(command.Command):
     auth_required = False
     heat_pid = None
     tht_render = None
+    output_dir = None
     tmp_env_dir = None
     tmp_env_file_name = None
+    tmp_ansible_dir = None
 
     def _symlink(self, src, dst, tmpd='/tmp'):
         self.log.debug("Symlinking %s to %s, via temp dir %s" %
@@ -77,6 +79,79 @@ class DeployUndercloud(command.Command):
             raise
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
+
+    def _get_tar_filename(self):
+        """Return tarball name for the install artifacts"""
+        return '%s/undercloud-install-%s.tar.bzip2' % \
+               (self.output_dir,
+                datetime.utcnow().strftime('%Y%m%d%H%M%S'))
+
+    def _create_install_artifact(self):
+        """Create a tarball of the temporary folders used"""
+        self.log.debug("Preserving deployment artifacts")
+
+        def remove_output_dir(info):
+            """Tar filter to remove output dir from path"""
+            # leading path to tar is home/stack/ rather than /home/stack
+            leading_path = self.output_dir[1:] + '/'
+            info.name = info.name.replace(leading_path, '')
+            return info
+
+        # tar up working data and put in
+        # output_dir/undercloud-install-TS.tar.bzip2
+        tar_filename = self._get_tar_filename()
+        try:
+            tf = tarfile.open(tar_filename, 'w:bz2')
+            tf.add(self.tmp_env_dir, recursive=True, filter=remove_output_dir)
+            if self.tmp_env_file_name:
+                tf.add(self.tmp_env_file_name, filter=remove_output_dir)
+            tf.add(self.tmp_ansible_dir, recursive=True,
+                   filter=remove_output_dir)
+            tf.close()
+        except Exception as ex:
+            self.log.error("Unable to create artifact tarball, %s"
+                           % ex.message)
+        return tar_filename
+
+    def _create_working_dirs(self):
+        """Creates temporary working directories"""
+        if self.output_dir and not os.path.exists(self.output_dir):
+            os.mkdir(self.output_dir)
+        if not self.tmp_env_dir:
+            self.tmp_env_dir = tempfile.mkdtemp(prefix='undercloud-templates-',
+                                                dir=self.output_dir)
+        if not self.tmp_ansible_dir:
+            self.tmp_ansible_dir = tempfile.mkdtemp(
+                prefix='undercloud-ansible-', dir=self.output_dir)
+
+    def _cleanup_working_dirs(self, cleanup=False):
+        """Cleanup temporary working directories
+
+        :param cleanup: Set to true if you DO want to cleanup the dirs
+        """
+        if cleanup:
+            if self.tmp_env_dir and os.path.exists(self.tmp_env_dir):
+                shutil.rmtree(self.tmp_env_dir, ignore_errors=True)
+                # tht_render is a sub-dir of tmp_env_dir
+            self.tht_render = None
+            self.tmp_env_dir = None
+            if self.tmp_env_file_name:
+                try:
+                    os.remove(self.tmp_env_file_name)
+                    self.tmp_env_file_name = None
+                except Exception as ex:
+                    if 'No such file or directory' in six.text_type(ex):
+                        pass
+            if self.tmp_ansible_dir and os.path.exists(self.tmp_ansible_dir):
+                shutil.rmtree(self.tmp_ansible_dir)
+                self.tmp_ansible_dir = None
+        else:
+            self.log.warning("Not cleaning temporary directory %s"
+                             % self.tmp_env_dir)
+            self.log.warning("Not removing temporary environment file %s"
+                             % self.tmp_env_file_name)
+            self.log.warning("Not cleaning ansible directory %s"
+                             % self.tmp_ansible_dir)
 
     def _get_hostname(self):
         p = subprocess.Popen(["hostname", "-s"], stdout=subprocess.PIPE)
@@ -239,34 +314,12 @@ class DeployUndercloud(command.Command):
         when cleanup is requested.
 
         """
-
-        if not parsed_args.cleanup and self.tmp_env_dir:
-            self.log.warning("Not cleaning temporary directory %s"
-                             % self.tmp_env_dir)
-        elif self.tht_render:
-            shutil.rmtree(self.tmp_env_dir, ignore_errors=True)
-            # tht_render is a sub-dir of tmp_env_dir
-            self.tht_render = None
-            self.tmp_env_dir = None
-
-        if self.tmp_env_file_name:
-            try:
-                os.remove(self.tmp_env_file_name)
-                self.tmp_env_file_name = None
-            except Exception as ex:
-                if 'No such file or directory' in six.text_type(ex):
-                    pass
-
         if self.heat_pid:
             self.heat_launch.kill_heat(self.heat_pid)
             pid, ret = os.waitpid(self.heat_pid, 0)
             self.heat_pid = None
 
     def _launch_heat(self, parsed_args):
-
-        if not os.path.isdir(parsed_args.output_dir):
-            os.mkdir(parsed_args.output_dir)
-
         # we do this as root to chown config files properly for docker, etc.
         if parsed_args.heat_native:
             self.heat_launch = heat_launcher.HeatNativeLauncher(
@@ -321,8 +374,7 @@ class DeployUndercloud(command.Command):
         overcloud-resource-registry-puppet.yaml and passwords files.
         """
 
-        self.tmp_env_dir = tempfile.mkdtemp(prefix='tripleoclient-',
-                                            dir=parsed_args.output_dir)
+        self._create_working_dirs()
         self.tht_render = os.path.join(self.tmp_env_dir, 'templates')
         shutil.copytree(parsed_args.templates, self.tht_render, symlinks=True)
 
@@ -347,7 +399,7 @@ class DeployUndercloud(command.Command):
         environments.insert(0, resource_registry_path)
 
         # this will allow the user to overwrite passwords with custom envs
-        pw_file = self._update_passwords_env(parsed_args.output_dir)
+        pw_file = self._update_passwords_env(self.output_dir)
         environments.insert(1, pw_file)
 
         undercloud_env_path = os.path.join(
@@ -396,7 +448,8 @@ class DeployUndercloud(command.Command):
             environments.append(self.tmp_env_file_name)
 
         if parsed_args.hieradata_override:
-            environments.append(self._process_hieradata_overrides(parsed_args))
+            environments.append(self._process_hieradata_overrides(
+                parsed_args.hieradata_override))
 
         return environments
 
@@ -462,30 +515,30 @@ class DeployUndercloud(command.Command):
 
         return "%s/%s" % (stack_name, stack_id)
 
-    def _download_ansible_playbooks(self, client, stack_name, output_dir):
+    def _download_ansible_playbooks(self, client, stack_name):
         stack_config = config.Config(client)
+        self._create_working_dirs()
 
         self.log.warning('** Downloading undercloud ansible.. **')
         # python output buffering is making this seem to take forever..
         sys.stdout.flush()
-        ansible_dir = tempfile.mkdtemp(prefix='tripleo-',
-                                       suffix='-config',
-                                       dir=output_dir)
-        stack_config.download_config('undercloud', ansible_dir)
+        stack_config.write_config(stack_config.fetch_config('undercloud'),
+                                  'undercloud',
+                                  self.tmp_ansible_dir)
 
         inventory = TripleoInventory(
             hclient=client,
             plan_name=stack_name,
             ansible_ssh_user='root')
 
-        inv_path = os.path.join(ansible_dir, 'inventory.yaml')
+        inv_path = os.path.join(self.tmp_ansible_dir, 'inventory.yaml')
         extra_vars = {'Undercloud': {'ansible_connection': 'local'}}
         inventory.write_static_inventory(inv_path, extra_vars)
 
         self.log.info('** Downloaded undercloud ansible to %s **' %
-                      ansible_dir)
+                      self.tmp_ansible_dir)
         sys.stdout.flush()
-        return ansible_dir
+        return self.tmp_ansible_dir
 
     # Never returns, calls exec()
     def _launch_ansible(self, ansible_dir):
@@ -598,7 +651,10 @@ class DeployUndercloud(command.Command):
         parser.add_argument(
             '--cleanup',
             action='store_true', default=False,
-            help=_('Cleanup temporary files')
+            help=_('Cleanup temporary files. Using this flag will '
+                   'remove the temporary files used during deployment in '
+                   'after the command is run.'),
+
         )
         parser.add_argument(
             '--hieradata-override', nargs='?',
@@ -613,40 +669,46 @@ class DeployUndercloud(command.Command):
         )
         return parser
 
-    def _process_hieradata_overrides(self, parsed_args):
+    def _process_hieradata_overrides(self, override_file=None):
         """Count in hiera data overrides including legacy formats
 
         Return a file name that points to processed hiera data overrides file
         """
-        target = parsed_args.hieradata_override
+        if not override_file or not os.path.exists(override_file):
+            # we should never get here because there's a check in
+            # undercloud_conf but stranger things have happened.
+            msg = 'hieradata_override file could not be found %s' %\
+                  override_file
+            self.log.error(msg)
+            raise exceptions.DeploymentError(msg)
+
+        target = override_file
         data = open(target, 'r').read()
         hiera_data = yaml.safe_load(data)
         if not hiera_data:
             msg = 'Unsupported data format in hieradata override %s' % target
             self.log.error(msg)
             raise exceptions.DeploymentError(msg)
+        self._create_working_dirs()
 
         # NOTE(bogdando): In t-h-t, hiera data should come in wrapped as
         # {parameter_defaults: {UndercloudExtraConfig: ... }}
-        if ('UndercloudExtraConfig' not in
-           hiera_data.get('parameter_defaults', {})):
-            with tempfile.NamedTemporaryFile(
-                dir=parsed_args.output_dir,
-                delete=parsed_args.cleanup,
-                prefix='tripleoclient-',
-                suffix=os.path.splitext(
-                    os.path.basename(target))[0]) as f:
+        if ('UndercloudExtraConfig' not in hiera_data.get('parameter_defaults',
+                                                          {})):
+            template_location = os.path.join(self.tmp_env_dir, 'templates')
+            with tempfile.NamedTemporaryFile(dir=template_location,
+                                             prefix='hieradata-override',
+                                             suffix='.yaml',
+                                             delete=False) as override:
                 self.log.info('Converting hiera overrides for t-h-t from '
-                              'legacy format into a tempfile %s' % f.name)
-                with open(f.name, 'w') as tht_data:
-                    yaml.safe_dump(
-                        {'parameter_defaults': {
-                            'UndercloudExtraConfig': hiera_data}},
-                        tht_data,
-                        default_flow_style=False)
-
-                target = f.name
-
+                              'legacy format into a tempfile %s' %
+                              override.name)
+                yaml.safe_dump(
+                    {'parameter_defaults': {
+                     'UndercloudExtraConfig': hiera_data}},
+                    override,
+                    default_flow_style=False)
+                target = override.name
         return target
 
     def take_action(self, parsed_args):
@@ -665,6 +727,10 @@ class DeployUndercloud(command.Command):
         # process runs as root.
         if os.geteuid() != 0:
             raise exceptions.DeploymentError("Please run as root.")
+
+        # prepare working spaces
+        self.output_dir = os.path.abspath(parsed_args.output_dir)
+        self._create_working_dirs()
 
         # configure puppet
         self._configure_puppet()
@@ -688,8 +754,7 @@ class DeployUndercloud(command.Command):
             # download the ansible playbooks and execute them.
             ansible_dir = \
                 self._download_ansible_playbooks(orchestration_client,
-                                                 parsed_args.stack,
-                                                 parsed_args.output_dir)
+                                                 parsed_args.stack)
             # Kill heat, we're done with it now.
             self._kill_heat(parsed_args)
             if not parsed_args.output_only:
@@ -701,6 +766,11 @@ class DeployUndercloud(command.Command):
             raise
         finally:
             self._kill_heat(parsed_args)
+            tar_filename = self._create_install_artifact()
+            self._cleanup_working_dirs(cleanup=parsed_args.cleanup)
+            if tar_filename:
+                self.log.warning('Install artifact is located at %s' %
+                                 tar_filename)
             if not parsed_args.output_only and rc != 0:
                 # We only get here on error.
                 self.log.error('ERROR: Heat log files: %s' %

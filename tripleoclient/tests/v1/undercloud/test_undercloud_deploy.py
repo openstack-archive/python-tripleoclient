@@ -21,6 +21,7 @@ import yaml
 from heatclient import exc as hc_exc
 from tripleo_common.image import kolla_builder
 
+from tripleoclient import exceptions
 from tripleoclient.tests.v1.test_plugin import TestPluginV1
 
 # Load the plugin init module for the plugin list and show commands
@@ -298,6 +299,8 @@ class TestDeployUndercloud(TestPluginV1):
 
         self.assertEqual(environment, expected_env)
 
+    @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
+                '_create_working_dirs', autospec=True)
     @mock.patch('tripleoclient.v1.undercloud_deploy.TripleoInventory',
                 autospec=True)
     @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
@@ -306,19 +309,17 @@ class TestDeployUndercloud(TestPluginV1):
                 autospec=True)
     @mock.patch('tripleoclient.v1.undercloud_deploy.sys.stdout.flush')
     @mock.patch('os.path.join', return_value='/twd/inventory.yaml')
-    @mock.patch('tempfile.mkdtemp', autospec=True, return_value='/twd')
-    def test_download_ansible_playbooks(self, mock_mktemp, mock_join,
-                                        mock_flush,
+    def test_download_ansible_playbooks(self, mock_join, mock_flush,
                                         mock_stack_config, mock_launch_heat,
-                                        mock_importInv):
+                                        mock_importInv, createdir_mock):
 
         fake_output_dir = '/twd'
         extra_vars = {'Undercloud': {'ansible_connection': 'local'}}
         mock_inventory = mock.Mock()
         mock_importInv.return_value = mock_inventory
+        self.cmd.output_dir = fake_output_dir
         self.cmd._download_ansible_playbooks(mock_launch_heat,
-                                             'undercloud',
-                                             fake_output_dir)
+                                             'undercloud')
         self.assertEqual(mock_flush.call_count, 2)
         mock_inventory.write_static_inventory.assert_called_once_with(
             fake_output_dir + '/inventory.yaml', extra_vars)
@@ -338,12 +339,21 @@ class TestDeployUndercloud(TestPluginV1):
             'bootstrap_server_id=undercloud'])
 
     @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
+                '_create_install_artifact', return_value='/tmp/foo.tar.bzip2')
+    @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
+                '_launch_ansible')
+    @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
+                '_cleanup_working_dirs')
+    @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
+                '_create_working_dirs')
+    @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
                 '_wait_local_port_ready', autospec=True)
     @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
                 '_deploy_tripleo_heat_templates', autospec=True,
                 return_value='undercloud, 0')
     @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
-                '_download_ansible_playbooks', autospec=True)
+                '_download_ansible_playbooks', autospec=True,
+                return_value='/foo')
     @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
                 '_launch_heat')
     @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
@@ -357,7 +367,9 @@ class TestDeployUndercloud(TestPluginV1):
                 return_value=('CREATE_COMPLETE', 0))
     def test_take_action(self, mock_poll, mock_environ, mock_geteuid,
                          mock_puppet, mock_killheat, mock_launchheat,
-                         mock_download, mock_tht, mock_wait_for_port):
+                         mock_download, mock_tht, mock_wait_for_port,
+                         mock_createdirs, mock_cleanupdirs,
+                         mock_launchansible, mock_tarball):
 
         parsed_args = self.check_parser(self.cmd,
                                         ['--local-ip', '127.0.0.1',
@@ -373,12 +385,16 @@ class TestDeployUndercloud(TestPluginV1):
 
         fake_orchestration = mock_launchheat(parsed_args)
         self.cmd.take_action(parsed_args)
+        mock_createdirs.assert_called_once()
+        mock_puppet.assert_called_once()
         mock_launchheat.assert_called_with(parsed_args)
         mock_tht.assert_called_once_with(self.cmd, fake_orchestration,
                                          parsed_args)
         mock_download.assert_called_with(self.cmd, fake_orchestration,
-                                         'undercloud', '/my')
-
+                                         'undercloud')
+        mock_launchansible.assert_called_once()
+        mock_tarball.assert_called_once()
+        mock_cleanupdirs.assert_called_once()
         self.assertEqual(mock_killheat.call_count, 2)
 
     @mock.patch('tripleo_common.image.kolla_builder.'
@@ -403,3 +419,85 @@ class TestDeployUndercloud(TestPluginV1):
             },
             env
         )
+
+    @mock.patch('tempfile.NamedTemporaryFile', autospec=True)
+    @mock.patch('os.path.exists', return_value=True)
+    def test_process_hierdata_overrides(self, mock_exists, mock_tmpfile):
+        data = "foo: bar"
+        mock_open = mock.mock_open(read_data=data)
+        with mock.patch('tripleoclient.v1.undercloud_deploy.open', mock_open):
+            self.assertEqual(mock_tmpfile.return_value.__enter__().name,
+                             self.cmd._process_hieradata_overrides('/foobar'))
+
+    @mock.patch('os.path.exists', return_value=False)
+    def test_process_hierdata_overrides_bad_input(self, mock_exists):
+        self.assertRaises(exceptions.DeploymentError,
+                          self.cmd._process_hieradata_overrides,
+                          ['/tmp/foobar'])
+
+    @mock.patch('tempfile.NamedTemporaryFile', autospec=True)
+    @mock.patch('os.path.exists', return_value=True)
+    def test_process_hierdata_overrides_tht(self, mock_exists, mock_tmpfile):
+        data = "parameter_defaults:\n  UndercloudExtraConfig:\n    foo: bar"
+        mock_open = mock.mock_open(read_data=data)
+        with mock.patch('tripleoclient.v1.undercloud_deploy.open', mock_open):
+            self.assertEqual('/foobar',
+                             self.cmd._process_hieradata_overrides('/foobar'))
+
+    @mock.patch('os.waitpid')
+    def test_kill_heat(self, wait_mock):
+        self.cmd.heat_pid = 1234
+        wait_mock.return_value = [0, 0]
+
+        parsed_args = self.check_parser(self.cmd, [], [])
+        self.cmd._kill_heat(parsed_args)
+        wait_mock.assert_called_once_with(1234, 0)
+
+    @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
+                '_get_tar_filename',
+                return_value='/tmp/undercloud-install-1.tar.bzip2')
+    @mock.patch('tarfile.open', autospec=True)
+    def test_create_install_artifact(self, mock_open, mock_filename):
+        self.cmd.output_dir = '/tmp'
+        self.cmd.tmp_env_dir = '/tmp/foo'
+        self.cmd.tmp_env_file_name = '/tmp/bar'
+        self.cmd.tmp_ansible_dir = '/tmp/baz'
+        name = self.cmd._create_install_artifact()
+        self.cmd.output_dir = None
+        self.cmd.tmp_env_dir = None
+        self.cmd.tmp_env_file_name = None
+        self.cmd.tmp_ansible_dir = None
+        self.assertEqual(name, '/tmp/undercloud-install-1.tar.bzip2')
+
+    @mock.patch('tempfile.mkdtemp')
+    def test_create_working_dirs(self, mock_tempfile):
+        self.output_dir = None
+        self.cmd.tmp_ansible_dir = None
+        self.cmd.tmp_env_dir = None
+        self.cmd._create_working_dirs()
+        self.assertEqual(mock_tempfile.call_count, 2)
+
+    @mock.patch('os.remove')
+    @mock.patch('shutil.rmtree')
+    @mock.patch('os.path.exists', return_value=True)
+    def test_cleanup_working_dirs(self, mock_exists, mock_rmtree, mock_remove):
+        self.cmd.tmp_env_dir = '/foo'
+        self.cmd.tmp_env_file_name = '/bar'
+        self.cmd.tmp_ansible_dir = '/baz'
+        self.cmd._cleanup_working_dirs()
+        self.assertEqual(mock_exists.call_count, 0)
+        mock_remove.assert_not_called()
+        self.assertEqual(mock_rmtree.call_count, 0)
+
+    @mock.patch('os.remove')
+    @mock.patch('shutil.rmtree')
+    @mock.patch('os.path.exists', return_value=True)
+    def test_cleanup_working_dirs_cleanup(self, mock_exists, mock_rmtree,
+                                          mock_remove):
+        self.cmd.tmp_env_dir = '/foo'
+        self.cmd.tmp_env_file_name = '/bar'
+        self.cmd.tmp_ansible_dir = '/baz'
+        self.cmd._cleanup_working_dirs(True)
+        self.assertEqual(mock_exists.call_count, 2)
+        mock_remove.assert_called_once_with('/bar')
+        self.assertEqual(mock_rmtree.call_count, 2)
