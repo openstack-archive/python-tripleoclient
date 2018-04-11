@@ -30,21 +30,13 @@ import time
 import traceback
 import yaml
 
-try:
-    from urllib2 import HTTPError
-    from urllib2 import URLError
-    from urllib2 import urlopen
-except ImportError:
-    # python3
-    from urllib.error import HTTPError
-    from urllib.error import URLError
-    from urllib.request import urlopen
-
 from cliff import command
 from heatclient.common import event_utils
 from heatclient.common import template_utils
 from openstackclient.i18n import _
 from six.moves import configparser
+from six.moves.urllib import error as url_error
+from six.moves.urllib import request
 
 from tripleoclient import constants
 from tripleoclient import exceptions
@@ -102,12 +94,12 @@ class DeployUndercloud(command.Command):
             time.sleep(1)
             count += 1
             try:
-                urlopen("http://127.0.0.1:%s/" % api_port, timeout=1)
-            except HTTPError as he:
+                request.urlopen("http://127.0.0.1:%s/" % api_port, timeout=1)
+            except url_error.HTTPError as he:
                 if he.code == 300:
                     return True
                 pass
-            except URLError:
+            except url_error.URLError:
                 pass
         return False
 
