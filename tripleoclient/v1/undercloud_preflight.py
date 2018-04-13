@@ -20,6 +20,8 @@ import os
 import subprocess
 import sys
 
+from osc_lib.i18n import _
+
 from oslo_utils import netutils
 import psutil
 
@@ -63,18 +65,21 @@ def _run_command(args, env=None, name=None):
         raise RuntimeError(message)
 
 
-def _run_live_command(args, env=None, name=None):
-    """Run the command defined by args and log its output
+def _run_live_command(args, env=None, name=None, cwd=None, wait=True):
+    """Run the command defined by args, env and cwd
 
-    Takes the same arguments as _run_command, but runs the process
+    Either returns the process handler or runs the process
     asynchronously so the output can be logged while the process is still
     running.
     """
     if name is None:
         name = args[0]
-    process = subprocess.Popen(args, env=env,
+    process = subprocess.Popen(args, env=env, cwd=cwd,
                                stdout=subprocess.PIPE,
                                stderr=subprocess.STDOUT)
+    if not wait:
+        return process
+
     while True:
         line = process.stdout.readline().decode('utf-8')
         if line:
@@ -372,6 +377,42 @@ def _validate_passwords_file():
         raise FailedValidation(message)
 
 
+def _validate_env_files_paths():
+    """Verify the non-matching templates path vs env files paths"""
+    tht_path = CONF.get('templates') or constants.TRIPLEO_HEAT_TEMPLATES
+    roles_file = CONF.get('roles_file') or constants.UNDERCLOUD_ROLES_FILE
+
+    # get the list of jinja templates normally rendered for UC installations
+    LOG.debug("Using roles file %s from %s" % (roles_file, tht_path))
+    process_templates = os.path.join(tht_path,
+                                     'tools/process-templates.py')
+    p = _run_live_command(
+        ['python', process_templates, '--roles-data', roles_file, '--dry-run'],
+        name='process-templates-dry-run', cwd=tht_path, wait=False)
+
+    # parse the list for the rendered from j2 file names
+    result = p.communicate()[0]
+    j2_files_list = []
+    for line in result.split("\n"):
+        if ((line.startswith('dry run') or line.startswith('jinja2')) and
+           line.endswith('.yaml')):
+            bname = os.path.basename(line.split(' ')[-1])
+            if line.startswith('dry run'):
+                j2_files_list.append(bname)
+            if line.startswith('jinja2'):
+                j2_files_list.append(bname.replace('.j2', ''))
+
+    for env_file in CONF['custom_env_files']:
+        env_file_abs = os.path.abspath(env_file)
+        if (os.path.dirname(env_file_abs) != os.path.abspath(tht_path) and
+           os.path.basename(env_file) in j2_files_list):
+            msg = _(
+                'Heat environment external to the templates dir '
+                'can not reference j2 processed file %s') % env_file_abs
+            LOG.error(msg)
+            raise FailedValidation(msg)
+
+
 def _run_yum_clean_all(instack_env):
     args = ['sudo', 'yum', 'clean', 'all']
     LOG.info('Running yum clean all')
@@ -395,6 +436,9 @@ def check():
         _check_memory()
         _check_sysctl()
         _validate_passwords_file()
+        # Heat templates validations
+        if CONF.get('custom_env_files'):
+            _validate_env_files_paths()
         # Networking validations
         _validate_value_formats()
         for subnet in CONF.subnets:
