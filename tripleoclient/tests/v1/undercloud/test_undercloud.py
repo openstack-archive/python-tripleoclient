@@ -196,7 +196,7 @@ class TestUndercloudUpgrade(TestPluginV1):
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
              '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'major-upgrade-composable-steps-docker.yaml',
+             'lifecycle/undercloud-upgrade-prepare.yaml',
              '--heat-native', '-e', '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic.yaml',
@@ -248,7 +248,7 @@ class TestUndercloudUpgrade(TestPluginV1):
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
              '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'major-upgrade-composable-steps-docker.yaml',
+             'lifecycle/undercloud-upgrade-prepare.yaml',
              '--heat-native', '-e', '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic.yaml',
