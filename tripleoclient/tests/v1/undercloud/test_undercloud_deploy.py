@@ -15,13 +15,20 @@
 
 import mock
 import os
+import tempfile
+import yaml
 
 from heatclient import exc as hc_exc
+from tripleo_common.image import kolla_builder
 
 from tripleoclient.tests.v1.test_plugin import TestPluginV1
 
 # Load the plugin init module for the plugin list and show commands
 from tripleoclient.v1 import undercloud_deploy
+
+# TODO(sbaker) Remove after a tripleo-common release contains this new function
+if not hasattr(kolla_builder, 'container_images_prepare_multi'):
+    setattr(kolla_builder, 'container_images_prepare_multi', mock.Mock())
 
 
 class FakePluginV1Client(object):
@@ -125,15 +132,25 @@ class TestDeployUndercloud(TestPluginV1):
                 'parse', autospec=True, return_value=dict())
     @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
                 '_setup_heat_environments', autospec=True)
+    @mock.patch('tripleo_common.image.kolla_builder.'
+                'container_images_prepare_multi')
     def test_deploy_tripleo_heat_templates_redir(self,
+                                                 mock_cipm,
                                                  mock_setup_heat_envs,
                                                  mock_hc_templ_parse,
                                                  mock_hc_env_parse,
                                                  mock_hc_get_templ_cont,
                                                  mock_hc_process):
+
+        with tempfile.NamedTemporaryFile(delete=False) as roles_file:
+            self.addCleanup(os.unlink, roles_file.name)
+
+        mock_cipm.return_value = {}
+
         parsed_args = self.check_parser(self.cmd,
                                         ['--local-ip', '127.0.0.1/8',
-                                         '--templates', '/tmp/thtroot'], [])
+                                         '--templates', '/tmp/thtroot',
+                                         '--roles-file', roles_file.name], [])
 
         mock_setup_heat_envs.return_value = [
             './inside.yaml', '/tmp/thtroot/abs.yaml',
@@ -168,7 +185,10 @@ class TestDeployUndercloud(TestPluginV1):
     @mock.patch('yaml.safe_load', autospec=True)
     @mock.patch('six.moves.builtins.open')
     @mock.patch('tempfile.NamedTemporaryFile', autospec=True)
+    @mock.patch('tripleo_common.image.kolla_builder.'
+                'container_images_prepare_multi')
     def test_deploy_tripleo_heat_templates_rewrite(self,
+                                                   mock_cipm,
                                                    mock_temp, mock_open,
                                                    mock_yaml_load,
                                                    mock_yaml_dump,
@@ -182,6 +202,8 @@ class TestDeployUndercloud(TestPluginV1):
                 raise hc_exc.CommandError
             else:
                 return ({}, {})
+
+        mock_cipm.return_value = {}
 
         mock_hc_process.side_effect = hc_process
 
@@ -348,3 +370,26 @@ class TestDeployUndercloud(TestPluginV1):
                                          'undercloud', '/my')
 
         self.assertEqual(mock_killheat.call_count, 2)
+
+    @mock.patch('tripleo_common.image.kolla_builder.'
+                'container_images_prepare_multi')
+    def test_prepare_container_images(self, mock_cipm):
+        env = {'parameter_defaults': {}}
+        mock_cipm.return_value = {'FooImage': 'foo/bar:baz'}
+
+        with tempfile.NamedTemporaryFile(mode='w') as roles_file:
+            yaml.dump([{'name': 'Compute'}], roles_file)
+            self.cmd._prepare_container_images(env, roles_file.name)
+
+        mock_cipm.assert_called_once_with(
+            env,
+            [{'name': 'Compute'}]
+        )
+        self.assertEqual(
+            {
+                'parameter_defaults': {
+                    'FooImage': 'foo/bar:baz'
+                }
+            },
+            env
+        )
