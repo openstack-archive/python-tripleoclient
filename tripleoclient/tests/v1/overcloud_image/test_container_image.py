@@ -28,6 +28,11 @@ from tripleoclient.tests.v1.test_plugin import TestPluginV1
 from tripleoclient.v1 import container_image
 
 
+# TODO(sbaker) Remove after a tripleo-common release contains this new function
+if not hasattr(kolla_builder, 'build_service_filter'):
+    setattr(kolla_builder, 'build_service_filter', mock.Mock())
+
+
 class TestContainerImageUpload(TestPluginV1):
 
     def setUp(self):
@@ -98,25 +103,6 @@ class TestContainerImagePrepare(TestPluginV1):
             - OS::TripleO::Services::Overwritten
         '''
 
-    def test_get_enabled_services(self):
-        temp = tempfile.mkdtemp()
-        self.addCleanup(shutil.rmtree, temp)
-        resource_registry = {'parameter_defaults': {
-            'RoleDisabledViaEnvironmentCount': 0,
-            'RoleOverwrittenViaEnvironmentServices': [
-                'OS::TripleO::Services::FromResourceRegistry'
-            ]
-        }}
-        roles_file = '/foo/roles_data.yaml'
-        mock_open_context = mock.mock_open(read_data=self.roles_yaml)
-        with mock.patch('six.moves.builtins.open', mock_open_context):
-            enabled_services = self.cmd.get_enabled_services(resource_registry,
-                                                             roles_file)
-        mock_open_context.assert_called_once_with(roles_file)
-        self.assertEqual(set(['OS::TripleO::Services::AodhEvaluator',
-                              'OS::TripleO::Services::FromResourceRegistry']),
-                         enabled_services)
-
     @mock.patch('tripleo_common.image.kolla_builder.'
                 'container_images_prepare_defaults', create=True)
     @mock.patch('tripleo_common.image.kolla_builder.'
@@ -144,7 +130,6 @@ class TestContainerImagePrepare(TestPluginV1):
         mock_cip.assert_called_with(
             excludes=[],
             mapping_args={
-                'neutron_driver': None,
                 'name_suffix': '',
                 'tag': 'latest',
                 'namespace': 'docker.io/tripleomaster',
@@ -165,8 +150,10 @@ class TestContainerImagePrepare(TestPluginV1):
                 'container_images_prepare', create=True)
     @mock.patch('heatclient.common.template_utils.'
                 'process_multiple_environments_and_files')
+    @mock.patch('tripleo_common.image.kolla_builder.'
+                'build_service_filter')
     @mock.patch('requests.get')
-    def test_container_image_prepare(self, mock_get, pmef, mock_cip,
+    def test_container_image_prepare(self, mock_get, mock_bsf, pmef, mock_cip,
                                      mock_cipd):
 
         temp = tempfile.mkdtemp()
@@ -179,6 +166,7 @@ class TestContainerImagePrepare(TestPluginV1):
         with open(roles_file, 'w') as f:
             f.write(self.roles_yaml)
         mock_get.side_effect = requests.exceptions.SSLError('ouch')
+        mock_bsf.return_value = set(['OS::TripleO::Services::AodhEvaluator'])
 
         resource_registry = {'resource_registry': {
             'OS::TripleO::Services::AodhEvaluator': aodh_file,
@@ -244,7 +232,6 @@ class TestContainerImagePrepare(TestPluginV1):
                 'ceph_tag': 'mytag',
                 'ceph_image': 'mydaemon',
                 'tag': 'passed-ci',
-                'neutron_driver': None,
                 'ceph_namespace': 'myceph',
                 'name_prefix': 'os-'
             },
@@ -362,107 +349,6 @@ class TestContainerImagePrepare(TestPluginV1):
             self.assertEqual(expected_oc_yaml_contents, yaml.safe_load(f))
         with open(env_file) as f:
             self.assertEqual(expected_env_contents, yaml.safe_load(f))
-
-    @mock.patch('tripleo_common.image.kolla_builder.'
-                'container_images_prepare_defaults', create=True)
-    @mock.patch('tripleo_common.image.kolla_builder.'
-                'container_images_prepare', create=True)
-    @mock.patch('heatclient.common.template_utils.'
-                'process_multiple_environments_and_files')
-    @mock.patch('tripleoclient.v1.container_image.PrepareImageFiles.'
-                'get_enabled_services')
-    @mock.patch('requests.get')
-    def test_container_image_prepare_for_odl(self, mock_get, ges, pmef,
-                                             mock_cip, mock_cipd):
-        arglist = [
-            '-e',
-            'environments/services/neutron-opendaylight.yaml',
-        ]
-
-        ges.return_value = (
-            set(['OS::TripleO::Services::NeutronApi',
-                 'OS::TripleO::Services::NeutronDhcpAgent',
-                 'OS::TripleO::Services::NeutronMetadataAgent',
-                 'OS::TripleO::Services::NeutronServer',
-                 'OS::TripleO::Services::OpenDaylightApi']))
-
-        pmef_call_args = [
-            'environments/services/neutron-opendaylight.yaml']
-
-        expected_oc_yaml_contents = {
-            'container_images': [{
-                'imagename':
-                    'tripleo/os-neutron-server-opendaylightfoo:passed-ci',
-            }, {
-                'imagename': 'tripleo/os-opendaylightfoo:passed-ci',
-            }]
-        }
-        expected_env_contents = {
-            'parameter_defaults': {
-                'DockerNeutronApiImage':
-                    'tripleo/os-neutron-server-opendaylightfoo:passed-ci',
-                'DockerNeutronConfigImage':
-                    'tripleo/os-neutron-server-opendaylightfoo:passed-ci',
-                'DockerOpendaylightApiImage':
-                    'tripleo/os-opendaylightfoo:passed-ci',
-                'DockerOpendaylightConfigImage':
-                    'tripleo/os-opendaylightfoo:passed-ci',
-            }
-        }
-
-        self._test_container_image_prepare_helper(
-            pmef, mock_cip, pmef_call_args, arglist, 'odl',
-            expected_oc_yaml_contents, expected_env_contents)
-
-    @mock.patch('tripleo_common.image.kolla_builder.'
-                'container_images_prepare_defaults', create=True)
-    @mock.patch('tripleo_common.image.kolla_builder.'
-                'container_images_prepare', create=True)
-    @mock.patch('heatclient.common.template_utils.'
-                'process_multiple_environments_and_files')
-    @mock.patch('tripleoclient.v1.container_image.PrepareImageFiles.'
-                'get_enabled_services')
-    @mock.patch('requests.get')
-    def test_container_image_prepare_for_ovn(self, mock_get, ges, pmef,
-                                             mock_cip, mock_cipd):
-        arglist = [
-            '-e',
-            'environments/services/neutron-ovn.yaml',
-        ]
-
-        ges.return_value = (
-            set(['OS::TripleO::Services::NeutronApi',
-                 'OS::TripleO::Services::NeutronServer',
-                 'OS::TripleO::Services::OVNController',
-                 'OS::TripleO::Services::OVNDBs']))
-
-        pmef_call_args = [
-            'environments/services/neutron-ovn.yaml']
-
-        expected_oc_yaml_contents = {
-            'container_images': [{
-                'imagename':
-                    'tripleo/os-neutron-server-ovnfoo:passed-ci',
-            }, {
-                'imagename': 'tripleo/os-ovn-controllerfoo:passed-ci',
-            }]
-        }
-        expected_env_contents = {
-            'parameter_defaults': {
-                'DockerNeutronApiImage':
-                    'tripleo/os-neutron-server-ovnfoo:passed-ci',
-                'DockerNeutronConfigImage':
-                    'tripleo/os-neutron-server-ovnfoo:passed-ci',
-                'DockerOvnControllerImage':
-                    'tripleo/os-ovn-controllerfoo:passed-ci',
-                'DockerOvnControllerConfigImage':
-                    'tripleo/os-ovn-controllerfoo:passed-ci',
-            }
-        }
-
-        self._test_container_image_prepare_helper(
-            pmef, mock_cip, pmef_call_args, arglist, 'ovn',
-            expected_oc_yaml_contents, expected_env_contents)
 
 
 class TestContainerImageBuild(TestPluginV1):
