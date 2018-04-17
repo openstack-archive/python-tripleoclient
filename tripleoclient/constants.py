@@ -40,6 +40,7 @@ PUPPET_BASE = "/etc/puppet/"
 UPDATE_QUEUE = 'update'
 UPGRADE_QUEUE = 'upgrade'
 FFWD_UPGRADE_QUEUE = 'ffwdupgrade'
+CEPH_UPGRADE_QUEUE = 'cephupgrade'
 STACK_TIMEOUT = 240
 
 
@@ -61,3 +62,5 @@ UPGRADE_PREPARE_ENV = "environments/lifecycle/upgrade-prepare.yaml"
 UPGRADE_CONVERGE_ENV = "environments/lifecycle/upgrade-converge.yaml"
 FFWD_UPGRADE_PREPARE_ENV = "environments/lifecycle/ffwd-upgrade-prepare.yaml"
 FFWD_UPGRADE_CONVERGE_ENV = "environments/lifecycle/ffwd-upgrade-converge.yaml"
+CEPH_UPGRADE_PREPARE_ENV = "environments/lifecycle/ceph-upgrade-prepare.yaml"
+CEPH_UPGRADE_CONVERGE_ENV = "environments/lifecycle/ceph-upgrade-converge.yaml"
