@@ -30,7 +30,6 @@ USER_PARAMETERS = 'user-environments/tripleoclient-parameters.yaml'
 DEFAULT_ENV_DIRECTORY = "~/.tripleo/environments"
 
 TRIPLEO_PUPPET_MODULES = "/usr/share/openstack-puppet/modules/"
-UPGRADE_CONVERGE_FILE = "major-upgrade-converge-docker.yaml"
 PUPPET_MODULES = "/etc/puppet/modules/"
 PUPPET_BASE = "/etc/puppet/"
 # Update Queue
@@ -46,3 +45,7 @@ MAJOR_UPGRADE_PLAYBOOKS = ["upgrade_steps_playbook.yaml",
                            "deploy_steps_playbook.yaml",
                            "post_upgrade_steps_playbook.yaml"]
 MAJOR_UPGRADE_SKIP_TAGS = ['validation', 'pre-upgrade']
+# upgrade environment files expected by the client in the --templates
+# tripleo-heat-templates default above $TRIPLEO_HEAT_TEMPLATES
+UPGRADE_PREPARE_ENV = "environments/lifecycle/upgrade-prepare.yaml"
+UPGRADE_CONVERGE_ENV = "environments/lifecycle/upgrade-converge.yaml"
