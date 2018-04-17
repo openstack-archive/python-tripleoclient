@@ -66,14 +66,18 @@ class TestOvercloudUpdatePrepare(fakes.TestOvercloudUpdatePrepare):
         ]
 
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
-        self.cmd.take_action(parsed_args)
-        mock_update.assert_called_once_with(
-            self.app.client_manager,
-            container='mystack',
-            container_registry={'fake_container': 'fake_value'},
-            ceph_ansible_playbook='/usr/share/ceph-ansible'
-                                  '/site-docker.yml.sample'
-        )
+        with mock.patch('os.path.exists') as mock_exists, \
+                mock.patch('os.path.isfile') as mock_isfile:
+            mock_exists.return_value = True
+            mock_isfile.return_value = True
+            self.cmd.take_action(parsed_args)
+            mock_update.assert_called_once_with(
+                self.app.client_manager,
+                container='mystack',
+                container_registry={'fake_container': 'fake_value'},
+                ceph_ansible_playbook='/usr/share/ceph-ansible'
+                                      '/site-docker.yml.sample'
+            )
 
     @mock.patch('tripleoclient.workflows.package_update.update',
                 autospec=True)
@@ -97,8 +101,12 @@ class TestOvercloudUpdatePrepare(fakes.TestOvercloudUpdatePrepare):
         ]
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
 
-        self.assertRaises(exceptions.DeploymentError,
-                          self.cmd.take_action, parsed_args)
+        with mock.patch('os.path.exists') as mock_exists, \
+                mock.patch('os.path.isfile') as mock_isfile:
+            mock_exists.return_value = True
+            mock_isfile.return_value = True
+            self.assertRaises(exceptions.DeploymentError,
+                              self.cmd.take_action, parsed_args)
 
 
 class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
