@@ -51,5 +51,7 @@ MAJOR_UPGRADE_PLAYBOOKS = ["upgrade_steps_playbook.yaml",
 MAJOR_UPGRADE_SKIP_TAGS = ['validation', 'pre-upgrade']
 # upgrade environment files expected by the client in the --templates
 # tripleo-heat-templates default above $TRIPLEO_HEAT_TEMPLATES
+UPDATE_PREPARE_ENV = "environments/lifecycle/update-prepare.yaml"
+UPDATE_CONVERGE_ENV = "environments/lifecycle/update-converge.yaml"
 UPGRADE_PREPARE_ENV = "environments/lifecycle/upgrade-prepare.yaml"
 UPGRADE_CONVERGE_ENV = "environments/lifecycle/upgrade-converge.yaml"
