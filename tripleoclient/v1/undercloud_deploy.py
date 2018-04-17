@@ -157,7 +157,7 @@ class DeployUndercloud(command.Command):
         with open(undercloud_pw_file, 'w') as pf:
             pf.write('[auth]\n')
             for p, v in stack_env['parameter_defaults'].items():
-                if 'Password' in p or 'Token' in p:
+                if 'Password' in p or 'Token' in p or p.endswith('Kek'):
                     # Convert camelcase from heat templates into the underscore
                     # format used by instack undercloud.
                     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', p)
