@@ -36,6 +36,7 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
         self.mock_uuid4 = uuid4_patcher.start()
         self.addCleanup(self.mock_uuid4.stop)
 
+    @mock.patch('tripleoclient.utils.prepend_environment', autospec=True)
     @mock.patch('tripleoclient.utils.get_stack',
                 autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_upgrade.UpgradePrepare.log',
@@ -50,13 +51,14 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
                 '_deploy_tripleo_heat_templates', autospec=True)
     def test_upgrade_out(self, mock_deploy, mock_open, mock_copy, mock_yaml,
                          mock_abspath, mock_upgrade, mock_logger,
-                         mock_get_stack):
+                         mock_get_stack, add_env):
         mock_stack = mock.Mock()
         mock_stack.stack_name = 'mystack'
         mock_get_stack.return_value = mock_stack
         mock_abspath.return_value = '/home/fake/my-fake-registry.yaml'
         mock_yaml.return_value = {'fake_container': 'fake_value'}
-
+        add_env = mock.Mock()
+        add_env.return_value = True
         argslist = ['--stack', 'overcloud', '--templates',
                     '--container-registry-file', 'my-fake-registry.yaml']
         verifylist = [
@@ -75,6 +77,7 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
                                   '/site-docker.yml.sample'
         )
 
+    @mock.patch('tripleoclient.utils.prepend_environment', autospec=True)
     @mock.patch('tripleoclient.workflows.package_update.update',
                 autospec=True)
     @mock.patch('six.moves.builtins.open')
@@ -84,10 +87,12 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_tripleo_heat_templates', autospec=True)
     def test_upgrade_failed(self, mock_deploy, mock_copy, mock_yaml,
-                            mock_abspath, mock_open, mock_upgrade):
+                            mock_abspath, mock_open, mock_upgrade, add_env):
         mock_upgrade.side_effect = exceptions.DeploymentError()
         mock_abspath.return_value = '/home/fake/my-fake-registry.yaml'
         mock_yaml.return_value = {'fake_container': 'fake_value'}
+        add_env = mock.Mock()
+        add_env.return_value = True
         argslist = ['--stack', 'overcloud', '--templates',
                     '--container-registry-file', 'my-fake-registry.yaml']
         verifylist = [
