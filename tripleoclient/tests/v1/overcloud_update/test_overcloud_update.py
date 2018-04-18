@@ -52,7 +52,7 @@ class TestOvercloudUpdatePrepare(fakes.TestOvercloudUpdatePrepare):
                         mock_abspath, mock_update, mock_logger,
                         mock_get_stack):
         mock_stack = mock.Mock()
-        mock_stack.stack_name = 'mystack'
+        mock_stack.stack_name = 'overcloud'
         mock_get_stack.return_value = mock_stack
         mock_abspath.return_value = '/home/fake/my-fake-registry.yaml'
         mock_yaml.return_value = {'fake_container': 'fake_value'}
@@ -73,7 +73,7 @@ class TestOvercloudUpdatePrepare(fakes.TestOvercloudUpdatePrepare):
             self.cmd.take_action(parsed_args)
             mock_update.assert_called_once_with(
                 self.app.client_manager,
-                container='mystack',
+                container='overcloud',
                 container_registry={'fake_container': 'fake_value'},
                 ceph_ansible_playbook='/usr/share/ceph-ansible'
                                       '/site-docker.yml.sample'
