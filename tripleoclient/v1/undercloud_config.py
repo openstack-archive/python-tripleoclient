@@ -395,6 +395,9 @@ _opts = [
     cfg.BoolOpt('enable_routed_networks',
                 default=False,
                 help=('Enable support for routed ctlplane networks.')),
+    cfg.BoolOpt('enable_swift_encryption',
+                default=False,
+                help=('Whether to enable Swift encryption at-rest or not.')),
 ]
 
 # Routed subnets
@@ -723,6 +726,17 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
         deploy_args += ['-e', os.path.join(
             tht_templates,
             "environments/services/undercloud-cinder.yaml")]
+
+    if CONF.get('enable_swift_encryption'):
+        deploy_args += [
+            '-e', os.path.join(tht_templates,
+                               "environments/services/barbican.yaml"),
+            '-e', os.path.join(
+                tht_templates,
+                "environments/barbican-backend-simple-crypto.yaml")
+            ]
+        env_data['BarbicanSimpleCryptoGlobalDefault'] = True
+        env_data['SwiftEncryptionEnabled'] = True
 
     if CONF.get('generate_service_certificate'):
         deploy_args += ['-e', os.path.join(

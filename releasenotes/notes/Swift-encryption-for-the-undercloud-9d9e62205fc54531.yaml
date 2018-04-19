@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    The option `enable_swift_encryption` was added to the containerized
+    undercloud configuration options (undercloud.conf). If enabled, it will
+    deploy Barbican, which will be used to enable Swift Object encryption.
