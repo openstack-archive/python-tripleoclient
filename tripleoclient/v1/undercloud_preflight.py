@@ -236,13 +236,17 @@ def _validate_value_formats():
 def _validate_in_cidr(subnet_props, subnet_name):
     cidr = netaddr.IPNetwork(subnet_props.cidr)
 
-    def validate_addr_in_cidr(addr, pretty_name=None, require_ip=True):
+    def validate_addr_in_cidr(addr, pretty_name=None, require_ip=True,
+                              log_only=False):
         try:
             if netaddr.IPAddress(addr) not in cidr:
                 message = ('Config option %s "%s" not in defined CIDR "%s"' %
                            (pretty_name, addr, cidr))
-                LOG.error(message)
-                raise FailedValidation(message)
+                if log_only:
+                    LOG.warning(message)
+                else:
+                    LOG.error(message)
+                    raise FailedValidation(message)
         except netaddr.core.AddrFormatError:
             if require_ip:
                 message = 'Invalid IP address: %s' % addr
@@ -262,7 +266,7 @@ def _validate_in_cidr(subnet_props, subnet_name):
             not CONF.enable_ui):
         validate_addr_in_cidr(CONF['undercloud_public_host'],
                               'undercloud_public_host',
-                              require_ip=False)
+                              require_ip=False, log_only=True)
         validate_addr_in_cidr(CONF['undercloud_admin_host'],
                               'undercloud_admin_host',
                               require_ip=False)
