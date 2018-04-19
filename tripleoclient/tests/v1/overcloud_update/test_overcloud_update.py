@@ -228,3 +228,41 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
         ]
         self.assertRaises(ParserException, lambda: self.check_parser(
             self.cmd, argslist, verifylist))
+
+
+class TestOvercloudUpdateConverge(fakes.TestOvercloudUpdateConverge):
+
+    def setUp(self):
+        super(TestOvercloudUpdateConverge, self).setUp()
+
+        # Get the command object to test
+        app_args = mock.Mock()
+        app_args.verbose_level = 1
+        self.cmd = overcloud_update.UpdateConverge(self.app, app_args)
+
+    @mock.patch('tripleoclient.utils.get_stack')
+    @mock.patch('tripleoclient.workflows.package_update.update_converge_nodes')
+    @mock.patch(
+        'tripleoclient.v1.overcloud_deploy.DeployOvercloud.take_action')
+    def test_update_converge(self, deploy_action, converge_workflow,
+                             get_stack):
+        get_stack.return_value.stack_name = 'cloud'
+
+        argslist = ['--templates', '--stack', 'cloud']
+        verifylist = [
+            ('stack', 'cloud')
+        ]
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+
+        with mock.patch('os.path.exists') as mock_exists, \
+                mock.patch('os.path.isfile') as mock_isfile:
+            mock_exists.return_value = True
+            mock_isfile.return_value = True
+            self.cmd.take_action(parsed_args)
+            assert('/usr/share/openstack-tripleo-heat-templates/'
+                   'environments/lifecycle/update-converge.yaml'
+                   in parsed_args.environment_files)
+            deploy_action.assert_called_once_with(parsed_args)
+            converge_workflow.assert_called_once_with(
+                self.app.client_manager, container='cloud',
+                queue_name='update')
