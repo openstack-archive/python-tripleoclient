@@ -796,14 +796,14 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
                      "environments/config-download-environment.yaml"),
         "-e", os.path.join(tht_templates, "environments/undercloud.yaml")]
 
-    env_file = _write_env_file(
-        env_data, registry_overwrites=registry_overwrites)
-    deploy_args += ['-e', env_file]
+    params_file = os.path.abspath(os.path.join(CONF['output_dir'],
+                                               'undercloud_parameters.yaml'))
+    deploy_args += ['--output-dir=%s' % CONF['output_dir']]
+    if not os.path.isdir(CONF['output_dir']):
+        os.mkdir(CONF['output_dir'])
 
-    if CONF.get('output_dir'):
-        deploy_args += ['--output-dir=%s' % CONF['output_dir']]
-        if not os.path.isdir(CONF['output_dir']):
-            os.mkdir(CONF['output_dir'])
+    deploy_args += ['-e', params_file]
+    utils.write_env_file(env_data, params_file, registry_overwrites)
 
     if CONF.get('cleanup'):
         deploy_args.append('--cleanup')
@@ -877,25 +877,6 @@ def _get_public_tls_resource_registry_overwrites(enable_tls_yaml_path):
         except KeyError:
             raise RuntimeError('%s is malformed and is missing the resource '
                                'registry.' % enable_tls_yaml_path)
-
-
-def _write_env_file(env_data,
-                    env_file="/tmp/undercloud_parameters.yaml",
-                    registry_overwrites={}):
-    """Write the undercloud parameters to yaml"""
-
-    data = {'parameter_defaults': env_data}
-    if registry_overwrites:
-        data['resource_registry'] = registry_overwrites
-    env_file = os.path.abspath(env_file)
-    with open(env_file, "w") as f:
-        try:
-            dumper = yaml.dumper.SafeDumper
-            dumper.ignore_aliases = lambda self, data: True
-            yaml.dump(data, f, default_flow_style=False, Dumper=dumper)
-        except yaml.YAMLError as exc:
-            raise exc
-    return env_file
 
 
 def _container_images_config(conf, deploy_args, env_data):

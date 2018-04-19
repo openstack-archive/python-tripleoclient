@@ -54,6 +54,18 @@ def bracket_ipv6(address):
         return address
 
 
+def write_env_file(env_data, env_file, registry_overwrites):
+    """Write the tht env file as yaml"""
+
+    data = {'parameter_defaults': env_data}
+    if registry_overwrites:
+        data['resource_registry'] = registry_overwrites
+    with open(env_file, "w") as f:
+        dumper = yaml.dumper.SafeDumper
+        dumper.ignore_aliases = lambda self, data: True
+        yaml.dump(data, f, default_flow_style=False, Dumper=dumper)
+
+
 def write_overcloudrc(stack_name, overcloudrcs, config_directory='.'):
     """Write the overcloudrc files"""
 
