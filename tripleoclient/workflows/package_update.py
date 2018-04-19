@@ -157,3 +157,24 @@ def converge_nodes(clients, **workflow_input):
     if not create_result:
         shell.OpenStackShell().run(["stack", "failures", "list", plan_name])
         raise exceptions.DeploymentError("Heat Stack update failed.")
+
+
+def ffwd_converge_nodes(clients, **workflow_input):
+    workflow_client = clients.workflow_engine
+    tripleoclients = clients.tripleoclient
+
+    with tripleoclients.messaging_websocket(
+            workflow_input['queue_name']) as ws:
+        execution = base.start_workflow(
+            workflow_client,
+            'tripleo.package_update.v1.ffwd_upgrade_converge_plan',
+            workflow_input=workflow_input
+        )
+
+        for payload in base.wait_for_messages(workflow_client, ws, execution):
+            assert payload['status'] == "SUCCESS", pprint.pformat(payload)
+
+    if payload['status'] == 'SUCCESS':
+        print('Success')
+    else:
+        raise RuntimeError('ffwd upgrade converge failed: {}'.format(payload))

@@ -14,8 +14,6 @@
 #
 
 import logging
-import os
-import yaml
 
 from osc_lib.i18n import _
 
@@ -61,20 +59,9 @@ class UpdatePrepare(DeployOvercloud):
                                    parsed_args.stack)
 
         stack_name = stack.stack_name
-        container_registry = parsed_args.container_registry_file
+        registry = oooutils.load_container_registry(
+            self.log, parsed_args.container_registry_file)
 
-        # Update the container registry:
-        if container_registry:
-            with open(os.path.abspath(container_registry)) as content:
-                registry = yaml.load(content.read())
-        else:
-            self.log.warning(
-                "You have not provided a container registry file. Note "
-                "that none of the containers on your environement will be "
-                "updated. If you want to update your container you have "
-                "to re-run this command and provide the registry file "
-                "with: --container-registry-file option.")
-            registry = None
         # Run update
         ceph_ansible_playbook = parsed_args.ceph_ansible_playbook
         # Run Overcloud deploy (stack update)
