@@ -831,10 +831,10 @@ def _get_tls_endpoint_environment(public_host, tht_templates):
     try:
         netaddr.IPAddress(public_host)
         return os.path.join(tht_templates,
-                            "environments/tls-endpoints-public-ip.yaml")
+                            "environments/ssl/tls-endpoints-public-ip.yaml")
     except netaddr.core.AddrFormatError:
         return os.path.join(tht_templates,
-                            "environments/tls-endpoints-public-dns.yaml")
+                            "environments/ssl/tls-endpoints-public-dns.yaml")
 
 
 def _get_public_tls_parameters(service_certificate_path):

@@ -84,7 +84,7 @@ class TestUndercloudInstall(TestPluginV1):
              '--public-virtual-ip', '192.168.24.2',
              '--control-virtual-ip', '192.168.24.3', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'tls-endpoints-public-ip.yaml', '-e',
+             'ssl/tls-endpoints-public-ip.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'use-dns-for-vips.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -133,7 +133,7 @@ class TestUndercloudInstall(TestPluginV1):
              '--public-virtual-ip', '192.168.24.2',
              '--control-virtual-ip', '192.168.24.3', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'tls-endpoints-public-ip.yaml', '-e',
+             'ssl/tls-endpoints-public-ip.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'use-dns-for-vips.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -184,7 +184,7 @@ class TestUndercloudInstall(TestPluginV1):
              '--public-virtual-ip', '192.168.24.2',
              '--control-virtual-ip', '192.168.24.3', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'tls-endpoints-public-ip.yaml', '-e',
+             'ssl/tls-endpoints-public-ip.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'use-dns-for-vips.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -265,7 +265,7 @@ class TestUndercloudUpgrade(TestPluginV1):
              '--public-virtual-ip', '192.168.24.2',
              '--control-virtual-ip', '192.168.24.3', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'tls-endpoints-public-ip.yaml', '-e',
+             'ssl/tls-endpoints-public-ip.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'use-dns-for-vips.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -317,7 +317,7 @@ class TestUndercloudUpgrade(TestPluginV1):
              '--public-virtual-ip', '192.168.24.2',
              '--control-virtual-ip', '192.168.24.3', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'tls-endpoints-public-ip.yaml', '-e',
+             'ssl/tls-endpoints-public-ip.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'use-dns-for-vips.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
