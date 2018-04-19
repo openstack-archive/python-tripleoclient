@@ -58,8 +58,9 @@ def _run_command(args, env=None, name=None):
                                        stderr=subprocess.STDOUT,
                                        env=env).decode('utf-8')
     except subprocess.CalledProcessError as e:
-        LOG.error('%s failed: %s', name, e.output)
-        raise
+        message = '%s failed: %s' % (name, e.output)
+        LOG.error(message)
+        raise RuntimeError(message)
 
 
 def _run_live_command(args, env=None, name=None):
@@ -81,7 +82,9 @@ def _run_live_command(args, env=None, name=None):
         if line == '' and process.poll() is not None:
             break
     if process.returncode != 0:
-        raise RuntimeError('%s failed. See log for details.' % name)
+        message = '%s failed. See log for details.' % name
+        LOG.error(message)
+        raise RuntimeError(message)
 
 
 def _check_hostname():
@@ -118,8 +121,9 @@ def _check_hostname():
         else:
             short_hostname = detected_static_hostname.split('.')[0]
             if short_hostname == detected_static_hostname:
-                raise RuntimeError('Configured hostname is not fully '
-                                   'qualified.')
+                message = 'Configured hostname is not fully qualified.'
+                LOG.error(message)
+                raise RuntimeError(message)
             sed_cmd = ('sed -i "s/127.0.0.1\(\s*\)/127.0.0.1\\1%s %s /" '
                        '/etc/hosts' %
                        (detected_static_hostname, short_hostname))
@@ -193,6 +197,7 @@ def _validate_ips():
         except netaddr.core.AddrFormatError:
             msg = '%s "%s" must be a valid IP address' % \
                   (param_name, value)
+            LOG.error(msg)
             raise FailedValidation(msg)
     for ip in CONF.undercloud_nameservers:
         is_ip(ip, 'undercloud_nameservers')
@@ -208,19 +213,23 @@ def _validate_value_formats():
     try:
         local_ip = netaddr.IPNetwork(CONF.local_ip)
         if local_ip.prefixlen == 32:
+            LOG.error('Invalid netmask')
             raise netaddr.AddrFormatError('Invalid netmask')
         # If IPv6 the ctlplane network uses the EUI-64 address format,
         # which requires the prefix to be /64
         if local_ip.version == 6 and local_ip.prefixlen != 64:
+            LOG.error('Prefix must be 64 for IPv6')
             raise netaddr.AddrFormatError('Prefix must be 64 for IPv6')
     except netaddr.core.AddrFormatError as e:
         message = ('local_ip "%s" not valid: "%s" '
                    'Value must be in CIDR format.' %
                    (CONF.local_ip, str(e)))
+        LOG.error(message)
         raise FailedValidation(message)
     hostname = CONF['undercloud_hostname']
     if hostname is not None and '.' not in hostname:
         message = 'Hostname "%s" is not fully qualified.' % hostname
+        LOG.error(message)
         raise FailedValidation(message)
 
 
@@ -232,10 +241,12 @@ def _validate_in_cidr(subnet_props, subnet_name):
             if netaddr.IPAddress(addr) not in cidr:
                 message = ('Config option %s "%s" not in defined CIDR "%s"' %
                            (pretty_name, addr, cidr))
+                LOG.error(message)
                 raise FailedValidation(message)
         except netaddr.core.AddrFormatError:
             if require_ip:
                 message = 'Invalid IP address: %s' % addr
+                LOG.error(message)
                 raise FailedValidation(message)
 
     if subnet_name == CONF.local_subnet:
@@ -265,6 +276,7 @@ def _validate_dhcp_range(subnet_props):
     if start >= end:
         message = ('Invalid dhcp range specified, dhcp_start "%s" does '
                    'not come before dhcp_end "%s"' % (start, end))
+        LOG.error(message)
         raise FailedValidation(message)
 
 
@@ -274,6 +286,7 @@ def _validate_inspection_range(subnet_props):
     if start >= end:
         message = ('Invalid inspection range specified, inspection_iprange '
                    '"%s" does not come before "%s"' % (start, end))
+        LOG.error(message)
         raise FailedValidation(message)
 
 
@@ -299,6 +312,7 @@ def _validate_interface_exists():
             and CONF.local_interface not in netifaces.interfaces()):
         message = ('Invalid local_interface specified. %s is not available.' %
                    CONF.local_interface)
+        LOG.error(message)
         raise FailedValidation(message)
 
 
@@ -344,6 +358,7 @@ def _validate_passwords_file():
         message = ('The %s file is missing.  This will cause all service '
                    'passwords to change and break the existing undercloud. ' %
                    PASSWORD_PATH)
+        LOG.error(message)
         raise FailedValidation(message)
 
 
