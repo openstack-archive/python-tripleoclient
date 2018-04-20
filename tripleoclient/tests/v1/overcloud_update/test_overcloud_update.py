@@ -118,6 +118,5 @@ class TestOvercloudUpdate(fakes.TestOvercloudUpdate):
                 nodes='Compute',
                 inventory_file=mock_open().read(),
                 playbook='fake-playbook.yaml',
-                queue_name=str(uuid.uuid4()),
                 ansible_queue_name=constants.UPDATE_QUEUE
             )

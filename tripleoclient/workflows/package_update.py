@@ -77,30 +77,20 @@ def get_config(clients, **workflow_input):
 def update_ansible(clients, **workflow_input):
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
-    queue_name = workflow_input['queue_name']
     ansible_queue = workflow_input['ansible_queue_name']
 
-    with tripleoclients.messaging_websocket(queue_name) as ws:
+    with tripleoclients.messaging_websocket(ansible_queue) as update_ws:
         execution = base.start_workflow(
             workflow_client,
             'tripleo.package_update.v1.update_nodes',
             workflow_input=workflow_input
         )
 
-        with tripleoclients.messaging_websocket(ansible_queue) as update_ws:
-            for payload in base.wait_for_messages(workflow_client,
-                                                  update_ws,
-                                                  execution):
-                # Need to sleep a little, to let the time for the execution
-                # to get the right status in between. It avoid to fall in the
-                # while True loop to get messages
-                time.sleep(5)
+        for payload in base.wait_for_messages(workflow_client,
+                                              update_ws,
+                                              execution):
                 if payload.get('message'):
                     pprint.pprint(payload['message'].splitlines())
-
-        for payload in base.wait_for_messages(workflow_client, ws, execution):
-            if payload.get('message'):
-                print(payload)
 
     if payload['status'] == 'SUCCESS':
         print('Success')

@@ -146,5 +146,4 @@ class UpdateOvercloud(command.Command):
                 clients, nodes=nodes,
                 inventory_file=inventory,
                 playbook=playbook,
-                queue_name=str(uuid.uuid4()),
                 ansible_queue_name=constants.UPDATE_QUEUE)
