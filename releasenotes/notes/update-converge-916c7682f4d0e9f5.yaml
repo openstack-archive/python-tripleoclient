@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    For minor updates, an `openstack overcloud update converge`
+    command has been added and must be run to restore the deployment
+    plan (remove no-ops of some resources) after a minor update.
