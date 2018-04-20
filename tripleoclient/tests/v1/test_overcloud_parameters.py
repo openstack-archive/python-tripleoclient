@@ -166,7 +166,7 @@ class TestGenerateFencingParameters(utils.TestCommand):
                 'delay': None,
                 'os_auth': {},
                 'ipmi_cipher': None,
-                'ipmi_lanplus': False,
+                'ipmi_lanplus': True,
                 'ipmi_level': None
             },
             run_sync=True, save_result=True)
