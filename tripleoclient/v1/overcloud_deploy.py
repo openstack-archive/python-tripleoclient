@@ -417,6 +417,13 @@ class DeployOvercloud(command.Command):
         if parsed_args.environment_files:
             created_env_files.extend(parsed_args.environment_files)
 
+        # TODO(slagle): config-download-environment.yaml must be forcibly
+        # injected since --config-download now defaults to True.  Once
+        # https://review.openstack.org/#/c/558927/ has landed, this can be
+        # removed.
+        if parsed_args.config_download:
+            self._inject_config_download_env(user_tht_root, created_env_files)
+
         self.log.debug("Processing environment files %s" % created_env_files)
         env_files, localenv = utils.process_multiple_environments(
             created_env_files, tht_root, user_tht_root,
@@ -443,6 +450,12 @@ class DeployOvercloud(command.Command):
             parsed_args.timeout, env, parsed_args.update_plan_only,
             parsed_args.run_validations, parsed_args.skip_deploy_identifier,
             parsed_args.plan_environment_file)
+
+    def _inject_config_download_env(self, tht_root, env_files):
+        env_files.insert(
+            0, os.path.join(
+                tht_root,
+                'environments/config-download-environment.yaml'))
 
     def _try_overcloud_deploy_with_compat_yaml(self, tht_root, stack,
                                                stack_name, parameters,
@@ -784,8 +797,19 @@ class DeployOvercloud(command.Command):
         parser.add_argument(
             '--config-download',
             action='store_true',
+            default=True,
+            help=_('Run deployment via config-download mechanism. This is '
+                   'now the default, and this CLI options may be removed in '
+                   'the future.')
+        )
+        parser.add_argument(
+            '--no-config-download',
+            action='store_false',
             default=False,
-            help=_('Run deployment via config-download mechanism')
+            dest='config_download',
+            help=_('Disable deployment via config-download mechanism. This '
+                   'method is DEPRECATED and the CLI arg and method may be '
+                   'removed in the future.')
         )
         parser.add_argument(
             '--output-dir',
@@ -895,6 +919,10 @@ class DeployOvercloud(command.Command):
                                        parsed_args.overcloud_ssh_key,
                                        parsed_args.output_dir,
                                        verbosity=self.app_args.verbose_level)
+        else:
+            self.log.warning("Disabling config-download is DEPRECATED in "
+                             "Rocky. The ability to disable config-download "
+                             "may be removed in the future.")
 
         # Force fetching of attributes
         stack.get()
