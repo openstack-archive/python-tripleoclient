@@ -297,25 +297,21 @@ class TestDeployUndercloud(TestPluginV1):
     @mock.patch('tripleo_common.utils.config.Config',
                 autospec=True)
     @mock.patch('tripleoclient.v1.undercloud_deploy.sys.stdout.flush')
-    @mock.patch('os.path.getctime')
-    @mock.patch('os.path.join', return_value='/tmp/inventory.yaml')
-    @mock.patch('glob.glob', return_value=['/tmp'])
-    def test_download_ansible_playbooks(self, mock_glob, mock_join,
-                                        mock_getctime,  mock_flush,
+    @mock.patch('os.path.join', return_value='/twd/inventory.yaml')
+    @mock.patch('tempfile.mkdtemp', autospec=True, return_value='/twd')
+    def test_download_ansible_playbooks(self, mock_mktemp, mock_join,
+                                        mock_flush,
                                         mock_stack_config, mock_launch_heat,
                                         mock_importInv):
 
-        fake_output_dir = '/tmp'
+        fake_output_dir = '/twd'
         extra_vars = {'Undercloud': {'ansible_connection': 'local'}}
-        mock_getctime.return_value = '1522692811'
         mock_inventory = mock.Mock()
         mock_importInv.return_value = mock_inventory
         self.cmd._download_ansible_playbooks(mock_launch_heat,
                                              'undercloud',
                                              fake_output_dir)
         self.assertEqual(mock_flush.call_count, 2)
-        mock_glob.assert_called_once_with('/tmp/tripleo-*-config')
-        mock_getctime.assert_called()
         mock_inventory.write_static_inventory.assert_called_once_with(
             fake_output_dir + '/inventory.yaml', extra_vars)
 
