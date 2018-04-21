@@ -108,7 +108,7 @@ class TestTLSSettings(base.TestCase):
     def test_public_host_with_ip_should_give_ip_endpoint_environment(self):
         expected_env_file = os.path.join(
             undercloud_config.THT_HOME,
-            "environments/tls-endpoints-public-ip.yaml")
+            "environments/ssl/tls-endpoints-public-ip.yaml")
 
         resulting_env_file1 = undercloud_config._get_tls_endpoint_environment(
             '127.0.0.1', undercloud_config.THT_HOME)
@@ -123,7 +123,7 @@ class TestTLSSettings(base.TestCase):
     def test_public_host_with_fqdn_should_give_dns_endpoint_environment(self):
         expected_env_file = os.path.join(
             undercloud_config.THT_HOME,
-            "environments/tls-endpoints-public-dns.yaml")
+            "environments/ssl/tls-endpoints-public-dns.yaml")
 
         resulting_env_file1 = undercloud_config._get_tls_endpoint_environment(
             'controller-1', undercloud_config.THT_HOME)
