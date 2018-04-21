@@ -32,9 +32,24 @@ class TestOvercloudConfig(utils.TestCommand):
         arglist = ['--name', 'overcloud', '--config-dir', '/tmp']
         verifylist = [
             ('name', 'overcloud'),
-            ('config_dir', '/tmp')
+            ('config_dir', '/tmp'),
+            ('preserve_config_dir', True)
         ]
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         self.cmd.take_action(parsed_args)
-        mock_config.assert_called_once_with('overcloud', '/tmp', None)
+        mock_config.assert_called_once_with('overcloud', '/tmp', None, True)
+
+    @mock.patch('tripleo_common.utils.config.Config.download_config')
+    def test_overcloud_download_config_no_preserve(self, mock_config):
+        arglist = ['--name', 'overcloud', '--config-dir', '/tmp',
+                   '--no-preserve-config']
+        verifylist = [
+            ('name', 'overcloud'),
+            ('config_dir', '/tmp'),
+            ('preserve_config_dir', False)
+        ]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        self.cmd.take_action(parsed_args)
+        mock_config.assert_called_once_with('overcloud', '/tmp',  None, False)
