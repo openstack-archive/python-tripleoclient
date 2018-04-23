@@ -58,6 +58,8 @@ SUBNET_PARAMETER_MAPPING = {
 THT_HOME = os.environ.get('THT_HOME',
                           "/usr/share/openstack-tripleo-heat-templates/")
 
+USER_HOME = os.environ.get('HOME', '')
+
 TELEMETRY_DOCKER_ENV_YAML = [
     'environments/services/undercloud-gnocchi.yaml',
     'environments/services/undercloud-aodh.yaml',
@@ -224,11 +226,15 @@ _opts = [
                ),
     cfg.StrOpt('hieradata_override',
                default='',
-               help=('Path to hieradata override file. If set, the file will '
-                     'be copied under /etc/puppet/hieradata and set as the '
-                     'first file in the hiera hierarchy. This can be used '
-                     'to custom configure services beyond what '
-                     'undercloud.conf provides')
+               help=('Path to hieradata override file. Relative paths get '
+                     'computed inside of $HOME. When it points to a heat '
+                     'env file, it is passed in t-h-t via "-e <file>", as is. '
+                     'When the file contains legacy instack data, '
+                     'it is wrapped with UndercloudExtraConfig and also '
+                     'passed in for t-h-t as a temp file created in '
+                     'output_dir. Note, instack hiera data may be '
+                     'not t-h-t compatible and will highly likely require a '
+                     'manual revision.')
                ),
     cfg.StrOpt('net_config_override',
                default='',
@@ -619,7 +625,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
 
     # Set the undercloud home dir parameter so that stackrc is produced in
     # the users home directory.
-    env_data['UndercloudHomeDir'] = os.environ.get('HOME', '')
+    env_data['UndercloudHomeDir'] = USER_HOME
 
     for param_key, param_value in PARAMETER_MAPPING.items():
         if param_key in CONF.keys():
@@ -814,6 +820,18 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
     if CONF.get('custom_env_files'):
         for custom_file in CONF['custom_env_files']:
             deploy_args += ['-e', custom_file]
+
+    if CONF.get('hieradata_override', None):
+        data_file = CONF['hieradata_override']
+        if os.path.abspath(data_file) != data_file:
+            data_file = os.path.join(USER_HOME, data_file)
+
+        if not os.path.exists(data_file):
+            msg = "Could not find hieradata_override file '%s'" % data_file
+            LOG.error(msg)
+            raise RuntimeError(msg)
+
+        deploy_args += ['--hieradata-override=%s' % data_file]
 
     if CONF.get('enable_validations') and not no_validations:
         undercloud_preflight.check()
