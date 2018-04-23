@@ -16,6 +16,8 @@
 """Plugin action implementation"""
 
 import copy
+import jinja2
+import json
 import logging
 import netaddr
 import os
@@ -29,10 +31,51 @@ from cryptography.hazmat.primitives import serialization
 from oslo_config import cfg
 from tripleo_common.image import kolla_builder
 from tripleoclient import constants
+from tripleoclient import exceptions
 from tripleoclient import utils
 
 from tripleoclient.v1 import undercloud_preflight
 
+NETCONFIG_TAGS_EXAMPLE = """
+"network_config": [
+ {
+  "type": "ovs_bridge",
+  "name": "br-ctlplane",
+  "ovs_extra": [
+   "br-set-external-id br-ctlplane bridge-id br-ctlplane"
+  ],
+  "members": [
+   {
+    "type": "interface",
+    "name": "{{LOCAL_INTERFACE}}",
+    "primary": "true",
+    "mtu": {{LOCAL_MTU}},
+    "dns_servers": {{UNDERCLOUD_NAMESERVERS}}
+   }
+  ],
+  "addresses": [
+    {
+      "ip_netmask": "{{PUBLIC_INTERFACE_IP}}"
+    }
+  ],
+  "routes": {{SUBNETS_STATIC_ROUTES}},
+  "mtu": {{LOCAL_MTU}}
+}
+]
+"""
+
+# Provides mappings for some of the instack_env tags to undercloud heat
+# params or undercloud.conf opts known here (as a fallback), needed to maintain
+# feature parity with instack net config override templates.
+# TODO(bogdando): all of the needed mappings should be wired-in, eventually
+INSTACK_NETCONF_MAPPING = {
+    'LOCAL_INTERFACE': 'local_interface',
+    'LOCAL_IP': 'local_ip',
+    'LOCAL_MTU': 'UndercloudLocalMtu',
+    'PUBLIC_INTERFACE_IP': 'undercloud_public_host',  # can't be 'CloudName'
+    'UNDERCLOUD_NAMESERVERS': 'undercloud_nameservers',
+    'SUBNETS_STATIC_ROUTES': 'ControlPlaneStaticRoutes',
+}
 
 PARAMETER_MAPPING = {
     'inspection_interface': 'IronicInspectorInterface',
@@ -237,11 +280,18 @@ _opts = [
                ),
     cfg.StrOpt('net_config_override',
                default='',
-               help=('Path to network config override template. If set, this '
-                     'template will be used to configure the networking via '
-                     'os-net-config. Must be in json format. '
-                     'If you wish to disable os-net-config you can set this'
-                     'location to an empty file.')
+               help=('Path to network config override template. Relative '
+                     'paths get computed inside of the given heat templates '
+                     'directory. Must be in json format. '
+                     'Its content overrides anything in t-h-t '
+                     'UndercloudNetConfigOverride. The processed template '
+                     'is then passed in Heat via the top scope '
+                     'undercloud_parameters.yaml file created in '
+                     'output_dir and used to configure the networking '
+                     'via run-os-net-config. If you wish to disable '
+                     'you can set this location to an empty file.'
+                     'Templated for instack j2 tags '
+                     'may be used, for example:\n%s ') % NETCONFIG_TAGS_EXAMPLE
                ),
     cfg.StrOpt('inspection_interface',
                default='br-ctlplane',
@@ -460,6 +510,22 @@ def _load_config():
     else:
         LOG.warning('%s does not exist. Using defaults.' % PATHS.CONF_PATH)
     CONF(conf_params)
+
+
+def _get_jinja_env_source(f):
+    path, filename = os.path.split(f)
+    env = jinja2.Environment(loader=jinja2.FileSystemLoader(path))
+    src = env.loader.get_source(env, filename)[0]
+    return (env, src)
+
+
+def _get_unknown_instack_tags(env, src):
+    found_tags = set(jinja2.meta.find_undeclared_variables(env.parse(src)))
+    known_tags = set(INSTACK_NETCONF_MAPPING.keys())
+    if found_tags <= known_tags:
+        return (', ').join(found_tags - known_tags)
+    else:
+        return None
 
 
 def _process_drivers_and_hardware_types(conf, env):
@@ -780,15 +846,67 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
     if not os.path.isdir(CONF['output_dir']):
         os.mkdir(CONF['output_dir'])
 
-    deploy_args += ['-e', params_file]
-    utils.write_env_file(env_data, params_file, registry_overwrites)
-
     if CONF.get('cleanup'):
         deploy_args.append('--cleanup')
 
     if CONF.get('custom_env_files'):
         for custom_file in CONF['custom_env_files']:
             deploy_args += ['-e', custom_file]
+
+    if CONF.get('net_config_override', None):
+        data_file = CONF['net_config_override']
+        if os.path.abspath(data_file) != data_file:
+            data_file = os.path.join(tht_templates, data_file)
+
+        if not os.path.exists(data_file):
+            msg = "Could not find net_config_override file '%s'" % data_file
+            LOG.error(msg)
+            raise RuntimeError(msg)
+
+        # NOTE(bogdando): Process templated net config override data:
+        # * get a list of used instack_env j2 tags (j2 vars, like {{foo}}),
+        # * fetch values for the tags from the known mappins,
+        # * raise, if there is unmatched tags left
+        # * render the template into a JSON dict
+        net_config_env, template_source = _get_jinja_env_source(data_file)
+        unknown_tags = _get_unknown_instack_tags(net_config_env,
+                                                 template_source)
+        if unknown_tags:
+            msg = ('Can not render net_config_override file %s contains '
+                   'unknown instack_env j2 tags: %s' % (
+                       data_file, unknown_tags))
+            LOG.error(msg)
+            raise exceptions.DeploymentError(msg)
+
+        # Create rendering context from the known to be present mappings for
+        # identified instack_env tags to generated in env_data undercloud heat
+        # params. Fall back to config opts, when env_data misses a param.
+        context = {}
+        for tag in INSTACK_NETCONF_MAPPING.keys():
+            mapped_value = INSTACK_NETCONF_MAPPING[tag]
+            if mapped_value in env_data.keys() or mapped_value in CONF.keys():
+                context[tag] = env_data.get(
+                    mapped_value, None) or CONF[mapped_value]
+
+        # this returns a unicode string, convert it in into json
+        net_config_str = net_config_env.get_template(
+            os.path.split(data_file)[-1]).render(context).replace(
+                "'", '"').replace('&quot;', '"')
+        try:
+            net_config_json = json.loads(net_config_str)
+        except ValueError:
+            net_config_json = json.loads("{%s}" % net_config_str)
+
+        if 'network_config' not in net_config_json:
+            msg = ('Unsupported data format in net_config_override '
+                   'file %s: %s' % (data_file, net_config_str))
+            LOG(msg)
+            raise exceptions.DeploymentError(msg)
+
+        env_data['UndercloudNetConfigOverride'] = net_config_json
+
+    deploy_args += ['-e', params_file]
+    utils.write_env_file(env_data, params_file, registry_overwrites)
 
     if CONF.get('hieradata_override', None):
         data_file = CONF['hieradata_override']
