@@ -39,7 +39,6 @@ from tripleoclient import utils
 from tripleoclient.workflows import deployment
 from tripleoclient.workflows import parameters as workflow_params
 from tripleoclient.workflows import plan_management
-from tripleoclient.workflows import validations
 
 
 class DeployOvercloud(command.Command):
@@ -571,31 +570,6 @@ class DeployOvercloud(command.Command):
 
         return default_role_counts
 
-    def _predeploy_verify_capabilities(self, stack, parameters, parsed_args):
-        self.predeploy_errors = 0
-        self.predeploy_warnings = 0
-        self.log.debug("Starting _pre_verify_capabilities")
-
-        validation_params = {
-            'deploy_kernel_name': 'bm-deploy-kernel',
-            'deploy_ramdisk_name': 'bm-deploy-ramdisk',
-            'roles_info': utils.get_roles_info(parsed_args),
-            'stack_id': parsed_args.stack,
-            'parameters': parameters,
-            'default_role_counts': self._get_default_role_counts(parsed_args),
-            'run_validations': True,
-        }
-
-        errors, warnings = validations.check_predeployment_validations(
-            self.app.client_manager,
-            **validation_params
-        )
-
-        self.predeploy_errors += errors
-        self.predeploy_warnings += warnings
-
-        return self.predeploy_errors, self.predeploy_warnings
-
     def get_parser(self, prog_name):
         # add_help doesn't work properly, set it to False:
         parser = argparse.ArgumentParser(
@@ -703,10 +677,13 @@ class DeployOvercloud(command.Command):
             '--disable-validations',
             action='store_true',
             default=False,
-            help=_('Disable the pre-deployment validations entirely. These '
-                   'validations are the built-in pre-deployment validations. '
-                   'To enable external validations from tripleo-validations, '
-                   'use the --run-validations flag.'))
+            help=_('DEPRECATED. Disable the pre-deployment validations '
+                   'entirely. These validations are the built-in '
+                   'pre-deployment validations. To enable external '
+                   'validations from tripleo-validations, '
+                   'use the --run-validations flag. These validations are '
+                   'now run via the external validations in '
+                   'tripleo-validations.'))
         parser.add_argument(
             '--dry-run',
             action='store_true',
@@ -853,30 +830,7 @@ class DeployOvercloud(command.Command):
                 "Unable to deploy as the stack '{}' status is '{}'".format(
                     stack.stack_name, stack.stack_status))
 
-        parameters = self._update_parameters(parsed_args, stack)
-
-        if not parsed_args.disable_validations:
-            errors, warnings = self._predeploy_verify_capabilities(
-                stack, parameters, parsed_args)
-            if errors > 0:
-                self.log.error(
-                    "Configuration has %d errors, fix them before "
-                    "proceeding. Ignoring these errors is likely to lead to "
-                    "a failed deploy.",
-                    errors)
-                if parsed_args.validation_warnings_fatal or \
-                        parsed_args.validation_errors_fatal:
-                    raise exceptions.InvalidConfiguration()
-            if warnings > 0:
-                self.log.error(
-                    "Configuration has %d warnings, fix them before "
-                    "proceeding.",
-                    warnings)
-                if parsed_args.validation_warnings_fatal:
-                    raise exceptions.InvalidConfiguration()
-            else:
-                self.log.info("SUCCESS: No warnings or errors in deploy "
-                              "configuration, proceeding.")
+        self._update_parameters(parsed_args, stack)
 
         stack_create = stack is None
         if stack_create:
