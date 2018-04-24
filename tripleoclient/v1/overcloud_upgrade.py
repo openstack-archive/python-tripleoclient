@@ -79,12 +79,21 @@ class UpgradePrepare(DeployOvercloud):
                               container_registry=registry,
                               ceph_ansible_playbook=ceph_ansible_playbook)
         package_update.get_config(clients, container=stack_name)
-        print("Update init on stack {0} complete.".format(
-              parsed_args.stack))
+        print("Completed Overcloud Upgrade Prepare for stack {0}".format(
+              stack_name))
 
 
 class UpgradeRun(command.Command):
-    """Run major upgrade ansible playbooks on Overcloud nodes"""
+    """Run major upgrade ansible playbooks on Overcloud nodes
+
+       This will run the major upgrade ansible playbooks on the overcloud.
+       By default all playbooks are executed, that is the
+       upgrade_steps_playbook.yaml then the deploy_steps_playbook.yaml and
+       then the post_upgrade_steps_playbook.yaml.
+       The upgrade playbooks are made available after completion of the
+       'overcloud upgrade prepare' command. This 'overcloud upgrade run'
+       command is the second step in the major upgrade workflow.
+    """
 
     log = logging.getLogger(__name__ + ".MajorUpgradeRun")
 
@@ -191,9 +200,21 @@ class UpgradeRun(command.Command):
                                            package_update,
                                            parsed_args.ssh_user, skip_tags)
 
+        playbooks = (constants.MAJOR_UPGRADE_PLAYBOOKS
+                     if playbook == 'all' else playbook)
+        print(("Completed Overcloud Upgrade Run for {0} with playbooks "
+               "{1} ").format(limit_hosts, playbooks))
+
 
 class UpgradeConvergeOvercloud(DeployOvercloud):
-    """Converge the upgrade on Overcloud Nodes"""
+    """Major upgrade converge - reset Heat resources in the stored plan
+
+       This is the last step for completion of a overcloud major upgrade.
+       There is no heat stack update performed here. The main task is updating
+       the plan to unblock future stack updates. For the major upgrade workflow
+       we have set specific values for some stack Heat resources. This unsets
+       those back to their default values, in the swift stored plan.
+    """
 
     log = logging.getLogger(__name__ + ".UpgradeConvergeOvercloud")
 
@@ -220,3 +241,5 @@ class UpgradeConvergeOvercloud(DeployOvercloud):
         super(UpgradeConvergeOvercloud, self).take_action(parsed_args)
         # Run converge steps
         package_update.converge_nodes(clients, container=stack_name)
+        print("Completed Overcloud Upgrade Converge for stack {0}".format(
+              stack_name))
