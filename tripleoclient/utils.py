@@ -35,6 +35,7 @@ import yaml
 
 from heatclient.common import event_utils
 from heatclient.common import template_utils
+from heatclient.common import utils as heat_utils
 from heatclient.exc import HTTPNotFound
 from osc_lib.i18n import _
 from oslo_concurrency import processutils
@@ -1099,3 +1100,36 @@ def ffwd_upgrade_operator_confirm(parsed_args_yes, log):
             log.debug("Fast forward upgrade cancelled on user request")
             print("Cancelling fast forward upgrade")
             sys.exit(1)
+
+
+def build_prepare_env(environment_files, environment_directories):
+    '''Build the environment for container image prepare
+
+    :param environment_files: List of environment files to build
+                             environment from
+    :type environment_files: list
+
+    :param environment_directories: List of environment directories to build
+                                    environment from
+    :type environment_directories: list
+    '''
+    env_files = []
+
+    if environment_directories:
+        env_files.extend(load_environment_directories(
+            environment_directories))
+    if environment_files:
+        env_files.extend(environment_files)
+
+    def get_env_file(method, path):
+        if not os.path.exists(path):
+            return '{}'
+        env_url = heat_utils.normalise_file_path_to_url(path)
+        return request.urlopen(env_url).read()
+
+    env_f, env = (
+        template_utils.process_multiple_environments_and_files(
+            env_files, env_path_is_object=lambda path: True,
+            object_request=get_env_file))
+
+    return env

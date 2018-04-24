@@ -13,6 +13,7 @@
 #   under the License.
 #
 
+import copy
 import datetime
 import json
 import logging
@@ -21,11 +22,9 @@ import sys
 import tempfile
 import time
 
-from heatclient.common import template_utils
-from heatclient.common import utils as heat_utils
 from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
-from six.moves.urllib import request
+import six
 import yaml
 
 from tripleo_common.image import image_uploader
@@ -34,6 +33,19 @@ from tripleo_common.image import kolla_builder
 from tripleoclient import command
 from tripleoclient import constants
 from tripleoclient import utils
+
+
+def build_env_file(params, command_options):
+
+    f = six.StringIO()
+    f.write('# Generated with the following on %s\n#\n' %
+            datetime.datetime.now().isoformat())
+    f.write('#   openstack %s\n#\n\n' %
+            ' '.join(command_options))
+
+    yaml.safe_dump({'parameter_defaults': params}, f,
+                   default_flow_style=False)
+    return f.getvalue()
 
 
 class UploadImage(command.Command):
@@ -174,6 +186,8 @@ class PrepareImageFiles(command.Command):
         parser = super(PrepareImageFiles, self).get_parser(prog_name)
         roles_file = os.path.join(constants.TRIPLEO_HEAT_TEMPLATES,
                                   constants.OVERCLOUD_ROLES_FILE)
+        if not os.path.isfile(roles_file):
+            roles_file = None
         defaults = kolla_builder.container_images_prepare_defaults()
 
         parser.add_argument(
@@ -348,52 +362,24 @@ class PrepareImageFiles(command.Command):
                         'Use the variable=value format.') % s
                 raise oscexc.CommandError(msg)
 
-    def write_env_file(self, params, env_file):
-
-        with os.fdopen(os.open(env_file,
-                       os.O_CREAT | os.O_TRUNC | os.O_WRONLY, 0o666),
-                       'w') as f:
-            f.write('# Generated with the following on %s\n#\n' %
-                    datetime.datetime.now().isoformat())
-            f.write('#   openstack %s\n#\n\n' %
-                    ' '.join(self.app.command_options))
-
-            yaml.safe_dump({'parameter_defaults': params}, f,
-                           default_flow_style=False)
-
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
 
-        env_files = []
-
-        try:
+        if parsed_args.roles_file:
             roles_data = yaml.safe_load(open(parsed_args.roles_file).read())
-        except IOError:
+        else:
             roles_data = set()
 
-        if parsed_args.environment_directories:
-            env_files.extend(utils.load_environment_directories(
-                parsed_args.environment_directories))
-        if parsed_args.environment_files:
-            env_files.extend(parsed_args.environment_files)
+        env = utils.build_prepare_env(
+            parsed_args.environment_files,
+            parsed_args.environment_directories
+        )
 
-        def get_env_file(method, path):
-            if not os.path.exists(path):
-                return '{}'
-            env_url = heat_utils.normalise_file_path_to_url(path)
-            return request.urlopen(env_url).read()
-
-        env_f, env = (
-            template_utils.process_multiple_environments_and_files(
-                env_files, env_path_is_object=lambda path: True,
-                object_request=get_env_file))
-
-        if env_files:
+        if roles_data:
             service_filter = kolla_builder.build_service_filter(
                 env, roles_data)
         else:
             service_filter = None
-
         mapping_args = {
             'tag': parsed_args.tag,
             'namespace': parsed_args.namespace,
@@ -428,7 +414,10 @@ class PrepareImageFiles(command.Command):
         )
         if parsed_args.output_env_file:
             params = prepare_data[parsed_args.output_env_file]
-            self.write_env_file(params, parsed_args.output_env_file)
+            with os.fdopen(os.open(parsed_args.output_env_file,
+                           os.O_CREAT | os.O_TRUNC | os.O_WRONLY, 0o666),
+                           'w') as f:
+                f.write(build_env_file(params, self.app.command_options))
 
         result = prepare_data[output_images_file]
         result_str = yaml.safe_dump({'container_images': result},
@@ -476,3 +465,119 @@ class DiscoverImageTag(command.Command):
             image=parsed_args.image,
             tag_from_label=parsed_args.tag_from_label
         ))
+
+
+class TripleOImagePrepareDefault(command.Command):
+    """Generate a default ContainerImagePrepare parameter."""
+
+    auth_required = False
+    log = logging.getLogger(__name__ + ".TripleoImagePrepare")
+
+    def get_parser(self, prog_name):
+        parser = super(TripleOImagePrepareDefault, self).get_parser(prog_name)
+        parser.add_argument(
+            "--output-env-file",
+            dest="output_env_file",
+            metavar='<file path>',
+            help=_("File to write environment file containing default "
+                   "ContainerImagePrepare value."),
+        )
+        parser.add_argument(
+            '--local-push-destination',
+            dest='push_destination',
+            action='store_true',
+            default=False,
+            help=_('Include a push_destination to trigger upload to a local '
+                   'registry.')
+        )
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)" % parsed_args)
+
+        cip = copy.deepcopy(kolla_builder.CONTAINER_IMAGE_PREPARE_PARAM)
+        if parsed_args.push_destination:
+            local_registry = image_uploader.get_undercloud_registry()
+            for entry in cip:
+                entry['push_destination'] = local_registry
+        params = {
+            'ContainerImagePrepare': cip
+        }
+        env_data = build_env_file(params, self.app.command_options)
+        self.app.stdout.write(env_data)
+        if parsed_args.output_env_file:
+            with os.fdopen(os.open(parsed_args.output_env_file,
+                           os.O_CREAT | os.O_TRUNC | os.O_WRONLY, 0o666),
+                           'w') as f:
+                f.write(env_data)
+
+
+class TripleOImagePrepare(command.Command):
+    """Prepare and upload containers from a single command."""
+
+    auth_required = False
+    log = logging.getLogger(__name__ + ".TripleoImagePrepare")
+
+    def get_parser(self, prog_name):
+        parser = super(TripleOImagePrepare, self).get_parser(prog_name)
+        roles_file = os.path.join(constants.TRIPLEO_HEAT_TEMPLATES,
+                                  constants.OVERCLOUD_ROLES_FILE)
+        if not os.path.isfile(roles_file):
+            roles_file = None
+        parser.add_argument(
+            '--environment-file', '-e', metavar='<file path>',
+            action='append', dest='environment_files',
+            help=_('Environment file containing the ContainerImagePrepare '
+                   'parameter which specifies all prepare actions. '
+                   'Also, environment files specifying which services are '
+                   'containerized. Entries will be filtered to only contain '
+                   'images used by containerized services. (Can be specified '
+                   'more than once.)')
+        )
+        parser.add_argument(
+            '--environment-directory', metavar='<HEAT ENVIRONMENT DIRECTORY>',
+            action='append', dest='environment_directories',
+            default=[os.path.expanduser(constants.DEFAULT_ENV_DIRECTORY)],
+            help=_('Environment file directories that are automatically '
+                   'added to the environment. '
+                   'Can be specified more than once. Files in directories are '
+                   'loaded in ascending sort order.')
+        )
+        parser.add_argument(
+            '--roles-file', '-r', dest='roles_file',
+            default=roles_file,
+            help=_('Roles file to filter images by, overrides the default %s'
+                   ) % constants.OVERCLOUD_ROLES_FILE
+        )
+        parser.add_argument(
+            "--output-env-file",
+            dest="output_env_file",
+            metavar='<file path>',
+            help=_("File to write heat environment file which specifies all "
+                   "image parameters. Any existing file will be overwritten."),
+        )
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)" % parsed_args)
+
+        if parsed_args.roles_file:
+            roles_data = yaml.safe_load(open(parsed_args.roles_file).read())
+        else:
+            roles_data = None
+
+        env = utils.build_prepare_env(
+            parsed_args.environment_files,
+            parsed_args.environment_directories
+        )
+
+        params = kolla_builder.container_images_prepare_multi(
+            env, roles_data)
+        env_data = build_env_file(params, self.app.command_options)
+        if parsed_args.output_env_file:
+            with os.fdopen(os.open(parsed_args.output_env_file,
+                           os.O_CREAT | os.O_TRUNC | os.O_WRONLY, 0o666),
+                           'w') as f:
+                f.write(env_data)
+        else:
+            self.app.stdout.write(env_data)
