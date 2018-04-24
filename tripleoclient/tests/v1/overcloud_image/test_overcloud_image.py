@@ -256,9 +256,11 @@ class TestUploadOvercloudImage(TestPluginV1):
         self.assertEqual(
             mock_subprocess_call.call_args_list, [
                 mock.call('sudo cp -f "./ironic-python-agent.kernel" '
-                          '"/httpboot/agent.kernel"', shell=True),
+                          '"/var/lib/ironic/httpboot/agent.kernel"',
+                          shell=True),
                 mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
-                          '"/httpboot/agent.ramdisk"', shell=True)
+                          '"/var/lib/ironic/httpboot/agent.ramdisk"',
+                          shell=True)
             ])
 
     @mock.patch('os.path.isfile', autospec=True)
@@ -311,9 +313,11 @@ class TestUploadOvercloudImage(TestPluginV1):
         self.assertEqual(
             mock_subprocess_call.call_args_list, [
                 mock.call('sudo cp -f "./ironic-python-agent.kernel" '
-                          '"/httpboot/agent.kernel"', shell=True),
+                          '"/var/lib/ironic/httpboot/agent.kernel"',
+                          shell=True),
                 mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
-                          '"/httpboot/agent.ramdisk"', shell=True)
+                          '"/var/lib/ironic/httpboot/agent.ramdisk"',
+                          shell=True)
             ])
 
     @mock.patch('os.path.isfile')
@@ -459,9 +463,11 @@ class TestUploadOvercloudImageFull(TestPluginV1):
         self.assertEqual(
             mock_subprocess_call.call_args_list, [
                 mock.call('sudo cp -f "./ironic-python-agent.kernel" '
-                          '"/httpboot/agent.kernel"', shell=True),
+                          '"/var/lib/ironic/httpboot/agent.kernel"',
+                          shell=True),
                 mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
-                          '"/httpboot/agent.ramdisk"', shell=True)
+                          '"/var/lib/ironic/httpboot/agent.ramdisk"',
+                          shell=True)
             ])
 
     @mock.patch('os.path.isfile', autospec=True)
