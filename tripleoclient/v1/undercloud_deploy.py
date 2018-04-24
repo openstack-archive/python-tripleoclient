@@ -15,7 +15,6 @@
 from __future__ import print_function
 
 import argparse
-import glob
 import logging
 import netaddr
 import os
@@ -452,20 +451,10 @@ class DeployUndercloud(command.Command):
         print('** Downloading undercloud ansible.. **')
         # python output buffering is making this seem to take forever..
         sys.stdout.flush()
-        stack_config.download_config('undercloud', output_dir)
-
-        # Sadly the above writes the ansible config to a new directory each
-        # time.  This finds the newest new entry.
-        # The use of tmpdirs is going away, but we need to remain
-        # backwards compatible for now to pass the gate.  lp:17252118
-        def find_ansible_dir():
-            tmpdirs = glob.glob('%s/tripleo-*-config' % output_dir)
-            if not tmpdirs:
-                return output_dir
-            else:
-                return max(tmpdirs, key=os.path.getctime)
-
-        ansible_dir = find_ansible_dir()
+        ansible_dir = tempfile.mkdtemp(prefix='tripleo-',
+                                       suffix='-config',
+                                       dir=output_dir)
+        stack_config.download_config('undercloud', ansible_dir)
 
         inventory = TripleoInventory(
             hclient=client,
