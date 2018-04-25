@@ -23,6 +23,7 @@ import yaml
 from heatclient import exc as hc_exc
 import mock
 from osc_lib import exceptions as oscexc
+from osc_lib.tests import utils
 from swiftclient.exceptions import ClientException as ObjectClientException
 
 from tripleoclient import constants
@@ -1853,3 +1854,45 @@ class TestArgumentValidation(fakes.TestDeployOvercloud):
     def test_validate_env_dir_ignore_default_not_existing(self):
         full_path = os.path.expanduser(constants.DEFAULT_ENV_DIRECTORY)
         self.assertIsNone(self.validate([full_path]))
+
+
+class TestGetDeploymentStatus(utils.TestCommand):
+
+    def setUp(self):
+        super(TestGetDeploymentStatus, self).setUp()
+        self.cmd = overcloud_deploy.GetDeploymentStatus(self.app, None)
+        self.app.client_manager = mock.Mock()
+        self.clients = self.app.client_manager
+
+    @mock.patch(
+        'tripleoclient.workflows.deployment.get_deployment_status',
+        autospec=True)
+    def test_get_deployment_status(self, mock_get_deployment_status):
+        parsed_args = self.check_parser(self.cmd, [], [])
+        self.cmd.app.stdout = six.StringIO()
+
+        status = {
+            'workflow_status': {
+                'payload': {
+                    'execution': {
+                        'created_at': 'yesterday',
+                        'updated_at': 'today'
+                    },
+                    'plan_name': 'testplan',
+                    'deployment_status': 'SUCCESS'
+                }
+            }
+        }
+
+        mock_get_deployment_status.return_value = status
+
+        self.cmd.take_action(parsed_args)
+
+        expected = (
+            '+-----------+-----------+---------+-------------------+\n'
+            '| Plan Name |  Created  | Updated | Deployment Status |\n'
+            '+-----------+-----------+---------+-------------------+\n'
+            '|  testplan | yesterday |  today  |      SUCCESS      |\n'
+            '+-----------+-----------+---------+-------------------+\n')
+
+        self.assertEqual(expected, self.cmd.app.stdout.getvalue())
