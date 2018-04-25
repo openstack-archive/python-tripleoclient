@@ -83,7 +83,7 @@ class DeployUndercloud(command.Command):
         return p.communicate()[0].rstrip()
 
     def _configure_puppet(self):
-        print('Configuring puppet modules symlinks ...')
+        self.log.info('Configuring puppet modules symlinks ...')
         self._symlink(constants.TRIPLEO_PUPPET_MODULES,
                       constants.PUPPET_MODULES,
                       constants.PUPPET_BASE)
@@ -102,6 +102,17 @@ class DeployUndercloud(command.Command):
             except url_error.URLError:
                 pass
         return False
+
+    def _run_and_log_output(self, cmd, cwd=None):
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT, shell=False,
+                                bufsize=1, cwd=cwd)
+
+        for line in iter(proc.stdout.readline, b''):
+            # TODO(aschultz): this should probably goto a log file
+            self.log.warning(line.rstrip())
+        proc.stdout.close()
+        return proc.wait()
 
     def _update_passwords_env(self, output_dir, passwords=None):
         pw_file = os.path.join(output_dir, 'tripleo-undercloud-passwords.yaml')
@@ -241,6 +252,7 @@ class DeployUndercloud(command.Command):
         if self.tmp_env_file_name:
             try:
                 os.remove(self.tmp_env_file_name)
+                self.tmp_env_file_name = None
             except Exception as ex:
                 if 'No such file or directory' in six.text_type(ex):
                     pass
@@ -320,12 +332,14 @@ class DeployUndercloud(command.Command):
                                          'tools/process-templates.py')
         args = ['python', process_templates, '--roles-data',
                 parsed_args.roles_file, '--output-dir', self.tht_render]
-        subprocess.check_call(args, cwd=self.tht_render)
+        if self._run_and_log_output(args, cwd=self.tht_render) != 0:
+            # TODO(aschultz): improve error messaging
+            raise exceptions.DeploymentError("Problems generating templates.")
 
-        print("Deploying templates in the directory {0}".format(
-            os.path.abspath(self.tht_render)))
+        self.log.info("Deploying templates in the directory {0}".format(
+                      os.path.abspath(self.tht_render)))
 
-        self.log.debug("Creating Environment file")
+        self.log.warning("** Creating Environment file **")
         environments = []
 
         resource_registry_path = os.path.join(
@@ -442,7 +456,7 @@ class DeployUndercloud(command.Command):
         if parsed_args.timeout:
             stack_args['timeout_mins'] = parsed_args.timeout
 
-        self.log.info("Performing Heat stack create")
+        self.log.warning("** Performing Heat stack create.. **")
         stack = orchestration_client.stacks.create(**stack_args)
         stack_id = stack['stack']['id']
 
@@ -451,7 +465,7 @@ class DeployUndercloud(command.Command):
     def _download_ansible_playbooks(self, client, stack_name, output_dir):
         stack_config = config.Config(client)
 
-        print('** Downloading undercloud ansible.. **')
+        self.log.warning('** Downloading undercloud ansible.. **')
         # python output buffering is making this seem to take forever..
         sys.stdout.flush()
         ansible_dir = tempfile.mkdtemp(prefix='tripleo-',
@@ -468,21 +482,22 @@ class DeployUndercloud(command.Command):
         extra_vars = {'Undercloud': {'ansible_connection': 'local'}}
         inventory.write_static_inventory(inv_path, extra_vars)
 
-        print('** Downloaded undercloud ansible to %s **' % ansible_dir)
+        self.log.info('** Downloaded undercloud ansible to %s **' %
+                      ansible_dir)
         sys.stdout.flush()
         return ansible_dir
 
     # Never returns, calls exec()
     def _launch_ansible(self, ansible_dir):
+        self.log.warning('** Running ansible.. **')
         os.chdir(ansible_dir)
         playbook_inventory = os.path.join(ansible_dir, 'inventory.yaml')
         cmd = ['ansible-playbook', '-i', playbook_inventory,
                'deploy_steps_playbook.yaml', '-e', 'role_name=Undercloud',
                '-e', 'deploy_server_id=undercloud', '-e',
                'bootstrap_server_id=undercloud']
-        print('Running Ansible: %s' % (' '.join(cmd)))
-        # execvp() doesn't return.
-        os.execvp(cmd[0], cmd)
+        self.log.debug('Running Ansible: %s' % (' '.join(cmd)))
+        return self._run_and_log_output(cmd)
 
     def get_parser(self, prog_name):
         parser = argparse.ArgumentParser(
@@ -638,8 +653,8 @@ class DeployUndercloud(command.Command):
         self.log.debug("take_action(%s)" % parsed_args)
 
         if not parsed_args.local_ip:
-            print('Please set --local-ip to the correct ipaddress/cidr '
-                  'for this machine.')
+            self.log.error('Please set --local-ip to the correct '
+                           'ipaddress/cidr for this machine.')
             return
 
         if not os.environ.get('HEAT_API_PORT'):
@@ -654,6 +669,7 @@ class DeployUndercloud(command.Command):
         # configure puppet
         self._configure_puppet()
 
+        rc = 1
         try:
             # Launch heat.
             orchestration_client = self._launch_heat(parsed_args)
@@ -678,17 +694,15 @@ class DeployUndercloud(command.Command):
             self._kill_heat(parsed_args)
             if not parsed_args.output_only:
                 # Never returns..  We exec() it directly.
-                self._launch_ansible(ansible_dir)
+                rc = self._launch_ansible(ansible_dir)
         except Exception as e:
-            print("Exception: %s" % e)
-            print(traceback.format_exception(*sys.exc_info()))
+            self.log.error("Exception: %s" % e)
+            self.log.error(traceback.format_exception(*sys.exc_info()))
             raise
         finally:
             self._kill_heat(parsed_args)
-            if not parsed_args.output_only:
+            if not parsed_args.output_only and rc != 0:
                 # We only get here on error.
-                print('ERROR: Heat log files: %s' %
-                      (self.heat_launch.install_tmp))
-                return 1
-            else:
-                return 0
+                self.log.error('ERROR: Heat log files: %s' %
+                               (self.heat_launch.install_tmp))
+            return rc

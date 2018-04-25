@@ -253,18 +253,21 @@ class TestDeployUndercloud(TestPluginV1):
                 autospec=True)
     @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
                 '_update_passwords_env', autospec=True)
-    @mock.patch('subprocess.check_call', autospec=True)
+    @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
+                '_run_and_log_output', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True, return_value='/twd')
     @mock.patch('shutil.copytree', autospec=True)
     def test_setup_heat_environments(self,
                                      mock_copy,
                                      mock_mktemp,
-                                     mock_exec,
+                                     mock_run,
                                      mock_update_pass_env,
                                      mock_process_hiera,
                                      mock_process_multiple_environments,
                                      mock_hc_get_templ_cont,
                                      mock_hc_process):
+
+        mock_run.return_value = 0
 
         parsed_args = self.check_parser(self.cmd,
                                         ['--local-ip', '127.0.0.1/8',
@@ -320,13 +323,19 @@ class TestDeployUndercloud(TestPluginV1):
         mock_inventory.write_static_inventory.assert_called_once_with(
             fake_output_dir + '/inventory.yaml', extra_vars)
 
+    @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
+                '_run_and_log_output', autospec=True)
     @mock.patch('os.chdir')
     @mock.patch('os.execvp')
-    def test_launch_ansible(self, mock_execvp, mock_chdir):
+    def test_launch_ansible(self, mock_execvp, mock_chdir, mock_run):
 
         self.cmd._launch_ansible('/tmp')
         mock_chdir.assert_called_once()
-        mock_execvp.assert_called_once()
+        mock_run.assert_called_once_with(self.cmd, [
+            'ansible-playbook', '-i', '/tmp/inventory.yaml',
+            'deploy_steps_playbook.yaml', '-e', 'role_name=Undercloud',
+            '-e', 'deploy_server_id=undercloud', '-e',
+            'bootstrap_server_id=undercloud'])
 
     @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
                 '_wait_local_port_ready', autospec=True)
