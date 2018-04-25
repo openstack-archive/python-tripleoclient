@@ -28,7 +28,6 @@ from prettytable import PrettyTable
 from tripleo_common.image import build
 
 from tripleoclient import command
-from tripleoclient import constants
 from tripleoclient import utils as plugin_utils
 
 
@@ -259,9 +258,7 @@ class UploadOvercloudImage(command.Command):
         )
         parser.add_argument(
             "--http-boot",
-            default=self._get_environment_var(
-                'HTTP_BOOT',
-                constants.IRONIC_HTTP_BOOT_BIND_MOUNT),
+            default=self._get_environment_var('HTTP_BOOT', '/httpboot'),
             help=_("Root directory for the introspection image")
         )
         parser.add_argument(
