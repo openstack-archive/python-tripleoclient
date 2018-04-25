@@ -18,6 +18,7 @@ import argparse
 import logging
 import os
 import os.path
+from prettytable import PrettyTable
 import re
 import shutil
 import six
@@ -1027,3 +1028,36 @@ class DeployOvercloud(command.Command):
         print("Overcloud Horizon Dashboard URL: {0}".format(horizon_url))
         print("Overcloud rc file: {0}".format(rcpath))
         print("Overcloud Deployed")
+
+
+class GetDeploymentStatus(command.Command):
+    """Check status of a deployment plan"""
+
+    log = logging.getLogger(__name__ + ".GetDeploymentStatus")
+
+    def get_parser(self, prog_name):
+        parser = super(GetDeploymentStatus, self).get_parser(prog_name)
+        parser.add_argument('--plan', '--stack',
+                            help=_('Name of the stack/plan. '
+                                   '(default: overcloud)'),
+                            default='overcloud')
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)" % parsed_args)
+        plan = parsed_args.plan
+
+        status = deployment.get_deployment_status(
+            self.app.client_manager,
+            plan=plan
+        )
+
+        payload = status['workflow_status']['payload']
+        execution = payload['execution']
+        table = PrettyTable(
+            ['Plan Name', 'Created', 'Updated', 'Deployment Status'])
+        table.add_row([payload['plan_name'],
+                       execution['created_at'],
+                       execution['updated_at'],
+                       payload['deployment_status']])
+        print(table, file=self.app.stdout)
