@@ -241,10 +241,8 @@ _opts = [
                help=('Path to network config override template. If set, this '
                      'template will be used to configure the networking via '
                      'os-net-config. Must be in json format. '
-                     'Templated tags can be used within the '
-                     'template, see '
-                     'instack-undercloud/elements/undercloud-stack-config/'
-                     'net-config.json.template for example tags')
+                     'If you wish to disable os-net-config you can set this'
+                     'location to an empty file.')
                ),
     cfg.StrOpt('inspection_interface',
                default='br-ctlplane',

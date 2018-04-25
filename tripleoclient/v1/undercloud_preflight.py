@@ -327,16 +327,22 @@ def _validate_no_ip_change():
     need to disallow it early in the install before configurations start to
     be changed.
     """
-    os_net_config_file = '/etc/os-net-config/config.json'
+    if CONF.net_config_override:
+        os_net_config_file = CONF.net_config_override
+    else:
+        os_net_config_file = '/etc/os-net-config/config.json'
     # Nothing to do if we haven't already installed
     if not os.path.isfile(
             os.path.expanduser(os_net_config_file)):
         return
-    with open(os_net_config_file) as f:
-        network_config = json.loads(f.read())
     try:
+        with open(os_net_config_file) as f:
+            network_config = json.loads(f.read())
         ctlplane = [i for i in network_config.get('network_config', [])
                     if i['name'] == 'br-ctlplane'][0]
+    except ValueError:
+        # File was empty
+        return
     except IndexError:
         # Nothing to check if br-ctlplane wasn't configured
         return
