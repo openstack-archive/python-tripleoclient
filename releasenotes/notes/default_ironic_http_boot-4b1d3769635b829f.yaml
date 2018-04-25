@@ -1,6 +1,0 @@
----
-deprecations:
-  - |
-    The default value of `--http-boot` changed from `/httpboot` to
-    `/var/lib/ironic/httpboot` as containerized Ironic services
-    expect.
