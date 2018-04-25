@@ -821,6 +821,9 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
     if verbose_level > 1:
         deploy_args.append('--debug')
 
+    LOG_FILE = os.path.join(os.getcwd() + '/install-undercloud.log')
+    deploy_args.append('--log-file=' + LOG_FILE)
+
     cmd = ["sudo", "openstack", "undercloud", "deploy"]
     cmd += deploy_args[:]
 
