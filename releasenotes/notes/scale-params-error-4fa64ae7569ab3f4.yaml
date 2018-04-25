@@ -1,0 +1,7 @@
+---
+deprecations:
+  - |
+    The scale and flavor params have been deprecated since Newton. This is the
+    start of the process to removing these params. The CLI will now throw an
+    error if any of the old scale and/or flavor params are passed. This check
+    should be removed in a future release.

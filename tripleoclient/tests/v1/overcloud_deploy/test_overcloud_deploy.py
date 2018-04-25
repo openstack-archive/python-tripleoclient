@@ -118,11 +118,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.useFixture(plane_management_fixture)
         utils_fixture = deployment.UtilsFixture()
         self.useFixture(utils_fixture)
-
-        arglist = ['--templates', '--ceph-storage-scale', '3']
+        arglist = ['--templates']
         verifylist = [
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
-            ('ceph_storage_scale', 3)
         ]
 
         clients = self.app.client_manager
@@ -211,12 +209,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.useFixture(utils_fixture)
         utils_overcloud_fixture = deployment.UtilsOvercloudFixture()
         self.useFixture(utils_overcloud_fixture)
-
-        arglist = ['--templates', '--ceph-storage-scale', '3',
-                   '--control-flavor', 'oooq_control', '--no-cleanup']
+        arglist = ['--templates', '--no-cleanup']
         verifylist = [
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
-            ('ceph_storage_scale', 3)
         ]
 
         mock_tmpdir.return_value = self.tmp_dir.path
@@ -251,9 +246,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         parameters_env = {
             'parameter_defaults': {
-                'CephStorageCount': 3,
-                'OvercloudControlFlavor': 'oooq_control',
-                'OvercloudControllerFlavor': 'oooq_control',
                 'StackAction': 'CREATE',
                 'UpdateIdentifier': '',
                 'DeployIdentifier': ''}}
@@ -1155,12 +1147,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         arglist = ['--answers-file', test_answerfile,
                    '--environment-file', test_env2,
-                   '--block-storage-scale', '3',
                    '--disable-password-generation']
         verifylist = [
             ('answers_file', test_answerfile),
             ('environment_files', [test_env2]),
-            ('block_storage_scale', 3),
             ('disable_password_generation', True)]
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
@@ -1185,8 +1175,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                          self.tmp_dir.join('tripleo-heat-templates'))
         self.assertIn('Test', call_args[8]['resource_registry'])
         self.assertIn('Test2', call_args[8]['resource_registry'])
-        self.assertEqual(
-            3, call_args[8]['parameter_defaults']['BlockStorageCount'])
 
         utils_fixture.mock_deploy_tht.assert_called_with()
 
@@ -1244,10 +1232,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_stack = fakes.create_tht_stack()
         orchestration_client.stacks.get.return_value = mock_stack
 
-        arglist = ['--templates', '--control-scale', '3']
+        arglist = ['--templates']
         verifylist = [
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
-            ('control_scale', 3)
         ]
 
         clients = self.app.client_manager
@@ -1262,6 +1249,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         def _custom_create_params_env(_self, parameters, tht_root,
                                       container_name):
+            parameters.update({"ControllerCount": 3})
             parameter_defaults = {"parameter_defaults": parameters}
             return parameter_defaults
 
@@ -1306,12 +1294,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         utils_fixture = deployment.UtilsFixture()
         self.useFixture(utils_fixture)
 
-        arglist = ['--templates', '--ceph-storage-scale', '3',
-                   '--control-scale', '3', '--ntp-server', 'ntp']
+        arglist = ['--templates', '--ntp-server', 'ntp']
         verifylist = [
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
-            ('ceph_storage_scale', 3),
-            ('control_scale', 3),
         ]
 
         clients = self.app.client_manager
@@ -1350,8 +1335,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         expected_parameters = {
             'CephClusterFSID': self.uuid1_value,
-            'CephStorageCount': 3,
-            'ControllerCount': 3,
             'ExtraConfig': '{}',
             'HypervisorNeutronPhysicalBridge': 'br-ex',
             'HypervisorNeutronPublicInterface': 'nic1',
@@ -1677,6 +1660,19 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_makedirs.assert_called_with(dirname)
         mock_open.assert_called()
+
+    def test_validate_args_deprecated(self):
+        arglist = ['--control-scale', '3', '--control-flavor', 'control']
+        verifylist = [
+            ('control_scale', 3),
+            ('control_flavor', 'control'),
+        ]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.assertRaises(oscexc.CommandError,
+                          self.cmd.take_action,
+                          parsed_args)
 
 
 class TestArgumentValidation(fakes.TestDeployOvercloud):
