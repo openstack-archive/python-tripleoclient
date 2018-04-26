@@ -80,6 +80,8 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/tripleo-ui.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'services/tempest.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
              'public-tls-undercloud.yaml',
              '--public-virtual-ip', '192.168.24.2',
              '--control-virtual-ip', '192.168.24.3', '-e',
@@ -129,6 +131,8 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/tripleo-ui.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'services/tempest.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
              'public-tls-undercloud.yaml',
              '--public-virtual-ip', '192.168.24.2',
              '--control-virtual-ip', '192.168.24.3', '-e',
@@ -175,6 +179,8 @@ class TestUndercloudInstall(TestPluginV1):
              'services/zaqar.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/tripleo-ui.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'services/tempest.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/barbican.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -261,6 +267,8 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/tripleo-ui.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'services/tempest.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
              'public-tls-undercloud.yaml',
              '--public-virtual-ip', '192.168.24.2',
              '--control-virtual-ip', '192.168.24.3', '-e',
@@ -312,6 +320,8 @@ class TestUndercloudUpgrade(TestPluginV1):
              'services/zaqar.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/tripleo-ui.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'services/tempest.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'public-tls-undercloud.yaml',
              '--public-virtual-ip', '192.168.24.2',
