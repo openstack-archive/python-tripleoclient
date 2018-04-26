@@ -598,20 +598,6 @@ def _generate_masquerade_networks():
 
     return masqurade_networks
 
-# def _generate_subnets_cidr_nat_rules():
-#     env_list = []
-#     for subnet in CONF.subnets:
-#         env_dict = {}
-#         s = CONF.get(subnet)
-#         env_dict['140 ' + subnet + ' cidr nat'] = {
-#             'chain': 'FORWARD',
-#             'destination': s.cidr
-#         }
-#         # NOTE(hjensas): sort_keys=True because unit test reference is static
-#         env_list.append(json.dumps(env_dict, sort_keys=True)[1:-1])
-#     # Whitespace after newline required for indentation in templated yaml
-#     return '\n  '.join(env_list)
-
 
 def prepare_undercloud_deploy(upgrade=False, no_validations=False,
                               verbose_level=1):
