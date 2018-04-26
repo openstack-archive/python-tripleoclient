@@ -381,6 +381,9 @@ class DeployUndercloud(command.Command):
                                default_flow_style=False)
             environments.append(self.tmp_env_file_name)
 
+        if parsed_args.hieradata_override:
+            environments.append(self._process_hieradata_overrides(parsed_args))
+
         return environments
 
     def _prepare_container_images(self, env, roles_file):
@@ -582,7 +585,54 @@ class DeployUndercloud(command.Command):
             action='store_true', default=False,
             help=_('Cleanup temporary files')
         )
+        parser.add_argument(
+            '--hieradata-override', nargs='?',
+            help=_('Path to hieradata override file. When it points to a heat '
+                   'env file, it is passed in t-h-t via --environment-file. '
+                   'When the file contains legacy instack data, '
+                   'it is wrapped with UndercloudExtraConfig and also '
+                   'passed in for t-h-t as a temp file created in '
+                   '--output-dir. Note, instack hiera data may be '
+                   'not t-h-t compatible and will highly likely require a '
+                   'manual revision.')
+        )
         return parser
+
+    def _process_hieradata_overrides(self, parsed_args):
+        """Count in hiera data overrides including legacy formats
+
+        Return a file name that points to processed hiera data overrides file
+        """
+        target = parsed_args.hieradata_override
+        data = open(target, 'r').read()
+        hiera_data = yaml.safe_load(data)
+        if not hiera_data:
+            msg = 'Unsupported data format in hieradata override %s' % target
+            self.log.error(msg)
+            raise exceptions.DeploymentError(msg)
+
+        # NOTE(bogdando): In t-h-t, hiera data should come in wrapped as
+        # {parameter_defaults: {UndercloudExtraConfig: ... }}
+        if ('UndercloudExtraConfig' not in
+           hiera_data.get('parameter_defaults', {})):
+            with tempfile.NamedTemporaryFile(
+                dir=parsed_args.output_dir,
+                delete=parsed_args.cleanup,
+                prefix='tripleoclient-',
+                suffix=os.path.splitext(
+                    os.path.basename(target))[0]) as f:
+                self.log.info('Converting hiera overrides for t-h-t from '
+                              'legacy format into a tempfile %s' % f.name)
+                with open(f.name, 'w') as tht_data:
+                    yaml.safe_dump(
+                        {'parameter_defaults': {
+                            'UndercloudExtraConfig': hiera_data}},
+                        tht_data,
+                        default_flow_style=False)
+
+                target = f.name
+
+        return target
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)

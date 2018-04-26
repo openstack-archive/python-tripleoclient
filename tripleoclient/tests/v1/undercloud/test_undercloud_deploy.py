@@ -249,6 +249,9 @@ class TestDeployUndercloud(TestPluginV1):
     @mock.patch('tripleoclient.utils.'
                 'process_multiple_environments', autospec=True)
     @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
+                '_process_hieradata_overrides', return_value='foo.yaml',
+                autospec=True)
+    @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
                 '_update_passwords_env', autospec=True)
     @mock.patch('subprocess.check_call', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True, return_value='/twd')
@@ -258,6 +261,7 @@ class TestDeployUndercloud(TestPluginV1):
                                      mock_mktemp,
                                      mock_exec,
                                      mock_update_pass_env,
+                                     mock_process_hiera,
                                      mock_process_multiple_environments,
                                      mock_hc_get_templ_cont,
                                      mock_hc_process):
@@ -266,6 +270,7 @@ class TestDeployUndercloud(TestPluginV1):
                                         ['--local-ip', '127.0.0.1/8',
                                          '--templates', '/tmp/thtroot',
                                          '--output-dir', '/my',
+                                         '--hieradata-override', 'legacy.yaml',
                                          '-e', '/tmp/thtroot/puppet/foo.yaml',
                                          '-e', '/tmp/thtroot//docker/bar.yaml',
                                          '-e', '/tmp/thtroot42/notouch.yaml',
@@ -284,7 +289,7 @@ class TestDeployUndercloud(TestPluginV1):
             '~/custom.yaml',
             'something.yaml',
             '../../../outside.yaml',
-            mock.ANY]
+            mock.ANY, 'foo.yaml']
 
         environment = self.cmd._setup_heat_environments(parsed_args)
 
