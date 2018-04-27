@@ -64,7 +64,7 @@ class TestOvercloudUpdate(fakes.TestOvercloudUpdate):
         self.cmd.take_action(parsed_args)
         mock_update.assert_called_once_with(
             self.app.client_manager,
-            container='mystack',
+            container='overcloud',
             container_registry={'fake_container': 'fake_value'},
             ceph_ansible_playbook='/usr/share/ceph-ansible'
                                   '/site-docker.yml.sample',

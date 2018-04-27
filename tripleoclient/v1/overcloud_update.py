@@ -24,7 +24,6 @@ from oslo_concurrency import processutils
 
 from tripleoclient import constants
 from tripleoclient import exceptions
-from tripleoclient import utils as oooutils
 from tripleoclient.workflows import package_update
 
 
@@ -88,16 +87,14 @@ class UpdateOvercloud(command.Command):
                                    'use.  If not specified, one will be '
                                    'generated in ~/tripleo-ansible-inventory')
                             )
+
         return parser
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
         clients = self.app.client_manager
+        stack = parsed_args.stack
 
-        stack = oooutils.get_stack(clients.orchestration,
-                                   parsed_args.stack)
-
-        stack_name = stack.stack_name
         container_registry = parsed_args.container_registry_file
 
         if parsed_args.init_minor_update:
@@ -115,14 +112,14 @@ class UpdateOvercloud(command.Command):
                 registry = None
             # Execute minor update
             ceph_ansible_playbook = parsed_args.ceph_ansible_playbook
-            package_update.update(clients, container=stack_name,
+            package_update.update(clients, container=stack,
                                   container_registry=registry,
                                   ceph_ansible_playbook=ceph_ansible_playbook,
                                   queue_name=str(uuid.uuid4()))
 
             print("Heat stack update init on {0} complete.".format(
                   parsed_args.stack))
-            package_update.get_config(clients, container=stack_name)
+            package_update.get_config(clients, container=stack)
             print("Init minor update on stack {0} complete.".format(
                   parsed_args.stack))
         else:
@@ -135,6 +132,7 @@ class UpdateOvercloud(command.Command):
                                             'tripleo-ansible-inventory')
                 try:
                     processutils.execute('/bin/tripleo-ansible-inventory',
+                                         '--stack', stack,
                                          '--static-inventory', inventory_file)
                 except processutils.ProcessExecutionError as e:
                     message = "Failed to generate inventory: %s" % str(e)
