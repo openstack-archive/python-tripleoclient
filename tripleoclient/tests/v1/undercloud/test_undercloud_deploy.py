@@ -131,7 +131,7 @@ class TestDeployUndercloud(TestPluginV1):
                 'parse', autospec=True, return_value=dict())
     @mock.patch('heatclient.common.template_format.'
                 'parse', autospec=True, return_value=dict())
-    @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_setup_heat_environments', autospec=True)
     @mock.patch('tripleo_common.image.kolla_builder.'
                 'container_images_prepare_multi')
@@ -180,7 +180,7 @@ class TestDeployUndercloud(TestPluginV1):
                 'parse', autospec=True, return_value=dict())
     @mock.patch('heatclient.common.template_format.'
                 'parse', autospec=True, return_value=dict())
-    @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_setup_heat_environments', autospec=True)
     @mock.patch('yaml.safe_dump', autospec=True)
     @mock.patch('yaml.safe_load', autospec=True)
@@ -249,12 +249,12 @@ class TestDeployUndercloud(TestPluginV1):
                 autospec=True)
     @mock.patch('tripleoclient.utils.'
                 'process_multiple_environments', autospec=True)
-    @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_process_hieradata_overrides', return_value='foo.yaml',
                 autospec=True)
-    @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_update_passwords_env', autospec=True)
-    @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_run_and_log_output', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True, return_value='/twd')
     @mock.patch('shutil.copytree', autospec=True)
@@ -299,15 +299,15 @@ class TestDeployUndercloud(TestPluginV1):
 
         self.assertEqual(environment, expected_env)
 
-    @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_create_working_dirs', autospec=True)
-    @mock.patch('tripleoclient.v1.undercloud_deploy.TripleoInventory',
+    @mock.patch('tripleoclient.v1.tripleo_deploy.TripleoInventory',
                 autospec=True)
-    @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_launch_heat', autospec=True)
     @mock.patch('tripleo_common.utils.config.Config',
                 autospec=True)
-    @mock.patch('tripleoclient.v1.undercloud_deploy.sys.stdout.flush')
+    @mock.patch('tripleoclient.v1.tripleo_deploy.sys.stdout.flush')
     @mock.patch('os.path.join', return_value='/twd/inventory.yaml')
     def test_download_ansible_playbooks(self, mock_join, mock_flush,
                                         mock_stack_config, mock_launch_heat,
@@ -324,7 +324,7 @@ class TestDeployUndercloud(TestPluginV1):
         mock_inventory.write_static_inventory.assert_called_once_with(
             fake_output_dir + '/inventory.yaml', extra_vars)
 
-    @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_run_and_log_output', autospec=True)
     @mock.patch('os.chdir')
     @mock.patch('os.execvp')
@@ -338,31 +338,31 @@ class TestDeployUndercloud(TestPluginV1):
             '-e', 'deploy_server_id=undercloud', '-e',
             'bootstrap_server_id=undercloud'])
 
-    @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_create_install_artifact', return_value='/tmp/foo.tar.bzip2')
-    @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_launch_ansible')
-    @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_cleanup_working_dirs')
-    @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_create_working_dirs')
-    @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_wait_local_port_ready', autospec=True)
-    @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_deploy_tripleo_heat_templates', autospec=True,
                 return_value='undercloud, 0')
-    @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_download_ansible_playbooks', autospec=True,
                 return_value='/foo')
-    @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_launch_heat')
-    @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_kill_heat')
-    @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_configure_puppet')
     @mock.patch('os.geteuid', return_value=0)
     @mock.patch('os.environ', return_value='CREATE_COMPLETE')
-    @mock.patch('tripleoclient.v1.undercloud_deploy.'
+    @mock.patch('tripleoclient.v1.tripleo_deploy.'
                 'event_utils.poll_for_events',
                 return_value=('CREATE_COMPLETE', 0))
     def test_take_action(self, mock_poll, mock_environ, mock_geteuid,
@@ -425,7 +425,7 @@ class TestDeployUndercloud(TestPluginV1):
     def test_process_hierdata_overrides(self, mock_exists, mock_tmpfile):
         data = "foo: bar"
         mock_open = mock.mock_open(read_data=data)
-        with mock.patch('tripleoclient.v1.undercloud_deploy.open', mock_open):
+        with mock.patch('tripleoclient.v1.tripleo_deploy.open', mock_open):
             self.assertEqual(mock_tmpfile.return_value.__enter__().name,
                              self.cmd._process_hieradata_overrides('/foobar'))
 
@@ -440,7 +440,7 @@ class TestDeployUndercloud(TestPluginV1):
     def test_process_hierdata_overrides_tht(self, mock_exists, mock_tmpfile):
         data = "parameter_defaults:\n  UndercloudExtraConfig:\n    foo: bar"
         mock_open = mock.mock_open(read_data=data)
-        with mock.patch('tripleoclient.v1.undercloud_deploy.open', mock_open):
+        with mock.patch('tripleoclient.v1.tripleo_deploy.open', mock_open):
             self.assertEqual('/foobar',
                              self.cmd._process_hieradata_overrides('/foobar'))
 
@@ -453,7 +453,7 @@ class TestDeployUndercloud(TestPluginV1):
         self.cmd._kill_heat(parsed_args)
         wait_mock.assert_called_once_with(1234, 0)
 
-    @mock.patch('tripleoclient.v1.undercloud_deploy.DeployUndercloud.'
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_get_tar_filename',
                 return_value='/tmp/undercloud-install-1.tar.bzip2')
     @mock.patch('tarfile.open', autospec=True)

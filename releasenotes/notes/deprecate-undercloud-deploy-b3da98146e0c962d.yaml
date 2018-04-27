@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Create tripleo deploy action to be used as an interface to an standalone
+    installer.
+deprecations:
+  - |
+    undercloud deploy action has been deprecated. The tripleo deploy action
+    with the --standalone option should be used instead.
+
