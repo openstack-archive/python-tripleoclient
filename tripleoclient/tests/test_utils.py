@@ -626,3 +626,32 @@ class TestStoreCliParam(TestCase):
         mock_isdir.return_value = True
         mock_open.side_effect = IOError()
         self.assertRaises(IOError, utils.store_cli_param, "command", self.args)
+
+
+class GetTripleoAnsibleInventory(TestCase):
+
+    def setUp(self):
+        super(GetTripleoAnsibleInventory, self).setUp()
+        self.inventory_file = ''
+        self.ssh_user = 'heat_admin'
+        self.stack = 'foo-overcloud'
+
+    @mock.patch('tripleoclient.utils.get_tripleo_ansible_inventory',
+                autospec=True)
+    def test_get_tripleo_ansible_inventory(self, mock_inventory):
+
+        with mock.patch('os.path.exists') as mock_exists:
+            mock_exists.return_value = True
+
+            self.cmd = utils.get_tripleo_ansible_inventory(
+                inventory_file=self.inventory_file,
+                ssh_user=self.ssh_user,
+                stack=self.stack)
+
+            self.cmd.take_action()
+
+            mock_inventory.assert_called_once_with(
+                inventory_file='',
+                ssh_user='heat_admin',
+                stack='foo-overcloud'
+            )
