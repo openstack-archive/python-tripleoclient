@@ -15,6 +15,7 @@
 import logging
 
 from osc_lib.i18n import _
+from osc_lib import utils
 
 from tripleoclient import command
 from tripleoclient import constants
@@ -112,14 +113,22 @@ class FFWDUpgradeRun(command.Command):
                             help=_("The ssh user name for connecting to "
                                    "the overcloud nodes.")
                             )
+        parser.add_argument('--stack', dest='stack',
+                            help=_('Name or ID of heat stack '
+                                   '(default=Env: OVERCLOUD_STACK_NAME)'),
+                            default=utils.env('OVERCLOUD_STACK_NAME',
+                                              default='overcloud')
+                            )
         return parser
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
         clients = self.app.client_manager
+        stack = parsed_args.stack
+
         # Run ansible:
         inventory = oooutils.get_tripleo_ansible_inventory(
-            parsed_args.static_inventory)
+            parsed_args.static_inventory, stack)
         # Don't expost limit_hosts. We need this on the whole overcloud.
         limit_hosts = ''
         oooutils.run_update_ansible_action(

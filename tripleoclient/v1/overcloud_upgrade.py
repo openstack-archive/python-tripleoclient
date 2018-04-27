@@ -15,6 +15,7 @@
 import logging
 
 from osc_lib.i18n import _
+from osc_lib import utils
 
 from tripleoclient import command
 from tripleoclient import constants
@@ -170,6 +171,12 @@ class UpgradeRun(command.Command):
                                    'upgrade and some services cannot be '
                                    'started. ')
                             )
+        parser.add_argument('--stack', dest='stack',
+                            help=_('Name or ID of heat stack '
+                                   '(default=Env: OVERCLOUD_STACK_NAME)'),
+                            default=utils.env('OVERCLOUD_STACK_NAME',
+                                              default='overcloud'))
+
         return parser
 
     def _validate_skip_tags(self, skip_tags):
@@ -185,13 +192,15 @@ class UpgradeRun(command.Command):
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
         clients = self.app.client_manager
+        stack = parsed_args.stack
+
         # Run ansible:
         roles = parsed_args.roles
         nodes = parsed_args.nodes
         limit_hosts = roles or nodes
         playbook = parsed_args.playbook
         inventory = oooutils.get_tripleo_ansible_inventory(
-            parsed_args.static_inventory, parsed_args.ssh_user)
+            parsed_args.static_inventory, parsed_args.ssh_user, stack)
         skip_tags = self._validate_skip_tags(parsed_args.skip_tags)
         oooutils.run_update_ansible_action(self.log, clients, limit_hosts,
                                            inventory, playbook,
