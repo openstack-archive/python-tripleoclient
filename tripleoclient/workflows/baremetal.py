@@ -14,6 +14,8 @@
 
 from __future__ import print_function
 
+import six
+
 from tripleoclient import exceptions
 from tripleoclient.workflows import base
 
@@ -78,18 +80,23 @@ def register_or_update(clients, **workflow_input):
             'Exception registering nodes: {}'.format(payload['message']))
 
 
-def _format_provide_errors(payload):
+def _format_errors(payload):
     errors = []
     messages = payload.get('message', [])
     for msg in messages:
+        # Adapt for different formats
+        if isinstance(msg, six.string_types):
+            text = msg
+        else:
+            text = msg.get('result') or msg.get('message', '')
         try:
             # With multiple workflows, the error message can become
             # quite large and unreadable as it gets passed from task to
             # task. This attempts to keep only the last, and hopefully
             # useful part.
-            errors.append(msg.get('result', '').rstrip('\n').split('\n')[-1])
+            errors.append(text.rstrip('\n').split('\n')[-1])
         except Exception:
-            errors.append(msg.get('result', ''))
+            errors.append(text)
     return '\n'.join(errors)
 
 
@@ -115,7 +122,7 @@ def provide(clients, **workflow_input):
 
     if payload['status'] != 'SUCCESS':
         try:
-            message = _format_provide_errors(payload)
+            message = _format_errors(payload)
         except Exception:
             message = 'Failed.'
         raise exceptions.NodeProvideError(
@@ -330,3 +337,58 @@ def discover_and_enroll(clients, **workflow_input):
     else:
         raise exceptions.RegisterOrUpdateError(
             'Exception discovering nodes: {}'.format(payload['message']))
+
+
+def clean_nodes(clients, **workflow_input):
+    """Clean Baremetal Nodes
+
+    Run the tripleo.baremetal.v1.clean_nodes Mistral workflow.
+    """
+
+    workflow_client = clients.workflow_engine
+    tripleoclients = clients.tripleoclient
+
+    with tripleoclients.messaging_websocket() as ws:
+        execution = base.start_workflow(
+            workflow_client,
+            'tripleo.baremetal.v1.clean_nodes',
+            workflow_input={'node_uuids': workflow_input['node_uuids']}
+        )
+
+        for payload in base.wait_for_messages(workflow_client, ws, execution):
+            if payload.get('message'):
+                print(payload['message'])
+
+    if payload['status'] != 'SUCCESS':
+        message = _format_errors(payload)
+        raise exceptions.NodeConfigurationError(
+            'Error(s) cleaning nodes:\n{}'.format(message))
+
+    print('Successfully cleaned nodes')
+
+
+def clean_manageable_nodes(clients, **workflow_input):
+    """Clean all manageable Nodes
+
+    Run the tripleo.baremetal.v1.clean_manageable_nodes Mistral workflow.
+    """
+
+    workflow_client = clients.workflow_engine
+    tripleoclients = clients.tripleoclient
+
+    with tripleoclients.messaging_websocket() as ws:
+        execution = base.start_workflow(
+            workflow_client,
+            'tripleo.baremetal.v1.clean_manageable_nodes',
+            workflow_input=workflow_input
+        )
+
+        for payload in base.wait_for_messages(workflow_client, ws, execution):
+            if payload.get('message'):
+                print(payload['message'])
+
+    if payload['status'] != 'SUCCESS':
+        raise exceptions.NodeConfigurationError(
+            'Error cleaning nodes: {}'.format(payload['message']))
+
+    print('Cleaned %d node(s)' % len(payload['cleaned_nodes']))

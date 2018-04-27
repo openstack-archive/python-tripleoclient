@@ -122,6 +122,36 @@ class ProvideNode(command.Command):
             baremetal.provide_manageable_nodes(self.app.client_manager)
 
 
+class CleanNode(command.Command):
+    """Run node(s) through cleaning."""
+
+    log = logging.getLogger(__name__ + ".CleanNode")
+
+    def get_parser(self, prog_name):
+        parser = super(CleanNode, self).get_parser(prog_name)
+        group = parser.add_mutually_exclusive_group(required=True)
+        group.add_argument('node_uuids',
+                           nargs="*",
+                           metavar="<node_uuid>",
+                           default=[],
+                           help=_('Baremetal Node UUIDs for the node(s) to be '
+                                  'cleaned'))
+        group.add_argument("--all-manageable",
+                           action='store_true',
+                           help=_("Clean all nodes currently in 'manageable'"
+                                  " state"))
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)" % parsed_args)
+
+        if parsed_args.node_uuids:
+            baremetal.clean_nodes(self.app.client_manager,
+                                  node_uuids=parsed_args.node_uuids)
+        else:
+            baremetal.clean_manageable_nodes(self.app.client_manager)
+
+
 class IntrospectNode(command.Command):
     """Introspect specified nodes or all nodes in 'manageable' state."""
 
