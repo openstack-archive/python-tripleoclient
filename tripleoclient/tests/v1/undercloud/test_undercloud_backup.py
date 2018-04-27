@@ -58,3 +58,65 @@ class TestUndercloudBackup(utils.TestCommand):
         plan_mock.assert_called_once_with(
             mock.ANY,
             {'sources_path': '/home/stack/,/tmp/bar.yaml,/tmp/foo.yaml'})
+
+    @mock.patch('tripleoclient.workflows.undercloud_backup.backup',
+                autospec=True)
+    def test_undercloud_backup_withargs_remove(self, plan_mock):
+        arglist = [
+            '--add-path',
+            '/tmp/foo.yaml',
+            '--exclude-path',
+            '/tmp/bar.yaml',
+            '--exclude-path',
+            '/home/stack/',
+            '--add-path',
+            '/tmp/bar.yaml'
+        ]
+        verifylist = []
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
+        plan_mock.assert_called_once_with(
+            mock.ANY,
+            {'sources_path': '/tmp/foo.yaml'})
+
+    @mock.patch('tripleoclient.workflows.undercloud_backup.backup',
+                autospec=True)
+    def test_undercloud_backup_withargs_remove_double(self, plan_mock):
+        arglist = [
+            '--add-path',
+            '/tmp/foo.yaml',
+            '--add-path',
+            '/tmp/bar.yaml',
+            '--exclude-path',
+            '/tmp/foo.yaml',
+            '--exclude-path',
+            '/tmp/foo.yaml'
+        ]
+        verifylist = []
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
+        plan_mock.assert_called_once_with(
+            mock.ANY,
+            {'sources_path': '/home/stack/,/tmp/bar.yaml'})
+
+    @mock.patch('tripleoclient.workflows.undercloud_backup.backup',
+                autospec=True)
+    def test_undercloud_backup_withargs_remove_unex(self, plan_mock):
+        arglist = [
+            '--add-path',
+            '/tmp/foo.yaml',
+            '--exclude-path',
+            '/tmp/non-existing-path.yaml'
+        ]
+        verifylist = []
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
+        plan_mock.assert_called_once_with(
+            mock.ANY,
+            {'sources_path': '/home/stack/,/tmp/foo.yaml'})

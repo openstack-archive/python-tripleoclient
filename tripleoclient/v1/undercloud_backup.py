@@ -43,13 +43,28 @@ class BackupUndercloud(command.Command):
                    "i.e. --add-path /this/is/a/folder/ "
                    " --add-path /this/is/a/texfile.txt")
         )
+        parser.add_argument(
+            "--exclude-path",
+            default=[],
+            action="append",
+            help=_("Exclude path when performing the Undercloud Backup, "
+                   "this option can be specified multiple times. "
+                   "Defaults to: none "
+                   "i.e. --exclude-path /this/is/a/folder/ "
+                   " --exclude-path /this/is/a/texfile.txt")
+        )
         return parser
 
     def _run_backup_undercloud(self, parsed_args):
 
         clients = self.app.client_manager
 
-        files_to_backup = ','.join(sorted(list(set(parsed_args.add_path))))
+        merge_paths = sorted(list(set(parsed_args.add_path)))
+        for exc in parsed_args.exclude_path:
+            if exc in merge_paths:
+                merge_paths.remove(exc)
+
+        files_to_backup = ','.join(merge_paths)
 
         # Define the backup sources_path (files to backup).
         # This is a comma separated string.
