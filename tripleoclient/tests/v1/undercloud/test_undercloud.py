@@ -53,8 +53,9 @@ class TestUndercloudInstall(TestPluginV1):
 
         mock_subprocess.assert_called_with(['instack-install-undercloud'])
 
+    @mock.patch('os.getcwd', return_value='/tmp')
     @mock.patch('subprocess.check_call', autospec=True)
-    def test_undercloud_install_with_heat(self, mock_subprocess):
+    def test_undercloud_install_with_heat(self, mock_subprocess, mock_cwd):
         arglist = ['--use-heat', '--no-validations']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
@@ -99,10 +100,12 @@ class TestUndercloudInstall(TestPluginV1):
              'config-download-environment.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'undercloud.yaml', '-e', '/tmp/undercloud_parameters.yaml',
-             mock.ANY])
+             mock.ANY, '--log-file=/tmp/install-undercloud.log'])
 
+    @mock.patch('os.getcwd', return_value='/tmp')
     @mock.patch('subprocess.check_call', autospec=True)
-    def test_undercloud_install_with_heat_and_debug(self, mock_subprocess):
+    def test_undercloud_install_with_heat_and_debug(self, mock_subprocess,
+                                                    mock_cwd):
         arglist = ['--use-heat', '--no-validations']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
@@ -150,10 +153,12 @@ class TestUndercloudInstall(TestPluginV1):
              'config-download-environment.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'undercloud.yaml', '-e', '/tmp/undercloud_parameters.yaml',
-             mock.ANY, '--debug'])
+             mock.ANY, '--debug', '--log-file=/tmp/install-undercloud.log'])
 
+    @mock.patch('os.getcwd', return_value='/tmp')
     @mock.patch('subprocess.check_call', autospec=True)
-    def test_undercloud_install_with_swift_encryption(self, mock_subprocess):
+    def test_undercloud_install_with_swift_encryption(self, mock_subprocess,
+                                                      mock_cwd):
         arglist = ['--use-heat', '--no-validations']
         verifylist = []
         self.conf.set_default('enable_swift_encryption', True)
@@ -203,7 +208,7 @@ class TestUndercloudInstall(TestPluginV1):
              'config-download-environment.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'undercloud.yaml', '-e', '/tmp/undercloud_parameters.yaml',
-             mock.ANY])
+             mock.ANY, '--log-file=/tmp/install-undercloud.log'])
 
 
 class TestUndercloudUpgrade(TestPluginV1):
@@ -237,8 +242,9 @@ class TestUndercloudUpgrade(TestPluginV1):
             ]
         )
 
+    @mock.patch('os.getcwd', return_value='/tmp')
     @mock.patch('subprocess.check_call', autospec=True)
-    def test_undercloud_upgrade_with_heat(self, mock_subprocess):
+    def test_undercloud_upgrade_with_heat(self, mock_subprocess, mock_cwd):
         arglist = ['--use-heat', '--no-validations']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
@@ -286,10 +292,12 @@ class TestUndercloudUpgrade(TestPluginV1):
              'config-download-environment.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'undercloud.yaml', '-e', '/tmp/undercloud_parameters.yaml',
-             mock.ANY])
+             mock.ANY, '--log-file=/tmp/install-undercloud.log'])
 
+    @mock.patch('os.getcwd', return_value='/tmp')
     @mock.patch('subprocess.check_call', autospec=True)
-    def test_undercloud_upgrade_with_heat_and_debug(self, mock_subprocess):
+    def test_undercloud_upgrade_with_heat_and_debug(self, mock_subprocess,
+                                                    mock_cwd):
         arglist = ['--use-heat', '--no-validations']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
@@ -340,4 +348,4 @@ class TestUndercloudUpgrade(TestPluginV1):
              'config-download-environment.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'undercloud.yaml', '-e', '/tmp/undercloud_parameters.yaml',
-             mock.ANY, '--debug'])
+             mock.ANY, '--debug', '--log-file=/tmp/install-undercloud.log'])
