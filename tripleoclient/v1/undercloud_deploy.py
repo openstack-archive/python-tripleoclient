@@ -50,6 +50,30 @@ from tripleo_common.inventory import TripleoInventory
 from tripleo_common.utils import config
 
 VIP_CIDR_PREFIX_LEN = 32
+DEPLOY_FAILURE_MESSAGE = """
+##########################################################
+containerized undercloud deployment failed.
+
+ERROR: Heat log files: {0}
+
+See the previous output for details about what went wrong.
+
+##########################################################
+"""
+DEPLOY_COMPLETION_MESSAGE = """
+########################################################
+containerized undercloud deployment complete.
+
+Useful files:
+
+Password file is at {0}
+The stackrc file is at {1}
+
+Use these files to interact with OpenStack services, and
+ensure they are secured.
+
+########################################################
+"""
 
 
 class DeployUndercloud(command.Command):
@@ -703,6 +727,12 @@ class DeployUndercloud(command.Command):
             self._kill_heat(parsed_args)
             if not parsed_args.output_only and rc != 0:
                 # We only get here on error.
-                self.log.error('ERROR: Heat log files: %s' %
-                               (self.heat_launch.install_tmp))
+                self.log.error(DEPLOY_FAILURE_MESSAGE.format(
+                    self.heat_launch.install_tmp
+                    ))
+            else:
+                self.log.warning(DEPLOY_COMPLETION_MESSAGE.format(
+                    '~/undercloud-passwords.conf',
+                    '~/stackrc'
+                    ))
             return rc
