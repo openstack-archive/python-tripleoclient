@@ -36,7 +36,6 @@ from tripleoclient.v1 import undercloud_preflight
 
 PARAMETER_MAPPING = {
     'inspection_interface': 'IronicInspectorInterface',
-    'enabled_drivers': 'IronicEnabledDrivers',
     'undercloud_debug': 'Debug',
     'ipxe_enabled': 'IronicInspectorIPXEEnabled',
     'certificate_generation_ca': 'CertmongerCA',
@@ -278,8 +277,8 @@ _opts = [
                default='ipmi',
                help=('The default driver or hardware type to use for newly '
                      'discovered nodes (requires enable_node_discovery set to '
-                     'True). It is automatically added to enabled_drivers '
-                     'or enabled_hardware_types accordingly.')
+                     'True). It is automatically added to '
+                     'enabled_hardware_types.')
                ),
     cfg.BoolOpt('undercloud_debug',
                 default=True,
@@ -346,12 +345,6 @@ _opts = [
                 default=False,
                 help=('Whether to clean overcloud nodes (wipe the hard drive) '
                       'between deployments and after the introspection.')),
-    cfg.ListOpt('enabled_drivers',
-                default=['pxe_ipmitool', 'pxe_drac', 'pxe_ilo'],
-                help=('List of enabled bare metal drivers.'),
-                deprecated_for_removal=True,
-                deprecated_reason=('Please switch to hardware types and '
-                                   'the enabled_hardware_types option.')),
     cfg.ListOpt('enabled_hardware_types',
                 default=['ipmi', 'redfish', 'ilo', 'idrac'],
                 help=('List of enabled bare metal hardware types (next '
@@ -466,30 +459,13 @@ def _load_config():
     CONF(conf_params)
 
 
-def _is_classic_driver(name):
-    """Poor man's way to detect if something is a driver or a hardware type.
-
-    To be removed when we remove support for classic drivers.
-    """
-    return (name == 'fake' or
-            name.startswith('fake_') or
-            name.startswith('pxe_') or
-            name.startswith('agent_') or
-            name.startswith('iscsi_'))
-
-
 def _process_drivers_and_hardware_types(conf, env):
     """Populate the environment with ironic driver information."""
     # Ensure correct rendering of the list and uniqueness of the items
-    enabled_drivers = set(conf.enabled_drivers)
     enabled_hardware_types = set(conf.enabled_hardware_types)
     if conf.enable_node_discovery:
-        if _is_classic_driver(conf.discovery_default_driver):
-            if conf.discovery_default_driver not in enabled_drivers:
-                enabled_drivers.add(conf.discovery_default_driver)
-        else:
-            if conf.discovery_default_driver not in enabled_hardware_types:
-                enabled_hardware_types.add(conf.discovery_default_driver)
+        if conf.discovery_default_driver not in enabled_hardware_types:
+            enabled_hardware_types.add(conf.discovery_default_driver)
         env['IronicInspectorEnableNodeDiscovery'] = True
         env['IronicInspectorDiscoveryDefaultDriver'] = (
             conf.discovery_default_driver)
@@ -522,7 +498,6 @@ def _process_drivers_and_hardware_types(conf, env):
         if hw_type in enabled_hardware_types:
             vendor_interfaces.add(iface)
 
-    env['IronicEnabledDrivers'] = sorted(enabled_drivers)
     env['IronicEnabledHardwareTypes'] = sorted(enabled_hardware_types)
 
     env['IronicEnabledBootInterfaces'] = sorted(boot_interfaces)
