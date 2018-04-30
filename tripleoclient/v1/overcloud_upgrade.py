@@ -21,6 +21,7 @@ from tripleoclient import constants
 from tripleoclient import exceptions
 from tripleoclient import utils as oooutils
 from tripleoclient.v1.overcloud_deploy import DeployOvercloud
+from tripleoclient.workflows import deployment
 from tripleoclient.workflows import package_update
 
 
@@ -79,6 +80,12 @@ class UpgradePrepare(DeployOvercloud):
                               container_registry=registry,
                               ceph_ansible_playbook=ceph_ansible_playbook)
         package_update.get_config(clients, container=stack_name)
+
+        overcloudrcs = deployment.overcloudrc(
+            clients.workflow_engine,
+            container=stack_name)
+        oooutils.write_overcloudrc(stack_name, overcloudrcs)
+
         print("Completed Overcloud Upgrade Prepare for stack {0}".format(
               stack_name))
 
