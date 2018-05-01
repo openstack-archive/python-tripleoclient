@@ -13,6 +13,7 @@
 #   under the License.
 #
 
+import mock
 import os
 import tempfile
 
@@ -257,7 +258,9 @@ class TestValidateOvercloudNetenv(fakes.TestValidateOvercloudNetenv):
         os.unlink(tmp)
         self.assertEqual(1, self.cmd.error_count)
 
-    def test_command(self):
+    @mock.patch('tripleoclient.v1.overcloud_netenv_validate.'
+                'ValidateOvercloudNetenv.NIC_validate', autospec=True)
+    def test_command(self, mock_nic_validate):
         """Testing the command with a minimal file that will fail"""
         with tempfile.NamedTemporaryFile('wt') as net_file:
                 net_file.write(EMPTY_NETENV)
