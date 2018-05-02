@@ -216,11 +216,11 @@ class UpgradeRun(command.Command):
 class UpgradeConvergeOvercloud(DeployOvercloud):
     """Major upgrade converge - reset Heat resources in the stored plan
 
-       This is the last step for completion of a overcloud major upgrade.
-       There is no heat stack update performed here. The main task is updating
-       the plan to unblock future stack updates. For the major upgrade workflow
-       we have set specific values for some stack Heat resources. This unsets
-       those back to their default values, in the swift stored plan.
+       This is the last step for completion of a overcloud major
+       upgrade.  The main task is updating the plan and stack to
+       unblock future stack updates. For the major upgrade workflow we
+       have set specific values for some stack Heat resources. This
+       unsets those back to their default values.
     """
 
     log = logging.getLogger(__name__ + ".UpgradeConvergeOvercloud")
@@ -235,9 +235,7 @@ class UpgradeConvergeOvercloud(DeployOvercloud):
 
         stack = oooutils.get_stack(clients.orchestration,
                                    parsed_args.stack)
-        stack_name = stack.stack_name
 
-        parsed_args.update_plan_only = True
         # Add the converge environment into the args to unset noop etc
         templates_dir = (parsed_args.templates or
                          constants.TRIPLEO_HEAT_TEMPLATES)
@@ -246,7 +244,5 @@ class UpgradeConvergeOvercloud(DeployOvercloud):
             constants.UPGRADE_CONVERGE_ENV)
 
         super(UpgradeConvergeOvercloud, self).take_action(parsed_args)
-        # Run converge steps
-        package_update.converge_nodes(clients, container=stack_name)
         print("Completed Overcloud Upgrade Converge for stack {0}".format(
-              stack_name))
+              stack.stack_name))

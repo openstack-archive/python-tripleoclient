@@ -155,11 +155,11 @@ class FFWDUpgradeConverge(DeployOvercloud):
     """Converge the fast-forward upgrade on Overcloud Nodes
 
        This is the last step for completion of a fast forward upgrade.
-       There is no heat stack update performed here. The main task is updating
-       the plan to unblock future stack updates. For the ffwd upgrade workflow
-       we have set and used the config-download Software/Structured Deployment
-       for the OS::TripleO and OS::Heat resources. This unsets those back
-       to their default values, in the swift stored plan.
+       The main task is updating the plan and stack to unblock future
+       stack updates. For the ffwd upgrade workflow we have set and
+       used the config-download Software/Structured Deployment for the
+       OS::TripleO and OS::Heat resources. This unsets those back to
+       their default values.
     """
 
     log = logging.getLogger(__name__ + ".FFWDUpgradeConverge")
@@ -178,13 +178,6 @@ class FFWDUpgradeConverge(DeployOvercloud):
         self.log.debug("take_action(%s)" % parsed_args)
         oooutils.ffwd_upgrade_operator_confirm(parsed_args.yes, self.log)
 
-        clients = self.app.client_manager
-
-        stack = oooutils.get_stack(clients.orchestration,
-                                   parsed_args.stack)
-        stack_name = stack.stack_name
-
-        parsed_args.update_plan_only = True
         # Add the converge environment into the args to unset noop etc
         templates_dir = (parsed_args.templates or
                          constants.TRIPLEO_HEAT_TEMPLATES)
@@ -195,9 +188,5 @@ class FFWDUpgradeConverge(DeployOvercloud):
             constants.FFWD_UPGRADE_CONVERGE_ENV)
 
         super(FFWDUpgradeConverge, self).take_action(parsed_args)
-        # Run converge steps
-        package_update.ffwd_converge_nodes(
-            clients, container=stack_name,
-            queue_name=constants.FFWD_UPGRADE_QUEUE)
         print("FFWD Upgrade Converge on stack {0} complete.".format(
               parsed_args.stack))

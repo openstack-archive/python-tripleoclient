@@ -162,21 +162,14 @@ class UpdateRun(command.Command):
 class UpdateConverge(DeployOvercloud):
     """Converge the update on Overcloud nodes.
 
-    This restores the plan environment so that normal deployment
-    workflow is back in place. The action does not perform a Heat
-    stack update.
+    This restores the plan and stack so that normal deployment
+    workflow is back in place.
     """
 
     log = logging.getLogger(__name__ + ".UpdateConverge")
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
-        clients = self.app.client_manager
-        stack_name = oooutils.get_stack(
-            clients.orchestration, parsed_args.stack).stack_name
-
-        # Only update plan, do not perform stack update.
-        parsed_args.update_plan_only = True
 
         # Add the update-converge.yaml environment to unset noops
         templates_dir = (parsed_args.templates or
@@ -186,7 +179,5 @@ class UpdateConverge(DeployOvercloud):
             constants.UPDATE_CONVERGE_ENV)
 
         super(UpdateConverge, self).take_action(parsed_args)
-        package_update.update_converge_nodes(
-            clients, container=stack_name, queue_name=constants.UPDATE_QUEUE)
         print("Update converge on stack {0} complete.".format(
               parsed_args.stack))
