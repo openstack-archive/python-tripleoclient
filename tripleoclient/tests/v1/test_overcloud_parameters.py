@@ -106,7 +106,7 @@ class TestGenerateFencingParameters(utils.TestCommand):
       {
         "name": "control-0",
         "pm_password": "control-0-password",
-        "pm_type": "pxe_ipmitool",
+        "pm_type": "ipmi",
         "pm_user": "control-0-admin",
         "pm_addr": "0.1.2.3",
         "pm_port": "0123",
@@ -117,7 +117,7 @@ class TestGenerateFencingParameters(utils.TestCommand):
       {
         "name": "control-1",
         "pm_password": "control-1-password",
-        "pm_type": "pxe_ssh",
+        "pm_type": "ipmi",
         "pm_user": "control-1-admin",
         "pm_addr": "1.2.3.4",
         "mac": [
@@ -151,20 +151,20 @@ class TestGenerateFencingParameters(utils.TestCommand):
                         u'name': u'control-0',
                         u'pm_port': u'0123',
                         u'pm_addr': u'0.1.2.3',
-                        u'pm_type': u'pxe_ipmitool',
+                        u'pm_type': u'ipmi',
                         u'pm_password': u'control-0-password',
                         u'pm_user': u'control-0-admin'
                     },
                     {
                         u'name': u'control-1',
                         u'pm_addr': u'1.2.3.4',
-                        u'pm_type': u'pxe_ssh',
+                        u'pm_type': u'ipmi',
                         u'pm_user': u'control-1-admin',
                         u'pm_password': u'control-1-password',
                         u'mac': [u'11:22:33:44:55:66']
                     }],
                 'delay': None,
-                'os_auth': {},
+                'os_auth': None,
                 'ipmi_cipher': None,
                 'ipmi_lanplus': False,
                 'ipmi_level': None

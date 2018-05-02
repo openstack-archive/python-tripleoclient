@@ -35,8 +35,7 @@ class TestProcessDriversAndHardwareTypes(base.TestCase):
     def setUp(self):
         super(TestProcessDriversAndHardwareTypes, self).setUp()
         self.conf = mock.Mock(**{key: getattr(undercloud_config.CONF, key)
-                                 for key in ('enabled_drivers',
-                                             'enabled_hardware_types',
+                                 for key in ('enabled_hardware_types',
                                              'enable_node_discovery',
                                              'discovery_default_driver')})
 
@@ -44,7 +43,6 @@ class TestProcessDriversAndHardwareTypes(base.TestCase):
         env = {}
         undercloud_config._process_drivers_and_hardware_types(self.conf, env)
         self.assertEqual({
-            'IronicEnabledDrivers': ['pxe_drac', 'pxe_ilo', 'pxe_ipmitool'],
             'IronicEnabledHardwareTypes': ['idrac', 'ilo', 'ipmi', 'redfish'],
             'IronicEnabledBootInterfaces': ['ilo-pxe', 'pxe'],
             'IronicEnabledManagementInterfaces': ['fake', 'idrac', 'ilo',
@@ -62,7 +60,6 @@ class TestProcessDriversAndHardwareTypes(base.TestCase):
 
         undercloud_config._process_drivers_and_hardware_types(self.conf, env)
         self.assertEqual({
-            'IronicEnabledDrivers': ['pxe_drac', 'pxe_ilo', 'pxe_ipmitool'],
             # ipmi added because it's the default discovery driver
             'IronicEnabledHardwareTypes': ['ipmi', 'redfish'],
             'IronicEnabledBootInterfaces': ['pxe'],
@@ -85,7 +82,6 @@ class TestProcessDriversAndHardwareTypes(base.TestCase):
 
         undercloud_config._process_drivers_and_hardware_types(self.conf, env)
         self.assertEqual({
-            'IronicEnabledDrivers': ['pxe_drac', 'pxe_ilo', 'pxe_ipmitool'],
             'IronicEnabledHardwareTypes': ['cisco-ucs-managed',
                                            'cisco-ucs-standalone',
                                            'idrac', 'ilo', 'ipmi', 'irmc',
