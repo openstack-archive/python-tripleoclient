@@ -791,9 +791,6 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
 
     deploy_args += [
         "-e", os.path.join(tht_templates, "environments/docker.yaml"),
-        "-e",
-        os.path.join(tht_templates,
-                     "environments/config-download-environment.yaml"),
         "-e", os.path.join(tht_templates, "environments/undercloud.yaml")]
 
     params_file = os.path.abspath(os.path.join(CONF['output_dir'],
