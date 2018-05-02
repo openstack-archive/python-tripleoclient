@@ -833,7 +833,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
     LOG_FILE = os.path.join(os.getcwd() + '/install-undercloud.log')
     deploy_args.append('--log-file=' + LOG_FILE)
 
-    cmd = ["sudo", "openstack", "undercloud", "deploy"]
+    cmd = ["sudo", "openstack", "tripleo", "deploy", "--standalone"]
     cmd += deploy_args[:]
 
     return cmd
