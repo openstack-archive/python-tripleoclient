@@ -1045,3 +1045,26 @@ def bulk_symlink(log, src, dst, tmpd='/tmp'):
         raise
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
+
+
+def run_command_and_log(log, cmd, cwd=None):
+    """Run command and log output
+
+    :param log: logger instance for logging
+    :type log: Logger
+
+    :param cmd: command in list form
+    :param cmd: List
+
+    :param cwd: current worknig directory for execution
+    :param cmd: String
+    """
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT, shell=False,
+                            bufsize=1, cwd=cwd)
+
+    for line in iter(proc.stdout.readline, b''):
+        # TODO(aschultz): this should probably goto a log file
+        log.warning(line.rstrip())
+    proc.stdout.close()
+    return proc.wait()

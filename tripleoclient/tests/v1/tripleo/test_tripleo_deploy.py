@@ -254,8 +254,8 @@ class TestDeployUndercloud(TestPluginV1):
                 autospec=True)
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_update_passwords_env', autospec=True)
-    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
-                '_run_and_log_output', autospec=True)
+    @mock.patch('tripleoclient.utils.'
+                'run_command_and_log', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True, return_value='/twd')
     @mock.patch('shutil.copytree', autospec=True)
     def test_setup_heat_environments(self,
@@ -328,15 +328,15 @@ class TestDeployUndercloud(TestPluginV1):
         mock_inventory.write_static_inventory.assert_called_once_with(
             fake_output_dir + '/inventory.yaml', extra_vars)
 
-    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
-                '_run_and_log_output', autospec=True)
+    @mock.patch('tripleoclient.utils.'
+                'run_command_and_log', autospec=True)
     @mock.patch('os.chdir')
     @mock.patch('os.execvp')
     def test_launch_ansible(self, mock_execvp, mock_chdir, mock_run):
 
         self.cmd._launch_ansible('/tmp')
         mock_chdir.assert_called_once()
-        mock_run.assert_called_once_with(self.cmd, [
+        mock_run.assert_called_once_with(self.cmd.log, [
             'ansible-playbook', '-i', '/tmp/inventory.yaml',
             'deploy_steps_playbook.yaml', '-e', 'role_name=Undercloud',
             '-e', 'deploy_server_id=undercloud', '-e',

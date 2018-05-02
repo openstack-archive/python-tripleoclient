@@ -22,7 +22,6 @@ import pwd
 import re
 import shutil
 import six
-import subprocess
 import sys
 import tarfile
 import tempfile
@@ -165,17 +164,6 @@ class Deploy(command.Command):
         utils.bulk_symlink(self.log, constants.TRIPLEO_PUPPET_MODULES,
                            constants.PUPPET_MODULES,
                            constants.PUPPET_BASE)
-
-    def _run_and_log_output(self, cmd, cwd=None):
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT, shell=False,
-                                bufsize=1, cwd=cwd)
-
-        for line in iter(proc.stdout.readline, b''):
-            # TODO(aschultz): this should probably goto a log file
-            self.log.warning(line.rstrip())
-        proc.stdout.close()
-        return proc.wait()
 
     def _update_passwords_env(self, output_dir, passwords=None):
         pw_file = os.path.join(output_dir, 'tripleo-undercloud-passwords.yaml')
@@ -372,7 +360,7 @@ class Deploy(command.Command):
                                          'tools/process-templates.py')
         args = ['python', process_templates, '--roles-data',
                 parsed_args.roles_file, '--output-dir', self.tht_render]
-        if self._run_and_log_output(args, cwd=self.tht_render) != 0:
+        if utils.run_command_and_log(self.log, args, cwd=self.tht_render) != 0:
             # TODO(aschultz): improve error messaging
             raise exceptions.DeploymentError("Problems generating templates.")
 
@@ -538,7 +526,7 @@ class Deploy(command.Command):
                '-e', 'deploy_server_id=undercloud', '-e',
                'bootstrap_server_id=undercloud']
         self.log.debug('Running Ansible: %s' % (' '.join(cmd)))
-        return self._run_and_log_output(cmd)
+        return utils.run_command_and_log(self.log, cmd)
 
     def get_parser(self, prog_name):
         parser = argparse.ArgumentParser(
