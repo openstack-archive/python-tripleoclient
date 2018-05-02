@@ -74,7 +74,7 @@ class TestUndercloudInstall(TestPluginV1):
         # DisplayCommandBase.take_action() returns two tuples
         self.cmd.take_action(parsed_args)
 
-        mock_os.assert_called_with('/foo')
+        mock_os.assert_called_with('/foo/tripleo-config-generated-env-files')
         mock_subprocess.assert_called_with(
             ['sudo', 'openstack', 'tripleo', 'deploy', '--standalone',
              '--local-domain=localdomain',
@@ -111,7 +111,8 @@ class TestUndercloudInstall(TestPluginV1):
              'services/undercloud-haproxy.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-keepalived.yaml',  '--output-dir=/foo',
-             '--cleanup', '-e', '/foo/undercloud_parameters.yaml',
+             '--cleanup', '-e', '/foo/tripleo-heat-installer-templates/'
+             'undercloud_parameters.yaml',
              '--log-file=/tmp/install-undercloud.log'])
 
     @mock.patch('os.mkdir')
@@ -268,7 +269,8 @@ class TestUndercloudInstall(TestPluginV1):
              'services/undercloud-haproxy.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-keepalived.yaml', '--output-dir=/home/stack',
-             '--cleanup', '-e', '/home/stack/undercloud_parameters.yaml',
+             '--cleanup', '-e', '/home/stack/tripleo-heat-installer-templates/'
+             'undercloud_parameters.yaml',
              '--log-file=/tmp/install-undercloud.log'])
 
     @mock.patch('os.mkdir')
@@ -324,7 +326,8 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-keepalived.yaml',
              '--output-dir=/home/stack', '--cleanup',
-             '-e', '/home/stack/undercloud_parameters.yaml',
+             '-e', '/home/stack/tripleo-heat-installer-templates/'
+             'undercloud_parameters.yaml',
              '--debug', '--log-file=/tmp/install-undercloud.log'])
 
     @mock.patch('os.mkdir')
@@ -382,7 +385,8 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-keepalived.yaml',
              '--output-dir=/home/stack', '--cleanup',
-             '-e', '/home/stack/undercloud_parameters.yaml',
+             '-e', '/home/stack/tripleo-heat-installer-templates/'
+             'undercloud_parameters.yaml',
              '--log-file=/tmp/install-undercloud.log'])
 
 
@@ -472,7 +476,8 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-keepalived.yaml',
              '--output-dir=/home/stack', '--cleanup',
-             '-e', '/home/stack/undercloud_parameters.yaml',
+             '-e', '/home/stack/tripleo-heat-installer-templates/'
+             'undercloud_parameters.yaml',
              '--log-file=/tmp/install-undercloud.log'])
 
     @mock.patch('os.mkdir')
@@ -531,5 +536,6 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-keepalived.yaml',
              '--output-dir=/home/stack', '--cleanup',
-             '-e', '/home/stack/undercloud_parameters.yaml',
+             '-e', '/home/stack/tripleo-heat-installer-templates/'
+             'undercloud_parameters.yaml',
              '--debug', '--log-file=/tmp/install-undercloud.log'])

@@ -257,7 +257,8 @@ class TestDeployUndercloud(TestPluginV1):
                 'run_command_and_log', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True, return_value='/twd')
     @mock.patch('shutil.copytree', autospec=True)
-    def test_setup_heat_environments(self,
+    @mock.patch('shutil.copy', autospec=True)
+    def test_setup_heat_environments(self, mock_cp,
                                      mock_copy,
                                      mock_mktemp,
                                      mock_run,
