@@ -104,8 +104,6 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'docker.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'config-download-environment.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
              'undercloud.yaml', '--output-dir=/foo',
              '-e', '/foo/undercloud_parameters.yaml',
              '--log-file=/tmp/install-undercloud.log'])
@@ -160,8 +158,6 @@ class TestUndercloudInstall(TestPluginV1):
              'services/undercloud-keepalived.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'docker.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'config-download-environment.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'undercloud.yaml', '--output-dir=/home/stack',
              '-e', '/home/stack/undercloud_parameters.yaml',
@@ -219,8 +215,6 @@ class TestUndercloudInstall(TestPluginV1):
              'services/undercloud-keepalived.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'docker.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'config-download-environment.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'undercloud.yaml', '--output-dir=/home/stack',
              '-e', '/home/stack/undercloud_parameters.yaml',
@@ -311,8 +305,6 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'docker.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'config-download-environment.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
              'undercloud.yaml', '--output-dir=/home/stack',
              '-e', '/home/stack/undercloud_parameters.yaml',
              '--log-file=/tmp/install-undercloud.log'])
@@ -370,8 +362,6 @@ class TestUndercloudUpgrade(TestPluginV1):
              'services/undercloud-keepalived.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'docker.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'config-download-environment.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'undercloud.yaml', '--output-dir=/home/stack',
              '-e', '/home/stack/undercloud_parameters.yaml',
