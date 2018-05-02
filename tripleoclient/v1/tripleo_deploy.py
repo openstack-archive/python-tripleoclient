@@ -26,7 +26,6 @@ import subprocess
 import sys
 import tarfile
 import tempfile
-import time
 import traceback
 import yaml
 
@@ -36,8 +35,6 @@ from heatclient.common import event_utils
 from heatclient.common import template_utils
 from openstackclient.i18n import _
 from six.moves import configparser
-from six.moves.urllib import error as url_error
-from six.moves.urllib import request
 
 from tripleoclient import constants
 from tripleoclient import exceptions
@@ -89,22 +86,6 @@ class Deploy(command.Command):
     tmp_env_dir = None
     tmp_env_file_name = None
     tmp_ansible_dir = None
-
-    def _symlink(self, src, dst, tmpd='/tmp'):
-        self.log.debug("Symlinking %s to %s, via temp dir %s" %
-                       (src, dst, tmpd))
-        try:
-            tmp = tempfile.mkdtemp(dir=tmpd)
-            subprocess.check_call(['mkdir', '-p', dst])
-            os.chmod(tmp, 0o755)
-            for obj in os.listdir(src):
-                tmpf = os.path.join(tmp, obj)
-                os.symlink(os.path.join(src, obj), tmpf)
-                os.rename(tmpf, os.path.join(dst, obj))
-        except Exception:
-            raise
-        finally:
-            shutil.rmtree(tmp, ignore_errors=True)
 
     def _get_tar_filename(self):
         """Return tarball name for the install artifacts"""
@@ -179,30 +160,11 @@ class Deploy(command.Command):
             self.log.warning("Not cleaning ansible directory %s"
                              % self.tmp_ansible_dir)
 
-    def _get_hostname(self):
-        p = subprocess.Popen(["hostname", "-s"], stdout=subprocess.PIPE)
-        return p.communicate()[0].rstrip()
-
     def _configure_puppet(self):
         self.log.info('Configuring puppet modules symlinks ...')
-        self._symlink(constants.TRIPLEO_PUPPET_MODULES,
-                      constants.PUPPET_MODULES,
-                      constants.PUPPET_BASE)
-
-    def _wait_local_port_ready(self, api_port):
-        count = 0
-        while count < 30:
-            time.sleep(1)
-            count += 1
-            try:
-                request.urlopen("http://127.0.0.1:%s/" % api_port, timeout=1)
-            except url_error.HTTPError as he:
-                if he.code == 300:
-                    return True
-                pass
-            except url_error.URLError:
-                pass
-        return False
+        utils.bulk_symlink(self.log, constants.TRIPLEO_PUPPET_MODULES,
+                           constants.PUPPET_MODULES,
+                           constants.PUPPET_BASE)
 
     def _run_and_log_output(self, cmd, cwd=None):
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
@@ -280,7 +242,7 @@ class Deploy(command.Command):
         return pw_file
 
     def _generate_hosts_parameters(self, parsed_args, p_ip):
-        hostname = self._get_hostname()
+        hostname = utils.get_short_hostname()
         domain = parsed_args.local_domain
 
         data = {
@@ -296,7 +258,7 @@ class Deploy(command.Command):
 
     def _generate_portmap_parameters(self, ip_addr, cidr_prefixlen,
                                      ctlplane_vip_addr, public_vip_addr):
-        hostname = self._get_hostname()
+        hostname = utils.get_short_hostname()
 
         data = {
             'ControlPlaneSubnetCidr': '%s' % cidr_prefixlen,
@@ -767,7 +729,7 @@ class Deploy(command.Command):
             # Launch heat.
             orchestration_client = self._launch_heat(parsed_args)
             # Wait for heat to be ready.
-            self._wait_local_port_ready(parsed_args.heat_api_port)
+            utils.wait_api_port_ready(parsed_args.heat_api_port)
             # Deploy TripleO Heat templates.
             stack_id = \
                 self._deploy_tripleo_heat_templates(orchestration_client,

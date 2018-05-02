@@ -20,6 +20,8 @@ import getpass
 import glob
 import hashlib
 import logging
+import shutil
+
 import os
 import os.path
 import simplejson
@@ -39,6 +41,10 @@ from oslo_concurrency import processutils
 from six.moves import configparser
 
 from heatclient import exc as hc_exc
+from six.moves.urllib import error as url_error
+from six.moves.urllib import request
+
+
 from tripleoclient import exceptions
 
 
@@ -973,3 +979,69 @@ def load_container_registry(log, path):
             "to re-run this command and provide the registry file "
             "with: --container-registry-file option.")
     return registry
+
+
+def get_short_hostname():
+    """Returns the local short hostname
+
+    :return string
+    """
+    p = subprocess.Popen(["hostname", "-s"], stdout=subprocess.PIPE)
+    return p.communicate()[0].rstrip()
+
+
+def wait_api_port_ready(api_port, host='127.0.0.1'):
+    """Wait until an http services becomes available
+
+    :param api_port: api service port
+    :type  api_port: integer
+
+    :param host: host running the service (default: 127.0.0.1)
+    :type host: string
+
+    :return boolean
+    """
+    count = 0
+    while count < 30:
+        time.sleep(1)
+        count += 1
+        try:
+            request.urlopen("http://%s:%s/" % (host, api_port), timeout=1)
+        except url_error.HTTPError as he:
+            if he.code == 300:
+                return True
+            pass
+        except url_error.URLError:
+            pass
+    return False
+
+
+def bulk_symlink(log, src, dst, tmpd='/tmp'):
+    """Create bulk symlinks from a directory
+
+    :param log: logger instance for logging
+    :type log: Logger
+
+    :param src: dir of directories to symlink
+    :type src: string
+
+    :param dst: dir to create the symlinks
+    :type dst: string
+
+    :param tmpd: temporary working directory to use
+    :type tmp: string
+    """
+    log.debug("Symlinking %s to %s, via temp dir %s" %
+              (src, dst, tmpd))
+    try:
+        tmp = tempfile.mkdtemp(dir=tmpd)
+        subprocess.check_call(['mkdir', '-p', dst])
+        os.chmod(tmp, 0o755)
+        for obj in os.listdir(src):
+            tmpf = os.path.join(tmp, obj)
+            os.symlink(os.path.join(src, obj), tmpf)
+            os.rename(tmpf, os.path.join(dst, obj))
+    except Exception:
+        raise
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
