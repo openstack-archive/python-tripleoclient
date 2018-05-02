@@ -791,12 +791,13 @@ class DeployOvercloud(command.Command):
         )
         parser.add_argument(
             '--no-config-download',
+            '--stack-only',
             action='store_false',
             default=False,
             dest='config_download',
-            help=_('Disable deployment via config-download mechanism. This '
-                   'method is DEPRECATED and the CLI arg and method may be '
-                   'removed in the future.')
+            help=_('Disable the config-download workflow and only create '
+                   'the stack and associated OpenStack resources. No '
+                   'software configuration will be applied.')
         )
         parser.add_argument(
             '--output-dir',
@@ -906,10 +907,6 @@ class DeployOvercloud(command.Command):
                                        parsed_args.overcloud_ssh_key,
                                        parsed_args.output_dir,
                                        verbosity=self.app_args.verbose_level)
-        else:
-            self.log.warning("Disabling config-download is DEPRECATED in "
-                             "Rocky. The ability to disable config-download "
-                             "may be removed in the future.")
 
         # Force fetching of attributes
         stack.get()
