@@ -30,39 +30,13 @@ from cryptography.hazmat.primitives import serialization
 
 from oslo_config import cfg
 from tripleo_common.image import kolla_builder
-from tripleoclient import constants
+
+from tripleoclient.config.undercloud import SUBNETS_DEFAULT
+from tripleoclient.config.undercloud import UndercloudConfig
 from tripleoclient import exceptions
 from tripleoclient import utils
-
 from tripleoclient.v1 import undercloud_preflight
 
-NETCONFIG_TAGS_EXAMPLE = """
-"network_config": [
- {
-  "type": "ovs_bridge",
-  "name": "br-ctlplane",
-  "ovs_extra": [
-   "br-set-external-id br-ctlplane bridge-id br-ctlplane"
-  ],
-  "members": [
-   {
-    "type": "interface",
-    "name": "{{LOCAL_INTERFACE}}",
-    "primary": "true",
-    "mtu": {{LOCAL_MTU}},
-    "dns_servers": {{UNDERCLOUD_NAMESERVERS}}
-   }
-  ],
-  "addresses": [
-    {
-      "ip_netmask": "{{PUBLIC_INTERFACE_IP}}"
-    }
-  ],
-  "routes": {{SUBNETS_STATIC_ROUTES}},
-  "mtu": {{LOCAL_MTU}}
-}
-]
-"""
 
 # Provides mappings for some of the instack_env tags to undercloud heat
 # params or undercloud.conf opts known here (as a fallback), needed to maintain
@@ -108,9 +82,6 @@ TELEMETRY_DOCKER_ENV_YAML = [
     'environments/services/undercloud-panko.yaml',
     'environments/services/undercloud-ceilometer.yaml']
 
-# Control plane network name
-SUBNETS_DEFAULT = ['ctlplane-subnet']
-
 
 class Paths(object):
     @property
@@ -121,386 +92,31 @@ class Paths(object):
 CONF = cfg.CONF
 PATHS = Paths()
 
-# Deprecated options
-_deprecated_opt_network_gateway = [cfg.DeprecatedOpt(
-    'network_gateway', group='DEFAULT')]
-_deprecated_opt_network_cidr = [cfg.DeprecatedOpt(
-    'network_cidr', group='DEFAULT')]
-_deprecated_opt_dhcp_start = [cfg.DeprecatedOpt(
-    'dhcp_start', group='DEFAULT')]
-_deprecated_opt_dhcp_end = [cfg.DeprecatedOpt('dhcp_end', group='DEFAULT')]
-_deprecated_opt_inspection_iprange = [cfg.DeprecatedOpt(
-    'inspection_iprange', group='DEFAULT')]
 
 # When adding new options to the lists below, make sure to regenerate the
 # sample config by running "tox -e genconfig" in the project root.
 ci_defaults = kolla_builder.container_images_prepare_defaults()
-_opts = [
-    cfg.StrOpt('output_dir',
-               default=constants.UNDERCLOUD_OUTPUT_DIR,
-               help=('Directory to output state, processed heat templates, '
-                     'ansible deployment files.'),
-               ),
-    cfg.BoolOpt('cleanup',
-                default=False,
-                help=('Cleanup temporary files'),
-                ),
-    cfg.StrOpt('deployment_user',
-               help=('User used to run openstack undercloud install command '
-                     'which will be used to add the user to the docker group, '
-                     'required to upload containers'),
-               ),
-    cfg.StrOpt('undercloud_hostname',
-               help=('Fully qualified hostname (including domain) to set on '
-                     'the Undercloud. If left unset, the '
-                     'current hostname will be used, but the user is '
-                     'responsible for configuring all system hostname '
-                     'settings appropriately.  If set, the undercloud install '
-                     'will configure all system hostname settings.'),
-               ),
-    cfg.StrOpt('local_ip',
-               default='192.168.24.1/24',
-               help=('IP information for the interface on the Undercloud '
-                     'that will be handling the PXE boots and DHCP for '
-                     'Overcloud instances.  The IP portion of the value will '
-                     'be assigned to the network interface defined by '
-                     'local_interface, with the netmask defined by the '
-                     'prefix portion of the value.')
-               ),
-    cfg.StrOpt('undercloud_public_host',
-               deprecated_name='undercloud_public_vip',
-               default='192.168.24.2',
-               help=('Virtual IP or DNS address to use for the public '
-                     'endpoints of Undercloud services. Only used with SSL.')
-               ),
-    cfg.StrOpt('undercloud_admin_host',
-               deprecated_name='undercloud_admin_vip',
-               default='192.168.24.3',
-               help=('Virtual IP or DNS address to use for the admin '
-                     'endpoints of Undercloud services. Only used with SSL.')
-               ),
-    cfg.ListOpt('undercloud_nameservers',
-                default=[],
-                help=('DNS nameserver(s) to use for the undercloud node.'),
-                ),
-    cfg.ListOpt('undercloud_ntp_servers',
-                default=[],
-                help=('List of ntp servers to use.')),
-    cfg.StrOpt('overcloud_domain_name',
-               default='localdomain',
-               help=('DNS domain name to use when deploying the overcloud. '
-                     'The overcloud parameter "CloudDomain" must be set to a '
-                     'matching value.')
-               ),
-    cfg.ListOpt('subnets',
-                default=SUBNETS_DEFAULT,
-                help=('List of routed network subnets for provisioning '
-                      'and introspection. Comma separated list of names/tags. '
-                      'For each network a section/group needs to be added to '
-                      'the configuration file with these parameters set: '
-                      'cidr, dhcp_start, dhcp_end, inspection_iprange, '
-                      'gateway and masquerade_network.'
-                      '\n\n'
-                      'Example:\n\n'
-                      'subnets = subnet1,subnet2\n'
-                      '\n'
-                      'An example section/group in config file:\n'
-                      '\n'
-                      '[subnet1]\n'
-                      'cidr = 192.168.10.0/24\n'
-                      'dhcp_start = 192.168.10.100\n'
-                      'dhcp_end = 192.168.10.200\n'
-                      'inspection_iprange = 192.168.10.20,192.168.10.90\n'
-                      'gateway = 192.168.10.254\n'
-                      'masquerade = True'
-                      '\n'
-                      '[subnet2]\n'
-                      '. . .\n')),
-    cfg.StrOpt('local_subnet',
-               default=SUBNETS_DEFAULT[0],
-               help=('Name of the local subnet, where the PXE boot and DHCP '
-                     'interfaces for overcloud instances is located. The IP '
-                     'address of the local_ip/local_interface should reside '
-                     'in this subnet.')),
-    cfg.StrOpt('undercloud_service_certificate',
-               default='',
-               help=('Certificate file to use for OpenStack service SSL '
-                     'connections.  Setting this enables SSL for the '
-                     'OpenStack API endpoints, leaving it unset disables SSL.')
-               ),
-    cfg.BoolOpt('generate_service_certificate',
-                default=True,
-                help=('When set to True, an SSL certificate will be generated '
-                      'as part of the undercloud install and this certificate '
-                      'will be used in place of the value for '
-                      'undercloud_service_certificate.  The resulting '
-                      'certificate will be written to '
-                      '/etc/pki/tls/certs/undercloud-[undercloud_public_host].'
-                      'pem.  This certificate is signed by CA selected by the '
-                      '"certificate_generation_ca" option.')
-                ),
-    cfg.StrOpt('certificate_generation_ca',
-               default='local',
-               help=('The certmonger nickname of the CA from which the '
-                     'certificate will be requested. This is used only if '
-                     'the generate_service_certificate option is set. '
-                     'Note that if the "local" CA is selected the '
-                     'certmonger\'s local CA certificate will be extracted to '
-                     '/etc/pki/ca-trust/source/anchors/cm-local-ca.pem and '
-                     'subsequently added to the trust chain.')
 
-               ),
-    cfg.StrOpt('service_principal',
-               default='',
-               help=('The kerberos principal for the service that will use '
-                     'the certificate. This is only needed if your CA '
-                     'requires a kerberos principal. e.g. with FreeIPA.')
-               ),
-    cfg.StrOpt('local_interface',
-               default='eth1',
-               help=('Network interface on the Undercloud that will be '
-                     'handling the PXE boots and DHCP for Overcloud '
-                     'instances.')
-               ),
-    cfg.IntOpt('local_mtu',
-               default=1500,
-               help=('MTU to use for the local_interface.')
-               ),
-    cfg.StrOpt('hieradata_override',
-               default='',
-               help=('Path to hieradata override file. Relative paths get '
-                     'computed inside of $HOME. When it points to a heat '
-                     'env file, it is passed in t-h-t via "-e <file>", as is. '
-                     'When the file contains legacy instack data, '
-                     'it is wrapped with UndercloudExtraConfig and also '
-                     'passed in for t-h-t as a temp file created in '
-                     'output_dir. Note, instack hiera data may be '
-                     'not t-h-t compatible and will highly likely require a '
-                     'manual revision.')
-               ),
-    cfg.StrOpt('net_config_override',
-               default='',
-               help=('Path to network config override template. Relative '
-                     'paths get computed inside of the given heat templates '
-                     'directory. Must be in json format. '
-                     'Its content overrides anything in t-h-t '
-                     'UndercloudNetConfigOverride. The processed template '
-                     'is then passed in Heat via the top scope '
-                     'undercloud_parameters.yaml file created in '
-                     'output_dir and used to configure the networking '
-                     'via run-os-net-config. If you wish to disable '
-                     'you can set this location to an empty file.'
-                     'Templated for instack j2 tags '
-                     'may be used, for example:\n%s ') % NETCONFIG_TAGS_EXAMPLE
-               ),
-    cfg.StrOpt('inspection_interface',
-               default='br-ctlplane',
-               deprecated_name='discovery_interface',
-               help=('Network interface on which inspection dnsmasq will '
-                     'listen.  If in doubt, use the default value.')
-               ),
-    cfg.BoolOpt('inspection_extras',
-                default=True,
-                help=('Whether to enable extra hardware collection during '
-                      'the inspection process. Requires python-hardware or '
-                      'python-hardware-detect package on the introspection '
-                      'image.')),
-    cfg.BoolOpt('inspection_runbench',
-                default=False,
-                deprecated_name='discovery_runbench',
-                help=('Whether to run benchmarks when inspecting nodes. '
-                      'Requires inspection_extras set to True.')
-                ),
-    cfg.BoolOpt('enable_node_discovery',
-                default=False,
-                help=('Makes ironic-inspector enroll any unknown node that '
-                      'PXE-boots introspection ramdisk in Ironic. By default, '
-                      'the "fake" driver is used for new nodes (it is '
-                      'automatically enabled when this option is set to True).'
-                      ' Set discovery_default_driver to override. '
-                      'Introspection rules can also be used to specify driver '
-                      'information for newly enrolled nodes.')
-                ),
-    cfg.StrOpt('discovery_default_driver',
-               default='ipmi',
-               help=('The default driver or hardware type to use for newly '
-                     'discovered nodes (requires enable_node_discovery set to '
-                     'True). It is automatically added to '
-                     'enabled_hardware_types.')
-               ),
-    cfg.BoolOpt('undercloud_debug',
-                default=True,
-                help=('Whether to enable the debug log level for Undercloud '
-                      'OpenStack services.')
-                ),
-    cfg.BoolOpt('undercloud_update_packages',
-                default=False,
-                help=('Whether to update packages during the Undercloud '
-                      'install. This is a no-op for containerized undercloud.')
-                ),
-    cfg.BoolOpt('enable_tempest',
-                default=True,
-                help=('Whether to install Tempest in the Undercloud.'
-                      'This is a no-op for containerized undercloud.')
-                ),
-    cfg.BoolOpt('enable_telemetry',
-                default=False,
-                help=('Whether to install Telemetry services '
-                      '(ceilometer, gnocchi, aodh, panko ) in the Undercloud.')
-                ),
-    cfg.BoolOpt('enable_ui',
-                default=True,
-                help=('Whether to install the TripleO UI.')
-                ),
-    cfg.BoolOpt('enable_validations',
-                default=True,
-                help=('Whether to install requirements to run the TripleO '
-                      'validations.')
-                ),
-    cfg.BoolOpt('enable_cinder',
-                default=False,
-                help=('Whether to install the Volume service. It is not '
-                      'currently used in the undercloud.')),
-    cfg.BoolOpt('enable_novajoin',
-                default=False,
-                help=('Whether to install novajoin metadata service in '
-                      'the Undercloud.')
-                ),
-    cfg.BoolOpt('enable_container_images_build',
-                default=True,
-                help=('Whether to enable docker container images to be build '
-                      'on the undercloud.')
-                ),
-    cfg.StrOpt('ipa_otp',
-               default='',
-               help=('One Time Password to register Undercloud node with '
-                     'an IPA server.  '
-                     'Required when enable_novajoin = True.')
-               ),
-    cfg.BoolOpt('ipxe_enabled',
-                default=True,
-                help=('Whether to use iPXE for deploy and inspection.'),
-                deprecated_name='ipxe_deploy',
-                ),
-    cfg.IntOpt('scheduler_max_attempts',
-               default=30, min=1,
-               help=('Maximum number of attempts the scheduler will make '
-                     'when deploying the instance. You should keep it '
-                     'greater or equal to the number of bare metal nodes '
-                     'you expect to deploy at once to work around '
-                     'potential race condition when scheduling.')),
-    cfg.BoolOpt('clean_nodes',
-                default=False,
-                help=('Whether to clean overcloud nodes (wipe the hard drive) '
-                      'between deployments and after the introspection.')),
-    cfg.ListOpt('enabled_hardware_types',
-                default=['ipmi', 'redfish', 'ilo', 'idrac'],
-                help=('List of enabled bare metal hardware types (next '
-                      'generation drivers).')),
-    cfg.StrOpt('docker_registry_mirror',
-               default='',
-               help=('An optional docker \'registry-mirror\' that will be'
-                     'configured in /etc/docker/daemon.json.')
-               ),
-    cfg.ListOpt('docker_insecure_registries',
-                default=[],
-                help=('Used to add custom insecure registries in '
-                      '/etc/sysconfig/docker.')
-                ),
-    cfg.StrOpt('templates',
-               default='',
-               help=('heat templates file to override.')
-               ),
-    cfg.StrOpt('roles_file',
-               default=None,
-               help=('Roles file to override for heat. '
-                     'The file path is related to the templates path')
-               ),
-    cfg.BoolOpt('heat_native',
-                default=True,
-                help=('Use native heat templates.')),
-    cfg.StrOpt('heat_container_image',
-               default='',
-               help=('URL for the heat container image to use.')
-               ),
-    cfg.StrOpt('container_images_file',
-               default='',
-               help=('Heat environment file with parameters for all required '
-                     'container images. Or alternatively, parameter '
-                     '"ContainerImagePrepare" to drive the required image '
-                     'preparation.')),
-    cfg.BoolOpt('enable_ironic',
-                default=True,
-                help=('Whether to enable the ironic service.')),
-    cfg.BoolOpt('enable_ironic_inspector',
-                default=True,
-                help=('Whether to enable the ironic inspector service.')),
-    cfg.BoolOpt('enable_mistral',
-                default=True,
-                help=('Whether to enable the mistral service.')),
-    cfg.BoolOpt('enable_zaqar',
-                default=True,
-                help=('Whether to enable the zaqar service.')),
-    cfg.ListOpt('custom_env_files',
-                default=[],
-                help=('List of any custom environment yaml files to use')),
-    cfg.BoolOpt('enable_routed_networks',
-                default=False,
-                help=('Enable support for routed ctlplane networks.')),
-    cfg.BoolOpt('enable_swift_encryption',
-                default=False,
-                help=('Whether to enable Swift encryption at-rest or not.')),
-]
+config = UndercloudConfig()
 
 # Routed subnets
-_subnets_opts = [
-    cfg.StrOpt('cidr',
-               default='192.168.24.0/24',
-               deprecated_opts=_deprecated_opt_network_cidr,
-               help=('Network CIDR for the Neutron-managed subnet for '
-                     'Overcloud instances.')),
-    cfg.StrOpt('dhcp_start',
-               default='192.168.24.5',
-               deprecated_opts=_deprecated_opt_dhcp_start,
-               help=('Start of DHCP allocation range for PXE and DHCP of '
-                     'Overcloud instances on this network.')),
-    cfg.StrOpt('dhcp_end',
-               default='192.168.24.24',
-               deprecated_opts=_deprecated_opt_dhcp_end,
-               help=('End of DHCP allocation range for PXE and DHCP of '
-                     'Overcloud instances on this network.')),
-    cfg.StrOpt('inspection_iprange',
-               default='192.168.24.100,192.168.24.120',
-               deprecated_opts=_deprecated_opt_inspection_iprange,
-               help=('Temporary IP range that will be given to nodes on this '
-                     'network during the inspection process. Should not '
-                     'overlap with the range defined by dhcp_start and '
-                     'dhcp_end, but should be in the same ip subnet.')),
-    cfg.StrOpt('gateway',
-               default='192.168.24.1',
-               deprecated_opts=_deprecated_opt_network_gateway,
-               help=('Network gateway for the Neutron-managed network for '
-                     'Overcloud instances on this network.')),
-    cfg.BoolOpt('masquerade',
-                default=False,
-                help=('The network will be masqueraded for external access.')),
-]
-
+_opts = config.get_opts()
 CONF.register_opts(_opts)
 
 
 def _load_subnets_config_groups():
     for group in CONF.subnets:
         g = cfg.OptGroup(name=group, title=group)
-        CONF.register_opts(_subnets_opts, group=g)
+        CONF.register_opts(config.get_subnet_opts(), group=g)
 
 
 LOG = logging.getLogger(__name__ + ".undercloud_config")
 
 
+# this is needed for the oslo config generator
 def list_opts():
     return [(None, copy.deepcopy(_opts)),
-            (SUBNETS_DEFAULT[0], copy.deepcopy(_subnets_opts))]
+            (SUBNETS_DEFAULT[0], copy.deepcopy(config.get_subnet_opts()))]
 
 
 def _load_config():
