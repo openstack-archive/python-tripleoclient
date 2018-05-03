@@ -625,6 +625,8 @@ class DeployOvercloud(command.Command):
         )
         parser.add_argument(
             '--overcloud-ssh-key',
+            default=os.path.join(
+                os.path.expanduser('~'), '.ssh', 'id_rsa'),
             help=_('Key path for ssh access to overcloud nodes.')
         )
         parser.add_argument(
@@ -899,9 +901,13 @@ class DeployOvercloud(command.Command):
         if parsed_args.config_download:
             print("Deploying overcloud configuration")
 
+            hosts = deployment.get_overcloud_hosts(self.clients, stack)
+            deployment.enable_ssh_admin(self.log, self.clients,
+                                        hosts,
+                                        parsed_args.overcloud_ssh_user,
+                                        parsed_args.overcloud_ssh_key)
             deployment.config_download(self.log, self.clients, stack,
                                        parsed_args.templates,
-                                       parsed_args.deployed_server,
                                        parsed_args.overcloud_ssh_user,
                                        parsed_args.overcloud_ssh_key,
                                        parsed_args.output_dir,
