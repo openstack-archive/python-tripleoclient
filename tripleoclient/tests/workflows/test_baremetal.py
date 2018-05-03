@@ -114,11 +114,11 @@ class TestBaremetalWorkflows(utils.TestCommand):
                 'node_uuids': [],
             })
 
-    def test_format_provide_errors(self):
+    def test_format_errors(self):
         payload = {'message': [{'result': 'Error1a\nError1b'},
                                {'result': 'Error2a\nError2b\n'}]}
 
-        error_string = baremetal._format_provide_errors(payload)
+        error_string = baremetal._format_errors(payload)
         self.assertEqual(error_string, "Error1b\nError2b")
 
     def test_provide_error_with_format_message(self):
@@ -304,5 +304,65 @@ class TestBaremetalWorkflows(utils.TestCommand):
 
         self.workflow.executions.create.assert_called_once_with(
             'tripleo.baremetal.v1.configure_manageable_nodes',
+            workflow_input={}
+        )
+
+    def test_clean_nodes_success(self):
+
+        self.websocket.wait_for_messages.return_value = self.message_success
+
+        baremetal.clean_nodes(self.app.client_manager, node_uuids=[])
+
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.baremetal.v1.clean_nodes',
+            workflow_input={
+                'node_uuids': [],
+            })
+
+    def test_clean_nodes_error(self):
+
+        self.websocket.wait_for_messages.return_value = self.message_failed
+
+        self.assertRaises(
+            exceptions.NodeConfigurationError,
+            baremetal.clean_nodes,
+            self.app.client_manager,
+            node_uuids=[]
+        )
+
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.baremetal.v1.clean_nodes',
+            workflow_input={
+                'node_uuids': [],
+            })
+
+    def test_clean_manageable_nodes_success(self):
+
+        self.websocket.wait_for_messages.return_value = iter([{
+            "execution": {"id": "IDID"},
+            "status": "SUCCESS",
+            "cleaned_nodes": [],
+        }])
+
+        baremetal.clean_manageable_nodes(
+            self.app.client_manager
+        )
+
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.baremetal.v1.clean_manageable_nodes',
+            workflow_input={}
+        )
+
+    def test_clean_manageable_nodes_error(self):
+
+        self.websocket.wait_for_messages.return_value = self.message_failed
+
+        self.assertRaises(
+            exceptions.NodeConfigurationError,
+            baremetal.clean_manageable_nodes,
+            self.app.client_manager)
+
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.baremetal.v1.clean_manageable_nodes',
             workflow_input={}
         )

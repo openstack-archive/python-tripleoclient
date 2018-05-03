@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Adds new command to run metadata cleaning on nodes::
+
+        openstack overcloud node clean [--all-manageable|uuid1,uuid2,..]
