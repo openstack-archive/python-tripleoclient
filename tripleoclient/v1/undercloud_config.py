@@ -363,6 +363,11 @@ _opts = [
                default='',
                help=('heat templates file to override.')
                ),
+    cfg.StrOpt('roles_file',
+               default=None,
+               help=('Roles file to override for heat. '
+                     'The file path is related to the templates path')
+               ),
     cfg.BoolOpt('heat_native',
                 default=True,
                 help=('Use native heat templates.')),
@@ -636,6 +641,9 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
     else:
         tht_templates = THT_HOME
         deploy_args.append('--templates=%s' % THT_HOME)
+
+    if CONF.get('roles_file', None):
+        deploy_args.append('--roles-file=%s' % CONF['roles_file'])
 
     if upgrade:
         deploy_args += ['-e', os.path.join(
