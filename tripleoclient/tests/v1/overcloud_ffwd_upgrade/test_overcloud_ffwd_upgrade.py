@@ -73,11 +73,13 @@ class TestFFWDUpgradePrepare(fakes.TestFFWDUpgradePrepare):
         mock_yaml.return_value = {'fake_container': 'fake_value'}
 
         argslist = ['--stack', 'mystack', '--templates',
-                    '--container-registry-file', 'my-fake-registry.yaml']
+                    '--container-registry-file', 'my-fake-registry.yaml',
+                    '--yes']
         verifylist = [
             ('stack', 'mystack'),
             ('templates', constants.TRIPLEO_HEAT_TEMPLATES),
-            ('container_registry_file', 'my-fake-registry.yaml')
+            ('container_registry_file', 'my-fake-registry.yaml'),
+            ('yes', True),
         ]
 
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
@@ -111,11 +113,13 @@ class TestFFWDUpgradePrepare(fakes.TestFFWDUpgradePrepare):
         mock_abspath.return_value = '/home/fake/my-fake-registry.yaml'
         mock_yaml.return_value = {'fake_container': 'fake_value'}
         argslist = ['--stack', 'overcloud', '--templates',
-                    '--container-registry-file', 'my-fake-registry.yaml']
+                    '--container-registry-file', 'my-fake-registry.yaml',
+                    '--yes', ]
         verifylist = [
             ('stack', 'overcloud'),
             ('templates', constants.TRIPLEO_HEAT_TEMPLATES),
-            ('container_registry_file', 'my-fake-registry.yaml')
+            ('container_registry_file', 'my-fake-registry.yaml'),
+            ('yes', True),
         ]
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
 
@@ -145,8 +149,8 @@ class TestFFWDUpgradeRun(fakes.TestFFWDUpgradeRun):
     def test_ffwd_upgrade_playbook(
             self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
         mock_expanduser.return_value = '/home/fake/'
-        argslist = []
-        verifylist = []
+        argslist = ['--yes']
+        verifylist = [('yes', True), ]
 
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
         with mock.patch('os.path.exists') as mock_exists:
@@ -170,7 +174,7 @@ class TestFFWDUpgradeRun(fakes.TestFFWDUpgradeRun):
     def test_upgrade_no_nodes_or_roles(self, mock_open, mock_execute,
                                        mock_expanduser, upgrade_ansible):
         mock_expanduser.return_value = '/home/fake/'
-        argslist = ["--nodes", "controller-1", "--roles", "foo"]
+        argslist = ["--nodes", "controller-1", "--roles", "foo", "--yes"]
         verifylist = []
         self.assertRaises(ParserException, lambda: self.check_parser(
             self.cmd, argslist, verifylist))
@@ -213,10 +217,11 @@ class TestFFWDUpgradeConverge(fakes.TestFFWDUpgradeConverge):
         mock_stack = mock.Mock()
         mock_stack.stack_name = 'le_overcloud'
         mock_get_stack.return_value = mock_stack
-        argslist = ['--stack', 'le_overcloud', '--templates']
+        argslist = ['--stack', 'le_overcloud', '--templates', '--yes']
         verifylist = [
             ('stack', 'le_overcloud'),
             ('templates', constants.TRIPLEO_HEAT_TEMPLATES),
+            ('yes', True)
         ]
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
         with mock.patch('os.path.exists') as mock_exists:

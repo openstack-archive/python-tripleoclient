@@ -36,6 +36,12 @@ class FFWDUpgradePrepare(DeployOvercloud):
 
     def get_parser(self, prog_name):
         parser = super(FFWDUpgradePrepare, self).get_parser(prog_name)
+        parser.add_argument('--yes',
+                            action='store_true',
+                            help=_("Use --yes to skip the confirmation "
+                                   "required before any ffwd-upgrade "
+                                   "operation. Use this with caution! "),
+                            )
         parser.add_argument('--container-registry-file',
                             dest='container_registry_file',
                             default=None,
@@ -53,6 +59,8 @@ class FFWDUpgradePrepare(DeployOvercloud):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+        oooutils.ffwd_upgrade_operator_confirm(parsed_args.yes, self.log)
+
         clients = self.app.client_manager
 
         stack = oooutils.get_stack(clients.orchestration,
@@ -103,6 +111,12 @@ class FFWDUpgradeRun(command.Command):
 
     def get_parser(self, prog_name):
         parser = super(FFWDUpgradeRun, self).get_parser(prog_name)
+        parser.add_argument('--yes',
+                            action='store_true',
+                            help=_("Use --yes to skip the confirmation "
+                                   "required before any ffwd-upgrade "
+                                   "operation. Use this with caution! "),
+                            )
         parser.add_argument('--static-inventory',
                             dest='static_inventory',
                             action="store",
@@ -123,6 +137,8 @@ class FFWDUpgradeRun(command.Command):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+        oooutils.ffwd_upgrade_operator_confirm(parsed_args.yes, self.log)
+
         clients = self.app.client_manager
         # Run ansible:
         inventory = oooutils.get_tripleo_ansible_inventory(
@@ -150,10 +166,18 @@ class FFWDUpgradeConverge(DeployOvercloud):
 
     def get_parser(self, prog_name):
         parser = super(FFWDUpgradeConverge, self).get_parser(prog_name)
+        parser.add_argument('--yes',
+                            action='store_true',
+                            help=_("Use --yes to skip the confirmation "
+                                   "required before any ffwd-upgrade "
+                                   "operation. Use this with caution! "),
+                            )
         return parser
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+        oooutils.ffwd_upgrade_operator_confirm(parsed_args.yes, self.log)
+
         clients = self.app.client_manager
 
         stack = oooutils.get_stack(clients.orchestration,
