@@ -332,9 +332,9 @@ class TestDeployUndercloud(TestPluginV1):
                 'run_command_and_log', autospec=True)
     @mock.patch('os.chdir')
     @mock.patch('os.execvp')
-    def test_launch_ansible(self, mock_execvp, mock_chdir, mock_run):
+    def test_launch_ansible_deploy(self, mock_execvp, mock_chdir, mock_run):
 
-        self.cmd._launch_ansible('/tmp')
+        self.cmd._launch_ansible_deploy('/tmp')
         mock_chdir.assert_called_once()
         mock_run.assert_called_once_with(self.cmd.log, [
             'ansible-playbook', '-i', '/tmp/inventory.yaml',
@@ -368,7 +368,7 @@ class TestDeployUndercloud(TestPluginV1):
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_create_install_artifact', return_value='/tmp/foo.tar.bzip2')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
-                '_launch_ansible')
+                '_launch_ansible_deploy')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_cleanup_working_dirs')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'

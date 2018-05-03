@@ -517,15 +517,26 @@ class Deploy(command.Command):
         return self.tmp_ansible_dir
 
     # Never returns, calls exec()
-    def _launch_ansible(self, ansible_dir):
-        self.log.warning('** Running ansible.. **')
+    def _launch_ansible_deploy(self, ansible_dir):
+        self.log.warning('** Running ansible deploy tasks **')
         os.chdir(ansible_dir)
         playbook_inventory = os.path.join(ansible_dir, 'inventory.yaml')
         cmd = ['ansible-playbook', '-i', playbook_inventory,
                'deploy_steps_playbook.yaml', '-e', 'role_name=Undercloud',
                '-e', 'deploy_server_id=undercloud', '-e',
                'bootstrap_server_id=undercloud']
-        self.log.debug('Running Ansible: %s' % (' '.join(cmd)))
+        self.log.debug('Running Ansible Deploy tasks: %s' % (' '.join(cmd)))
+        return utils.run_command_and_log(self.log, cmd)
+
+    def _launch_ansible_upgrade(self, ansible_dir):
+        self.log.warning('** Running ansible upgrade tasks **')
+        os.chdir(ansible_dir)
+        playbook_inventory = os.path.join(ansible_dir, 'inventory.yaml')
+        cmd = ['ansible-playbook', '-i', playbook_inventory,
+               'upgrade_steps_playbook.yaml', '-e', 'role_name=Undercloud',
+               '-e', 'deploy_server_id=undercloud', '-e',
+               'bootstrap_server_id=undercloud', '--skip-tags', 'validation']
+        self.log.debug('Running Ansible Upgrade tasks: %s' % (' '.join(cmd)))
         return utils.run_command_and_log(self.log, cmd)
 
     def get_parser(self, prog_name):
@@ -541,6 +552,8 @@ class Deploy(command.Command):
         parser.add_argument('--standalone', default=False, action='store_true',
                             help=_("Run deployment as a standalone deployment "
                                    "with no undercloud."))
+        parser.add_argument('--upgrade', default=False, action='store_true',
+                            help=_("Upgrade an existing deployment."))
         parser.add_argument('--stack',
                             help=_("Stack name to create"),
                             default='undercloud')
@@ -735,8 +748,10 @@ class Deploy(command.Command):
             # Kill heat, we're done with it now.
             self._kill_heat(parsed_args)
             if not parsed_args.output_only:
-                # Never returns..  We exec() it directly.
-                rc = self._launch_ansible(ansible_dir)
+                # Run Upgrade tasks before the deployment
+                if parsed_args.upgrade:
+                    rc = self._launch_ansible_upgrade(ansible_dir)
+                rc = self._launch_ansible_deploy(ansible_dir)
         except Exception as e:
             self.log.error("Exception: %s" % e)
             self.log.error(traceback.format_exception(*sys.exc_info()))
