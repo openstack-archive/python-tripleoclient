@@ -19,6 +19,7 @@ import logging
 import os
 import sys
 import tempfile
+import time
 
 from heatclient.common import template_utils
 from heatclient.common import utils as heat_utils
@@ -321,6 +322,18 @@ class PrepareImageFiles(command.Command):
             help=_('Roles file, overrides the default %s'
                    ) % constants.OVERCLOUD_ROLES_FILE
         )
+        parser.add_argument(
+            '--modify-role',
+            dest='modify_role',
+            help=_('Name of ansible role to run between every image upload '
+                   'pull and push.')
+        )
+        parser.add_argument(
+            '--modify-vars',
+            dest='modify_vars',
+            help=_('Ansible variable file containing variables to use when '
+                   'invoking the role --modify-role.')
+        )
         return parser
 
     def parse_set_values(self, subs, set_values):
@@ -391,6 +404,14 @@ class PrepareImageFiles(command.Command):
 
         output_images_file = (parsed_args.output_images_file
                               or 'container_images.yaml')
+        modify_role = None
+        modify_vars = None
+        append_tag = None
+        if parsed_args.modify_role:
+            modify_role = parsed_args.modify_role
+            append_tag = time.strftime('-modified-%Y%m%d%H%M%S')
+        if parsed_args.modify_vars:
+            modify_vars = yaml.safe_load(open(parsed_args.modify_vars).read())
 
         prepare_data = kolla_builder.container_images_prepare(
             excludes=parsed_args.excludes,
@@ -401,6 +422,9 @@ class PrepareImageFiles(command.Command):
             output_env_file=parsed_args.output_env_file,
             output_images_file=output_images_file,
             tag_from_label=parsed_args.tag_from_label,
+            modify_role=modify_role,
+            modify_vars=modify_vars,
+            append_tag=append_tag
         )
         if parsed_args.output_env_file:
             params = prepare_data[parsed_args.output_env_file]

@@ -139,7 +139,10 @@ class TestContainerImagePrepare(TestPluginV1):
             pull_source=None,
             push_destination=None,
             service_filter=None,
-            tag_from_label=None
+            tag_from_label=None,
+            modify_role=None,
+            modify_vars=None,
+            append_tag=None,
         )
 
     @mock.patch('tripleo_common.image.kolla_builder.'
@@ -163,6 +166,9 @@ class TestContainerImagePrepare(TestPluginV1):
         roles_file = os.path.join(temp, 'roles_data.yaml')
         with open(roles_file, 'w') as f:
             f.write(self.roles_yaml)
+        modify_vars_file = os.path.join(temp, 'modify_vars.yaml')
+        with open(modify_vars_file, 'w') as f:
+            f.write('foo: bar')
         mock_get.side_effect = requests.exceptions.SSLError('ouch')
         mock_bsf.return_value = set(['OS::TripleO::Services::AodhEvaluator'])
 
@@ -196,7 +202,11 @@ class TestContainerImagePrepare(TestPluginV1):
             '-e',
             'environment/docker.yaml',
             '--roles-file',
-            roles_file
+            roles_file,
+            '--modify-role',
+            'foo-role',
+            '--modify-vars',
+            modify_vars_file
         ]
         self.cmd.app.command_options = arglist
         verifylist = []
@@ -240,7 +250,10 @@ class TestContainerImagePrepare(TestPluginV1):
             service_filter=set([
                 'OS::TripleO::Services::AodhEvaluator',
             ]),
-            tag_from_label=None
+            tag_from_label=None,
+            modify_role='foo-role',
+            modify_vars={'foo': 'bar'},
+            append_tag=mock.ANY,
         )
         ci_data = {
             'container_images': [{
