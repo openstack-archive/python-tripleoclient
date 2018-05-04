@@ -36,6 +36,9 @@ class TestFFWDUpgradePrepare(fakes.TestFFWDUpgradePrepare):
         self.mock_uuid4 = uuid4_patcher.start()
         self.addCleanup(self.mock_uuid4.stop)
 
+    @mock.patch('tripleoclient.workflows.deployment.overcloudrc',
+                autospec=True)
+    @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
     @mock.patch('tripleoclient.utils.prepend_environment', autospec=True)
     @mock.patch('tripleoclient.utils.get_stack',
                 autospec=True)
@@ -50,9 +53,19 @@ class TestFFWDUpgradePrepare(fakes.TestFFWDUpgradePrepare):
     @mock.patch('six.moves.builtins.open')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_tripleo_heat_templates', autospec=True)
-    def test_ffwd_upgrade(self, mock_deploy, mock_open, mock_copy, mock_yaml,
-                          mock_abspath, mock_ffwd_upgrade, mock_logger,
-                          mock_get_stack, mock_prepend_env):
+    def test_ffwd_upgrade(self,
+                          mock_deploy,
+                          mock_open,
+                          mock_copy,
+                          mock_yaml,
+                          mock_abspath,
+                          mock_ffwd_upgrade,
+                          mock_logger,
+                          mock_get_stack,
+                          mock_prepend_env,
+                          mock_write_overcloudrc,
+                          mock_overcloudrc):
+
         mock_stack = mock.Mock()
         mock_stack.stack_name = 'mystack'
         mock_get_stack.return_value = mock_stack
@@ -78,6 +91,11 @@ class TestFFWDUpgradePrepare(fakes.TestFFWDUpgradePrepare):
             ceph_ansible_playbook='/usr/share/ceph-ansible'
                                   '/site-docker.yml.sample',
         )
+
+        mock_overcloudrc.assert_called_once_with(mock.ANY,
+                                                 container="mystack")
+        mock_write_overcloudrc.assert_called_once_with("mystack",
+                                                       mock.ANY)
 
     @mock.patch('tripleoclient.utils.prepend_environment', autospec=True)
     @mock.patch('tripleoclient.workflows.package_update.update',
@@ -186,8 +204,15 @@ class TestFFWDUpgradeConverge(fakes.TestFFWDUpgradeConverge):
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_tripleo_heat_templates_tmpdir', autospec=True)
     def test_ffwd_upgrade_converge(
-        self, mock_deploy, mock_open, mock_execute, mock_expanduser,
-            ffwd_converge_nodes, mock_get_stack, mock_prepend_env):
+        self,
+            mock_deploy,
+            mock_open,
+            mock_execute,
+            mock_expanduser,
+            ffwd_converge_nodes,
+            mock_get_stack,
+            mock_prepend_env):
+
         mock_expanduser.return_value = '/home/fake/'
         mock_stack = mock.Mock()
         mock_stack.stack_name = 'le_overcloud'

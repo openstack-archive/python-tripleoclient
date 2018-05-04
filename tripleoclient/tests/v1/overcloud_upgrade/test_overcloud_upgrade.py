@@ -36,6 +36,9 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
         self.mock_uuid4 = uuid4_patcher.start()
         self.addCleanup(self.mock_uuid4.stop)
 
+    @mock.patch('tripleoclient.workflows.deployment.overcloudrc',
+                autospec=True)
+    @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
     @mock.patch('tripleoclient.utils.prepend_environment', autospec=True)
     @mock.patch('tripleoclient.utils.get_stack',
                 autospec=True)
@@ -49,9 +52,19 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
     @mock.patch('six.moves.builtins.open')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_tripleo_heat_templates', autospec=True)
-    def test_upgrade_out(self, mock_deploy, mock_open, mock_copy, mock_yaml,
-                         mock_abspath, mock_upgrade, mock_logger,
-                         mock_get_stack, add_env):
+    def test_upgrade_out(self,
+                         mock_deploy,
+                         mock_open,
+                         mock_copy,
+                         mock_yaml,
+                         mock_abspath,
+                         mock_upgrade,
+                         mock_logger,
+                         mock_get_stack,
+                         add_env,
+                         mock_write_overcloudrc,
+                         mock_overcloudrc):
+
         mock_stack = mock.Mock()
         mock_stack.stack_name = 'mystack'
         mock_get_stack.return_value = mock_stack
@@ -76,6 +89,11 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
             ceph_ansible_playbook='/usr/share/ceph-ansible'
                                   '/site-docker.yml.sample'
         )
+
+        mock_overcloudrc.assert_called_once_with(mock.ANY,
+                                                 container="mystack")
+        mock_write_overcloudrc.assert_called_once_with("mystack",
+                                                       mock.ANY)
 
     @mock.patch('tripleoclient.utils.prepend_environment', autospec=True)
     @mock.patch('tripleoclient.workflows.package_update.update',
