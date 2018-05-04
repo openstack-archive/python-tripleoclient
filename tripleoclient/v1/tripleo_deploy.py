@@ -687,19 +687,17 @@ class Deploy(command.Command):
         # {parameter_defaults: {UndercloudExtraConfig: ... }}
         if ('UndercloudExtraConfig' not in hiera_data.get('parameter_defaults',
                                                           {})):
-            with tempfile.NamedTemporaryFile(dir=self.tht_render,
-                                             prefix='hieradata-override',
-                                             suffix='.yaml',
-                                             delete=False) as override:
-                self.log.info('Converting hiera overrides for t-h-t from '
-                              'legacy format into a tempfile %s' %
-                              override.name)
-                yaml.safe_dump(
-                    {'parameter_defaults': {
-                     'UndercloudExtraConfig': hiera_data}},
-                    override,
-                    default_flow_style=False)
-                target = override.name
+            hiera_override_file = os.path.join(
+                self.tht_render, 'tripleo-hieradata-override.yaml')
+            self.log.info('Converting hiera overrides for t-h-t from '
+                          'legacy format into a file %s' %
+                          hiera_override_file)
+            yaml.safe_dump(
+                {'parameter_defaults': {
+                 'UndercloudExtraConfig': hiera_data}},
+                hiera_override_file,
+                default_flow_style=False)
+            target = hiera_override_file
         return target
 
     def _standalone_deploy(self, parsed_args):
