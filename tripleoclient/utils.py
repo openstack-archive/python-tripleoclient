@@ -834,13 +834,16 @@ def load_environment_directories(directories):
     return environments
 
 
-def get_tripleo_ansible_inventory(inventory_file='', ssh_user='heat-admin'):
+def get_tripleo_ansible_inventory(inventory_file='',
+                                  ssh_user='heat-admin',
+                                  stack='overcloud'):
     if not inventory_file:
         inventory_file = '%s/%s' % (os.path.expanduser('~'),
                                     'tripleo-ansible-inventory.yaml')
         try:
             processutils.execute(
                 '/usr/bin/tripleo-ansible-inventory',
+                '--stack', stack,
                 '--ansible_ssh_user', ssh_user,
                 '--static-yaml-inventory', inventory_file)
         except processutils.ProcessExecutionError as e:
