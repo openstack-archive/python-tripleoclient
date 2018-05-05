@@ -13,7 +13,11 @@
 #   under the License.
 #
 
+import json
 import mock
+import os
+
+from jinja2 import Template
 
 from oslo_config import cfg
 from oslo_config import fixture as oslo_fixture
@@ -108,6 +112,163 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'undercloud.yaml', '--output-dir=/foo',
              '-e', '/foo/undercloud_parameters.yaml',
+             '--log-file=/tmp/install-undercloud.log'])
+
+    @mock.patch('os.mkdir')
+    @mock.patch('tripleoclient.utils.write_env_file', autospec=True)
+    @mock.patch('tripleoclient.v1.undercloud_config.'
+                '_generate_masquerade_networks', autospec=True)
+    @mock.patch('tripleoclient.v1.undercloud_config.'
+                '_generate_subnets_static_routes', autospec=True)
+    @mock.patch('tripleoclient.v1.undercloud_config.'
+                '_get_jinja_env_source', autospec=True)
+    @mock.patch('tripleoclient.v1.undercloud_config.'
+                '_get_unknown_instack_tags', return_value=None, autospec=True)
+    @mock.patch('jinja2.meta.find_undeclared_variables', return_value={},
+                autospec=True)
+    @mock.patch('os.getcwd', return_value='/tmp')
+    @mock.patch('subprocess.check_call', autospec=True)
+    def test_undercloud_install_with_heat_net_conf_over(self, mock_subprocess,
+                                                        mock_cwd, mock_j2_meta,
+                                                        mock_get_unknown_tags,
+                                                        mock_get_j2,
+                                                        mock_sroutes,
+                                                        mock_masq,
+                                                        mock_wr, mock_os):
+        self.conf.config(net_config_override='/foo/net-config.json')
+        self.conf.config(local_interface='ethX')
+        self.conf.config(undercloud_public_host='4.3.2.1')
+        self.conf.config(local_mtu='1234')
+        self.conf.config(undercloud_nameservers=['8.8.8.8', '8.8.4.4'])
+        self.conf.config(subnets='foo')
+        mock_masq.return_value = {'1.1.1.1/11': ['2.2.2.2/22']}
+        mock_sroutes.return_value = {'ip_netmask': '1.1.1.1/11',
+                                     'next_hop': '1.1.1.1'}
+        instack_net_conf = """
+        "network_config": [
+         {
+          "type": "ovs_bridge",
+          "name": "br-ctlplane",
+          "ovs_extra": [
+           "br-set-external-id br-ctlplane bridge-id br-ctlplane"
+          ],
+          "members": [
+           {
+            "type": "interface",
+            "name": "{{LOCAL_INTERFACE}}",
+            "primary": "true",
+            "mtu": {{LOCAL_MTU}},
+            "dns_servers": {{UNDERCLOUD_NAMESERVERS}}
+           }
+          ],
+          "addresses": [
+            {
+              "ip_netmask": "{{PUBLIC_INTERFACE_IP}}"
+            }
+          ],
+          "routes": {{SUBNETS_STATIC_ROUTES}},
+          "mtu": {{LOCAL_MTU}}
+        }
+        ]
+        """
+        expected_net_conf = json.loads(
+            """
+            {"network_config": [
+             {
+              "type": "ovs_bridge",
+              "name": "br-ctlplane",
+              "ovs_extra": [
+               "br-set-external-id br-ctlplane bridge-id br-ctlplane"
+              ],
+              "members": [
+               {
+                "type": "interface",
+                "name": "ethX",
+                "primary": "true",
+                "mtu": 1234,
+                "dns_servers": ["8.8.8.8", "8.8.4.4"]
+               }
+              ],
+              "addresses": [
+                {
+                  "ip_netmask": "4.3.2.1"
+                }
+              ],
+              "routes": {"next_hop": "1.1.1.1", "ip_netmask": "1.1.1.1/11"},
+              "mtu": 1234
+            }
+            ]}
+            """
+        )
+        env = mock.Mock()
+        env.get_template = mock.Mock(return_value=Template(instack_net_conf))
+        mock_get_j2.return_value = (env, None)
+        arglist = ['--use-heat', '--no-validations']
+        verifylist = []
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        os_orig = os.path.exists
+        with mock.patch('os.path.exists') as mock_exists:
+
+            def fcheck(*args, **kwargs):
+                if '/foo/net-config.json' in args:
+                    return True
+                return os_orig(*args, **kwargs)
+
+            mock_exists.side_effect = fcheck
+            self.cmd.take_action(parsed_args)
+
+        # unpack the write env file call to verify if the produced net config
+        # override JSON matches our expectations
+        found_net_conf_override = False
+        for call in mock_wr.call_args_list:
+            args, kwargs = call
+            for a in args:
+                if 'UndercloudNetConfigOverride' in a:
+                    found_net_conf_override = True
+                    self.assertTrue(
+                        a['UndercloudNetConfigOverride'] == expected_net_conf)
+        self.assertTrue(found_net_conf_override)
+
+        mock_subprocess.assert_called_with(
+            ['sudo', 'openstack', 'tripleo', 'deploy', '--standalone',
+             '--local-domain=localdomain',
+             '--local-ip=192.168.24.1/24',
+             '--templates=/usr/share/openstack-tripleo-heat-templates/',
+             '--heat-native', '-e', '/home/stack/foo.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/'
+             'environments/services/masquerade-networks.yaml',
+             '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'services/ironic.yaml',
+             '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'services/ironic-inspector.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'services/mistral.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'services/zaqar.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'services/tripleo-ui.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'services/tempest.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'public-tls-undercloud.yaml',
+             '--public-virtual-ip', '4.3.2.1',
+             '--control-virtual-ip', '192.168.24.3', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'ssl/tls-endpoints-public-ip.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'use-dns-for-vips.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'services/undercloud-haproxy.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'services/undercloud-keepalived.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'docker.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'undercloud.yaml', '--output-dir=/home/stack',
+             '-e', '/home/stack/undercloud_parameters.yaml',
              '--log-file=/tmp/install-undercloud.log'])
 
     @mock.patch('os.mkdir')
