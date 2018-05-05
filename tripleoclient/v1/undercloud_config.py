@@ -630,6 +630,9 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
     if CONF.get('docker_registry_mirror', None):
         env_data['DockerRegistryMirror'] = CONF['docker_registry_mirror']
 
+    # This parameter the IP address used to bind the local container registry
+    env_data['LocalContainerRegistry'] = CONF['local_ip'].split('/')[0]
+
     if CONF.get('local_ip', None):
         deploy_args.append('--local-ip=%s' % CONF['local_ip'])
 
