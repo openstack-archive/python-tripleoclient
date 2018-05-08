@@ -149,8 +149,8 @@ class TestFFWDUpgradeRun(fakes.TestFFWDUpgradeRun):
     def test_ffwd_upgrade_playbook(
             self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
         mock_expanduser.return_value = '/home/fake/'
-        argslist = ['--yes']
-        verifylist = [('yes', True), ]
+        argslist = ['--ssh-user', 'heat-admin', '--yes']
+        verifylist = [('ssh_user', 'heat-admin'), ('yes', True), ]
 
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
         with mock.patch('os.path.exists') as mock_exists:
@@ -163,6 +163,31 @@ class TestFFWDUpgradeRun(fakes.TestFFWDUpgradeRun):
                 nodes='',
                 playbook=constants.FFWD_UPGRADE_PLAYBOOK,
                 node_user='heat-admin',
+                skip_tags=''
+            )
+
+    @mock.patch('tripleoclient.workflows.package_update.update_ansible',
+                autospec=True)
+    @mock.patch('os.path.expanduser')
+    @mock.patch('oslo_concurrency.processutils.execute')
+    @mock.patch('six.moves.builtins.open')
+    def test_ffwd_upgrade_playbook_non_default_user(
+            self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
+        mock_expanduser.return_value = '/home/fake/'
+        argslist = ['--ssh-user', 'my-user', '--yes']
+        verifylist = [('ssh_user', 'my-user'), ('yes', True), ]
+
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+        with mock.patch('os.path.exists') as mock_exists:
+            mock_exists.return_value = True
+            self.cmd.take_action(parsed_args)
+            upgrade_ansible.assert_called_once_with(
+                self.app.client_manager,
+                inventory_file=mock_open().read(),
+                ansible_queue_name=constants.FFWD_UPGRADE_QUEUE,
+                nodes='',
+                playbook=constants.FFWD_UPGRADE_PLAYBOOK,
+                node_user='my-user',
                 skip_tags=''
             )
 
