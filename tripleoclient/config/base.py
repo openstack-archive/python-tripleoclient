@@ -39,8 +39,12 @@ class BaseConfig(object):
                            'templates, ansible deployment files.'),
                        ),
             cfg.BoolOpt('cleanup',
-                        default=False,
-                        help=('Cleanup temporary files'),
+                        default=True,
+                        help=('Cleanup temporary files. Setting this to '
+                              'False will leave the temporary files used '
+                              'during deployment in place after the command '
+                              'is run. This is useful for debugging the '
+                              'generated files or if errors occur.'),
                         ),
         ]
         return self.sort_opts(_opts)
