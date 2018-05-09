@@ -28,11 +28,6 @@ from tripleoclient.tests.v1.test_plugin import TestPluginV1
 from tripleoclient.v1 import container_image
 
 
-# TODO(sbaker) Remove after a tripleo-common release contains this new function
-if not hasattr(kolla_builder, 'build_service_filter'):
-    setattr(kolla_builder, 'build_service_filter', mock.Mock())
-
-
 class TestContainerImageUpload(TestPluginV1):
 
     def setUp(self):
@@ -108,8 +103,11 @@ class TestContainerImagePrepare(TestPluginV1):
     @mock.patch('tripleo_common.image.kolla_builder.'
                 'container_images_prepare', create=True)
     @mock.patch('requests.get')
-    def test_container_image_prepare_noargs(self, mock_get, mock_cip,
+    @mock.patch('tripleo_common.image.kolla_builder.'
+                'build_service_filter')
+    def test_container_image_prepare_noargs(self, mock_bsf, mock_get, mock_cip,
                                             mock_cipd):
+        mock_bsf.return_value = None
         mock_cipd.return_value = {
             'neutron_driver': None,
             'name_suffix': '',
@@ -266,89 +264,6 @@ class TestContainerImagePrepare(TestPluginV1):
             self.assertEqual(ci_data, yaml.safe_load(f))
         with open(env_file) as f:
             self.assertEqual(env_data, yaml.safe_load(f))
-
-    def _test_container_image_prepare_helper(
-            self, pmef, mock_cip, pmef_call_args,
-            arg_list, neutron_driver, expected_oc_yaml_contents,
-            expected_env_contents):
-        temp = tempfile.mkdtemp()
-        self.addCleanup(shutil.rmtree, temp)
-        images_file = os.path.join(temp, 'overcloud_containers.yaml')
-        env_file = os.path.join(temp, 'containers_env.yaml')
-        tmpl_file = os.path.join(temp, 'overcloud_containers.yaml.j2')
-
-        resource_registry = {}
-        service_filter = set()
-        if neutron_driver == 'odl':
-            service_filter.add('OS::TripleO::Services::OpenDaylightApi')
-            odlapi_file = os.path.join(temp, 'docker', 'services',
-                                       'opendaylight.yaml')
-
-            resource_registry = {'resource_registry': {
-                'OS::TripleO::Services::OpenDaylightApi': odlapi_file
-            }}
-        elif neutron_driver == 'ovn':
-            service_filter.add('OS::TripleO::Services::OVNController')
-            ovnapi_file = os.path.join(temp, 'docker', 'services',
-                                       'overcloud_containers.yaml.j2')
-
-            resource_registry = {'resource_registry': {
-                'OS::TripleO::Services::OVNController': ovnapi_file
-            }}
-
-        pmef.return_value = None, resource_registry
-        cmd_arglist = [
-            '--template-file',
-            tmpl_file,
-            '--tag',
-            'passed-ci',
-            '--namespace',
-            'tripleo',
-            '--prefix',
-            'os-',
-            '--suffix',
-            'foo',
-            '--output-images-file',
-            images_file,
-            '--output-env-file',
-            env_file,
-        ]
-
-        cmd_arglist.extend(arg_list)
-        self.cmd.app.command_options = cmd_arglist
-        verifylist = []
-        mock_cip.return_value = {
-            images_file: expected_oc_yaml_contents['container_images'],
-            env_file: expected_env_contents['parameter_defaults']
-        }
-        parsed_args = self.check_parser(self.cmd, cmd_arglist, verifylist)
-
-        self.cmd.take_action(parsed_args)
-
-        pmef.assert_called_once_with(pmef_call_args,
-                                     env_path_is_object=mock.ANY,
-                                     object_request=mock.ANY)
-        mock_cip.assert_called_once_with(
-            excludes=[],
-            mapping_args={
-                'neutron_driver': neutron_driver,
-                'name_suffix': 'foo',
-                'tag': 'passed-ci',
-                'namespace': 'tripleo',
-                'name_prefix': 'os-'
-            },
-            output_env_file=env_file,
-            output_images_file=images_file,
-            pull_source=None,
-            push_destination=None,
-            service_filter=service_filter,
-            tag_from_label=None
-        )
-
-        with open(images_file) as f:
-            self.assertEqual(expected_oc_yaml_contents, yaml.safe_load(f))
-        with open(env_file) as f:
-            self.assertEqual(expected_env_contents, yaml.safe_load(f))
 
 
 class TestContainerImageBuild(TestPluginV1):
