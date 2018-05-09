@@ -148,10 +148,10 @@ class FFWDUpgradeRun(command.Command):
 
         clients = self.app.client_manager
         stack = parsed_args.stack
-
+        ssh_user = parsed_args.ssh_user
         # Run ansible:
         inventory = oooutils.get_tripleo_ansible_inventory(
-            parsed_args.static_inventory, stack)
+            parsed_args.static_inventory, ssh_user, stack)
         # Don't expost limit_hosts. We need this on the whole overcloud.
         limit_hosts = ''
         oooutils.run_update_ansible_action(
