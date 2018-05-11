@@ -83,6 +83,52 @@ class Deploy(command.Command):
     output_dir = None
     tmp_env_file_name = None
     tmp_ansible_dir = None
+    roles_file = None
+    roles_data = None
+
+    def _set_roles_file(self, file_name=None, templates_dir=None):
+        """Set the roles file for the deployment
+
+        If the file_name is a full path, it will be used. If the file name
+        passed in is not a full path, we will join it with the templates
+        dir and use that instead.
+
+        :param file_name: (String) role file name to use, can be relative to
+         templates directory
+        :param templates_dir:
+        """
+        if os.path.exists(file_name):
+            self.roles_file = file_name
+        else:
+            self.roles_file = os.path.join(templates_dir, file_name)
+
+    def _get_roles_data(self):
+        """Load the roles data for deployment"""
+        # only load once
+        if self.roles_data:
+            return self.roles_data
+
+        if self.roles_file and os.path.exists(self.roles_file):
+            with open(self.roles_file) as f:
+                self.roles_data = yaml.safe_load(f)
+        elif self.roles_file:
+            self.log.warning("roles_data '%s' is not found" % self.roles_file)
+
+        return self.roles_data
+
+    def _get_primary_role_name(self):
+        """Return the primary role name"""
+        roles_data = self._get_roles_data()
+        if not roles_data:
+            # TODO(aschultz): should this be Undercloud instead?
+            return 'Controller'
+
+        for r in roles_data:
+            if 'tags' in r and 'primary' in r['tags']:
+                return r['name']
+        self.log.warning('No primary role found in roles_data, using '
+                         'first defined role')
+        return roles_data[0]['name']
 
     def _get_tar_filename(self):
         """Return tarball name for the install artifacts"""
@@ -122,11 +168,34 @@ class Deploy(command.Command):
         """Creates temporary working directories"""
         if self.output_dir and not os.path.exists(self.output_dir):
             os.mkdir(self.output_dir)
-        if self.tht_render and not os.path.exists(self.tht_render):
-            os.mkdir(self.tht_render)
+        if not self.tht_render:
+            self.tht_render = os.path.join(self.output_dir,
+                                           'tripleo-heat-installer-templates')
+            # Clear dir since we're using a static name and shutils.copytree
+            # needs the fodler to not exist. We'll generate the
+            # contents each time. This should clear the folder on the first
+            # run of this function.
+            shutil.rmtree(self.tht_render, ignore_errors=True)
         if not self.tmp_ansible_dir:
             self.tmp_ansible_dir = tempfile.mkdtemp(
                 prefix='undercloud-ansible-', dir=self.output_dir)
+
+    def _populate_templates_dir(self, source_templates_dir):
+        """Creates template dir with templates
+
+        * Copy --templates content into a working dir
+          created as 'output_dir/tripleo-heat-installer-templates'.
+
+        :param source_templates_dir: string to a directory containing our
+                                     source templates
+        """
+        self._create_working_dirs()
+        if not os.path.exists(source_templates_dir):
+            raise exceptions.NotFound("%s template director does not exists" %
+                                      source_templates_dir)
+        if not os.path.exists(self.tht_render):
+            shutil.copytree(source_templates_dir, self.tht_render,
+                            symlinks=True)
 
     def _cleanup_working_dirs(self, cleanup=False):
         """Cleanup temporary working directories
@@ -242,13 +311,18 @@ class Deploy(command.Command):
         return data
 
     def _generate_portmap_parameters(self, ip_addr, cidr_prefixlen,
-                                     ctlplane_vip_addr, public_vip_addr):
+                                     ctlplane_vip_addr, public_vip_addr,
+                                     stack_name='Undercloud',
+                                     role_name='Undercloud'):
         hostname = utils.get_short_hostname()
 
+        # in order for deployed server network information to match correctly,
+        # we need to ensure the HostnameMap matches our hostname
+        hostname_map_name = "%s-%s-0" % (stack_name.lower(), role_name.lower())
         data = {
             'ControlPlaneSubnetCidr': '%s' % cidr_prefixlen,
             'HostnameMap': {
-                'undercloud-undercloud-0': '%s' % hostname
+                hostname_map_name: '%s' % hostname
             },
             # The settings below allow us to inject a custom public
             # VIP. This requires use of the generated
@@ -340,8 +414,6 @@ class Deploy(command.Command):
     def _setup_heat_environments(self, parsed_args):
         """Process tripleo heat templates with jinja and deploy into work dir
 
-        * Copy --templates content into a working dir
-          created as 'output_dir/tripleo-heat-installer-templates'.
         * Process j2/install additional templates there
         * Return the environments list for futher processing as a new base.
 
@@ -349,24 +421,22 @@ class Deploy(command.Command):
         overcloud-resource-registry-puppet.yaml and passwords files.
         """
 
-        self.tht_render = os.path.join(os.path.abspath(parsed_args.output_dir),
-                                       'tripleo-heat-installer-templates')
-        # The target should not exist, bear in mind consequent deploys.
-        # But we need to copy in the env files generated by undercloud_config
-        # in the current deployment executed, like undercloud_parameters.yaml.
-        shutil.rmtree(self.tht_render, ignore_errors=True)
-        shutil.copytree(parsed_args.templates, self.tht_render, symlinks=True)
+        # TODO(aschultz): This probably needs to get thought about because
+        # we likely need to do this for any environment file that gets passed
+        # in the deploy. This file breaks the seperation between standalone
+        # and undercloud deployment so we need to not hardcode
+        # undercloud_parameters.yaml
         shutil.copy(os.path.join(os.path.abspath(parsed_args.output_dir),
                                  'tripleo-config-generated-env-files',
                                  'undercloud_parameters.yaml'),
                     self.tht_render)
 
         # generate jinja templates by its work dir location
-        self.log.debug(_("Using roles file %s") % parsed_args.roles_file)
+        self.log.debug(_("Using roles file %s") % self.roles_file)
         process_templates = os.path.join(parsed_args.templates,
                                          'tools/process-templates.py')
         args = ['python', process_templates, '--roles-data',
-                parsed_args.roles_file, '--output-dir', self.tht_render]
+                self.roles_file, '--output-dir', self.tht_render]
         if utils.run_command_and_log(self.log, args, cwd=self.tht_render) != 0:
             # TODO(aschultz): improve error messaging
             msg = _("Problems generating templates.")
@@ -425,7 +495,8 @@ class Deploy(command.Command):
 
             tmp_env = self._generate_hosts_parameters(parsed_args, p_ip)
             tmp_env.update(self._generate_portmap_parameters(
-                ip, cidr_prefixlen, c_ip, p_ip))
+                ip, cidr_prefixlen, c_ip, p_ip, stack_name=parsed_args.stack,
+                role_name=self._get_primary_role_name()))
 
             with open(self.tmp_env_file_name, 'w') as env_file:
                 yaml.safe_dump({'parameter_defaults': tmp_env}, env_file,
@@ -438,12 +509,8 @@ class Deploy(command.Command):
 
         return environments
 
-    def _prepare_container_images(self, env, roles_file):
-        if roles_file:
-            with open(roles_file) as f:
-                roles_data = yaml.safe_load(f)
-        else:
-            roles_data = None
+    def _prepare_container_images(self, env):
+        roles_data = self._get_roles_data()
         image_params = kolla_builder.container_images_prepare_multi(
             env, roles_data)
 
@@ -467,9 +534,7 @@ class Deploy(command.Command):
             environments, self.tht_render, parsed_args.templates,
             cleanup=parsed_args.cleanup)
 
-        roles_file = os.path.join(
-            self.tht_render, parsed_args.roles_file)
-        self._prepare_container_images(env, roles_file)
+        self._prepare_container_images(env)
 
         self.log.debug(_("Getting template contents"))
         template_path = os.path.join(self.tht_render, 'overcloud.yaml')
@@ -734,6 +799,13 @@ class Deploy(command.Command):
 
         # configure puppet
         self._configure_puppet()
+
+        # copy the templates dir in place
+        self._populate_templates_dir(parsed_args.templates)
+
+        # configure our roles data
+        self._set_roles_file(parsed_args.roles_file, self.tht_render)
+        self._get_roles_data()
 
         rc = 1
         try:
