@@ -12,11 +12,14 @@
 #   License for the specific language governing permissions and limitations
 #   under the License.
 #
-from __future__ import print_function
-
-import logging
+from oslo_config import cfg
+from oslo_log import log as logging
 
 from tripleoclient.v1.tripleo_deploy import Deploy
+
+CONF = cfg.CONF
+logging.register_options(CONF)
+logging.setup(CONF, '')
 
 
 class Upgrade(Deploy):

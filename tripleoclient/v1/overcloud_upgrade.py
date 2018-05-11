@@ -12,7 +12,8 @@
 #   License for the specific language governing permissions and limitations
 #   under the License.
 #
-import logging
+from oslo_config import cfg
+from oslo_log import log as logging
 
 from osc_lib.i18n import _
 from osc_lib import utils
@@ -24,6 +25,10 @@ from tripleoclient import utils as oooutils
 from tripleoclient.v1.overcloud_deploy import DeployOvercloud
 from tripleoclient.workflows import deployment
 from tripleoclient.workflows import package_update
+
+CONF = cfg.CONF
+logging.register_options(CONF)
+logging.setup(CONF, '')
 
 
 class UpgradePrepare(DeployOvercloud):
@@ -87,8 +92,8 @@ class UpgradePrepare(DeployOvercloud):
             container=stack_name)
         oooutils.write_overcloudrc(stack_name, overcloudrcs)
 
-        print("Completed Overcloud Upgrade Prepare for stack {0}".format(
-              stack_name))
+        self.log.info("Completed Overcloud Upgrade Prepare for stack "
+                      "{0}".format(stack_name))
 
 
 class UpgradeRun(command.Command):
@@ -218,8 +223,8 @@ class UpgradeRun(command.Command):
 
         playbooks = (constants.MAJOR_UPGRADE_PLAYBOOKS
                      if playbook == 'all' else playbook)
-        print(("Completed Overcloud Upgrade Run for {0} with playbooks "
-               "{1} ").format(limit_hosts, playbooks))
+        self.log.info(("Completed Overcloud Upgrade Run for {0} with "
+                       "playbooks {1} ").format(limit_hosts, playbooks))
 
 
 class UpgradeConvergeOvercloud(DeployOvercloud):
@@ -253,5 +258,5 @@ class UpgradeConvergeOvercloud(DeployOvercloud):
             constants.UPGRADE_CONVERGE_ENV)
 
         super(UpgradeConvergeOvercloud, self).take_action(parsed_args)
-        print("Completed Overcloud Upgrade Converge for stack {0}".format(
-              stack.stack_name))
+        self.log.info("Completed Overcloud Upgrade Converge for stack {0}"
+                      .format(stack.stack_name))

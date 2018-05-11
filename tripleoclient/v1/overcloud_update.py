@@ -12,8 +12,8 @@
 #   License for the specific language governing permissions and limitations
 #   under the License.
 #
-
-import logging
+from oslo_config import cfg
+from oslo_log import log as logging
 
 from osc_lib.i18n import _
 from osc_lib import utils
@@ -23,6 +23,10 @@ from tripleoclient import constants
 from tripleoclient import utils as oooutils
 from tripleoclient.v1.overcloud_deploy import DeployOvercloud
 from tripleoclient.workflows import package_update
+
+CONF = cfg.CONF
+logging.register_options(CONF)
+logging.setup(CONF, '')
 
 
 class UpdatePrepare(DeployOvercloud):
@@ -83,8 +87,8 @@ class UpdatePrepare(DeployOvercloud):
                               container_registry=registry,
                               ceph_ansible_playbook=ceph_ansible_playbook)
         package_update.get_config(clients, container=stack_name)
-        print("Update init on stack {0} complete.".format(
-              parsed_args.stack))
+        self.log.info("Update init on stack {0} complete.".format(
+                      parsed_args.stack))
 
 
 class UpdateRun(command.Command):
@@ -188,5 +192,5 @@ class UpdateConverge(DeployOvercloud):
             constants.UPDATE_CONVERGE_ENV)
 
         super(UpdateConverge, self).take_action(parsed_args)
-        print("Update converge on stack {0} complete.".format(
-              parsed_args.stack))
+        self.log.info("Update converge on stack {0} complete.".format(
+                      parsed_args.stack))
