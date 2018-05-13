@@ -1,0 +1,5 @@
+---
+deprecations:
+  - |
+    instack-undercloud is deprecated in Rocky cycle and is replaced by
+    the containerized undercloud efforts in python-tripleoclient.
