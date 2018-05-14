@@ -248,12 +248,6 @@ class UndercloudConfig(StandaloneConfig):
                             'install. This is a no-op for containerized '
                             'undercloud.')
                         ),
-            cfg.BoolOpt('enable_container_images_build',
-                        default=True,
-                        help=_(
-                            'Whether to enable docker container images to be '
-                            'build on the undercloud.')
-                        ),
             cfg.StrOpt('ipa_otp',
                        default='',
                        help=_(
