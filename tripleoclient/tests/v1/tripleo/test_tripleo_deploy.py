@@ -289,8 +289,6 @@ class TestDeployUndercloud(TestPluginV1):
             'overcloud-resource-registry-puppet.yaml',
             mock.ANY,
             '/my/tripleo-heat-installer-templates/'
-            'environments/undercloud.yaml',
-            '/my/tripleo-heat-installer-templates/'
             'environments/config-download-environment.yaml',
             '/my/tripleo-heat-installer-templates/'
             'environments/deployed-server-noop-ctlplane.yaml',
