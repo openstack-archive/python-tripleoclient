@@ -15,6 +15,7 @@
 from __future__ import print_function
 
 import argparse
+import json
 import logging
 import os
 import os.path
@@ -1033,7 +1034,7 @@ class DeployOvercloud(command.Command):
 
 
 class GetDeploymentStatus(command.Command):
-    """Check status of a deployment plan"""
+    """Get deployment status"""
 
     log = logging.getLogger(__name__ + ".GetDeploymentStatus")
 
@@ -1063,3 +1064,51 @@ class GetDeploymentStatus(command.Command):
                        execution['updated_at'],
                        payload['deployment_status']])
         print(table, file=self.app.stdout)
+
+
+class GetDeploymentFailures(command.Command):
+    """Get deployment failures"""
+
+    log = logging.getLogger(__name__ + ".GetDeploymentFailures")
+
+    def get_parser(self, prog_name):
+        parser = super(GetDeploymentFailures, self).get_parser(prog_name)
+        parser.add_argument('--plan', '--stack',
+                            help=_('Name of the stack/plan. '
+                                   '(default: overcloud)'),
+                            default='overcloud')
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)" % parsed_args)
+        plan = parsed_args.plan
+
+        failures = deployment.get_deployment_failures(
+            self.app.client_manager,
+            plan=plan
+        )
+
+        out = self.app.stdout
+
+        hosts = list(failures.keys())
+        hosts.sort()
+
+        for host in hosts:
+            host_failures = failures[host]
+            host_failures = sorted(host_failures, key=lambda k: k[0])
+            out.write("|-> Failures for host: %s\n" % host)
+            for task_name, task in host_failures:
+                out.write('|--> Task: %s\n' % task_name)
+                task_keys = sorted(task.keys())
+                for task_key in task_keys:
+                    task_value = task[task_key]
+                    out.write('|---> %s: ' % task_key)
+                    try:
+                        value = json.dumps(task_value,
+                                           sort_keys=True,
+                                           separators=(',', ': '),
+                                           indent=4)
+                    except ValueError:
+                        value = task_value
+                    out.write('%s\n' % value)
+            out.write('\n')
