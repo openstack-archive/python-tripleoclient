@@ -434,7 +434,8 @@ class Deploy(command.Command):
 
         if parsed_args.hieradata_override:
             environments.append(self._process_hieradata_overrides(
-                parsed_args.hieradata_override))
+                parsed_args.hieradata_override,
+                parsed_args.standalone_role))
 
         return environments
 
@@ -501,15 +502,17 @@ class Deploy(command.Command):
 
         return "%s/%s" % (stack_name, stack_id)
 
-    def _download_ansible_playbooks(self, client, stack_name):
+    def _download_ansible_playbooks(self, client, stack_name,
+                                    tripleo_role_name='Standalone'):
         stack_config = config.Config(client)
         self._create_working_dirs()
 
-        self.log.warning(_('** Downloading undercloud ansible.. **'))
+        self.log.warning(_('** Downloading {0} ansible.. **').format(
+            stack_name))
         # python output buffering is making this seem to take forever..
         sys.stdout.flush()
-        stack_config.write_config(stack_config.fetch_config('undercloud'),
-                                  'undercloud',
+        stack_config.write_config(stack_config.fetch_config(stack_name),
+                                  stack_name,
                                   self.tmp_ansible_dir)
 
         inventory = TripleoInventory(
@@ -518,11 +521,11 @@ class Deploy(command.Command):
             ansible_ssh_user='root')
 
         inv_path = os.path.join(self.tmp_ansible_dir, 'inventory.yaml')
-        extra_vars = {'Undercloud': {'ansible_connection': 'local'}}
+        extra_vars = {tripleo_role_name: {'ansible_connection': 'local'}}
         inventory.write_static_inventory(inv_path, extra_vars)
 
-        self.log.info(_('** Downloaded undercloud ansible to %s **') %
-                      self.tmp_ansible_dir)
+        self.log.info(_('** Downloaded {0} ansible to {1} **').format(
+                      stack_name, self.tmp_ansible_dir))
         sys.stdout.flush()
         return self.tmp_ansible_dir
 
@@ -577,6 +580,10 @@ class Deploy(command.Command):
                             help=_("Do not execute the Ansible playbooks. By"
                                    " default the playbooks are saved to the"
                                    " output-dir and then executed.")),
+        parser.add_argument('--standalone-role', default='Standalone',
+                            help=_("The role to use for standalone "
+                                   "configuration when populating the "
+                                   "deployment actions."))
         parser.add_argument('-t', '--timeout', metavar='<TIMEOUT>',
                             type=int, default=30,
                             help=_('Deployment timeout in minutes.'))
@@ -661,7 +668,7 @@ class Deploy(command.Command):
             help=_('Path to hieradata override file. When it points to a heat '
                    'env file, it is passed in t-h-t via --environment-file. '
                    'When the file contains legacy instack data, '
-                   'it is wrapped with UndercloudExtraConfig and also '
+                   'it is wrapped with <role>ExtraConfig and also '
                    'passed in for t-h-t as a temp file created in '
                    '--output-dir. Note, instack hiera data may be '
                    'not t-h-t compatible and will highly likely require a '
@@ -669,7 +676,8 @@ class Deploy(command.Command):
         )
         return parser
 
-    def _process_hieradata_overrides(self, override_file=None):
+    def _process_hieradata_overrides(self, override_file=None,
+                                     tripleo_role_name='Standalone'):
         """Count in hiera data overrides including legacy formats
 
         Return a file name that points to processed hiera data overrides file
@@ -694,8 +702,8 @@ class Deploy(command.Command):
 
         # NOTE(bogdando): In t-h-t, hiera data should come in wrapped as
         # {parameter_defaults: {UndercloudExtraConfig: ... }}
-        if ('UndercloudExtraConfig' not in hiera_data.get('parameter_defaults',
-                                                          {})):
+        extra_config_var = '%sExtraConfig' % tripleo_role_name
+        if (extra_config_var not in hiera_data.get('parameter_defaults', {})):
             hiera_override_file = os.path.join(
                 self.tht_render, 'tripleo-hieradata-override.yaml')
             self.log.info('Converting hiera overrides for t-h-t from '
@@ -704,7 +712,7 @@ class Deploy(command.Command):
             with open(hiera_override_file, 'w') as override:
                 yaml.safe_dump(
                     {'parameter_defaults': {
-                     'UndercloudExtraConfig': hiera_data}},
+                     extra_config_var: hiera_data}},
                     override,
                     default_flow_style=False)
             target = hiera_override_file
@@ -756,7 +764,8 @@ class Deploy(command.Command):
             # download the ansible playbooks and execute them.
             ansible_dir = \
                 self._download_ansible_playbooks(orchestration_client,
-                                                 parsed_args.stack)
+                                                 parsed_args.stack,
+                                                 parsed_args.standalone_role)
             # Kill heat, we're done with it now.
             self._kill_heat(parsed_args)
             if not parsed_args.output_only:
