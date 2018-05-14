@@ -522,10 +522,7 @@ class Deploy(command.Command):
         os.chdir(ansible_dir)
         playbook_inventory = os.path.join(ansible_dir, 'inventory.yaml')
         cmd = ['ansible-playbook', '-i', playbook_inventory,
-               'deploy_steps_playbook.yaml', '-e', 'role_name=Undercloud',
-               '-e', 'tripleo_role_name=Undercloud',
-               '-e', 'deploy_server_id=undercloud', '-e',
-               'bootstrap_server_id=undercloud']
+               'deploy_steps_playbook.yaml']
         self.log.debug('Running Ansible Deploy tasks: %s' % (' '.join(cmd)))
         return utils.run_command_and_log(self.log, cmd)
 
@@ -534,10 +531,7 @@ class Deploy(command.Command):
         os.chdir(ansible_dir)
         playbook_inventory = os.path.join(ansible_dir, 'inventory.yaml')
         cmd = ['ansible-playbook', '-i', playbook_inventory,
-               'upgrade_steps_playbook.yaml', '-e', 'role_name=Undercloud',
-               '-e', 'tripleo_role_name=Undercloud',
-               '-e', 'deploy_server_id=undercloud', '-e',
-               'bootstrap_server_id=undercloud', '--skip-tags', 'validation']
+               'upgrade_steps_playbook.yaml', '--skip-tags', 'validation']
         self.log.debug('Running Ansible Upgrade tasks: %s' % (' '.join(cmd)))
         return utils.run_command_and_log(self.log, cmd)
 
