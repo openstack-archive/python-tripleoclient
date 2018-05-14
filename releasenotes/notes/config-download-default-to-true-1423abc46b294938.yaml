@@ -1,7 +1,5 @@
 ---
 features:
   - Using --config-download is now the default. A new CLI argument,
-    --no-config-download can be used to disable config-download, although that
-    method is deprecated.
-deprecations:
-  - Deploying without config-download (--no-config-download) is deprecated.
+    --no-config-download (or --stack-only) can be used to disable the
+    config-download workflow.
