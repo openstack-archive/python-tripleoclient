@@ -126,7 +126,7 @@ def _check_hostname():
         else:
             short_hostname = detected_static_hostname.split('.')[0]
             if short_hostname == detected_static_hostname:
-                message = 'Configured hostname is not fully qualified.'
+                message = _('Configured hostname is not fully qualified.')
                 LOG.error(message)
                 raise RuntimeError(message)
             sed_cmd = ('sed -i "s/127.0.0.1\(\s*\)/127.0.0.1\\1%s %s /" '
@@ -149,10 +149,10 @@ def _check_memory():
     swap = psutil.swap_memory()
     total_mb = (mem.total + swap.total) / 1024 / 1024
     if total_mb < REQUIRED_MB:
-        LOG.error('At least %d MB of memory is required for undercloud '
-                  'installation.  A minimum of 8 GB is recommended. '
-                  'Only detected %d MB' % (REQUIRED_MB, total_mb))
-        raise RuntimeError('Insufficient memory available')
+        LOG.error(_('At least {0} MB of memory is required for undercloud '
+                    'installation.  A minimum of 8 GB is recommended. '
+                    'Only detected {1} MB').format(REQUIRED_MB, total_mb))
+        raise RuntimeError(_('Insufficient memory available'))
 
 
 def _check_ipv6_enabled():
@@ -189,10 +189,10 @@ def _check_sysctl():
             not_available.append(option)
 
     if not_available:
-        LOG.error('Required sysctl options are not available. Check '
-                  'that your kernel is up to date. Missing: {options}'
-                  ' '.format(options=", ".join(not_available)))
-        raise RuntimeError('Missing sysctl options')
+        LOG.error(_('Required sysctl options are not available. Check '
+                    'that your kernel is up to date. Missing: {options}')
+                  .format(options=", ".join(not_available)))
+        raise RuntimeError(_('Missing sysctl options'))
 
 
 def _validate_ips():
@@ -200,8 +200,8 @@ def _validate_ips():
         try:
             netaddr.IPAddress(value)
         except netaddr.core.AddrFormatError:
-            msg = '%s "%s" must be a valid IP address' % \
-                  (param_name, value)
+            msg = (_('{0} "{1}" must be a valid IP address')
+                   .format(param_name, value))
             LOG.error(msg)
             raise FailedValidation(msg)
     for ip in CONF.undercloud_nameservers:
@@ -218,22 +218,22 @@ def _validate_value_formats():
     try:
         local_ip = netaddr.IPNetwork(CONF.local_ip)
         if local_ip.prefixlen == 32:
-            LOG.error('Invalid netmask')
-            raise netaddr.AddrFormatError('Invalid netmask')
+            LOG.error(_('Invalid netmask'))
+            raise netaddr.AddrFormatError(_('Invalid netmask'))
         # If IPv6 the ctlplane network uses the EUI-64 address format,
         # which requires the prefix to be /64
         if local_ip.version == 6 and local_ip.prefixlen != 64:
-            LOG.error('Prefix must be 64 for IPv6')
-            raise netaddr.AddrFormatError('Prefix must be 64 for IPv6')
+            LOG.error(_('Prefix must be 64 for IPv6'))
+            raise netaddr.AddrFormatError(_('Prefix must be 64 for IPv6'))
     except netaddr.core.AddrFormatError as e:
-        message = ('local_ip "%s" not valid: "%s" '
-                   'Value must be in CIDR format.' %
-                   (CONF.local_ip, str(e)))
+        message = (_('local_ip "{0}" not valid: "{1}" '
+                     'Value must be in CIDR format.')
+                   .format(CONF.local_ip, str(e)))
         LOG.error(message)
         raise FailedValidation(message)
     hostname = CONF['undercloud_hostname']
     if hostname is not None and '.' not in hostname:
-        message = 'Hostname "%s" is not fully qualified.' % hostname
+        message = (_('Hostname "%s" is not fully qualified.') % hostname)
         LOG.error(message)
         raise FailedValidation(message)
 
@@ -245,8 +245,8 @@ def _validate_in_cidr(subnet_props, subnet_name):
                               log_only=False):
         try:
             if netaddr.IPAddress(addr) not in cidr:
-                message = ('Config option %s "%s" not in defined CIDR "%s"' %
-                           (pretty_name, addr, cidr))
+                message = (_('Config option {0} "{1}" not in defined '
+                             'CIDR "{2}"').format(pretty_name, addr, cidr))
                 if log_only:
                     LOG.warning(message)
                 else:
@@ -254,7 +254,7 @@ def _validate_in_cidr(subnet_props, subnet_name):
                     raise FailedValidation(message)
         except netaddr.core.AddrFormatError:
             if require_ip:
-                message = 'Invalid IP address: %s' % addr
+                message = (_('Invalid IP address: %s') % addr)
                 LOG.error(message)
                 raise FailedValidation(message)
 
@@ -283,8 +283,8 @@ def _validate_dhcp_range(subnet_props):
     start = netaddr.IPAddress(subnet_props.dhcp_start)
     end = netaddr.IPAddress(subnet_props.dhcp_end)
     if start >= end:
-        message = ('Invalid dhcp range specified, dhcp_start "%s" does '
-                   'not come before dhcp_end "%s"' % (start, end))
+        message = (_('Invalid dhcp range specified, dhcp_start "{0}" does '
+                     'not come before dhcp_end "{1}"').format(start, end))
         LOG.error(message)
         raise FailedValidation(message)
 
@@ -293,8 +293,8 @@ def _validate_inspection_range(subnet_props):
     start = netaddr.IPAddress(subnet_props.inspection_iprange.split(',')[0])
     end = netaddr.IPAddress(subnet_props.inspection_iprange.split(',')[1])
     if start >= end:
-        message = ('Invalid inspection range specified, inspection_iprange '
-                   '"%s" does not come before "%s"' % (start, end))
+        message = (_('Invalid inspection range specified, inspection_iprange '
+                     '"{0}" does not come before "{1}"').format(start, end))
         LOG.error(message)
         raise FailedValidation(message)
 
@@ -307,8 +307,8 @@ def _validate_no_overlap(subnet_props):
         subnet_props.inspection_iprange.split(',')[0],
         subnet_props.inspection_iprange.split(',')[1]))
     if dhcp_set.intersection(inspection_set):
-        message = ('Inspection DHCP range "%s-%s" overlaps provisioning '
-                   'DHCP range "%s-%s".' %
+        message = (_('Inspection DHCP range "{0}-{1} overlaps provisioning '
+                   'DHCP range "{2}-{3}".') %
                    (subnet_props.inspection_iprange.split(',')[0],
                     subnet_props.inspection_iprange.split(',')[1],
                     subnet_props.dhcp_start, subnet_props.dhcp_end))
@@ -320,8 +320,8 @@ def _validate_interface_exists():
     """Validate the provided local interface exists"""
     if (not CONF.net_config_override
             and CONF.local_interface not in netifaces.interfaces()):
-        message = ('Invalid local_interface specified. %s is not available.' %
-                   CONF.local_interface)
+        message = (_('Invalid local_interface specified. '
+                     '%s is not available.') % CONF.local_interface)
         LOG.error(message)
         raise FailedValidation(message)
 
@@ -354,9 +354,9 @@ def _validate_no_ip_change():
         return
     existing_ip = ctlplane['addresses'][0]['ip_netmask']
     if existing_ip != CONF.local_ip:
-        message = ('Changing the local_ip is not allowed.  Existing IP: '
-                   '%s, Configured IP: %s') % (existing_ip,
-                                               CONF.local_ip)
+        message = _('Changing the local_ip is not allowed.  Existing IP: '
+                    '{0}, Configured IP: {1}').format(
+                        existing_ip, CONF.local_ip)
         LOG.error(message)
         raise FailedValidation(message)
 
@@ -371,9 +371,9 @@ def _validate_passwords_file():
     """
     if (os.path.isfile(os.path.expanduser('~/stackrc')) and
             not os.path.isfile(PASSWORD_PATH)):
-        message = ('The %s file is missing.  This will cause all service '
-                   'passwords to change and break the existing undercloud. ' %
-                   PASSWORD_PATH)
+        message = (_('The %s file is missing.  This will cause all service '
+                     'passwords to change and break the existing '
+                     'undercloud. ') % PASSWORD_PATH)
         LOG.error(message)
         raise FailedValidation(message)
 
@@ -384,7 +384,7 @@ def _validate_env_files_paths():
     roles_file = CONF.get('roles_file') or constants.UNDERCLOUD_ROLES_FILE
 
     # get the list of jinja templates normally rendered for UC installations
-    LOG.debug("Using roles file %s from %s" % (roles_file, tht_path))
+    LOG.debug(_("Using roles file {0} from {1}").format(roles_file, tht_path))
     process_templates = os.path.join(tht_path,
                                      'tools/process-templates.py')
     p = _run_live_command(
@@ -418,14 +418,14 @@ def _run_yum_clean_all(instack_env):
     args = ['sudo', 'yum', 'clean', 'all']
     LOG.info('Running yum clean all')
     _run_live_command(args, instack_env, 'yum-clean-all')
-    LOG.info('yum-clean-all completed successfully')
+    LOG.info(_('yum-clean-all completed successfully'))
 
 
 def _run_yum_update(instack_env):
     args = ['sudo', 'yum', 'update', '-y']
     LOG.info('Running yum update')
     _run_live_command(args, instack_env, 'yum-update')
-    LOG.info('yum-update completed successfully')
+    LOG.info(_('yum-update completed successfully'))
 
 
 def check():
@@ -452,18 +452,18 @@ def check():
         _validate_interface_exists()
         _validate_no_ip_change()
     except KeyError as e:
-        LOG.error('Key error in configuration: {error}\n'
-                  'Value is missing in configuration.'.format(error=e))
+        LOG.error(_('Key error in configuration: {error}\n'
+                    'Value is missing in configuration.').format(error=e))
         sys.exit(1)
     except FailedValidation as e:
-        LOG.error('An error occurred during configuration '
-                  'validation, please check your host '
-                  'configuration and try again.\nError '
-                  'message: {error}'.format(error=e))
+        LOG.error(_('An error occurred during configuration '
+                    'validation, please check your host '
+                    'configuration and try again.\nError '
+                    'message: {error}').format(error=e))
         sys.exit(1)
     except RuntimeError as e:
-        LOG.error('An error occurred during configuration '
-                  'validation, please check your host '
-                  'configuration and try again. Error '
-                  'message: {error}'.format(error=e))
+        LOG.error(_('An error occurred during configuration '
+                    'validation, please check your host '
+                    'configuration and try again. Error '
+                    'message: {error}').format(error=e))
         sys.exit(1)

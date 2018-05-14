@@ -13,7 +13,7 @@
 #   under the License.
 #
 
-
+from osc_lib.i18n import _
 from oslo_config import cfg
 from tripleoclient.config.base import BaseConfig
 
@@ -57,49 +57,49 @@ class StandaloneConfig(BaseConfig):
             # service enablement
             cfg.BoolOpt('enable_cinder',
                         default=cinder,
-                        help=(
+                        help=_(
                             'Whether to install the Volume service. It is not '
                             'currently used in the undercloud.')),
             cfg.BoolOpt('enable_ironic',
                         default=ironic,
-                        help=('Whether to enable the ironic service.')),
+                        help=_('Whether to enable the ironic service.')),
             cfg.BoolOpt('enable_ironic_inspector',
                         default=ironic_inspector,
-                        help=(
+                        help=_(
                             'Whether to enable the ironic inspector service.')
                         ),
             cfg.BoolOpt('enable_mistral',
                         default=mistral,
-                        help=('Whether to enable the mistral service.')),
+                        help=_('Whether to enable the mistral service.')),
             cfg.BoolOpt('enable_novajoin',
                         default=novajoin,
-                        help=('Whether to install novajoin metadata service '
-                              'in the Undercloud.')
+                        help=_('Whether to install novajoin metadata service '
+                               'in the Undercloud.')
                         ),
             cfg.BoolOpt('enable_tempest',
                         default=tempest,
-                        help=('Whether to install Tempest in the Undercloud.'
-                              'This is a no-op for containerized undercloud.')
+                        help=_('Whether to install Tempest in the Undercloud.'
+                               'This is a no-op for containerized undercloud.')
                         ),
             cfg.BoolOpt('enable_telemetry',
                         default=telemetry,
-                        help=('Whether to install Telemetry services '
-                              '(ceilometer, gnocchi, aodh, panko ) in the '
-                              'Undercloud.')
+                        help=_('Whether to install Telemetry services '
+                               '(ceilometer, gnocchi, aodh, panko ) in the '
+                               'Undercloud.')
                         ),
             cfg.BoolOpt('enable_ui',
                         default=tripleo_ui,
-                        help=('Whether to install the TripleO UI.')
+                        help=_('Whether to install the TripleO UI.')
                         ),
             cfg.BoolOpt('enable_validations',
                         default=validations,
-                        help=(
+                        help=_(
                             'Whether to install requirements to run the '
                             'TripleO validations.')
                         ),
             cfg.BoolOpt('enable_zaqar',
                         default=zaqar,
-                        help=('Whether to enable the zaqar service.')),
+                        help=_('Whether to enable the zaqar service.')),
         ]
         return self.sort_opts(_opts)
 
@@ -108,14 +108,14 @@ class StandaloneConfig(BaseConfig):
         _opts = [
             # deployment options
             cfg.StrOpt('deployment_user',
-                       help=(
+                       help=_(
                            'User used to run openstack undercloud install '
                            'command which will be used to add the user to the '
                            'docker group, required to upload containers'),
                        ),
             cfg.StrOpt('hieradata_override',
                        default='',
-                       help=(
+                       help=_(
                            'Path to hieradata override file. Relative paths '
                            'get computed inside of $HOME. When it points to a '
                            'heat env file, it is passed in t-h-t via "-e '
@@ -128,7 +128,7 @@ class StandaloneConfig(BaseConfig):
                        ),
             cfg.StrOpt('net_config_override',
                        default='',
-                       help=(
+                       help=_(
                            'Path to network config override template.'
                            'Relative paths get computed inside of the '
                            'given heat templates directory. Must be in '
@@ -146,42 +146,42 @@ class StandaloneConfig(BaseConfig):
                        ),
             cfg.StrOpt('templates',
                        default='',
-                       help=('heat templates file to override.')
+                       help=_('heat templates file to override.')
                        ),
             cfg.StrOpt('roles_file',
                        default=None,
-                       help=('Roles file to override for heat. '
-                             'The file path is related to the templates path')
+                       help=_('Roles file to override for heat. '
+                              'The file path is related to the templates path')
                        ),
             cfg.BoolOpt('heat_native',
                         default=True,
-                        help=('Use native heat templates.')),
+                        help=_('Use native heat templates.')),
             cfg.StrOpt('heat_container_image',
                        default='',
-                       help=('URL for the heat container image to use.')
+                       help=_('URL for the heat container image to use.')
                        ),
             cfg.StrOpt('container_images_file',
                        default='',
-                       help=(
+                       help=_(
                            'Heat environment file with parameters for all '
                            'required container images. Or alternatively, '
                            'parameter "ContainerImagePrepare" to drive the '
                            'required image preparation.')),
             cfg.ListOpt('custom_env_files',
                         default=[],
-                        help=('List of any custom environment yaml files to '
-                              'use')),
+                        help=_('List of any custom environment yaml files to '
+                               'use')),
             # docker config bits
             cfg.StrOpt('docker_registry_mirror',
                        default='',
-                       help=(
+                       help=_(
                            'An optional docker \'registry-mirror\' that will '
                            'beconfigured in /etc/docker/daemon.json.')
                        ),
             cfg.ListOpt('docker_insecure_registries',
                         default=[],
-                        help=('Used to add custom insecure registries in '
-                              '/etc/sysconfig/docker.')
+                        help=_('Used to add custom insecure registries in '
+                               '/etc/sysconfig/docker.')
                         ),
         ]
         return self.sort_opts(_base_opts + _opts)

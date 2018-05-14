@@ -13,7 +13,7 @@
 #   under the License.
 #
 
-
+from osc_lib.i18n import _
 from oslo_config import cfg
 from tripleoclient.config.standalone import StandaloneConfig
 
@@ -50,7 +50,7 @@ class UndercloudConfig(StandaloneConfig):
         _base_opts = super(UndercloudConfig, self).get_base_opts()
         _opts = [
             cfg.StrOpt('undercloud_hostname',
-                       help=(
+                       help=_(
                            'Fully qualified hostname (including domain) to '
                            'set on the Undercloud. If left unset, the current '
                            'hostname will be used, but the user is '
@@ -61,7 +61,7 @@ class UndercloudConfig(StandaloneConfig):
                        ),
             cfg.StrOpt('local_ip',
                        default='192.168.24.1/24',
-                       help=(
+                       help=_(
                            'IP information for the interface on the '
                            'Undercloud that will be handling the PXE boots '
                            'and DHCP for Overcloud instances.  The IP portion '
@@ -73,63 +73,66 @@ class UndercloudConfig(StandaloneConfig):
             cfg.StrOpt('undercloud_public_host',
                        deprecated_name='undercloud_public_vip',
                        default='192.168.24.2',
-                       help=('Virtual IP or DNS address to use for the public '
-                             'endpoints of Undercloud services. Only used '
-                             'with SSL.')
+                       help=_(
+                           'Virtual IP or DNS address to use for the public '
+                           'endpoints of Undercloud services. Only used '
+                           'with SSL.')
                        ),
             cfg.StrOpt('undercloud_admin_host',
                        deprecated_name='undercloud_admin_vip',
                        default='192.168.24.3',
-                       help=('Virtual IP or DNS address to use for the admin '
-                             'endpoints of Undercloud services. Only used '
-                             'with SSL.')
+                       help=_(
+                           'Virtual IP or DNS address to use for the admin '
+                           'endpoints of Undercloud services. Only used '
+                           'with SSL.')
                        ),
             cfg.ListOpt('undercloud_nameservers',
                         default=[],
-                        help=(
+                        help=_(
                             'DNS nameserver(s) to use for the undercloud '
                             'node.'),
                         ),
             cfg.ListOpt('undercloud_ntp_servers',
                         default=[],
-                        help=('List of ntp servers to use.')),
+                        help=_('List of ntp servers to use.')),
             cfg.StrOpt('overcloud_domain_name',
                        default='localdomain',
-                       help=(
+                       help=_(
                            'DNS domain name to use when deploying the '
                            'overcloud. The overcloud parameter "CloudDomain" '
                            'must be set to a matching value.')
                        ),
             cfg.ListOpt('subnets',
                         default=SUBNETS_DEFAULT,
-                        help=('List of routed network subnets for '
-                              'provisioning and introspection. Comma '
-                              'separated list of names/tags. For each network '
-                              'a section/group needs to be added to the '
-                              'configuration file with these parameters set: '
-                              'cidr, dhcp_start, dhcp_end, '
-                              'inspection_iprange, gateway and '
-                              'masquerade_network.'
-                              '\n\n'
-                              'Example:\n\n'
-                              'subnets = subnet1,subnet2\n'
-                              '\n'
-                              'An example section/group in config file:\n'
-                              '\n'
-                              '[subnet1]\n'
-                              'cidr = 192.168.10.0/24\n'
-                              'dhcp_start = 192.168.10.100\n'
-                              'dhcp_end = 192.168.10.200\n'
-                              'inspection_iprange = 192.168.10.20,'
-                              '192.168.10.90\n'
-                              'gateway = 192.168.10.254\n'
-                              'masquerade = True'
-                              '\n'
-                              '[subnet2]\n'
-                              '. . .\n')),
+                        help=_(
+                            'List of routed network subnets for '
+                            'provisioning and introspection. Comma '
+                            'separated list of names/tags. For each network '
+                            'a section/group needs to be added to the '
+                            'configuration file with these parameters set: '
+                            'cidr, dhcp_start, dhcp_end, '
+                            'inspection_iprange, gateway and '
+                            'masquerade_network.'
+                            '\n\n'
+                            'Example:\n\n'
+                            'subnets = subnet1,subnet2\n'
+                            '\n'
+                            'An example section/group in config file:\n'
+                            '\n'
+                            '[subnet1]\n'
+                            'cidr = 192.168.10.0/24\n'
+                            'dhcp_start = 192.168.10.100\n'
+                            'dhcp_end = 192.168.10.200\n'
+                            'inspection_iprange = 192.168.10.20,'
+                            '192.168.10.90\n'
+                            'gateway = 192.168.10.254\n'
+                            'masquerade = True'
+                            '\n'
+                            '[subnet2]\n'
+                            '. . .\n')),
             cfg.StrOpt('local_subnet',
                        default=SUBNETS_DEFAULT[0],
-                       help=(
+                       help=_(
                            'Name of the local subnet, where the PXE boot and '
                            'DHCP interfaces for overcloud instances is '
                            'located. The IP address of the '
@@ -137,7 +140,7 @@ class UndercloudConfig(StandaloneConfig):
                            'in this subnet.')),
             cfg.StrOpt('undercloud_service_certificate',
                        default='',
-                       help=(
+                       help=_(
                            'Certificate file to use for OpenStack service SSL '
                            'connections.  Setting this enables SSL for the '
                            'OpenStack API endpoints, leaving it unset '
@@ -145,7 +148,7 @@ class UndercloudConfig(StandaloneConfig):
                        ),
             cfg.BoolOpt('generate_service_certificate',
                         default=True,
-                        help=(
+                        help=_(
                             'When set to True, an SSL certificate will be '
                             'generated as part of the undercloud install and '
                             'this certificate will be used in place of the '
@@ -158,19 +161,19 @@ class UndercloudConfig(StandaloneConfig):
                         ),
             cfg.StrOpt('certificate_generation_ca',
                        default='local',
-                       help=('The certmonger nickname of the CA from which '
-                             'the certificate will be requested. This is used '
-                             'only if the generate_service_certificate option '
-                             'is set. Note that if the "local" CA is selected '
-                             'the certmonger\'s local CA certificate will be '
-                             'extracted to /etc/pki/ca-trust/source/anchors/'
-                             'cm-local-ca.pem and subsequently added to the '
-                             'trust chain.')
-
+                       help=_(
+                           'The certmonger nickname of the CA from which '
+                           'the certificate will be requested. This is used '
+                           'only if the generate_service_certificate option '
+                           'is set. Note that if the "local" CA is selected '
+                           'the certmonger\'s local CA certificate will be '
+                           'extracted to /etc/pki/ca-trust/source/anchors/'
+                           'cm-local-ca.pem and subsequently added to the '
+                           'trust chain.')
                        ),
             cfg.StrOpt('service_principal',
                        default='',
-                       help=(
+                       help=_(
                            'The kerberos principal for the service that will '
                            'use the certificate. This is only needed if your '
                            'CA requires a kerberos principal. e.g. with '
@@ -178,25 +181,25 @@ class UndercloudConfig(StandaloneConfig):
                        ),
             cfg.StrOpt('local_interface',
                        default='eth1',
-                       help=('Network interface on the Undercloud that will '
-                             'be handling the PXE boots and DHCP for '
-                             'Overcloud instances.')
+                       help=_('Network interface on the Undercloud that will '
+                              'be handling the PXE boots and DHCP for '
+                              'Overcloud instances.')
                        ),
             cfg.IntOpt('local_mtu',
                        default=1500,
-                       help=('MTU to use for the local_interface.')
+                       help=_('MTU to use for the local_interface.')
                        ),
 
             cfg.StrOpt('inspection_interface',
                        default='br-ctlplane',
                        deprecated_name='discovery_interface',
-                       help=(
+                       help=_(
                            'Network interface on which inspection dnsmasq '
                            'will listen.  If in doubt, use the default value.')
                        ),
             cfg.BoolOpt('inspection_extras',
                         default=True,
-                        help=(
+                        help=_(
                             'Whether to enable extra hardware collection '
                             'during the inspection process. Requires '
                             'python-hardware or python-hardware-detect '
@@ -204,13 +207,13 @@ class UndercloudConfig(StandaloneConfig):
             cfg.BoolOpt('inspection_runbench',
                         default=False,
                         deprecated_name='discovery_runbench',
-                        help=(
+                        help=_(
                             'Whether to run benchmarks when inspecting '
                             'nodes. Requires inspection_extras set to True.')
                         ),
             cfg.BoolOpt('enable_node_discovery',
                         default=False,
-                        help=(
+                        help=_(
                             'Makes ironic-inspector enroll any unknown node '
                             'that PXE-boots introspection ramdisk in Ironic. '
                             'By default, the "fake" driver is used for new '
@@ -222,7 +225,7 @@ class UndercloudConfig(StandaloneConfig):
                         ),
             cfg.StrOpt('discovery_default_driver',
                        default='ipmi',
-                       help=(
+                       help=_(
                            'The default driver or hardware type to use for '
                            'newly discovered nodes (requires '
                            'enable_node_discovery set to True). It is '
@@ -230,39 +233,39 @@ class UndercloudConfig(StandaloneConfig):
                        ),
             cfg.BoolOpt('undercloud_debug',
                         default=True,
-                        help=(
+                        help=_(
                             'Whether to enable the debug log level for '
                             'Undercloud OpenStack services.')
                         ),
             cfg.BoolOpt('undercloud_update_packages',
                         default=False,
-                        help=(
+                        help=_(
                             'Whether to update packages during the Undercloud '
                             'install. This is a no-op for containerized '
                             'undercloud.')
                         ),
             cfg.BoolOpt('enable_container_images_build',
                         default=True,
-                        help=(
+                        help=_(
                             'Whether to enable docker container images to be '
                             'build on the undercloud.')
                         ),
             cfg.StrOpt('ipa_otp',
                        default='',
-                       help=(
+                       help=_(
                            'One Time Password to register Undercloud node '
                            'with an IPA server.  Required when '
                            'enable_novajoin = True.')
                        ),
             cfg.BoolOpt('ipxe_enabled',
                         default=True,
-                        help=('Whether to use iPXE for deploy and '
-                              'inspection.'),
+                        help=_('Whether to use iPXE for deploy and '
+                               'inspection.'),
                         deprecated_name='ipxe_deploy',
                         ),
             cfg.IntOpt('scheduler_max_attempts',
                        default=30, min=1,
-                       help=(
+                       help=_(
                            'Maximum number of attempts the scheduler will '
                            'make when deploying the instance. You should keep '
                            'it greater or equal to the number of bare metal '
@@ -270,20 +273,21 @@ class UndercloudConfig(StandaloneConfig):
                            'potential race condition when scheduling.')),
             cfg.BoolOpt('clean_nodes',
                         default=False,
-                        help=(
+                        help=_(
                             'Whether to clean overcloud nodes (wipe the hard '
                             'drive) between deployments and after the '
                             'introspection.')),
             cfg.ListOpt('enabled_hardware_types',
                         default=['ipmi', 'redfish', 'ilo', 'idrac'],
-                        help=('List of enabled bare metal hardware types '
-                              '(next generation drivers).')),
+                        help=_('List of enabled bare metal hardware types '
+                               '(next generation drivers).')),
             cfg.BoolOpt('enable_routed_networks',
                         default=False,
-                        help=('Enable support for routed ctlplane networks.')),
+                        help=_(
+                            'Enable support for routed ctlplane networks.')),
             cfg.BoolOpt('enable_swift_encryption',
                         default=False,
-                        help=(
+                        help=_(
                             'Whether to enable Swift encryption at-rest or '
                             'not.'
                         )),
@@ -300,23 +304,24 @@ class UndercloudConfig(StandaloneConfig):
             cfg.StrOpt('cidr',
                        default='192.168.24.0/24',
                        deprecated_opts=_deprecated_opt_network_cidr,
-                       help=('Network CIDR for the Neutron-managed subnet for '
-                             'Overcloud instances.')),
+                       help=_(
+                           'Network CIDR for the Neutron-managed subnet for '
+                           'Overcloud instances.')),
             cfg.StrOpt('dhcp_start',
                        default='192.168.24.5',
                        deprecated_opts=_deprecated_opt_dhcp_start,
-                       help=(
+                       help=_(
                            'Start of DHCP allocation range for PXE and DHCP '
                            'of Overcloud instances on this network.')),
             cfg.StrOpt('dhcp_end',
                        default='192.168.24.24',
                        deprecated_opts=_deprecated_opt_dhcp_end,
-                       help=('End of DHCP allocation range for PXE and DHCP '
-                             'of Overcloud instances on this network.')),
+                       help=_('End of DHCP allocation range for PXE and DHCP '
+                              'of Overcloud instances on this network.')),
             cfg.StrOpt('inspection_iprange',
                        default='192.168.24.100,192.168.24.120',
                        deprecated_opts=_deprecated_opt_inspection_iprange,
-                       help=(
+                       help=_(
                            'Temporary IP range that will be given to nodes on '
                            'this network during the inspection process. '
                            'Should not overlap with the range defined by '
@@ -326,12 +331,12 @@ class UndercloudConfig(StandaloneConfig):
             cfg.StrOpt('gateway',
                        default='192.168.24.1',
                        deprecated_opts=_deprecated_opt_network_gateway,
-                       help=(
+                       help=_(
                            'Network gateway for the Neutron-managed network '
                            'for Overcloud instances on this network.')),
             cfg.BoolOpt('masquerade',
                         default=False,
-                        help=(
+                        help=_(
                             'The network will be masqueraded for external '
                             'access.')),
         ]

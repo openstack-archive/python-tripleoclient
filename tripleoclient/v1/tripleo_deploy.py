@@ -31,7 +31,7 @@ from cliff import command
 from datetime import datetime
 from heatclient.common import event_utils
 from heatclient.common import template_utils
-from openstackclient.i18n import _
+from osc_lib.i18n import _
 from six.moves import configparser
 
 from tripleoclient import constants
@@ -92,7 +92,7 @@ class Deploy(command.Command):
 
     def _create_install_artifact(self):
         """Create a tarball of the temporary folders used"""
-        self.log.debug("Preserving deployment artifacts")
+        self.log.debug(_("Preserving deployment artifacts"))
 
         def remove_output_dir(info):
             """Tar filter to remove output dir from path"""
@@ -149,15 +149,15 @@ class Deploy(command.Command):
                 shutil.rmtree(self.tmp_ansible_dir)
                 self.tmp_ansible_dir = None
         else:
-            self.log.warning("Not cleaning working directory %s"
+            self.log.warning(_("Not cleaning working directory %s")
                              % self.tht_render)
-            self.log.warning("Not removing temporary environment file %s"
+            self.log.warning(_("Not removing temporary environment file %s")
                              % self.tmp_env_file_name)
-            self.log.warning("Not cleaning ansible directory %s"
+            self.log.warning(_("Not cleaning ansible directory %s")
                              % self.tmp_ansible_dir)
 
     def _configure_puppet(self):
-        self.log.info('Configuring puppet modules symlinks ...')
+        self.log.info(_('Configuring puppet modules symlinks ...'))
         utils.bulk_symlink(self.log, constants.TRIPLEO_PUPPET_MODULES,
                            constants.PUPPET_MODULES,
                            constants.PUPPET_BASE)
@@ -356,7 +356,7 @@ class Deploy(command.Command):
         shutil.copytree(parsed_args.templates, self.tht_render, symlinks=True)
 
         # generate jinja templates by its work dir location
-        self.log.debug("Using roles file %s" % parsed_args.roles_file)
+        self.log.debug(_("Using roles file %s") % parsed_args.roles_file)
         process_templates = os.path.join(parsed_args.templates,
                                          'tools/process-templates.py')
         args = ['python', process_templates, '--roles-data',
@@ -367,10 +367,10 @@ class Deploy(command.Command):
             self.log.error(msg)
             raise exceptions.DeploymentError(msg)
 
-        self.log.info("Deploying templates in the directory {0}".format(
-                      os.path.abspath(self.tht_render)))
+        self.log.info(_("Deploying templates in the directory {0}").format(
+            os.path.abspath(self.tht_render)))
 
-        self.log.warning("** Creating Environment file **")
+        self.log.warning(_("** Creating Environment file **"))
         environments = []
 
         resource_registry_path = os.path.join(
@@ -456,7 +456,7 @@ class Deploy(command.Command):
         environments = self._setup_heat_environments(parsed_args)
 
         # rewrite paths to consume t-h-t env files from the working dir
-        self.log.debug("Processing environment files %s" % environments)
+        self.log.debug(_("Processing environment files %s") % environments)
         env_files, env = utils.process_multiple_environments(
             environments, self.tht_render, parsed_args.templates,
             cleanup=parsed_args.cleanup)
@@ -465,7 +465,7 @@ class Deploy(command.Command):
             self.tht_render, parsed_args.roles_file)
         self._prepare_container_images(env, roles_file)
 
-        self.log.debug("Getting template contents")
+        self.log.debug(_("Getting template contents"))
         template_path = os.path.join(self.tht_render, 'overcloud.yaml')
         template_files, template = \
             template_utils.get_template_contents(template_path)
@@ -474,10 +474,10 @@ class Deploy(command.Command):
 
         stack_name = parsed_args.stack
 
-        self.log.debug("Deploying stack: %s", stack_name)
-        self.log.debug("Deploying template: %s", template)
-        self.log.debug("Deploying environment: %s", env)
-        self.log.debug("Deploying files: %s", files)
+        self.log.debug(_("Deploying stack: %s") % stack_name)
+        self.log.debug(_("Deploying template: %s") % template)
+        self.log.debug(_("Deploying environment: %s") % env)
+        self.log.debug(_("Deploying files: %s") % files)
 
         stack_args = {
             'stack_name': stack_name,
@@ -489,7 +489,7 @@ class Deploy(command.Command):
         if parsed_args.timeout:
             stack_args['timeout_mins'] = parsed_args.timeout
 
-        self.log.warning("** Performing Heat stack create.. **")
+        self.log.warning(_("** Performing Heat stack create.. **"))
         stack = orchestration_client.stacks.create(**stack_args)
         stack_id = stack['stack']['id']
 
@@ -499,7 +499,7 @@ class Deploy(command.Command):
         stack_config = config.Config(client)
         self._create_working_dirs()
 
-        self.log.warning('** Downloading undercloud ansible.. **')
+        self.log.warning(_('** Downloading undercloud ansible.. **'))
         # python output buffering is making this seem to take forever..
         sys.stdout.flush()
         stack_config.write_config(stack_config.fetch_config('undercloud'),
@@ -515,14 +515,14 @@ class Deploy(command.Command):
         extra_vars = {'Undercloud': {'ansible_connection': 'local'}}
         inventory.write_static_inventory(inv_path, extra_vars)
 
-        self.log.info('** Downloaded undercloud ansible to %s **' %
+        self.log.info(_('** Downloaded undercloud ansible to %s **') %
                       self.tmp_ansible_dir)
         sys.stdout.flush()
         return self.tmp_ansible_dir
 
     # Never returns, calls exec()
     def _launch_ansible_deploy(self, ansible_dir):
-        self.log.warning('** Running ansible deploy tasks **')
+        self.log.warning(_('** Running ansible deploy tasks **'))
         os.chdir(ansible_dir)
         playbook_inventory = os.path.join(ansible_dir, 'inventory.yaml')
         cmd = ['ansible-playbook', '-i', playbook_inventory,
@@ -669,8 +669,8 @@ class Deploy(command.Command):
         if not override_file or not os.path.exists(override_file):
             # we should never get here because there's a check in
             # undercloud_conf but stranger things have happened.
-            msg = 'hieradata_override file could not be found %s' %\
-                  override_file
+            msg = (_('hieradata_override file could not be found %s') %
+                   override_file)
             self.log.error(msg)
             raise exceptions.DeploymentError(msg)
 
@@ -678,7 +678,8 @@ class Deploy(command.Command):
         data = open(target, 'r').read()
         hiera_data = yaml.safe_load(data)
         if not hiera_data:
-            msg = 'Unsupported data format in hieradata override %s' % target
+            msg = (_('Unsupported data format in hieradata override %s') %
+                   target)
             self.log.error(msg)
             raise exceptions.DeploymentError(msg)
         self._create_working_dirs()

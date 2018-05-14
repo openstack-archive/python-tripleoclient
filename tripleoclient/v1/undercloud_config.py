@@ -126,7 +126,7 @@ def _load_config():
     if os.path.isfile(PATHS.CONF_PATH):
         conf_params += ['--config-file', PATHS.CONF_PATH]
     else:
-        LOG.warning('%s does not exist. Using defaults.' % PATHS.CONF_PATH)
+        LOG.warning(_('%s does not exist. Using defaults.') % PATHS.CONF_PATH)
     CONF(conf_params)
 
 
@@ -483,7 +483,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
             data_file = os.path.join(tht_templates, data_file)
 
         if not os.path.exists(data_file):
-            msg = "Could not find net_config_override file '%s'" % data_file
+            msg = _("Could not find net_config_override file '%s'") % data_file
             LOG.error(msg)
             raise RuntimeError(msg)
 
@@ -496,9 +496,9 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
         unknown_tags = _get_unknown_instack_tags(net_config_env,
                                                  template_source)
         if unknown_tags:
-            msg = ('Can not render net_config_override file %s contains '
-                   'unknown instack_env j2 tags: %s' % (
-                       data_file, unknown_tags))
+            msg = (_('Can not render net_config_override file {0} contains '
+                     'unknown instack_env j2 tags: {1}').format(
+                         data_file, unknown_tags))
             LOG.error(msg)
             raise exceptions.DeploymentError(msg)
 
@@ -538,7 +538,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
             data_file = os.path.join(USER_HOME, data_file)
 
         if not os.path.exists(data_file):
-            msg = "Could not find hieradata_override file '%s'" % data_file
+            msg = _("Could not find hieradata_override file '%s'") % data_file
             LOG.error(msg)
             raise RuntimeError(msg)
 

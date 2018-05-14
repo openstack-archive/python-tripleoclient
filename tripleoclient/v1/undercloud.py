@@ -72,8 +72,8 @@ class InstallUndercloud(command.Command):
                     no_validations=no_validations,
                     verbose_level=self.app_args.verbose_level)
         else:
-            self.log.warning('Non-containerized undercloud deployment is '
-                             'deprecated in Rocky cycle.')
+            self.log.warning(_('Non-containerized undercloud deployment is '
+                             'deprecated in Rocky cycle.'))
             cmd = ["instack-install-undercloud"]
         if parsed_args.dry_run:
             print(' '.join(cmd))
@@ -101,8 +101,8 @@ class UpgradeUndercloud(InstallUndercloud):
             print("Running: %s" % ' '.join(cmd))
             subprocess.check_call(cmd)
         else:
-            self.log.warning('Non-containerized undercloud deployment is '
-                             'deprecated in Rocky cycle.')
+            self.log.warning(_('Non-containerized undercloud deployment is '
+                             'deprecated in Rocky cycle.'))
             subprocess.check_call(['sudo', 'yum', 'update', '-y',
                                   'instack-undercloud'])
             subprocess.check_call("instack-pre-upgrade-undercloud")

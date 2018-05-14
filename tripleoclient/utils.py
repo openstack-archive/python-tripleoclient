@@ -101,8 +101,8 @@ def store_cli_param(command_name, parsed_args):
         try:
             os.mkdir(history_path)
         except OSError as e:
-            messages = "Unable to create TripleO history directory: " \
-                       "{0}, {1}".format(history_path, e)
+            messages = _("Unable to create TripleO history directory: "
+                         "{0}, {1}").format(history_path, e)
             raise OSError(messages)
     if os.path.isdir(history_path):
         try:
@@ -114,12 +114,12 @@ def store_cli_param(command_name, parsed_args):
                 history.write(' '.join([str(datetime.datetime.now()),
                                        str(command_name), used_args, "\n"]))
         except IOError as e:
-            messages = "Unable to write into TripleO history file: "
-            "{0}, {1}".format(history_path, e)
+            messages = _("Unable to write into TripleO history file: "
+                         "{0}, {1}").format(history_path, e)
             raise IOError(messages)
     else:
-        raise exceptions.InvalidConfiguration("Target path %s is not a "
-                                              "directory" % history_path)
+        raise exceptions.InvalidConfiguration(_("Target path %s is not a "
+                                                "directory") % history_path)
 
 
 def create_tempest_deployer_input(config_name='tempest-deployer-input.conf'):
@@ -247,9 +247,9 @@ def wait_for_provision_state(baremetal_client, node_uuid, provision_state,
 
         # node.last_error should be None after any successful operation
         if node.last_error:
-            raise exceptions.StateTransitionFailed(
+            raise exceptions.StateTransitionFailed(_(
                 "Error transitioning node %(uuid)s to provision state "
-                "%(state)s: %(error)s. Now in state %(actual)s." % {
+                "%(state)s: %(error)s. Now in state %(actual)s.") % {
                     'uuid': node_uuid,
                     'state': provision_state,
                     'error': node.last_error,
@@ -259,9 +259,9 @@ def wait_for_provision_state(baremetal_client, node_uuid, provision_state,
 
         time.sleep(sleep)
 
-    raise exceptions.Timeout(
+    raise exceptions.Timeout(_(
         "Node %(uuid)s did not reach provision state %(state)s. "
-        "Now in state %(actual)s." % {
+        "Now in state %(actual)s.") % {
             'uuid': node_uuid,
             'state': provision_state,
             'actual': node.provision_state
@@ -315,18 +315,18 @@ def set_nodes_state(baremetal_client, nodes, transition, target_state,
         if node.provision_state in skipped_states:
             continue
 
-        log.debug(
-            "Setting provision state from '{0}' to '{1}' for Node {2}"
+        log.debug(_(
+            "Setting provision state from '{0}' to '{1}' for Node {2}")
             .format(node.provision_state, transition, node.uuid))
 
         baremetal_client.node.set_provision_state(node.uuid, transition)
         try:
             wait_for_provision_state(baremetal_client, node.uuid, target_state)
         except exceptions.StateTransitionFailed as e:
-            log.error("FAIL: State transition failed for Node {0}. {1}"
+            log.error(_("FAIL: State transition failed for Node {0}. {1}")
                       .format(node.uuid, e))
         except exceptions.Timeout as e:
-            log.error("FAIL: Timeout waiting for Node {0}. {1}"
+            log.error(_("FAIL: Timeout waiting for Node {0}. {1}")
                       .format(node.uuid, e))
         yield node.uuid
 
@@ -431,8 +431,8 @@ def file_checksum(filepath):
 
     """
     if not os.path.isfile(filepath):
-        raise ValueError("The given file {0} is not a regular "
-                         "file".format(filepath))
+        raise ValueError(_("The given file {0} is not a regular "
+                           "file").format(filepath))
     checksum = hashlib.md5()
     with open(filepath, 'rb') as f:
         while True:
@@ -446,9 +446,9 @@ def file_checksum(filepath):
 def ensure_run_as_normal_user():
     """Check if the command runs under normal user (EUID!=0)"""
     if os.geteuid() == 0:
-        raise exceptions.RootUserExecution(
+        raise exceptions.RootUserExecution(_(
             'This command cannot run under root user.'
-            ' Switch to a normal user.')
+            ' Switch to a normal user.'))
 
 
 def get_deployment_user():
@@ -847,14 +847,14 @@ def get_tripleo_ansible_inventory(inventory_file='',
                 '--ansible_ssh_user', ssh_user,
                 '--static-yaml-inventory', inventory_file)
         except processutils.ProcessExecutionError as e:
-                message = "Failed to generate inventory: %s" % str(e)
+                message = _("Failed to generate inventory: %s") % str(e)
                 raise exceptions.InvalidConfiguration(message)
     if os.path.exists(inventory_file):
         inventory = open(inventory_file, 'r').read()
         return inventory
     else:
-        raise exceptions.InvalidConfiguration(
-            "Inventory file %s can not be found." % inventory_file)
+        raise exceptions.InvalidConfiguration(_(
+            "Inventory file %s can not be found.") % inventory_file)
 
 
 def process_multiple_environments(created_env_files, tht_root,
@@ -962,9 +962,9 @@ def prepend_environment(environment_files, templates_dir, environment):
         # We need to prepend before the files provided by user.
         environment_files.insert(0, full_path)
     else:
-        raise exceptions.InvalidConfiguration(
-            "Expected environment file %s not found in %s cannot proceed."
-            % (environment, templates_dir))
+        raise exceptions.InvalidConfiguration(_(
+            "Expected environment file {0} not found in {1} cannot proceed.")
+            .format(environment, templates_dir))
 
     return environment_files
 
@@ -975,12 +975,12 @@ def load_container_registry(log, path):
         with open(os.path.abspath(path)) as content:
             registry = yaml.load(content.read())
     else:
-        log.warning(
+        log.warning(_(
             "You have not provided a container registry file. Note "
             "that none of the containers on your environment will be "
             "updated. If you want to update your containers you have "
             "to re-run this command and provide the registry file "
-            "with: --container-registry-file option.")
+            "with: --container-registry-file option."))
     return registry
 
 
@@ -1082,8 +1082,8 @@ def ffwd_upgrade_operator_confirm(parsed_args_yes, log):
           "in production, ensure you are adequately prepared "
           "with valid backup of your current deployment state.")
     if parsed_args_yes:
-        log.debug("Fast forward upgrade --yes continuing")
-        print("Continuing fast forward upgrade")
+        log.debug(_("Fast forward upgrade --yes continuing"))
+        print(_("Continuing fast forward upgrade"))
         return
     else:
         # Fix Python 2.x.
@@ -1096,6 +1096,6 @@ def ffwd_upgrade_operator_confirm(parsed_args_yes, log):
                          "cancel. Consider using the --yes parameter if "
                          "you wish to skip this warning in future. ")
         if response != 'yes':
-            log.debug("Fast forward upgrade cancelled on user request")
-            print("Cancelling fast forward upgrade")
+            log.debug(_("Fast forward upgrade cancelled on user request"))
+            print(_("Cancelling fast forward upgrade"))
             sys.exit(1)

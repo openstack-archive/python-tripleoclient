@@ -16,8 +16,8 @@
 import argparse
 import logging
 
-from openstackclient.i18n import _
 from osc_lib.command import command
+from osc_lib.i18n import _
 from tripleoclient.workflows import undercloud_backup
 
 LOG = logging.getLogger(__name__ + ".BackupUndercloud")
@@ -73,18 +73,18 @@ class BackupUndercloud(command.Command):
             "sources_path": files_to_backup
         }
 
-        LOG.debug('Launch the Undercloud Backup')
+        LOG.debug(_('Launch the Undercloud Backup'))
         try:
             output = undercloud_backup.backup(clients, workflow_input)
             LOG.info(output)
         except Exception as e:
-            print("Undercloud backup finished with errors")
+            print(_("Undercloud backup finished with errors"))
             print('Output: {}'.format(e))
             LOG.info(e)
 
     def take_action(self, parsed_args):
 
-        LOG.info(
+        LOG.info(_(
             '\n'
             ' #############################################################\n'
             ' #                  Disclaimer                               #\n'
@@ -95,5 +95,6 @@ class BackupUndercloud(command.Command):
             ' #                                                           #\n'
             ' # .-Stay safe and avoid future issues-.                     #\n'
             ' #############################################################\n')
+        )
 
         self._run_backup_undercloud(parsed_args)
