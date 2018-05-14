@@ -1,0 +1,4 @@
+---
+features:
+  - A new command, openstack overcloud failures, is added to show
+    the failures from a deployment plan when using config-download.

@@ -302,3 +302,27 @@ def get_deployment_status(clients, **workflow_input):
         raise exceptions.WorkflowServiceError(
             'Exception getting deployment status: {}'.format(
                 payload.get('message', '')))
+
+
+def get_deployment_failures(clients, **workflow_input):
+    workflow_client = clients.workflow_engine
+    tripleoclients = clients.tripleoclient
+
+    execution = base.start_workflow(
+        workflow_client,
+        'tripleo.deployment.v1.get_deployment_failures',
+        workflow_input=workflow_input
+    )
+
+    with tripleoclients.messaging_websocket() as ws:
+        for payload in base.wait_for_messages(workflow_client, ws, execution,
+                                              _WORKFLOW_TIMEOUT):
+            if 'message' in payload:
+                print(payload['message'])
+
+    if payload['status'] == 'SUCCESS':
+        return payload['deployment_failures']['failures']
+    else:
+        raise exceptions.WorkflowServiceError(
+            'Exception getting deployment failures: {}'.format(
+                payload.get('message', '')))
