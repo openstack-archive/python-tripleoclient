@@ -330,7 +330,11 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
         deploy_args.append('--roles-file=%s' % CONF['roles_file'])
 
     if upgrade:
-        deploy_args += ['--upgrade']
+        deploy_args += [
+            '--upgrade',
+            '-e', os.path.join(
+                tht_templates,
+                "environments/lifecycle/undercloud-upgrade-prepare.yaml")]
 
     if CONF.get('heat_native', None):
         deploy_args.append('--heat-native')
