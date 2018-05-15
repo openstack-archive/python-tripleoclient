@@ -82,7 +82,6 @@ class Deploy(command.Command):
     heat_pid = None
     tht_render = None
     output_dir = None
-    tmp_env_dir = None
     tmp_env_file_name = None
     tmp_ansible_dir = None
 
@@ -108,7 +107,7 @@ class Deploy(command.Command):
         tar_filename = self._get_tar_filename()
         try:
             tf = tarfile.open(tar_filename, 'w:bz2')
-            tf.add(self.tmp_env_dir, recursive=True, filter=remove_output_dir)
+            tf.add(self.tht_render, recursive=True, filter=remove_output_dir)
             if self.tmp_env_file_name:
                 tf.add(self.tmp_env_file_name, filter=remove_output_dir)
             tf.add(self.tmp_ansible_dir, recursive=True,
@@ -123,9 +122,8 @@ class Deploy(command.Command):
         """Creates temporary working directories"""
         if self.output_dir and not os.path.exists(self.output_dir):
             os.mkdir(self.output_dir)
-        if not self.tmp_env_dir:
-            self.tmp_env_dir = tempfile.mkdtemp(prefix='undercloud-templates-',
-                                                dir=self.output_dir)
+        if self.tht_render and not os.path.exists(self.tht_render):
+            os.mkdir(self.tht_render)
         if not self.tmp_ansible_dir:
             self.tmp_ansible_dir = tempfile.mkdtemp(
                 prefix='undercloud-ansible-', dir=self.output_dir)
@@ -136,11 +134,10 @@ class Deploy(command.Command):
         :param cleanup: Set to true if you DO want to cleanup the dirs
         """
         if cleanup:
-            if self.tmp_env_dir and os.path.exists(self.tmp_env_dir):
-                shutil.rmtree(self.tmp_env_dir, ignore_errors=True)
-                # tht_render is a sub-dir of tmp_env_dir
+            if self.tht_render and os.path.exists(self.tht_render):
+                shutil.rmtree(self.tht_render, ignore_errors=True)
+
             self.tht_render = None
-            self.tmp_env_dir = None
             if self.tmp_env_file_name:
                 try:
                     os.remove(self.tmp_env_file_name)
@@ -152,8 +149,8 @@ class Deploy(command.Command):
                 shutil.rmtree(self.tmp_ansible_dir)
                 self.tmp_ansible_dir = None
         else:
-            self.log.warning("Not cleaning temporary directory %s"
-                             % self.tmp_env_dir)
+            self.log.warning("Not cleaning working directory %s"
+                             % self.tht_render)
             self.log.warning("Not removing temporary environment file %s"
                              % self.tmp_env_file_name)
             self.log.warning("Not cleaning ansible directory %s"
@@ -339,19 +336,21 @@ class Deploy(command.Command):
         return orchestration_client
 
     def _setup_heat_environments(self, parsed_args):
-        """Process tripleo heat templates with jinja
+        """Process tripleo heat templates with jinja and deploy into work dir
 
-        * Copy --templates content into a temporary working dir
-          created under the --output_dir path as output_dir/tempwd/templates.
-        * Process j2 templates there
-        * Return the environments list for futher processing.
+        * Copy --templates content into a working dir
+          created as 'output_dir/tripleo-heat-installer-templates'.
+        * Process j2/install additional templates there
+        * Return the environments list for futher processing as a new base.
 
         The first two items are reserved for the
         overcloud-resource-registry-puppet.yaml and passwords files.
         """
 
-        self._create_working_dirs()
-        self.tht_render = os.path.join(self.tmp_env_dir, 'templates')
+        self.tht_render = os.path.join(parsed_args.output_dir,
+                                       'tripleo-heat-installer-templates')
+        # The target should not exist, bear in mind consequent deploys.
+        shutil.rmtree(self.tht_render, ignore_errors=True)
         shutil.copytree(parsed_args.templates, self.tht_render, symlinks=True)
 
         # generate jinja templates by its work dir location
@@ -449,16 +448,17 @@ class Deploy(command.Command):
                                        parsed_args):
         """Deploy the fixed templates in TripleO Heat Templates"""
 
-        # sets self.tht_render to the temporary work dir after it's done
+        # sets self.tht_render to the working dir with deployed templates
         environments = self._setup_heat_environments(parsed_args)
 
+        # rewrite paths to consume t-h-t env files from the working dir
         self.log.debug("Processing environment files %s" % environments)
         env_files, env = utils.process_multiple_environments(
             environments, self.tht_render, parsed_args.templates,
             cleanup=parsed_args.cleanup)
 
         roles_file = os.path.join(
-            parsed_args.templates, parsed_args.roles_file)
+            self.tht_render, parsed_args.roles_file)
         self._prepare_container_images(env, roles_file)
 
         self.log.debug("Getting template contents")
@@ -689,8 +689,7 @@ class Deploy(command.Command):
         # {parameter_defaults: {UndercloudExtraConfig: ... }}
         if ('UndercloudExtraConfig' not in hiera_data.get('parameter_defaults',
                                                           {})):
-            template_location = os.path.join(self.tmp_env_dir, 'templates')
-            with tempfile.NamedTemporaryFile(dir=template_location,
+            with tempfile.NamedTemporaryFile(dir=self.tht_render,
                                              prefix='hieradata-override',
                                              suffix='.yaml',
                                              delete=False) as override:

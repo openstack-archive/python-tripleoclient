@@ -49,7 +49,6 @@ class TestDeployUndercloud(TestPluginV1):
         tripleo_deploy.Deploy.heat_pid = mock.MagicMock(
             return_value=False)
         tripleo_deploy.Deploy.tht_render = '/twd/templates'
-        tripleo_deploy.Deploy.tmp_env_dir = '/twd'
         tripleo_deploy.Deploy.tmp_env_file_name = 'tmp/foo'
         tripleo_deploy.Deploy.heat_launch = mock.MagicMock(
             side_effect=(lambda *x, **y: None))
@@ -286,11 +285,15 @@ class TestDeployUndercloud(TestPluginV1):
                                          '-e', 'something.yaml',
                                          '-e', '../../../outside.yaml'], [])
         expected_env = [
-            '/twd/templates/overcloud-resource-registry-puppet.yaml',
+            '/my/tripleo-heat-installer-templates/'
+            'overcloud-resource-registry-puppet.yaml',
             mock.ANY,
-            '/twd/templates/environments/undercloud.yaml',
-            '/twd/templates/environments/config-download-environment.yaml',
-            '/twd/templates/environments/deployed-server-noop-ctlplane.yaml',
+            '/my/tripleo-heat-installer-templates/'
+            'environments/undercloud.yaml',
+            '/my/tripleo-heat-installer-templates/'
+            'environments/config-download-environment.yaml',
+            '/my/tripleo-heat-installer-templates/'
+            'environments/deployed-server-noop-ctlplane.yaml',
             '/tmp/thtroot/puppet/foo.yaml',
             '/tmp/thtroot//docker/bar.yaml',
             '/tmp/thtroot42/notouch.yaml',
