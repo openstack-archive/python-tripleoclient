@@ -438,7 +438,9 @@ class TestUndercloudUpgrade(TestPluginV1):
              '--local-domain=localdomain',
              '--local-ip=192.168.24.1/24',
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
-             '--upgrade',
+             '--upgrade', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'lifecycle/undercloud-upgrade-prepare.yaml',
              '--heat-native', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'docker.yaml', '-e',
@@ -495,7 +497,9 @@ class TestUndercloudUpgrade(TestPluginV1):
              '--local-domain=localdomain',
              '--local-ip=192.168.24.1/24',
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
-             '--upgrade',
+             '--upgrade', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'lifecycle/undercloud-upgrade-prepare.yaml',
              '--heat-native', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'docker.yaml', '-e',
