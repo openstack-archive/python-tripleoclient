@@ -13,7 +13,6 @@ from __future__ import print_function
 
 import os
 import pprint
-import re
 import shutil
 import socket
 import subprocess
@@ -109,21 +108,13 @@ def overcloudrc(workflow_client, **input_):
                             **input_)
 
 
-def get_overcloud_hosts(clients, stack):
-    role_net_hostname_map = utils.get_role_net_hostname_map(stack)
-    hostnames = []
-    for role in role_net_hostname_map:
-        hostnames.extend(role_net_hostname_map[role].get('ctlplane', []))
+def get_overcloud_hosts(stack, ssh_network):
+    ips = []
+    role_net_ip_map = utils.get_role_net_ip_map(stack)
+    for net_ip_map in role_net_ip_map.values():
+        ips.extend(net_ip_map.get(ssh_network, []))
 
-    hosts = []
-    hosts_entry = utils.get_hosts_entry(stack)
-    for hostname in hostnames:
-        for line in hosts_entry.split('\n'):
-            match = re.search('\s*%s\s*' % hostname, line)
-            if match:
-                hosts.append(line.split(' ')[0])
-
-    return hosts
+    return ips
 
 
 def wait_for_ssh_port(host):
@@ -231,13 +222,14 @@ def enable_ssh_admin(log, clients, hosts, ssh_user, ssh_key):
 
 
 def config_download(log, clients, stack, templates,
-                    ssh_user, ssh_key, output_dir, verbosity=1):
+                    ssh_user, ssh_key, ssh_network, output_dir, verbosity=1):
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
 
     workflow_input = {
         'verbosity': verbosity or 1,
-        'plan_name': stack.stack_name
+        'plan_name': stack.stack_name,
+        'ssh_network': ssh_network
     }
     if output_dir:
         workflow_input.update(dict(work_dir=output_dir))

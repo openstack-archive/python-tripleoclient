@@ -378,6 +378,12 @@ def get_role_net_hostname_map(stack):
             return output['output_value']
 
 
+def get_role_net_ip_map(stack):
+    for output in stack.to_dict().get('outputs', {}):
+        if output['output_key'] == 'RoleNetIpMap':
+            return output['output_value']
+
+
 def get_hosts_entry(stack):
     for output in stack.to_dict().get('outputs', {}):
         if output['output_key'] == 'HostsEntry':

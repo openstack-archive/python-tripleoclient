@@ -85,3 +85,25 @@ class TestDeploymentWorkflows(utils.TestCommand):
         # tmpdir should be cleaned up
         self.assertEqual(1, mock_rmtree.call_count)
         self.assertEqual('/foo', mock_rmtree.call_args[0][0])
+
+    @mock.patch('tripleoclient.utils.get_role_net_ip_map')
+    def test_get_overcloud_hosts(self, mock_role_net_ip_map):
+        stack = mock.Mock()
+        mock_role_net_ip_map.return_value = {
+            'Controller': {
+                'ctlplane': ['1.1.1.1', '2.2.2.2', '3.3.3.3'],
+                'external': ['4.4.4.4', '5.5.5.5', '6.6.6.6']},
+            'Compute': {
+                'ctlplane': ['7.7.7.7', '8.8.8.8', '9.9.9.9'],
+                'external': ['10.10.10.10', '11.11.11.11', '12.12.12.12']},
+        }
+
+        ips = deployment.get_overcloud_hosts(stack, 'ctlplane')
+        expected = ['1.1.1.1', '2.2.2.2', '3.3.3.3',
+                    '7.7.7.7', '8.8.8.8', '9.9.9.9']
+        self.assertEqual(sorted(expected), sorted(ips))
+
+        ips = deployment.get_overcloud_hosts(stack, 'external')
+        expected = ['4.4.4.4', '5.5.5.5', '6.6.6.6',
+                    '10.10.10.10', '11.11.11.11', '12.12.12.12']
+        self.assertEqual(sorted(expected), sorted(ips))
