@@ -341,10 +341,7 @@ class TestDeployUndercloud(TestPluginV1):
         mock_chdir.assert_called_once()
         mock_run.assert_called_once_with(self.cmd.log, [
             'ansible-playbook', '-i', '/tmp/inventory.yaml',
-            'deploy_steps_playbook.yaml', '-e', 'role_name=Undercloud',
-            '-e', 'tripleo_role_name=Undercloud',
-            '-e', 'deploy_server_id=undercloud', '-e',
-            'bootstrap_server_id=undercloud'])
+            'deploy_steps_playbook.yaml'])
 
     @mock.patch('tripleo_common.image.kolla_builder.'
                 'container_images_prepare_multi')

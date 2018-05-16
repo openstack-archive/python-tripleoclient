@@ -39,10 +39,8 @@ class TestUpgrade(utils.TestCommand):
         mock_chdir.assert_called_once()
         mock_run.assert_called_once_with(self.cmd.log, [
             'ansible-playbook', '-i', '/tmp/inventory.yaml',
-            'upgrade_steps_playbook.yaml', '-e', 'role_name=Undercloud',
-            '-e', 'tripleo_role_name=Undercloud',
-            '-e', 'deploy_server_id=undercloud', '-e',
-            'bootstrap_server_id=undercloud', '--skip-tags', 'validation'])
+            'upgrade_steps_playbook.yaml',
+            '--skip-tags', 'validation'])
 
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.take_action',
                 autospec=True)
