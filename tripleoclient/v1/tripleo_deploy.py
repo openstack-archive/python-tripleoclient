@@ -25,7 +25,6 @@ import six
 import sys
 import tarfile
 import tempfile
-import traceback
 import yaml
 
 from cliff import command
@@ -114,8 +113,9 @@ class Deploy(command.Command):
                    filter=remove_output_dir)
             tf.close()
         except Exception as ex:
-            self.log.error("Unable to create artifact tarball, %s"
-                           % ex.message)
+            msg = _("Unable to create artifact tarball, %s") % ex.message
+            self.log.error(msg)
+            raise exceptions.DeploymentError(msg)
         return tar_filename
 
     def _create_working_dirs(self):
@@ -317,9 +317,11 @@ class Deploy(command.Command):
                     uid = pwd.getpwnam(parsed_args.heat_user).pw_uid
                     gid = pwd.getpwnam(parsed_args.heat_user).pw_gid
                 except KeyError:
-                    raise exceptions.DeploymentError(
+                    msg = _(
                         "Please create a %s user account before "
-                        "proceeding." % parsed_args.heat_user)
+                        "proceeding.") % parsed_args.heat_user
+                    self.log.error(msg)
+                    raise exceptions.DeploymentError(msg)
                 os.setgid(gid)
                 os.setuid(uid)
             self.heat_launch.heat_db_sync()
@@ -361,7 +363,9 @@ class Deploy(command.Command):
                 parsed_args.roles_file, '--output-dir', self.tht_render]
         if utils.run_command_and_log(self.log, args, cwd=self.tht_render) != 0:
             # TODO(aschultz): improve error messaging
-            raise exceptions.DeploymentError("Problems generating templates.")
+            msg = _("Problems generating templates.")
+            self.log.error(msg)
+            raise exceptions.DeploymentError(msg)
 
         self.log.info("Deploying templates in the directory {0}".format(
                       os.path.abspath(self.tht_render)))
@@ -698,9 +702,10 @@ class Deploy(command.Command):
 
     def _standalone_deploy(self, parsed_args):
         if not parsed_args.local_ip:
-            self.log.error('Please set --local-ip to the correct '
-                           'ipaddress/cidr for this machine.')
-            return
+            msg = _('Please set --local-ip to the correct '
+                    'ipaddress/cidr for this machine.')
+            self.log.error(msg)
+            raise exceptions.DeploymentError(msg)
 
         if not os.environ.get('HEAT_API_PORT'):
             os.environ['HEAT_API_PORT'] = parsed_args.heat_api_port
@@ -709,7 +714,9 @@ class Deploy(command.Command):
         # processes below. Only the heat deploy/os-collect-config forked
         # process runs as root.
         if os.geteuid() != 0:
-            raise exceptions.DeploymentError("Please run as root.")
+            msg = _("Please run as root.")
+            self.log.error(msg)
+            raise exceptions.DeploymentError(msg)
 
         # prepare working spaces
         self.output_dir = os.path.abspath(parsed_args.output_dir)
@@ -732,7 +739,9 @@ class Deploy(command.Command):
             status, msg = event_utils.poll_for_events(
                 orchestration_client, stack_id, nested_depth=6)
             if status != "CREATE_COMPLETE":
-                raise Exception("Stack create failed; %s" % msg)
+                message = _("Stack create failed; %s") % msg
+                self.log.error(message)
+                raise exceptions.DeploymentError(message)
 
             # download the ansible playbooks and execute them.
             ansible_dir = \
@@ -747,8 +756,7 @@ class Deploy(command.Command):
                 rc = self._launch_ansible_deploy(ansible_dir)
         except Exception as e:
             self.log.error("Exception: %s" % e)
-            self.log.error(traceback.format_exception(*sys.exc_info()))
-            raise
+            raise exceptions.DeploymentError(e.message)
         finally:
             self._kill_heat(parsed_args)
             tar_filename = self._create_install_artifact()
@@ -761,6 +769,7 @@ class Deploy(command.Command):
                 self.log.error(DEPLOY_FAILURE_MESSAGE.format(
                     self.heat_launch.install_tmp
                     ))
+                raise exceptions.DeploymentError('Deployment failed.')
             else:
                 self.log.warning(DEPLOY_COMPLETION_MESSAGE.format(
                     '~/undercloud-passwords.conf',
@@ -773,7 +782,10 @@ class Deploy(command.Command):
 
         if parsed_args.standalone:
             if self._standalone_deploy(parsed_args) != 0:
-                raise exceptions.DeploymentError('Deployment failed.')
+                msg = _('Deployment failed.')
+                self.log.error(msg)
+                raise exceptions.DeploymentError(msg)
         else:
-            raise exceptions.DeploymentError('Non-standalone is currently not '
-                                             'supported')
+            msg = _('Non-standalone is currently not supported')
+            self.log.error(msg)
+            raise exceptions.DeploymentError(msg)
