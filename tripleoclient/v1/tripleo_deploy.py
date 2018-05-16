@@ -688,11 +688,12 @@ class Deploy(command.Command):
             self.log.info('Converting hiera overrides for t-h-t from '
                           'legacy format into a file %s' %
                           hiera_override_file)
-            yaml.safe_dump(
-                {'parameter_defaults': {
-                 'UndercloudExtraConfig': hiera_data}},
-                hiera_override_file,
-                default_flow_style=False)
+            with open(hiera_override_file, 'w') as override:
+                yaml.safe_dump(
+                    {'parameter_defaults': {
+                     'UndercloudExtraConfig': hiera_data}},
+                    override,
+                    default_flow_style=False)
             target = hiera_override_file
         return target
 
