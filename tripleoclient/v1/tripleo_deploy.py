@@ -778,7 +778,8 @@ class Deploy(command.Command):
         self.log.debug("take_action(%s)" % parsed_args)
 
         if parsed_args.standalone:
-            self._standalone_deploy(parsed_args)
+            if self._standalone_deploy(parsed_args) != 0:
+                raise exceptions.DeploymentError('Deployment failed.')
         else:
             raise exceptions.DeploymentError('Non-standalone is currently not '
                                              'supported')

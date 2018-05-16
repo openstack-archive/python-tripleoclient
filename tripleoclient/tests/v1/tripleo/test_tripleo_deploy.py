@@ -372,7 +372,7 @@ class TestDeployUndercloud(TestPluginV1):
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_create_install_artifact', return_value='/tmp/foo.tar.bzip2')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
-                '_launch_ansible_deploy')
+                '_launch_ansible_deploy', return_value=0)
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_cleanup_working_dirs')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
@@ -436,5 +436,17 @@ class TestDeployUndercloud(TestPluginV1):
                                          '--templates', '/tmp/thtroot',
                                          '--stack', 'undercloud',
                                          '--output-dir', '/my'], [])
+        self.assertRaises(exceptions.DeploymentError,
+                          self.cmd.take_action, parsed_args)
+
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy._standalone_deploy',
+                return_value=1)
+    def test_take_action_failure(self, mock_deploy):
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--local-ip', '127.0.0.1',
+                                         '--templates', '/tmp/thtroot',
+                                         '--stack', 'undercloud',
+                                         '--output-dir', '/my',
+                                         '--standalone'], [])
         self.assertRaises(exceptions.DeploymentError,
                           self.cmd.take_action, parsed_args)
