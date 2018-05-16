@@ -15,9 +15,11 @@
 from __future__ import print_function
 
 import datetime
+import grp
 import json
 import logging
 import os
+import pwd
 import signal
 import subprocess
 import tempfile
@@ -268,28 +270,26 @@ class HeatDockerLauncher(HeatBaseLauncher):
         cmd = [
             'docker', 'run', '--rm',
             self.container_image,
-            'getent', 'passwd'
+            'getent', 'passwd', self.user
         ]
         log.debug(' '.join(cmd))
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
         result = p.communicate()[0]
-        for line in result.split("\n"):
-            if line.startswith('%s:' % self.user):
-                return line.split(':')[2]
+        if result:
+            return result.split(':')[2]
         raise Exception('Could not find heat uid')
 
     def get_heat_gid(self):
         cmd = [
             'docker', 'run', '--rm',
             self.container_image,
-            'getent', 'group'
+            'getent', 'group', self.user
         ]
         log.debug(' '.join(cmd))
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
         result = p.communicate()[0]
-        for line in result.split("\n"):
-            if line.startswith('%s:' % self.user):
-                return line.split(':')[2]
+        if result:
+            return result.split(':')[2]
         raise Exception('Could not find heat gid')
 
     def kill_heat(self, pid):
@@ -313,14 +313,10 @@ class HeatNativeLauncher(HeatBaseLauncher):
                                self.config_file, 'db_sync'])
 
     def get_heat_uid(self):
-        p = subprocess.Popen(["getent", "passwd", "|", "grep", "heat"],
-                             stdout=subprocess.PIPE)
-        return p.communicate()[0].rstrip().split(':')[2]
+        return pwd.getpwnam('heat').pw_uid
 
     def get_heat_gid(self):
-        p = subprocess.Popen(["getent", "group", "|", "grep", "heat"],
-                             stdout=subprocess.PIPE)
-        return p.communicate()[0].rstrip().split(':')[2]
+        return grp.getgrnam('heat').gr_gid
 
     def kill_heat(self, pid):
         os.kill(pid, signal.SIGKILL)
