@@ -16,6 +16,7 @@
 import mock
 
 from osc_lib.tests import utils
+import six
 
 # Load the plugin init module for the plugin list and show commands
 from tripleoclient.v1 import tripleo_upgrade
@@ -60,3 +61,48 @@ class TestUpgrade(utils.TestCommand):
         parsed_args.standlone = True
         parsed_args.upgrade = True
         mock_deploy.assert_called_with(self.cmd, parsed_args)
+
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.take_action',
+                autospec=True)
+    @mock.patch('sys.stdin', spec=six.StringIO)
+    def test_take_action_prompt(self, mock_stdin, mock_deploy):
+        mock_stdin.isatty.return_value = True
+        mock_stdin.readline.return_value = 'y'
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--local-ip', '127.0.0.1',
+                                         '--templates', '/tmp/thtroot',
+                                         '--stack', 'undercloud',
+                                         '--output-dir', '/my',
+                                         '-e', '/tmp/thtroot/puppet/foo.yaml',
+                                         '-e', '/tmp/thtroot//docker/bar.yaml',
+                                         '-e', '/tmp/thtroot42/notouch.yaml',
+                                         '-e', '~/custom.yaml',
+                                         '-e', 'something.yaml',
+                                         '-e', '../../../outside.yaml'], [])
+        self.cmd.take_action(parsed_args)
+        parsed_args.standlone = True
+        parsed_args.upgrade = True
+        mock_deploy.assert_called_with(self.cmd, parsed_args)
+
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy',
+                autospec=True)
+    @mock.patch('sys.stdin', spec=six.StringIO)
+    def test_take_action_prompt_no(self, mock_stdin, mock_deploy):
+        mock_stdin.isatty.return_value = True
+        mock_stdin.readline.return_value = 'n'
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--local-ip', '127.0.0.1',
+                                         '--templates', '/tmp/thtroot',
+                                         '--stack', 'undercloud',
+                                         '--output-dir', '/my',
+                                         '-e', '/tmp/thtroot/puppet/foo.yaml',
+                                         '-e', '/tmp/thtroot//docker/bar.yaml',
+                                         '-e', '/tmp/thtroot42/notouch.yaml',
+                                         '-e', '~/custom.yaml',
+                                         '-e', 'something.yaml',
+                                         '-e', '../../../outside.yaml'], [])
+        self.cmd.take_action(parsed_args)
+        parsed_args.standlone = True
+        parsed_args.upgrade = True
+        mock_stdin.readline.assert_called_with()
+        mock_deploy.assert_not_called()
