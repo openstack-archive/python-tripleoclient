@@ -63,3 +63,7 @@ UPGRADE_CONVERGE_ENV = "environments/lifecycle/upgrade-converge.yaml"
 FFWD_UPGRADE_PREPARE_ENV = "environments/lifecycle/ffwd-upgrade-prepare.yaml"
 FFWD_UPGRADE_CONVERGE_ENV = "environments/lifecycle/ffwd-upgrade-converge.yaml"
 CEPH_UPGRADE_PREPARE_ENV = "environments/lifecycle/ceph-upgrade-prepare.yaml"
+
+ENABLE_SSH_ADMIN_TIMEOUT = 300
+ENABLE_SSH_ADMIN_STATUS_INTERVAL = 5
+ENABLE_SSH_ADMIN_SSH_PORT_TIMEOUT = 300
