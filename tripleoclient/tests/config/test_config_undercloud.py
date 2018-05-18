@@ -67,7 +67,8 @@ class TestUndercloudConfig(base.TestCase):
                     'undercloud_ntp_servers',
                     'undercloud_public_host',
                     'undercloud_service_certificate',
-                    'undercloud_update_packages']
+                    'undercloud_update_packages',
+                    'upgrade_cleanup']
         self.assertEqual(expected, [x.name for x in ret])
 
     def test_get_opts(self):
@@ -124,7 +125,8 @@ class TestUndercloudConfig(base.TestCase):
                     'undercloud_ntp_servers',
                     'undercloud_public_host',
                     'undercloud_service_certificate',
-                    'undercloud_update_packages']
+                    'undercloud_update_packages',
+                    'upgrade_cleanup']
         self.assertEqual(expected, [x.name for x in ret])
 
     def test_get_subnet_opts(self):
