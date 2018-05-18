@@ -30,7 +30,7 @@ from tripleoclient import utils
 from tripleoclient.workflows import base
 
 
-def deploy(clients, **workflow_input):
+def deploy(log, clients, **workflow_input):
 
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
@@ -53,7 +53,8 @@ def deploy(clients, **workflow_input):
                 print(payload['message'])
 
         if payload['status'] != "SUCCESS":
-            pprint.pformat(payload)
+            log.info(pprint.pformat(payload))
+            print(payload['message'])
             raise ValueError("Unexpected status %s for %s"
                              % (payload['status'], wf_name))
 
@@ -72,7 +73,7 @@ def deploy_and_wait(log, clients, stack, plan_name, verbose_level,
     if timeout is not None:
         workflow_input['timeout'] = timeout
 
-    deploy(clients, **workflow_input)
+    deploy(log, clients, **workflow_input)
 
     orchestration_client = clients.orchestration
 
