@@ -15,7 +15,6 @@
 
 """Plugin action implementation"""
 
-import copy
 import jinja2
 import json
 import logging
@@ -32,7 +31,7 @@ from osc_lib.i18n import _
 from oslo_config import cfg
 from tripleo_common.image import kolla_builder
 
-from tripleoclient.config.undercloud import SUBNETS_DEFAULT
+from tripleoclient.config.undercloud import load_global_config
 from tripleoclient.config.undercloud import UndercloudConfig
 from tripleoclient import exceptions
 from tripleoclient import utils
@@ -104,7 +103,7 @@ config = UndercloudConfig()
 
 # Routed subnets
 _opts = config.get_opts()
-CONF.register_opts(_opts)
+load_global_config()
 
 
 def _load_subnets_config_groups():
@@ -112,14 +111,7 @@ def _load_subnets_config_groups():
         g = cfg.OptGroup(name=group, title=group)
         CONF.register_opts(config.get_subnet_opts(), group=g)
 
-
 LOG = logging.getLogger(__name__ + ".undercloud_config")
-
-
-# this is needed for the oslo config generator
-def list_opts():
-    return [(None, copy.deepcopy(_opts)),
-            (SUBNETS_DEFAULT[0], copy.deepcopy(config.get_subnet_opts()))]
 
 
 def _load_config():
