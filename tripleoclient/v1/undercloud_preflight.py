@@ -312,6 +312,7 @@ def _validate_no_overlap(subnet_props):
                    (subnet_props.inspection_iprange.split(',')[0],
                     subnet_props.inspection_iprange.split(',')[1],
                     subnet_props.dhcp_start, subnet_props.dhcp_end))
+        LOG.error(message)
         raise FailedValidation(message)
 
 

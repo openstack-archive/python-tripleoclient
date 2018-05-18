@@ -28,6 +28,7 @@ from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 
+from osc_lib.i18n import _
 from oslo_config import cfg
 from tripleo_common.image import kolla_builder
 
@@ -523,7 +524,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
         if 'network_config' not in net_config_json:
             msg = ('Unsupported data format in net_config_override '
                    'file %s: %s' % (data_file, net_config_str))
-            LOG(msg)
+            LOG.error(msg)
             raise exceptions.DeploymentError(msg)
 
         env_data['UndercloudNetConfigOverride'] = net_config_json
@@ -594,8 +595,10 @@ def _get_public_tls_resource_registry_overwrites(enable_tls_yaml_path):
         try:
             return enable_tls_dict['resource_registry']
         except KeyError:
-            raise RuntimeError('%s is malformed and is missing the resource '
-                               'registry.' % enable_tls_yaml_path)
+            msg = _('%s is malformed and is missing the resource '
+                    'registry.') % enable_tls_yaml_path
+            LOG.error(msg)
+            raise RuntimeError(msg)
 
 
 def _container_images_config(conf, deploy_args, env_data):
