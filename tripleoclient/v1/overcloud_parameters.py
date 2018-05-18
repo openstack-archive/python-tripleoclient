@@ -21,7 +21,6 @@ from osc_lib.i18n import _
 from tripleoclient import command
 from tripleoclient import exceptions
 from tripleoclient import utils
-from tripleoclient.workflows import base
 from tripleoclient.workflows import parameters
 
 
@@ -125,11 +124,11 @@ class GenerateFencingParameters(command.Command):
             'ipmi_level': parsed_args.ipmi_level,
             'ipmi_cipher': parsed_args.ipmi_cipher,
             'ipmi_lanplus': parsed_args.ipmi_lanplus,
-            }
-        result = base.call_action(
-            self.app.client_manager.workflow_engine,
-            'tripleo.parameters.generate_fencing',
-            **workflow_input)
+        }
+
+        result = parameters.generate_fencing_parameters(
+            self.app.client_manager, **workflow_input)
+
         fencing_parameters = yaml.safe_dump(result, default_flow_style=False)
         if parsed_args.output:
             parsed_args.output.write(fencing_parameters)
