@@ -46,7 +46,6 @@ from tripleo_common.utils import passwords as password_utils
 from tripleo_common.inventory import TripleoInventory
 from tripleo_common.utils import config
 
-VIP_CIDR_PREFIX_LEN = 32
 DEPLOY_FAILURE_MESSAGE = """
 ##########################################################
 containerized undercloud deployment failed.
@@ -298,9 +297,8 @@ class Deploy(command.Command):
         }
         return data
 
-    def _generate_portmap_parameters(self, ip_addr, cidr_prefixlen,
-                                     ctlplane_vip_addr, public_vip_addr,
-                                     stack_name='Undercloud',
+    def _generate_portmap_parameters(self, ip_addr, ip_nw, ctlplane_vip_addr,
+                                     public_vip_addr, stack_name='Undercloud',
                                      role_name='Undercloud'):
         hostname = utils.get_short_hostname()
 
@@ -308,7 +306,7 @@ class Deploy(command.Command):
         # we need to ensure the HostnameMap matches our hostname
         hostname_map_name = "%s-%s-0" % (stack_name.lower(), role_name.lower())
         data = {
-            'ControlPlaneSubnetCidr': '%s' % cidr_prefixlen,
+            'ControlPlaneSubnetCidr': '%s' % ip_nw.prefixlen,
             'HostnameMap': {
                 hostname_map_name: '%s' % hostname
             },
@@ -318,7 +316,7 @@ class Deploy(command.Command):
             'IPPool': {
                 'external': [public_vip_addr]
             },
-            'ExternalNetCidr': '%s/%s' % (public_vip_addr, cidr_prefixlen),
+            'ExternalNetCidr': '%s/%s' % (public_vip_addr, ip_nw.prefixlen),
             # This requires use of the
             # ../deployed-server/deployed-neutron-port.yaml resource in t-h-t
             # We use this for the control plane VIP and also via
@@ -327,15 +325,15 @@ class Deploy(command.Command):
             'DeployedServerPortMap': {
                 ('%s-ctlplane' % hostname): {
                     'fixed_ips': [{'ip_address': ip_addr}],
-                    'subnets': [{'cidr': cidr_prefixlen}]
+                    'subnets': [{'cidr': str(ip_nw.cidr)}]
                 },
                 'control_virtual_ip': {
                     'fixed_ips': [{'ip_address': ctlplane_vip_addr}],
-                    'subnets': [{'cidr': VIP_CIDR_PREFIX_LEN}]
+                    'subnets': [{'cidr': str(ip_nw.cidr)}]
                 },
                 'public_virtual_ip': {
                     'fixed_ips': [{'ip_address': public_vip_addr}],
-                    'subnets': [{'cidr': VIP_CIDR_PREFIX_LEN}]
+                    'subnets': [{'cidr': str(ip_nw.cidr)}]
                 }
             }
         }
@@ -464,7 +462,6 @@ class Deploy(command.Command):
                                  'tripleoclient-hosts-portmaps.yaml')
         ip_nw = netaddr.IPNetwork(parsed_args.local_ip)
         ip = str(ip_nw.ip)
-        cidr_prefixlen = ip_nw.prefixlen
 
         if parsed_args.control_virtual_ip:
             c_ip = parsed_args.control_virtual_ip
@@ -478,7 +475,7 @@ class Deploy(command.Command):
 
         tmp_env = self._generate_hosts_parameters(parsed_args, p_ip)
         tmp_env.update(self._generate_portmap_parameters(
-            ip, cidr_prefixlen, c_ip, p_ip,
+            ip, ip_nw, c_ip, p_ip,
             stack_name=parsed_args.stack,
             role_name=self._get_primary_role_name()))
 
