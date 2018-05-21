@@ -69,6 +69,10 @@ class DeployOvercloud(command.Command):
 
         stack_is_new = stack is None
 
+        # *Identifier will be update to timestamp value during the deploy
+        # workflow, but till then for all heat stack validations, we need
+        # and entry for starting the deploy action.
+        parameters['DeployIdentifier'] = ''
         parameters['UpdateIdentifier'] = ''
         parameters['StackAction'] = 'CREATE' if stack_is_new else 'UPDATE'
 
