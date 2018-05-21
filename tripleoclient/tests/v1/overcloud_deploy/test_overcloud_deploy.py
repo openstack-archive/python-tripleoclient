@@ -159,6 +159,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'DeployIdentifier': 123456789,
             'UpdateIdentifier': '',
             'StackAction': 'UPDATE',
+            'DeployIdentifier': '',
         }
 
         def _custom_create_params_env(_self, parameters, tht_root,
@@ -277,7 +278,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 'OvercloudControlFlavor': 'oooq_control',
                 'OvercloudControllerFlavor': 'oooq_control',
                 'StackAction': 'CREATE',
-                'UpdateIdentifier': ''}}
+                'UpdateIdentifier': '',
+                'DeployIdentifier': ''}}
 
         self.cmd.take_action(parsed_args)
 
@@ -429,6 +431,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'DeployIdentifier': 123456789,
             'UpdateIdentifier': '',
             'StackAction': 'CREATE',
+            'DeployIdentifier': '',
         }
 
         testcase = self
@@ -561,7 +564,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         def _custom_create_params_env(_self, parameters, tht_root,
                                       container_name):
-            testcase.assertTrue('DeployIdentifier' not in parameters)
+            testcase.assertTrue(parameters['DeployIdentifier'] == '')
             parameter_defaults = {"parameter_defaults": parameters}
             return parameter_defaults
 
@@ -1085,7 +1088,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         parameters_env = {
             'parameter_defaults': {
                 'StackAction': 'UPDATE',
-                'UpdateIdentifier': ''}}
+                'UpdateIdentifier': '',
+                'DeployIdentifier': ''}}
         reg_env = {
             'parameter_defaults': {
                 'rhel_reg_activation_key': 'super-awesome-key',
@@ -1527,6 +1531,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'UpdateIdentifier': '',
             'StackAction': 'CREATE',
             'NtpServer': 'ntp',
+            'DeployIdentifier': '',
         }
 
         def _custom_create_params_env(_self, parameters, tht_root,
