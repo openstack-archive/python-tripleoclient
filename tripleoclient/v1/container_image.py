@@ -274,6 +274,17 @@ class PrepareImageFiles(command.Command):
                    "times."),
         )
         parser.add_argument(
+            "--include",
+            dest="includes",
+            metavar='<regex>',
+            default=[],
+            action="append",
+            help=_("Pattern to match against resulting imagename entries to "
+                   "include in final output. Can be specified multiple "
+                   "times, entries not matching any --include will be "
+                   "excluded. --exclude is ignored if --include is used."),
+        )
+        parser.add_argument(
             "--images-file",
             dest="output_images_file",
             metavar='<file path>',
@@ -401,6 +412,7 @@ class PrepareImageFiles(command.Command):
 
         prepare_data = kolla_builder.container_images_prepare(
             excludes=parsed_args.excludes,
+            includes=parsed_args.includes,
             service_filter=service_filter,
             pull_source=parsed_args.pull_source,
             push_destination=parsed_args.push_destination,
