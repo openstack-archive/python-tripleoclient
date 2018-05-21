@@ -62,6 +62,9 @@ UPGRADE_PREPARE_ENV = "environments/lifecycle/upgrade-prepare.yaml"
 UPGRADE_CONVERGE_ENV = "environments/lifecycle/upgrade-converge.yaml"
 FFWD_UPGRADE_PREPARE_ENV = "environments/lifecycle/ffwd-upgrade-prepare.yaml"
 FFWD_UPGRADE_CONVERGE_ENV = "environments/lifecycle/ffwd-upgrade-converge.yaml"
+FFWD_UPGRADE_PREPARE_SCRIPT = ("#!/bin/bash \n"
+                               "rm -f /usr/libexec/os-apply-config/templates/"
+                               "etc/os-net-config/config.json || true \n")
 CEPH_UPGRADE_PREPARE_ENV = "environments/lifecycle/ceph-upgrade-prepare.yaml"
 
 ENABLE_SSH_ADMIN_TIMEOUT = 300
