@@ -263,7 +263,7 @@ def _generate_masquerade_networks():
 
 
 def prepare_undercloud_deploy(upgrade=False, no_validations=False,
-                              verbose_level=1):
+                              verbose_level=1, yes=False):
     """Prepare Undercloud deploy command based on undercloud.conf"""
 
     env_data = {}
@@ -330,6 +330,9 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
 
     if CONF.get('roles_file', None):
         deploy_args.append('--roles-file=%s' % CONF['roles_file'])
+
+    if yes:
+        deploy_args += ['-y']
 
     if upgrade:
         deploy_args += [

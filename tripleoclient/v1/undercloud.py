@@ -59,6 +59,9 @@ class InstallUndercloud(command.Command):
             default=False,
             help=_("Print the install command instead of running it"),
         )
+        parser.add_argument('-y', '--yes', default=False,
+                            action='store_true',
+                            help=_("Skip yes/no prompt (assume yes)."))
         return parser
 
     def take_action(self, parsed_args):
@@ -95,6 +98,7 @@ class UpgradeUndercloud(InstallUndercloud):
             cmd = undercloud_config.\
                 prepare_undercloud_deploy(
                     upgrade=True,
+                    yes=parsed_args.yes,
                     no_validations=parsed_args.
                     no_validations,
                     verbose_level=self.app_args.verbose_level)
