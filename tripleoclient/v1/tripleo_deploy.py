@@ -554,6 +554,8 @@ class Deploy(command.Command):
                                    "with no undercloud."))
         parser.add_argument('--upgrade', default=False, action='store_true',
                             help=_("Upgrade an existing deployment."))
+        parser.add_argument('-y', '--yes', default=False, action='store_true',
+                            help=_("Skip yes/no prompt (assume yes)."))
         parser.add_argument('--stack',
                             help=_("Stack name to create"),
                             default='undercloud')
@@ -781,6 +783,27 @@ class Deploy(command.Command):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+
+        try:
+            if parsed_args.upgrade and (
+                    not parsed_args.yes and sys.stdin.isatty()):
+                prompt_response = six.moves.input(
+                    ('It is strongly recommended to perform a backup '
+                     'before the upgrade. Are you sure you want to '
+                     'upgrade [y/N]?')
+                ).lower()
+                if not prompt_response.startswith('y'):
+                    self.log.info('User did not confirm upgrade so '
+                                  'taking no action.')
+                    return
+        except KeyboardInterrupt:  # ctrl-c
+            self.log.info('User did not confirm upgrade '
+                          '(ctrl-c) so taking no action.')
+            return
+        except EOFError:  # ctrl-d
+            self.log.info('User did not confirm upgrade '
+                          '(ctrl-d) so taking no action.')
+            return
 
         if parsed_args.standalone:
             if self._standalone_deploy(parsed_args) != 0:

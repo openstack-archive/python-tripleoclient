@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Prompt the operator before running the upgrades and suggest to perform a backup
+    before. Can be ignored with -y/--yes.
