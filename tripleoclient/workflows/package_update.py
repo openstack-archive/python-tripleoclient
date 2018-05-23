@@ -169,3 +169,24 @@ def ffwd_converge_nodes(clients, **workflow_input):
         print('Success')
     else:
         raise RuntimeError('ffwd upgrade converge failed: {}'.format(payload))
+
+
+def run_on_nodes(clients, **workflow_input):
+    workflow_client = clients.workflow_engine
+    tripleoclients = clients.tripleoclient
+
+    with tripleoclients.messaging_websocket(
+            workflow_input['queue_name']) as ws:
+        execution = base.start_workflow(
+            workflow_client,
+            'tripleo.deployment.v1.deploy_on_servers',
+            workflow_input=workflow_input
+        )
+
+        for payload in base.wait_for_messages(workflow_client, ws, execution):
+            assert payload['status'] == "SUCCESS", pprint.pformat(payload)
+
+    if payload['status'] == "SUCCESS":
+        print('Success')
+    else:
+        raise RuntimeError('run on nodes failed: {}'.format(payload))

@@ -68,6 +68,14 @@ class FFWDUpgradePrepare(DeployOvercloud):
                                    parsed_args.stack)
 
         stack_name = stack.stack_name
+
+        # ffwd-upgrade "init" run command on overcloud nodes
+        package_update.run_on_nodes(
+            clients, server_name='all',
+            config_name='ffwd-upgrade-prepare',
+            config=constants.FFWD_UPGRADE_PREPARE_SCRIPT, group='script',
+            queue_name=constants.FFWD_UPGRADE_QUEUE)
+
         registry = oooutils.load_container_registry(
             self.log, parsed_args.container_registry_file)
         ceph_ansible_playbook = parsed_args.ceph_ansible_playbook
