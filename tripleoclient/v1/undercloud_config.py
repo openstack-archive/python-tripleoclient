@@ -34,6 +34,7 @@ from tripleo_common.image import kolla_builder
 
 from tripleoclient.config.undercloud import SUBNETS_DEFAULT
 from tripleoclient.config.undercloud import UndercloudConfig
+from tripleoclient import constants
 from tripleoclient import exceptions
 from tripleoclient import utils
 from tripleoclient.v1 import undercloud_preflight
@@ -328,7 +329,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
         tht_templates = THT_HOME
         deploy_args.append('--templates=%s' % THT_HOME)
 
-    if CONF.get('roles_file', None):
+    if CONF.get('roles_file', constants.UNDERCLOUD_ROLES_FILE):
         deploy_args.append('--roles-file=%s' % CONF['roles_file'])
 
     if yes:
