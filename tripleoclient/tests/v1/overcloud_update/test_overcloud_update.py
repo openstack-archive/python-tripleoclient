@@ -240,14 +240,9 @@ class TestOvercloudUpdateConverge(fakes.TestOvercloudUpdateConverge):
         app_args.verbose_level = 1
         self.cmd = overcloud_update.UpdateConverge(self.app, app_args)
 
-    @mock.patch('tripleoclient.utils.get_stack')
-    @mock.patch('tripleoclient.workflows.package_update.update_converge_nodes')
     @mock.patch(
         'tripleoclient.v1.overcloud_deploy.DeployOvercloud.take_action')
-    def test_update_converge(self, deploy_action, converge_workflow,
-                             get_stack):
-        get_stack.return_value.stack_name = 'cloud'
-
+    def test_update_converge(self, deploy_action):
         argslist = ['--templates', '--stack', 'cloud']
         verifylist = [
             ('stack', 'cloud')
@@ -263,6 +258,3 @@ class TestOvercloudUpdateConverge(fakes.TestOvercloudUpdateConverge):
                    'environments/lifecycle/update-converge.yaml'
                    in parsed_args.environment_files)
             deploy_action.assert_called_once_with(parsed_args)
-            converge_workflow.assert_called_once_with(
-                self.app.client_manager, container='cloud',
-                queue_name='update')

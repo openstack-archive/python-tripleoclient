@@ -215,33 +215,10 @@ class TestFFWDUpgradeConverge(fakes.TestFFWDUpgradeConverge):
         app_args.verbose_level = 1
         self.cmd = overcloud_ffwd_upgrade.FFWDUpgradeConverge(self.app,
                                                               app_args)
-        uuid4_patcher = mock.patch('uuid.uuid4', return_value="UUID4")
-        self.mock_uuid4 = uuid4_patcher.start()
-        self.addCleanup(self.mock_uuid4.stop)
 
-    @mock.patch('tripleoclient.utils.prepend_environment', autospec=True)
-    @mock.patch('tripleoclient.utils.get_stack', autospec=True)
-    @mock.patch('tripleoclient.workflows.package_update.ffwd_converge_nodes',
-                autospec=True)
-    @mock.patch('os.path.expanduser')
-    @mock.patch('oslo_concurrency.processutils.execute')
-    @mock.patch('six.moves.builtins.open')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_deploy_tripleo_heat_templates_tmpdir', autospec=True)
-    def test_ffwd_upgrade_converge(
-        self,
-            mock_deploy,
-            mock_open,
-            mock_execute,
-            mock_expanduser,
-            ffwd_converge_nodes,
-            mock_get_stack,
-            mock_prepend_env):
-
-        mock_expanduser.return_value = '/home/fake/'
-        mock_stack = mock.Mock()
-        mock_stack.stack_name = 'le_overcloud'
-        mock_get_stack.return_value = mock_stack
+    @mock.patch(
+        'tripleoclient.v1.overcloud_deploy.DeployOvercloud.take_action')
+    def test_ffwd_upgrade_converge(self, deploy_action):
         argslist = ['--stack', 'le_overcloud', '--templates', '--yes']
         verifylist = [
             ('stack', 'le_overcloud'),
@@ -249,10 +226,13 @@ class TestFFWDUpgradeConverge(fakes.TestFFWDUpgradeConverge):
             ('yes', True)
         ]
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
-        with mock.patch('os.path.exists') as mock_exists:
+
+        with mock.patch('os.path.exists') as mock_exists, \
+                mock.patch('os.path.isfile') as mock_isfile:
             mock_exists.return_value = True
+            mock_isfile.return_value = True
             self.cmd.take_action(parsed_args)
-            ffwd_converge_nodes.assert_called_once_with(
-                self.app.client_manager,
-                queue_name=constants.FFWD_UPGRADE_QUEUE,
-                container='le_overcloud')
+            assert('/usr/share/openstack-tripleo-heat-templates/'
+                   'environments/lifecycle/ffwd-upgrade-converge.yaml'
+                   in parsed_args.environment_files)
+            deploy_action.assert_called_once_with(parsed_args)
