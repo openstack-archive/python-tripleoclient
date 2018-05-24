@@ -31,4 +31,5 @@ class DeployUndercloud(Deploy):
 
         # add in --standalone if we were invoked via undercloud deploy
         parsed_args.standalone = True
+        parsed_args.standalone_role = 'Undercloud'
         super(DeployUndercloud, self).take_action(parsed_args)

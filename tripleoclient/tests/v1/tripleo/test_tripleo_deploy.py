@@ -397,7 +397,8 @@ class TestDeployUndercloud(TestPluginV1):
         mock_importInv.return_value = mock_inventory
         self.cmd.output_dir = fake_output_dir
         self.cmd._download_ansible_playbooks(mock_launch_heat,
-                                             'undercloud')
+                                             'undercloud',
+                                             'Undercloud')
         self.assertEqual(mock_flush.call_count, 2)
         mock_inventory.write_static_inventory.assert_called_once_with(
             fake_output_dir + '/inventory.yaml', extra_vars)
@@ -479,6 +480,7 @@ class TestDeployUndercloud(TestPluginV1):
                                          '--templates', '/tmp/thtroot',
                                          '--stack', 'undercloud',
                                          '--output-dir', '/my',
+                                         '--standalone-role', 'Undercloud',
                                          '-e', '/tmp/thtroot/puppet/foo.yaml',
                                          '-e', '/tmp/thtroot//docker/bar.yaml',
                                          '-e', '/tmp/thtroot42/notouch.yaml',
@@ -495,7 +497,7 @@ class TestDeployUndercloud(TestPluginV1):
         mock_tht.assert_called_once_with(self.cmd, fake_orchestration,
                                          parsed_args)
         mock_download.assert_called_with(self.cmd, fake_orchestration,
-                                         'undercloud')
+                                         'undercloud', 'Undercloud')
         mock_launchansible.assert_called_once()
         mock_tarball.assert_called_once()
         mock_cleanupdirs.assert_called_once()
