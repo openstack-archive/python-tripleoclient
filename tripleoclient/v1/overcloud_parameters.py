@@ -12,7 +12,6 @@
 
 import argparse
 import logging
-import os
 import simplejson
 import yaml
 
@@ -96,30 +95,8 @@ class GenerateFencingParameters(command.Command):
     def take_action(self, parsed_args):
         nodes_config = utils.parse_env_file(parsed_args.instackenv)
 
-        # We only need to collect OpenStack client authentication data
-        # if we have nodes using Ironic's pxe_ssh driver. If there are
-        # any, we'll use the fence_ironic fencing agent, which requires
-        # the auth data.
-        os_auth = None
-        for node in nodes_config:
-            if node["pm_type"] == "pxe_ssh":
-                os_auth = {}
-        if os_auth:
-            try:
-                os_auth["auth_url"] = os.environ["OS_AUTH_URL"]
-                os_auth["login"] = os.environ["OS_USERNAME"]
-                os_auth["passwd"] = os.environ["OS_PASSWORD"]
-                os_auth["tenant_name"] = os.environ["OS_TENANT_NAME"]
-            except KeyError:
-                # This really shouldn't happen since we're running in
-                # tripleoclient
-                raise ValueError(
-                    _("Unable to find one or more of OS_AUTH_URL, "
-                      "OS_USERNAME, OS_PASSWORD or OS_TENANT_NAME in the "
-                      "environment."))
         workflow_input = {
             'nodes_json': nodes_config,
-            'os_auth': os_auth,
             'delay': parsed_args.delay,
             'ipmi_level': parsed_args.ipmi_level,
             'ipmi_cipher': parsed_args.ipmi_cipher,
