@@ -763,6 +763,8 @@ class Deploy(command.Command):
                 # Run Upgrade tasks before the deployment
                 if parsed_args.upgrade:
                     rc = self._launch_ansible_upgrade(ansible_dir)
+                    if rc != 0:
+                        raise exceptions.DeploymentError('Upgrade failed')
                 rc = self._launch_ansible_deploy(ansible_dir)
         except Exception as e:
             self.log.error("Exception: %s" % e)
