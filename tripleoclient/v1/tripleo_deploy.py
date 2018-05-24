@@ -457,10 +457,6 @@ class Deploy(command.Command):
         pw_file = self._update_passwords_env(self.output_dir)
         environments.insert(1, pw_file)
 
-        undercloud_env_path = os.path.join(
-            self.tht_render, 'environments', 'undercloud.yaml')
-        environments.append(undercloud_env_path)
-
         # use deployed-server because we run os-collect-config locally
         deployed_server_env = os.path.join(
             self.tht_render, 'environments',
