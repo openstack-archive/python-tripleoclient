@@ -50,7 +50,6 @@ class TestDeployUndercloud(TestPluginV1):
         tripleo_deploy.Deploy.heat_pid = mock.MagicMock(
             return_value=False)
         tripleo_deploy.Deploy.tht_render = '/twd/templates'
-        tripleo_deploy.Deploy.tmp_env_file_name = 'tmp/foo'
         tripleo_deploy.Deploy.heat_launch = mock.MagicMock(
             side_effect=(lambda *x, **y: None))
 
@@ -326,8 +325,9 @@ class TestDeployUndercloud(TestPluginV1):
                 '_update_passwords_env', autospec=True)
     @mock.patch('tripleoclient.utils.'
                 'run_command_and_log', autospec=True)
+    @mock.patch('six.moves.builtins.open')
     @mock.patch('shutil.copy', autospec=True)
-    def test_setup_heat_environments(self, mock_cp,
+    def test_setup_heat_environments(self, mock_cp, mock_open,
                                      mock_run,
                                      mock_update_pass_env,
                                      mock_process_hiera,
@@ -371,7 +371,8 @@ class TestDeployUndercloud(TestPluginV1):
             '~/custom.yaml',
             'something.yaml',
             '../../../outside.yaml',
-            mock.ANY, 'foo.yaml']
+            '/my/tripleo-heat-installer-templates/'
+            'tripleoclient-hosts-portmaps.yaml', 'foo.yaml']
 
         environment = self.cmd._setup_heat_environments(parsed_args)
 

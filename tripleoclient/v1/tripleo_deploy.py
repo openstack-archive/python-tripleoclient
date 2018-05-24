@@ -81,7 +81,6 @@ class Deploy(command.Command):
     heat_pid = None
     tht_render = None
     output_dir = None
-    tmp_env_file_name = None
     tmp_ansible_dir = None
     roles_file = None
     roles_data = None
@@ -153,8 +152,6 @@ class Deploy(command.Command):
         try:
             tf = tarfile.open(tar_filename, 'w:bz2')
             tf.add(self.tht_render, recursive=True, filter=remove_output_dir)
-            if self.tmp_env_file_name:
-                tf.add(self.tmp_env_file_name, filter=remove_output_dir)
             tf.add(self.tmp_ansible_dir, recursive=True,
                    filter=remove_output_dir)
             tf.close()
@@ -207,21 +204,12 @@ class Deploy(command.Command):
                 shutil.rmtree(self.tht_render, ignore_errors=True)
 
             self.tht_render = None
-            if self.tmp_env_file_name:
-                try:
-                    os.remove(self.tmp_env_file_name)
-                    self.tmp_env_file_name = None
-                except Exception as ex:
-                    if 'No such file or directory' in six.text_type(ex):
-                        pass
             if self.tmp_ansible_dir and os.path.exists(self.tmp_ansible_dir):
                 shutil.rmtree(self.tmp_ansible_dir)
                 self.tmp_ansible_dir = None
         else:
             self.log.warning(_("Not cleaning working directory %s")
                              % self.tht_render)
-            self.log.warning(_("Not removing temporary environment file %s")
-                             % self.tmp_env_file_name)
             self.log.warning(_("Not cleaning ansible directory %s")
                              % self.tmp_ansible_dir)
 
@@ -472,32 +460,32 @@ class Deploy(command.Command):
         if parsed_args.environment_files:
             environments.extend(parsed_args.environment_files)
 
-        with tempfile.NamedTemporaryFile(delete=False) as tmp_env_file:
-            self.tmp_env_file_name = tmp_env_file.name
+        maps_file = os.path.join(self.tht_render,
+                                 'tripleoclient-hosts-portmaps.yaml')
+        ip_nw = netaddr.IPNetwork(parsed_args.local_ip)
+        ip = str(ip_nw.ip)
+        cidr_prefixlen = ip_nw.prefixlen
 
-            ip_nw = netaddr.IPNetwork(parsed_args.local_ip)
-            ip = str(ip_nw.ip)
-            cidr_prefixlen = ip_nw.prefixlen
+        if parsed_args.control_virtual_ip:
+            c_ip = parsed_args.control_virtual_ip
+        else:
+            c_ip = ip
 
-            if parsed_args.control_virtual_ip:
-                c_ip = parsed_args.control_virtual_ip
-            else:
-                c_ip = ip
+        if parsed_args.public_virtual_ip:
+            p_ip = parsed_args.public_virtual_ip
+        else:
+            p_ip = ip
 
-            if parsed_args.public_virtual_ip:
-                p_ip = parsed_args.public_virtual_ip
-            else:
-                p_ip = ip
+        tmp_env = self._generate_hosts_parameters(parsed_args, p_ip)
+        tmp_env.update(self._generate_portmap_parameters(
+            ip, cidr_prefixlen, c_ip, p_ip,
+            stack_name=parsed_args.stack,
+            role_name=self._get_primary_role_name()))
 
-            tmp_env = self._generate_hosts_parameters(parsed_args, p_ip)
-            tmp_env.update(self._generate_portmap_parameters(
-                ip, cidr_prefixlen, c_ip, p_ip, stack_name=parsed_args.stack,
-                role_name=self._get_primary_role_name()))
-
-            with open(self.tmp_env_file_name, 'w') as env_file:
-                yaml.safe_dump({'parameter_defaults': tmp_env}, env_file,
-                               default_flow_style=False)
-            environments.append(self.tmp_env_file_name)
+        with open(maps_file, 'w') as env_file:
+            yaml.safe_dump({'parameter_defaults': tmp_env}, env_file,
+                           default_flow_style=False)
+        environments.append(maps_file)
 
         if parsed_args.hieradata_override:
             environments.append(self._process_hieradata_overrides(
