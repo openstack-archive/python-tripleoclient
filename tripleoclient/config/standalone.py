@@ -13,6 +13,8 @@
 #   under the License.
 #
 
+import copy
+
 from osc_lib.i18n import _
 from oslo_config import cfg
 from tripleoclient.config.base import BaseConfig
@@ -189,3 +191,8 @@ class StandaloneConfig(BaseConfig):
     def get_opts(self):
         return self.sort_opts(self.get_base_opts() +
                               self.get_enable_service_opts())
+
+
+# this is needed for the oslo config generator
+def list_opts():
+    return [(None, copy.deepcopy(StandaloneConfig().get_opts()))]
