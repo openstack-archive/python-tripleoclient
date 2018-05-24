@@ -13,9 +13,13 @@
 #   under the License.
 #
 
+import copy
+
 from osc_lib.i18n import _
 from oslo_config import cfg
 from tripleoclient.config.standalone import StandaloneConfig
+
+CONF = cfg.CONF
 
 # Control plane network name
 SUBNETS_DEFAULT = ['ctlplane-subnet']
@@ -346,3 +350,17 @@ class UndercloudConfig(StandaloneConfig):
                             'access.')),
         ]
         return self.sort_opts(_subnets_opts)
+
+
+def list_opts():
+    """List config opts for oslo config generator"""
+    config = UndercloudConfig()
+    _opts = config.get_opts()
+    return [(None, copy.deepcopy(_opts)),
+            (SUBNETS_DEFAULT[0], copy.deepcopy(config.get_subnet_opts()))]
+
+
+def load_global_config():
+    """Register UndercloudConfig options into global config"""
+    _opts = UndercloudConfig().get_opts()
+    CONF.register_opts(_opts)
