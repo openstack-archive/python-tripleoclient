@@ -279,6 +279,148 @@ class TestContainerImagePrepare(TestPluginV1):
             self.assertEqual(env_data, yaml.safe_load(f))
 
 
+class TestTripleoImagePrepare(TestPluginV1):
+
+    def setUp(self):
+        super(TestTripleoImagePrepare, self).setUp()
+        # Get the command object to test
+        self.cmd = container_image.TripleOImagePrepare(self.app, None)
+
+        self.temp_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.temp_dir)
+        self.prepare_default_file = os.path.join(
+            self.temp_dir, 'prepare_env.yaml')
+        default_param = kolla_builder.CONTAINER_IMAGE_PREPARE_PARAM
+        self.default_env = {
+            'parameter_defaults': {
+                'ContainerImagePrepare': default_param
+            }
+        }
+        with open(self.prepare_default_file, 'w') as f:
+            yaml.safe_dump(self.default_env, f)
+
+        self.roles_yaml = '''
+        - name: EnabledRole
+          CountDefault: 1
+          ServicesDefault:
+            - OS::TripleO::Services::AodhEvaluator
+        - name: RoleDisabledViaRolesData
+          CountDefault: 0
+          ServicesDefault:
+            - OS::TripleO::Services::AodhApi
+        - name: RoleDisabledViaEnvironment
+          CountDefault: 1
+          ServicesDefault:
+            - OS::TripleO::Services::Disabled
+        - name: RoleOverwrittenViaEnvironment
+          CountDefault: 1
+          ServicesDefault:
+            - OS::TripleO::Services::Overwritten
+        '''
+        self.roles_data_file = os.path.join(
+            self.temp_dir, 'roles_data.yaml')
+        with open(self.roles_data_file, 'w') as f:
+            f.write(self.roles_yaml)
+
+    @mock.patch('tripleo_common.image.kolla_builder.'
+                'container_images_prepare_multi')
+    def test_tripleo_container_image_prepare(self, prepare_multi):
+
+        env_file = os.path.join(self.temp_dir, 'containers_env.yaml')
+
+        arglist = [
+            '--environment-file', self.prepare_default_file,
+            '--roles-file', self.roles_data_file,
+            '--output-env-file', env_file
+        ]
+        verifylist = []
+
+        self.app.command_options = [
+            'tripleo', 'container', 'image', 'prepare', 'default'
+        ] + arglist
+
+        prepare_multi.return_value = {
+            'DockerAodhApiImage':
+                '192.0.2.0:8787/t/os-aodh-apifoo:passed-ci',
+            'DockerAodhConfigImage':
+                '192.0.2.0:8787/t/os-aodh-apifoo:passed-ci',
+        }
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        self.cmd.take_action(parsed_args)
+
+        prepare_multi.assert_called_once_with(
+            self.default_env, yaml.safe_load(self.roles_yaml))
+
+        with open(env_file) as f:
+            result = yaml.safe_load(f)
+
+        self.assertEqual({
+            'parameter_defaults': {
+                'DockerAodhApiImage':
+                    '192.0.2.0:8787/t/os-aodh-apifoo:passed-ci',
+                'DockerAodhConfigImage':
+                    '192.0.2.0:8787/t/os-aodh-apifoo:passed-ci',
+            }
+        }, result)
+
+
+class TestTripleoImagePrepareDefault(TestPluginV1):
+
+    def setUp(self):
+        super(TestTripleoImagePrepareDefault, self).setUp()
+        # Get the command object to test
+        self.cmd = container_image.TripleOImagePrepareDefault(self.app, None)
+
+    def test_prepare_default(self):
+        arglist = []
+        verifylist = []
+
+        self.app.command_options = [
+            'tripleo', 'container', 'image', 'prepare', 'default'
+        ] + arglist
+        self.cmd.app.stdout = six.StringIO()
+        cmd = container_image.TripleOImagePrepareDefault(self.app, None)
+
+        parsed_args = self.check_parser(cmd, arglist, verifylist)
+        cmd.take_action(parsed_args)
+
+        result = self.app.stdout.getvalue()
+        expected_param = kolla_builder.CONTAINER_IMAGE_PREPARE_PARAM
+        expected = {
+            'parameter_defaults': {
+                'ContainerImagePrepare': expected_param
+            }
+        }
+        self.assertEqual(expected, yaml.safe_load(result))
+
+    @mock.patch('tripleo_common.image.image_uploader.get_undercloud_registry')
+    def test_prepare_default_local_registry(self, mock_gur):
+        temp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, temp)
+        env_file = os.path.join(temp, 'containers_env.yaml')
+
+        arglist = ['--local-push-destination', '--output-env-file', env_file]
+        verifylist = []
+        mock_gur.return_value = '192.0.2.1:8787'
+
+        self.app.command_options = [
+            'tripleo', 'container', 'image', 'prepare', 'default'
+        ] + arglist
+        cmd = container_image.TripleOImagePrepareDefault(self.app, None)
+        parsed_args = self.check_parser(cmd, arglist, verifylist)
+
+        cmd.take_action(parsed_args)
+
+        with open(env_file) as f:
+            result = yaml.safe_load(f)
+        self.assertEqual(
+            '192.0.2.1:8787',
+            result['parameter_defaults']['ContainerImagePrepare']
+            [0]['push_destination']
+        )
+
+
 class TestContainerImageBuild(TestPluginV1):
 
     def setUp(self):

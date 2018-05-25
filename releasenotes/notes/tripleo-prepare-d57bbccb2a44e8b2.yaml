@@ -1,0 +1,14 @@
+---
+features:
+  - |
+    The new command `openstack tripleo container image prepare` will do the
+    same container image preperation which happens during undercloud and
+    overcloud deploy, but in a standalone command. The prepare operations are
+    driven by a heat environment file containing the parameter
+    `ContainerImagePrepare`. This parameter allows multiple upload and
+    modification operations to be specified, and the result will be a list of
+    image parameters to use during a tripleo deployment.
+
+    The command `openstack tripleo container image prepare default` will
+    generate a `ContainerImagePrepare` with the recommended defaults to use for
+    `openstack tripleo container image prepare`.
