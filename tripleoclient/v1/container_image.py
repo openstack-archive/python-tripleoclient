@@ -568,6 +568,15 @@ class TripleOImagePrepare(command.Command):
             help=_("File to write heat environment file which specifies all "
                    "image parameters. Any existing file will be overwritten."),
         )
+        parser.add_argument(
+            '--dry-run',
+            dest='dry_run',
+            action='store_true',
+            default=False,
+            help=_('Do not perform any pull, modify, or push operations. '
+                   'The environment file will still be populated as if these '
+                   'operations were performed.')
+        )
         return parser
 
     def take_action(self, parsed_args):
@@ -584,7 +593,7 @@ class TripleOImagePrepare(command.Command):
         )
 
         params = kolla_builder.container_images_prepare_multi(
-            env, roles_data)
+            env, roles_data, dry_run=parsed_args.dry_run)
         env_data = build_env_file(params, self.app.command_options)
         if parsed_args.output_env_file:
             with os.fdopen(os.open(parsed_args.output_env_file,

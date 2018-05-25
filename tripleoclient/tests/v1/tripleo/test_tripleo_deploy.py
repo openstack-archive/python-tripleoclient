@@ -429,7 +429,8 @@ class TestDeployUndercloud(TestPluginV1):
 
         mock_cipm.assert_called_once_with(
             env,
-            [{'name': 'Compute'}]
+            [{'name': 'Compute'}],
+            dry_run=True,
         )
         self.assertEqual(
             {

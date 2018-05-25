@@ -352,7 +352,7 @@ class TestTripleoImagePrepare(TestPluginV1):
         self.cmd.take_action(parsed_args)
 
         prepare_multi.assert_called_once_with(
-            self.default_env, yaml.safe_load(self.roles_yaml))
+            self.default_env, yaml.safe_load(self.roles_yaml), dry_run=False)
 
         with open(env_file) as f:
             result = yaml.safe_load(f)
