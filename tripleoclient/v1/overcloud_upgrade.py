@@ -43,12 +43,6 @@ class UpgradePrepare(DeployOvercloud):
 
     def get_parser(self, prog_name):
         parser = super(UpgradePrepare, self).get_parser(prog_name)
-        parser.add_argument('--container-registry-file',
-                            dest='container_registry_file',
-                            default=None,
-                            help=_("File which contains the container "
-                                   "registry data for the upgrade"),
-                            )
         return parser
 
     def take_action(self, parsed_args):
@@ -59,8 +53,6 @@ class UpgradePrepare(DeployOvercloud):
                                    parsed_args.stack)
 
         stack_name = stack.stack_name
-        registry = oooutils.load_container_registry(
-            self.log, parsed_args.container_registry_file)
 
         # In case of update and upgrade we need to force the
         # update_plan_only. The heat stack update is done by the
@@ -73,8 +65,7 @@ class UpgradePrepare(DeployOvercloud):
             parsed_args.environment_files, templates_dir,
             constants.UPGRADE_PREPARE_ENV)
         super(UpgradePrepare, self).take_action(parsed_args)
-        package_update.update(clients, container=stack_name,
-                              container_registry=registry)
+        package_update.update(clients, container=stack_name)
         package_update.get_config(clients, container=stack_name)
 
         overcloudrcs = deployment.create_overcloudrc(
@@ -237,10 +228,8 @@ class UpgradeConvergeOvercloud(DeployOvercloud):
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
         clients = self.app.client_manager
-
         stack = oooutils.get_stack(clients.orchestration,
                                    parsed_args.stack)
-
         # Add the converge environment into the args to unset noop etc
         templates_dir = (parsed_args.templates or
                          constants.TRIPLEO_HEAT_TEMPLATES)
