@@ -32,6 +32,7 @@ from tripleo_common.image import kolla_builder
 
 from tripleoclient import command
 from tripleoclient import constants
+from tripleoclient import exceptions
 from tripleoclient import utils
 
 
@@ -198,9 +199,11 @@ class PrepareImageFiles(command.Command):
 
     def get_parser(self, prog_name):
         parser = super(PrepareImageFiles, self).get_parser(prog_name)
-        roles_file = os.path.join(constants.TRIPLEO_HEAT_TEMPLATES,
-                                  constants.OVERCLOUD_ROLES_FILE)
-        if not os.path.isfile(roles_file):
+        try:
+            roles_file = utils.rel_or_abs_path(
+                constants.OVERCLOUD_ROLES_FILE,
+                constants.TRIPLEO_HEAT_TEMPLATES)
+        except exceptions.DeploymentError:
             roles_file = None
         defaults = kolla_builder.container_images_prepare_defaults()
 
@@ -358,8 +361,11 @@ class PrepareImageFiles(command.Command):
         parser.add_argument(
             '--roles-file', '-r', dest='roles_file',
             default=roles_file,
-            help=_('Roles file, overrides the default %s'
-                   ) % constants.OVERCLOUD_ROLES_FILE
+            help=_(
+                'Roles file, overrides the default %s in the t-h-t templates '
+                'directory used for deployment. May be an '
+                'absolute path or the path relative to the templates dir.'
+                ) % constants.OVERCLOUD_ROLES_FILE
         )
         parser.add_argument(
             '--modify-role',
@@ -390,10 +396,7 @@ class PrepareImageFiles(command.Command):
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
 
-        if parsed_args.roles_file:
-            roles_data = yaml.safe_load(open(parsed_args.roles_file).read())
-        else:
-            roles_data = set()
+        roles_data = utils.fetch_roles_file(parsed_args.roles_file) or set()
 
         env = utils.build_prepare_env(
             parsed_args.environment_files,
@@ -546,9 +549,11 @@ class TripleOImagePrepare(command.Command):
 
     def get_parser(self, prog_name):
         parser = super(TripleOImagePrepare, self).get_parser(prog_name)
-        roles_file = os.path.join(constants.TRIPLEO_HEAT_TEMPLATES,
-                                  constants.OVERCLOUD_ROLES_FILE)
-        if not os.path.isfile(roles_file):
+        try:
+            roles_file = utils.rel_or_abs_path(
+                constants.OVERCLOUD_ROLES_FILE,
+                constants.TRIPLEO_HEAT_TEMPLATES)
+        except exceptions.DeploymentError:
             roles_file = None
         parser.add_argument(
             '--environment-file', '-e', metavar='<file path>',
@@ -572,8 +577,11 @@ class TripleOImagePrepare(command.Command):
         parser.add_argument(
             '--roles-file', '-r', dest='roles_file',
             default=roles_file,
-            help=_('Roles file to filter images by, overrides the default %s'
-                   ) % constants.OVERCLOUD_ROLES_FILE
+            help=_(
+                'Roles file, overrides the default %s in the t-h-t templates '
+                'directory used for deployment. May be an '
+                'absolute path or the path relative to the templates dir.'
+                ) % constants.OVERCLOUD_ROLES_FILE
         )
         parser.add_argument(
             "--output-env-file",
@@ -610,10 +618,7 @@ class TripleOImagePrepare(command.Command):
             raise oscexc.CommandError('--cleanup must be one of: %s' %
                                       ', '.join(image_uploader.CLEANUP))
 
-        if parsed_args.roles_file:
-            roles_data = yaml.safe_load(open(parsed_args.roles_file).read())
-        else:
-            roles_data = None
+        roles_data = utils.fetch_roles_file(parsed_args.roles_file)
 
         env = utils.build_prepare_env(
             parsed_args.environment_files,

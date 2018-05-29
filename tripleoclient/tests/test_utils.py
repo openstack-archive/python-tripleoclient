@@ -770,6 +770,33 @@ class GetTripleoAnsibleInventory(TestCase):
             )
 
 
+class TestNormalizeFilePath(TestCase):
+
+    @mock.patch('os.path.isfile', return_value=True)
+    def test_norm_path_abs(self, mock_exists):
+        self.assertEqual(
+            utils.rel_or_abs_path('/foobar.yaml', '/tmp'),
+            '/foobar.yaml')
+
+    @mock.patch('os.path.isfile', side_effect=[False, True])
+    def test_norm_path_rel(self, mock_exists):
+        self.assertEqual(
+            utils.rel_or_abs_path('baz/foobar.yaml', '/bar'),
+            '/bar/baz/foobar.yaml')
+
+
+class TestFetchRolesFile(TestCase):
+
+    @mock.patch('os.path.exists', return_value=True)
+    def test_fetch_roles_file(self, mock_exists):
+        with tempfile.NamedTemporaryFile(mode='w') as roles_file:
+            yaml.dump([{'name': 'Foobar'}], roles_file)
+            with mock.patch('tripleoclient.utils.rel_or_abs_path') as mock_rf:
+                mock_rf.return_value = roles_file.name
+                self.assertEqual(utils.fetch_roles_file(roles_file.name),
+                                 [{'name': 'Foobar'}])
+
+
 class TestOvercloudNameScenarios(TestWithScenarios):
     scenarios = [
         ('kernel_default',

@@ -1338,8 +1338,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_create_tempest_deployer_input.assert_called_with()
 
     def test_get_default_role_counts_defaults(self):
-        parsed_args = mock.Mock()
-        parsed_args.roles_file = None
+        parsed_args = self.check_parser(self.cmd, [], [])
         defaults = {
             'ControllerCount': 1,
             'ComputeCount': 1,
@@ -1351,11 +1350,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             defaults,
             self.cmd._get_default_role_counts(parsed_args))
 
-    @mock.patch("yaml.safe_load")
-    @mock.patch("six.moves.builtins.open")
-    def test_get_default_role_counts_custom_roles(self, mock_open,
-                                                  mock_safe_load):
-        parsed_args = mock.Mock()
+    @mock.patch("tripleoclient.utils.fetch_roles_file")
+    def test_get_default_role_counts_custom_roles(self, mock_roles):
         roles_data = [
             {'name': 'ControllerApi', 'CountDefault': 3},
             {'name': 'ControllerPcmk', 'CountDefault': 3},
@@ -1363,7 +1359,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             {'name': 'ObjectStorage', 'CountDefault': 0},
             {'name': 'BlockStorage'}
         ]
-        mock_safe_load.return_value = roles_data
+        mock_roles.return_value = roles_data
         role_counts = {
             'ControllerApiCount': 3,
             'ControllerPcmkCount': 3,
@@ -1373,7 +1369,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         }
         self.assertEqual(
             role_counts,
-            self.cmd._get_default_role_counts(parsed_args))
+            self.cmd._get_default_role_counts(mock.Mock()))
 
     @mock.patch(
         'tripleoclient.workflows.plan_management.list_deployment_plans',

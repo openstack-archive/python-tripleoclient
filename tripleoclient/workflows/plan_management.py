@@ -20,6 +20,7 @@ from tripleo_common.utils import tarball
 
 from tripleoclient import constants
 from tripleoclient import exceptions
+from tripleoclient import utils
 from tripleoclient.workflows import base
 
 LOG = logging.getLogger(__name__)
@@ -42,7 +43,8 @@ def _upload_templates(swift_client, container_name, tht_root, roles_file=None,
     # Optional override of the roles_data.yaml file
     if roles_file:
         _upload_file(swift_client, container_name,
-                     constants.OVERCLOUD_ROLES_FILE, roles_file)
+                     constants.OVERCLOUD_ROLES_FILE,
+                     utils.rel_or_abs_path(roles_file, tht_root))
 
     # Optional override of the network_data.yaml file
     if networks_file:
@@ -157,8 +159,9 @@ def create_plan_from_templates(clients, name, tht_root, roles_file=None,
             "Unable to create plan. {}".format(result))
 
     print("Creating plan from template files in: {}".format(tht_root))
-    _upload_templates(swift_client, name, tht_root, roles_file, plan_env_file,
-                      networks_file)
+    _upload_templates(swift_client, name, tht_root,
+                      utils.rel_or_abs_path(roles_file, tht_root),
+                      plan_env_file, networks_file)
 
     try:
         create_deployment_plan(clients, container=name,
@@ -174,6 +177,7 @@ def update_plan_from_templates(clients, name, tht_root, roles_file=None,
     swift_client = clients.tripleoclient.object_store
     passwords = None
     keep_file_contents = {}
+    roles_file = utils.rel_or_abs_path(roles_file, tht_root)
 
     if keep_env:
         # Dict items are (remote_name, local_name). local_name may be

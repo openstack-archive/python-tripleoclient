@@ -550,7 +550,8 @@ class DeployOvercloud(command.Command):
     def _get_default_role_counts(self, parsed_args):
 
         if parsed_args.roles_file:
-            roles_data = yaml.safe_load(open(parsed_args.roles_file).read())
+            roles_data = utils.fetch_roles_file(parsed_args.roles_file,
+                                                parsed_args.templates)
         else:
             # Assume default role counts
             return {
@@ -634,7 +635,8 @@ class DeployOvercloud(command.Command):
         parser.add_argument(
             '--roles-file', '-r', dest='roles_file',
             help=_('Roles file, overrides the default %s in the --templates '
-                   'directory') % constants.OVERCLOUD_ROLES_FILE
+                   'directory. May be an absolute path or the path relative '
+                   ' to --templates') % constants.OVERCLOUD_ROLES_FILE
         )
         parser.add_argument(
             '--networks-file', '-n', dest='networks_file',

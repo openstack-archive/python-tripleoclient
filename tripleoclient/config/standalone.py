@@ -151,8 +151,9 @@ class StandaloneConfig(BaseConfig):
                        ),
             cfg.StrOpt('roles_file',
                        default=None,
-                       help=_('Roles file to override for heat. '
-                              'The file path is related to the templates path')
+                       help=_('Roles file to override for heat. May be an '
+                              'absolute path or the path relative to the '
+                              't-h-t templates directory used for deployment')
                        ),
             cfg.BoolOpt('heat_native',
                         default=True,

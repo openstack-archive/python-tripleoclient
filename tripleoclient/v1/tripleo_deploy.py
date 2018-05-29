@@ -85,8 +85,6 @@ class Deploy(command.Command):
     tht_render = None
     output_dir = None
     tmp_ansible_dir = None
-    roles_file = None
-    roles_data = None
     stack_update_mark = None
     stack_action = 'CREATE'
     deployment_user = None
@@ -123,22 +121,6 @@ class Deploy(command.Command):
         else:
             os.chmod(file_name, mode)
 
-    def _set_roles_file(self, file_name=None, templates_dir=None):
-        """Set the roles file for the deployment
-
-        If the file_name is a full path, it will be used. If the file name
-        passed in is not a full path, we will join it with the templates
-        dir and use that instead.
-
-        :param file_name: (String) role file name to use, can be relative to
-         templates directory
-        :param templates_dir:
-        """
-        if os.path.exists(file_name):
-            self.roles_file = file_name
-        else:
-            self.roles_file = os.path.join(templates_dir, file_name)
-
     def _set_stack_action(self, parsed_args):
         """Set the stack action for deployment"""
         # Prepare the heat stack action we want to start deployment with
@@ -151,23 +133,10 @@ class Deploy(command.Command):
             _('The heat stack {0} action is {1}').format(
                 parsed_args.stack, self.stack_action))
 
-    def _get_roles_data(self):
-        """Load the roles data for deployment"""
-        # only load once
-        if self.roles_data:
-            return self.roles_data
-
-        if self.roles_file and os.path.exists(self.roles_file):
-            with open(self.roles_file) as f:
-                self.roles_data = yaml.safe_load(f)
-        elif self.roles_file:
-            self.log.warning("roles_data '%s' is not found" % self.roles_file)
-
-        return self.roles_data
-
-    def _get_primary_role_name(self):
+    def _get_primary_role_name(self, parsed_args):
         """Return the primary role name"""
-        roles_data = self._get_roles_data()
+        roles_data = utils.fetch_roles_file(parsed_args.roles_file,
+                                            parsed_args.templates)
         if not roles_data:
             # TODO(aschultz): should this be Undercloud instead?
             return 'Controller'
@@ -564,11 +533,11 @@ class Deploy(command.Command):
             parsed_args.templates, self.tht_render, env_files)
 
         # generate jinja templates by its work dir location
-        self.log.debug(_("Using roles file %s") % self.roles_file)
+        self.log.debug(_("Using roles file %s") % parsed_args.roles_file)
         process_templates = os.path.join(parsed_args.templates,
                                          'tools/process-templates.py')
         args = ['python', process_templates, '--roles-data',
-                self.roles_file, '--output-dir', self.tht_render]
+                parsed_args.roles_file, '--output-dir', self.tht_render]
         if utils.run_command_and_log(self.log, args, cwd=self.tht_render) != 0:
             # TODO(aschultz): improve error messaging
             msg = _("Problems generating templates.")
@@ -581,10 +550,10 @@ class Deploy(command.Command):
 
         # Include any environments from the plan-environment.yaml
         plan_env_path = utils.rel_or_abs_path(
-            self.tht_render, parsed_args.plan_environment_file)
+            parsed_args.plan_environment_file, self.tht_render)
         with open(plan_env_path, 'r') as f:
             plan_env_data = yaml.safe_load(f)
-        environments = [utils.rel_or_abs_path(self.tht_render, e.get('path'))
+        environments = [utils.rel_or_abs_path(e.get('path'), self.tht_render)
                         for e in plan_env_data.get('environments', {})]
 
         # this will allow the user to overwrite passwords with custom envs
@@ -626,7 +595,7 @@ class Deploy(command.Command):
         tmp_env.update(self._generate_portmap_parameters(
             ip, ip_nw, c_ip, p_ip,
             stack_name=parsed_args.stack,
-            role_name=self._get_primary_role_name()))
+            role_name=self._get_primary_role_name(parsed_args)))
 
         with open(maps_file, 'w') as env_file:
             yaml.safe_dump({'parameter_defaults': tmp_env}, env_file,
@@ -653,8 +622,9 @@ class Deploy(command.Command):
 
         return environments + user_environments
 
-    def _prepare_container_images(self, env):
-        roles_data = self._get_roles_data()
+    def _prepare_container_images(self, env, parsed_args):
+        roles_data = utils.fetch_roles_file(parsed_args.roles_file,
+                                            parsed_args.templates)
         image_params = kolla_builder.container_images_prepare_multi(
             env, roles_data, dry_run=True)
 
@@ -678,7 +648,7 @@ class Deploy(command.Command):
             environments, self.tht_render, parsed_args.templates,
             cleanup=parsed_args.cleanup)
 
-        self._prepare_container_images(env)
+        self._prepare_container_images(env, parsed_args)
 
         self.log.debug(_("Getting template contents"))
         template_path = os.path.join(self.tht_render, 'overcloud.yaml')
@@ -805,8 +775,11 @@ class Deploy(command.Command):
         )
         parser.add_argument(
             '--roles-file', '-r', dest='roles_file',
-            help=_('Roles file, overrides the default %s in the --templates '
-                   'directory') % constants.UNDERCLOUD_ROLES_FILE,
+            help=_(
+                'Roles file, overrides the default %s in the t-h-t templates '
+                'directory used for deployment. May be an '
+                'absolute path or the path relative to the templates dir.'
+                ) % constants.UNDERCLOUD_ROLES_FILE,
             default=constants.UNDERCLOUD_ROLES_FILE
         )
         parser.add_argument(
@@ -1037,10 +1010,6 @@ class Deploy(command.Command):
 
         # Set default plan if not specified by user
         self._set_default_plan()
-
-        # configure our roles data
-        self._set_roles_file(parsed_args.roles_file, self.tht_render)
-        self._get_roles_data()
 
         rc = 1
         try:

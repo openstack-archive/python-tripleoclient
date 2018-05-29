@@ -157,6 +157,7 @@ class TestContainerImagePrepare(TestPluginV1):
             append_tag=None,
         )
 
+    @mock.patch('tripleoclient.utils.fetch_roles_file')
     @mock.patch('tripleo_common.image.kolla_builder.'
                 'container_images_prepare_defaults', create=True)
     @mock.patch('tripleo_common.image.kolla_builder.'
@@ -167,7 +168,7 @@ class TestContainerImagePrepare(TestPluginV1):
                 'build_service_filter')
     @mock.patch('requests.get')
     def test_container_image_prepare(self, mock_get, mock_bsf, pmef, mock_cip,
-                                     mock_cipd):
+                                     mock_cipd, mock_roles):
 
         temp = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, temp)
