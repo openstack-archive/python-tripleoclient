@@ -856,21 +856,6 @@ def prepend_environment(environment_files, templates_dir, environment):
     return environment_files
 
 
-def load_container_registry(log, path):
-    registry = None
-    if path:
-        with open(os.path.abspath(path)) as content:
-            registry = yaml.load(content.read())
-    else:
-        log.warning(
-            "You have not provided a container registry file. Note "
-            "that none of the containers on your environment will be "
-            "updated. If you want to update your containers you have "
-            "to re-run this command and provide the registry file "
-            "with: --container-registry-file option.")
-    return registry
-
-
 def ffwd_upgrade_operator_confirm(parsed_args_yes, log):
     print("Warning! The TripleO Fast Forward Upgrade workflow "
           "is currently considered under development. In "

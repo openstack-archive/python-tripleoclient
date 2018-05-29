@@ -30,12 +30,6 @@ class CephUpgrade(DeployOvercloud):
 
     def get_parser(self, prog_name):
         parser = super(CephUpgrade, self).get_parser(prog_name)
-        parser.add_argument('--container-registry-file',
-                            dest='container_registry_file',
-                            default=None,
-                            help=_("Optional path to file with container "
-                                   "registry data for the update"),
-                            )
         parser.add_argument('--ceph-ansible-playbook',
                             action="store",
                             default="/usr/share/ceph-ansible"
@@ -53,8 +47,6 @@ class CephUpgrade(DeployOvercloud):
                                    parsed_args.stack)
 
         stack_name = stack.stack_name
-        registry = oooutils.load_container_registry(
-            self.log, parsed_args.container_registry_file)
 
         # Run update
         ceph_ansible_playbook = parsed_args.ceph_ansible_playbook
@@ -73,7 +65,6 @@ class CephUpgrade(DeployOvercloud):
 
         super(CephUpgrade, self).take_action(parsed_args)
         package_update.update(clients, container=stack_name,
-                              container_registry=registry,
                               ceph_ansible_playbook=ceph_ansible_playbook)
         package_update.get_config(clients, container=stack_name)
         print("Ceph Upgrade on stack {0} complete.".format(

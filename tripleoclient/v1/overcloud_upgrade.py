@@ -38,12 +38,6 @@ class UpgradePrepare(DeployOvercloud):
 
     def get_parser(self, prog_name):
         parser = super(UpgradePrepare, self).get_parser(prog_name)
-        parser.add_argument('--container-registry-file',
-                            dest='container_registry_file',
-                            default=None,
-                            help=_("File which contains the container "
-                                   "registry data for the upgrade"),
-                            )
         parser.add_argument('--ceph-ansible-playbook',
                             action="store",
                             default="/usr/share/ceph-ansible"
@@ -61,8 +55,6 @@ class UpgradePrepare(DeployOvercloud):
                                    parsed_args.stack)
 
         stack_name = stack.stack_name
-        registry = oooutils.load_container_registry(
-            self.log, parsed_args.container_registry_file)
 
         # Run update
         ceph_ansible_playbook = parsed_args.ceph_ansible_playbook
@@ -78,7 +70,6 @@ class UpgradePrepare(DeployOvercloud):
             constants.UPGRADE_PREPARE_ENV)
         super(UpgradePrepare, self).take_action(parsed_args)
         package_update.update(clients, container=stack_name,
-                              container_registry=registry,
                               ceph_ansible_playbook=ceph_ansible_playbook)
         package_update.get_config(clients, container=stack_name)
 
@@ -241,10 +232,8 @@ class UpgradeConvergeOvercloud(DeployOvercloud):
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
         clients = self.app.client_manager
-
         stack = oooutils.get_stack(clients.orchestration,
                                    parsed_args.stack)
-
         # Add the converge environment into the args to unset noop etc
         templates_dir = (parsed_args.templates or
                          constants.TRIPLEO_HEAT_TEMPLATES)
