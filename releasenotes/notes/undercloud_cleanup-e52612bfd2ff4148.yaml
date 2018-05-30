@@ -4,3 +4,4 @@ features:
     The new option "upgrade_cleanup" is set to False by default but when
     set to True, it'll cleanup the packages and configurations installed
     on the undercloud after an upgrade.
+    This feature is experimental now and should be used for testing only.
