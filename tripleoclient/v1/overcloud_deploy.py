@@ -383,7 +383,8 @@ class DeployOvercloud(command.Command):
                 # This should already be uploaded.
                 continue
 
-            file_relocation[fullpath] = "user-files/{}".format(path[1:])
+            file_relocation[fullpath] = "user-files/{}".format(
+                os.path.normpath(path[1:]))
 
         # make sure links within files point to new locations, and upload them
         for orig_path, reloc_path in file_relocation.items():
