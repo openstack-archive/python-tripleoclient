@@ -1,0 +1,5 @@
+---
+features:
+  - A new CLI argument, --config-download-only, has been added which can be
+    used to skip the stack create/update and only run the config-download
+    workflow to apply the software configuration.
