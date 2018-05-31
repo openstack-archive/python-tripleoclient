@@ -284,8 +284,9 @@ class UndercloudConfig(StandaloneConfig):
             cfg.BoolOpt('upgrade_cleanup',
                         default=False,
                         help=_(
-                            'Whether to clean undercloud rpms after an upgrade'
-                            ' to a containerized undercloud.')),
+                            '(Experimental) Whether to clean undercloud rpms '
+                            'after an upgrade to a containerized '
+                            'undercloud.')),
             cfg.ListOpt('enabled_hardware_types',
                         default=['ipmi', 'redfish', 'ilo', 'idrac'],
                         help=_('List of enabled bare metal hardware types '
