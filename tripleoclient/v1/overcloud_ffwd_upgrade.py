@@ -12,7 +12,8 @@
 #   License for the specific language governing permissions and limitations
 #   under the License.
 #
-import logging
+from oslo_config import cfg
+from oslo_log import log as logging
 
 from osc_lib.i18n import _
 from osc_lib import utils
@@ -23,6 +24,10 @@ from tripleoclient import utils as oooutils
 from tripleoclient.v1.overcloud_deploy import DeployOvercloud
 from tripleoclient.workflows import deployment
 from tripleoclient.workflows import package_update
+
+CONF = cfg.CONF
+logging.register_options(CONF)
+logging.setup(CONF, '')
 
 
 class FFWDUpgradePrepare(DeployOvercloud):
@@ -104,8 +109,8 @@ class FFWDUpgradePrepare(DeployOvercloud):
             container=stack_name)
         oooutils.write_overcloudrc(stack_name, overcloudrcs)
 
-        print("FFWD Upgrade Prepare on stack {0} complete.".format(
-              parsed_args.stack))
+        self.log.info("FFWD Upgrade Prepare on stack {0} complete.".format(
+                      parsed_args.stack))
 
 
 class FFWDUpgradeRun(command.Command):
@@ -205,5 +210,5 @@ class FFWDUpgradeConverge(DeployOvercloud):
             constants.FFWD_UPGRADE_CONVERGE_ENV)
 
         super(FFWDUpgradeConverge, self).take_action(parsed_args)
-        print("FFWD Upgrade Converge on stack {0} complete.".format(
-              parsed_args.stack))
+        self.log.info("FFWD Upgrade Converge on stack {0} complete.".format(
+                      parsed_args.stack))

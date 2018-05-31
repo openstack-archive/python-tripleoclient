@@ -13,7 +13,8 @@
 #   under the License.
 #
 
-import logging
+from oslo_config import cfg
+from oslo_log import log as logging
 
 from osc_lib.i18n import _
 
@@ -21,6 +22,10 @@ from tripleoclient import constants
 from tripleoclient import utils as oooutils
 from tripleoclient.v1.overcloud_deploy import DeployOvercloud
 from tripleoclient.workflows import package_update
+
+CONF = cfg.CONF
+logging.register_options(CONF)
+logging.setup(CONF, '')
 
 
 class CephUpgrade(DeployOvercloud):
@@ -76,5 +81,5 @@ class CephUpgrade(DeployOvercloud):
                               container_registry=registry,
                               ceph_ansible_playbook=ceph_ansible_playbook)
         package_update.get_config(clients, container=stack_name)
-        print("Ceph Upgrade on stack {0} complete.".format(
-              parsed_args.stack))
+        self.log.info("Ceph Upgrade on stack {0} complete.".format(
+                      parsed_args.stack))
