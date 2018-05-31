@@ -397,6 +397,54 @@ class Deploy(command.Command):
 
         return orchestration_client
 
+    def _normalize_user_templates(self, user_tht_root, tht_root, env_files=[]):
+        """copy environment files into tht render path
+
+        This assumes any env file that includes user_tht_root has already
+        been copied into tht_root.
+
+        :param user_tht_root: string path to the user's template dir
+        :param tht_root: string path to our deployed tht_root
+        :param env_files: list of paths to environment files
+        :return list of absolute pathed environment files that exist in
+                tht_root
+        """
+        environments = []
+        # normalize the user template path to ensure it doesn't have a trailing
+        # slash
+        user_tht = os.path.abspath(user_tht_root)
+        for env_path in env_files:
+            self.log.debug("Processing file %s" % env_path)
+            abs_env_path = os.path.abspath(env_path)
+            if (abs_env_path.startswith(user_tht_root) and
+                    ((user_tht + '/') in env_path or
+                     (user_tht + '/') in abs_env_path or
+                     user_tht == abs_env_path or
+                     user_tht == env_path)):
+                # file is in tht and will be copied, so just update path
+                new_env_path = env_path.replace(user_tht + '/',
+                                                tht_root + '/')
+                self.log.debug("Redirecting %s to %s"
+                               % (abs_env_path, new_env_path))
+                environments.append(new_env_path)
+            elif abs_env_path.startswith(tht_root):
+                self.log.debug("File already in tht_root %s")
+                environments.append(abs_env_path)
+            else:
+                self.log.debug("File outside of tht_root %s, copying in")
+                # file is outside of THT, just copy it in
+                # TODO(aschultz): probably shouldn't be flattened?
+                target_dest = os.path.join(tht_root,
+                                           os.path.basename(abs_env_path))
+                if os.path.exists(target_dest):
+                    raise exceptions.DeploymentError("%s already exists, "
+                                                     "please rename the "
+                                                     "file to something else"
+                                                     % target_dest)
+                shutil.copy(abs_env_path, tht_root)
+                environments.append(target_dest)
+        return environments
+
     def _setup_heat_environments(self, parsed_args):
         """Process tripleo heat templates with jinja and deploy into work dir
 
@@ -407,15 +455,18 @@ class Deploy(command.Command):
         overcloud-resource-registry-puppet.yaml and passwords files.
         """
 
-        # TODO(aschultz): This probably needs to get thought about because
-        # we likely need to do this for any environment file that gets passed
-        # in the deploy. This file breaks the seperation between standalone
-        # and undercloud deployment so we need to not hardcode
-        # undercloud_parameters.yaml
-        shutil.copy(os.path.join(os.path.abspath(parsed_args.output_dir),
-                                 'tripleo-config-generated-env-files',
-                                 'undercloud_parameters.yaml'),
-                    self.tht_render)
+        self.log.warning(_("** Handling template files **"))
+        env_files = []
+
+        # TODO(aschultz): in overcloud deploy we have a --environments-dir
+        # we might want to handle something similar for this
+        if parsed_args.environment_files:
+            env_files.extend(parsed_args.environment_files)
+
+        # ensure any user provided templates get copied into tht_render
+        environments = self._normalize_user_templates(parsed_args.templates,
+                                                      self.tht_render,
+                                                      env_files)
 
         # generate jinja templates by its work dir location
         self.log.debug(_("Using roles file %s") % self.roles_file)
@@ -429,12 +480,9 @@ class Deploy(command.Command):
             self.log.error(msg)
             raise exceptions.DeploymentError(msg)
 
-        self.log.info(_("Deploying templates in the directory {0}").format(
-            os.path.abspath(self.tht_render)))
-
-        self.log.warning(_("** Creating Environment file **"))
-        environments = []
-
+        # NOTE(aschultz): the next set of environment files are system included
+        # so we have to include them at the front of our environment list so a
+        # user can override anything in them.
         resource_registry_path = os.path.join(
             self.tht_render, 'overcloud-resource-registry-puppet.yaml')
         environments.insert(0, resource_registry_path)
@@ -447,16 +495,16 @@ class Deploy(command.Command):
         deployed_server_env = os.path.join(
             self.tht_render, 'environments',
             'config-download-environment.yaml')
-        environments.append(deployed_server_env)
+        environments.insert(2, deployed_server_env)
 
         # use deployed-server because we run os-collect-config locally
         deployed_server_env = os.path.join(
             self.tht_render, 'environments',
             'deployed-server-noop-ctlplane.yaml')
-        environments.append(deployed_server_env)
+        environments.insert(3, deployed_server_env)
 
-        if parsed_args.environment_files:
-            environments.extend(parsed_args.environment_files)
+        self.log.info(_("Deploying templates in the directory {0}").format(
+            os.path.abspath(self.tht_render)))
 
         maps_file = os.path.join(self.tht_render,
                                  'tripleoclient-hosts-portmaps.yaml')
@@ -482,8 +530,10 @@ class Deploy(command.Command):
         with open(maps_file, 'w') as env_file:
             yaml.safe_dump({'parameter_defaults': tmp_env}, env_file,
                            default_flow_style=False)
-        environments.append(maps_file)
+        environments.insert(4, maps_file)
 
+        # NOTE(aschultz): this doesn't get copied into tht_root but
+        # we always include the hieradata override stuff last.
         if parsed_args.hieradata_override:
             environments.append(self._process_hieradata_overrides(
                 parsed_args.hieradata_override,
