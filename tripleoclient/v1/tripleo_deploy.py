@@ -494,7 +494,7 @@ class Deploy(command.Command):
     def _prepare_container_images(self, env):
         roles_data = self._get_roles_data()
         image_params = kolla_builder.container_images_prepare_multi(
-            env, roles_data)
+            env, roles_data, dry_run=True)
 
         # use setdefault to ensure every needed image parameter is
         # populated without replacing user-set values
