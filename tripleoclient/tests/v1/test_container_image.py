@@ -127,6 +127,7 @@ class TestContainerImagePrepare(TestPluginV1):
 
         mock_cip.assert_called_with(
             excludes=[],
+            includes=[],
             mapping_args={
                 'name_suffix': '',
                 'tag': 'latest',
@@ -234,6 +235,7 @@ class TestContainerImagePrepare(TestPluginV1):
                                      object_request=mock.ANY)
         mock_cip.assert_called_once_with(
             excludes=[],
+            includes=[],
             mapping_args={
                 'namespace': '192.0.2.0:8787/t',
                 'name_suffix': 'foo',

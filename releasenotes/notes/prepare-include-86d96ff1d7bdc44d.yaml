@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    The command `openstack overcloud container image prepare` command now has
+    an `--include` argument which will filter entries if they do not match any
+    of the include expressions.
