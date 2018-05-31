@@ -126,11 +126,6 @@ class TestGenerateFencingParameters(utils.TestCommand):
 }
         """)
 
-        os.environ["OS_USERNAME"] = "test_os_username"
-        os.environ["OS_PASSWORD"] = "test_os_password"
-        os.environ["OS_AUTH_URL"] = "test://auth.url"
-        os.environ["OS_TENANT_NAME"] = "test_os_tenant_name"
-
         arglist = ['node_file.json']
         verifylist = []
 
@@ -162,7 +157,6 @@ class TestGenerateFencingParameters(utils.TestCommand):
                         u'mac': [u'11:22:33:44:55:66']
                     }],
                 'delay': None,
-                'os_auth': None,
                 'ipmi_cipher': None,
                 'ipmi_lanplus': False,
                 'ipmi_level': None
