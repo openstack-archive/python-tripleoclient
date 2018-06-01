@@ -807,6 +807,14 @@ class DeployOvercloud(command.Command):
                    'software configuration will be applied.')
         )
         parser.add_argument(
+            '--config-download-only',
+            action='store_true',
+            default=False,
+            help=_('Disable the stack create/update, and only run the '
+                   'config-download workflow to apply the software '
+                   'configuration.')
+        )
+        parser.add_argument(
             '--output-dir',
             action='store',
             default=None,
@@ -892,7 +900,8 @@ class DeployOvercloud(command.Command):
             print("Validation Finished")
             return
 
-        self._deploy_tripleo_heat_templates_tmpdir(stack, parsed_args)
+        if not parsed_args.config_download_only:
+            self._deploy_tripleo_heat_templates_tmpdir(stack, parsed_args)
 
         # Get a new copy of the stack after stack update/create. If it was
         # a create then the previous stack object would be None.
