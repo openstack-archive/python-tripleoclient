@@ -308,6 +308,61 @@ class TestDeployUndercloud(TestPluginV1):
         mock_yaml_dump.assert_has_calls([mock.call(rewritten_env,
                                         default_flow_style=False)])
 
+    @mock.patch('shutil.copy')
+    @mock.patch('os.path.exists', return_value=False)
+    def test_normalize_user_templates(self, mock_exists, mock_copy):
+        user_tht_root = '/userroot'
+        tht_root = '/thtroot'
+        env_files = [
+            '/home/basic.yaml',
+            '/home/dir/dir.yaml',
+            'home/relative.yaml',
+            'file.yaml',
+            '~/tilde.yaml',
+            '../../../dots.yaml',
+            '/userroot/template.yaml',
+            '/userroot/tht/tht.yaml',
+        ]
+        expected = [
+            '/thtroot/basic.yaml',
+            '/thtroot/dir.yaml',
+            '/thtroot/relative.yaml',
+            '/thtroot/file.yaml',
+            '/thtroot/tilde.yaml',
+            '/thtroot/dots.yaml',
+            '/thtroot/template.yaml',
+            '/thtroot/tht/tht.yaml'
+        ]
+        results = self.cmd._normalize_user_templates(user_tht_root,
+                                                     tht_root,
+                                                     env_files)
+
+        self.assertEqual(expected, results)
+        self.assertEqual(mock_copy.call_count, 6)
+
+    @mock.patch('os.path.exists', return_value=True)
+    def test_normalize_user_templates_exists(self, mock_exists):
+        user_tht_root = '/userroot'
+        tht_root = '/thtroot'
+        env_files = ['/home/basic.yaml']
+        self.assertRaises(exceptions.DeploymentError,
+                          self.cmd._normalize_user_templates,
+                          user_tht_root,
+                          tht_root,
+                          env_files)
+
+    @mock.patch('os.path.exists', return_value=True)
+    def test_normalize_user_templates_trailing_slash(self, mock_exists):
+        user_tht_root = '/userroot/'
+        tht_root = '/thtroot'
+        env_files = ['/userroot/basic.yaml']
+        expected = ['/thtroot/basic.yaml']
+        results = self.cmd._normalize_user_templates(user_tht_root,
+                                                     tht_root,
+                                                     env_files)
+        self.assertEqual(expected, results)
+
+    @mock.patch('os.path.exists', return_value=False)
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_create_working_dirs')
     @mock.patch('heatclient.common.template_utils.'
@@ -334,8 +389,11 @@ class TestDeployUndercloud(TestPluginV1):
                                      mock_process_multiple_environments,
                                      mock_hc_get_templ_cont,
                                      mock_hc_process,
-                                     mock_createdirs):
+                                     mock_createdirs,
+                                     mock_exists):
 
+        mock_update_pass_env.return_value = '/my/tripleo-heat-installer-' \
+                                            'templates/passwords.yaml'
         mock_run.return_value = 0
 
         # logic handled in _standalone_deploy and _create_working_dirs
@@ -360,19 +418,20 @@ class TestDeployUndercloud(TestPluginV1):
         expected_env = [
             '/my/tripleo-heat-installer-templates/'
             'overcloud-resource-registry-puppet.yaml',
-            mock.ANY,
+            '/my/tripleo-heat-installer-templates/passwords.yaml',
             '/my/tripleo-heat-installer-templates/'
             'environments/config-download-environment.yaml',
             '/my/tripleo-heat-installer-templates/'
             'environments/deployed-server-noop-ctlplane.yaml',
-            '/tmp/thtroot/puppet/foo.yaml',
-            '/tmp/thtroot//docker/bar.yaml',
-            '/tmp/thtroot42/notouch.yaml',
-            '~/custom.yaml',
-            'something.yaml',
-            '../../../outside.yaml',
             '/my/tripleo-heat-installer-templates/'
-            'tripleoclient-hosts-portmaps.yaml', 'foo.yaml']
+            'tripleoclient-hosts-portmaps.yaml',
+            '/my/tripleo-heat-installer-templates/puppet/foo.yaml',
+            '/my/tripleo-heat-installer-templates//docker/bar.yaml',
+            '/my/tripleo-heat-installer-templates/notouch.yaml',
+            '/my/tripleo-heat-installer-templates/custom.yaml',
+            '/my/tripleo-heat-installer-templates/something.yaml',
+            '/my/tripleo-heat-installer-templates/outside.yaml',
+            'foo.yaml']
 
         environment = self.cmd._setup_heat_environments(parsed_args)
 

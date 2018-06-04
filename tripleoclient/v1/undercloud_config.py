@@ -524,22 +524,17 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
 
         env_data['UndercloudNetConfigOverride'] = net_config_json
 
-    # NOTE(bogdando): the generated env files are stored another path than
-    # picked up later - from the working dir containing renedered
-    # heat templates. We can not store files by that path right here, as that
-    # directory gets removed to be populated with the entire templates
-    # directory tree later. And the generated files should be copied in only
-    # after that.
+    # NOTE(bogdando): the generated env files are stored another path then
+    # picked up later.
+    # NOTE(aschultz): We copy this into the tht root that we save because
+    # we move any user provided environment files into this root later.
     tempdir = os.path.join(os.path.abspath(CONF['output_dir']),
                            'tripleo-config-generated-env-files')
     params_file = os.path.join(tempdir, 'undercloud_parameters.yaml')
     if not os.path.isdir(tempdir):
         os.mkdir(tempdir)
     utils.write_env_file(env_data, params_file, registry_overwrites)
-    params_file_real = os.path.join(os.path.abspath(CONF['output_dir']),
-                                    'tripleo-heat-installer-templates',
-                                    'undercloud_parameters.yaml')
-    deploy_args += ['-e', params_file_real]
+    deploy_args += ['-e', params_file]
 
     if CONF.get('hieradata_override', None):
         data_file = CONF['hieradata_override']
