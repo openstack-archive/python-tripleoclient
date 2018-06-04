@@ -1998,3 +1998,56 @@ class TestGetDeploymentStatus(utils.TestCommand):
             '+-----------+-----------+---------+-------------------+\n')
 
         self.assertEqual(expected, self.cmd.app.stdout.getvalue())
+
+
+class TestGetDeploymentFailures(utils.TestCommand):
+
+    def setUp(self):
+        super(TestGetDeploymentFailures, self).setUp()
+        self.cmd = overcloud_deploy.GetDeploymentFailures(self.app, None)
+        self.app.client_manager = mock.Mock()
+        self.clients = self.app.client_manager
+
+    @mock.patch(
+        'tripleoclient.workflows.deployment.get_deployment_failures',
+        autospec=True)
+    def test_plan_get_deployment_status(self, mock_get_deployment_failures):
+        parsed_args = self.check_parser(self.cmd, [], [])
+        self.cmd.app.stdout = six.StringIO()
+
+        failures = {
+            'host0': [
+                ['Task1', dict(key1=1, key2=2, key3=3)],
+                ['Task2', dict(key4=4, key5=5, key3=5)]
+            ],
+            'host1': [
+                ['Task1', dict(key1=1, key2=2, key3=['a', 'b', 'c'])]
+            ],
+        }
+
+        mock_get_deployment_failures.return_value = failures
+
+        self.cmd.take_action(parsed_args)
+
+        expected = (
+            '|-> Failures for host: host0\n'
+            '|--> Task: Task1\n'
+            '|---> key1: 1\n'
+            '|---> key2: 2\n'
+            '|---> key3: 3\n'
+            '|--> Task: Task2\n'
+            '|---> key3: 5\n'
+            '|---> key4: 4\n'
+            '|---> key5: 5\n'
+            '\n'
+            '|-> Failures for host: host1\n'
+            '|--> Task: Task1\n'
+            '|---> key1: 1\n'
+            '|---> key2: 2\n'
+            '|---> key3: [\n'
+            '    "a",\n'
+            '    "b",\n'
+            '    "c"\n'
+            ']\n\n')
+
+        self.assertEqual(expected, self.cmd.app.stdout.getvalue())
