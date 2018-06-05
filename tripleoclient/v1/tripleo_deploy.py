@@ -235,7 +235,11 @@ class Deploy(command.Command):
                 if k == 'undercloud_db_password':
                     k = 'MysqlRootPassword'
                 elif k == 'undercloud_rabbit_username':
-                    k = 'RabbitUserName'
+                    k = 'RpcUserName'
+                elif k == 'undercloud_rabbit_password':
+                    k = 'RpcPassword'
+                elif k == 'undercloud_rabbit_cookie':
+                    k = 'RabbitCookie'
                 elif k == 'undercloud_heat_encryption_key':
                     k = 'HeatAuthEncryptionKey'
                 else:
