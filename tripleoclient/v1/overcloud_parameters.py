@@ -78,8 +78,14 @@ class GenerateFencingParameters(command.Command):
                             help=_('Wait DELAY seconds before fencing is '
                                    'started'))
         parser.add_argument('--ipmi-lanplus',
+                            dest='ipmi_lanplus',
+                            default=True,
                             action='store_true',
-                            help=_('Use Lanplus. Defaults to: false'))
+                            help=_('DEPRECATED: This is the default.'))
+        parser.add_argument('--ipmi-no-lanplus',
+                            dest='ipmi_lanplus',
+                            action='store_false',
+                            help=_('Do not use Lanplus. Defaults to: false'))
         parser.add_argument('--ipmi-cipher', type=int,
                             help=_('Ciphersuite to use (same as ipmitool -C '
                                    'parameter.'))

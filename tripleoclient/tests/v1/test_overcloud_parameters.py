@@ -158,6 +158,6 @@ class TestGenerateFencingParameters(utils.TestCommand):
                     }],
                 'delay': None,
                 'ipmi_cipher': None,
-                'ipmi_lanplus': False,
+                'ipmi_lanplus': True,
                 'ipmi_level': None
             })
