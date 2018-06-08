@@ -883,8 +883,8 @@ class Deploy(command.Command):
                         raise exceptions.DeploymentError('Upgrade failed')
                 rc = self._launch_ansible_deploy(ansible_dir)
         except Exception as e:
-            self.log.error("Exception: %s" % e)
-            raise exceptions.DeploymentError(e.message)
+            self.log.error("Exception: %s" % six.text_type(e))
+            raise exceptions.DeploymentError(six.text_type(e))
         finally:
             self._kill_heat(parsed_args)
             tar_filename = self._create_install_artifact()
