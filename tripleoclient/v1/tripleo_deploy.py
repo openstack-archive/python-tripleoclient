@@ -464,13 +464,14 @@ class Deploy(command.Command):
 
         # TODO(aschultz): in overcloud deploy we have a --environments-dir
         # we might want to handle something similar for this
+        # (shardy) alternatively perhaps we should rely on the plan-environment
+        # environments list instead?
         if parsed_args.environment_files:
             env_files.extend(parsed_args.environment_files)
 
         # ensure any user provided templates get copied into tht_render
-        environments = self._normalize_user_templates(parsed_args.templates,
-                                                      self.tht_render,
-                                                      env_files)
+        user_environments = self._normalize_user_templates(
+            parsed_args.templates, self.tht_render, env_files)
 
         # generate jinja templates by its work dir location
         self.log.debug(_("Using roles file %s") % self.roles_file)
@@ -487,25 +488,30 @@ class Deploy(command.Command):
         # NOTE(aschultz): the next set of environment files are system included
         # so we have to include them at the front of our environment list so a
         # user can override anything in them.
-        resource_registry_path = os.path.join(
-            self.tht_render, 'overcloud-resource-registry-puppet.yaml')
-        environments.insert(0, resource_registry_path)
+
+        # Include any environments from the plan-environment.yaml
+        plan_env_path = utils.rel_or_abs_path(
+            self.tht_render, parsed_args.plan_environment_file)
+        with open(plan_env_path, 'r') as f:
+            plan_env_data = yaml.safe_load(f)
+        environments = [utils.rel_or_abs_path(self.tht_render, e.get('path'))
+                        for e in plan_env_data.get('environments', {})]
 
         # this will allow the user to overwrite passwords with custom envs
         pw_file = self._update_passwords_env(self.output_dir)
-        environments.insert(1, pw_file)
+        environments.append(pw_file)
 
         # use deployed-server because we run os-collect-config locally
         deployed_server_env = os.path.join(
             self.tht_render, 'environments',
             'config-download-environment.yaml')
-        environments.insert(2, deployed_server_env)
+        environments.append(deployed_server_env)
 
         # use deployed-server because we run os-collect-config locally
         deployed_server_env = os.path.join(
             self.tht_render, 'environments',
             'deployed-server-noop-ctlplane.yaml')
-        environments.insert(3, deployed_server_env)
+        environments.append(deployed_server_env)
 
         self.log.info(_("Deploying templates in the directory {0}").format(
             os.path.abspath(self.tht_render)))
@@ -534,7 +540,7 @@ class Deploy(command.Command):
         with open(maps_file, 'w') as env_file:
             yaml.safe_dump({'parameter_defaults': tmp_env}, env_file,
                            default_flow_style=False)
-        environments.insert(4, maps_file)
+        environments.append(maps_file)
 
         # NOTE(aschultz): this doesn't get copied into tht_root but
         # we always include the hieradata override stuff last.
@@ -543,7 +549,7 @@ class Deploy(command.Command):
                 parsed_args.hieradata_override,
                 parsed_args.standalone_role))
 
-        return environments
+        return environments + user_environments
 
     def _prepare_container_images(self, env):
         roles_data = self._get_roles_data()
@@ -699,6 +705,12 @@ class Deploy(command.Command):
             help=_('Roles file, overrides the default %s in the --templates '
                    'directory') % constants.UNDERCLOUD_ROLES_FILE,
             default=constants.UNDERCLOUD_ROLES_FILE
+        )
+        parser.add_argument(
+            '--plan-environment-file', '-p',
+            help=_('Plan Environment file, overrides the default %s in the '
+                   '--templates directory') % constants.PLAN_ENVIRONMENT,
+            default=constants.PLAN_ENVIRONMENT
         )
         parser.add_argument(
             '--heat-api-port', metavar='<HEAT_API_PORT>',

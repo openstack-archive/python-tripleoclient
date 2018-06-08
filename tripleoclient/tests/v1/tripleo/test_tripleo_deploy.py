@@ -13,6 +13,7 @@
 #   under the License.
 #
 
+import fixtures
 import mock
 import os
 import tempfile
@@ -362,9 +363,6 @@ class TestDeployUndercloud(TestPluginV1):
                                                      env_files)
         self.assertEqual(expected, results)
 
-    @mock.patch('os.path.exists', return_value=False)
-    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
-                '_create_working_dirs')
     @mock.patch('heatclient.common.template_utils.'
                 'process_environment_and_files', return_value=({}, {}),
                 autospec=True)
@@ -374,68 +372,80 @@ class TestDeployUndercloud(TestPluginV1):
     @mock.patch('tripleoclient.utils.'
                 'process_multiple_environments', autospec=True)
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
-                '_process_hieradata_overrides', return_value='foo.yaml',
+                '_process_hieradata_overrides', return_value='hiera_or.yaml',
                 autospec=True)
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_update_passwords_env', autospec=True)
     @mock.patch('tripleoclient.utils.'
                 'run_command_and_log', autospec=True)
-    @mock.patch('six.moves.builtins.open')
-    @mock.patch('shutil.copy', autospec=True)
-    def test_setup_heat_environments(self, mock_cp, mock_open,
+    def test_setup_heat_environments(self,
                                      mock_run,
                                      mock_update_pass_env,
                                      mock_process_hiera,
                                      mock_process_multiple_environments,
                                      mock_hc_get_templ_cont,
-                                     mock_hc_process,
-                                     mock_createdirs,
-                                     mock_exists):
+                                     mock_hc_process):
 
-        mock_update_pass_env.return_value = '/my/tripleo-heat-installer-' \
-                                            'templates/passwords.yaml'
+        tmpdir = self.useFixture(fixtures.TempDir()).path
+        tht_from = os.path.join(tmpdir, 'tht-from')
+        os.mkdir(tht_from)
+        tht_outside = os.path.join(tmpdir, 'tht-outside')
+        os.mkdir(tht_outside)
+        tht_to = os.path.join(tmpdir, 'tht-to')
+        os.mkdir(tht_to)
+        plan_env_path = os.path.join(tht_from, 'plan-environment.yaml')
+        with open(plan_env_path, mode='w') as plan_file:
+            yaml.dump({'environments': [{'path': 'env.yaml'}]}, plan_file)
+        self.assertTrue(os.path.exists(plan_env_path))
+        with open(os.path.join(tht_from, 'env.yaml'),
+                  mode='w') as env_file:
+            yaml.dump({}, env_file)
+        with open(os.path.join(tht_from, 'foo.yaml'),
+                  mode='w') as env_file:
+            yaml.dump({}, env_file)
+        with open(os.path.join(tht_outside, 'outside.yaml'),
+                  mode='w') as env_file:
+            yaml.dump({}, env_file)
+
+        tht_render = os.path.join(tht_to, 'tripleo-heat-installer-templates')
+        mock_update_pass_env.return_value = os.path.join(
+            tht_render, 'passwords.yaml')
         mock_run.return_value = 0
 
-        # logic handled in _standalone_deploy and _create_working_dirs
-        self.cmd.output_dir = '/my'
-        self.cmd.tht_render = '/my/tripleo-heat-installer-templates'
+        # logic handled in _standalone_deploy
+        self.cmd.output_dir = tht_to
+        # Note we don't create tht_render as _populate_templates_dir creates it
+        self.cmd.tht_render = tht_render
+        self.cmd._populate_templates_dir(tht_from)
 
         parsed_args = self.check_parser(self.cmd,
                                         ['--local-ip', '127.0.0.1/8',
-                                         '--templates', '/tmp/thtroot',
-                                         '--output-dir', '/my',
+                                         '--templates', tht_from,
+                                         '--output-dir', tht_to,
                                          '--hieradata-override',
                                          'legacy.yaml',
                                          '-e',
-                                         '/tmp/thtroot/puppet/foo.yaml',
+                                         os.path.join(tht_from, 'foo.yaml'),
                                          '-e',
-                                         '/tmp/thtroot//docker/bar.yaml',
-                                         '-e',
-                                         '/tmp/thtroot42/notouch.yaml',
-                                         '-e', '~/custom.yaml',
-                                         '-e', 'something.yaml',
-                                         '-e', '../../../outside.yaml'], [])
+                                         os.path.join(tht_outside,
+                                                      'outside.yaml'),
+                                         ], [])
         expected_env = [
-            '/my/tripleo-heat-installer-templates/'
-            'overcloud-resource-registry-puppet.yaml',
-            '/my/tripleo-heat-installer-templates/passwords.yaml',
-            '/my/tripleo-heat-installer-templates/'
-            'environments/config-download-environment.yaml',
-            '/my/tripleo-heat-installer-templates/'
-            'environments/deployed-server-noop-ctlplane.yaml',
-            '/my/tripleo-heat-installer-templates/'
-            'tripleoclient-hosts-portmaps.yaml',
-            '/my/tripleo-heat-installer-templates/puppet/foo.yaml',
-            '/my/tripleo-heat-installer-templates//docker/bar.yaml',
-            '/my/tripleo-heat-installer-templates/notouch.yaml',
-            '/my/tripleo-heat-installer-templates/custom.yaml',
-            '/my/tripleo-heat-installer-templates/something.yaml',
-            '/my/tripleo-heat-installer-templates/outside.yaml',
-            'foo.yaml']
+            os.path.join(tht_render, 'env.yaml'),
+            os.path.join(tht_render, 'passwords.yaml'),
+            os.path.join(tht_render,
+                         'environments/config-download-environment.yaml'),
+            os.path.join(tht_render,
+                         'environments/deployed-server-noop-ctlplane.yaml'),
+            os.path.join(tht_render,
+                         'tripleoclient-hosts-portmaps.yaml'),
+            'hiera_or.yaml',
+            os.path.join(tht_render, 'foo.yaml'),
+            os.path.join(tht_render, 'outside.yaml')]
 
         environment = self.cmd._setup_heat_environments(parsed_args)
 
-        self.assertEqual(environment, expected_env)
+        self.assertEqual(expected_env, environment)
 
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_create_working_dirs', autospec=True)

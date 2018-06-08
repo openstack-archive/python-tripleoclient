@@ -1139,3 +1139,14 @@ def build_prepare_env(environment_files, environment_directories):
             object_request=get_env_file))
 
     return env
+
+
+def rel_or_abs_path(tht_root, file_path):
+    '''Find a file, either absolute path or relative to the t-h-t dir'''
+    path = os.path.abspath(file_path)
+    if not os.path.exists(path):
+        path = os.path.abspath(os.path.join(tht_root, file_path))
+    if not os.path.exists(path):
+        raise exceptions.DeploymentError(
+            "Can't find path %s %s" % (file_path, path))
+    return path
