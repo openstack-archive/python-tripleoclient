@@ -637,6 +637,11 @@ class DeployOvercloud(command.Command):
             help=_('Key path for ssh access to overcloud nodes.')
         )
         parser.add_argument(
+            '--overcloud-ssh-network',
+            help=_('Network name to use for ssh access to overcloud nodes.'),
+            default='ctlplane'
+        )
+        parser.add_argument(
             '--environment-file', '-e', metavar='<HEAT ENVIRONMENT FILE>',
             action='append', dest='environment_files',
             help=_('Environment files to be passed to the heat stack-create '
@@ -918,7 +923,8 @@ class DeployOvercloud(command.Command):
         if parsed_args.config_download:
             print("Deploying overcloud configuration")
 
-            hosts = deployment.get_overcloud_hosts(self.clients, stack)
+            hosts = deployment.get_overcloud_hosts(
+                stack, parsed_args.overcloud_ssh_network)
             deployment.enable_ssh_admin(self.log, self.clients,
                                         hosts,
                                         parsed_args.overcloud_ssh_user,
@@ -927,6 +933,7 @@ class DeployOvercloud(command.Command):
                                        parsed_args.templates,
                                        parsed_args.overcloud_ssh_user,
                                        parsed_args.overcloud_ssh_key,
+                                       parsed_args.overcloud_ssh_network,
                                        parsed_args.output_dir,
                                        verbosity=self.app_args.verbose_level)
 
