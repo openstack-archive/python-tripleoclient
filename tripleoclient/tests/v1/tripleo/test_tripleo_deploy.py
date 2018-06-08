@@ -378,25 +378,69 @@ class TestDeployUndercloud(TestPluginV1):
                 '_update_passwords_env', autospec=True)
     @mock.patch('tripleoclient.utils.'
                 'run_command_and_log', autospec=True)
-    def test_setup_heat_environments(self,
-                                     mock_run,
-                                     mock_update_pass_env,
-                                     mock_process_hiera,
-                                     mock_process_multiple_environments,
-                                     mock_hc_get_templ_cont,
-                                     mock_hc_process):
+    def test_setup_heat_environments_default_plan_env(
+            self, mock_run, mock_update_pass_env, mock_process_hiera,
+            mock_process_multiple_environments, mock_hc_get_templ_cont,
+            mock_hc_process):
 
         tmpdir = self.useFixture(fixtures.TempDir()).path
         tht_from = os.path.join(tmpdir, 'tht-from')
         os.mkdir(tht_from)
-        tht_outside = os.path.join(tmpdir, 'tht-outside')
-        os.mkdir(tht_outside)
-        tht_to = os.path.join(tmpdir, 'tht-to')
-        os.mkdir(tht_to)
         plan_env_path = os.path.join(tht_from, 'plan-environment.yaml')
         with open(plan_env_path, mode='w') as plan_file:
             yaml.dump({'environments': [{'path': 'env.yaml'}]}, plan_file)
         self.assertTrue(os.path.exists(plan_env_path))
+        self._setup_heat_environments(tmpdir, tht_from, plan_env_path,
+                                      mock_update_pass_env, mock_run)
+
+    @mock.patch('heatclient.common.template_utils.'
+                'process_environment_and_files', return_value=({}, {}),
+                autospec=True)
+    @mock.patch('heatclient.common.template_utils.'
+                'get_template_contents', return_value=({}, {}),
+                autospec=True)
+    @mock.patch('tripleoclient.utils.'
+                'process_multiple_environments', autospec=True)
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_process_hieradata_overrides', return_value='hiera_or.yaml',
+                autospec=True)
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_update_passwords_env', autospec=True)
+    @mock.patch('tripleoclient.utils.'
+                'run_command_and_log', autospec=True)
+    def test_setup_heat_environments_non_default_plan_env(
+            self, mock_run, mock_update_pass_env, mock_process_hiera,
+            mock_process_multiple_environments, mock_hc_get_templ_cont,
+            mock_hc_process):
+
+        tmpdir = self.useFixture(fixtures.TempDir()).path
+        tht_from = os.path.join(tmpdir, 'tht-from')
+        os.mkdir(tht_from)
+        default_plan_env_path = os.path.join(tht_from, 'plan-environment.yaml')
+        with open(default_plan_env_path, mode='w') as plan_file:
+            yaml.dump({'environments': [{'path': 'env.yaml'}]}, plan_file)
+        plan_env_path = os.path.join(tmpdir, 'plan-environment.yaml')
+        with open(plan_env_path, mode='w') as plan_file:
+            yaml.dump({'environments': [{'path': 'notenv.yaml'}]}, plan_file)
+        self.assertTrue(os.path.exists(plan_env_path))
+        with open(os.path.join(tht_from, 'notenv.yaml'),
+                  mode='w') as env_file:
+            yaml.dump({}, env_file)
+        cmd_extra = ['-p', plan_env_path]
+        self._setup_heat_environments(tmpdir, tht_from, plan_env_path,
+                                      mock_update_pass_env, mock_run,
+                                      cmd_extra, 'notenv.yaml')
+
+    def _setup_heat_environments(self, tmpdir, tht_from, plan_env_path,
+                                 mock_update_pass_env, mock_run,
+                                 extra_cmd=None, plan_env_env=None):
+        cmd_extra = extra_cmd or []
+        plan_env_env_name = plan_env_env or 'env.yaml'
+
+        tht_outside = os.path.join(tmpdir, 'tht-outside')
+        os.mkdir(tht_outside)
+        tht_to = os.path.join(tmpdir, 'tht-to')
+        os.mkdir(tht_to)
         with open(os.path.join(tht_from, 'env.yaml'),
                   mode='w') as env_file:
             yaml.dump({}, env_file)
@@ -429,9 +473,9 @@ class TestDeployUndercloud(TestPluginV1):
                                          '-e',
                                          os.path.join(tht_outside,
                                                       'outside.yaml'),
-                                         ], [])
+                                         ] + cmd_extra, [])
         expected_env = [
-            os.path.join(tht_render, 'env.yaml'),
+            os.path.join(tht_render, plan_env_env_name),
             os.path.join(tht_render, 'passwords.yaml'),
             os.path.join(tht_render,
                          'environments/config-download-environment.yaml'),
