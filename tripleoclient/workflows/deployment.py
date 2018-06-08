@@ -95,7 +95,7 @@ def deploy_and_wait(log, clients, stack, plan_name, verbose_level,
         action = 'UPDATE'
 
     time.sleep(10)
-    verbose_events = verbose_level > 1
+    verbose_events = verbose_level >= 1
     create_result = utils.wait_for_stack_ready(
         orchestration_client, plan_name, marker, action, verbose_events)
     if not create_result:
