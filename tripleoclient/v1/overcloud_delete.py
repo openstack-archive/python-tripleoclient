@@ -66,11 +66,11 @@ class DeleteOvercloud(command.Command):
                     "Error occurred during stack delete {}".
                     format(e))
 
-    def _plan_delete(self, workflow_client, stack_name):
+    def _plan_delete(self, clients, stack_name):
         print("Deleting plan {s}...".format(s=stack_name))
         try:
             plan_management.delete_deployment_plan(
-                workflow_client,
+                clients,
                 container=stack_name)
         except Exception as err:
             raise oscexc.CommandError(
@@ -90,8 +90,7 @@ class DeleteOvercloud(command.Command):
                 raise oscexc.CommandError("Action not confirmed, exiting.")
 
         clients = self.app.client_manager
-        workflow_client = clients.workflow_engine
 
         self._stack_delete(clients, parsed_args.stack)
-        self._plan_delete(workflow_client, parsed_args.stack)
+        self._plan_delete(clients, parsed_args.stack)
         print("Success.")
