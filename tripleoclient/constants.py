@@ -47,8 +47,7 @@ STACK_TIMEOUT = 240
 # The default ffwd upgrade ansible playbooks generated from heat stack output
 FFWD_UPGRADE_PLAYBOOK = "fast_forward_upgrade_playbook.yaml"
 # The default minor update ansible playbooks generated from heat stack output
-MINOR_UPDATE_PLAYBOOKS = ['update_steps_playbook.yaml',
-                          'deploy_steps_playbook.yaml']
+MINOR_UPDATE_PLAYBOOKS = ['update_steps_playbook.yaml']
 # The default major upgrade ansible playbooks generated from heat stack output
 MAJOR_UPGRADE_PLAYBOOKS = ["upgrade_steps_playbook.yaml",
                            "deploy_steps_playbook.yaml",
