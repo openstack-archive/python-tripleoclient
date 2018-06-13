@@ -551,6 +551,8 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
 
     if CONF.get('enable_validations') and not no_validations:
         undercloud_preflight.check()
+        deploy_args += ['-e', os.path.join(
+            tht_templates, "environments/tripleo-validations.yaml")]
 
     if verbose_level > 1:
         deploy_args.append('--debug')
