@@ -146,7 +146,9 @@ class WebsocketClient(object):
 
         while True:
             try:
-                yield self.recv()['body']['payload']
+                message = self.recv()
+                LOG.debug(message)
+                yield message['body']['payload']
             except websocket.WebSocketTimeoutException:
                 raise exceptions.WebSocketTimeout()
 
