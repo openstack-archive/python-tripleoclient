@@ -77,7 +77,8 @@ class TestProcessDriversAndHardwareTypes(base.TestCase):
         self.conf.enabled_hardware_types = (
             self.conf.enabled_hardware_types + ['staging-ovirt', 'snmp',
                                                 'irmc', 'cisco-ucs-managed',
-                                                'cisco-ucs-standalone']
+                                                'cisco-ucs-standalone',
+                                                'xclarity']
         )
 
         undercloud_config._process_drivers_and_hardware_types(self.conf, env)
@@ -85,16 +86,18 @@ class TestProcessDriversAndHardwareTypes(base.TestCase):
             'IronicEnabledHardwareTypes': ['cisco-ucs-managed',
                                            'cisco-ucs-standalone',
                                            'idrac', 'ilo', 'ipmi', 'irmc',
-                                           'redfish', 'snmp', 'staging-ovirt'],
+                                           'redfish', 'snmp', 'staging-ovirt',
+                                           'xclarity'],
             'IronicEnabledBootInterfaces': ['ilo-pxe', 'irmc-pxe', 'pxe'],
             'IronicEnabledManagementInterfaces': ['cimc', 'fake', 'idrac',
                                                   'ilo', 'ipmitool', 'irmc',
                                                   'redfish', 'staging-ovirt',
-                                                  'ucsm'],
+                                                  'ucsm', 'xclarity'],
             'IronicEnabledPowerInterfaces': ['cimc', 'fake', 'idrac',
                                              'ilo', 'ipmitool', 'irmc',
                                              'redfish', 'snmp',
-                                             'staging-ovirt', 'ucsm'],
+                                             'staging-ovirt', 'ucsm',
+                                             'xclarity'],
             'IronicEnabledRaidInterfaces': ['idrac', 'no-raid'],
             'IronicEnabledVendorInterfaces': ['idrac', 'ipmitool', 'no-vendor']
         }, env)
