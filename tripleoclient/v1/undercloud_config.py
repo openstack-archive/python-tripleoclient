@@ -20,6 +20,7 @@ import json
 import logging
 import netaddr
 import os
+import shutil
 import yaml
 
 from cryptography import x509
@@ -266,6 +267,15 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
     _load_config()
     _load_subnets_config_groups()
 
+    # NOTE(bogdando): the generated env files are stored another path then
+    # picked up later.
+    # NOTE(aschultz): We copy this into the tht root that we save because
+    # we move any user provided environment files into this root later.
+    tempdir = os.path.join(os.path.abspath(CONF['output_dir']),
+                           'tripleo-config-generated-env-files')
+    if not os.path.isdir(tempdir):
+        os.mkdir(tempdir)
+
     # Set the undercloud home dir parameter so that stackrc is produced in
     # the users home directory.
     env_data['UndercloudHomeDir'] = USER_HOME
@@ -347,7 +357,9 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
         "-e", os.path.join(tht_templates, "environments/docker.yaml"),
         "-e", os.path.join(tht_templates, "environments/undercloud.yaml")]
 
-    _container_images_config(CONF, deploy_args, env_data)
+    # If a container images file is used, copy it into the tempdir to make it
+    # later into other deployment artifacts and user-provided files.
+    _container_images_config(CONF, deploy_args, env_data, tempdir)
 
     if env_data['MasqueradeNetworks']:
         deploy_args += ['-e', os.path.join(
@@ -525,15 +537,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
 
         env_data['UndercloudNetConfigOverride'] = net_config_json
 
-    # NOTE(bogdando): the generated env files are stored another path then
-    # picked up later.
-    # NOTE(aschultz): We copy this into the tht root that we save because
-    # we move any user provided environment files into this root later.
-    tempdir = os.path.join(os.path.abspath(CONF['output_dir']),
-                           'tripleo-config-generated-env-files')
     params_file = os.path.join(tempdir, 'undercloud_parameters.yaml')
-    if not os.path.isdir(tempdir):
-        os.mkdir(tempdir)
     utils.write_env_file(env_data, params_file, registry_overwrites)
     deploy_args += ['-e', params_file]
 
@@ -607,9 +611,16 @@ def _get_public_tls_resource_registry_overwrites(enable_tls_yaml_path):
             raise RuntimeError(msg)
 
 
-def _container_images_config(conf, deploy_args, env_data):
+def _container_images_config(conf, deploy_args, env_data, tempdir):
     if conf.container_images_file:
         deploy_args += ['-e', conf.container_images_file]
+        try:
+            shutil.copy(os.path.abspath(conf.container_images_file), tempdir)
+        except Exception:
+            msg = _('Cannot copy a container images'
+                    'file %s into a tempdir!') % conf.container_images_file
+            LOG.error(msg)
+            raise exceptions.DeploymentError(msg)
     else:
         # no images file was provided. Set a default ContainerImagePrepare
         # parameter to trigger the preparation of the required container list
