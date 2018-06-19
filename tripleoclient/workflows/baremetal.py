@@ -392,3 +392,121 @@ def clean_manageable_nodes(clients, **workflow_input):
             'Error cleaning nodes: {}'.format(payload['message']))
 
     print('Cleaned %d node(s)' % len(payload['cleaned_nodes']))
+
+
+def apply_bios_configuration(clients, **workflow_input):
+    """Apply BIOS settings on nodes.
+
+    Run the tripleo.baremetal.v1.apply_bios_settings Mistral workflow.
+    """
+
+    workflow_client = clients.workflow_engine
+    ooo_client = clients.tripleoclient
+
+    print('Applying BIOS settings for given nodes, this may take time')
+
+    with ooo_client.messaging_websocket() as ws:
+        execution = base.start_workflow(
+            workflow_client,
+            'tripleo.baremetal.v1.apply_bios_settings',
+            workflow_input=workflow_input
+        )
+
+        for payload in base.wait_for_messages(workflow_client, ws, execution):
+            if payload.get('message'):
+                print(payload['message'])
+
+    if payload['status'] == 'SUCCESS':
+        print('Success')
+    else:
+        raise RuntimeError(
+            'Failed to apply BIOS settings: {}'.format(payload['message']))
+
+
+def apply_bios_configuration_on_manageable_nodes(clients, **workflow_input):
+    """Apply BIOS settings on manageable nodes.
+
+    Run the tripleo.baremetal.v1.apply_bios_settings_on_manageable_nodes
+    Mistral workflow.
+    """
+
+    workflow_client = clients.workflow_engine
+    ooo_client = clients.tripleoclient
+
+    print('Applying BIOS settings for manageable nodes, this may take time')
+
+    with ooo_client.messaging_websocket() as ws:
+        execution = base.start_workflow(
+            workflow_client,
+            'tripleo.baremetal.v1.apply_bios_settings_on_manageable_nodes',
+            workflow_input=workflow_input
+        )
+
+        for payload in base.wait_for_messages(workflow_client, ws, execution):
+            if payload.get('message'):
+                print(payload['message'])
+
+    if payload['status'] == 'SUCCESS':
+        print('Success')
+    else:
+        raise RuntimeError(
+            'Failed to apply BIOS settings: {}'.format(payload['message']))
+
+
+def reset_bios_configuration(clients, **workflow_input):
+    """Reset BIOS settings on nodes.
+
+    Run the tripleo.baremetal.v1.reset_bios_settings Mistral workflow.
+    """
+
+    workflow_client = clients.workflow_engine
+    ooo_client = clients.tripleoclient
+
+    print('Reset BIOS settings on given nodes, this may take time')
+
+    with ooo_client.messaging_websocket() as ws:
+        execution = base.start_workflow(
+            workflow_client,
+            'tripleo.baremetal.v1.reset_bios_settings',
+            workflow_input=workflow_input
+        )
+
+        for payload in base.wait_for_messages(workflow_client, ws, execution):
+            if payload.get('message'):
+                print(payload['message'])
+
+    if payload['status'] == 'SUCCESS':
+        print('Success')
+    else:
+        raise RuntimeError(
+            'Failed to reset BIOS settings: {}'.format(payload['message']))
+
+
+def reset_bios_configuration_on_manageable_nodes(clients, **workflow_input):
+    """Reset BIOS settings on manageable nodes.
+
+    Run the tripleo.baremetal.v1.reset_bios_settings_on_manageable_nodes
+    Mistral workflow.
+    """
+
+    workflow_client = clients.workflow_engine
+    ooo_client = clients.tripleoclient
+
+    print('Reset BIOS settings on manageable nodes, this may take time')
+
+    with ooo_client.messaging_websocket() as ws:
+        execution = base.start_workflow(
+            workflow_client,
+            'tripleo.baremetal.v1.reset_bios_settings_on_manageable_nodes',
+            workflow_input=workflow_input
+        )
+
+        for payload in base.wait_for_messages(workflow_client, ws, execution):
+            if payload.get('message'):
+                print(payload['message'])
+
+    if payload['status'] == 'SUCCESS':
+        print('Success')
+    else:
+        raise RuntimeError(
+            'Failed to reset BIOS settings: {}'.format(payload['message']))

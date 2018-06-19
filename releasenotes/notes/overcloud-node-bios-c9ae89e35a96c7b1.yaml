@@ -1,0 +1,14 @@
+---
+features:
+  - |
+    Adds new commands to run BIOS cleaning on nodes::
+
+        openstack overcloud node bios configure \
+            --configuration <..> [--all-manageable|uuid1,uuid2,..]
+
+        openstack overcloud node bios reset \
+            [--all-manageable|uuid1,uuid2,..]
+
+    The first command configures given BIOS settings on given nodes or all
+    manageable nodes; the second command reset BIOS settings to factory
+    default on given nodes or all manageable nodes.
