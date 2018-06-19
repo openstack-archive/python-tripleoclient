@@ -1150,3 +1150,37 @@ def rel_or_abs_path(tht_root, file_path):
         raise exceptions.DeploymentError(
             "Can't find path %s %s" % (file_path, path))
     return path
+
+
+def load_config(osloconf, path):
+    '''Load oslo config from a file path. '''
+    log = logging.getLogger(__name__ + ".load_config")
+    conf_params = []
+    if os.path.isfile(path):
+        conf_params += ['--config-file', path]
+    else:
+        log.warning(_('%s does not exist. Using defaults.') % path)
+    osloconf(conf_params)
+
+
+def configure_logging(log, level, log_file):
+    '''Mimic oslo_log default levels and formatting for the logger. '''
+    fhandler = logging.FileHandler(log_file)
+    formatter = logging.Formatter(
+        '%(asctime)s.%(msecs)03d %(process)d %(levelname)s '
+        '%(name)s [  ] %(message)s',
+        '%Y-%m-%d %H:%M:%S')
+
+    if level > 1:
+        log.setLevel(logging.DEBUG)
+        fhandler.setLevel(logging.DEBUG)
+    else:
+        # NOTE(bogdando): we are making an exception to the oslo_log'ish
+        # default WARN level to have INFO logs as well. Some modules
+        # produce INFO msgs we want to see and keep by default, like
+        # pre-flight valiation notes.
+        log.setLevel(logging.INFO)
+        fhandler.setLevel(logging.INFO)
+
+    fhandler.setFormatter(formatter)
+    log.addHandler(fhandler)

@@ -1,0 +1,11 @@
+---
+security:
+  - |
+    Undercloud and tripleo standalone deployments support logging
+    into a log file. In ``undercloud.conf`` the log file path may be
+    defined via `undercloud_log_file`. For the standalone
+    deployments, use the ``--log-file`` commmand line argument.
+
+    By default, undercloud pre-flight/installation/upgrade logs
+    will be written into ``install-undercloud.log`` in the current dir
+    (wherefrom the client command is executed).

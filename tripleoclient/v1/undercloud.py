@@ -21,7 +21,10 @@ import subprocess
 
 from openstackclient.i18n import _
 
+from oslo_config import cfg
+
 from tripleoclient import command
+from tripleoclient import constants
 from tripleoclient import utils
 from tripleoclient.v1 import undercloud_config
 
@@ -31,6 +34,7 @@ class InstallUndercloud(command.Command):
 
     auth_required = False
     log = logging.getLogger(__name__ + ".InstallUndercloud")
+    osloconfig = cfg.CONF
 
     def get_parser(self, prog_name):
         parser = argparse.ArgumentParser(
@@ -65,6 +69,10 @@ class InstallUndercloud(command.Command):
         return parser
 
     def take_action(self, parsed_args):
+        # Fetch configuration used to add logging to a file
+        utils.load_config(self.osloconfig, constants.UNDERCLOUD_CONF_PATH)
+        utils.configure_logging(self.log, self.app_args.verbose_level,
+                                self.osloconfig['undercloud_log_file'])
         self.log.debug("take_action(%s)" % parsed_args)
 
         utils.ensure_run_as_normal_user()
@@ -80,9 +88,7 @@ class InstallUndercloud(command.Command):
             cmd = ["instack-install-undercloud"]
 
         self.log.warning("Running: %s" % ' '.join(cmd))
-        if parsed_args.dry_run:
-            print(' '.join(cmd))
-        else:
+        if not parsed_args.dry_run:
             subprocess.check_call(cmd)
 
 
@@ -91,8 +97,13 @@ class UpgradeUndercloud(InstallUndercloud):
 
     auth_required = False
     log = logging.getLogger(__name__ + ".UpgradeUndercloud")
+    osloconfig = cfg.CONF
 
     def take_action(self, parsed_args):
+        # Fetch configuration used to add logging to a file
+        utils.load_config(self.osloconfig, constants.UNDERCLOUD_CONF_PATH)
+        utils.configure_logging(self.log, self.app_args.verbose_level,
+                                self.osloconfig['undercloud_log_file'])
         self.log.debug("take action(%s)" % parsed_args)
 
         utils.ensure_run_as_normal_user()
@@ -104,7 +115,6 @@ class UpgradeUndercloud(InstallUndercloud):
                     no_validations=parsed_args.
                     no_validations,
                     verbose_level=self.app_args.verbose_level)
-            print("Running: %s" % ' '.join(cmd))
             self.log.warning("Running: %s" % ' '.join(cmd))
             subprocess.check_call(cmd)
         else:
