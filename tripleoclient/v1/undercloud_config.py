@@ -300,9 +300,10 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
         env_data['NeutronDnsDomain'] = CONF['overcloud_domain_name']
         deploy_args.append('--local-domain=%s' % CONF['overcloud_domain_name'])
 
-    # FIXME need to add admin VIP as well
     env_data['DockerInsecureRegistryAddress'] = [
         '%s:8787' % CONF['local_ip'].split('/')[0]]
+    env_data['DockerInsecureRegistryAddress'].append(
+        '%s:8787' % CONF['undercloud_admin_host'])
     env_data['DockerInsecureRegistryAddress'].extend(
         CONF['docker_insecure_registries'])
 
