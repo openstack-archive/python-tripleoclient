@@ -42,13 +42,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         app_args.verbose_level = 1
         self.cmd = overcloud_deploy.DeployOvercloud(self.app, app_args)
 
-        # mock validations for all deploy tests
-        # for validator tests, see test_overcloud_deploy_validators.py
-        validator_mock = mock.Mock(return_value=(0, 0))
-        self.real_predeploy_verify_capabilities = \
-            self.cmd._predeploy_verify_capabilities
-        self.cmd._predeploy_verify_capabilities = validator_mock
-
         self.parameter_defaults_env_file = (
             tempfile.NamedTemporaryFile(mode='w', delete=False).name)
         self.tmp_dir = self.useFixture(fixtures.TempDir())
@@ -1670,105 +1663,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True)
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
-    @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
-    @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
-    @mock.patch('tripleoclient.workflows.deployment.overcloudrc',
-                autospec=True)
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_deploy_tripleo_heat_templates_tmpdir', autospec=True)
-    def test_disable_validations_true(
-            self, mock_deploy_tmpdir,
-            mock_overcloudrc, mock_write_overcloudrc,
-            mock_overcloud_endpoint,
-            mock_create_tempest_deployer_input,
-            mock_get_horizon_url,
-            mock_config_download,
-            mock_enable_ssh_admin,
-            mock_get_overcloud_hosts):
-        clients = self.app.client_manager
-        orchestration_client = clients.orchestration
-        orchestration_client.stacks.get.return_value = mock.Mock()
-
-        arglist = ['--templates', '--disable-validations']
-        verifylist = [
-            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
-        ]
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-
-        self.cmd.take_action(parsed_args)
-        self.assertNotCalled(self.cmd._predeploy_verify_capabilities)
-        mock_create_tempest_deployer_input.assert_called_with()
-
-    @mock.patch('tripleoclient.workflows.deployment.get_overcloud_hosts')
-    @mock.patch('tripleoclient.workflows.deployment.enable_ssh_admin')
-    @mock.patch('tripleoclient.workflows.deployment.config_download')
-    @mock.patch('tripleoclient.workflows.deployment.get_horizon_url',
-                autospec=True)
-    @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
-                autospec=True)
-    @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
-    @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
-    @mock.patch('tripleoclient.workflows.deployment.overcloudrc',
-                autospec=True)
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_deploy_tripleo_heat_templates_tmpdir', autospec=True)
-    def test_disable_validations_false(
-            self, mock_deploy_tmpdir,
-            mock_overcloudrc, mock_write_overcloudrc,
-            mock_overcloud_endpoint,
-            mock_create_tempest_deployer_input,
-            mock_get_horizon_url,
-            mock_config_download,
-            mock_enable_ssh_admin,
-            mock_get_overcloud_hosts):
-        clients = self.app.client_manager
-        orchestration_client = clients.orchestration
-        orchestration_client.stacks.get.return_value = mock.Mock()
-
-        arglist = ['--templates']
-        verifylist = [
-            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
-        ]
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-
-        self.cmd.take_action(parsed_args)
-        self.assertTrue(self.cmd._predeploy_verify_capabilities.called)
-        mock_create_tempest_deployer_input.assert_called_with()
-
-    @mock.patch('tripleoclient.workflows.deployment.get_horizon_url',
-                autospec=True)
-    @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
-    @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
-    @mock.patch('tripleoclient.workflows.deployment.overcloudrc',
-                autospec=True)
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_deploy_tripleo_heat_templates_tmpdir', autospec=True)
-    def test_validations_failure_raises_exception(
-            self, mock_deploy_tmpdir,
-            mock_overcloudrc, mock_write_overcloudrc,
-            mock_overcloud_endpoint, mock_get_horizon_url):
-        clients = self.app.client_manager
-        orchestration_client = clients.orchestration
-        orchestration_client.stacks.get.return_value = mock.Mock()
-        self.cmd._predeploy_verify_capabilities = mock.Mock(
-            return_value=(1, 0))
-
-        arglist = ['--templates']
-        verifylist = [
-            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
-        ]
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-
-        self.assertRaises(exceptions.InvalidConfiguration,
-                          self.cmd.take_action, parsed_args)
-
-    @mock.patch('tripleoclient.workflows.deployment.get_overcloud_hosts')
-    @mock.patch('tripleoclient.workflows.deployment.enable_ssh_admin')
-    @mock.patch('tripleoclient.workflows.deployment.config_download')
-    @mock.patch('tripleoclient.workflows.deployment.get_horizon_url',
-                autospec=True)
-    @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
-                autospec=True)
     @mock.patch('tripleoclient.utils.wait_for_provision_state')
     @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
     @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
@@ -1799,9 +1693,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         self.cmd.take_action(parsed_args)
         self.assertTrue(mock_deploy_tmpdir.called)
-        # FIXME(bogdando) this checks nothing and passes w/o --deployed-server
-        # Verify these mocks and clients aren't invoked with --deployed-server
-        self.assertNotCalled(self.cmd._predeploy_verify_capabilities)
         self.assertNotCalled(mock_provision)
         self.assertNotCalled(clients.baremetal)
         self.assertNotCalled(clients.compute)
