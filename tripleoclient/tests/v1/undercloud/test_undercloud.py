@@ -77,7 +77,7 @@ class TestUndercloudInstall(TestPluginV1):
         mock_os.assert_called_with('/foo/tripleo-config-generated-env-files')
         mock_subprocess.assert_called_with(
             ['sudo', 'openstack', 'tripleo', 'deploy', '--standalone',
-             '--standalone-role', 'Undercloud',
+             '--standalone-role', 'Undercloud', '--stack', 'undercloud',
              '--local-domain=localdomain',
              '--local-ip=192.168.24.1/24',
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
@@ -235,7 +235,7 @@ class TestUndercloudInstall(TestPluginV1):
 
         mock_subprocess.assert_called_with(
             ['sudo', 'openstack', 'tripleo', 'deploy', '--standalone',
-             '--standalone-role', 'Undercloud',
+             '--standalone-role', 'Undercloud', '--stack', 'undercloud',
              '--local-domain=localdomain',
              '--local-ip=192.168.24.1/24',
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
@@ -296,7 +296,7 @@ class TestUndercloudInstall(TestPluginV1):
 
         mock_subprocess.assert_called_with(
             ['sudo', 'openstack', 'tripleo', 'deploy', '--standalone',
-             '--standalone-role', 'Undercloud',
+             '--standalone-role', 'Undercloud', '--stack', 'undercloud',
              '--local-domain=localdomain',
              '--local-ip=192.168.24.1/24',
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
@@ -352,7 +352,7 @@ class TestUndercloudInstall(TestPluginV1):
 
         mock_subprocess.assert_called_with(
             ['sudo', 'openstack', 'tripleo', 'deploy', '--standalone',
-             '--standalone-role', 'Undercloud',
+             '--standalone-role', 'Undercloud', '--stack', 'undercloud',
              '--local-domain=localdomain',
              '--local-ip=192.168.24.1/24',
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
@@ -445,7 +445,7 @@ class TestUndercloudUpgrade(TestPluginV1):
 
         mock_subprocess.assert_called_with(
             ['sudo', 'openstack', 'tripleo', 'deploy', '--standalone',
-             '--standalone-role', 'Undercloud',
+             '--standalone-role', 'Undercloud', '--stack', 'undercloud',
              '--local-domain=localdomain',
              '--local-ip=192.168.24.1/24',
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
@@ -502,7 +502,7 @@ class TestUndercloudUpgrade(TestPluginV1):
 
         mock_subprocess.assert_called_with(
             ['sudo', 'openstack', 'tripleo', 'deploy', '--standalone',
-             '--standalone-role', 'Undercloud',
+             '--standalone-role', 'Undercloud', '--stack', 'undercloud',
              '--local-domain=localdomain',
              '--local-ip=192.168.24.1/24',
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
@@ -563,7 +563,7 @@ class TestUndercloudUpgrade(TestPluginV1):
 
         mock_subprocess.assert_called_with(
             ['sudo', 'openstack', 'tripleo', 'deploy', '--standalone',
-             '--standalone-role', 'Undercloud',
+             '--standalone-role', 'Undercloud', '--stack', 'undercloud',
              '--local-domain=localdomain',
              '--local-ip=192.168.24.1/24',
              '--templates=/usr/share/openstack-tripleo-heat-templates/',

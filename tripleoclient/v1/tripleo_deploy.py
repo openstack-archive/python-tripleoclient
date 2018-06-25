@@ -673,7 +673,7 @@ class Deploy(command.Command):
                             help=_("Skip yes/no prompt (assume yes)."))
         parser.add_argument('--stack',
                             help=_("Stack name to create"),
-                            default='undercloud')
+                            default='standalone')
         parser.add_argument('--output-dir',
                             dest='output_dir',
                             help=_("Directory to output state, processed heat "
