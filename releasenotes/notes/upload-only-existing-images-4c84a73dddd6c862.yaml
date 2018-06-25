@@ -1,0 +1,7 @@
+---
+features:
+  - Add a new feature called image-type, that accepts 'os' and
+    'ironic-python-agent' values.
+    When specified, it restricts the image to upload to that type, making it
+    easier to replace ipa/os images without having to collect the full set in
+    our working directory.
