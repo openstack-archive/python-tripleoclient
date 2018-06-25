@@ -253,7 +253,8 @@ class TestContainerImageConfig(base.TestCase):
         self.conf = mock.Mock(**{key: getattr(undercloud_config.CONF, key)
                                  for key in conf_keys})
 
-    def test_defaults(self):
+    @mock.patch('shutil.copy')
+    def test_defaults(self, mock_copy):
         env = {}
         deploy_args = []
         cip_default = getattr(kolla_builder,
@@ -271,7 +272,8 @@ class TestContainerImageConfig(base.TestCase):
             'tag_from_label': 'five',
         }])
 
-        undercloud_config._container_images_config(self.conf, deploy_args, env)
+        undercloud_config._container_images_config(self.conf, deploy_args,
+                                                   env, None)
         self.assertEqual([], deploy_args)
         cip = env['ContainerImagePrepare'][0]
         set = cip['set']
@@ -287,16 +289,19 @@ class TestContainerImageConfig(base.TestCase):
         self.assertEqual(
             'five', cip['tag_from_label'])
 
-    def test_container_images_file(self):
+    @mock.patch('shutil.copy')
+    def test_container_images_file(self, mock_copy):
         env = {}
         deploy_args = []
         self.conf.container_images_file = '/tmp/container_images_file.yaml'
-        undercloud_config._container_images_config(self.conf, deploy_args, env)
+        undercloud_config._container_images_config(self.conf, deploy_args,
+                                                   env, None)
         self.assertEqual(['-e', '/tmp/container_images_file.yaml'],
                          deploy_args)
         self.assertEqual({}, env)
 
-    def test_custom(self):
+    @mock.patch('shutil.copy')
+    def test_custom(self, mock_copy):
         env = {}
         deploy_args = []
         with tempfile.NamedTemporaryFile(mode='w') as f:
@@ -315,5 +320,5 @@ class TestContainerImageConfig(base.TestCase):
             cif_name = f.name
 
             undercloud_config._container_images_config(
-                self.conf, deploy_args, env)
+                self.conf, deploy_args, env, None)
         self.assertEqual(['-e', cif_name], deploy_args)
