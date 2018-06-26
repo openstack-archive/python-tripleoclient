@@ -363,6 +363,53 @@ class TestDeployUndercloud(TestPluginV1):
                                                      env_files)
         self.assertEqual(expected, results)
 
+    @mock.patch('yaml.safe_load', return_value={}, autospec=True)
+    @mock.patch('yaml.safe_dump', autospec=True)
+    @mock.patch('os.path.isfile', return_value=True)
+    @mock.patch('six.moves.builtins.open')
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_process_hieradata_overrides', autospec=True)
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_update_passwords_env', autospec=True)
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_normalize_user_templates', return_value=[], autospec=True)
+    @mock.patch('tripleoclient.utils.rel_or_abs_path', return_value={},
+                autospec=True)
+    @mock.patch('tripleoclient.utils.run_command_and_log', return_value=0,
+                autospec=True)
+    def test_setup_heat_environments_dropin(
+            self, mock_run, mock_paths, mock_norm, mock_update_pass_env,
+            mock_process_hiera, mock_open, mock_os, mock_yaml_dump,
+            mock_yaml_load):
+
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--local-ip', '127.0.0.1/8',
+                                         '--templates', 'tht_from',
+                                         '--output-dir', 'tht_to'], [])
+        dropin = 'tht_from/standalone-stack-vstate-dropin.yaml'
+        self.cmd.output_dir = 'tht_to'
+        self.cmd.tht_render = 'tht_from'
+        self.cmd.stack_action = 'UPDATE'
+        environment = self.cmd._setup_heat_environments(parsed_args)
+
+        self.assertIn(dropin, environment)
+        mock_open.assert_has_calls([mock.call(dropin, 'w')])
+
+        # unpack the dump yaml calls to verify if the produced stack update
+        # dropin matches our expectations
+        found_dropin = False
+        for call in mock_yaml_dump.call_args_list:
+            args, kwargs = call
+            for a in args:
+                if isinstance(a, mock.mock.MagicMock):
+                    continue
+                if a.get('parameter_defaults', {}).get('StackAction', None):
+                    self.assertTrue(
+                        a['parameter_defaults']['StackAction'] == 'UPDATE')
+                    found_dropin = True
+        self.assertTrue(found_dropin)
+
+    @mock.patch('os.path.isfile')
     @mock.patch('heatclient.common.template_utils.'
                 'process_environment_and_files', return_value=({}, {}),
                 autospec=True)
@@ -381,7 +428,7 @@ class TestDeployUndercloud(TestPluginV1):
     def test_setup_heat_environments_default_plan_env(
             self, mock_run, mock_update_pass_env, mock_process_hiera,
             mock_process_multiple_environments, mock_hc_get_templ_cont,
-            mock_hc_process):
+            mock_hc_process, mock_os):
 
         tmpdir = self.useFixture(fixtures.TempDir()).path
         tht_from = os.path.join(tmpdir, 'tht-from')
@@ -393,6 +440,7 @@ class TestDeployUndercloud(TestPluginV1):
         self._setup_heat_environments(tmpdir, tht_from, plan_env_path,
                                       mock_update_pass_env, mock_run)
 
+    @mock.patch('os.path.isfile')
     @mock.patch('heatclient.common.template_utils.'
                 'process_environment_and_files', return_value=({}, {}),
                 autospec=True)
@@ -411,7 +459,7 @@ class TestDeployUndercloud(TestPluginV1):
     def test_setup_heat_environments_non_default_plan_env(
             self, mock_run, mock_update_pass_env, mock_process_hiera,
             mock_process_multiple_environments, mock_hc_get_templ_cont,
-            mock_hc_process):
+            mock_hc_process, mock_os):
 
         tmpdir = self.useFixture(fixtures.TempDir()).path
         tht_from = os.path.join(tmpdir, 'tht-from')
@@ -484,12 +532,14 @@ class TestDeployUndercloud(TestPluginV1):
             os.path.join(tht_render,
                          'tripleoclient-hosts-portmaps.yaml'),
             'hiera_or.yaml',
+            os.path.join(tht_render, 'standalone-stack-vstate-dropin.yaml'),
             os.path.join(tht_render, 'foo.yaml'),
             os.path.join(tht_render, 'outside.yaml')]
 
-        environment = self.cmd._setup_heat_environments(parsed_args)
+        with mock.patch('os.path.isfile'):
+            environment = self.cmd._setup_heat_environments(parsed_args)
 
-        self.assertEqual(expected_env, environment)
+            self.assertEqual(expected_env, environment)
 
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_create_working_dirs', autospec=True)
@@ -554,6 +604,8 @@ class TestDeployUndercloud(TestPluginV1):
             env
         )
 
+    @mock.patch('os.mkdir')
+    @mock.patch('six.moves.builtins.open')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_populate_templates_dir')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
@@ -588,7 +640,8 @@ class TestDeployUndercloud(TestPluginV1):
                                     mock_launchheat, mock_download, mock_tht,
                                     mock_wait_for_port, mock_createdirs,
                                     mock_cleanupdirs, mock_launchansible,
-                                    mock_tarball, mock_templates_dir):
+                                    mock_tarball, mock_templates_dir,
+                                    mock_open, mock_os):
 
         parsed_args = self.check_parser(self.cmd,
                                         ['--local-ip', '127.0.0.1',

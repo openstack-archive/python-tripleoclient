@@ -47,8 +47,18 @@ class InstallUndercloud(command.Command):
             dest='use_heat',
             action='store_true',
             default=False,
-            help=_("Perform undercloud deploy using heat"),
+            help=_("Perform undercloud deploy using ephemeral (one-time "
+                   "create and forget) heat stack and ansible."),
         )
+        parser.add_argument('--force-stack-update',
+                            dest='force_stack_update',
+                            action='store_true',
+                            default=False,
+                            help=_("Do a virtual update of the ephemeral "
+                                   "heat stack. New or failed deployments "
+                                   "always have the stack_action=CREATE. This "
+                                   "option enforces stack_action=UPDATE."),
+                            )
         parser.add_argument(
             '--no-validations',
             dest='no_validations',
@@ -81,7 +91,9 @@ class InstallUndercloud(command.Command):
             cmd = undercloud_config.\
                 prepare_undercloud_deploy(
                     no_validations=no_validations,
-                    verbose_level=self.app_args.verbose_level)
+                    verbose_level=self.app_args.verbose_level,
+                    force_stack_update=parsed_args.force_stack_update,
+                    dry_run=parsed_args.dry_run)
         else:
             self.log.warning(_('Non-containerized undercloud deployment is '
                              'deprecated in Rocky cycle.'))
@@ -114,7 +126,8 @@ class UpgradeUndercloud(InstallUndercloud):
                     yes=parsed_args.yes,
                     no_validations=parsed_args.
                     no_validations,
-                    verbose_level=self.app_args.verbose_level)
+                    verbose_level=self.app_args.verbose_level,
+                    force_stack_update=parsed_args.force_stack_update)
             self.log.warning("Running: %s" % ' '.join(cmd))
             subprocess.check_call(cmd)
         else:
