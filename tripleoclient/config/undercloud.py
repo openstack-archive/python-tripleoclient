@@ -17,6 +17,9 @@ import copy
 
 from osc_lib.i18n import _
 from oslo_config import cfg
+
+from tripleoclient import constants
+
 from tripleoclient.config.standalone import StandaloneConfig
 
 CONF = cfg.CONF
@@ -53,6 +56,12 @@ class UndercloudConfig(StandaloneConfig):
     def get_base_opts(self):
         _base_opts = super(UndercloudConfig, self).get_base_opts()
         _opts = [
+            cfg.StrOpt('undercloud_log_file',
+                       default=constants.UNDERCLOUD_LOG_FILE,
+                       help=_(
+                           'The path to a log file to store the '
+                           'undercloud install/upgrade logs.'),
+                       ),
             cfg.StrOpt('undercloud_hostname',
                        help=_(
                            'Fully qualified hostname (including domain) to '

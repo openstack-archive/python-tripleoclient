@@ -86,16 +86,7 @@ TELEMETRY_DOCKER_ENV_YAML = [
     'environments/services/undercloud-panko.yaml',
     'environments/services/undercloud-ceilometer.yaml']
 
-
-class Paths(object):
-    @property
-    def CONF_PATH(self):
-        return os.path.expanduser('~/undercloud.conf')
-
-
 CONF = cfg.CONF
-PATHS = Paths()
-
 
 # When adding new options to the lists below, make sure to regenerate the
 # sample config by running "tox -e genconfig" in the project root.
@@ -114,15 +105,6 @@ def _load_subnets_config_groups():
         CONF.register_opts(config.get_subnet_opts(), group=g)
 
 LOG = logging.getLogger(__name__ + ".undercloud_config")
-
-
-def _load_config():
-    conf_params = []
-    if os.path.isfile(PATHS.CONF_PATH):
-        conf_params += ['--config-file', PATHS.CONF_PATH]
-    else:
-        LOG.warning(_('%s does not exist. Using defaults.') % PATHS.CONF_PATH)
-    CONF(conf_params)
 
 
 def _get_jinja_env_source(f):
@@ -264,7 +246,9 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
     env_data = {}
     registry_overwrites = {}
     deploy_args = []
-    _load_config()
+    # Fetch configuration and use its log file param to add logging to a file
+    utils.load_config(CONF, constants.UNDERCLOUD_CONF_PATH)
+    utils.configure_logging(LOG, verbose_level, CONF['undercloud_log_file'])
     _load_subnets_config_groups()
 
     # NOTE(bogdando): the generated env files are stored another path then
@@ -555,15 +539,14 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
         deploy_args += ['--hieradata-override=%s' % data_file]
 
     if CONF.get('enable_validations') and not no_validations:
-        undercloud_preflight.check()
+        undercloud_preflight.check(verbose_level)
         deploy_args += ['-e', os.path.join(
             tht_templates, "environments/tripleo-validations.yaml")]
 
     if verbose_level > 1:
         deploy_args.append('--debug')
 
-    LOG_FILE = os.path.join(os.getcwd() + '/install-undercloud.log')
-    deploy_args.append('--log-file=' + LOG_FILE)
+    deploy_args.append('--log-file=%s' % CONF['undercloud_log_file'])
 
     cmd = ["sudo", "openstack", "tripleo", "deploy", "--standalone",
            "--standalone-role", "Undercloud", "--stack", "undercloud"]

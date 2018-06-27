@@ -20,6 +20,8 @@ OVERCLOUD_YAML_NAME = "overcloud.yaml"
 OVERCLOUD_ROLES_FILE = "roles_data.yaml"
 UNDERCLOUD_ROLES_FILE = "roles_data_undercloud.yaml"
 UNDERCLOUD_OUTPUT_DIR = os.path.join(os.environ.get('HOME'))
+UNDERCLOUD_LOG_FILE = "install-undercloud.log"
+UNDERCLOUD_CONF_PATH = os.path.join(UNDERCLOUD_OUTPUT_DIR, "undercloud.conf")
 OVERCLOUD_NETWORKS_FILE = "network_data.yaml"
 RHEL_REGISTRATION_EXTRACONFIG_NAME = (
     "extraconfig/pre_deploy/rhel-registration/")

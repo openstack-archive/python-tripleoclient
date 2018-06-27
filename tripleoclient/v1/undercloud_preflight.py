@@ -28,6 +28,7 @@ import psutil
 from oslo_config import cfg
 
 from tripleoclient import constants
+from tripleoclient import utils
 
 
 class FailedValidation(Exception):
@@ -428,7 +429,10 @@ def _run_yum_update(instack_env):
     LOG.info(_('yum-update completed successfully'))
 
 
-def check():
+def check(verbose_level):
+    # Fetch configuration and use its log file param to add logging to a file
+    utils.load_config(CONF, constants.UNDERCLOUD_CONF_PATH)
+    utils.configure_logging(LOG, verbose_level, CONF['undercloud_log_file'])
 
     # data = {opt.name: CONF[opt.name] for opt in _opts}
     try:
