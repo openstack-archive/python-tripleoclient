@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    The commands `openstack tripleo container image prepare` and `openstack
+    overcloud container image upload` now have a --cleanup option to control
+    what local images are removed after the image upload is complete.

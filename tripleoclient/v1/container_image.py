@@ -68,12 +68,26 @@ class UploadImage(command.Command):
                    "files will override some options in previous files. "
                    "Other options will append."),
         )
+        parser.add_argument(
+            "--cleanup",
+            dest="cleanup",
+            metavar='<full, partial, none>',
+            default=image_uploader.CLEANUP_FULL,
+            help=_("Cleanup behavior for local images left after upload. "
+                   "The default 'full' will attempt to delete all local "
+                   "images. 'partial' will leave images required for "
+                   "deployment on this host. 'none' will do no cleanup.")
+        )
+
         return parser
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+        if parsed_args.cleanup not in image_uploader.CLEANUP:
+            raise oscexc.CommandError('--cleanup must be one of: %s' %
+                                      ', '.join(image_uploader.CLEANUP))
         uploader = image_uploader.ImageUploadManager(
-            parsed_args.config_files)
+            parsed_args.config_files, cleanup=parsed_args.cleanup)
         try:
             uploader.upload()
         except KeyboardInterrupt:  # ctrl-c
@@ -577,10 +591,24 @@ class TripleOImagePrepare(command.Command):
                    'The environment file will still be populated as if these '
                    'operations were performed.')
         )
+        parser.add_argument(
+            "--cleanup",
+            dest="cleanup",
+            metavar='<full, partial, none>',
+            default=image_uploader.CLEANUP_FULL,
+            help=_("Cleanup behavior for local images left after upload. "
+                   "The default 'full' will attempt to delete all local "
+                   "images. 'partial' will leave images required for "
+                   "deployment on this host. 'none' will do no cleanup.")
+        )
         return parser
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+
+        if parsed_args.cleanup not in image_uploader.CLEANUP:
+            raise oscexc.CommandError('--cleanup must be one of: %s' %
+                                      ', '.join(image_uploader.CLEANUP))
 
         if parsed_args.roles_file:
             roles_data = yaml.safe_load(open(parsed_args.roles_file).read())
@@ -593,7 +621,8 @@ class TripleOImagePrepare(command.Command):
         )
 
         params = kolla_builder.container_images_prepare_multi(
-            env, roles_data, dry_run=parsed_args.dry_run)
+            env, roles_data, dry_run=parsed_args.dry_run,
+            cleanup=parsed_args.cleanup)
         env_data = build_env_file(params, self.app.command_options)
         if parsed_args.output_env_file:
             with os.fdopen(os.open(parsed_args.output_env_file,

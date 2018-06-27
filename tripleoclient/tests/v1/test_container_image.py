@@ -23,9 +23,22 @@ import sys
 import tempfile
 import yaml
 
+from tripleo_common.image import image_uploader
 from tripleo_common.image import kolla_builder
 from tripleoclient.tests.v1.test_plugin import TestPluginV1
 from tripleoclient.v1 import container_image
+
+# TODO(sbaker) Remove after a tripleo-common release contains this attribute
+CLEANUP = (
+    CLEANUP_FULL, CLEANUP_PARTIAL, CLEANUP_NONE
+) = (
+    'full', 'partial', 'none'
+)
+if not hasattr(image_uploader, 'CLEANUP'):
+    setattr(image_uploader, 'CLEANUP', CLEANUP)
+    setattr(image_uploader, 'CLEANUP_FULL', CLEANUP_FULL)
+    setattr(image_uploader, 'CLEANUP_PARTIAL', CLEANUP_PARTIAL)
+    setattr(image_uploader, 'CLEANUP_NONE', CLEANUP_NONE)
 
 
 class TestContainerImageUpload(TestPluginV1):
@@ -37,8 +50,7 @@ class TestContainerImageUpload(TestPluginV1):
         self.cmd = container_image.UploadImage(self.app, None)
 
     @mock.patch('sys.exit')
-    @mock.patch('tripleo_common.image.image_uploader.ImageUploadManager',
-                autospec=True)
+    @mock.patch('tripleo_common.image.image_uploader.ImageUploadManager')
     def test_container_image_upload_noargs(self, mock_manager, exit_mock):
         arglist = []
         verifylist = []
@@ -49,8 +61,7 @@ class TestContainerImageUpload(TestPluginV1):
         # argparse will complain that --config-file is missing and exit with 2
         exit_mock.assert_called_with(2)
 
-    @mock.patch('tripleo_common.image.image_uploader.ImageUploadManager',
-                autospec=True)
+    @mock.patch('tripleo_common.image.image_uploader.ImageUploadManager')
     def test_container_image_upload_conf_files(self, mock_manager):
         arglist = [
             '--config-file',
@@ -65,7 +76,7 @@ class TestContainerImageUpload(TestPluginV1):
         self.cmd.take_action(parsed_args)
 
         mock_manager.assert_called_once_with(
-            ['/tmp/foo.yaml', '/tmp/bar.yaml'])
+            ['/tmp/foo.yaml', '/tmp/bar.yaml'], cleanup='full')
         mock_manager.return_value.upload.assert_called_once_with()
 
 
@@ -352,7 +363,10 @@ class TestTripleoImagePrepare(TestPluginV1):
         self.cmd.take_action(parsed_args)
 
         prepare_multi.assert_called_once_with(
-            self.default_env, yaml.safe_load(self.roles_yaml), dry_run=False)
+            self.default_env,
+            yaml.safe_load(self.roles_yaml),
+            dry_run=False,
+            cleanup='full')
 
         with open(env_file) as f:
             result = yaml.safe_load(f)
