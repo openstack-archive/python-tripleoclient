@@ -566,7 +566,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
     deploy_args.append('--log-file=' + LOG_FILE)
 
     cmd = ["sudo", "openstack", "tripleo", "deploy", "--standalone",
-           "--standalone-role", "Undercloud"]
+           "--standalone-role", "Undercloud", "--stack", "undercloud"]
     cmd += deploy_args[:]
 
     return cmd
