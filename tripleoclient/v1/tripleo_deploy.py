@@ -237,11 +237,25 @@ class Deploy(command.Command):
                 elif k == 'undercloud_rabbit_username':
                     k = 'RpcUserName'
                 elif k == 'undercloud_rabbit_password':
-                    k = 'RpcPassword'
+                    try:
+                        # NOTE(aschultz): Only save rabbit password to rpc
+                        # if it's not already defined for the upgrade case.
+                        # The passwords are usually different so we don't
+                        # want to overwrite it if it already exists because
+                        # we'll end up rewriting the passwords later and
+                        # causing problems.
+                        config.get('auth', 'undercloud_rpc_password')
+                    except Exception:
+                        legacy_env['RpcPassword'] = v
+                    k = 'RabbitPassword'
                 elif k == 'undercloud_rabbit_cookie':
                     k = 'RabbitCookie'
                 elif k == 'undercloud_heat_encryption_key':
                     k = 'HeatAuthEncryptionKey'
+                elif k == 'undercloud_libvirt_tls_password':
+                    k = 'LibvirtTLSPassword'
+                elif k == 'undercloud_ha_proxy_stats_password':
+                    k = 'HAProxyStatsPassword'
                 else:
                     k = ''.join(i.capitalize() for i in k.split('_')[1:])
                 legacy_env[k] = v
