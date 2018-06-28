@@ -58,6 +58,34 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         self.real_shutil = shutil.rmtree
 
+        self.uuid1_value = "uuid"
+        mock_uuid1 = mock.patch('uuid.uuid1', return_value=self.uuid1_value,
+                                autospec=True)
+        mock_uuid1.start()
+        self.addCleanup(mock_uuid1.stop)
+        mock_uuid4 = mock.patch('uuid.uuid4', return_calue='uuid4',
+                                autospec=True)
+        mock_uuid4.start()
+        self.addCleanup(mock_uuid4.stop)
+
+        # Mock time to get predicdtable DeployIdentifiers
+        self.time_value = 12345678
+        mock_time = mock.patch('time.time', return_value=self.time_value,
+                               autospec=True)
+        mock_time.start()
+        self.addCleanup(mock_time.stop)
+
+        # Mock copytree to avoid creating temporary templates
+        mock_copytree = mock.patch('shutil.copytree',
+                                   autospec=True)
+        mock_copytree.start()
+        self.addCleanup(mock_copytree.stop)
+
+        # Mock sleep to reduce time of test
+        mock_sleep = mock.patch('time.sleep', autospec=True)
+        mock_sleep.start()
+        self.addCleanup(mock_sleep.stop)
+
     def tearDown(self):
         super(TestDeployOvercloud, self).tearDown()
         os.unlink(self.parameter_defaults_env_file)
@@ -89,12 +117,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
-    @mock.patch('uuid.uuid1', autospec=True)
-    @mock.patch('time.sleep', autospec=True)
-    @mock.patch('time.time', autospec=True)
-    @mock.patch('shutil.copytree', autospec=True)
-    def test_tht_scale(self, mock_copy, mock_time, mock_sleep, mock_uuid1,
-                       mock_get_template_contents,
+    def test_tht_scale(self, mock_get_template_contents,
                        wait_for_stack_ready_mock,
                        mock_remove_known_hosts,
                        mock_write_overcloudrc,
@@ -108,15 +131,11 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                        mock_config_download,
                        mock_enable_ssh_admin,
                        mock_get_overcloud_hosts):
-
         arglist = ['--templates', '--ceph-storage-scale', '3']
         verifylist = [
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
             ('ceph_storage_scale', 3)
         ]
-
-        mock_uuid1.return_value = "uuid"
-        mock_time.return_value = 123456789
 
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
@@ -146,7 +165,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         baremetal.node.list.return_value = range(10)
 
         expected_parameters = {
-            'CephClusterFSID': 'uuid',
+            'CephClusterFSID': self.uuid1_value,
             'CephStorageCount': 3,
             'ExtraConfig': '{}',
             'HypervisorNeutronPhysicalBridge': 'br-ex',
@@ -156,7 +175,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'NeutronPublicInterface': 'nic1',
             'NtpServer': '',
             'SnmpdReadonlyUserPassword': 'PASSWORD',
-            'DeployIdentifier': 123456789,
+            'DeployIdentifier': self.time_value,
             'UpdateIdentifier': '',
             'StackAction': 'UPDATE',
             'DeployIdentifier': '',
@@ -208,15 +227,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
-    @mock.patch('uuid.uuid1', autospec=True)
-    @mock.patch('uuid.uuid4', autospec=True)
-    @mock.patch('time.sleep', autospec=True)
-    @mock.patch('time.time', autospec=True)
-    @mock.patch('shutil.copytree', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True)
-    def test_tht_deploy(self, mock_tmpdir, mock_copy, mock_time, mock_sleep,
-                        mock_uuid4,
-                        mock_uuid1,
+    def test_tht_deploy(self, mock_tmpdir,
                         mock_get_template_contents,
                         wait_for_stack_ready_mock,
                         mock_remove_known_hosts,
@@ -240,9 +252,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         ]
 
         mock_tmpdir.return_value = self.tmp_dir.path
-        mock_uuid1.return_value = "uuid"
-        mock_uuid4.return_value = "uuid4"
-        mock_time.return_value = 123456789
 
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
@@ -360,14 +369,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
-    @mock.patch('uuid.uuid1', autospec=True)
-    @mock.patch('time.time', autospec=True)
-    @mock.patch('time.sleep', autospec=True)
-    @mock.patch('shutil.copytree', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True)
     def test_tht_deploy_with_plan_environment_file(
-            self, mock_tmpdir, mock_copy, mock_time, mock_sleep, mock_uuid1,
-            mock_get_template_contents, wait_for_stack_ready_mock,
+            self, mock_tmpdir, mock_get_template_contents,
+            wait_for_stack_ready_mock,
             mock_remove_known_hosts, mock_overcloudrc, mock_write_overcloudrc,
             mock_create_tempest_deployer, mock_create_parameters_env,
             mock_validate_args,
@@ -386,8 +391,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         ]
 
         mock_tmpdir.return_value = "/tmp/tht"
-        mock_uuid1.return_value = "uuid"
-        mock_time.return_value = 123456789
 
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
@@ -422,7 +425,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         baremetal.node.list.return_value = range(10)
 
         expected_parameters = {
-            'CephClusterFSID': 'uuid',
+            'CephClusterFSID': self.uuid1_value,
             'CephStorageCount': 3,
             'ExtraConfig': '{}',
             'HypervisorNeutronPhysicalBridge': 'br-ex',
@@ -434,7 +437,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'NeutronTunnelTypes': 'gre',
             'NtpServer': '',
             'SnmpdReadonlyUserPassword': 'PASSWORD',
-            'DeployIdentifier': 123456789,
+            'DeployIdentifier': self.time_value,
             'UpdateIdentifier': '',
             'StackAction': 'CREATE',
             'DeployIdentifier': '',
@@ -507,16 +510,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
-    @mock.patch('uuid.uuid1', autospec=True)
-    @mock.patch('time.sleep', autospec=True)
-    @mock.patch('time.time', autospec=True)
     @mock.patch('shutil.rmtree', autospec=True)
-    @mock.patch('shutil.copytree', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True)
     def test_tht_deploy_skip_deploy_identifier(
-            self, mock_tmpdir, mock_copy, mock_rm, mock_time,
-            mock_sleep,
-            mock_uuid1,
+            self, mock_tmpdir, mock_rm,
             mock_get_template_contents,
             wait_for_stack_ready_mock,
             mock_remove_known_hosts,
@@ -537,8 +534,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         ]
 
         mock_tmpdir.return_value = "/tmp/tht"
-        mock_uuid1.return_value = "uuid"
-        mock_time.return_value = 123456789
 
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
@@ -611,10 +606,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
-    @mock.patch('shutil.copytree', autospec=True)
-    @mock.patch('time.sleep', autospec=True)
-    def test_deploy_custom_templates(self, mock_sleep, mock_copy,
-                                     mock_get_template_contents,
+    def test_deploy_custom_templates(self, mock_get_template_contents,
                                      wait_for_stack_ready_mock,
                                      mock_remove_known_hosts,
                                      mock_write_overcloudrc,
@@ -731,8 +723,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 '_update_parameters', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_heat_deploy', autospec=True)
-    @mock.patch('shutil.copytree', autospec=True)
-    def test_environment_dirs(self, mock_copy, mock_deploy_heat,
+    def test_environment_dirs(self, mock_deploy_heat,
                               mock_update_parameters, mock_post_config,
                               mock_utils_endpoint, mock_utils_createrc,
                               mock_utils_tempest, mock_tarball,
@@ -804,8 +795,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 '_update_parameters', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_heat_deploy', autospec=True)
-    @mock.patch('shutil.copytree', autospec=True)
-    def test_environment_dirs_env(self, mock_copy, mock_deploy_heat,
+    def test_environment_dirs_env(self, mock_deploy_heat,
                                   mock_update_parameters, mock_post_config,
                                   mock_utils_get_stack, mock_utils_endpoint,
                                   mock_utils_createrc, mock_utils_tempest,
@@ -866,9 +856,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 '_update_parameters', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_heat_deploy', autospec=True)
-    @mock.patch('shutil.copytree', autospec=True)
-    def test_environment_dirs_env_files_not_found(self, mock_copy,
-                                                  mock_deploy_heat,
+    def test_environment_dirs_env_files_not_found(self, mock_deploy_heat,
                                                   mock_update_parameters,
                                                   mock_post_config,
                                                   mock_utils_endpoint,
@@ -930,9 +918,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 '_update_parameters', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_heat_deploy', autospec=True)
-    @mock.patch('shutil.copytree', autospec=True)
-    def test_environment_dirs_env_dir_not_found(self, mock_copy,
-                                                mock_deploy_heat,
+    def test_environment_dirs_env_dir_not_found(self, mock_deploy_heat,
                                                 mock_update_parameters,
                                                 mock_post_config,
                                                 mock_utils_endpoint,
@@ -970,8 +956,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_tripleo_heat_templates', autospec=True)
-    @mock.patch('shutil.copytree', autospec=True)
-    def test_rhel_reg_params_provided(self, mock_copytree, mock_deploy_tht,
+    def test_rhel_reg_params_provided(self, mock_deploy_tht,
                                       mock_oc_endpoint,
                                       mock_create_ocrc,
                                       mock_create_tempest_deployer_input,
@@ -1028,15 +1013,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
-    @mock.patch('shutil.copytree', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True)
     @mock.patch('shutil.rmtree', autospec=True)
-    @mock.patch('time.sleep', autospec=True)
-    @mock.patch('time.time', autospec=True)
-    @mock.patch('uuid.uuid4', autospec=True)
-    def test_deploy_rhel_reg(self, mock_uuid4, mock_time, mock_sleep,
-                             mock_rmtree,
-                             mock_tmpdir, mock_copy,
+    def test_deploy_rhel_reg(self, mock_rmtree,
+                             mock_tmpdir,
                              mock_get_template_contents,
                              wait_for_stack_ready_mock,
                              mock_remove_known_hosts,
@@ -1064,8 +1044,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             ('reg_activation_key', 'super-awesome-key')
         ]
 
-        mock_uuid4.return_value = 'uuid4'
-        mock_time.return_value = 123456
         mock_tmpdir.return_value = self.tmp_dir.path
         test_env = self.tmp_dir.join(
             'tripleo-heat-templates/extraconfig/pre_deploy/rhel-registration/'
@@ -1277,12 +1255,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_heat_deploy', autospec=True)
-    @mock.patch('shutil.copytree', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True)
     @mock.patch('shutil.rmtree', autospec=True)
-    @mock.patch('time.sleep', autospec=True)
-    def test_answers_file(self, mock_sleep, mock_rmtree, mock_tmpdir,
-                          mock_copy,
+    def test_answers_file(self, mock_rmtree, mock_tmpdir,
                           mock_heat_deploy,
                           mock_oc_endpoint,
                           mock_create_ocrc,
@@ -1412,9 +1387,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 'process_environment_and_files', autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
-    @mock.patch('shutil.copytree', autospec=True)
-    def test_ntp_server_mandatory(self, mock_copy,
-                                  mock_get_template_contents,
+    def test_ntp_server_mandatory(self, mock_get_template_contents,
                                   mock_process_env,
                                   mock_write_overcloudrc,
                                   mock_create_parameters_env,
@@ -1482,13 +1455,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 'process_environment_and_files', autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
-    @mock.patch('uuid.uuid1', autospec=True)
-    @mock.patch('time.sleep', autospec=True)
-    @mock.patch('time.time', autospec=True)
-    @mock.patch('shutil.copytree', autospec=True)
-    def test_tht_deploy_with_ntp(self, mock_copy, mock_time, mock_sleep,
-                                 mock_uuid1,
-                                 mock_get_template_contents,
+    def test_tht_deploy_with_ntp(self, mock_get_template_contents,
                                  mock_process_env,
                                  wait_for_stack_ready_mock,
                                  mock_remove_known_hosts,
@@ -1512,9 +1479,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             ('ceph_storage_scale', 3),
             ('control_scale', 3),
         ]
-
-        mock_uuid1.return_value = "uuid"
-        mock_time.return_value = 123456789
 
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
@@ -1554,7 +1518,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         baremetal.node.list.return_value = range(10)
 
         expected_parameters = {
-            'CephClusterFSID': 'uuid',
+            'CephClusterFSID': self.uuid1_value,
             'CephStorageCount': 3,
             'ControllerCount': 3,
             'ExtraConfig': '{}',
@@ -1566,7 +1530,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'NeutronPublicInterface': 'nic1',
             'NeutronTunnelTypes': 'gre',
             'SnmpdReadonlyUserPassword': 'PASSWORD',
-            'DeployIdentifier': 123456789,
+            'DeployIdentifier': self.time_value,
             'UpdateIdentifier': '',
             'StackAction': 'CREATE',
             'NtpServer': 'ntp',
