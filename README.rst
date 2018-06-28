@@ -18,3 +18,6 @@ both an undercloud and an overcloud.
 See the
 `TripleO Documentation <https://docs.openstack.org/tripleo-docs/latest/>`_
 for details on using tripleoclient.
+
+See the
+`Release Notes <https://docs.openstack.org/releasenotes/python-tripleoclient>`_
