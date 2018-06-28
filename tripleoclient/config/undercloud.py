@@ -250,6 +250,10 @@ class UndercloudConfig(StandaloneConfig):
                             'Whether to enable the debug log level for '
                             'Undercloud OpenStack services.')
                         ),
+            cfg.BoolOpt('undercloud_enable_selinux',
+                        default=True,
+                        help=_('Enable or disable SELinux during the '
+                               'deployment.')),
             cfg.BoolOpt('undercloud_update_packages',
                         default=False,
                         help=_(

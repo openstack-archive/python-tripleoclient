@@ -1,0 +1,5 @@
+---
+features:
+  - Add `undercloud_enable_selinux` configuration to the undercloud.conf.
+    This option is a boolean option to enable or disable SELinux during the
+    undercloud installation.
