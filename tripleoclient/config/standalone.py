@@ -137,8 +137,8 @@ class StandaloneConfig(BaseConfig):
                            'json format.'
                            'Its content overrides anything in t-h-t '
                            'UndercloudNetConfigOverride. The processed '
-                           'template is then passed in Heat via the top '
-                           'scope undercloud_parameters.yaml file created in '
+                           'template is then passed in Heat via the '
+                           'undercloud_parameters.yaml file created in '
                            'output_dir and used to configure the networking '
                            'via run-os-net-config. If you wish to disable '
                            'you can set this location to an empty file.'
@@ -172,7 +172,10 @@ class StandaloneConfig(BaseConfig):
             cfg.ListOpt('custom_env_files',
                         default=[],
                         help=_('List of any custom environment yaml files to '
-                               'use')),
+                               'use. These are applied after any other '
+                               'configuration and can be used to override '
+                               'any derived values. This should be used '
+                               'only by advanced users.')),
             # docker config bits
             cfg.StrOpt('docker_registry_mirror',
                        default='',
