@@ -71,7 +71,7 @@ def wait_for_messages(mistral, websocket, execution, timeout=None):
             # Workflows should end with SUCCESS or ERROR statuses.
             if payload.get('status', 'RUNNING') != "RUNNING" or \
                     mistral.executions.get(execution.id).state != "RUNNING":
-                raise StopIteration
+                return
     except exceptions.WebSocketTimeout:
         check_execution_status(mistral, execution.id)
         raise
