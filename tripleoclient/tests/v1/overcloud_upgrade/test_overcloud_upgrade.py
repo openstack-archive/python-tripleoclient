@@ -36,7 +36,7 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
         self.mock_uuid4 = uuid4_patcher.start()
         self.addCleanup(self.mock_uuid4.stop)
 
-    @mock.patch('tripleoclient.workflows.deployment.overcloudrc',
+    @mock.patch('tripleoclient.workflows.deployment.create_overcloudrc',
                 autospec=True)
     @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
     @mock.patch('tripleoclient.utils.prepend_environment', autospec=True)

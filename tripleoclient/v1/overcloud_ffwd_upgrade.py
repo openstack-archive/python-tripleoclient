@@ -104,7 +104,7 @@ class FFWDUpgradePrepare(DeployOvercloud):
                               ceph_ansible_playbook=ceph_ansible_playbook)
         package_update.get_config(clients, container=stack_name)
 
-        overcloudrcs = deployment.overcloudrc(
+        overcloudrcs = deployment.create_overcloudrc(
             clients.workflow_engine,
             container=stack_name)
         oooutils.write_overcloudrc(stack_name, overcloudrcs)

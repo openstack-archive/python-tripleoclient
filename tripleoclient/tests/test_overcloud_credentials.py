@@ -11,7 +11,6 @@
 #   WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #   License for the specific language governing permissions and limitations
 #   under the License.
-import json
 import mock
 import shutil
 import tempfile
@@ -26,15 +25,22 @@ class TestOvercloudCredentials(test_plugin.TestPluginV1):
         super(TestOvercloudCredentials, self).setUp()
 
         self.cmd = overcloud_credentials.OvercloudCredentials(self.app, None)
-        self.workflow = self.app.client_manager.workflow_engine
-        self.workflow.action_executions.create.return_value = mock.MagicMock(
-            output=json.dumps({
-                "result": {
-                    "overcloudrc": "OVERCLOUDRC CONTENTS",
-                    "overcloudrc.v3": "OVERCLOUDRC.v3 CONTENTS",
-                }
-            })
-        )
+        self.app.client_manager.workflow_engine = self.workflow = mock.Mock()
+        self.tripleoclient = mock.Mock()
+        self.websocket = mock.Mock()
+        self.websocket.__enter__ = lambda s: self.websocket
+        self.websocket.__exit__ = lambda s, *exc: None
+        self.tripleoclient.messaging_websocket.return_value = self.websocket
+        self.app.client_manager.tripleoclient = self.tripleoclient
+
+        self.websocket.wait_for_messages.return_value = iter([{
+            "execution": {"id": "IDID"},
+            "status": "SUCCESS",
+            "message": {
+                "overcloudrc": "OVERCLOUDRC CONTENTS",
+                "overcloudrc.v3": "OVERCLOUDRC.v3 CONTENTS",
+            }
+        }])
 
     @mock.patch('os.chmod')
     def test_ok(self, mock_chmod):
@@ -43,6 +49,7 @@ class TestOvercloudCredentials(test_plugin.TestPluginV1):
             ('plan', 'overcloud'),
             ('directory', '.')
         ]
+
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         with mock.patch("tripleoclient.utils.open", create=True) as m:
@@ -54,9 +61,9 @@ class TestOvercloudCredentials(test_plugin.TestPluginV1):
             mock.call('./overcloudrc', 384),
             mock.call('./overcloudrc.v3', 384)])
 
-        self.workflow.action_executions.create.assert_called_once_with(
-            'tripleo.deployment.overcloudrc', {'container': 'overcloud'},
-            run_sync=True, save_result=True)
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.deployment.v1.create_overcloudrc',
+            workflow_input={'container': 'overcloud'})
 
     @mock.patch('os.chmod')
     def test_okay_custom_dir(self, mock_chmod):
@@ -83,6 +90,6 @@ class TestOvercloudCredentials(test_plugin.TestPluginV1):
             mock.call(path, 384),
             mock.call(pathv3, 384)])
 
-        self.workflow.action_executions.create.assert_called_once_with(
-            'tripleo.deployment.overcloudrc', {'container': 'overcloud'},
-            run_sync=True, save_result=True)
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.deployment.v1.create_overcloudrc',
+            workflow_input={'container': 'overcloud'})
