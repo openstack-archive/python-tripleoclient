@@ -466,10 +466,6 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
     if CONF.get('cleanup'):
         deploy_args.append('--cleanup')
 
-    if CONF.get('custom_env_files'):
-        for custom_file in CONF['custom_env_files']:
-            deploy_args += ['-e', custom_file]
-
     if CONF.get('net_config_override', None):
         data_file = CONF['net_config_override']
         if os.path.abspath(data_file) != data_file:
@@ -542,6 +538,10 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
         undercloud_preflight.check(verbose_level)
         deploy_args += ['-e', os.path.join(
             tht_templates, "environments/tripleo-validations.yaml")]
+
+    if CONF.get('custom_env_files'):
+        for custom_file in CONF['custom_env_files']:
+            deploy_args += ['-e', custom_file]
 
     if verbose_level > 1:
         deploy_args.append('--debug')
