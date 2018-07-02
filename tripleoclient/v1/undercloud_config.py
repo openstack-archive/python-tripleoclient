@@ -285,6 +285,11 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
     # Parse the undercloud.conf options to include necessary args and
     # yaml files for undercloud deploy command
 
+    if CONF.get('undercloud_enable_selinux'):
+        env_data['SELinuxMode'] = 'enforcing'
+    else:
+        env_data['SELinuxMode'] = 'permissive'
+
     if CONF.get('undercloud_ntp_servers', None):
         env_data['NtpServer'] = CONF['undercloud_ntp_servers'][0]
 
