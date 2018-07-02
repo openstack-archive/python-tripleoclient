@@ -240,7 +240,8 @@ def _generate_masquerade_networks():
 
 
 def prepare_undercloud_deploy(upgrade=False, no_validations=False,
-                              verbose_level=1, yes=False):
+                              verbose_level=1, yes=False,
+                              force_stack_update=False, dry_run=False):
     """Prepare Undercloud deploy command based on undercloud.conf"""
 
     env_data = {}
@@ -548,9 +549,27 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
 
     deploy_args.append('--log-file=%s' % CONF['undercloud_log_file'])
 
+    # Always add a drop-in for the ephemeral undercloud heat stack
+    # virtual state tracking (the actual file will be created later)
+    stack_vstate_dropin = os.path.join(
+        CONF.get('templates') or constants.TRIPLEO_HEAT_TEMPLATES,
+        'undercloud-stack-vstate-dropin.yaml')
+    deploy_args += ["-e", stack_vstate_dropin]
+    if force_stack_update:
+        deploy_args += ["--force-stack-update"]
+
     cmd = ["sudo", "openstack", "tripleo", "deploy", "--standalone",
            "--standalone-role", "Undercloud", "--stack", "undercloud"]
     cmd += deploy_args[:]
+
+    # In dry-run, also report the expected heat stack virtual state/action
+    if dry_run:
+        stack_update_mark = os.path.join(
+            constants.STANDALONE_EPHEMERAL_STACK_VSTATE,
+            'update_mark_undercloud')
+        if os.path.isfile(stack_update_mark) or force_stack_update:
+            LOG.warning(_('The heat stack undercloud virtual state/action '
+                          ' would be UPDATE'))
 
     return cmd
 

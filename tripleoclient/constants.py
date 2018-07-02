@@ -20,6 +20,7 @@ OVERCLOUD_YAML_NAME = "overcloud.yaml"
 OVERCLOUD_ROLES_FILE = "roles_data.yaml"
 UNDERCLOUD_ROLES_FILE = "roles_data_undercloud.yaml"
 UNDERCLOUD_OUTPUT_DIR = os.path.join(os.environ.get('HOME'))
+STANDALONE_EPHEMERAL_STACK_VSTATE = '/var/lib/tripleo-heat-installer'
 UNDERCLOUD_LOG_FILE = "install-undercloud.log"
 UNDERCLOUD_CONF_PATH = os.path.join(UNDERCLOUD_OUTPUT_DIR, "undercloud.conf")
 OVERCLOUD_NETWORKS_FILE = "network_data.yaml"

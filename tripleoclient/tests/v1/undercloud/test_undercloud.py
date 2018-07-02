@@ -62,12 +62,13 @@ class TestUndercloudInstall(TestPluginV1):
     @mock.patch('os.mkdir')
     @mock.patch('tripleoclient.utils.write_env_file', autospec=True)
     @mock.patch('subprocess.check_call', autospec=True)
-    def test_undercloud_install_with_heat_custom_output(self, mock_subprocess,
-                                                        mock_wr,
-                                                        mock_os, mock_copy):
+    def test_undercloud_install_with_heat_customized(self, mock_subprocess,
+                                                     mock_wr,
+                                                     mock_os, mock_copy):
         self.conf.config(output_dir='/foo')
+        self.conf.config(templates='/usertht')
         self.conf.config(roles_file='foo/roles.yaml')
-        arglist = ['--use-heat', '--no-validations']
+        arglist = ['--use-heat', '--no-validations', '--force-stack-update']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
@@ -84,42 +85,31 @@ class TestUndercloudInstall(TestPluginV1):
              '--standalone-role', 'Undercloud', '--stack', 'undercloud',
              '--local-domain=localdomain',
              '--local-ip=192.168.24.1/24',
-             '--templates=/usr/share/openstack-tripleo-heat-templates/',
+             '--templates=/usertht',
              '--roles-file=foo/roles.yaml',
              '--heat-native', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'docker.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'undercloud.yaml', '-e', '/home/stack/foo.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/ironic.yaml',
-             '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/ironic-inspector.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/mistral.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/zaqar.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/tripleo-ui.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/tempest.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'public-tls-undercloud.yaml',
+             '/usertht/environments/docker.yaml', '-e',
+             '/usertht/environments/undercloud.yaml', '-e',
+             '/home/stack/foo.yaml', '-e',
+             '/usertht/environments/services/ironic.yaml', '-e',
+             '/usertht/environments/services/ironic-inspector.yaml', '-e',
+             '/usertht/environments/services/mistral.yaml', '-e',
+             '/usertht/environments/services/zaqar.yaml', '-e',
+             '/usertht/environments/services/tripleo-ui.yaml', '-e',
+             '/usertht/environments/services/tempest.yaml', '-e',
+             '/usertht/environments/public-tls-undercloud.yaml',
              '--public-virtual-ip', '192.168.24.2',
              '--control-virtual-ip', '192.168.24.3', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'ssl/tls-endpoints-public-ip.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'use-dns-for-vips.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/undercloud-haproxy.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/undercloud-keepalived.yaml',  '--output-dir=/foo',
-             '--cleanup', '-e',
+             '/usertht/environments/ssl/tls-endpoints-public-ip.yaml', '-e',
+             '/usertht/environments/use-dns-for-vips.yaml', '-e',
+             '/usertht/environments/services/undercloud-haproxy.yaml', '-e',
+             '/usertht/environments/services/undercloud-keepalived.yaml',
+             '--output-dir=/foo', '--cleanup', '-e',
              '/foo/tripleo-config-generated-env-files/'
              'undercloud_parameters.yaml',
-             '--log-file=install-undercloud.log'])
+             '--log-file=install-undercloud.log', '-e',
+             '/usertht/undercloud-stack-vstate-dropin.yaml',
+             '--force-stack-update'])
 
     @mock.patch('shutil.copy')
     @mock.patch('os.mkdir')
@@ -280,7 +270,9 @@ class TestUndercloudInstall(TestPluginV1):
              '--cleanup', '-e',
              '/home/stack/tripleo-config-generated-env-files/'
              'undercloud_parameters.yaml',
-             '--log-file=install-undercloud.log'])
+             '--log-file=install-undercloud.log', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/'
+             'undercloud-stack-vstate-dropin.yaml'])
 
     @mock.patch('six.moves.builtins.open')
     @mock.patch('shutil.copy')
@@ -341,7 +333,9 @@ class TestUndercloudInstall(TestPluginV1):
              '--output-dir=/home/stack', '--cleanup',
              '-e', '/home/stack/tripleo-config-generated-env-files/'
              'undercloud_parameters.yaml',
-             '--debug', '--log-file=/foo/bar'])
+             '--debug', '--log-file=/foo/bar', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/'
+             'undercloud-stack-vstate-dropin.yaml'])
 
     @mock.patch('shutil.copy')
     @mock.patch('os.mkdir')
@@ -401,7 +395,9 @@ class TestUndercloudInstall(TestPluginV1):
              '--output-dir=/home/stack', '--cleanup',
              '-e', '/home/stack/tripleo-config-generated-env-files/'
              'undercloud_parameters.yaml',
-             '--log-file=install-undercloud.log'])
+             '--log-file=install-undercloud.log', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/'
+             'undercloud-stack-vstate-dropin.yaml'])
 
 
 class TestUndercloudUpgrade(TestPluginV1):
@@ -494,7 +490,9 @@ class TestUndercloudUpgrade(TestPluginV1):
              '--output-dir=/home/stack', '--cleanup',
              '-e', '/home/stack/tripleo-config-generated-env-files/'
              'undercloud_parameters.yaml',
-             '--log-file=install-undercloud.log'])
+             '--log-file=install-undercloud.log', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/'
+             'undercloud-stack-vstate-dropin.yaml'])
 
     @mock.patch('shutil.copy')
     @mock.patch('os.mkdir')
@@ -552,7 +550,9 @@ class TestUndercloudUpgrade(TestPluginV1):
              '--output-dir=/home/stack', '--cleanup',
              '-e', '/home/stack/tripleo-config-generated-env-files/'
              'undercloud_parameters.yaml',
-             '--log-file=install-undercloud.log'])
+             '--log-file=install-undercloud.log', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/'
+             'undercloud-stack-vstate-dropin.yaml'])
 
     @mock.patch('shutil.copy')
     @mock.patch('os.mkdir')
@@ -613,4 +613,6 @@ class TestUndercloudUpgrade(TestPluginV1):
              '--output-dir=/home/stack', '--cleanup',
              '-e', '/home/stack/tripleo-config-generated-env-files/'
              'undercloud_parameters.yaml',
-             '--debug', '--log-file=install-undercloud.log'])
+             '--debug', '--log-file=install-undercloud.log', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/'
+             'undercloud-stack-vstate-dropin.yaml'])

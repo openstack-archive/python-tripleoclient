@@ -83,6 +83,8 @@ class Deploy(command.Command):
     tmp_ansible_dir = None
     roles_file = None
     roles_data = None
+    stack_update_mark = None
+    stack_action = 'CREATE'
 
     def _set_roles_file(self, file_name=None, templates_dir=None):
         """Set the roles file for the deployment
@@ -159,6 +161,11 @@ class Deploy(command.Command):
             self.log.error(msg)
             raise exceptions.DeploymentError(msg)
         return tar_filename
+
+    def _create_persistent_dirs(self):
+        """Creates temporary working directories"""
+        if not os.path.exists(constants.STANDALONE_EPHEMERAL_STACK_VSTATE):
+            os.mkdir(constants.STANDALONE_EPHEMERAL_STACK_VSTATE)
 
     def _create_working_dirs(self):
         """Creates temporary working directories"""
@@ -563,6 +570,17 @@ class Deploy(command.Command):
                 parsed_args.hieradata_override,
                 parsed_args.standalone_role))
 
+        # Create a persistent drop-in file to indicate the stack
+        # virtual state changes
+        stack_vstate_dropin = os.path.join(self.tht_render,
+                                           '%s-stack-vstate-dropin.yaml' %
+                                           parsed_args.stack)
+        with open(stack_vstate_dropin, 'w') as dropin_file:
+            yaml.safe_dump(
+                {'parameter_defaults': {'StackAction': self.stack_action}},
+                dropin_file, default_flow_style=False)
+        environments.append(stack_vstate_dropin)
+
         return environments + user_environments
 
     def _prepare_container_images(self, env):
@@ -686,8 +704,19 @@ class Deploy(command.Command):
         parser.add_argument('-y', '--yes', default=False, action='store_true',
                             help=_("Skip yes/no prompt (assume yes)."))
         parser.add_argument('--stack',
-                            help=_("Stack name to create"),
+                            help=_("Name for the ephemeral (one-time create "
+                                   "and forget) heat stack."),
                             default='standalone')
+        parser.add_argument('--force-stack-update',
+                            dest='force_stack_update',
+                            action='store_true',
+                            default=False,
+                            help=_("Do a virtual update of the ephemeral "
+                                   "heat stack (it cannot take real updates). "
+                                   "New or failed deployments "
+                                   "always have the stack_action=CREATE. This "
+                                   "option enforces stack_action=UPDATE."),
+                            )
         parser.add_argument('--output-dir',
                             dest='output_dir',
                             help=_("Directory to output state, processed heat "
@@ -865,6 +894,9 @@ class Deploy(command.Command):
         # prepare working spaces
         self.output_dir = os.path.abspath(parsed_args.output_dir)
         self._create_working_dirs()
+        # The state that needs to be persisted between serial deployments
+        # and cannot be contained in ephemeral heat stacks or working dirs
+        self._create_persistent_dirs()
 
         # configure puppet
         self._configure_puppet()
@@ -878,6 +910,23 @@ class Deploy(command.Command):
 
         rc = 1
         try:
+            # NOTE(bogdando): Look for the unique virtual update mark matching
+            # the heat stack name we are going to create below. If found the
+            # mark, consider the stack action is UPDATE instead of CREATE.
+            mark_uuid = '_'.join(['update_mark', parsed_args.stack])
+            self.stack_update_mark = os.path.join(
+                constants.STANDALONE_EPHEMERAL_STACK_VSTATE,
+                mark_uuid)
+
+            # Prepare the heat stack action we want to start deployment with
+            if (os.path.isfile(self.stack_update_mark) or
+               parsed_args.force_stack_update):
+                self.stack_action = 'UPDATE'
+
+            self.log.warning(
+                _('The heat stack {0} action is {1}').format(
+                    parsed_args.stack, self.stack_action))
+
             # Launch heat.
             orchestration_client = self._launch_heat(parsed_args)
             # Wait for heat to be ready.
@@ -886,6 +935,7 @@ class Deploy(command.Command):
             stack_id = \
                 self._deploy_tripleo_heat_templates(orchestration_client,
                                                     parsed_args)
+
             # Wait for complete..
             status, msg = event_utils.poll_for_events(
                 orchestration_client, stack_id, nested_depth=6)
@@ -920,15 +970,52 @@ class Deploy(command.Command):
                                  tar_filename)
             if not parsed_args.output_only and rc != 0:
                 # We only get here on error.
+                # Alter the stack virtual state for failed deployments
+                if (self.stack_update_mark and
+                   not parsed_args.force_stack_update and
+                   os.path.isfile(self.stack_update_mark)):
+                    self.log.warning(
+                        _('The heat stack %s virtual state/action is '
+                          'is reset to CREATE. Use "--force-stack-update" to '
+                          ' set it forcefully to UPDATE') % parsed_args.stack)
+                    self.log.warning(
+                        _('Removing the stack virtual update mark file %s') %
+                        self.stack_update_mark)
+                    os.remove(self.stack_update_mark)
+
                 self.log.error(DEPLOY_FAILURE_MESSAGE.format(
                     self.heat_launch.install_tmp
                     ))
                 raise exceptions.DeploymentError('Deployment failed.')
             else:
+                # We only get here if no errors
                 self.log.warning(DEPLOY_COMPLETION_MESSAGE.format(
                     '~/undercloud-passwords.conf',
                     '~/stackrc'
                     ))
+
+                if (self.stack_update_mark and
+                   (not parsed_args.output_only or
+                       parsed_args.force_stack_update)):
+                    # Persist the unique mark file for this stack
+                    # Do not update its atime file system attribute to keep its
+                    # genuine timestamp for the 1st time the stack state had
+                    # been (virtually) changed to match stack_action UPDATE
+                    self.log.warning(
+                        _('Writing the stack virtual update mark file %s') %
+                        self.stack_update_mark)
+                    open(self.stack_update_mark, 'wa').close()
+                elif parsed_args.output_only:
+                    self.log.warning(
+                        _('Not creating the stack %s virtual update mark file '
+                          'in the --output-only mode! Re-run with '
+                          '--force-stack-update, if you want to enforce it.') %
+                        parsed_args.stack)
+                else:
+                    self.log.warning(
+                        _('Not creating the stack %s virtual update mark '
+                          'file') % parsed_args.stack)
+
             return rc
 
     def take_action(self, parsed_args):
