@@ -98,19 +98,37 @@ class UpdateRun(command.Command):
 
     def get_parser(self, prog_name):
         parser = super(UpdateRun, self).get_parser(prog_name)
-        parser.add_argument('--nodes',
-                            action="store",
-                            required=True,
-                            help=_("Required parameter. This specifies the "
-                                   "overcloud nodes to run the minor update "
-                                   "playbooks on. You can use the name of "
-                                   "a specific node, or the name of the role "
-                                   "(e.g. Compute). You may also use the "
-                                   "special value 'all' to run the minor "
-                                   "on all nodes. In all cases the minor "
-                                   "update ansible playbook is executed on "
-                                   "one node at a time (with serial 1)")
-                            )
+        nodes_or_roles = parser.add_mutually_exclusive_group(required=True)
+        nodes_or_roles.add_argument(
+            '--nodes', action="store", help=_(
+                "A string that identifies a single node "
+                "or comma-separated list of nodes to be "
+                "updated in parallel in this minor update "
+                "run invocation. For example: --nodes "
+                "\"compute-0, compute-1, compute-5\". "
+                "NOTE: Using this parameter with nodes of "
+                "controlplane roles (e.g. \"--nodes "
+                "controller-1\") is NOT supported and WILL "
+                "end badly unless you include ALL nodes of "
+                "that role as a comma separated string. You "
+                "should instead use the --roles parameter "
+                "for controlplane roles and specify the "
+                "role name.")
+        )
+        nodes_or_roles.add_argument(
+            '--roles', action="store", help=_(
+                "A string that identifies the role or "
+                "comma-separated list of roles to be "
+                "updated in this minor update run "
+                "invocation. "
+                "NOTE: Nodes of specified role(s) are "
+                "updated in parallel. This is REQUIRED for "
+                "controlplane roles (e.g., \"Compute\"), "
+                "you may consider instead using the --nodes "
+                "argument to limit the upgrade to a "
+                "specific node or list (comma separated "
+                "string) of nodes.")
+        )
         parser.add_argument('--playbook',
                             action="store",
                             default="all",
@@ -158,15 +176,15 @@ class UpdateRun(command.Command):
         stack = parsed_args.stack
 
         # Run ansible:
+        roles = parsed_args.roles
         nodes = parsed_args.nodes
-        if nodes == 'all':
-            # unset this, the ansible action deals with unset 'limithosts'
-            nodes = None
+        limit_hosts = roles or nodes
         playbook = parsed_args.playbook
         inventory = oooutils.get_tripleo_ansible_inventory(
             parsed_args.static_inventory, parsed_args.ssh_user, stack)
-        oooutils.run_update_ansible_action(self.log, clients, nodes, inventory,
-                                           playbook, constants.UPDATE_QUEUE,
+        oooutils.run_update_ansible_action(self.log, clients, limit_hosts,
+                                           inventory, playbook,
+                                           constants.UPDATE_QUEUE,
                                            constants.MINOR_UPDATE_PLAYBOOKS,
                                            package_update,
                                            parsed_args.ssh_user)
