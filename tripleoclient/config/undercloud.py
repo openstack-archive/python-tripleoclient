@@ -123,26 +123,12 @@ class UndercloudConfig(StandaloneConfig):
                             'separated list of names/tags. For each network '
                             'a section/group needs to be added to the '
                             'configuration file with these parameters set: '
-                            'cidr, dhcp_start, dhcp_end, '
-                            'inspection_iprange, gateway and '
-                            'masquerade_network.'
-                            '\n\n'
-                            'Example:\n\n'
-                            'subnets = subnet1,subnet2\n'
-                            '\n'
-                            'An example section/group in config file:\n'
-                            '\n'
-                            '[subnet1]\n'
-                            'cidr = 192.168.10.0/24\n'
-                            'dhcp_start = 192.168.10.100\n'
-                            'dhcp_end = 192.168.10.200\n'
-                            'inspection_iprange = 192.168.10.20,'
-                            '192.168.10.90\n'
-                            'gateway = 192.168.10.254\n'
-                            'masquerade = True'
-                            '\n'
-                            '[subnet2]\n'
-                            '. . .\n')),
+                            'cidr, dhcp_start, dhcp_end, inspection_iprange, '
+                            'gateway and masquerade_network. Note: The '
+                            'section/group must be placed before or after '
+                            'any other section. (See the example section '
+                            '[ctlplane-subnet] in the sample configuration '
+                            'file.)')),
             cfg.StrOpt('local_subnet',
                        default=SUBNETS_DEFAULT[0],
                        help=_(
