@@ -43,7 +43,8 @@ from tripleoclient import utils
 from tripleo_common.image import kolla_builder
 from tripleo_common.utils import passwords as password_utils
 
-# For ansible download
+# For ansible download and config generation
+from tripleo_common.actions import ansible
 from tripleo_common.inventory import TripleoInventory
 from tripleo_common.utils import config
 
@@ -1012,6 +1013,26 @@ class Deploy(command.Command):
                 self._download_ansible_playbooks(orchestration_client,
                                                  parsed_args.stack,
                                                  parsed_args.standalone_role)
+
+            # Do not override user's custom ansible configuraition file,
+            # it may have been pre-created with the tripleo CLI, or the like
+            ansible_config = os.path.join(self.output_dir, 'ansible.cfg')
+            if not os.path.isfile(ansible_config):
+                self.log.warning(
+                    _('Generating default ansible config file %s') %
+                    ansible_config)
+                # FIXME(bogdando): unhardcode key/transport for future
+                # multi-node
+                ansible.write_default_ansible_cfg(
+                    ansible_dir,
+                    parsed_args.deployment_user,
+                    ssh_private_key=None,
+                    transport='local')
+            else:
+                self.log.warning(
+                    _('Using the existing %s for deployment') % ansible_config)
+                shutil.copy(ansible_config, ansible_dir)
+
             # Kill heat, we're done with it now.
             if not parsed_args.keep_running:
                 self._kill_heat(parsed_args)

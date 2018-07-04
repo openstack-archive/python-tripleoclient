@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    ``tripleo config generate ansible`` generates the default ``ansible.cfg``
+    in the given ``--output-dir`` (defaults to `$HOME`). The remote user
+    setting for ansible will be set to the ``--deployment-user`` value
+    (defaults to 'stack').
+
+    .. note:: Do not confuse the generated config with ``~/.ansible.cfg``.
+       The latter takes the lower precedence.
+
+    You may want to customize the generated config so it will be used
+    with all undercloud and standalone deployments.
+
+    .. note:: Overcloud deployments use Mistral workflows to configure ansible
+       for its own use, but the basic configuration it takes looks very
+       similar.

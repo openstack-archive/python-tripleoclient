@@ -603,6 +603,8 @@ class TestDeployUndercloud(TestPluginV1):
             env
         )
 
+    @mock.patch('tripleo_common.actions.ansible.'
+                'write_default_ansible_cfg')
     # TODO(cjeanner) drop once we have proper oslo.privsep
     @mock.patch('os.chmod')
     # TODO(cjeanner) drop once we have proper oslo.privsep
@@ -647,7 +649,7 @@ class TestDeployUndercloud(TestPluginV1):
                                     mock_cleanupdirs, mock_launchansible,
                                     mock_tarball, mock_templates_dir,
                                     mock_open, mock_os, mock_user, mock_cc,
-                                    mock_chmod):
+                                    mock_chmod, mock_ac):
 
         parsed_args = self.check_parser(self.cmd,
                                         ['--local-ip', '127.0.0.1',
