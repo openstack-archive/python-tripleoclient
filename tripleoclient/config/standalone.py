@@ -132,9 +132,8 @@ class StandaloneConfig(BaseConfig):
                        default='',
                        help=_(
                            'Path to network config override template.'
-                           'Relative paths get computed inside of the '
-                           'given heat templates directory. Must be in '
-                           'json format.'
+                           'Relative paths get computed inside of of $HOME. '
+                           'Must be in the json format.'
                            'Its content overrides anything in t-h-t '
                            'UndercloudNetConfigOverride. The processed '
                            'template is then passed in Heat via the '
