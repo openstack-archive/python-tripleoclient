@@ -15,7 +15,6 @@
 
 """Plugin action implementation"""
 
-import jinja2
 import json
 import logging
 import netaddr
@@ -27,6 +26,10 @@ from cryptography import x509
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
+
+from jinja2 import Environment
+from jinja2 import FileSystemLoader
+from jinja2 import meta
 
 from osc_lib.i18n import _
 from oslo_config import cfg
@@ -109,13 +112,13 @@ LOG = logging.getLogger(__name__ + ".undercloud_config")
 
 def _get_jinja_env_source(f):
     path, filename = os.path.split(f)
-    env = jinja2.Environment(loader=jinja2.FileSystemLoader(path))
+    env = Environment(loader=FileSystemLoader(path))
     src = env.loader.get_source(env, filename)[0]
     return (env, src)
 
 
 def _get_unknown_instack_tags(env, src):
-    found_tags = set(jinja2.meta.find_undeclared_variables(env.parse(src)))
+    found_tags = set(meta.find_undeclared_variables(env.parse(src)))
     known_tags = set(INSTACK_NETCONF_MAPPING.keys())
     if found_tags <= known_tags:
         return (', ').join(found_tags - known_tags)
@@ -475,7 +478,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
     if CONF.get('net_config_override', None):
         data_file = CONF['net_config_override']
         if os.path.abspath(data_file) != data_file:
-            data_file = os.path.join(tht_templates, data_file)
+            data_file = os.path.join(USER_HOME, data_file)
 
         if not os.path.exists(data_file):
             msg = _("Could not find net_config_override file '%s'") % data_file
@@ -504,8 +507,10 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
         for tag in INSTACK_NETCONF_MAPPING.keys():
             mapped_value = INSTACK_NETCONF_MAPPING[tag]
             if mapped_value in env_data.keys() or mapped_value in CONF.keys():
-                context[tag] = env_data.get(
-                    mapped_value, None) or CONF[mapped_value]
+                try:
+                    context[tag] = CONF[mapped_value]
+                except cfg.NoSuchOptError:
+                    context[tag] = env_data.get(mapped_value, None)
 
         # this returns a unicode string, convert it in into json
         net_config_str = net_config_env.get_template(
