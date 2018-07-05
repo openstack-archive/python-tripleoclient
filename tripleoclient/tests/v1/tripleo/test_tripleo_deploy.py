@@ -127,39 +127,40 @@ class TestDeployUndercloud(TestPluginV1):
         self.assertRaises(exceptions.NotFound,
                           self.cmd._populate_templates_dir, '/foo')
 
+    # TODO(cjeanner) drop once we have proper oslo.privsep
+    @mock.patch('getpass.getuser', return_value='stack')
     @mock.patch('os.chmod')
     @mock.patch('os.path.exists')
+    # TODO(cjeanner) drop once we have proper oslo.privsep
+    @mock.patch('subprocess.check_call', autospec=True)
     @mock.patch('tripleo_common.utils.passwords.generate_passwords')
     @mock.patch('yaml.safe_dump')
-    def test_update_passwords_env_init(self, mock_dump, mock_pw,
-                                       mock_exists, mock_chmod):
+    def test_update_passwords_env_init(self, mock_dump, mock_pw, mock_cc,
+                                       mock_exists, mock_chmod, mock_user):
         pw_dict = {"GeneratedPassword": 123}
-        pw_conf_path = os.path.join(self.temp_homedir,
-                                    'undercloud-passwords.conf')
-        t_pw_conf_path = os.path.join(
-            self.temp_homedir, 'tripleo-undercloud-passwords.yaml')
 
         mock_pw.return_value = pw_dict
         mock_exists.return_value = False
 
         mock_open_context = mock.mock_open()
         with mock.patch('six.moves.builtins.open', mock_open_context):
-            self.cmd._update_passwords_env(self.temp_homedir)
+            self.cmd._update_passwords_env(self.temp_homedir, 'stack')
 
         mock_open_handle = mock_open_context()
         mock_dump.assert_called_once_with({'parameter_defaults': pw_dict},
                                           mock_open_handle,
                                           default_flow_style=False)
-        chmod_calls = [mock.call(t_pw_conf_path, 0o600),
-                       mock.call(pw_conf_path, 0o600)]
-        mock_chmod.assert_has_calls(chmod_calls)
 
+    # TODO(cjeanner) drop once we have proper oslo.privsep
+    @mock.patch('getpass.getuser', return_value='stack')
     @mock.patch('os.chmod')
     @mock.patch('os.path.exists')
+    # TODO(cjeanner) drop once we have proper oslo.privsep
+    @mock.patch('subprocess.check_call', autospec=True)
     @mock.patch('tripleo_common.utils.passwords.generate_passwords')
     @mock.patch('yaml.safe_dump')
-    def test_update_passwords_env_update(self, mock_dump, mock_pw,
-                                         mock_exists, mock_chmod):
+    def test_update_passwords_env_update(self, mock_dump, mock_pw, mock_cc,
+                                         mock_exists, mock_chmod, mock_user):
         pw_dict = {"GeneratedPassword": 123}
         pw_conf_path = os.path.join(self.temp_homedir,
                                     'undercloud-passwords.conf')
@@ -175,6 +176,7 @@ class TestDeployUndercloud(TestPluginV1):
             t_pw.write('[auth]\nundercloud_db_password = abc\n')
 
         self.cmd._update_passwords_env(self.temp_homedir,
+                                       'stack',
                                        passwords={'ADefault': 456,
                                                   'ExistingKey':
                                                   'dontupdate'})
@@ -185,9 +187,6 @@ class TestDeployUndercloud(TestPluginV1):
         mock_dump.assert_called_once_with(expected_dict,
                                           mock.ANY,
                                           default_flow_style=False)
-        chmod_calls = [mock.call(t_pw_conf_path, 0o600),
-                       mock.call(pw_conf_path, 0o600)]
-        mock_chmod.assert_has_calls(chmod_calls)
 
     @mock.patch('heatclient.common.template_utils.'
                 'process_environment_and_files', return_value=({}, {}),
@@ -604,6 +603,12 @@ class TestDeployUndercloud(TestPluginV1):
             env
         )
 
+    # TODO(cjeanner) drop once we have proper oslo.privsep
+    @mock.patch('os.chmod')
+    # TODO(cjeanner) drop once we have proper oslo.privsep
+    @mock.patch('subprocess.check_call', autospec=True)
+    # TODO(cjeanner) drop once we have proper oslo.privsep
+    @mock.patch('getpass.getuser', return_value='stack')
     @mock.patch('os.mkdir')
     @mock.patch('six.moves.builtins.open')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
@@ -641,7 +646,8 @@ class TestDeployUndercloud(TestPluginV1):
                                     mock_wait_for_port, mock_createdirs,
                                     mock_cleanupdirs, mock_launchansible,
                                     mock_tarball, mock_templates_dir,
-                                    mock_open, mock_os):
+                                    mock_open, mock_os, mock_user, mock_cc,
+                                    mock_chmod):
 
         parsed_args = self.check_parser(self.cmd,
                                         ['--local-ip', '127.0.0.1',
@@ -649,6 +655,9 @@ class TestDeployUndercloud(TestPluginV1):
                                          '--stack', 'undercloud',
                                          '--output-dir', '/my',
                                          '--standalone-role', 'Undercloud',
+                                         # TODO(cjeanner) drop once we have
+                                         # proper oslo.privsep
+                                         '--deployment-user', 'stack',
                                          '-e', '/tmp/thtroot/puppet/foo.yaml',
                                          '-e', '/tmp/thtroot//docker/bar.yaml',
                                          '-e', '/tmp/thtroot42/notouch.yaml',

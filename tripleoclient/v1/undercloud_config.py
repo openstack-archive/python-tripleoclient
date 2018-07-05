@@ -467,6 +467,8 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
 
     u = CONF.get('deployment_user') or utils.get_deployment_user()
     env_data['DeploymentUser'] = u
+    # TODO(cjeanner) drop that once using oslo.privsep
+    deploy_args += ['--deployment-user', u]
 
     deploy_args += ['--output-dir=%s' % CONF['output_dir']]
     if not os.path.isdir(CONF['output_dir']):

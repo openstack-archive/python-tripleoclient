@@ -22,6 +22,7 @@ import pwd
 import re
 import shutil
 import six
+import subprocess
 import sys
 import tarfile
 import tempfile
@@ -85,6 +86,38 @@ class Deploy(command.Command):
     roles_data = None
     stack_update_mark = None
     stack_action = 'CREATE'
+    deployment_user = None
+
+    # NOTE(cjeanner) Quick'n'dirty way before we have proper
+    # escalation support through oslo.privsep
+    def _set_data_rights(self, file_name, user=None,
+                         mode=0o600):
+
+        u = user or self.deployment_user
+        u_flag = None
+        f_flag = None
+        if u:
+            if os.path.exists(file_name):
+                try:
+                    pwd.getpwnam(u)
+                    cmd = 'sudo chown -R %s %s' % (u, file_name)
+                    subprocess.check_call(cmd.split())
+                except KeyError:
+                    u_flag = 'Unknown'
+            else:
+                f_flag = "Absent"
+        else:
+            u_flag = 'Undefined'
+
+        if u_flag:
+            self.log.warning(_('%(u_f)s user "%(u)s". You might need to '
+                             'manually set ownership after the deploy')
+                             % {'u_f': u_flag, 'u': user})
+        if f_flag:
+            self.log.warning(_('%(f)s file is %(f_f)s.')
+                             % {'f': file_name, 'f_f': f_flag})
+        else:
+            os.chmod(file_name, mode)
 
     def _set_roles_file(self, file_name=None, templates_dir=None):
         """Set the roles file for the deployment
@@ -136,7 +169,7 @@ class Deploy(command.Command):
                (self.output_dir,
                 datetime.utcnow().strftime('%Y%m%d%H%M%S'))
 
-    def _create_install_artifact(self):
+    def _create_install_artifact(self, user):
         """Create a tarball of the temporary folders used"""
         self.log.debug(_("Preserving deployment artifacts"))
 
@@ -160,6 +193,8 @@ class Deploy(command.Command):
             msg = _("Unable to create artifact tarball, %s") % ex.message
             self.log.error(msg)
             raise exceptions.DeploymentError(msg)
+        # TODO(cjeanner) drop that once using oslo.privsep
+        self._set_data_rights(tar_filename, user=user)
         return tar_filename
 
     def _create_persistent_dirs(self):
@@ -200,7 +235,7 @@ class Deploy(command.Command):
             shutil.copytree(source_templates_dir, self.tht_render,
                             symlinks=True)
 
-    def _cleanup_working_dirs(self, cleanup=False):
+    def _cleanup_working_dirs(self, cleanup=False, user=None):
         """Cleanup temporary working directories
 
         :param cleanup: Set to true if you DO want to cleanup the dirs
@@ -216,8 +251,12 @@ class Deploy(command.Command):
         else:
             self.log.warning(_("Not cleaning working directory %s")
                              % self.tht_render)
+            # TODO(cjeanner) drop that once using oslo.privsep
+            self._set_data_rights(self.tht_render, user=user, mode=0o700)
             self.log.warning(_("Not cleaning ansible directory %s")
                              % self.tmp_ansible_dir)
+            # TODO(cjeanner) drop that once using oslo.privsep
+            self._set_data_rights(self.tmp_ansible_dir, user=user, mode=0o700)
 
     def _configure_puppet(self):
         self.log.info(_('Configuring puppet modules symlinks ...'))
@@ -225,7 +264,7 @@ class Deploy(command.Command):
                            constants.PUPPET_MODULES,
                            constants.PUPPET_BASE)
 
-    def _update_passwords_env(self, output_dir, passwords=None):
+    def _update_passwords_env(self, output_dir, user, passwords=None):
         pw_file = os.path.join(output_dir, 'tripleo-undercloud-passwords.yaml')
         undercloud_pw_file = os.path.join(output_dir,
                                           'undercloud-passwords.conf')
@@ -288,9 +327,9 @@ class Deploy(command.Command):
         # This contains sensitive data so ensure it's not world-readable
         with open(pw_file, 'w') as pf:
             yaml.safe_dump(stack_env, pf, default_flow_style=False)
-        # Using chmod here instead of permissions on the open above so we don't
-        # have to fight with umask.
-        os.chmod(pw_file, 0o600)
+        # TODO(cjeanner) drop that once using oslo.privsep
+        # Do not forget to re-add os.chmod 0o600 on that one!
+        self._set_data_rights(pw_file, user=user)
         # Write out an instack undercloud compatible version.
         # This contains sensitive data so ensure it's not world-readable
         with open(undercloud_pw_file, 'w') as pf:
@@ -303,7 +342,10 @@ class Deploy(command.Command):
                     pw_key = re.sub('([a-z0-9])([A-Z])',
                                     r'\1_\2', s1).lower()
                     pf.write('undercloud_%s: %s\n' % (pw_key, v))
-        os.chmod(undercloud_pw_file, 0o600)
+
+        # TODO(cjeanner) drop that once using oslo.privsep
+        # Do not forget to re-add os.chmod 0o600 on that one!
+        self._set_data_rights(undercloud_pw_file, user=user)
 
         return pw_file
 
@@ -519,7 +561,8 @@ class Deploy(command.Command):
                         for e in plan_env_data.get('environments', {})]
 
         # this will allow the user to overwrite passwords with custom envs
-        pw_file = self._update_passwords_env(self.output_dir)
+        pw_file = self._update_passwords_env(self.output_dir,
+                                             parsed_args.deployment_user)
         environments.append(pw_file)
 
         # use deployed-server because we run os-collect-config locally
@@ -769,6 +812,14 @@ class Deploy(command.Command):
             help=_('User to execute the non-priveleged heat-all process. '
                    'Defaults to heat.')
         )
+        # TODO(cjeanner) drop that once using oslo.privsep
+        parser.add_argument(
+            '--deployment-user',
+            dest='deployment_user',
+            default='stack',
+            help=_('User who executes the tripleo deploy command. '
+                   'Defaults to stack.')
+        )
         parser.add_argument(
             '--heat-container-image', metavar='<HEAT_CONTAINER_IMAGE>',
             dest='heat_container_image',
@@ -977,8 +1028,12 @@ class Deploy(command.Command):
         finally:
             if not parsed_args.keep_running:
                 self._kill_heat(parsed_args)
-            tar_filename = self._create_install_artifact()
-            self._cleanup_working_dirs(cleanup=parsed_args.cleanup)
+            tar_filename = \
+                self._create_install_artifact(parsed_args.deployment_user)
+            self._cleanup_working_dirs(
+                cleanup=parsed_args.cleanup,
+                user=parsed_args.deployment_user
+                )
             if tar_filename:
                 self.log.warning('Install artifact is located at %s' %
                                  tar_filename)

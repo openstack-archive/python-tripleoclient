@@ -69,13 +69,15 @@ class TestUndercloudInstall(TestPluginV1):
 
         mock_subprocess.assert_called_with(['instack-install-undercloud'])
 
+    # TODO(cjeanner) drop once we have proper oslo.privsep
+    @mock.patch('getpass.getuser', return_value='stack')
     @mock.patch('shutil.copy')
     @mock.patch('os.mkdir')
     @mock.patch('tripleoclient.utils.write_env_file', autospec=True)
     @mock.patch('subprocess.check_call', autospec=True)
     def test_undercloud_install_with_heat_customized(self, mock_subprocess,
-                                                     mock_wr,
-                                                     mock_os, mock_copy):
+                                                     mock_wr, mock_os,
+                                                     mock_copy, mock_user):
         self.conf.config(output_dir='/foo')
         self.conf.config(templates='/usertht')
         self.conf.config(roles_file='foo/roles.yaml')
@@ -115,6 +117,8 @@ class TestUndercloudInstall(TestPluginV1):
              '/usertht/environments/use-dns-for-vips.yaml', '-e',
              '/usertht/environments/services/undercloud-haproxy.yaml', '-e',
              '/usertht/environments/services/undercloud-keepalived.yaml',
+             # TODO(cjeanner) drop once we have proper oslo.privsep
+             '--deployment-user', 'stack',
              '--output-dir=/foo', '--cleanup', '-e',
              '/foo/tripleo-config-generated-env-files/'
              'undercloud_parameters.yaml',
@@ -122,6 +126,8 @@ class TestUndercloudInstall(TestPluginV1):
              '/usertht/undercloud-stack-vstate-dropin.yaml',
              '--force-stack-update'])
 
+    # TODO(cjeanner) drop once we have proper oslo.privsep
+    @mock.patch('getpass.getuser', return_value='stack')
     @mock.patch('shutil.copy')
     @mock.patch('os.mkdir')
     @mock.patch('tripleoclient.utils.write_env_file', autospec=True)
@@ -143,7 +149,7 @@ class TestUndercloudInstall(TestPluginV1):
                                                         mock_sroutes,
                                                         mock_masq,
                                                         mock_wr, mock_os,
-                                                        mock_copy):
+                                                        mock_copy, mock_user):
         self.conf.config(net_config_override='/foo/net-config.json')
         self.conf.config(local_interface='ethX')
         self.conf.config(undercloud_public_host='4.3.2.1')
@@ -277,7 +283,10 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-haproxy.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/undercloud-keepalived.yaml', '--output-dir=/home/stack',
+             'services/undercloud-keepalived.yaml',
+             # TODO(cjeanner) drop once we have proper oslo.privsep
+             '--deployment-user', 'stack',
+             '--output-dir=/home/stack',
              '--cleanup', '-e',
              '/home/stack/tripleo-config-generated-env-files/'
              'undercloud_parameters.yaml',
@@ -285,6 +294,8 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/'
              'undercloud-stack-vstate-dropin.yaml'])
 
+    # TODO(cjeanner) drop once we have proper oslo.privsep
+    @mock.patch('getpass.getuser', return_value='stack')
     @mock.patch('six.moves.builtins.open')
     @mock.patch('shutil.copy')
     @mock.patch('os.mkdir')
@@ -293,7 +304,7 @@ class TestUndercloudInstall(TestPluginV1):
     def test_undercloud_install_with_heat_and_debug(self, mock_subprocess,
                                                     mock_wr,
                                                     mock_os, mock_copy,
-                                                    mock_open):
+                                                    mock_open, mock_user):
         self.conf.config(undercloud_log_file='/foo/bar')
         arglist = ['--use-heat', '--no-validations']
         verifylist = []
@@ -341,6 +352,8 @@ class TestUndercloudInstall(TestPluginV1):
              'services/undercloud-haproxy.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-keepalived.yaml',
+             # TODO(cjeanner) drop once we have proper oslo.privsep
+             '--deployment-user', 'stack',
              '--output-dir=/home/stack', '--cleanup',
              '-e', '/home/stack/tripleo-config-generated-env-files/'
              'undercloud_parameters.yaml',
@@ -348,6 +361,8 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/'
              'undercloud-stack-vstate-dropin.yaml'])
 
+    # TODO(cjeanner) drop once we have proper oslo.privsep
+    @mock.patch('getpass.getuser', return_value='stack')
     @mock.patch('six.moves.builtins.open')
     @mock.patch('shutil.copy')
     @mock.patch('os.mkdir')
@@ -356,7 +371,7 @@ class TestUndercloudInstall(TestPluginV1):
     def test_undercloud_install_with_heat_true(self, mock_subprocess,
                                                mock_wr,
                                                mock_os, mock_copy,
-                                               mock_open):
+                                               mock_open, mock_user):
         self.conf.config(undercloud_log_file='/foo/bar')
         arglist = ['--use-heat=True', '--no-validations']
         verifylist = []
@@ -401,19 +416,23 @@ class TestUndercloudInstall(TestPluginV1):
              'services/undercloud-haproxy.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-keepalived.yaml',
+             # TODO(cjeanner) drop once we have proper oslo.privsep
+             '--deployment-user', 'stack',
              '--output-dir=/home/stack', '--cleanup',
              '-e', '/home/stack/tripleo-config-generated-env-files/'
              'undercloud_parameters.yaml', '--log-file=/foo/bar', '-e',
              '/usr/share/openstack-tripleo-heat-templates/'
              'undercloud-stack-vstate-dropin.yaml'])
 
+    # TODO(cjeanner) drop once we have proper oslo.privsep
+    @mock.patch('getpass.getuser', return_value='stack')
     @mock.patch('shutil.copy')
     @mock.patch('os.mkdir')
     @mock.patch('tripleoclient.utils.write_env_file', autospec=True)
     @mock.patch('subprocess.check_call', autospec=True)
     def test_undercloud_install_with_swift_encryption(self, mock_subprocess,
-                                                      mock_wr,
-                                                      mock_os, mock_copy):
+                                                      mock_wr, mock_os,
+                                                      mock_copy, mock_user):
         arglist = ['--use-heat', '--no-validations']
         verifylist = []
         self.conf.set_default('enable_swift_encryption', True)
@@ -462,6 +481,7 @@ class TestUndercloudInstall(TestPluginV1):
              'services/undercloud-haproxy.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-keepalived.yaml',
+             '--deployment-user', 'stack',
              '--output-dir=/home/stack', '--cleanup',
              '-e', '/home/stack/tripleo-config-generated-env-files/'
              'undercloud_parameters.yaml',
@@ -528,13 +548,15 @@ class TestUndercloudUpgrade(TestPluginV1):
             ]
         )
 
+    # TODO(cjeanner) drop once we have proper oslo.privsep
+    @mock.patch('getpass.getuser', return_value='stack')
     @mock.patch('shutil.copy')
     @mock.patch('os.mkdir')
     @mock.patch('tripleoclient.utils.write_env_file', autospec=True)
     @mock.patch('subprocess.check_call', autospec=True)
     def test_undercloud_upgrade_with_heat_enabled(self, mock_subprocess,
-                                                  mock_wr,
-                                                  mock_os, mock_copy):
+                                                  mock_wr, mock_os,
+                                                  mock_copy, mock_user):
         arglist = ['--use-heat', '--no-validations']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
@@ -581,6 +603,7 @@ class TestUndercloudUpgrade(TestPluginV1):
              'services/undercloud-haproxy.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-keepalived.yaml',
+             '--deployment-user', 'stack',
              '--output-dir=/home/stack', '--cleanup',
              '-e', '/home/stack/tripleo-config-generated-env-files/'
              'undercloud_parameters.yaml',
@@ -588,13 +611,15 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/'
              'undercloud-stack-vstate-dropin.yaml'])
 
+    # TODO(cjeanner) drop once we have proper oslo.privsep
+    @mock.patch('getpass.getuser', return_value='stack')
     @mock.patch('shutil.copy')
     @mock.patch('os.mkdir')
     @mock.patch('tripleoclient.utils.write_env_file', autospec=True)
     @mock.patch('subprocess.check_call', autospec=True)
     def test_undercloud_upgrade_with_heat_true(self, mock_subprocess,
-                                               mock_wr,
-                                               mock_os, mock_copy):
+                                               mock_wr, mock_os,
+                                               mock_copy, mock_user):
         arglist = ['--use-heat=True', '--no-validations']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
@@ -641,6 +666,8 @@ class TestUndercloudUpgrade(TestPluginV1):
              'services/undercloud-haproxy.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-keepalived.yaml',
+             # TODO(cjeanner) drop once we have proper oslo.privsep
+             '--deployment-user', 'stack',
              '--output-dir=/home/stack', '--cleanup',
              '-e', '/home/stack/tripleo-config-generated-env-files/'
              'undercloud_parameters.yaml',
@@ -648,13 +675,14 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/'
              'undercloud-stack-vstate-dropin.yaml'])
 
+    @mock.patch('getpass.getuser', return_value='stack')
     @mock.patch('shutil.copy')
     @mock.patch('os.mkdir')
     @mock.patch('tripleoclient.utils.write_env_file', autospec=True)
     @mock.patch('subprocess.check_call', autospec=True)
     def test_undercloud_upgrade_with_heat_and_yes(self, mock_subprocess,
-                                                  mock_wr,
-                                                  mock_os, mock_copy):
+                                                  mock_wr, mock_os,
+                                                  mock_user, mock_copy):
         arglist = ['--use-heat', '--no-validations', '-y']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
@@ -701,6 +729,8 @@ class TestUndercloudUpgrade(TestPluginV1):
              'services/undercloud-haproxy.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-keepalived.yaml',
+             # TODO(cjeanner) drop once we have proper oslo.privsep
+             '--deployment-user', 'stack',
              '--output-dir=/home/stack', '--cleanup',
              '-e', '/home/stack/tripleo-config-generated-env-files/'
              'undercloud_parameters.yaml',
@@ -708,13 +738,15 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/'
              'undercloud-stack-vstate-dropin.yaml'])
 
+    # TODO(cjeanner) drop once we have proper oslo.privsep
+    @mock.patch('getpass.getuser', return_value='stack')
     @mock.patch('shutil.copy')
     @mock.patch('os.mkdir')
     @mock.patch('tripleoclient.utils.write_env_file', autospec=True)
     @mock.patch('subprocess.check_call', autospec=True)
     def test_undercloud_upgrade_with_heat_and_debug(self, mock_subprocess,
-                                                    mock_wr,
-                                                    mock_os, mock_copy):
+                                                    mock_wr, mock_os,
+                                                    mock_copy, mock_user):
         arglist = ['--use-heat', '--no-validations']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
@@ -764,6 +796,7 @@ class TestUndercloudUpgrade(TestPluginV1):
              'services/undercloud-haproxy.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-keepalived.yaml',
+             '--deployment-user', 'stack',
              '--output-dir=/home/stack', '--cleanup',
              '-e', '/home/stack/tripleo-config-generated-env-files/'
              'undercloud_parameters.yaml',
