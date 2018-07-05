@@ -43,10 +43,10 @@ THT_HOME = os.environ.get('THT_HOME',
                           "/usr/share/openstack-tripleo-heat-templates/")
 
 TELEMETRY_DOCKER_ENV_YAML = [
-    'environments/services-docker/undercloud-gnocchi.yaml',
-    'environments/services-docker/undercloud-aodh.yaml',
-    'environments/services-docker/undercloud-panko.yaml',
-    'environments/services-docker/undercloud-ceilometer.yaml']
+    'environments/services/undercloud-gnocchi.yaml',
+    'environments/services/undercloud-aodh.yaml',
+    'environments/services/undercloud-panko.yaml',
+    'environments/services/undercloud-ceilometer.yaml']
 
 
 class Paths(object):
@@ -514,23 +514,23 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False):
 
     if CONF.get('enable_ironic'):
         deploy_args += ['-e', os.path.join(
-            tht_templates, "environments/services-docker/ironic.yaml")]
+            tht_templates, "environments/services/ironic.yaml")]
 
         # ironic-inspector can only work if ironic is enabled
         if CONF.get('enable_ironic_inspector'):
             deploy_args += ['-e', os.path.join(
                 tht_templates,
-                "environments/services-docker/ironic-inspector.yaml")]
+                "environments/services/ironic-inspector.yaml")]
 
         _process_drivers_and_hardware_types(CONF, env_data)
 
     if CONF.get('enable_mistral'):
         deploy_args += ['-e', os.path.join(
-            tht_templates, "environments/services-docker/mistral.yaml")]
+            tht_templates, "environments/services/mistral.yaml")]
 
     if CONF.get('enable_zaqar'):
         deploy_args += ['-e', os.path.join(
-            tht_templates, "environments/services-docker/zaqar.yaml")]
+            tht_templates, "environments/services/zaqar.yaml")]
 
     if CONF.get('enable_telemetry'):
         for env_file in TELEMETRY_DOCKER_ENV_YAML:
@@ -539,7 +539,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False):
     if CONF.get('enable_cinder'):
         deploy_args += ['-e', os.path.join(
             tht_templates,
-            "environments/services-docker/undercloud-cinder.yaml")]
+            "environments/services/undercloud-cinder.yaml")]
 
     if CONF.get('generate_service_certificate'):
         try:

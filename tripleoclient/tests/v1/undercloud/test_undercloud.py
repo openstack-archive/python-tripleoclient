@@ -61,14 +61,14 @@ class TestUndercloudInstall(TestPluginV1):
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
              '--heat-native', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services-docker/ironic.yaml',
+             'services/ironic.yaml',
              '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services-docker/ironic-inspector.yaml', '-e',
+             'services/ironic-inspector.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services-docker/mistral.yaml', '-e',
+             'services/mistral.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services-docker/zaqar.yaml', '-e',
+             'services/zaqar.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'docker.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -123,14 +123,14 @@ class TestUndercloudUpgrade(TestPluginV1):
              'major-upgrade-composable-steps-docker.yaml',
              '--heat-native', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services-docker/ironic.yaml',
+             'services/ironic.yaml',
              '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services-docker/ironic-inspector.yaml', '-e',
+             'services/ironic-inspector.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services-docker/mistral.yaml', '-e',
+             'services/mistral.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services-docker/zaqar.yaml', '-e',
+             'services/zaqar.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'docker.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'

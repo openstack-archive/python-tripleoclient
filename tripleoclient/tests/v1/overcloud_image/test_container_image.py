@@ -376,7 +376,7 @@ class TestContainerImagePrepare(TestPluginV1):
                                              mock_cip, mock_cipd):
         arglist = [
             '-e',
-            'environments/services-docker/neutron-opendaylight.yaml',
+            'environments/services/neutron-opendaylight.yaml',
         ]
 
         ges.return_value = (
@@ -387,7 +387,7 @@ class TestContainerImagePrepare(TestPluginV1):
                  'OS::TripleO::Services::OpenDaylightApi']))
 
         pmef_call_args = [
-            'environments/services-docker/neutron-opendaylight.yaml']
+            'environments/services/neutron-opendaylight.yaml']
 
         expected_oc_yaml_contents = {
             'container_images': [{
@@ -427,7 +427,7 @@ class TestContainerImagePrepare(TestPluginV1):
                                              mock_cip, mock_cipd):
         arglist = [
             '-e',
-            'environments/services-docker/neutron-ovn.yaml',
+            'environments/services/neutron-ovn.yaml',
         ]
 
         ges.return_value = (
@@ -437,7 +437,7 @@ class TestContainerImagePrepare(TestPluginV1):
                  'OS::TripleO::Services::OVNDBs']))
 
         pmef_call_args = [
-            'environments/services-docker/neutron-ovn.yaml']
+            'environments/services/neutron-ovn.yaml']
 
         expected_oc_yaml_contents = {
             'container_images': [{
