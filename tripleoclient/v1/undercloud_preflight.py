@@ -429,6 +429,32 @@ def _run_yum_update(instack_env):
     LOG.info(_('yum-update completed successfully'))
 
 
+def _validate_architecure_options():
+    def error_handler(message):
+        LOG.error(_('Undercloud configuration validation failed: %s'), message)
+        raise FailedValidation(message)
+
+    def _validate_ppc64le_exclusive_opts(error_callback):
+        if 'ipxe_enabled' in CONF and CONF['ipxe_enabled']:
+            error_callback(_('Currently iPXE boot isn\'t supported with '
+                             'ppc64le systems but is enabled'))
+
+    def _validate_additional_architectures(error_callback):
+        for arch in CONF['additional_architectures']:
+            if arch not in constants.ADDITIONAL_ARCHITECTURES:
+                params = {'architecture': arch,
+                          'all_architectures':
+                          ' '.join(constants.ADDITIONAL_ARCHITECTURES)
+                          }
+                error_callback(_('additional_architectures "%(architecture)s" '
+                                 'must be in the supported architecture list: '
+                                 '%(all_architectures)s') % params)
+
+    _validate_additional_architectures(error_handler)
+    if 'ppc64le' in CONF['additional_architectures']:
+        _validate_ppc64le_exclusive_opts(error_handler)
+
+
 def check(verbose_level):
     # Fetch configuration and use its log file param to add logging to a file
     utils.load_config(CONF, constants.UNDERCLOUD_CONF_PATH)
@@ -455,6 +481,7 @@ def check(verbose_level):
         _validate_ips()
         _validate_interface_exists()
         _validate_no_ip_change()
+        _validate_architecure_options()
     except KeyError as e:
         LOG.error(_('Key error in configuration: {error}\n'
                     'Value is missing in configuration.').format(error=e))

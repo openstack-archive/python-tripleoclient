@@ -294,6 +294,14 @@ class UndercloudConfig(StandaloneConfig):
                             'Whether to enable Swift encryption at-rest or '
                             'not.'
                         )),
+            cfg.ListOpt('additional_architectures',
+                        default=[],
+                        help=(_(
+                              'List of additional architectures enabled in '
+                              'your cloud environment. The list of supported '
+                              'values is: %s') %
+                              ' '.join(constants.ADDITIONAL_ARCHITECTURES))
+                        ),
         ]
         return self.sort_opts(_base_opts + _opts)
 
