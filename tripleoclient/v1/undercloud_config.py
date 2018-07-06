@@ -56,10 +56,13 @@ INSTACK_NETCONF_MAPPING = {
     'SUBNETS_STATIC_ROUTES': 'ControlPlaneStaticRoutes',
 }
 
+MULTI_PARAMETER_MAPPING = {
+    'ipxe_enabled': ['IronicIPXEEnabled', 'IronicInspectorIPXEEnabled']
+}
+
 PARAMETER_MAPPING = {
     'inspection_interface': 'IronicInspectorInterface',
     'undercloud_debug': 'Debug',
-    'ipxe_enabled': 'IronicInspectorIPXEEnabled',
     'certificate_generation_ca': 'CertmongerCA',
     'undercloud_public_host': 'CloudName',
     'scheduler_max_attempts': 'NovaSchedulerMaxAttempts',
@@ -271,6 +274,12 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
     for param_key, param_value in PARAMETER_MAPPING.items():
         if param_key in CONF.keys():
             env_data[param_value] = CONF[param_key]
+
+    # Some undercloud config options need to tweak multiple template parameters
+    for undercloud_key in MULTI_PARAMETER_MAPPING:
+        for env_value in MULTI_PARAMETER_MAPPING[undercloud_key]:
+            if undercloud_key in CONF.keys():
+                env_data[env_value] = CONF[undercloud_key]
 
     # Set up parameters for undercloud networking
     env_data['IronicInspectorSubnets'] = _generate_inspection_subnets()
