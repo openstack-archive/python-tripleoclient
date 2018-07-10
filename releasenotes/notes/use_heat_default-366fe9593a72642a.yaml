@@ -1,0 +1,10 @@
+---
+prelude: >
+    The undercloud is now by default containerized and the deployment
+    is not driven by instack-undercloud anymore but by TripleO Heat Templates
+    like it's done for the overcloud.
+upgrade:
+  - |
+    The upgrade from a non-containerized undercloud to a containerized
+    undercloud is supported and can be executed with ``openstack undercloud
+    upgrade`` command (same as before).

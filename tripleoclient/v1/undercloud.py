@@ -132,11 +132,7 @@ class InstallUndercloud(command.Command):
         utils.ensure_run_as_normal_user()
         if parsed_args.use_heat is not None:
             self.log.warning('--use-heat is deprecated in Rocky')
-        # NOTE(EmilienM): For backwards compatibility until CI has been
-        # switched we need to still run instack-undercloud when --use-heat
-        # is not provided. This will be removed in a follow up patch
-        # once CI has been converted to pass in --use-heat=False
-        if parsed_args.use_heat is None or \
+        if parsed_args.use_heat is not None and \
                 parsed_args.use_heat.lower() == "false":
             self.log.warning(_('Non-containerized undercloud deployment is '
                              'deprecated in Rocky cycle.'))
@@ -183,11 +179,7 @@ class UpgradeUndercloud(InstallUndercloud):
         utils.ensure_run_as_normal_user()
         if parsed_args.use_heat is not None:
             self.log.warning('--use-heat is deprecated in Rocky')
-        # NOTE(EmilienM): For backwards compatibility until CI has been
-        # switched we need to still run instack-undercloud when --use-heat
-        # is not provided. This will be removed in a follow up patch
-        # once CI has been converted to pass in --use-heat=False
-        if parsed_args.use_heat is None or \
+        if parsed_args.use_heat is not None and \
                 parsed_args.use_heat.lower() == "false":
             self.log.warning(_('Non-containerized undercloud deployment is '
                              'deprecated in Rocky cycle.'))
