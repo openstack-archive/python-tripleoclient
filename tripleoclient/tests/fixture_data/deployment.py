@@ -32,3 +32,32 @@ class DeploymentWorkflowFixture(fixtures.Fixture):
         self.mock_get_horizon_url = self.useFixture(fixtures.MockPatch(
             'tripleoclient.workflows.deployment.get_horizon_url')
         ).mock
+
+
+class PlanManagementFixture(fixtures.Fixture):
+
+    def _setUp(self):
+        super(PlanManagementFixture, self)._setUp()
+        self.mock_tarball = self.useFixture(fixtures.MockPatch(
+            'tripleoclient.workflows.plan_management.tarball')
+        ).mock
+        self.mock_list_plans = self.useFixture(fixtures.MockPatch(
+            'tripleoclient.workflows.plan_management.list_deployment_plans',
+            return_value=[])
+        ).mock
+
+
+class UtilsFixture(fixtures.Fixture):
+
+    def _setUp(self):
+        super(UtilsFixture, self)._setUp()
+        self.wait_for_stack_ready_mock = self.useFixture(fixtures.MockPatch(
+            'tripleoclient.utils.wait_for_stack_ready',
+            return_value=True)
+        ).mock
+        self.mock_remove_known_hosts = self.useFixture(fixtures.MockPatch(
+            'tripleoclient.utils.remove_known_hosts')
+        ).mock
+        self.mock_write_overcloudrc = self.useFixture(fixtures.MockPatch(
+            'tripleoclient.utils.write_overcloudrc')
+        ).mock
