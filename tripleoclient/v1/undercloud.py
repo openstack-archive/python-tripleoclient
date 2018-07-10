@@ -45,10 +45,12 @@ class InstallUndercloud(command.Command):
         parser.add_argument(
             '--use-heat',
             dest='use_heat',
-            action='store_true',
-            default=False,
-            help=_("Perform undercloud deploy using ephemeral (one-time "
-                   "create and forget) heat stack and ansible."),
+            nargs='?',
+            default=None,
+            const="true",
+            help=_('This option is deprecated in Rocky. It makes sure that we '
+                   'perform undercloud deploy using ephemeral '
+                   '(one-time create and forget) heat stack and ansible.'),
         )
         parser.add_argument('--force-stack-update',
                             dest='force_stack_update',
@@ -86,7 +88,18 @@ class InstallUndercloud(command.Command):
         self.log.debug("take_action(%s)" % parsed_args)
 
         utils.ensure_run_as_normal_user()
-        if parsed_args.use_heat:
+        if parsed_args.use_heat is not None:
+            self.log.warning('--use-heat is deprecated in Rocky')
+        # NOTE(EmilienM): For backwards compatibility until CI has been
+        # switched we need to still run instack-undercloud when --use-heat
+        # is not provided. This will be removed in a follow up patch
+        # once CI has been converted to pass in --use-heat=False
+        if parsed_args.use_heat is None or \
+                parsed_args.use_heat.lower() == "false":
+            self.log.warning(_('Non-containerized undercloud deployment is '
+                             'deprecated in Rocky cycle.'))
+            cmd = ["instack-install-undercloud"]
+        else:
             no_validations = parsed_args.dry_run or parsed_args.no_validations
             cmd = undercloud_config.\
                 prepare_undercloud_deploy(
@@ -94,10 +107,6 @@ class InstallUndercloud(command.Command):
                     verbose_level=self.app_args.verbose_level,
                     force_stack_update=parsed_args.force_stack_update,
                     dry_run=parsed_args.dry_run)
-        else:
-            self.log.warning(_('Non-containerized undercloud deployment is '
-                             'deprecated in Rocky cycle.'))
-            cmd = ["instack-install-undercloud"]
 
         self.log.warning("Running: %s" % ' '.join(cmd))
         if not parsed_args.dry_run:
@@ -119,18 +128,14 @@ class UpgradeUndercloud(InstallUndercloud):
         self.log.debug("take action(%s)" % parsed_args)
 
         utils.ensure_run_as_normal_user()
-        if parsed_args.use_heat:
-            cmd = undercloud_config.\
-                prepare_undercloud_deploy(
-                    upgrade=True,
-                    yes=parsed_args.yes,
-                    no_validations=parsed_args.
-                    no_validations,
-                    verbose_level=self.app_args.verbose_level,
-                    force_stack_update=parsed_args.force_stack_update)
-            self.log.warning("Running: %s" % ' '.join(cmd))
-            subprocess.check_call(cmd)
-        else:
+        if parsed_args.use_heat is not None:
+            self.log.warning('--use-heat is deprecated in Rocky')
+        # NOTE(EmilienM): For backwards compatibility until CI has been
+        # switched we need to still run instack-undercloud when --use-heat
+        # is not provided. This will be removed in a follow up patch
+        # once CI has been converted to pass in --use-heat=False
+        if parsed_args.use_heat is None or \
+                parsed_args.use_heat.lower() == "false":
             self.log.warning(_('Non-containerized undercloud deployment is '
                              'deprecated in Rocky cycle.'))
             subprocess.check_call(['sudo', 'yum', 'update', '-y',
@@ -141,3 +146,14 @@ class UpgradeUndercloud(InstallUndercloud):
             # https://bugzilla.redhat.com/show_bug.cgi?id=1315467
             subprocess.check_call(['sudo', 'systemctl', 'restart',
                                   'openstack-nova-api'])
+        else:
+            cmd = undercloud_config.\
+                prepare_undercloud_deploy(
+                    upgrade=True,
+                    yes=parsed_args.yes,
+                    no_validations=parsed_args.
+                    no_validations,
+                    verbose_level=self.app_args.verbose_level,
+                    force_stack_update=parsed_args.force_stack_update)
+            self.log.warning("Running: %s" % ' '.join(cmd))
+            subprocess.check_call(cmd)

@@ -1,0 +1,8 @@
+---
+deprecations:
+  - |
+    --use-heat parameter is deprecated in Rocky cycle and will be removed in
+    the future.
+    When --use-heat / --use-heat=True is set, the undercloud will be
+    containerized and a warning will be shown for the deprecation.
+    When --use-heat=False is set, the undercloud won't be containerized.
