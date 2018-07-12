@@ -807,8 +807,8 @@ class Deploy(command.Command):
         parser.add_argument(
             '--local-domain', metavar='<LOCAL_DOMAIN>',
             dest='local_domain',
-            default='undercloud',
-            help=_('Local domain for undercloud and its API endpoints')
+            default='localdomain',
+            help=_('Local domain for standalone cloud and its API endpoints')
         )
         parser.add_argument(
             '--cleanup',
