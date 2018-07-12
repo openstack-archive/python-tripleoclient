@@ -829,6 +829,18 @@ class Deploy(command.Command):
                    'not t-h-t compatible and will highly likely require a '
                    'manual revision.')
         )
+        parser.add_argument(
+            '--keep-running',
+            action='store_true',
+            default=False,
+            help=_('Keep the ephemeral Heat running after the stack operation '
+                   'is complete. This is for debugging purposes only. '
+                   'The ephemeral Heat can be used by openstackclient with:\n'
+                   'OS_AUTH_TYPE=none '
+                   'OS_ENDPOINT=http://127.0.0.1:8006/v1/admin '
+                   'openstack stack list\n '
+                   'where 8006 is the port specified by --heat-api-port.')
+        )
         return parser
 
     def _process_hieradata_overrides(self, override_file=None,
@@ -950,7 +962,8 @@ class Deploy(command.Command):
                                                  parsed_args.stack,
                                                  parsed_args.standalone_role)
             # Kill heat, we're done with it now.
-            self._kill_heat(parsed_args)
+            if not parsed_args.keep_running:
+                self._kill_heat(parsed_args)
             if not parsed_args.output_only:
                 # Run Upgrade tasks before the deployment
                 if parsed_args.upgrade:
@@ -962,7 +975,8 @@ class Deploy(command.Command):
             self.log.error("Exception: %s" % six.text_type(e))
             raise exceptions.DeploymentError(six.text_type(e))
         finally:
-            self._kill_heat(parsed_args)
+            if not parsed_args.keep_running:
+                self._kill_heat(parsed_args)
             tar_filename = self._create_install_artifact()
             self._cleanup_working_dirs(cleanup=parsed_args.cleanup)
             if tar_filename:
