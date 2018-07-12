@@ -44,6 +44,8 @@ UPDATE_QUEUE = 'update'
 UPGRADE_QUEUE = 'upgrade'
 FFWD_UPGRADE_QUEUE = 'ffwdupgrade'
 CEPH_UPGRADE_QUEUE = 'cephupgrade'
+EXTERNAL_UPDATE_QUEUE = 'externalupdate'
+EXTERNAL_UPGRADE_QUEUE = 'externalupgrade'
 STACK_TIMEOUT = 240
 
 
@@ -56,6 +58,8 @@ MAJOR_UPGRADE_PLAYBOOKS = ["upgrade_steps_playbook.yaml",
                            "deploy_steps_playbook.yaml",
                            "post_upgrade_steps_playbook.yaml"]
 MAJOR_UPGRADE_SKIP_TAGS = ['validation', 'pre-upgrade']
+EXTERNAL_UPDATE_PLAYBOOKS = ['external_update_steps_playbook.yaml']
+EXTERNAL_UPGRADE_PLAYBOOKS = ['external_upgrade_steps_playbook.yaml']
 # upgrade environment files expected by the client in the --templates
 # tripleo-heat-templates default above $TRIPLEO_HEAT_TEMPLATES
 UPDATE_PREPARE_ENV = "environments/lifecycle/update-prepare.yaml"

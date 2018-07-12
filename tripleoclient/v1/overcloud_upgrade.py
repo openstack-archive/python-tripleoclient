@@ -219,7 +219,8 @@ class UpgradeRun(command.Command):
                                            constants.UPGRADE_QUEUE,
                                            constants.MAJOR_UPGRADE_PLAYBOOKS,
                                            package_update,
-                                           parsed_args.ssh_user, skip_tags)
+                                           parsed_args.ssh_user,
+                                           skip_tags=skip_tags)
 
         playbooks = (constants.MAJOR_UPGRADE_PLAYBOOKS
                      if playbook == 'all' else playbook)

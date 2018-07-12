@@ -163,6 +163,7 @@ class TestFFWDUpgradeRun(fakes.TestFFWDUpgradeRun):
                 nodes='',
                 playbook=constants.FFWD_UPGRADE_PLAYBOOK,
                 node_user='heat-admin',
+                tags='',
                 skip_tags=''
             )
 
@@ -188,6 +189,7 @@ class TestFFWDUpgradeRun(fakes.TestFFWDUpgradeRun):
                 nodes='',
                 playbook=constants.FFWD_UPGRADE_PLAYBOOK,
                 node_user='my-user',
+                tags='',
                 skip_tags=''
             )
 

@@ -170,6 +170,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                 playbook='fake-playbook.yaml',
                 ansible_queue_name=constants.UPGRADE_QUEUE,
                 node_user='tripleo-admin',
+                tags='',
                 skip_tags=''
             )
 
@@ -202,6 +203,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                     playbook=book,
                     ansible_queue_name=constants.UPGRADE_QUEUE,
                     node_user='heat-admin',
+                    tags='',
                     skip_tags='validation'
                 )
 
@@ -232,6 +234,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                 playbook='fake-playbook.yaml',
                 ansible_queue_name=constants.UPGRADE_QUEUE,
                 node_user='heat-admin',
+                tags='',
                 skip_tags=''
             )
 
@@ -262,6 +265,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                     playbook=book,
                     ansible_queue_name=constants.UPGRADE_QUEUE,
                     node_user='heat-admin',
+                    tags='',
                     skip_tags=''
                 )
 
@@ -294,6 +298,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                     playbook=book,
                     ansible_queue_name=constants.UPGRADE_QUEUE,
                     node_user='heat-admin',
+                    tags='',
                     skip_tags='pre-upgrade,validation'
                 )
 
