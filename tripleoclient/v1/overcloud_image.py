@@ -305,6 +305,8 @@ class UploadOvercloudImage(command.Command):
         self.log.debug("uploading %s overcloud images to glance" %
                        overcloud_image_type)
 
+        properties = {}
+
         # vmlinuz and initrd only need to be uploaded for a partition image
         if not parsed_args.whole_disk:
             (oc_vmlinuz_name,
@@ -319,6 +321,7 @@ class UploadOvercloudImage(command.Command):
                           name=oc_vmlinuz_name,
                           is_public=True,
                           disk_format='aki',
+                          properties=properties,
                           data=self._read_image_file_pointer(
                               parsed_args.image_path, oc_vmlinuz_file)
             ))
@@ -335,6 +338,7 @@ class UploadOvercloudImage(command.Command):
                            name=oc_initrd_name,
                            is_public=True,
                            disk_format='ari',
+                           properties=properties,
                            data=self._read_image_file_pointer(
                                parsed_args.image_path, oc_initrd_file)
             ))
@@ -351,8 +355,9 @@ class UploadOvercloudImage(command.Command):
                                    is_public=True,
                                    disk_format='qcow2',
                                    container_format='bare',
-                                   properties={'kernel_id': kernel.id,
-                                               'ramdisk_id': ramdisk.id},
+                                   properties=dict({'kernel_id': kernel.id,
+                                                    'ramdisk_id': ramdisk.id},
+                                                   **properties),
                                    data=self._read_image_file_pointer(
                                        parsed_args.image_path, oc_file)
             ))
@@ -380,7 +385,7 @@ class UploadOvercloudImage(command.Command):
                                    is_public=True,
                                    disk_format='qcow2',
                                    container_format='bare',
-                                   properties={},
+                                   properties=properties,
                                    data=self._read_image_file_pointer(
                                        parsed_args.image_path, oc_file)
             ))
@@ -398,6 +403,7 @@ class UploadOvercloudImage(command.Command):
                 name=deploy_kernel_name,
                 is_public=True,
                 disk_format='aki',
+                properties=properties,
                 data=self._read_image_file_pointer(
                     parsed_args.image_path,
                     deploy_kernel_file))
@@ -413,6 +419,7 @@ class UploadOvercloudImage(command.Command):
                 name=deploy_ramdisk_name,
                 is_public=True,
                 disk_format='ari',
+                properties=properties,
                 data=self._read_image_file_pointer(parsed_args.image_path,
                                                    deploy_ramdisk_file))
 
