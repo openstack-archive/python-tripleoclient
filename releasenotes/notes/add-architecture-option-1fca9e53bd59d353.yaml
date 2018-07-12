@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    In order to allow overcloud and deploy images to vary based on architecture
+    add a ``--architecture`` option to ``openstack overcloud image upload``.
+    This option will add hw_architecture to the image meta-data, which will
+    then be used my nova to limit node selection to matching CPU architectures.

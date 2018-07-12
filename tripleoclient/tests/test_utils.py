@@ -776,18 +776,41 @@ class TestOvercloudNameScenarios(TestWithScenarios):
          dict(func=utils.overcloud_kernel,
               basename='overcloud-full',
               expected=('overcloud-full-vmlinuz', '.vmlinuz'))),
+        ('kernel_arch',
+         dict(func=utils.overcloud_kernel,
+              basename='overcloud-full',
+              arch='x86_64',
+              expected=('x86_64-overcloud-full-vmlinuz', '.vmlinuz'))),
         ('ramdisk_default',
          dict(func=utils.overcloud_ramdisk,
               basename='overcloud-full',
               expected=('overcloud-full-initrd', '.initrd'))),
+        ('ramdisk_arch',
+         dict(func=utils.overcloud_ramdisk,
+              basename='overcloud-full',
+              arch='x86_64',
+              expected=('x86_64-overcloud-full-initrd', '.initrd'))),
         ('image_default',
          dict(func=utils.overcloud_image,
               basename='overcloud-full',
               expected=('overcloud-full', '.qcow2'))),
+        ('image_arch',
+         dict(func=utils.overcloud_image,
+              basename='overcloud-full',
+              arch='x86_64',
+              expected=('x86_64-overcloud-full', '.qcow2'))),
     ]
 
     def test_overcloud_params(self):
-        observed = self.func(self.basename)
+        kwargs = dict()
+        for attr in ['arch']:
+            if hasattr(self, attr):
+                kwargs[attr] = getattr(self, attr)
+
+        if kwargs:
+            observed = self.func(self.basename, **kwargs)
+        else:
+            observed = self.func(self.basename)
 
         self.assertEqual(self.expected, observed)
 
@@ -797,12 +820,28 @@ class TestDeployNameScenarios(TestWithScenarios):
         ('kernel_default',
          dict(func=utils.deploy_kernel,
               expected=('bm-deploy-kernel', '.kernel'))),
+        ('kernel_arch',
+         dict(func=utils.deploy_kernel,
+              arch='x86_64',
+              expected=('x86_64-bm-deploy-kernel', '.kernel'))),
         ('ramdisk_default',
          dict(func=utils.deploy_ramdisk,
               expected=('bm-deploy-ramdisk', '.initramfs'))),
+        ('ramdisk_arch',
+         dict(func=utils.deploy_ramdisk,
+              arch='x86_64',
+              expected=('x86_64-bm-deploy-ramdisk', '.initramfs'))),
     ]
 
     def test_deploy_params(self):
-        observed = self.func()
+        kwargs = {}
+        for attr in ['arch']:
+            if hasattr(self, attr):
+                kwargs[attr] = getattr(self, attr)
+
+        if kwargs:
+            observed = self.func(**kwargs)
+        else:
+            observed = self.func()
 
         self.assertEqual(self.expected, observed)

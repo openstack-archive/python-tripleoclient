@@ -275,6 +275,13 @@ class UploadOvercloudImage(command.Command):
             help=_("When set, the overcloud-full image to be uploaded "
                    "will be considered as a whole disk one"),
         )
+        parser.add_argument(
+            "--architecture",
+            help=_("Architecture type for these images, "
+                   "\'x86_64\', \'i386\' and \'ppc64le\' "
+                   "are common options.  This option should match at least "
+                   "one \'arch\' value in instackenv.json"),
+        )
         return parser
 
     def take_action(self, parsed_args):
@@ -306,11 +313,15 @@ class UploadOvercloudImage(command.Command):
                        overcloud_image_type)
 
         properties = {}
+        arch = parsed_args.architecture
+        if arch:
+            properties['hw_architecture'] = arch
 
         # vmlinuz and initrd only need to be uploaded for a partition image
         if not parsed_args.whole_disk:
             (oc_vmlinuz_name,
-             oc_vmlinuz_extension) = plugin_utils.overcloud_kernel(image_name)
+             oc_vmlinuz_extension) = plugin_utils.overcloud_kernel(image_name,
+                                                                   arch=arch)
             oc_vmlinuz_file = os.path.join(parsed_args.image_path,
                                            image_name +
                                            oc_vmlinuz_extension)
@@ -327,7 +338,8 @@ class UploadOvercloudImage(command.Command):
             ))
 
             (oc_initrd_name,
-             oc_initrd_extension) = plugin_utils.overcloud_ramdisk(image_name)
+             oc_initrd_extension) = plugin_utils.overcloud_ramdisk(image_name,
+                                                                   arch=arch)
             oc_initrd_file = os.path.join(parsed_args.image_path,
                                           image_name +
                                           oc_initrd_extension)
@@ -344,7 +356,8 @@ class UploadOvercloudImage(command.Command):
             ))
 
             (oc_name,
-             oc_extension) = plugin_utils.overcloud_image(image_name)
+             oc_extension) = plugin_utils.overcloud_image(image_name,
+                                                          arch=arch)
             oc_file = os.path.join(parsed_args.image_path,
                                    image_name +
                                    oc_extension)
@@ -374,7 +387,8 @@ class UploadOvercloudImage(command.Command):
 
         else:
             (oc_name,
-             oc_extension) = plugin_utils.overcloud_image(image_name)
+             oc_extension) = plugin_utils.overcloud_image(image_name,
+                                                          arch=arch)
             oc_file = os.path.join(parsed_args.image_path,
                                    image_name +
                                    oc_extension)
@@ -393,7 +407,7 @@ class UploadOvercloudImage(command.Command):
         self.log.debug("uploading bm images to glance")
 
         (deploy_kernel_name,
-         deploy_kernel_extension) = plugin_utils.deploy_kernel()
+         deploy_kernel_extension) = plugin_utils.deploy_kernel(arch=arch)
         deploy_kernel_file = os.path.join(parsed_args.image_path,
                                           parsed_args.ipa_name +
                                           deploy_kernel_extension)
@@ -409,7 +423,7 @@ class UploadOvercloudImage(command.Command):
                     deploy_kernel_file))
 
         (deploy_ramdisk_name,
-         deploy_ramdisk_extension) = plugin_utils.deploy_ramdisk()
+         deploy_ramdisk_extension) = plugin_utils.deploy_ramdisk(arch=arch)
         deploy_ramdisk_file = os.path.join(parsed_args.image_path,
                                            parsed_args.ipa_name +
                                            deploy_ramdisk_extension)
