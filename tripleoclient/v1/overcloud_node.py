@@ -255,9 +255,13 @@ class ImportNode(command.Command):
             deploy_kernel = None
             deploy_ramdisk = None
         else:
-            deploy_kernel = 'bm-deploy-kernel'
-            deploy_ramdisk = 'bm-deploy-ramdisk'
+            deploy_kernel = oooutils.deploy_kernel()[0]
+            deploy_ramdisk = oooutils.deploy_ramdisk()[0]
 
+        # Look for *specific* deploy images and update the node data if
+        # one is found.
+        oooutils.update_nodes_deploy_data(self.app.client_manager.image,
+                                          nodes_config)
         nodes = baremetal.register_or_update(
             self.app.client_manager,
             nodes_json=nodes_config,
@@ -391,6 +395,7 @@ class DiscoverNode(command.Command):
                                    '(netboot).'))
         return parser
 
+    # FIXME(tonyb): This is not multi-arch safe :(
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
 
