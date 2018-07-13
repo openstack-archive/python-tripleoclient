@@ -316,6 +316,10 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
     # This parameter the IP address used to bind the local container registry
     env_data['LocalContainerRegistry'] = CONF['local_ip'].split('/')[0]
 
+    if CONF['additional_architectures']:
+        for arch in CONF['additional_architectures']:
+            env_data['EnableArchitecture%s' % arch.upper()] = True
+
     if CONF.get('local_ip', None):
         deploy_args.append('--local-ip=%s' % CONF['local_ip'])
 

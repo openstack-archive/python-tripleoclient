@@ -25,7 +25,8 @@ class TestUndercloudConfig(base.TestCase):
 
     def test_get_base_opts(self):
         ret = self.config.get_base_opts()
-        expected = ['certificate_generation_ca',
+        expected = ['additional_architectures',
+                    'certificate_generation_ca',
                     'clean_nodes',
                     'cleanup',
                     'container_images_file',
@@ -74,7 +75,8 @@ class TestUndercloudConfig(base.TestCase):
 
     def test_get_opts(self):
         ret = self.config.get_opts()
-        expected = ['certificate_generation_ca',
+        expected = ['additional_architectures',
+                    'certificate_generation_ca',
                     'clean_nodes',
                     'cleanup',
                     'container_images_file',
