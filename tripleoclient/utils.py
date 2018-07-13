@@ -1186,32 +1186,39 @@ def configure_logging(log, level, log_file):
     log.addHandler(fhandler)
 
 
-def _name_helper(basename, arch=None):
-    if arch:
+def _name_helper(basename, arch=None, platform=None):
+    # NOTE(tonyb): We don't accept a platform with an arch.  This caught when
+    # import the nodes / process args, but lets be a little cautious here
+    # anyway.
+    if arch and platform:
+        basename = platform + '-' + arch + '-' + basename
+    elif arch:
         basename = arch + '-' + basename
     return basename
 
 
-def overcloud_kernel(basename, arch=None):
-    return (_name_helper('%s-vmlinuz' % basename, arch=arch),
+def overcloud_kernel(basename, arch=None, platform=None):
+    return (_name_helper('%s-vmlinuz' % basename, arch=arch,
+                         platform=platform),
             '.vmlinuz')
 
 
-def overcloud_ramdisk(basename, arch=None):
-    return (_name_helper('%s-initrd' % basename, arch=arch),
+def overcloud_ramdisk(basename, arch=None, platform=None):
+    return (_name_helper('%s-initrd' % basename, arch=arch,
+                         platform=platform),
             '.initrd')
 
 
-def overcloud_image(basename, arch=None):
-    return (_name_helper(basename, arch=arch),
+def overcloud_image(basename, arch=None, platform=None):
+    return (_name_helper(basename, arch=arch, platform=platform),
             '.qcow2')
 
 
-def deploy_kernel(arch=None):
-    return (_name_helper('bm-deploy-kernel', arch=arch),
+def deploy_kernel(arch=None, platform=None):
+    return (_name_helper('bm-deploy-kernel', arch=arch, platform=platform),
             '.kernel')
 
 
-def deploy_ramdisk(arch=None):
-    return (_name_helper('bm-deploy-ramdisk', arch=arch),
+def deploy_ramdisk(arch=None, platform=None):
+    return (_name_helper('bm-deploy-ramdisk', arch=arch, platform=platform),
             '.initramfs')
