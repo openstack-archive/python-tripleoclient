@@ -15,6 +15,7 @@
 from __future__ import print_function
 
 import argparse
+import json
 import logging
 import netaddr
 import os
@@ -40,6 +41,7 @@ from tripleoclient import exceptions
 from tripleoclient import heat_launcher
 from tripleoclient import utils
 
+from tripleo_common import constants as tc_constants
 from tripleo_common.image import kolla_builder
 from tripleo_common.utils import passwords as password_utils
 
@@ -937,6 +939,25 @@ class Deploy(command.Command):
             target = hiera_override_file
         return target
 
+    def _dump_ansible_errors(self, f, name):
+        if not os.path.isfile(f):
+            return
+
+        failures = None
+        with open(f, 'r') as ff:
+            try:
+                failures = json.load(ff)
+            except Exception:
+                self.log.error(
+                    _('Could not read ansible errors from file %s') % f)
+
+        if not failures or not failures.get(name, {}):
+            return
+
+        self.log.error(_('** Found ansible errors for %s deployment! **') %
+                       name)
+        self.log.error(json.dumps(failures.get(name, {}), indent=1))
+
     def _standalone_deploy(self, parsed_args):
         if not parsed_args.local_ip:
             msg = _('Please set --local-ip to the correct '
@@ -1051,6 +1072,10 @@ class Deploy(command.Command):
                 self._kill_heat(parsed_args)
             tar_filename = \
                 self._create_install_artifact(parsed_args.deployment_user)
+            self._dump_ansible_errors(
+                os.path.join(ansible_dir,
+                             tc_constants.ANSIBLE_ERRORS_FILE),
+                parsed_args.stack)
             self._cleanup_working_dirs(
                 cleanup=parsed_args.cleanup,
                 user=parsed_args.deployment_user
