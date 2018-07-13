@@ -43,7 +43,6 @@ PUPPET_BASE = "/etc/puppet/"
 UPDATE_QUEUE = 'update'
 UPGRADE_QUEUE = 'upgrade'
 FFWD_UPGRADE_QUEUE = 'ffwdupgrade'
-CEPH_UPGRADE_QUEUE = 'cephupgrade'
 EXTERNAL_UPDATE_QUEUE = 'externalupdate'
 EXTERNAL_UPGRADE_QUEUE = 'externalupgrade'
 STACK_TIMEOUT = 240
@@ -71,7 +70,6 @@ FFWD_UPGRADE_CONVERGE_ENV = "environments/lifecycle/ffwd-upgrade-converge.yaml"
 FFWD_UPGRADE_PREPARE_SCRIPT = ("#!/bin/bash \n"
                                "rm -f /usr/libexec/os-apply-config/templates/"
                                "etc/os-net-config/config.json || true \n")
-CEPH_UPGRADE_PREPARE_ENV = "environments/lifecycle/ceph-upgrade-prepare.yaml"
 
 ENABLE_SSH_ADMIN_TIMEOUT = 300
 ENABLE_SSH_ADMIN_STATUS_INTERVAL = 5

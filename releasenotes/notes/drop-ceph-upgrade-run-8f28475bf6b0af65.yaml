@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    The `openstack overcloud ceph-upgrade run` command no longer works
+    in Rocky due to internal changes to TripleO (more direct execution
+    of Ansible). The command has been removed from the CLI. Ceph
+    update/upgrade in Rocky is meant to be performed via `openstack
+    overcloud external-update run` and `openstack overcloud
+    external-upgrade run` commands, respectively.
