@@ -971,6 +971,13 @@ class Deploy(command.Command):
         self.log.error(json.dumps(failures.get(name, {}), indent=1))
 
     def _standalone_deploy(self, parsed_args):
+        # NOTE(aschultz): the tripleo deploy interface is experimental but only
+        # when not being invoked via undercloud install. Print a warning...
+        if parsed_args.standalone_role != 'Undercloud' and \
+                parsed_args.stack != 'undercloud':
+            self.log.warning('[EXPERIMENTAL] The tripleo deploy interface is '
+                             'an experimental interface. It may change in the '
+                             'next release.')
         if not parsed_args.local_ip:
             msg = _('Please set --local-ip to the correct '
                     'ipaddress/cidr for this machine.')
