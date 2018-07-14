@@ -51,26 +51,25 @@ from tripleo_common.inventory import TripleoInventory
 from tripleo_common.utils import config
 
 DEPLOY_FAILURE_MESSAGE = """
-##########################################################
-containerized undercloud deployment failed.
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+Deployment Failed!
 
 ERROR: Heat log files: {0}
 
-See the previous output for details about what went wrong.
-
-##########################################################
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 """
 DEPLOY_COMPLETION_MESSAGE = """
 ########################################################
-containerized undercloud deployment complete.
 
-Useful files:
+Deployment successfull!
 
-Password file is at {0}
-The stackrc file is at {1}
+########################################################
+"""
+OUTPUT_ONLY_COMPLETION_MESSAGE = """
+########################################################
 
-Use these files to interact with OpenStack services, and
-ensure they are secured.
+Deployment information successfully generated!
 
 ########################################################
 """
@@ -1124,11 +1123,15 @@ class Deploy(command.Command):
                 raise exceptions.DeploymentError('Deployment failed.')
             else:
                 # We only get here if no errors
-                self.log.warning(DEPLOY_COMPLETION_MESSAGE.format(
-                    '~/undercloud-passwords.conf',
-                    '~/stackrc'
-                    ))
+                if parsed_args.output_only:
+                    success_messaging = OUTPUT_ONLY_COMPLETION_MESSAGE
+                else:
+                    success_messaging = DEPLOY_COMPLETION_MESSAGE.format(
+                        '~/undercloud-passwords.conf',
+                        '~/stackrc'
+                        )
 
+                self.log.warning(success_messaging)
                 if (self.stack_update_mark and
                    (not parsed_args.output_only or
                        parsed_args.force_stack_update)):

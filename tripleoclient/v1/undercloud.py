@@ -25,8 +25,50 @@ from oslo_config import cfg
 
 from tripleoclient import command
 from tripleoclient import constants
+from tripleoclient import exceptions
 from tripleoclient import utils
 from tripleoclient.v1 import undercloud_config
+
+UNDERCLOUD_FAILURE_MESSAGE = """
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+An error has occured while deploying the Undercloud.
+
+See the previous output for details about what went wrong.
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+"""
+
+UNDERCLOUD_COMPLETION_MESSAGE = """
+##########################################################
+
+The Undercloud has been successfully installed.
+
+Useful files:
+
+Password file is at {0}
+The stackrc file is at {1}
+
+Use these files to interact with OpenStack services, and
+ensure they are secured.
+
+##########################################################
+"""
+UNDERCLOUD_UPGRADE_COMPLETION_MESSAGE = """
+##########################################################
+
+The Undercloud has been successfully upgraded.
+
+Useful files:
+
+Password file is at {0}
+The stackrc file is at {1}
+
+Use these files to interact with OpenStack services, and
+ensure they are secured.
+
+##########################################################
+"""
 
 
 class InstallUndercloud(command.Command):
@@ -110,7 +152,18 @@ class InstallUndercloud(command.Command):
 
         self.log.warning("Running: %s" % ' '.join(cmd))
         if not parsed_args.dry_run:
-            subprocess.check_call(cmd)
+            try:
+                subprocess.check_call(cmd)
+                self.log.warning(UNDERCLOUD_COMPLETION_MESSAGE.format(
+                    '~/undercloud-passwords.conf',
+                    '~/stackrc'
+                    ))
+            except Exception as e:
+                self.log.error(UNDERCLOUD_FAILURE_MESSAGE.format(
+                    self.heat_launch.install_tmp
+                    ))
+                self.log.error(e)
+                raise exceptions.DeploymentError(e)
 
 
 class UpgradeUndercloud(InstallUndercloud):
@@ -156,4 +209,15 @@ class UpgradeUndercloud(InstallUndercloud):
                     verbose_level=self.app_args.verbose_level,
                     force_stack_update=parsed_args.force_stack_update)
             self.log.warning("Running: %s" % ' '.join(cmd))
-            subprocess.check_call(cmd)
+            try:
+                subprocess.check_call(cmd)
+                self.log.warning(UNDERCLOUD_UPGRADE_COMPLETION_MESSAGE.format(
+                    '~/undercloud-passwords.conf',
+                    '~/stackrc'
+                    ))
+            except Exception as e:
+                self.log.error(UNDERCLOUD_FAILURE_MESSAGE.format(
+                    self.heat_launch.install_tmp
+                    ))
+                self.log.error(e)
+                raise exceptions.DeploymentError(e)
