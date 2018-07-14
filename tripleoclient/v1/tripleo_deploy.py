@@ -221,22 +221,34 @@ class Deploy(command.Command):
             self.tmp_ansible_dir = tempfile.mkdtemp(
                 prefix='undercloud-ansible-', dir=self.output_dir)
 
-    def _populate_templates_dir(self, source_templates_dir):
-        """Creates template dir with templates
+    def _populate_templates_dir(self, source_templates_dir, user=None):
+        """Creates templates dir containing TripleO Heat Templates
 
-        * Copy --templates content into a working dir
+        * If source_templates_dir does not exist, create it and populate from
+          the t-h-t system directory (installed from RPM). This may be the
+          case for mixed UC/OC deployments or upgrades, which require different
+          versions of t-h-t.
+        * Always copy source_templates_dir into the working dir
           created as 'output_dir/tripleo-heat-installer-templates'.
 
         :param source_templates_dir: string to a directory containing our
                                      source templates
         """
+        # NOTE(bogdando): this ensures self.tht_render defined and its target
+        # directory is purged for a new clear run of _populate_templates_dir
         self._create_working_dirs()
         if not os.path.exists(source_templates_dir):
-            raise exceptions.NotFound("%s template director does not exists" %
-                                      source_templates_dir)
-        if not os.path.exists(self.tht_render):
-            shutil.copytree(source_templates_dir, self.tht_render,
-                            symlinks=True)
+            self.log.warning(
+                _("%s template directory does not exists. "
+                  "A new directory will be populated from the "
+                  "TripleO Heat Templates system directory.") %
+                source_templates_dir)
+            shutil.copytree(constants.TRIPLEO_HEAT_TEMPLATES,
+                            source_templates_dir, symlinks=True)
+            self._set_data_rights(source_templates_dir, user=user, mode=0o700)
+
+        shutil.copytree(source_templates_dir, self.tht_render,
+                        symlinks=True)
 
     def _cleanup_working_dirs(self, cleanup=False, user=None):
         """Cleanup temporary working directories
@@ -987,7 +999,8 @@ class Deploy(command.Command):
         self._configure_puppet()
 
         # copy the templates dir in place
-        self._populate_templates_dir(parsed_args.templates)
+        self._populate_templates_dir(parsed_args.templates,
+                                     parsed_args.deployment_user)
 
         # configure our roles data
         self._set_roles_file(parsed_args.roles_file, self.tht_render)

@@ -107,25 +107,35 @@ class TestDeployUndercloud(TestPluginV1):
         mock_data.return_value = [{'name': 'Bar'}, {'name': 'Foo'}]
         self.assertEqual(self.cmd._get_primary_role_name(), 'Bar')
 
-    @mock.patch('os.path.exists', side_effect=[True, False])
+    @mock.patch('os.path.exists', return_value=True)
     @mock.patch('shutil.copytree')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_create_working_dirs')
-    def test_populate_templates_dir(self, mock_workingdirs, mock_copy,
-                                    mock_exists):
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_set_data_rights')
+    def test_populate_templates_dir(self, mock_rights, mock_workingdirs,
+                                    mock_copy, mock_exists):
         self.cmd.tht_render = '/foo'
         self.cmd._populate_templates_dir('/bar')
         mock_workingdirs.assert_called_once()
         mock_copy.assert_called_once_with('/bar', '/foo', symlinks=True)
 
     @mock.patch('os.path.exists', return_value=False)
+    @mock.patch('shutil.copytree')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_create_working_dirs')
-    def test_populate_templates_dir_bad_source(self, mock_workingdirs,
-                                               mock_exists):
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_set_data_rights')
+    def test_populate_templates_dir_no_source(self, mock_rights,
+                                              mock_workingdirs, mock_copy,
+                                              mock_exists):
         self.cmd.tht_render = '/foo'
-        self.assertRaises(exceptions.NotFound,
-                          self.cmd._populate_templates_dir, '/foo')
+        self.cmd._populate_templates_dir('/bar')
+        mock_workingdirs.assert_called_once()
+        mock_copy.assert_has_calls([
+            mock.call(constants.TRIPLEO_HEAT_TEMPLATES,
+                      '/bar', symlinks=True),
+            mock.call('/bar', '/foo', symlinks=True)])
 
     # TODO(cjeanner) drop once we have proper oslo.privsep
     @mock.patch('getpass.getuser', return_value='stack')
