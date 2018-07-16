@@ -652,9 +652,12 @@ class TestDeployUndercloud(TestPluginV1):
     @mock.patch('tripleoclient.v1.tripleo_deploy.'
                 'event_utils.poll_for_events',
                 return_value=('CREATE_COMPLETE', 0))
-    def test_take_action_standalone(self, mock_poll, mock_environ,
-                                    mock_geteuid, mock_puppet, mock_killheat,
-                                    mock_launchheat, mock_download, mock_tht,
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_set_default_plan')
+    def test_take_action_standalone(self, mock_def_plan, mock_poll,
+                                    mock_environ, mock_geteuid, mock_puppet,
+                                    mock_killheat, mock_launchheat,
+                                    mock_download, mock_tht,
                                     mock_wait_for_port, mock_createdirs,
                                     mock_cleanupdirs, mock_launchansible,
                                     mock_tarball, mock_templates_dir,

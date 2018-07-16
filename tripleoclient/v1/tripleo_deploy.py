@@ -249,6 +249,17 @@ class Deploy(command.Command):
         shutil.copytree(source_templates_dir, self.tht_render,
                         symlinks=True)
 
+    def _set_default_plan(self):
+        """Populate default plan-environment.yaml and capabilities-map.yaml."""
+        if not os.path.isfile(os.path.join(self.tht_render,
+                              'plan-environment.yaml')):
+            shutil.copy(os.path.join(self.tht_render, 'plan-samples',
+                        'openstack', 'plan-environment.yaml'), self.tht_render)
+        if not os.path.isfile(os.path.join(self.tht_render,
+                              'capabilities-map.yaml')):
+            shutil.copy(os.path.join(self.tht_render, 'plan-samples',
+                        'openstack', 'capabilities-map.yaml'), self.tht_render)
+
     def _cleanup_working_dirs(self, cleanup=False, user=None):
         """Cleanup temporary working directories
 
@@ -1007,6 +1018,9 @@ class Deploy(command.Command):
         # copy the templates dir in place
         self._populate_templates_dir(parsed_args.templates,
                                      parsed_args.deployment_user)
+
+        # Set default plan if not specified by user
+        self._set_default_plan()
 
         # configure our roles data
         self._set_roles_file(parsed_args.roles_file, self.tht_render)
