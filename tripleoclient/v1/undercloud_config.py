@@ -568,8 +568,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
     # Always add a drop-in for the ephemeral undercloud heat stack
     # virtual state tracking (the actual file will be created later)
     stack_vstate_dropin = os.path.join(
-        CONF.get('templates') or constants.TRIPLEO_HEAT_TEMPLATES,
-        'undercloud-stack-vstate-dropin.yaml')
+        tht_templates, 'undercloud-stack-vstate-dropin.yaml')
     deploy_args += ["-e", stack_vstate_dropin]
     if force_stack_update:
         deploy_args += ["--force-stack-update"]
