@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Allow the operators to override the INSECURE_REGISTRY parameter without
+    hardcoding the local_ip and the admin VIP in all the cases.
+    If the operators want to override the whole parameter, they now can with
+    docker_insecure_registries parameter in undercloud.conf.
