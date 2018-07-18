@@ -263,9 +263,9 @@ class TestUploadOvercloudImage(TestPluginV1):
         self.assertEqual(mock_subprocess_call.call_count, 2)
         mock_subprocess_call.assert_has_calls([
             mock.call('sudo cp -f "./ironic-python-agent.kernel" '
-                      '"/httpboot/agent.kernel"', shell=True),
+                      '"/var/lib/ironic/httpboot/agent.kernel"', shell=True),
             mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
-                      '"/httpboot/agent.ramdisk"', shell=True)
+                      '"/var/lib/ironic/httpboot/agent.ramdisk"', shell=True)
         ])
 
     @mock.patch('os.path.isfile', autospec=True)
@@ -371,9 +371,9 @@ class TestUploadOvercloudImage(TestPluginV1):
         self.assertEqual(mock_subprocess_call.call_count, 2)
         mock_subprocess_call.assert_has_calls([
             mock.call('sudo cp -f "./ironic-python-agent.kernel" '
-                      '"/httpboot/agent.kernel"', shell=True),
+                      '"/var/lib/ironic/httpboot/agent.kernel"', shell=True),
             mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
-                      '"/httpboot/agent.ramdisk"', shell=True)
+                      '"/var/lib/ironic/httpboot/agent.ramdisk"', shell=True)
         ])
 
     @mock.patch('os.path.isfile')
@@ -524,9 +524,9 @@ class TestUploadOvercloudImageFull(TestPluginV1):
         self.assertEqual(mock_subprocess_call.call_count, 2)
         mock_subprocess_call.assert_has_calls([
             mock.call('sudo cp -f "./ironic-python-agent.kernel" '
-                      '"/httpboot/agent.kernel"', shell=True),
+                      '"/var/lib/ironic/httpboot/agent.kernel"', shell=True),
             mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
-                      '"/httpboot/agent.ramdisk"', shell=True)
+                      '"/var/lib/ironic/httpboot/agent.ramdisk"', shell=True)
         ])
 
     @mock.patch('os.path.isfile', autospec=True)
@@ -574,9 +574,9 @@ class TestUploadOvercloudImageFull(TestPluginV1):
         self.assertEqual(mock_subprocess_call.call_count, 2)
         mock_subprocess_call.assert_has_calls([
             mock.call('sudo cp -f "./ironic-python-agent.kernel" '
-                      '"/httpboot/agent.kernel"', shell=True),
+                      '"/var/lib/ironic/httpboot/agent.kernel"', shell=True),
             mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
-                      '"/httpboot/agent.ramdisk"', shell=True)
+                      '"/var/lib/ironic/httpboot/agent.ramdisk"', shell=True)
         ])
 
     @mock.patch('os.path.isfile', autospec=True)
@@ -735,9 +735,9 @@ class TestUploadOvercloudImageFullMultiArch(TestPluginV1):
         self.assertEqual(mock_subprocess_call.call_count, 4)
         mock_subprocess_call.assert_has_calls([
             mock.call('sudo cp -f "./ironic-python-agent.kernel" '
-                      '"/httpboot/agent.kernel"', shell=True),
+                      '"/var/lib/ironic/httpboot/agent.kernel"', shell=True),
             mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
-                      '"/httpboot/agent.ramdisk"', shell=True),
+                      '"/var/lib/ironic/httpboot/agent.ramdisk"', shell=True),
             mock.call('sudo cp -f "./ironic-python-agent.kernel" '
                       '"/httpboot/ppc64le/agent.kernel"', shell=True),
             mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
@@ -831,9 +831,9 @@ class TestUploadOvercloudImageFullMultiArch(TestPluginV1):
         self.assertEqual(mock_subprocess.call_count, 6)
         mock_subprocess.assert_has_calls([
             mock.call('sudo cp -f "./ironic-python-agent.kernel" '
-                      '"/httpboot/agent.kernel"', shell=True),
+                      '"/var/lib/ironic/httpboot/agent.kernel"', shell=True),
             mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
-                      '"/httpboot/agent.ramdisk"', shell=True),
+                      '"/var/lib/ironic/httpboot/agent.ramdisk"', shell=True),
             mock.call('sudo cp -f "./ironic-python-agent.kernel" '
                       '"/httpboot/ppc64le/agent.kernel"', shell=True),
             mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
