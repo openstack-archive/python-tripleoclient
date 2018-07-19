@@ -810,6 +810,14 @@ class DeployOvercloud(command.Command):
                    'specified, the default server side value '
                    'will be used (/var/lib/mistral/<execution id>.')
         )
+        parser.add_argument(
+            '--override-ansible-cfg',
+            action='store',
+            default=None,
+            help=_('Path to ansible configuration file. The configuration '
+                   'in the file will override any configuration used by '
+                   'config-download by default.')
+        )
         return parser
 
     def take_action(self, parsed_args):
@@ -891,6 +899,7 @@ class DeployOvercloud(command.Command):
                                        parsed_args.overcloud_ssh_key,
                                        parsed_args.overcloud_ssh_network,
                                        parsed_args.output_dir,
+                                       parsed_args.override_ansible_cfg,
                                        verbosity=self.app_args.verbose_level)
 
         # Force fetching of attributes
