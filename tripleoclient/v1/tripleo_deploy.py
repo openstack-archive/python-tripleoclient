@@ -137,6 +137,18 @@ class Deploy(command.Command):
         else:
             self.roles_file = os.path.join(templates_dir, file_name)
 
+    def _set_stack_action(self, parsed_args):
+        """Set the stack action for deployment"""
+        # Prepare the heat stack action we want to start deployment with
+        if ((os.path.isfile(self.stack_update_mark) or
+           parsed_args.force_stack_update) and
+           not parsed_args.force_stack_create):
+            self.stack_action = 'UPDATE'
+
+        self.log.warning(
+            _('The heat stack {0} action is {1}').format(
+                parsed_args.stack, self.stack_action))
+
     def _get_roles_data(self):
         """Load the roles data for deployment"""
         # only load once
@@ -775,16 +787,6 @@ class Deploy(command.Command):
                             help=_("Name for the ephemeral (one-time create "
                                    "and forget) heat stack."),
                             default='standalone')
-        parser.add_argument('--force-stack-update',
-                            dest='force_stack_update',
-                            action='store_true',
-                            default=False,
-                            help=_("Do a virtual update of the ephemeral "
-                                   "heat stack (it cannot take real updates). "
-                                   "New or failed deployments "
-                                   "always have the stack_action=CREATE. This "
-                                   "option enforces stack_action=UPDATE."),
-                            )
         parser.add_argument('--output-dir',
                             dest='output_dir',
                             help=_("Directory to output state, processed heat "
@@ -918,6 +920,30 @@ class Deploy(command.Command):
                    'openstack stack list\n '
                    'where 8006 is the port specified by --heat-api-port.')
         )
+
+        stack_action_group = parser.add_mutually_exclusive_group()
+
+        stack_action_group.add_argument(
+            '--force-stack-update',
+            dest='force_stack_update',
+            action='store_true',
+            default=False,
+            help=_("Do a virtual update of the ephemeral "
+                   "heat stack (it cannot take real updates). "
+                   "New or failed deployments "
+                   "always have the stack_action=CREATE. This "
+                   "option enforces stack_action=UPDATE."),
+        )
+        stack_action_group.add_argument(
+            '--force-stack-create',
+            dest='force_stack_create',
+            action='store_true',
+            default=False,
+            help=_("Do a virtual create of the ephemeral "
+                   "heat stack. New or failed deployments "
+                   "always have the stack_action=CREATE. This "
+                   "option enforces stack_action=CREATE."),
+        )
         return parser
 
     def _process_hieradata_overrides(self, override_file=None,
@@ -1037,14 +1063,7 @@ class Deploy(command.Command):
                 constants.STANDALONE_EPHEMERAL_STACK_VSTATE,
                 mark_uuid)
 
-            # Prepare the heat stack action we want to start deployment with
-            if (os.path.isfile(self.stack_update_mark) or
-               parsed_args.force_stack_update):
-                self.stack_action = 'UPDATE'
-
-            self.log.warning(
-                _('The heat stack {0} action is {1}').format(
-                    parsed_args.stack, self.stack_action))
+            self._set_stack_action(parsed_args)
 
             # Launch heat.
             orchestration_client = self._launch_heat(parsed_args)

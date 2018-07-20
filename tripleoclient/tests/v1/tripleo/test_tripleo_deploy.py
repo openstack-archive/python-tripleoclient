@@ -715,3 +715,63 @@ class TestDeployUndercloud(TestPluginV1):
                                          '--standalone'], [])
         self.assertRaises(exceptions.DeploymentError,
                           self.cmd.take_action, parsed_args)
+
+    @mock.patch('os.path.isfile', return_value=False)
+    def test_set_stack_action_default_create(self, mock_isfile):
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--local-ip', '127.0.0.1',
+                                         '--templates', '/tmp/thtroot',
+                                         '--stack', 'undercloud',
+                                         '--output-dir', '/my',
+                                         '--standalone'], [])
+        self.cmd._set_stack_action(parsed_args)
+        self.assertEqual('CREATE', self.cmd.stack_action)
+
+    @mock.patch('os.path.isfile', return_value=True)
+    def test_set_stack_action_default_update(self, mock_isfile):
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--local-ip', '127.0.0.1',
+                                         '--templates', '/tmp/thtroot',
+                                         '--stack', 'undercloud',
+                                         '--output-dir', '/my',
+                                         '--standalone'], [])
+        self.cmd._set_stack_action(parsed_args)
+        self.assertEqual('UPDATE', self.cmd.stack_action)
+
+    @mock.patch('os.path.isfile', return_value=False)
+    def test_set_stack_action_force_update(self, mock_isfile):
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--local-ip', '127.0.0.1',
+                                         '--templates', '/tmp/thtroot',
+                                         '--stack', 'undercloud',
+                                         '--output-dir', '/my',
+                                         '--standalone',
+                                         '--force-stack-update'], [])
+        self.cmd._set_stack_action(parsed_args)
+        self.assertEqual('UPDATE', self.cmd.stack_action)
+
+    @mock.patch('os.path.isfile', return_value=True)
+    def test_set_stack_action_force_create(self, mock_isfile):
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--local-ip', '127.0.0.1',
+                                         '--templates', '/tmp/thtroot',
+                                         '--stack', 'undercloud',
+                                         '--output-dir', '/my',
+                                         '--standalone',
+                                         '--force-stack-create'], [])
+        self.cmd._set_stack_action(parsed_args)
+        self.assertEqual('CREATE', self.cmd.stack_action)
+
+    @mock.patch('os.path.isfile', return_value=True)
+    def test_set_stack_action_mutually_exclusive(self, mock_isfile):
+        self.assertRaises(
+            SystemExit,
+            self.check_parser,
+            self.cmd,
+            ['--local-ip', '127.0.0.1',
+             '--templates', '/tmp/thtroot',
+             '--stack', 'undercloud',
+             '--output-dir', '/my',
+             '--standalone',
+             '--force-stack-create',
+             '--force-stack-update'], [])
