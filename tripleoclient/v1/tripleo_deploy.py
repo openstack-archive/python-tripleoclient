@@ -89,6 +89,7 @@ class Deploy(command.Command):
     stack_update_mark = None
     stack_action = 'CREATE'
     deployment_user = None
+    ansible_dir = None
 
     # NOTE(cjeanner) Quick'n'dirty way before we have proper
     # escalation support through oslo.privsep
@@ -1083,7 +1084,7 @@ class Deploy(command.Command):
                 raise exceptions.DeploymentError(message)
 
             # download the ansible playbooks and execute them.
-            ansible_dir = \
+            self.ansible_dir = \
                 self._download_ansible_playbooks(orchestration_client,
                                                  parsed_args.stack,
                                                  parsed_args.standalone_role)
@@ -1098,14 +1099,14 @@ class Deploy(command.Command):
                 # FIXME(bogdando): unhardcode key/transport for future
                 # multi-node
                 ansible.write_default_ansible_cfg(
-                    ansible_dir,
+                    self.ansible_dir,
                     parsed_args.deployment_user,
                     ssh_private_key=None,
                     transport='local')
             else:
                 self.log.warning(
                     _('Using the existing %s for deployment') % ansible_config)
-                shutil.copy(ansible_config, ansible_dir)
+                shutil.copy(ansible_config, self.ansible_dir)
 
             # Kill heat, we're done with it now.
             if not parsed_args.keep_running:
@@ -1113,10 +1114,10 @@ class Deploy(command.Command):
             if not parsed_args.output_only:
                 # Run Upgrade tasks before the deployment
                 if parsed_args.upgrade:
-                    rc = self._launch_ansible_upgrade(ansible_dir)
+                    rc = self._launch_ansible_upgrade(self.ansible_dir)
                     if rc != 0:
                         raise exceptions.DeploymentError('Upgrade failed')
-                rc = self._launch_ansible_deploy(ansible_dir)
+                rc = self._launch_ansible_deploy(self.ansible_dir)
         except Exception as e:
             self.log.error("Exception: %s" % six.text_type(e))
             raise exceptions.DeploymentError(six.text_type(e))
@@ -1125,10 +1126,11 @@ class Deploy(command.Command):
                 self._kill_heat(parsed_args)
             tar_filename = \
                 self._create_install_artifact(parsed_args.deployment_user)
-            self._dump_ansible_errors(
-                os.path.join(ansible_dir,
-                             tc_constants.ANSIBLE_ERRORS_FILE),
-                parsed_args.stack)
+            if self.ansible_dir:
+                self._dump_ansible_errors(
+                    os.path.join(self.ansible_dir,
+                                 tc_constants.ANSIBLE_ERRORS_FILE),
+                    parsed_args.stack)
             self._cleanup_working_dirs(
                 cleanup=parsed_args.cleanup,
                 user=parsed_args.deployment_user
