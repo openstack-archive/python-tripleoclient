@@ -841,9 +841,10 @@ class Deploy(command.Command):
         parser.add_argument(
             '--deployment-user',
             dest='deployment_user',
-            default='stack',
+            default=os.environ.get('SUDO_USER', 'stack'),
             help=_('User who executes the tripleo deploy command. '
-                   'Defaults to stack.')
+                   'Defaults to $SUDO_USER. If $SUDO_USER is unset '
+                   'it defaults to stack.')
         )
         parser.add_argument(
             '--heat-container-image', metavar='<HEAT_CONTAINER_IMAGE>',
