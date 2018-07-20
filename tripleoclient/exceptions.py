@@ -13,8 +13,6 @@
 #   under the License.
 #
 
-import sys
-import traceback
 
 """Exception definitions"""
 
@@ -38,7 +36,6 @@ class NotFound(Exception):
 class DeploymentError(RuntimeError):
     """Deployment failed"""
     def __init__(self, *args, **kwargs):
-        traceback.format_exception(*sys.exc_info())
         super(RuntimeError, self).__init__(*args, **kwargs)
 
 
