@@ -1,0 +1,11 @@
+---
+upgrade:
+  - |
+    The `--ceph-ansible-playbook` parameter has been removed from all
+    update- and upgrade-related commands. The parameter is not
+    necessary anymore, as the right playbook should be selected
+    automatically (but for cases when control is needed, overriding
+    CephAnsiblePlaybook parameter via environment file will still take
+    priority). Furthermore, the `--ceph-ansible-playbook` CLI
+    parameter was attempting to override the detection logic which
+    selects desired ceph-ansible playbook.

@@ -75,8 +75,6 @@ class TestOvercloudUpdatePrepare(fakes.TestOvercloudUpdatePrepare):
                 self.app.client_manager,
                 container='overcloud',
                 container_registry={'fake_container': 'fake_value'},
-                ceph_ansible_playbook='/usr/share/ceph-ansible'
-                                      '/site-docker.yml.sample'
             )
 
     @mock.patch('tripleoclient.workflows.package_update.update',

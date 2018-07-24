@@ -47,13 +47,6 @@ class UpdatePrepare(DeployOvercloud):
                             help=_("File which contains the container "
                                    "registry data for the update"),
                             )
-        parser.add_argument('--ceph-ansible-playbook',
-                            action="store",
-                            default="/usr/share/ceph-ansible"
-                                    "/site-docker.yml.sample",
-                            help=_('Path to switch the ceph-ansible playbook '
-                                   'used for update. '),
-                            )
         return parser
 
     def take_action(self, parsed_args):
@@ -67,9 +60,6 @@ class UpdatePrepare(DeployOvercloud):
         registry = oooutils.load_container_registry(
             self.log, parsed_args.container_registry_file)
 
-        # Run update
-        ceph_ansible_playbook = parsed_args.ceph_ansible_playbook
-        # Run Overcloud deploy (stack update)
         # In case of update and upgrade we need to force the
         # update_plan_only. The heat stack update is done by the
         # packag_update mistral action
@@ -84,8 +74,7 @@ class UpdatePrepare(DeployOvercloud):
 
         super(UpdatePrepare, self).take_action(parsed_args)
         package_update.update(clients, container=stack_name,
-                              container_registry=registry,
-                              ceph_ansible_playbook=ceph_ansible_playbook)
+                              container_registry=registry)
         package_update.get_config(clients, container=stack_name)
         self.log.info("Update init on stack {0} complete.".format(
                       parsed_args.stack))
