@@ -27,6 +27,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import traceback
 import yaml
 
 from cliff import command
@@ -1107,6 +1108,7 @@ class Deploy(command.Command):
                 rc = self._launch_ansible_deploy(self.ansible_dir)
         except Exception as e:
             self.log.error("Exception: %s" % six.text_type(e))
+            self.log.error(traceback.print_exc())
             raise exceptions.DeploymentError(six.text_type(e))
         finally:
             if not parsed_args.keep_running:
