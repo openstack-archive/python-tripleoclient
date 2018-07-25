@@ -272,6 +272,30 @@ def config_download(log, clients, stack, templates,
         raise exceptions.DeploymentError("Overcloud configuration failed.")
 
 
+def config_download_export(clients, **workflow_input):
+    workflow_client = clients.workflow_engine
+    tripleoclients = clients.tripleoclient
+
+    execution = base.start_workflow(
+        workflow_client,
+        'tripleo.deployment.v1.config_download_export',
+        workflow_input=workflow_input
+    )
+
+    with tripleoclients.messaging_websocket() as ws:
+        for payload in base.wait_for_messages(workflow_client, ws, execution,
+                                              _WORKFLOW_TIMEOUT):
+            if 'message' in payload:
+                print(payload['message'])
+
+    if payload['status'] == 'SUCCESS':
+        return payload['tempurl']
+    else:
+        raise exceptions.WorkflowServiceError(
+            'Exception exporting config-download: {}'.format(
+                payload['message']))
+
+
 def get_horizon_url(clients, **workflow_input):
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
