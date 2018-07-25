@@ -410,15 +410,13 @@ class TestTripleoImagePrepareDefault(TestPluginV1):
         }
         self.assertEqual(expected, yaml.safe_load(result))
 
-    @mock.patch('tripleo_common.image.image_uploader.get_undercloud_registry')
-    def test_prepare_default_local_registry(self, mock_gur):
+    def test_prepare_default_local_registry(self):
         temp = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, temp)
         env_file = os.path.join(temp, 'containers_env.yaml')
 
         arglist = ['--local-push-destination', '--output-env-file', env_file]
         verifylist = []
-        mock_gur.return_value = '192.0.2.1:8787'
 
         self.app.command_options = [
             'tripleo', 'container', 'image', 'prepare', 'default'
@@ -431,7 +429,7 @@ class TestTripleoImagePrepareDefault(TestPluginV1):
         with open(env_file) as f:
             result = yaml.safe_load(f)
         self.assertEqual(
-            '192.0.2.1:8787',
+            True,
             result['parameter_defaults']['ContainerImagePrepare']
             [0]['push_destination']
         )
