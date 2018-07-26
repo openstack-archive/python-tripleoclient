@@ -1,0 +1,6 @@
+---
+fixes:
+  - The timeout specified with --timeout will now be honored with
+    config-download. An additional cli arg, --config-download-timeout is also
+    added that can be used to specify a specific timeout (in minutes) just for
+    the config-download part of the deployment.
