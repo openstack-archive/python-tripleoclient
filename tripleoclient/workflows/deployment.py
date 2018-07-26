@@ -243,15 +243,16 @@ def enable_ssh_admin(log, clients, hosts, ssh_user, ssh_key):
 
 
 def config_download(log, clients, stack, templates,
-                    ssh_user, ssh_key, ssh_network, output_dir,
-                    override_ansible_cfg, verbosity=1):
+                    ssh_user, ssh_key, ssh_network,
+                    output_dir, override_ansible_cfg, timeout, verbosity=1):
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
 
     workflow_input = {
         'verbosity': verbosity or 1,
         'plan_name': stack.stack_name,
-        'ssh_network': ssh_network
+        'ssh_network': ssh_network,
+        'config_download_timeout': timeout
     }
     if output_dir:
         workflow_input.update(dict(work_dir=output_dir))

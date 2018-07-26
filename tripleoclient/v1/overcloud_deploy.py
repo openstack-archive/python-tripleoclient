@@ -24,6 +24,7 @@ import re
 import shutil
 import six
 import tempfile
+import time
 import yaml
 
 from heatclient.common import template_utils
@@ -820,6 +821,14 @@ class DeployOvercloud(command.Command):
                    'in the file will override any configuration used by '
                    'config-download by default.')
         )
+        parser.add_argument(
+            '--config-download-timeout',
+            action='store',
+            default=None,
+            help=_('Timeout (in minutes) to use for config-download steps. If '
+                   'unset, will default to however much time is leftover '
+                   'from the --timeout parameter after the stack operation.')
+        )
         return parser
 
     def take_action(self, parsed_args):
@@ -873,6 +882,8 @@ class DeployOvercloud(command.Command):
             print("Validation Finished")
             return
 
+        start = time.time()
+
         if not parsed_args.config_download_only:
             self._deploy_tripleo_heat_templates_tmpdir(stack, parsed_args)
 
@@ -895,6 +906,13 @@ class DeployOvercloud(command.Command):
                                         hosts,
                                         parsed_args.overcloud_ssh_user,
                                         parsed_args.overcloud_ssh_key)
+
+            if parsed_args.config_download_timeout:
+                timeout = parsed_args.config_download_timeout * 60
+            else:
+                used = int(time.time() - start)
+                timeout = (parsed_args.timeout * 60) - used
+
             deployment.config_download(self.log, self.clients, stack,
                                        parsed_args.templates,
                                        parsed_args.overcloud_ssh_user,
@@ -902,6 +920,7 @@ class DeployOvercloud(command.Command):
                                        parsed_args.overcloud_ssh_network,
                                        parsed_args.output_dir,
                                        parsed_args.override_ansible_cfg,
+                                       timeout,
                                        verbosity=self.app_args.verbose_level)
 
         # Force fetching of attributes
