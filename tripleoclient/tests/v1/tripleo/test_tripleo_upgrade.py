@@ -19,6 +19,7 @@ from osc_lib.tests import utils
 import six
 
 # Load the plugin init module for the plugin list and show commands
+from tripleoclient import exceptions
 from tripleoclient.v1 import tripleo_upgrade
 
 
@@ -46,6 +47,13 @@ class TestUpgrade(utils.TestCommand):
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.take_action',
                 autospec=True)
     def test_take_action(self, mock_deploy):
+        verifylist = [
+            ('local_ip', '127.0.0.1'),
+            ('templates', '/tmp/thtroot'),
+            ('stack', 'undercloud'),
+            ('output_dir', '/my'),
+        ]
+
         parsed_args = self.check_parser(self.cmd,
                                         ['--local-ip', '127.0.0.1',
                                          '--templates', '/tmp/thtroot',
@@ -56,9 +64,11 @@ class TestUpgrade(utils.TestCommand):
                                          '-e', '/tmp/thtroot42/notouch.yaml',
                                          '-e', '~/custom.yaml',
                                          '-e', 'something.yaml',
-                                         '-e', '../../../outside.yaml'], [])
+                                         '-e', '../../../outside.yaml'],
+                                        verifylist)
+
         self.cmd.take_action(parsed_args)
-        parsed_args.standlone = True
+        parsed_args.standalone = True
         parsed_args.upgrade = True
         mock_deploy.assert_called_with(self.cmd, parsed_args)
 
@@ -101,8 +111,33 @@ class TestUpgrade(utils.TestCommand):
                                          '-e', '~/custom.yaml',
                                          '-e', 'something.yaml',
                                          '-e', '../../../outside.yaml'], [])
-        self.cmd.take_action(parsed_args)
         parsed_args.standlone = True
         parsed_args.upgrade = True
+        self.assertRaises(exceptions.UndercloudUpgradeNotConfirmed,
+                          self.cmd.take_action, parsed_args)
+        mock_stdin.readline.assert_called_with()
+        mock_deploy.assert_not_called()
+
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy',
+                autospec=True)
+    @mock.patch('sys.stdin', spec=six.StringIO)
+    def test_take_action_prompt_invalid_option(self, mock_stdin, mock_deploy):
+        mock_stdin.isatty.return_value = True
+        mock_stdin.readline.return_value = 'Dontwant'
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--local-ip', '127.0.0.1',
+                                         '--templates', '/tmp/thtroot',
+                                         '--stack', 'undercloud',
+                                         '--output-dir', '/my',
+                                         '-e', '/tmp/thtroot/puppet/foo.yaml',
+                                         '-e', '/tmp/thtroot//docker/bar.yaml',
+                                         '-e', '/tmp/thtroot42/notouch.yaml',
+                                         '-e', '~/custom.yaml',
+                                         '-e', 'something.yaml',
+                                         '-e', '../../../outside.yaml'], [])
+        parsed_args.standlone = True
+        parsed_args.upgrade = True
+        self.assertRaises(exceptions.UndercloudUpgradeNotConfirmed,
+                          self.cmd.take_action, parsed_args)
         mock_stdin.readline.assert_called_with()
         mock_deploy.assert_not_called()

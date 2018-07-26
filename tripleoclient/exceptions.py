@@ -106,3 +106,7 @@ class LogFetchError(Exception):
 
 class ContainerDeleteFailed(Exception):
     """Container deletion failed"""
+
+
+class UndercloudUpgradeNotConfirmed(Exception):
+    """Undercloud upgrade security question not confirmed."""
