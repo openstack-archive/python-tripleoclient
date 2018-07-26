@@ -843,3 +843,120 @@ class TestUploadOvercloudImageFullMultiArch(TestPluginV1):
             mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
                       '"/httpboot/p9-ppc64le/agent.ramdisk"', shell=True),
         ])
+
+
+class TestUploadOnlyExisting(TestPluginV1):
+    def setUp(self):
+        super(TestUploadOnlyExisting, self).setUp()
+
+        # Get the command object to test
+        self.cmd = overcloud_image.UploadOvercloudImage(self.app, None)
+        self.app.client_manager.image = mock.Mock()
+        self.app.client_manager.image.version = 2.0
+        self.app.client_manager.image.images.create.return_value = (
+            mock.Mock(id=10, name='imgname', properties={},
+                      created_at='2015-07-31T14:37:22.000000'))
+        self.cmd._check_file_exists = mock.Mock()
+        self.cmd._read_image_file_pointer = mock.Mock(return_value=b'IMGDATA')
+
+    @mock.patch('subprocess.check_call', autospec=True)
+    @mock.patch('os.path.isfile', autospec=True)
+    def test_overcloud_upload_just_ipa_wholedisk(
+            self, mock_isfile_call, mock_subprocess_call):
+        self.cmd._image_changed = mock.Mock(return_value=True)
+        self.cmd._image_try_update = mock.Mock(return_value=None)
+        self.cmd._read_image_file_pointer = mock.Mock(return_value=b'IMGDATA')
+
+        parsed_args = self.check_parser(
+            self.cmd, ['--whole-disk', '--image-type=ironic-python-agent'], [])
+
+        self.cmd._files_changed = mock.Mock(return_value=True)
+        self.cmd.take_action(parsed_args)
+
+        # ensure check_file_exists has not been called
+        self.assertItemsEqual(self.cmd._check_file_exists.call_args_list,
+                              [mock.call('./ironic-python-agent.initramfs'),
+                               mock.call('./ironic-python-agent.kernel')])
+
+        # ensure try_update has been called just with ipa
+        files = []
+        for item in self.cmd._image_try_update.call_args_list:
+            files.append(item[0][1])
+        self.assertEqual(files, ['./ironic-python-agent.kernel',
+                                 './ironic-python-agent.initramfs'])
+
+    @mock.patch('subprocess.check_call', autospec=True)
+    @mock.patch('os.path.isfile', autospec=True)
+    def test_overcloud_upload_just_os_wholedisk(
+            self, mock_isfile_call, mock_subprocess_call):
+        self.cmd._image_changed = mock.Mock(return_value=True)
+        self.cmd._image_try_update = mock.Mock(return_value=None)
+        self.cmd._read_image_file_pointer = mock.Mock(return_value=b'IMGDATA')
+
+        parsed_args = self.check_parser(
+            self.cmd, ['--whole-disk', '--image-type=os'], [])
+
+        self.cmd._files_changed = mock.Mock(return_value=True)
+        self.cmd.take_action(parsed_args)
+
+        # ensure check_file_exists has been called just with ipa
+        self.assertItemsEqual(self.cmd._check_file_exists.call_args_list,
+                              [mock.call('./overcloud-full.qcow2')])
+
+        # ensure try_update has been called just with ipa
+        files = []
+        for item in self.cmd._image_try_update.call_args_list:
+            files.append(item[0][1])
+        self.assertEqual(files, ['./overcloud-full.qcow2'])
+
+    @mock.patch('subprocess.check_call', autospec=True)
+    @mock.patch('os.path.isfile', autospec=True)
+    def test_overcloud_upload_just_ipa(
+            self, mock_isfile_call, mock_subprocess_call):
+        self.cmd._image_changed = mock.Mock(return_value=True)
+        self.cmd._image_try_update = mock.Mock(return_value=None)
+        self.cmd._read_image_file_pointer = mock.Mock(return_value=b'IMGDATA')
+
+        parsed_args = self.check_parser(
+            self.cmd, ['--image-type=ironic-python-agent'], [])
+
+        self.cmd._files_changed = mock.Mock(return_value=True)
+        self.cmd.take_action(parsed_args)
+
+        # ensure check_file_exists has been called just with ipa
+        self.assertItemsEqual(self.cmd._check_file_exists.call_args_list,
+                              [mock.call('./ironic-python-agent.initramfs'),
+                               mock.call('./ironic-python-agent.kernel')])
+
+        # ensure try_update has been called just with ipa
+        files = []
+        for item in self.cmd._image_try_update.call_args_list:
+            files.append(item[0][1])
+        self.assertEqual(files, ['./ironic-python-agent.kernel',
+                                 './ironic-python-agent.initramfs'])
+
+    @mock.patch('subprocess.check_call', autospec=True)
+    @mock.patch('os.path.isfile', autospec=True)
+    def test_overcloud_upload_just_os(
+            self, mock_isfile_call, mock_subprocess_call):
+        self.cmd._image_changed = mock.Mock(return_value=True)
+        self.cmd._image_try_update = mock.Mock(return_value=None)
+        self.cmd._read_image_file_pointer = mock.Mock(return_value=b'IMGDATA')
+
+        parsed_args = self.check_parser(
+            self.cmd, ['--image-type=os'], [])
+
+        self.cmd._files_changed = mock.Mock(return_value=True)
+        self.cmd.take_action(parsed_args)
+
+        # ensure check_file_exists has been called just with ipa
+        self.assertItemsEqual(self.cmd._check_file_exists.call_args_list,
+                              [mock.call('./overcloud-full.qcow2')])
+
+        # ensure try_update has been called just with ipa
+        files = []
+        for item in self.cmd._image_try_update.call_args_list:
+            files.append(item[0][1])
+        self.assertEqual(files, ['./overcloud-full.vmlinuz',
+                                 './overcloud-full.initrd',
+                                 './overcloud-full.qcow2'])

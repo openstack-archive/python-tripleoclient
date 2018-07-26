@@ -293,6 +293,14 @@ class UploadOvercloudImage(command.Command):
                    "generic images for x86_64 but offer images specific to "
                    "SandyBridge (SNB)."),
         )
+        parser.add_argument(
+            "--image-type",
+            dest="image_type",
+            choices=["os", "ironic-python-agent"],
+            help=_("If specified, allows to restrict the image type to upload "
+                   "(os for the overcloud image or ironic-python-agent for "
+                   "the ironic-python-agent one)"),
+        )
         return parser
 
     def take_action(self, parsed_args):
@@ -306,17 +314,18 @@ class UploadOvercloudImage(command.Command):
 
         self.log.debug("checking if image files exist")
 
+        image_files = []
+        if parsed_args.image_type is None or \
+                parsed_args.image_type == 'ironic-python-agent':
+            image_files.append('%s.initramfs' % parsed_args.ipa_name)
+            image_files.append('%s.kernel' % parsed_args.ipa_name)
+
+        if parsed_args.image_type is None or parsed_args.image_type == 'os':
+            image_files.append(parsed_args.os_image_name)
+
         if parsed_args.whole_disk:
-            image_files = [
-                parsed_args.os_image_name
-            ]
             overcloud_image_type = 'whole disk'
         else:
-            image_files = [
-                '%s.initramfs' % parsed_args.ipa_name,
-                '%s.kernel' % parsed_args.ipa_name,
-                parsed_args.os_image_name
-            ]
             overcloud_image_type = 'partition'
 
         for image in image_files:
@@ -338,143 +347,149 @@ class UploadOvercloudImage(command.Command):
         if platform:
             properties['tripleo_platform'] = platform
 
-        # vmlinuz and initrd only need to be uploaded for a partition image
-        if not parsed_args.whole_disk:
-            (oc_vmlinuz_name,
-             oc_vmlinuz_extension) = plugin_utils.overcloud_kernel(
-                 image_name, arch=arch, platform=platform)
-            oc_vmlinuz_file = os.path.join(parsed_args.image_path,
-                                           image_name +
-                                           oc_vmlinuz_extension)
-            kernel = (self._image_try_update(oc_vmlinuz_name,
-                                             oc_vmlinuz_file,
-                                             parsed_args) or
-                      glance_client_adaptor.upload_image(
-                          name=oc_vmlinuz_name,
-                          is_public=True,
-                          disk_format='aki',
-                          properties=properties,
-                          data=self._read_image_file_pointer(
-                              parsed_args.image_path, oc_vmlinuz_file)
-            ))
+        if parsed_args.image_type is None or parsed_args.image_type == 'os':
+            # vmlinuz and initrd only need to be uploaded for a partition image
+            if not parsed_args.whole_disk:
+                (oc_vmlinuz_name,
+                 oc_vmlinuz_extension) = plugin_utils.overcloud_kernel(
+                     image_name, arch=arch, platform=platform)
+                oc_vmlinuz_file = os.path.join(parsed_args.image_path,
+                                               image_name +
+                                               oc_vmlinuz_extension)
+                kernel = (self._image_try_update(oc_vmlinuz_name,
+                                                 oc_vmlinuz_file,
+                                                 parsed_args) or
+                          glance_client_adaptor.upload_image(
+                              name=oc_vmlinuz_name,
+                              is_public=True,
+                              disk_format='aki',
+                              properties=properties,
+                              data=self._read_image_file_pointer(
+                                  parsed_args.image_path, oc_vmlinuz_file)
+                ))
 
-            (oc_initrd_name,
-             oc_initrd_extension) = plugin_utils.overcloud_ramdisk(
-                 image_name, arch=arch, platform=platform)
-            oc_initrd_file = os.path.join(parsed_args.image_path,
-                                          image_name +
-                                          oc_initrd_extension)
-            ramdisk = (self._image_try_update(oc_initrd_name,
-                                              oc_initrd_file,
-                                              parsed_args) or
-                       glance_client_adaptor.upload_image(
-                           name=oc_initrd_name,
-                           is_public=True,
-                           disk_format='ari',
-                           properties=properties,
-                           data=self._read_image_file_pointer(
-                               parsed_args.image_path, oc_initrd_file)
-            ))
+                (oc_initrd_name,
+                 oc_initrd_extension) = plugin_utils.overcloud_ramdisk(
+                     image_name, arch=arch, platform=platform)
+                oc_initrd_file = os.path.join(parsed_args.image_path,
+                                              image_name +
+                                              oc_initrd_extension)
+                ramdisk = (self._image_try_update(oc_initrd_name,
+                                                  oc_initrd_file,
+                                                  parsed_args) or
+                           glance_client_adaptor.upload_image(
+                               name=oc_initrd_name,
+                               is_public=True,
+                               disk_format='ari',
+                               properties=properties,
+                               data=self._read_image_file_pointer(
+                                   parsed_args.image_path, oc_initrd_file)
+                ))
 
-            (oc_name,
-             oc_extension) = plugin_utils.overcloud_image(
-                 image_name, arch=arch, platform=platform)
-            oc_file = os.path.join(parsed_args.image_path,
-                                   image_name +
-                                   oc_extension)
-            overcloud_image = (self._image_try_update(oc_name, oc_file,
-                                                      parsed_args) or
-                               glance_client_adaptor.upload_image(
-                                   name=oc_name,
-                                   is_public=True,
-                                   disk_format='qcow2',
-                                   container_format='bare',
-                                   properties=dict({'kernel_id': kernel.id,
-                                                    'ramdisk_id': ramdisk.id},
-                                                   **properties),
-                                   data=self._read_image_file_pointer(
-                                       parsed_args.image_path, oc_file)
-            ))
+                (oc_name,
+                 oc_extension) = plugin_utils.overcloud_image(
+                     image_name, arch=arch, platform=platform)
+                oc_file = os.path.join(parsed_args.image_path,
+                                       image_name +
+                                       oc_extension)
+                overcloud_image = (self._image_try_update(oc_name, oc_file,
+                                                          parsed_args) or
+                                   glance_client_adaptor.upload_image(
+                                       name=oc_name,
+                                       is_public=True,
+                                       disk_format='qcow2',
+                                       container_format='bare',
+                                       properties=dict(
+                                           {'kernel_id': kernel.id,
+                                            'ramdisk_id': ramdisk.id},
+                                           **properties),
+                                       data=self._read_image_file_pointer(
+                                           parsed_args.image_path, oc_file)
+                ))
 
-            img_kernel_id = glance_client_adaptor.get_image_property(
-                overcloud_image, 'kernel_id')
-            img_ramdisk_id = glance_client_adaptor.get_image_property(
-                overcloud_image, 'ramdisk_id')
-            # check overcloud image links
-            if (img_kernel_id != kernel.id or img_ramdisk_id != ramdisk.id):
-                self.log.error('Link overcloud image to it\'s initrd and '
-                               'kernel images is MISSING OR leads to OLD '
-                               'image. You can keep it or fix it manually.')
+                img_kernel_id = glance_client_adaptor.get_image_property(
+                    overcloud_image, 'kernel_id')
+                img_ramdisk_id = glance_client_adaptor.get_image_property(
+                    overcloud_image, 'ramdisk_id')
+                # check overcloud image links
+                if (img_kernel_id != kernel.id or
+                        img_ramdisk_id != ramdisk.id):
+                    self.log.error('Link overcloud image to it\'s initrd and '
+                                   'kernel images is MISSING OR leads to OLD '
+                                   'image. You can keep it or fix it '
+                                   'manually.')
 
-        else:
-            (oc_name,
-             oc_extension) = plugin_utils.overcloud_image(
-                 image_name, arch=arch, platform=platform)
-            oc_file = os.path.join(parsed_args.image_path,
-                                   image_name +
-                                   oc_extension)
-            overcloud_image = (self._image_try_update(oc_name, oc_file,
-                                                      parsed_args) or
-                               glance_client_adaptor.upload_image(
-                                   name=oc_name,
-                                   is_public=True,
-                                   disk_format='qcow2',
-                                   container_format='bare',
-                                   properties=properties,
-                                   data=self._read_image_file_pointer(
-                                       parsed_args.image_path, oc_file)
-            ))
+            else:
+                (oc_name,
+                 oc_extension) = plugin_utils.overcloud_image(
+                     image_name, arch=arch, platform=platform)
+                oc_file = os.path.join(parsed_args.image_path,
+                                       image_name +
+                                       oc_extension)
+                overcloud_image = (self._image_try_update(oc_name, oc_file,
+                                                          parsed_args) or
+                                   glance_client_adaptor.upload_image(
+                                       name=oc_name,
+                                       is_public=True,
+                                       disk_format='qcow2',
+                                       container_format='bare',
+                                       properties=properties,
+                                       data=self._read_image_file_pointer(
+                                           parsed_args.image_path, oc_file)
+                ))
 
-        self.log.debug("uploading bm images to glance")
+            self.log.debug("uploading bm images to glance")
 
-        (deploy_kernel_name,
-         deploy_kernel_extension) = plugin_utils.deploy_kernel(
-             arch=arch, platform=platform)
-        deploy_kernel_file = os.path.join(parsed_args.image_path,
-                                          parsed_args.ipa_name +
-                                          deploy_kernel_extension)
-        self._image_try_update(deploy_kernel_name, deploy_kernel_file,
-                               parsed_args) or \
-            glance_client_adaptor.upload_image(
-                name=deploy_kernel_name,
-                is_public=True,
-                disk_format='aki',
-                properties=properties,
-                data=self._read_image_file_pointer(
-                    parsed_args.image_path,
-                    deploy_kernel_file))
+        if parsed_args.image_type is None or \
+                parsed_args.image_type == 'ironic-python-agent':
+            (deploy_kernel_name,
+             deploy_kernel_extension) = plugin_utils.deploy_kernel(
+                 arch=arch, platform=platform)
+            deploy_kernel_file = os.path.join(parsed_args.image_path,
+                                              parsed_args.ipa_name +
+                                              deploy_kernel_extension)
+            self._image_try_update(deploy_kernel_name, deploy_kernel_file,
+                                   parsed_args) or \
+                glance_client_adaptor.upload_image(
+                    name=deploy_kernel_name,
+                    is_public=True,
+                    disk_format='aki',
+                    properties=properties,
+                    data=self._read_image_file_pointer(
+                        parsed_args.image_path,
+                        deploy_kernel_file))
 
-        (deploy_ramdisk_name,
-         deploy_ramdisk_extension) = plugin_utils.deploy_ramdisk(
-             arch=arch, platform=platform)
-        deploy_ramdisk_file = os.path.join(parsed_args.image_path,
-                                           parsed_args.ipa_name +
-                                           deploy_ramdisk_extension)
-        self._image_try_update(deploy_ramdisk_name, deploy_ramdisk_file,
-                               parsed_args) or \
-            glance_client_adaptor.upload_image(
-                name=deploy_ramdisk_name,
-                is_public=True,
-                disk_format='ari',
-                properties=properties,
-                data=self._read_image_file_pointer(parsed_args.image_path,
-                                                   deploy_ramdisk_file))
+            (deploy_ramdisk_name,
+             deploy_ramdisk_extension) = plugin_utils.deploy_ramdisk(
+                 arch=arch, platform=platform)
+            deploy_ramdisk_file = os.path.join(parsed_args.image_path,
+                                               parsed_args.ipa_name +
+                                               deploy_ramdisk_extension)
+            self._image_try_update(deploy_ramdisk_name, deploy_ramdisk_file,
+                                   parsed_args) or \
+                glance_client_adaptor.upload_image(
+                    name=deploy_ramdisk_name,
+                    is_public=True,
+                    disk_format='ari',
+                    properties=properties,
+                    data=self._read_image_file_pointer(parsed_args.image_path,
+                                                       deploy_ramdisk_file))
 
-        self.log.debug("copy agent images to HTTP BOOT dir")
+            self.log.debug("copy agent images to HTTP BOOT dir")
 
-        # TODO(tonyb) Decide how to handle platform specific httpboot
-        # files/names
+            # TODO(tonyb) Decide how to handle platform specific httpboot
+            # files/names
 
-        self._file_create_or_update(
-            os.path.join(parsed_args.image_path,
-                         '%s.kernel' % parsed_args.ipa_name),
-            os.path.join(parsed_args.http_boot, 'agent.kernel'),
-            parsed_args.update_existing
-        )
+            self._file_create_or_update(
+                os.path.join(parsed_args.image_path,
+                             '%s.kernel' % parsed_args.ipa_name),
+                os.path.join(parsed_args.http_boot, 'agent.kernel'),
+                parsed_args.update_existing
+            )
 
-        self._file_create_or_update(
-            os.path.join(parsed_args.image_path,
-                         '%s.initramfs' % parsed_args.ipa_name),
-            os.path.join(parsed_args.http_boot, 'agent.ramdisk'),
-            parsed_args.update_existing
-        )
+            self._file_create_or_update(
+                os.path.join(parsed_args.image_path,
+                             '%s.initramfs' % parsed_args.ipa_name),
+                os.path.join(parsed_args.http_boot, 'agent.ramdisk'),
+                parsed_args.update_existing
+            )
