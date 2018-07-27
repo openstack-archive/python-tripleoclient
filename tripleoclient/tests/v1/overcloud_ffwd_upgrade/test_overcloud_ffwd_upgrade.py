@@ -36,6 +36,8 @@ class TestFFWDUpgradePrepare(fakes.TestFFWDUpgradePrepare):
         self.mock_uuid4 = uuid4_patcher.start()
         self.addCleanup(self.mock_uuid4.stop)
 
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                'take_action')
     @mock.patch('tripleoclient.workflows.deployment.create_overcloudrc',
                 autospec=True)
     @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
@@ -64,7 +66,8 @@ class TestFFWDUpgradePrepare(fakes.TestFFWDUpgradePrepare):
                           mock_get_stack,
                           mock_prepend_env,
                           mock_write_overcloudrc,
-                          mock_overcloudrc):
+                          mock_overcloudrc,
+                          mock_overcloud_deploy):
 
         mock_stack = mock.Mock()
         mock_stack.stack_name = 'mystack'
@@ -96,7 +99,10 @@ class TestFFWDUpgradePrepare(fakes.TestFFWDUpgradePrepare):
                                                  container="mystack")
         mock_write_overcloudrc.assert_called_once_with("mystack",
                                                        mock.ANY)
+        mock_overcloud_deploy.assert_called_once_with(parsed_args)
 
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                'take_action')
     @mock.patch('tripleoclient.utils.prepend_environment', autospec=True)
     @mock.patch('tripleoclient.workflows.package_update.update',
                 autospec=True)
@@ -108,7 +114,7 @@ class TestFFWDUpgradePrepare(fakes.TestFFWDUpgradePrepare):
                 '_deploy_tripleo_heat_templates', autospec=True)
     def test_ffwd_upgrade_failed(
         self, mock_deploy, mock_copy, mock_yaml, mock_abspath, mock_open,
-            mock_ffwd_upgrade, mock_prepend_env):
+            mock_ffwd_upgrade, mock_prepend_env, mock_overcloud_deploy):
         mock_ffwd_upgrade.side_effect = exceptions.DeploymentError()
         mock_abspath.return_value = '/home/fake/my-fake-registry.yaml'
         mock_yaml.return_value = {'fake_container': 'fake_value'}
@@ -125,6 +131,7 @@ class TestFFWDUpgradePrepare(fakes.TestFFWDUpgradePrepare):
 
         self.assertRaises(exceptions.DeploymentError,
                           self.cmd.take_action, parsed_args)
+        mock_overcloud_deploy.assert_called_once_with(parsed_args)
 
 
 class TestFFWDUpgradeRun(fakes.TestFFWDUpgradeRun):
