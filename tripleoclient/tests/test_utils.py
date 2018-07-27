@@ -17,6 +17,7 @@
 import argparse
 import datetime
 import mock
+import os
 import os.path
 import tempfile
 
@@ -30,6 +31,134 @@ import yaml
 
 from tripleoclient import exceptions
 from tripleoclient import utils
+
+
+class TestRunAnsiblePlaybook(TestCase):
+    def setUp(self):
+        self.mock_log = mock.Mock('logging.getLogger')
+
+    @mock.patch('os.path.exists', return_value=False)
+    @mock.patch('tripleoclient.utils.run_command_and_log')
+    def test_no_playbook(self, mock_run, mock_exists):
+        self.assertRaises(RuntimeError,
+                          utils.run_ansible_playbook,
+                          self.mock_log,
+                          '/tmp',
+                          'non-existing.yaml',
+                          'localhost,'
+                          )
+        mock_exists.assert_called_once_with('/tmp/non-existing.yaml')
+        mock_run.assert_not_called()
+
+    @mock.patch('tempfile.mkstemp', return_value=('foo', '/tmp/fooBar.cfg'))
+    @mock.patch('os.path.exists', return_value=True)
+    @mock.patch('tripleoclient.utils.run_command_and_log')
+    def test_subprocess_error(self, mock_run, mock_exists, mock_mkstemp):
+        mock_process = mock.Mock()
+        mock_process.returncode = 1
+        mock_process.stdout.read.side_effect = ["Error\n"]
+        mock_run.return_value = mock_process
+
+        env = os.environ.copy()
+        env['ANSIBLE_CONFIG'] = '/tmp/fooBar.cfg'
+        self.assertRaises(RuntimeError,
+                          utils.run_ansible_playbook,
+                          self.mock_log,
+                          '/tmp',
+                          'existing.yaml',
+                          'localhost,'
+                          )
+        mock_run.assert_called_once_with(self.mock_log,
+                                         ['ansible-playbook', '-i',
+                                          'localhost,', '-c', 'smart',
+                                          '/tmp/existing.yaml'],
+                                         env=env, retcode_only=False)
+
+    @mock.patch('os.path.isabs')
+    @mock.patch('os.path.exists', return_value=False)
+    @mock.patch('tripleoclient.utils.run_command_and_log')
+    def test_non_existing_config(self, mock_run, mock_exists, mock_isabs):
+        self.assertRaises(RuntimeError,
+                          utils.run_ansible_playbook, self.mock_log,
+                          '/tmp', 'existing.yaml', 'localhost,',
+                          '/tmp/foo.cfg'
+                          )
+        mock_exists.assert_called_once_with('/tmp/foo.cfg')
+        mock_isabs.assert_called_once_with('/tmp/foo.cfg')
+        mock_run.assert_not_called()
+
+    @mock.patch('tempfile.mkstemp', return_value=('foo', '/tmp/fooBar.cfg'))
+    @mock.patch('os.path.exists', return_value=True)
+    @mock.patch('tripleoclient.utils.run_command_and_log')
+    def test_run_success_default(self, mock_run, mock_exists, mock_mkstemp):
+        mock_process = mock.Mock()
+        mock_process.returncode = 0
+        mock_run.return_value = mock_process
+
+        retcode = utils.run_ansible_playbook(self.mock_log,
+                                             '/tmp',
+                                             'existing.yaml',
+                                             'localhost,')
+        self.assertEqual(retcode, 0)
+        mock_exists.assert_called_once_with('/tmp/existing.yaml')
+
+        env = os.environ.copy()
+        env['ANSIBLE_CONFIG'] = '/tmp/fooBar.cfg'
+        mock_run.assert_called_once_with(self.mock_log,
+                                         ['ansible-playbook', '-i',
+                                          'localhost,', '-c', 'smart',
+                                          '/tmp/existing.yaml'],
+                                         env=env, retcode_only=False)
+
+    @mock.patch('os.path.isabs')
+    @mock.patch('os.path.exists', return_value=True)
+    @mock.patch('tripleoclient.utils.run_command_and_log')
+    def test_run_success_ansible_cfg(self, mock_run, mock_exists, mock_isabs):
+        mock_process = mock.Mock()
+        mock_process.returncode = 0
+        mock_run.return_value = mock_process
+
+        retcode = utils.run_ansible_playbook(self.mock_log, '/tmp',
+                                             'existing.yaml', 'localhost,',
+                                             ansible_config='/tmp/foo.cfg')
+        self.assertEqual(retcode, 0)
+
+        mock_isabs.assert_called_once_with('/tmp/foo.cfg')
+
+        exist_calls = [mock.call('/tmp/foo.cfg'),
+                       mock.call('/tmp/existing.yaml')]
+        mock_exists.assert_has_calls(exist_calls, any_order=False)
+
+        env = os.environ.copy()
+        env['ANSIBLE_CONFIG'] = '/tmp/foo.cfg'
+        mock_run.assert_called_once_with(self.mock_log,
+                                         ['ansible-playbook', '-i',
+                                          'localhost,', '-c', 'smart',
+                                          '/tmp/existing.yaml'],
+                                         env=env, retcode_only=False)
+
+    @mock.patch('tempfile.mkstemp', return_value=('foo', '/tmp/fooBar.cfg'))
+    @mock.patch('os.path.exists', return_value=True)
+    @mock.patch('tripleoclient.utils.run_command_and_log')
+    def test_run_success_connection_local(self, mock_run, mock_exists,
+                                          mok_mkstemp):
+        mock_process = mock.Mock()
+        mock_process.returncode = 0
+        mock_run.return_value = mock_process
+
+        retcode = utils.run_ansible_playbook(self.mock_log, '/tmp',
+                                             'existing.yaml',
+                                             'localhost,',
+                                             connection='local')
+        self.assertEqual(retcode, 0)
+        mock_exists.assert_called_once_with('/tmp/existing.yaml')
+        env = os.environ.copy()
+        env['ANSIBLE_CONFIG'] = '/tmp/fooBar.cfg'
+        mock_run.assert_called_once_with(self.mock_log,
+                                         ['ansible-playbook', '-i',
+                                          'localhost,', '-c', 'local',
+                                          '/tmp/existing.yaml'],
+                                         env=env, retcode_only=False)
 
 
 class TestWaitForStackUtil(TestCase):
