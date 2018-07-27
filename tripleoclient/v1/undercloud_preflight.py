@@ -93,6 +93,30 @@ def _run_live_command(args, env=None, name=None, cwd=None, wait=True):
         raise RuntimeError(message)
 
 
+def _check_diskspace(upgrade=False):
+    """Check undercloud disk space
+
+    This runs a simple ansible playbook located in tripleo-validations
+    There are currently two playbooks:
+    - undercloud-disk-space.yaml
+    - undercloud-disk-space-pre-upgrade.yaml
+    First one checks minimal disk space for a brand new deploy.
+    Second one checks minimal disk space for an upgrade.
+    """
+    if upgrade:
+        playbook = 'undercloud-disk-space-pre-upgrade.yaml'
+    else:
+        playbook = 'undercloud-disk-space.yaml'
+
+    utils.run_ansible_playbook(logger=LOG,
+                               workdir=constants.ANSIBLE_VALIDATION_DIR,
+                               playbook=playbook,
+                               inventory='undercloud,',
+                               retries=False,
+                               connection='local',
+                               output_callback='validation_output')
+
+
 def _check_hostname():
     """Check system hostname configuration
 
@@ -457,7 +481,7 @@ def _validate_architecure_options():
         _validate_ppc64le_exclusive_opts(error_handler)
 
 
-def check(verbose_level):
+def check(verbose_level, upgrade=False):
     # Fetch configuration and use its log file param to add logging to a file
     utils.load_config(CONF, constants.UNDERCLOUD_CONF_PATH)
     utils.configure_logging(LOG, verbose_level, CONF['undercloud_log_file'])
@@ -467,6 +491,7 @@ def check(verbose_level):
         # Other validations
         _check_hostname()
         _check_memory()
+        _check_diskspace(upgrade)
         _check_sysctl()
         _validate_passwords_file()
         # Heat templates validations

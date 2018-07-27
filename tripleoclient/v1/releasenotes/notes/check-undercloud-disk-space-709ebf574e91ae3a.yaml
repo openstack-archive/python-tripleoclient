@@ -1,0 +1,7 @@
+---
+---
+features:
+  - Enable new preflight check on the undercloud, using ansible playbooks from
+    openstack-tripleo-validations.
+  - Check runs differently if we're on a brand new deploy or an upgrade, as we
+    don't need the same amount of free space.
