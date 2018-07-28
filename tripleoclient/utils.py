@@ -45,7 +45,7 @@ from heatclient import exc as hc_exc
 from six.moves.urllib import error as url_error
 from six.moves.urllib import request
 
-
+from tripleoclient import constants
 from tripleoclient import exceptions
 
 
@@ -1141,15 +1141,25 @@ def build_prepare_env(environment_files, environment_directories):
     return env
 
 
-def rel_or_abs_path(tht_root, file_path):
+def rel_or_abs_path(file_path, tht_root):
     '''Find a file, either absolute path or relative to the t-h-t dir'''
+    if not file_path:
+        return None
     path = os.path.abspath(file_path)
-    if not os.path.exists(path):
+    if not os.path.isfile(path):
         path = os.path.abspath(os.path.join(tht_root, file_path))
-    if not os.path.exists(path):
+    if not os.path.isfile(path):
         raise exceptions.DeploymentError(
             "Can't find path %s %s" % (file_path, path))
     return path
+
+
+def fetch_roles_file(roles_file, tht_path=constants.TRIPLEO_HEAT_TEMPLATES):
+    '''Fetch t-h-t roles data fromm roles_file abs path or rel to tht_path.'''
+    if not roles_file:
+        return None
+    with open(rel_or_abs_path(roles_file, tht_path)) as f:
+        return yaml.safe_load(f)
 
 
 def load_config(osloconf, path):

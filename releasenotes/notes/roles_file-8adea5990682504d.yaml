@@ -1,0 +1,6 @@
+---
+other:
+  - |
+    The roles data file may take either an absolute path or the path relative
+    to the tripleo heat templates directory. This is now applicable for all
+    of the commands involving roles data files.

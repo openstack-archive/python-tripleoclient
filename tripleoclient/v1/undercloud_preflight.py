@@ -382,7 +382,9 @@ def _validate_passwords_file():
 def _validate_env_files_paths():
     """Verify the non-matching templates path vs env files paths"""
     tht_path = CONF.get('templates') or constants.TRIPLEO_HEAT_TEMPLATES
-    roles_file = CONF.get('roles_file') or constants.UNDERCLOUD_ROLES_FILE
+    roles_file = utils.rel_or_abs_path(
+        CONF.get('roles_file') or constants.UNDERCLOUD_ROLES_FILE,
+        tht_path)
 
     # get the list of jinja templates normally rendered for UC installations
     LOG.debug(_("Using roles file {0} from {1}").format(roles_file, tht_path))

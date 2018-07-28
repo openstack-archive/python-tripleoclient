@@ -81,9 +81,11 @@ class TestPlanCreationWorkflows(utils.TestCommand):
 
         self.workflow.executions.create.assert_not_called()
 
+    @mock.patch('tripleoclient.utils.rel_or_abs_path')
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
                 autospec=True)
-    def test_create_plan_from_templates_roles_data(self, mock_tarball):
+    def test_create_plan_from_templates_roles_data(self, mock_tarball,
+                                                   mock_norm_path):
         output = mock.Mock(output='{"result": ""}')
         self.workflow.action_executions.create.return_value = output
         self.websocket.wait_for_messages.return_value = self.message_success
@@ -106,8 +108,8 @@ class TestPlanCreationWorkflows(utils.TestCommand):
             workflow_input={'container': 'test-overcloud',
                             'generate_passwords': True})
 
-        mock_open_context.assert_has_calls(
-            [mock.call('the_roles_file.yaml')])
+        self.assertIn(mock.call('the_roles_file.yaml', '/tht-root/'),
+                      mock_norm_path.call_args_list)
 
         self.tripleoclient.object_store.put_object.assert_called_once_with(
             'test-overcloud', 'roles_data.yaml', mock_open_context())

@@ -22,7 +22,6 @@ import yaml
 from heatclient import exc as hc_exc
 from tripleo_common.image import kolla_builder
 
-from tripleoclient import constants
 from tripleoclient import exceptions
 from tripleoclient.tests.v1.test_plugin import TestPluginV1
 
@@ -59,53 +58,26 @@ class TestDeployUndercloud(TestPluginV1):
         self.orc.stacks.create = mock.MagicMock(
             return_value={'stack': {'id': 'foo'}})
 
-    @mock.patch('os.path.exists', return_value=True)
-    def test_set_roles_file(self, mock_exists):
-        self.cmd._set_roles_file('/foobar.yaml')
-        self.assertEqual(self.cmd.roles_file, '/foobar.yaml')
-
-    @mock.patch('os.path.exists', return_value=False)
-    def test_set_roles_file_relative(self, mock_exists):
-        self.cmd._set_roles_file('foobar.yaml',
-                                 constants.TRIPLEO_HEAT_TEMPLATES)
-        self.assertEqual(self.cmd.roles_file,
-                         '/usr/share/openstack-tripleo-heat-templates/'
-                         'foobar.yaml')
-
-    def test_get_roles_data(self):
-        self.cmd.roles_data = [{'name': 'Foobar'}]
-        self.assertEqual(self.cmd._get_roles_data(),
-                         [{'name': 'Foobar'}])
-
-    def test_get_roles_data_from_file(self):
-        with tempfile.NamedTemporaryFile(mode='w') as roles_file:
-            yaml.dump([{'name': 'Foobar'}], roles_file)
-            self.cmd.roles_file = roles_file.name
-            self.assertEqual(self.cmd._get_roles_data(),
-                             [{'name': 'Foobar'}])
-
-    @mock.patch('os.path.exists', return_value=False)
-    def test_get_roles_data_missing(self, mock_exists):
-        self.cmd.roles_file = '/tmp/foo.yaml'
-        self.cmd.roles_data = None
-        self.assertEqual(self.cmd._get_roles_data(), None)
-
-    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
-                '_get_roles_data')
-    def test_get_primary_role_name(self, mock_data):
+    @mock.patch('os.path.exists')
+    @mock.patch('tripleoclient.utils.fetch_roles_file')
+    def test_get_primary_role_name(self, mock_data, mock_exists):
+        parsed_args = mock.Mock()
         mock_data.return_value = [
             {'name': 'Bar'}, {'name': 'Foo', 'tags': ['primary']}
         ]
-        self.assertEqual(self.cmd._get_primary_role_name(), 'Foo')
+        self.assertEqual(self.cmd._get_primary_role_name(parsed_args), 'Foo')
 
-    def test_get_primary_role_name_none_defined(self):
-        self.assertEqual(self.cmd._get_primary_role_name(), 'Controller')
+    @mock.patch('tripleoclient.utils.fetch_roles_file', return_value=None)
+    def test_get_primary_role_name_none_defined(self, mock_data):
+        parsed_args = self.check_parser(self.cmd, [], [])
+        self.assertEqual(self.cmd._get_primary_role_name(parsed_args),
+                         'Controller')
 
-    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
-                '_get_roles_data')
+    @mock.patch('tripleoclient.utils.fetch_roles_file')
     def test_get_primary_role_name_no_primary(self, mock_data):
+        parsed_args = mock.Mock()
         mock_data.return_value = [{'name': 'Bar'}, {'name': 'Foo'}]
-        self.assertEqual(self.cmd._get_primary_role_name(), 'Bar')
+        self.assertEqual(self.cmd._get_primary_role_name(parsed_args), 'Bar')
 
     @mock.patch('os.path.exists', side_effect=[True, False])
     @mock.patch('shutil.copytree')
@@ -237,6 +209,7 @@ class TestDeployUndercloud(TestPluginV1):
             mock.call(env_path='/tmp/thtroot42/notouch.yaml'),
             mock.call(env_path='../outside.yaml')])
 
+    @mock.patch('tripleoclient.utils.rel_or_abs_path')
     @mock.patch('heatclient.common.template_utils.'
                 'process_environment_and_files', return_value=({}, {}),
                 autospec=True)
@@ -264,7 +237,8 @@ class TestDeployUndercloud(TestPluginV1):
                                                    mock_hc_templ_parse,
                                                    mock_hc_env_parse,
                                                    mock_hc_get_templ_cont,
-                                                   mock_hc_process):
+                                                   mock_hc_process,
+                                                   mock_norm_path):
         def hc_process(*args, **kwargs):
             if 'abs.yaml' in kwargs['env_path']:
                 raise hc_exc.CommandError
@@ -408,7 +382,6 @@ class TestDeployUndercloud(TestPluginV1):
                     found_dropin = True
         self.assertTrue(found_dropin)
 
-    @mock.patch('os.path.isfile')
     @mock.patch('heatclient.common.template_utils.'
                 'process_environment_and_files', return_value=({}, {}),
                 autospec=True)
@@ -424,10 +397,12 @@ class TestDeployUndercloud(TestPluginV1):
                 '_update_passwords_env', autospec=True)
     @mock.patch('tripleoclient.utils.'
                 'run_command_and_log', autospec=True)
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_get_primary_role_name', autospec=True)
     def test_setup_heat_environments_default_plan_env(
-            self, mock_run, mock_update_pass_env, mock_process_hiera,
-            mock_process_multiple_environments, mock_hc_get_templ_cont,
-            mock_hc_process, mock_os):
+            self, mock_prim, mock_run, mock_update_pass_env,
+            mock_process_hiera, mock_process_multiple_environments,
+            mock_hc_get_templ_cont, mock_hc_process):
 
         tmpdir = self.useFixture(fixtures.TempDir()).path
         tht_from = os.path.join(tmpdir, 'tht-from')
@@ -439,7 +414,6 @@ class TestDeployUndercloud(TestPluginV1):
         self._setup_heat_environments(tmpdir, tht_from, plan_env_path,
                                       mock_update_pass_env, mock_run)
 
-    @mock.patch('os.path.isfile')
     @mock.patch('heatclient.common.template_utils.'
                 'process_environment_and_files', return_value=({}, {}),
                 autospec=True)
@@ -455,10 +429,12 @@ class TestDeployUndercloud(TestPluginV1):
                 '_update_passwords_env', autospec=True)
     @mock.patch('tripleoclient.utils.'
                 'run_command_and_log', autospec=True)
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_get_primary_role_name', autospec=True)
     def test_setup_heat_environments_non_default_plan_env(
-            self, mock_run, mock_update_pass_env, mock_process_hiera,
-            mock_process_multiple_environments, mock_hc_get_templ_cont,
-            mock_hc_process, mock_os):
+            self, mock_prim, mock_run, mock_update_pass_env,
+            mock_process_hiera, mock_process_multiple_environments,
+            mock_hc_get_templ_cont, mock_hc_process):
 
         tmpdir = self.useFixture(fixtures.TempDir()).path
         tht_from = os.path.join(tmpdir, 'tht-from')
@@ -502,6 +478,18 @@ class TestDeployUndercloud(TestPluginV1):
         mock_update_pass_env.return_value = os.path.join(
             tht_render, 'passwords.yaml')
         mock_run.return_value = 0
+        original_abs = os.path.abspath
+
+        # Stub abspath for default plan and envs to return the tht_render base
+        def abs_path_stub(*args, **kwargs):
+            if 'plan-environment.yaml' in args:
+                return plan_env_path
+            elif 'notenv.yaml' in args:
+                return os.path.join(tht_render, 'notenv.yaml')
+            elif 'env.yaml' in args:
+                return os.path.join(tht_render, 'env.yaml')
+            else:
+                return original_abs(*args, **kwargs)
 
         # logic handled in _standalone_deploy
         self.cmd.output_dir = tht_to
@@ -535,10 +523,11 @@ class TestDeployUndercloud(TestPluginV1):
             os.path.join(tht_render, 'foo.yaml'),
             os.path.join(tht_render, 'outside.yaml')]
 
-        with mock.patch('os.path.isfile'):
-            environment = self.cmd._setup_heat_environments(parsed_args)
+        with mock.patch('os.path.abspath', side_effect=abs_path_stub):
+            with mock.patch('os.path.isfile'):
+                environment = self.cmd._setup_heat_environments(parsed_args)
 
-            self.assertEqual(expected_env, environment)
+                self.assertEqual(expected_env, environment)
 
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_create_working_dirs', autospec=True)
@@ -578,16 +567,16 @@ class TestDeployUndercloud(TestPluginV1):
             'ansible-playbook', '-i', '/tmp/inventory.yaml',
             'deploy_steps_playbook.yaml'])
 
-    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
-                '_get_roles_data')
+    @mock.patch('tripleoclient.utils.fetch_roles_file')
     @mock.patch('tripleo_common.image.kolla_builder.'
                 'container_images_prepare_multi')
     def test_prepare_container_images(self, mock_cipm, rolesdata_mock):
+        parsed_args = mock.Mock()
         env = {'parameter_defaults': {}}
         mock_cipm.return_value = {'FooImage': 'foo/bar:baz'}
         rolesdata_mock.return_value = [{'name': 'Compute'}]
 
-        self.cmd._prepare_container_images(env)
+        self.cmd._prepare_container_images(env, parsed_args)
 
         mock_cipm.assert_called_once_with(
             env,
