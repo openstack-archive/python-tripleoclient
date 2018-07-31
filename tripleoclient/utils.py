@@ -23,6 +23,7 @@ except AttributeError:
 
 import csv
 import datetime
+import errno
 import getpass
 import glob
 import hashlib
@@ -2045,3 +2046,26 @@ def send_cmdline_erase_sequence():
     # https://www.vt100.net/docs/vt100-ug/chapter3.html#EL
     sys.stdout.write(u'\u001b[0K')
     sys.stdout.flush()
+
+
+def safe_write(path, data):
+    '''Write to disk and exit safely if can not write correctly.'''
+    log = logging.getLogger(__name__ + ".safe_write")
+
+    if os.path.exists(path):
+        log.warning(
+            "The output file %s will be overriden",
+            path
+        )
+
+    try:
+        with os.fdopen(os.open(path,
+                       os.O_CREAT | os.O_TRUNC | os.O_WRONLY, 0o666),
+                       'w') as f:
+            f.write(data)
+    except OSError as error:
+        if error.errno != errno.EEXIST:
+            msg = _('The output file %(file)s can not be '
+                    'created. Error: %(msg)') % {'file': path,
+                                                 'msg': error.message}
+            raise oscexc.CommandError(msg)

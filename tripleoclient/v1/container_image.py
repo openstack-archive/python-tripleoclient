@@ -458,10 +458,8 @@ class PrepareImageFiles(command.Command):
                 self.log.warn("Output env file exists, moving it to backup.")
                 shutil.move(parsed_args.output_env_file,
                             parsed_args.output_env_file + ".backup")
-            with os.fdopen(os.open(parsed_args.output_env_file,
-                           os.O_CREAT | os.O_TRUNC | os.O_WRONLY, 0o666),
-                           'w') as f:
-                f.write(build_env_file(params, self.app.command_options))
+            utils.safe_write(parsed_args.output_env_file,
+                             build_env_file(params, self.app.command_options))
 
         result = prepare_data[output_images_file]
         result_str = yaml.safe_dump({'container_images': result},
@@ -469,10 +467,7 @@ class PrepareImageFiles(command.Command):
         sys.stdout.write(result_str)
 
         if parsed_args.output_images_file:
-            with os.fdopen(os.open(parsed_args.output_images_file,
-                           os.O_CREAT | os.O_TRUNC | os.O_WRONLY, 0o666),
-                           'w') as f:
-                f.write(result_str)
+            utils.safe_write(parsed_args.output_images_file, result_str)
 
 
 class DiscoverImageTag(command.Command):
@@ -726,10 +721,7 @@ class TripleOImagePrepareDefault(command.Command):
                 self.log.warn("Output env file exists, moving it to backup.")
                 shutil.move(parsed_args.output_env_file,
                             parsed_args.output_env_file + ".backup")
-            with os.fdopen(os.open(parsed_args.output_env_file,
-                           os.O_CREAT | os.O_TRUNC | os.O_WRONLY, 0o666),
-                           'w') as f:
-                f.write(build_env_file(params, self.app.command_options))
+            utils.safe_write(parsed_args.output_env_file, env_data)
 
 
 class TripleOImagePrepare(command.Command):
@@ -825,9 +817,6 @@ class TripleOImagePrepare(command.Command):
                 self.log.warn("Output env file exists, moving it to backup.")
                 shutil.move(parsed_args.output_env_file,
                             parsed_args.output_env_file + ".backup")
-            with os.fdopen(os.open(parsed_args.output_env_file,
-                           os.O_CREAT | os.O_TRUNC | os.O_WRONLY, 0o666),
-                           'w') as f:
-                f.write(build_env_file(params, self.app.command_options))
+            utils.safe_write(parsed_args.output_env_file, env_data)
         else:
             self.app.stdout.write(env_data)
