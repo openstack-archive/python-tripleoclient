@@ -526,9 +526,8 @@ class TripleOImagePrepareDefault(command.Command):
 
         cip = copy.deepcopy(kolla_builder.CONTAINER_IMAGE_PREPARE_PARAM)
         if parsed_args.push_destination:
-            local_registry = image_uploader.get_undercloud_registry()
             for entry in cip:
-                entry['push_destination'] = local_registry
+                entry['push_destination'] = True
         params = {
             'ContainerImagePrepare': cip
         }
