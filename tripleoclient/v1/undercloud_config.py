@@ -429,11 +429,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
         env_data['BarbicanSimpleCryptoGlobalDefault'] = True
         env_data['SwiftEncryptionEnabled'] = True
 
-    if CONF.get('generate_service_certificate'):
-        deploy_args += ['-e', os.path.join(
-            tht_templates,
-            "environments/public-tls-undercloud.yaml")]
-    elif CONF.get('undercloud_service_certificate'):
+    if CONF.get('undercloud_service_certificate'):
         enable_tls_yaml_path = os.path.join(tht_templates,
                                             "environments/ssl/enable-tls.yaml")
         env_data.update(
@@ -446,6 +442,10 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
                                'undercloud-haproxy.yaml'),
             '-e', os.path.join(tht_templates, 'environments/services/'
                                'undercloud-keepalived.yaml')]
+    elif CONF.get('generate_service_certificate'):
+        deploy_args += ['-e', os.path.join(
+            tht_templates,
+            "environments/public-tls-undercloud.yaml")]
     else:
         deploy_args += ['-e', os.path.join(
             tht_templates,
