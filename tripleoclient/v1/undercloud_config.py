@@ -20,7 +20,6 @@ import logging
 import netaddr
 import os
 import shutil
-import yaml
 
 from cryptography import x509
 
@@ -428,13 +427,9 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
         env_data['SwiftEncryptionEnabled'] = True
 
     if CONF.get('undercloud_service_certificate'):
-        enable_tls_yaml_path = os.path.join(tht_templates,
-                                            "environments/ssl/enable-tls.yaml")
         env_data.update(
             _get_public_tls_parameters(
                 CONF.get('undercloud_service_certificate')))
-        registry_overwrites.update(
-            _get_public_tls_resource_registry_overwrites(enable_tls_yaml_path))
         deploy_args += [
             '-e', os.path.join(tht_templates, 'environments/services/'
                                'undercloud-haproxy.yaml'),
@@ -626,18 +621,6 @@ def _get_public_tls_parameters(service_certificate_path):
             'SSLCertificate': cert_pem,
             'SSLKey': key_pem
         }
-
-
-def _get_public_tls_resource_registry_overwrites(enable_tls_yaml_path):
-    with open(enable_tls_yaml_path, 'rb') as enable_tls_file:
-        enable_tls_dict = yaml.load(enable_tls_file.read())
-        try:
-            return enable_tls_dict['resource_registry']
-        except KeyError:
-            msg = _('%s is malformed and is missing the resource '
-                    'registry.') % enable_tls_yaml_path
-            LOG.error(msg)
-            raise RuntimeError(msg)
 
 
 def _container_images_config(conf, deploy_args, env_data, tempdir):
