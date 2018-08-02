@@ -427,6 +427,8 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
         env_data['SwiftEncryptionEnabled'] = True
 
     if CONF.get('undercloud_service_certificate'):
+        # We assume that the certificate is trusted
+        env_data['InternalTLSCAFile'] = ''
         env_data.update(
             _get_public_tls_parameters(
                 CONF.get('undercloud_service_certificate')))
