@@ -202,47 +202,6 @@ class TestTLSSettings(base.TestCase):
                           undercloud_config._get_public_tls_parameters,
                           '/tmp/unexistent-file-12345.pem')
 
-    def test_get_resource_registry_overwrites(self):
-        enable_tls_yaml = {
-            "parameter_defaults": {
-                "SSLCertificate": "12345"
-            },
-            "resource_registry": {
-                "registry_overwrite_key": "registry_overwrite_value"
-            }
-        }
-        with tempfile.NamedTemporaryFile() as enable_tls_file:
-            enable_tls_file.write(yaml.dump(enable_tls_yaml, encoding='utf-8'))
-            enable_tls_file.seek(0)
-
-            overwrites = \
-                undercloud_config._get_public_tls_resource_registry_overwrites(
-                    enable_tls_file.name)
-
-            self.assertEqual(enable_tls_yaml["resource_registry"], overwrites)
-
-    def test_get_resource_registry_overwrites_fails_cause_no_registry_entry(
-            self):
-        enable_tls_yaml = {
-            "parameter_defaults": {
-                "SSLCertificate": "12345"
-            },
-        }
-        with tempfile.NamedTemporaryFile() as enable_tls_file:
-            enable_tls_file.write(yaml.dump(enable_tls_yaml, encoding='utf-8'))
-            enable_tls_file.seek(0)
-
-            self.assertRaises(
-                RuntimeError,
-                undercloud_config._get_public_tls_resource_registry_overwrites,
-                enable_tls_file.name)
-
-    def test_get_resource_registry_overwrites_fails_cause_missing_file(self):
-        self.assertRaises(
-            IOError,
-            undercloud_config._get_public_tls_resource_registry_overwrites,
-            '/tmp/unexistent-file-12345.yaml')
-
 
 class TestContainerImageConfig(base.TestCase):
     def setUp(self):
