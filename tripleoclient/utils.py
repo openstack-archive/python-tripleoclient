@@ -49,6 +49,80 @@ from tripleoclient import constants
 from tripleoclient import exceptions
 
 
+def run_ansible_playbook(logger,
+                         workdir,
+                         playbook,
+                         inventory,
+                         ansible_config=None,
+                         retries=True,
+                         connection='smart',
+                         output_callback='json'):
+    """Simple wrapper for ansible-playbook
+
+    :param logger: logger instance
+    :type logger: Logger
+
+    :param workdir: location of the playbook
+    :type workdir: String
+
+    :param playbook: playbook filename
+    :type playbook: String
+
+    :param inventory: either proper inventory file, or a coma-separated list
+    :type inventory: String
+
+    :param ansible_config: Pass either Absolute Path, or None to generate a
+    temporary file, or False to not manage configuration at all
+    :type ansible_config: String
+
+    :param retries: do you want to get a retry_file?
+    :type retries: Boolean
+
+    :param connect: connection type (local, smart, etc)
+    :type connect: String
+
+    :param output_callback: Callback for output format. Defaults to "json"
+    :type output_callback: String
+    """
+    env = os.environ.copy()
+    cleanup = False
+    if ansible_config is None:
+        _, tmp_config = tempfile.mkstemp(prefix=playbook, suffix='ansible.cfg')
+        with open(tmp_config, 'w+') as f:
+            f.write("[defaults]\nstdout_callback = %s\n" % output_callback)
+            if not retries:
+                f.write("retry_files_enabled = False\n")
+            f.close()
+        env['ANSIBLE_CONFIG'] = tmp_config
+        cleanup = True
+
+    elif os.path.isabs(ansible_config):
+        if os.path.exists(ansible_config):
+            env['ANSIBLE_CONFIG'] = ansible_config
+        else:
+            raise RuntimeError('No such configuration file: %s' %
+                               ansible_config)
+    elif os.path.exists(os.path.join(workdir, ansible_config)):
+        env['ANSIBLE_CONFIG'] = os.path.join(workdir, ansible_config)
+
+    play = os.path.join(workdir, playbook)
+
+    if os.path.exists(play):
+        cmd = ['ansible-playbook',
+               '-i', inventory,
+               '-c', connection, play
+               ]
+        proc = run_command_and_log(logger, cmd, env=env, retcode_only=False)
+        proc.wait()
+        cleanup and os.unlink(tmp_config)
+        if proc.returncode != 0:
+            raise RuntimeError(proc.stdout.read())
+        return proc.returncode
+    else:
+        cleanup and os.unlink(tmp_config)
+        raise RuntimeError('No such playbook: %s' % play)
+
+
 def bracket_ipv6(address):
     """Put a bracket around address if it is valid IPv6
 
@@ -1057,27 +1131,36 @@ def bulk_symlink(log, src, dst, tmpd='/tmp'):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
-def run_command_and_log(log, cmd, cwd=None):
+def run_command_and_log(log, cmd, cwd=None, env=None, retcode_only=True):
     """Run command and log output
 
     :param log: logger instance for logging
     :type log: Logger
 
     :param cmd: command in list form
-    :param cmd: List
+    :type cmd: List
 
     :param cwd: current worknig directory for execution
-    :param cmd: String
+    :type cmd: String
+
+    :param env: modified environment for command run
+    :type env: List
+
+    :param retcode_only: Returns only retcode instead or proc objec
+    :type retcdode_only: Boolean
     """
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT, shell=False,
-                            bufsize=1, cwd=cwd)
+                            bufsize=1, cwd=cwd, env=env)
 
-    for line in iter(proc.stdout.readline, b''):
-        # TODO(aschultz): this should probably goto a log file
-        log.warning(line.rstrip())
-    proc.stdout.close()
-    return proc.wait()
+    if retcode_only:
+        for line in iter(proc.stdout.readline, b''):
+            # TODO(aschultz): this should probably goto a log file
+            log.warning(line.rstrip())
+        proc.stdout.close()
+        return proc.wait()
+    else:
+        return proc
 
 
 def ffwd_upgrade_operator_confirm(parsed_args_yes, log):
