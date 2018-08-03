@@ -132,7 +132,7 @@ class UpdateOvercloud(command.Command):
                                             'tripleo-ansible-inventory')
                 try:
                     processutils.execute('/bin/tripleo-ansible-inventory',
-                                         '--stack', stack,
+                                         '--plan', stack,
                                          '--static-inventory', inventory_file)
                 except processutils.ProcessExecutionError as e:
                     message = "Failed to generate inventory: %s" % str(e)
