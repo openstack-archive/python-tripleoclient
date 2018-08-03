@@ -155,9 +155,7 @@ class InstallUndercloud(command.Command):
                     '~/stackrc'
                     ))
             except Exception as e:
-                self.log.error(UNDERCLOUD_FAILURE_MESSAGE.format(
-                    self.heat_launch.install_tmp
-                    ))
+                self.log.error(UNDERCLOUD_FAILURE_MESSAGE)
                 self.log.error(e)
                 raise exceptions.DeploymentError(e)
 
@@ -208,8 +206,6 @@ class UpgradeUndercloud(InstallUndercloud):
                     '~/stackrc'
                     ))
             except Exception as e:
-                self.log.error(UNDERCLOUD_FAILURE_MESSAGE.format(
-                    self.heat_launch.install_tmp
-                    ))
+                self.log.error(UNDERCLOUD_FAILURE_MESSAGE)
                 self.log.error(e)
                 raise exceptions.DeploymentError(e)
