@@ -110,17 +110,6 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/'
              'undercloud-stack-vstate-dropin.yaml'])
 
-    @mock.patch('subprocess.check_call', autospec=True)
-    def test_undercloud_install_with_heat_disabled(self, mock_subprocess):
-        arglist = ['--use-heat=False']
-        verifylist = []
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-
-        # DisplayCommandBase.take_action() returns two tuples
-        self.cmd.take_action(parsed_args)
-
-        mock_subprocess.assert_called_with(['instack-install-undercloud'])
-
     # TODO(cjeanner) drop once we have proper oslo.privsep
     @mock.patch('getpass.getuser', return_value='stack')
     @mock.patch('shutil.copy')
@@ -133,7 +122,7 @@ class TestUndercloudInstall(TestPluginV1):
         self.conf.config(output_dir='/foo')
         self.conf.config(templates='/usertht')
         self.conf.config(roles_file='foo/roles.yaml')
-        arglist = ['--use-heat', '--no-validations', '--force-stack-update']
+        arglist = ['--no-validations', '--force-stack-update']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
@@ -270,7 +259,7 @@ class TestUndercloudInstall(TestPluginV1):
         env = mock.Mock()
         env.get_template = mock.Mock(return_value=Template(instack_net_conf))
         mock_get_j2.return_value = (env, None)
-        arglist = ['--use-heat', '--no-validations']
+        arglist = ['--no-validations']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
@@ -358,7 +347,7 @@ class TestUndercloudInstall(TestPluginV1):
                                                     mock_os, mock_copy,
                                                     mock_open, mock_user):
         self.conf.config(undercloud_log_file='/foo/bar')
-        arglist = ['--use-heat', '--no-validations']
+        arglist = ['--no-validations']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
@@ -425,7 +414,7 @@ class TestUndercloudInstall(TestPluginV1):
                                                mock_os, mock_copy,
                                                mock_open, mock_user):
         self.conf.config(undercloud_log_file='/foo/bar')
-        arglist = ['--use-heat=True', '--no-validations']
+        arglist = ['--no-validations']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
@@ -485,7 +474,7 @@ class TestUndercloudInstall(TestPluginV1):
     def test_undercloud_install_with_swift_encryption(self, mock_subprocess,
                                                       mock_wr, mock_os,
                                                       mock_copy, mock_user):
-        arglist = ['--use-heat', '--no-validations']
+        arglist = ['--no-validations']
         verifylist = []
         self.conf.set_default('enable_swift_encryption', True)
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
@@ -618,29 +607,6 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/'
              'undercloud-stack-vstate-dropin.yaml'])
 
-    @mock.patch('os.mkdir')
-    @mock.patch('tripleoclient.utils.write_env_file', autospec=True)
-    @mock.patch('subprocess.check_call', autospec=True)
-    def test_undercloud_upgrade_with_heat_disabled(self, mock_subprocess,
-                                                   mock_wr, mock_os):
-        arglist = ['--use-heat=False']
-        verifylist = []
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-
-        # DisplayCommandBase.take_action() returns two tuples
-        self.cmd.take_action(parsed_args)
-
-        mock_subprocess.assert_has_calls(
-            [
-                mock.call(['sudo', 'yum', 'update', '-y',
-                           'instack-undercloud']),
-                mock.call('instack-pre-upgrade-undercloud'),
-                mock.call('instack-upgrade-undercloud'),
-                mock.call(['sudo', 'systemctl', 'restart',
-                          'openstack-nova-api'])
-            ]
-        )
-
     # TODO(cjeanner) drop once we have proper oslo.privsep
     @mock.patch('getpass.getuser', return_value='stack')
     @mock.patch('shutil.copy')
@@ -650,7 +616,7 @@ class TestUndercloudUpgrade(TestPluginV1):
     def test_undercloud_upgrade_with_heat_enabled(self, mock_subprocess,
                                                   mock_wr, mock_os,
                                                   mock_copy, mock_user):
-        arglist = ['--use-heat', '--no-validations']
+        arglist = ['--no-validations']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
@@ -713,7 +679,7 @@ class TestUndercloudUpgrade(TestPluginV1):
     def test_undercloud_upgrade_with_heat_true(self, mock_subprocess,
                                                mock_wr, mock_os,
                                                mock_copy, mock_user):
-        arglist = ['--use-heat=True', '--no-validations']
+        arglist = ['--no-validations']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
@@ -776,7 +742,7 @@ class TestUndercloudUpgrade(TestPluginV1):
     def test_undercloud_upgrade_with_heat_and_yes(self, mock_subprocess,
                                                   mock_wr, mock_os,
                                                   mock_user, mock_copy):
-        arglist = ['--use-heat', '--no-validations', '-y']
+        arglist = ['--no-validations', '-y']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
@@ -840,7 +806,7 @@ class TestUndercloudUpgrade(TestPluginV1):
     def test_undercloud_upgrade_with_heat_and_debug(self, mock_subprocess,
                                                     mock_wr, mock_os,
                                                     mock_copy, mock_user):
-        arglist = ['--use-heat', '--no-validations']
+        arglist = ['--no-validations']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 

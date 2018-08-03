@@ -84,16 +84,6 @@ class InstallUndercloud(command.Command):
             prog=prog_name,
             add_help=False
         )
-        parser.add_argument(
-            '--use-heat',
-            dest='use_heat',
-            nargs='?',
-            default=None,
-            const="true",
-            help=_('This option is deprecated in Rocky. It makes sure that we '
-                   'perform undercloud deploy using ephemeral '
-                   '(one-time create and forget) heat stack and ansible.'),
-        )
         parser.add_argument('--force-stack-update',
                             dest='force_stack_update',
                             action='store_true',
@@ -130,21 +120,12 @@ class InstallUndercloud(command.Command):
         self.log.debug("take_action(%s)" % parsed_args)
 
         utils.ensure_run_as_normal_user()
-        if parsed_args.use_heat is not None:
-            self.log.warning('--use-heat is deprecated in Rocky')
-        if parsed_args.use_heat is not None and \
-                parsed_args.use_heat.lower() == "false":
-            self.log.warning(_('Non-containerized undercloud deployment is '
-                             'deprecated in Rocky cycle.'))
-            cmd = ["instack-install-undercloud"]
-        else:
-            no_validations = parsed_args.dry_run or parsed_args.no_validations
-            cmd = undercloud_config.\
-                prepare_undercloud_deploy(
-                    no_validations=no_validations,
-                    verbose_level=self.app_args.verbose_level,
-                    force_stack_update=parsed_args.force_stack_update,
-                    dry_run=parsed_args.dry_run)
+        no_validations = parsed_args.dry_run or parsed_args.no_validations
+        cmd = undercloud_config.prepare_undercloud_deploy(
+            no_validations=no_validations,
+            verbose_level=self.app_args.verbose_level,
+            force_stack_update=parsed_args.force_stack_update,
+            dry_run=parsed_args.dry_run)
 
         self.log.warning("Running: %s" % ' '.join(cmd))
         if not parsed_args.dry_run:
@@ -175,38 +156,23 @@ class UpgradeUndercloud(InstallUndercloud):
         self.log.debug("take action(%s)" % parsed_args)
 
         utils.ensure_run_as_normal_user()
-        if parsed_args.use_heat is not None:
-            self.log.warning('--use-heat is deprecated in Rocky')
-        if parsed_args.use_heat is not None and \
-                parsed_args.use_heat.lower() == "false":
-            self.log.warning(_('Non-containerized undercloud deployment is '
-                             'deprecated in Rocky cycle.'))
-            subprocess.check_call(['sudo', 'yum', 'update', '-y',
-                                  'instack-undercloud'])
-            subprocess.check_call("instack-pre-upgrade-undercloud")
-            subprocess.check_call("instack-upgrade-undercloud")
-            # restart nova-api
-            # https://bugzilla.redhat.com/show_bug.cgi?id=1315467
-            subprocess.check_call(['sudo', 'systemctl', 'restart',
-                                  'openstack-nova-api'])
-        else:
-            cmd = undercloud_config.\
-                prepare_undercloud_deploy(
-                    upgrade=True,
-                    yes=parsed_args.yes,
-                    no_validations=parsed_args.
-                    no_validations,
-                    verbose_level=self.app_args.verbose_level,
-                    force_stack_update=parsed_args.force_stack_update)
-            self.log.warning("Running: %s" % ' '.join(cmd))
-            if not parsed_args.dry_run:
-                try:
-                    subprocess.check_call(cmd)
-                    self.log.warning(
-                        UNDERCLOUD_UPGRADE_COMPLETION_MESSAGE.format(
-                            '~/undercloud-passwords.conf',
-                            '~/stackrc'))
-                except Exception as e:
-                    self.log.error(UNDERCLOUD_FAILURE_MESSAGE)
-                    self.log.error(e)
-                    raise exceptions.DeploymentError(e)
+        cmd = undercloud_config.\
+            prepare_undercloud_deploy(
+                upgrade=True,
+                yes=parsed_args.yes,
+                no_validations=parsed_args.
+                no_validations,
+                verbose_level=self.app_args.verbose_level,
+                force_stack_update=parsed_args.force_stack_update)
+        self.log.warning("Running: %s" % ' '.join(cmd))
+        if not parsed_args.dry_run:
+            try:
+                subprocess.check_call(cmd)
+                self.log.warning(
+                    UNDERCLOUD_UPGRADE_COMPLETION_MESSAGE.format(
+                        '~/undercloud-passwords.conf',
+                        '~/stackrc'))
+            except Exception as e:
+                self.log.error(UNDERCLOUD_FAILURE_MESSAGE)
+                self.log.error(e)
+                raise exceptions.DeploymentError(e)
