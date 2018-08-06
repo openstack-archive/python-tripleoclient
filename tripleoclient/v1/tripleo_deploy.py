@@ -1152,7 +1152,9 @@ class Deploy(command.Command):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
-
+        unconf_msg = _('User did not confirm upgrade, so exiting. '
+                       'Consider using the --yes parameter if you '
+                       'prefer to skip this warning in the future')
         try:
             if parsed_args.upgrade and (
                     not parsed_args.yes and sys.stdin.isatty()):
@@ -1162,17 +1164,16 @@ class Deploy(command.Command):
                      'upgrade [y/N]?')
                 ).lower()
                 if not prompt_response.startswith('y'):
-                    self.log.info('User did not confirm upgrade so '
-                                  'taking no action.')
-                    return
-        except KeyboardInterrupt:  # ctrl-c
-            self.log.info('User did not confirm upgrade '
-                          '(ctrl-c) so taking no action.')
-            return
-        except EOFError:  # ctrl-d
-            self.log.info('User did not confirm upgrade '
-                          '(ctrl-d) so taking no action.')
-            return
+                    raise exceptions.UndercloudUpgradeNotConfirmed(unconf_msg)
+        except (KeyboardInterrupt, EOFError) as e:
+            if e.__class__ == KeyboardInterrupt:
+                # ctrl-c
+                raise exceptions.UndercloudUpgradeNotConfirmed("(ctrl-c) %s" %
+                                                               unconf_msg)
+            else:
+                # ctrl-d
+                raise exceptions.UndercloudUpgradeNotConfirmed("(ctrl-d) %s" %
+                                                               unconf_msg)
 
         if parsed_args.standalone:
             if self._standalone_deploy(parsed_args) != 0:
