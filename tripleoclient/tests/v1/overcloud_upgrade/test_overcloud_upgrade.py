@@ -78,8 +78,6 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
             ('stack', 'overcloud'),
             ('templates', constants.TRIPLEO_HEAT_TEMPLATES),
             ('container_registry_file', 'my-fake-registry.yaml'),
-            ('ceph_ansible_playbook', '/usr/share/ceph-ansible'
-                                      '/site-docker.yml.sample')
         ]
 
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
@@ -88,8 +86,6 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
             self.app.client_manager,
             container='overcloud',
             container_registry={'fake_container': 'fake_value'},
-            ceph_ansible_playbook='/usr/share/ceph-ansible'
-                                  '/site-docker.yml.sample'
         )
 
         mock_overcloudrc.assert_called_once_with(mock.ANY,
@@ -119,8 +115,6 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
             ('stack', 'overcloud'),
             ('templates', constants.TRIPLEO_HEAT_TEMPLATES),
             ('container_registry_file', 'my-fake-registry.yaml'),
-            ('ceph_ansible_playbook', '/usr/share/ceph-ansible'
-                                      '/site-docker.yml.sample')
         ]
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
 

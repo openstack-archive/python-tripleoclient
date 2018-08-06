@@ -88,8 +88,6 @@ class TestFFWDUpgradePrepare(fakes.TestFFWDUpgradePrepare):
             self.app.client_manager,
             container='mystack',
             container_registry={'fake_container': 'fake_value'},
-            ceph_ansible_playbook='/usr/share/ceph-ansible'
-                                  '/site-docker.yml.sample',
         )
 
         mock_overcloudrc.assert_called_once_with(mock.ANY,
