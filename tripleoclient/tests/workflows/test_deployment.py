@@ -16,6 +16,7 @@ import mock
 
 from osc_lib.tests import utils
 
+from tripleoclient import exceptions
 from tripleoclient.workflows import deployment
 
 
@@ -85,6 +86,33 @@ class TestDeploymentWorkflows(utils.TestCommand):
         # tmpdir should be cleaned up
         self.assertEqual(1, mock_rmtree.call_count)
         self.assertEqual('/foo', mock_rmtree.call_args[0][0])
+
+    @mock.patch('tripleoclient.workflows.deployment.wait_for_ssh_port')
+    @mock.patch('tripleoclient.workflows.deployment.time.sleep')
+    @mock.patch('tripleoclient.workflows.deployment.shutil.rmtree')
+    @mock.patch('tripleoclient.workflows.deployment.open')
+    @mock.patch('tripleoclient.workflows.deployment.tempfile')
+    @mock.patch('tripleoclient.workflows.deployment.subprocess.check_call')
+    def test_enable_ssh_admin_error(self, mock_check_call, mock_tempfile,
+                                    mock_open, mock_rmtree, mock_sleep,
+                                    mock_wait_for_ssh_port):
+        log = mock.Mock()
+        hosts = 'a', 'b', 'c'
+        ssh_user = 'test-user'
+        ssh_key = 'test-key'
+
+        mock_tempfile.mkdtemp.return_value = '/foo'
+        mock_read = mock.Mock()
+        mock_read.read.return_value = 'key'
+        mock_open.return_value = mock_read
+        mock_state = mock.Mock()
+        mock_state.state = 'ERROR'
+        mock_state.to_dict.return_value = dict(state_info='an error')
+        self.workflow.executions.get.return_value = mock_state
+        self.assertRaises(exceptions.DeploymentError,
+                          deployment.enable_ssh_admin,
+                          log, self.app.client_manager,
+                          hosts, ssh_user, ssh_key)
 
     @mock.patch('tripleoclient.utils.get_role_net_ip_map')
     def test_get_overcloud_hosts(self, mock_role_net_ip_map):
