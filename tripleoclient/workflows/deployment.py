@@ -209,7 +209,7 @@ def enable_ssh_admin(log, clients, hosts, ssh_user, ssh_key):
         for host in hosts:
             rm_tmp_key_command = ["ssh"] + ssh_options.split()
             rm_tmp_key_command += \
-                ["-l", ssh_user, host,
+                ["-i", ssh_key, "-l", ssh_user, host,
                  "sed -i -e '/%s/d' $HOME/.ssh/authorized_keys" %
                  tmp_key_comment]
             print("Removing TripleO short term key from %s" % host)
