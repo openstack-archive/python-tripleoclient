@@ -1,0 +1,10 @@
+---
+upgrade:
+  - |
+    New `openstack overcloud external-update run` and `openstack
+    overcloud external-upgrade run` commands are defined. These are
+    meant to perform updates and upgrades for services deployed via
+    external_deploy_tasks. A separate command is used because external
+    installers don't fit well within the --nodes and --roles selection
+    pattern we've established for the normal `update run` and `upgrade
+    run` commands.

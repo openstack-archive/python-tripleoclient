@@ -152,6 +152,7 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
                 playbook='fake-playbook.yaml',
                 ansible_queue_name=constants.UPDATE_QUEUE,
                 node_user='tripleo-admin',
+                tags='',
                 skip_tags=''
             )
 
@@ -182,6 +183,7 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
                     playbook=book,
                     ansible_queue_name=constants.UPDATE_QUEUE,
                     node_user='heat-admin',
+                    tags='',
                     skip_tags=''
                 )
 
@@ -211,6 +213,7 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
                     playbook=book,
                     ansible_queue_name=constants.UPDATE_QUEUE,
                     node_user='heat-admin',
+                    tags='',
                     skip_tags=''
                 )
 
