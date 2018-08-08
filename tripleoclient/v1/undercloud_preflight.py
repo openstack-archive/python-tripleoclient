@@ -481,6 +481,10 @@ def _validate_architecure_options():
         _validate_ppc64le_exclusive_opts(error_handler)
 
 
+def _checking_status(item):
+    LOG.info(_('Checking %s...') % item)
+
+
 def check(verbose_level, upgrade=False):
     # Fetch configuration and use its log file param to add logging to a file
     utils.load_config(CONF, constants.UNDERCLOUD_CONF_PATH)
@@ -489,25 +493,40 @@ def check(verbose_level, upgrade=False):
     # data = {opt.name: CONF[opt.name] for opt in _opts}
     try:
         # Other validations
+        _checking_status('Hostname')
         _check_hostname()
+        _checking_status('Memory')
         _check_memory()
+        _checking_status('Disk space')
         _check_diskspace(upgrade)
+        _checking_status('Sysctl')
         _check_sysctl()
+        _checking_status('Password file')
         _validate_passwords_file()
         # Heat templates validations
         if CONF.get('custom_env_files'):
+            _checking_status('Custom env file')
             _validate_env_files_paths()
         # Networking validations
+        _checking_status('Networking values')
         _validate_value_formats()
         for subnet in CONF.subnets:
             s = CONF.get(subnet)
+            _checking_status('Subnet "%s" is in CIDR' % subnet)
             _validate_in_cidr(s, subnet)
+            _checking_status('DHCP range is in subnet "%s"' % subnet)
             _validate_dhcp_range(s)
+            _checking_status('Inspection range for subnet "%s"' % subnet)
             _validate_inspection_range(s)
+            _checking_status('Subnet "%s" has no overlap' % subnet)
             _validate_no_overlap(s)
+        _checking_status('IP addresses')
         _validate_ips()
+        _checking_status('Network interfaces')
         _validate_interface_exists()
+        _checking_status('Provisionning IP change')
         _validate_no_ip_change()
+        _checking_status('Architecture')
         _validate_architecure_options()
     except KeyError as e:
         LOG.error(_('Key error in configuration: {error}\n'
