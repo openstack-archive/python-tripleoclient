@@ -426,7 +426,7 @@ class DeployOvercloud(command.Command):
         self.log.debug("Processing environment files %s" % created_env_files)
         env_files, localenv = utils.process_multiple_environments(
             created_env_files, tht_root, user_tht_root,
-            cleanup=not parsed_args.no_cleanup)
+            cleanup=(not parsed_args.no_cleanup))
         template_utils.deep_update(env, localenv)
 
         if stack:
