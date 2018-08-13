@@ -48,12 +48,6 @@ class FFWDUpgradePrepare(DeployOvercloud):
                                    "required before any ffwd-upgrade "
                                    "operation. Use this with caution! "),
                             )
-        parser.add_argument('--container-registry-file',
-                            dest='container_registry_file',
-                            default=None,
-                            help=_("File which contains the container "
-                                   "registry data for the upgrade"),
-                            )
         return parser
 
     def take_action(self, parsed_args):
@@ -74,8 +68,6 @@ class FFWDUpgradePrepare(DeployOvercloud):
             config=constants.FFWD_UPGRADE_PREPARE_SCRIPT, group='script',
             queue_name=constants.FFWD_UPGRADE_QUEUE)
 
-        registry = oooutils.load_container_registry(
-            self.log, parsed_args.container_registry_file)
         # In case of update and upgrade we need to force the
         # update_plan_only. The heat stack update is done by the
         # packag_update mistral action
@@ -91,8 +83,7 @@ class FFWDUpgradePrepare(DeployOvercloud):
             constants.FFWD_UPGRADE_PREPARE_ENV)
 
         super(FFWDUpgradePrepare, self).take_action(parsed_args)
-        package_update.update(clients, container=stack_name,
-                              container_registry=registry)
+        package_update.update(clients, container=stack_name)
         package_update.get_config(clients, container=stack_name)
 
         overcloudrcs = deployment.create_overcloudrc(

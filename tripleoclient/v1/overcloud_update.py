@@ -41,12 +41,6 @@ class UpdatePrepare(DeployOvercloud):
 
     def get_parser(self, prog_name):
         parser = super(UpdatePrepare, self).get_parser(prog_name)
-        parser.add_argument('--container-registry-file',
-                            dest='container_registry_file',
-                            default=None,
-                            help=_("File which contains the container "
-                                   "registry data for the update"),
-                            )
         return parser
 
     def take_action(self, parsed_args):
@@ -57,8 +51,6 @@ class UpdatePrepare(DeployOvercloud):
                                    parsed_args.stack)
 
         stack_name = stack.stack_name
-        registry = oooutils.load_container_registry(
-            self.log, parsed_args.container_registry_file)
 
         # In case of update and upgrade we need to force the
         # update_plan_only. The heat stack update is done by the
@@ -73,8 +65,7 @@ class UpdatePrepare(DeployOvercloud):
             constants.UPDATE_PREPARE_ENV)
 
         super(UpdatePrepare, self).take_action(parsed_args)
-        package_update.update(clients, container=stack_name,
-                              container_registry=registry)
+        package_update.update(clients, container=stack_name)
         package_update.get_config(clients, container=stack_name)
         self.log.info("Update init on stack {0} complete.".format(
                       parsed_args.stack))

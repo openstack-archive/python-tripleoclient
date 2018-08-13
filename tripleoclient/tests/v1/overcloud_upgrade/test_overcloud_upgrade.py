@@ -68,16 +68,13 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
         mock_stack = mock.Mock()
         mock_stack.stack_name = 'overcloud'
         mock_get_stack.return_value = mock_stack
-        mock_abspath.return_value = '/home/fake/my-fake-registry.yaml'
         mock_yaml.return_value = {'fake_container': 'fake_value'}
         add_env = mock.Mock()
         add_env.return_value = True
-        argslist = ['--stack', 'overcloud', '--templates',
-                    '--container-registry-file', 'my-fake-registry.yaml']
+        argslist = ['--stack', 'overcloud', '--templates', ]
         verifylist = [
             ('stack', 'overcloud'),
             ('templates', constants.TRIPLEO_HEAT_TEMPLATES),
-            ('container_registry_file', 'my-fake-registry.yaml'),
         ]
 
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
@@ -85,7 +82,6 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
         mock_upgrade.assert_called_once_with(
             self.app.client_manager,
             container='overcloud',
-            container_registry={'fake_container': 'fake_value'},
         )
 
         mock_overcloudrc.assert_called_once_with(mock.ANY,
@@ -105,16 +101,13 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
     def test_upgrade_failed(self, mock_deploy, mock_copy, mock_yaml,
                             mock_abspath, mock_open, mock_upgrade, add_env):
         mock_upgrade.side_effect = exceptions.DeploymentError()
-        mock_abspath.return_value = '/home/fake/my-fake-registry.yaml'
         mock_yaml.return_value = {'fake_container': 'fake_value'}
         add_env = mock.Mock()
         add_env.return_value = True
-        argslist = ['--stack', 'overcloud', '--templates',
-                    '--container-registry-file', 'my-fake-registry.yaml']
+        argslist = ['--stack', 'overcloud', '--templates', ]
         verifylist = [
             ('stack', 'overcloud'),
             ('templates', constants.TRIPLEO_HEAT_TEMPLATES),
-            ('container_registry_file', 'my-fake-registry.yaml'),
         ]
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
 

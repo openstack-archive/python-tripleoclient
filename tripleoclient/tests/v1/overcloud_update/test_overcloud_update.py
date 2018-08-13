@@ -54,15 +54,13 @@ class TestOvercloudUpdatePrepare(fakes.TestOvercloudUpdatePrepare):
         mock_stack = mock.Mock()
         mock_stack.stack_name = 'overcloud'
         mock_get_stack.return_value = mock_stack
-        mock_abspath.return_value = '/home/fake/my-fake-registry.yaml'
         mock_yaml.return_value = {'fake_container': 'fake_value'}
 
-        argslist = ['--stack', 'overcloud', '--templates',
-                    '--container-registry-file', 'my-fake-registry.yaml']
+        argslist = ['--stack', 'overcloud', '--templates']
+
         verifylist = [
             ('stack', 'overcloud'),
             ('templates', constants.TRIPLEO_HEAT_TEMPLATES),
-            ('container_registry_file', 'my-fake-registry.yaml')
         ]
 
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
@@ -74,7 +72,6 @@ class TestOvercloudUpdatePrepare(fakes.TestOvercloudUpdatePrepare):
             mock_update.assert_called_once_with(
                 self.app.client_manager,
                 container='overcloud',
-                container_registry={'fake_container': 'fake_value'},
             )
 
     @mock.patch('tripleoclient.workflows.package_update.update',
@@ -88,14 +85,11 @@ class TestOvercloudUpdatePrepare(fakes.TestOvercloudUpdatePrepare):
     def test_update_failed(self, mock_deploy, mock_copy, mock_yaml,
                            mock_abspath, mock_open, mock_update):
         mock_update.side_effect = exceptions.DeploymentError()
-        mock_abspath.return_value = '/home/fake/my-fake-registry.yaml'
         mock_yaml.return_value = {'fake_container': 'fake_value'}
-        argslist = ['--stack', 'overcloud', '--templates',
-                    '--container-registry-file', 'my-fake-registry.yaml']
+        argslist = ['--stack', 'overcloud', '--templates', ]
         verifylist = [
             ('stack', 'overcloud'),
             ('templates', constants.TRIPLEO_HEAT_TEMPLATES),
-            ('container_registry_file', 'my-fake-registry.yaml')
         ]
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
 
