@@ -195,6 +195,7 @@ class UploadOvercloudImage(command.Command):
                                                            '',
                                                            image.created_at))
                     )
+                    self.updated = True
                     return None
                 else:
                     print('Image "%s" already exists and can be updated'
@@ -265,6 +266,7 @@ class UploadOvercloudImage(command.Command):
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
         glance_client_adaptor = self._get_glance_client_adaptor()
+        self.updated = False
 
         self._env_variable_or_set('AGENT_NAME', 'ironic-python-agent')
 
@@ -418,3 +420,8 @@ class UploadOvercloudImage(command.Command):
             os.path.join(parsed_args.http_boot, 'agent.ramdisk'),
             parsed_args.update_existing
         )
+
+        if self.updated:
+            print('Some images have been updated in Glance, make sure to '
+                  'rerun\n\topenstack overcloud node configure\nto reflect '
+                  'the changes on the nodes')

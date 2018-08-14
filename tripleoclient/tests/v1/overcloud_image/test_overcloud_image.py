@@ -355,6 +355,7 @@ class TestUploadOvercloudImage(TestPluginV1):
         )
 
         self.assertEqual(mock_subprocess_call.call_count, 0)
+        self.assertFalse(self.cmd.updated)
 
     @mock.patch('subprocess.check_call', autospec=True)
     def test_overcloud_create_update_images(self, mock_subprocess_call):
@@ -385,6 +386,7 @@ class TestUploadOvercloudImage(TestPluginV1):
             self.app.client_manager.image.images.update.call_count
         )
         self.assertEqual(mock_subprocess_call.call_count, 2)
+        self.assertTrue(self.cmd.updated)
 
 
 class TestUploadOvercloudImageFull(TestPluginV1):
