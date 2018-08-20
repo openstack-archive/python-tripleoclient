@@ -143,7 +143,8 @@ class HeatBaseLauncher(object):
         p = subprocess.Popen(['mount', '-t', 'tmpfs', '-o', 'size=500M',
                               'tmpfs', heatdir],
                              stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE)
+                             stderr=subprocess.PIPE,
+                             universal_newlines=True)
         cmd_stdout, cmd_stderr = p.communicate()
         retval = p.returncode
         if retval != 0:
@@ -273,7 +274,8 @@ class HeatDockerLauncher(HeatBaseLauncher):
             'getent', 'passwd', self.user
         ]
         log.debug(' '.join(cmd))
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                             universal_newlines=True)
         result = p.communicate()[0]
         if result:
             return result.split(':')[2]
@@ -286,7 +288,8 @@ class HeatDockerLauncher(HeatBaseLauncher):
             'getent', 'group', self.user
         ]
         log.debug(' '.join(cmd))
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                             universal_newlines=True)
         result = p.communicate()[0]
         if result:
             return result.split(':')[2]

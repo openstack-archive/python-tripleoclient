@@ -77,7 +77,8 @@ def _run_live_command(args, env=None, name=None, cwd=None, wait=True):
         name = args[0]
     process = subprocess.Popen(args, env=env, cwd=cwd,
                                stdout=subprocess.PIPE,
-                               stderr=subprocess.STDOUT)
+                               stderr=subprocess.STDOUT,
+                               universal_newlines=True)
     if not wait:
         return process
 

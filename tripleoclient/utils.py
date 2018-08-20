@@ -1056,7 +1056,8 @@ def get_short_hostname():
 
     :return string
     """
-    p = subprocess.Popen(["hostname", "-s"], stdout=subprocess.PIPE)
+    p = subprocess.Popen(["hostname", "-s"], stdout=subprocess.PIPE,
+                         universal_newlines=True)
     return p.communicate()[0].rstrip()
 
 
