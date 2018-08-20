@@ -140,7 +140,10 @@ class TestDeployUndercloud(TestPluginV1):
             self.temp_homedir, 'tripleo-undercloud-passwords.yaml')
 
         mock_pw.return_value = pw_dict
-        mock_exists.return_value = True
+
+        def mock_file_exists(file_name):
+            return not file_name.startswith('/etc/keystone')
+        mock_exists.side_effect = mock_file_exists
         with open(t_pw_conf_path, 'w') as t_pw:
             t_pw.write('parameter_defaults: {ExistingKey: xyz}\n')
 
