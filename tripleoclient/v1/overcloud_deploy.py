@@ -341,7 +341,9 @@ class DeployOvercloud(command.Command):
                                %s from swift into %s" % (pf, file_path))
                 if not os.path.exists(os.path.dirname(file_path)):
                     os.makedirs(os.path.dirname(file_path))
-                with open(file_path, 'w') as f:
+                # open in binary as the swiftclient get/put error under
+                # python3 if opened as Text I/O
+                with open(file_path, 'wb') as f:
                     f.write(self.object_client.get_object(plan_name, pf)[1])
 
     def _deploy_tripleo_heat_templates_tmpdir(self, stack, parsed_args):
