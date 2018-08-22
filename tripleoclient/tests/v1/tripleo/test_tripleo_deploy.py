@@ -131,9 +131,53 @@ class TestDeployUndercloud(TestPluginV1):
     @mock.patch('subprocess.check_call', autospec=True)
     @mock.patch('tripleo_common.utils.passwords.generate_passwords')
     @mock.patch('yaml.safe_dump')
-    def test_update_passwords_env_update(self, mock_dump, mock_pw, mock_cc,
-                                         mock_exists, mock_chmod, mock_user):
-        pw_dict = {"GeneratedPassword": 123}
+    def test_update_passwords_env(self, mock_dump, mock_pw, mock_cc,
+                                  mock_exists, mock_chmod, mock_user):
+        pw_dict = {"GeneratedPassword": 123, "LegacyPass": "override me"}
+        pw_conf_path = os.path.join(self.temp_homedir,
+                                    'undercloud-passwords.conf')
+        t_pw_conf_path = os.path.join(
+            self.temp_homedir, 'tripleo-undercloud-passwords.yaml')
+
+        mock_pw.return_value = pw_dict
+        mock_exists.return_value = True
+        with open(t_pw_conf_path, 'w') as t_pw:
+            t_pw.write('parameter_defaults: {ExistingKey: xyz, '
+                       'LegacyPass: pick-me-legacy-tht, '
+                       'RpcPassword: pick-me-rpc}\n')
+
+        with open(pw_conf_path, 'w') as t_pw:
+            t_pw.write('[auth]\nundercloud_db_password = ignore-me-mysql\n'
+                       'undercloud_rabbit_password = ignore-me-rabbit\n'
+                       'undercloud_rpc_password = ignore-me-rpc\n'
+                       'undercloud_legacy_pass = ignore-me-legacy\n')
+
+        self.cmd._update_passwords_env(self.temp_homedir,
+                                       'stack', upgrade=False,
+                                       passwords={'ADefault': 456,
+                                                  'ExistingKey':
+                                                  'dontupdate'})
+        expected_dict = {
+            'parameter_defaults': {'GeneratedPassword': 123,
+                                   'LegacyPass': 'pick-me-legacy-tht',
+                                   'RpcPassword': 'pick-me-rpc',
+                                   'ExistingKey': 'xyz',
+                                   'ADefault': 456}}
+        mock_dump.assert_called_once_with(expected_dict,
+                                          mock.ANY,
+                                          default_flow_style=False)
+
+    # TODO(bogdando) drop once we have proper oslo.privsep
+    @mock.patch('getpass.getuser', return_value='stack')
+    @mock.patch('os.chmod')
+    @mock.patch('os.path.exists')
+    # TODO(bogdando) drop once we have proper oslo.privsep
+    @mock.patch('subprocess.check_call', autospec=True)
+    @mock.patch('tripleo_common.utils.passwords.generate_passwords')
+    @mock.patch('yaml.safe_dump')
+    def test_update_passwords_env_upgrade(self, mock_dump, mock_pw, mock_cc,
+                                          mock_exists, mock_chmod, mock_user):
+        pw_dict = {"GeneratedPassword": 123, "LegacyPass": "override me"}
         pw_conf_path = os.path.join(self.temp_homedir,
                                     'undercloud-passwords.conf')
         t_pw_conf_path = os.path.join(
@@ -145,20 +189,29 @@ class TestDeployUndercloud(TestPluginV1):
             return not file_name.startswith('/etc/keystone')
         mock_exists.side_effect = mock_file_exists
         with open(t_pw_conf_path, 'w') as t_pw:
-            t_pw.write('parameter_defaults: {ExistingKey: xyz}\n')
+            t_pw.write('parameter_defaults: {ExistingKey: xyz, '
+                       'LegacyPass: override-me-legacy, '
+                       'RpcPassword: override-me-rpc}\n')
 
         with open(pw_conf_path, 'w') as t_pw:
-            t_pw.write('[auth]\nundercloud_db_password = abc\n')
+            t_pw.write('[auth]\nundercloud_db_password = pick-me-mysql\n'
+                       'undercloud_rabbit_password = pick-me-rabbit\n'
+                       'undercloud_rpc_password = pick-me-rpc\n'
+                       'undercloud_legacy_pass = pick-me-legacy-instack\n')
 
         self.cmd._update_passwords_env(self.temp_homedir,
-                                       'stack',
+                                       'stack', upgrade=True,
                                        passwords={'ADefault': 456,
                                                   'ExistingKey':
                                                   'dontupdate'})
-        expected_dict = {'parameter_defaults': {'GeneratedPassword': 123,
-                                                'ExistingKey': 'xyz',
-                                                'MysqlRootPassword': 'abc',
-                                                'ADefault': 456}}
+        expected_dict = {
+            'parameter_defaults': {'GeneratedPassword': 123,
+                                   'ExistingKey': 'xyz',
+                                   'MysqlRootPassword': 'pick-me-mysql',
+                                   'RpcPassword': 'pick-me-rpc',
+                                   'RabbitPassword': 'pick-me-rabbit',
+                                   'LegacyPass': 'pick-me-legacy-instack',
+                                   'ADefault': 456}}
         mock_dump.assert_called_once_with(expected_dict,
                                           mock.ANY,
                                           default_flow_style=False)
