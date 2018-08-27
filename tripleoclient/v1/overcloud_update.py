@@ -128,7 +128,7 @@ class UpdateRun(command.Command):
         parser.add_argument("--ssh-user",
                             dest="ssh_user",
                             action="store",
-                            default="heat-admin",
+                            default="tripleo-admin",
                             help=_("The ssh user name for connecting to "
                                    "the overcloud nodes.")
                             )
