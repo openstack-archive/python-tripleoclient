@@ -174,7 +174,7 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
                     inventory_file=mock_open().read(),
                     playbook=book,
                     ansible_queue_name=constants.UPDATE_QUEUE,
-                    node_user='heat-admin',
+                    node_user='tripleo-admin',
                     tags='',
                     skip_tags=''
                 )
@@ -204,7 +204,7 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
                     inventory_file=mock_open().read(),
                     playbook=book,
                     ansible_queue_name=constants.UPDATE_QUEUE,
-                    node_user='heat-admin',
+                    node_user='tripleo-admin',
                     tags='',
                     skip_tags=''
                 )
