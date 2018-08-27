@@ -168,17 +168,20 @@ def _process_drivers_and_hardware_types(conf, env):
         if hw_type in enabled_hardware_types:
             vendor_interfaces.add(iface)
 
+    power_interfaces = mgmt_interfaces.copy()
+    # The snmp hardware type uses noop management and snmp power; noop
+    # management is also used by ipmi and staging hardware types.
+    mgmt_interfaces.add('noop')
+    if 'snmp' in enabled_hardware_types:
+        power_interfaces.add('snmp')
+
     env['IronicEnabledHardwareTypes'] = sorted(enabled_hardware_types)
 
     env['IronicEnabledBootInterfaces'] = sorted(boot_interfaces)
     env['IronicEnabledManagementInterfaces'] = sorted(mgmt_interfaces)
+    env['IronicEnabledPowerInterfaces'] = sorted(power_interfaces)
     env['IronicEnabledRaidInterfaces'] = sorted(raid_interfaces)
     env['IronicEnabledVendorInterfaces'] = sorted(vendor_interfaces)
-
-    # The snmp hardware type uses fake management and snmp power
-    if 'snmp' in enabled_hardware_types:
-        mgmt_interfaces.add('snmp')
-    env['IronicEnabledPowerInterfaces'] = sorted(mgmt_interfaces)
 
 
 def _process_ipa_args(conf, env):
