@@ -37,6 +37,9 @@ from tripleoclient import utils
 
 class TestRunAnsiblePlaybook(TestCase):
     def setUp(self):
+        self.unlink_patch = mock.patch('os.unlink')
+        self.addCleanup(self.unlink_patch.stop)
+        self.unlink_patch.start()
         self.mock_log = mock.Mock('logging.getLogger')
 
     @mock.patch('os.path.exists', return_value=False)
