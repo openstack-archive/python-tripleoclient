@@ -199,13 +199,14 @@ class UpgradeUndercloud(InstallUndercloud):
                     verbose_level=self.app_args.verbose_level,
                     force_stack_update=parsed_args.force_stack_update)
             self.log.warning("Running: %s" % ' '.join(cmd))
-            try:
-                subprocess.check_call(cmd)
-                self.log.warning(UNDERCLOUD_UPGRADE_COMPLETION_MESSAGE.format(
-                    '~/undercloud-passwords.conf',
-                    '~/stackrc'
-                    ))
-            except Exception as e:
-                self.log.error(UNDERCLOUD_FAILURE_MESSAGE)
-                self.log.error(e)
-                raise exceptions.DeploymentError(e)
+            if not parsed_args.dry_run:
+                try:
+                    subprocess.check_call(cmd)
+                    self.log.warning(
+                        UNDERCLOUD_UPGRADE_COMPLETION_MESSAGE.format(
+                            '~/undercloud-passwords.conf',
+                            '~/stackrc'))
+                except Exception as e:
+                    self.log.error(UNDERCLOUD_FAILURE_MESSAGE)
+                    self.log.error(e)
+                    raise exceptions.DeploymentError(e)
