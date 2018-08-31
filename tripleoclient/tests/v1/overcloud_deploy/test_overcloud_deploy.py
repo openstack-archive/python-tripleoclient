@@ -1664,6 +1664,46 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertTrue(fixture.mock_get_overcloud_hosts.called)
         self.assertTrue(fixture.mock_config_download.called)
 
+    @mock.patch('tripleoclient.workflows.deployment.get_overcloud_hosts')
+    @mock.patch('tripleoclient.workflows.deployment.enable_ssh_admin')
+    @mock.patch('tripleoclient.workflows.deployment.get_horizon_url',
+                autospec=True)
+    @mock.patch('tripleoclient.workflows.deployment.config_download')
+    @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
+                autospec=True)
+    @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
+    @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
+    @mock.patch('tripleoclient.workflows.deployment.create_overcloudrc',
+                autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_deploy_tripleo_heat_templates_tmpdir', autospec=True)
+    def test_override_ansible_cfg(
+            self, mock_deploy_tmpdir,
+            mock_overcloudrc, mock_write_overcloudrc,
+            mock_overcloud_endpoint,
+            mock_create_tempest_deployer_input,
+            mock_config_download, mock_get_horizon_url,
+            mock_enable_ssh_admin,
+            mock_get_overcloud_hosts):
+        clients = self.app.client_manager
+        orchestration_client = clients.orchestration
+        orchestration_client.stacks.get.return_value = mock.Mock()
+
+        arglist = ['--templates',
+                   '--override-ansible-cfg', 'ansible.cfg']
+        verifylist = [
+            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
+            ('override_ansible_cfg', 'ansible.cfg')
+        ]
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
+        self.assertTrue(mock_enable_ssh_admin.called)
+        self.assertTrue(mock_get_overcloud_hosts.called)
+        self.assertTrue(mock_config_download.called)
+        self.assertEqual('ansible.cfg',
+                         mock_config_download.call_args[0][8])
+
     def test_download_missing_files_from_plan(self):
         # Restore the real function so we don't accidentally call the mock
         self.cmd._download_missing_files_from_plan = self.real_download_missing
