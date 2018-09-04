@@ -166,7 +166,7 @@ def update_plan_from_templates(clients, name, tht_root, roles_file=None,
             _list_user_files(swift_client, name))))
         keep_file_contents = _load_content_or_file(
             swift_client, name, keep_map)
-    elif not plan_env_file:
+    else:
         passwords = _load_passwords(swift_client, name)
 
     # TODO(dmatthews): Removing the existing plan files should probably be
