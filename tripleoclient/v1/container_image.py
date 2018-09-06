@@ -439,7 +439,8 @@ class PrepareImageFiles(command.Command):
             tag_from_label=parsed_args.tag_from_label,
             modify_role=modify_role,
             modify_vars=modify_vars,
-            append_tag=append_tag
+            append_tag=append_tag,
+            template_file=parsed_args.template_file
         )
         if parsed_args.output_env_file:
             params = prepare_data[parsed_args.output_env_file]
