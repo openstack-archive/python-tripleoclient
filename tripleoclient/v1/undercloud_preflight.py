@@ -284,25 +284,25 @@ def _validate_in_cidr(subnet_props, subnet_name):
                 LOG.error(message)
                 raise FailedValidation(message)
 
+    validate_addr_in_cidr(subnet_props.gateway, 'gateway')
+    validate_addr_in_cidr(subnet_props.dhcp_start, 'dhcp_start')
+    validate_addr_in_cidr(subnet_props.dhcp_end, 'dhcp_end')
     if subnet_name == CONF.local_subnet:
         validate_addr_in_cidr(str(netaddr.IPNetwork(CONF.local_ip).ip),
                               'local_ip')
-    validate_addr_in_cidr(subnet_props.gateway, 'gateway')
-    # NOTE(bnemec): The ui needs to be externally accessible, which means in
-    # many cases we can't have the public vip on the provisioning network.
-    # In that case users are on their own to ensure they've picked valid
-    # values for the VIP hosts.
-    if ((CONF.undercloud_service_certificate or
-            CONF.generate_service_certificate) and
-            not CONF.enable_ui):
-        validate_addr_in_cidr(CONF['undercloud_public_host'],
-                              'undercloud_public_host',
-                              require_ip=False, log_only=True)
-        validate_addr_in_cidr(CONF['undercloud_admin_host'],
-                              'undercloud_admin_host',
-                              require_ip=False)
-    validate_addr_in_cidr(subnet_props.dhcp_start, 'dhcp_start')
-    validate_addr_in_cidr(subnet_props.dhcp_end, 'dhcp_end')
+        # NOTE(bnemec): The ui needs to be externally accessible, which means
+        # in many cases we can't have the public vip on the provisioning
+        # network. In that case users are on their own to ensure they've picked
+        # valid values for the VIP hosts.
+        if ((CONF.undercloud_service_certificate or
+             CONF.generate_service_certificate) and
+                not CONF.enable_ui):
+            validate_addr_in_cidr(CONF['undercloud_public_host'],
+                                  'undercloud_public_host',
+                                  require_ip=False, log_only=True)
+            validate_addr_in_cidr(CONF['undercloud_admin_host'],
+                                  'undercloud_admin_host',
+                                  require_ip=False)
 
 
 def _validate_dhcp_range(subnet_props):

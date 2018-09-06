@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes a validation issue, validation would fail when multiple ctlplane
+    subnets were defined in ``undercloud.conf``.
+    `Bug: 1791088 <https://bugs.launchpad.net/tripleo/+bug/1791088>`_.
