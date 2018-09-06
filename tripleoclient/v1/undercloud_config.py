@@ -321,6 +321,8 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
     env_data['DockerInsecureRegistryAddress'].extend(
         CONF['docker_insecure_registries'])
 
+    env_data['ContainerCli'] = CONF['container_cli']
+
     if CONF.get('docker_registry_mirror', None):
         env_data['DockerRegistryMirror'] = CONF['docker_registry_mirror']
 

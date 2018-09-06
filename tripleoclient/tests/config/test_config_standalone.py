@@ -26,6 +26,7 @@ class TestStandaloneConfig(base.TestCase):
     def test_get_base_opts(self):
         ret = self.config.get_base_opts()
         expected = ['cleanup',
+                    'container_cli',
                     'container_images_file',
                     'custom_env_files',
                     'deployment_user',
@@ -84,6 +85,7 @@ class TestStandaloneConfig(base.TestCase):
     def test_get_opts(self):
         ret = self.config.get_opts()
         expected = ['cleanup',
+                    'container_cli',
                     'container_images_file',
                     'custom_env_files',
                     'deployment_user',

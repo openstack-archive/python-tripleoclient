@@ -188,6 +188,10 @@ class StandaloneConfig(BaseConfig):
                         help=_('Used to add custom insecure registries in '
                                '/etc/sysconfig/docker.')
                         ),
+            cfg.StrOpt('container_cli',
+                       default='docker',
+                       help=_('Container CLI used for deployment; '
+                              'Can be docker or podman.')),
         ]
         return self.sort_opts(_base_opts + _opts)
 
