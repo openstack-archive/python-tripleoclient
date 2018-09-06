@@ -155,6 +155,7 @@ class TestContainerImagePrepare(TestPluginV1):
             modify_role=None,
             modify_vars=None,
             append_tag=None,
+            template_file=kolla_builder.DEFAULT_TEMPLATE_FILE
         )
 
     @mock.patch('tripleoclient.utils.fetch_roles_file')
@@ -268,6 +269,7 @@ class TestContainerImagePrepare(TestPluginV1):
             modify_role='foo-role',
             modify_vars={'foo': 'bar'},
             append_tag=mock.ANY,
+            template_file=tmpl_file
         )
         ci_data = {
             'container_images': [{
