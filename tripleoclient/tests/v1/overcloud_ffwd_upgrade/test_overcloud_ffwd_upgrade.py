@@ -69,16 +69,13 @@ class TestFFWDUpgradePrepare(fakes.TestFFWDUpgradePrepare):
         mock_stack = mock.Mock()
         mock_stack.stack_name = 'mystack'
         mock_get_stack.return_value = mock_stack
-        mock_abspath.return_value = '/home/fake/my-fake-registry.yaml'
         mock_yaml.return_value = {'fake_container': 'fake_value'}
 
         argslist = ['--stack', 'mystack', '--templates',
-                    '--container-registry-file', 'my-fake-registry.yaml',
                     '--yes']
         verifylist = [
             ('stack', 'mystack'),
             ('templates', constants.TRIPLEO_HEAT_TEMPLATES),
-            ('container_registry_file', 'my-fake-registry.yaml'),
             ('yes', True),
         ]
 
@@ -87,7 +84,6 @@ class TestFFWDUpgradePrepare(fakes.TestFFWDUpgradePrepare):
         mock_ffwd_upgrade.assert_called_once_with(
             self.app.client_manager,
             container='mystack',
-            container_registry={'fake_container': 'fake_value'},
             ceph_ansible_playbook='/usr/share/ceph-ansible'
                                   '/site-docker.yml.sample',
         )
@@ -110,15 +106,12 @@ class TestFFWDUpgradePrepare(fakes.TestFFWDUpgradePrepare):
         self, mock_deploy, mock_copy, mock_yaml, mock_abspath, mock_open,
             mock_ffwd_upgrade, mock_prepend_env):
         mock_ffwd_upgrade.side_effect = exceptions.DeploymentError()
-        mock_abspath.return_value = '/home/fake/my-fake-registry.yaml'
         mock_yaml.return_value = {'fake_container': 'fake_value'}
         argslist = ['--stack', 'overcloud', '--templates',
-                    '--container-registry-file', 'my-fake-registry.yaml',
                     '--yes', ]
         verifylist = [
             ('stack', 'overcloud'),
             ('templates', constants.TRIPLEO_HEAT_TEMPLATES),
-            ('container_registry_file', 'my-fake-registry.yaml'),
             ('yes', True),
         ]
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)

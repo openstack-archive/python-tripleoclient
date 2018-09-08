@@ -43,12 +43,6 @@ class FFWDUpgradePrepare(DeployOvercloud):
                                    "required before any ffwd-upgrade "
                                    "operation. Use this with caution! "),
                             )
-        parser.add_argument('--container-registry-file',
-                            dest='container_registry_file',
-                            default=None,
-                            help=_("File which contains the container "
-                                   "registry data for the upgrade"),
-                            )
         parser.add_argument('--ceph-ansible-playbook',
                             action="store",
                             default="/usr/share/ceph-ansible"
@@ -76,8 +70,6 @@ class FFWDUpgradePrepare(DeployOvercloud):
             config=constants.FFWD_UPGRADE_PREPARE_SCRIPT, group='script',
             queue_name=constants.FFWD_UPGRADE_QUEUE)
 
-        registry = oooutils.load_container_registry(
-            self.log, parsed_args.container_registry_file)
         ceph_ansible_playbook = parsed_args.ceph_ansible_playbook
         # In case of update and upgrade we need to force the
         # update_plan_only. The heat stack update is done by the
@@ -95,7 +87,6 @@ class FFWDUpgradePrepare(DeployOvercloud):
 
         super(FFWDUpgradePrepare, self).take_action(parsed_args)
         package_update.update(clients, container=stack_name,
-                              container_registry=registry,
                               ceph_ansible_playbook=ceph_ansible_playbook)
         package_update.get_config(clients, container=stack_name)
 

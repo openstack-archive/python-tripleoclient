@@ -35,27 +35,23 @@ class TestCephUpgrade(fakes.TestCephUpgrade):
         self.mock_uuid4 = uuid4_patcher.start()
         self.addCleanup(self.mock_uuid4.stop)
 
-    @mock.patch('tripleoclient.utils.load_container_registry')
     @mock.patch('tripleoclient.utils.get_stack')
     @mock.patch('tripleoclient.workflows.package_update.update', autospec=True)
     @mock.patch(
         'tripleoclient.v1.overcloud_ceph_upgrade.DeployOvercloud.take_action')
-    def test_ceph_upgrade(self, mock_deploy, mock_ceph_upgrade, mock_get_stack,
-                          mock_load_registry):
+    def test_ceph_upgrade(self, mock_deploy, mock_ceph_upgrade,
+                          mock_get_stack):
         # get a fresh cmd so that the superclass mock takes effect
         cmd = overcloud_ceph_upgrade.CephUpgrade(self.app, self.app_args)
 
         mock_stack = mock.Mock()
         mock_stack.stack_name = 'mystack'
         mock_get_stack.return_value = mock_stack
-        mock_load_registry.return_value = {'fake_container': 'fake_value'}
 
-        argslist = ['--stack', 'mystack', '--templates',
-                    '--container-registry-file', 'my-fake-registry.yaml']
+        argslist = ['--stack', 'mystack', '--templates']
         verifylist = [
             ('stack', 'mystack'),
-            ('templates', constants.TRIPLEO_HEAT_TEMPLATES),
-            ('container_registry_file', 'my-fake-registry.yaml')
+            ('templates', constants.TRIPLEO_HEAT_TEMPLATES)
         ]
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
 
@@ -68,7 +64,6 @@ class TestCephUpgrade(fakes.TestCephUpgrade):
             mock_ceph_upgrade.assert_called_once_with(
                 self.app.client_manager,
                 container='mystack',
-                container_registry={'fake_container': 'fake_value'},
                 ceph_ansible_playbook='/usr/share/ceph-ansible'
                                       '/infrastructure-playbooks'
                                       '/rolling_update.yml',
@@ -89,12 +84,10 @@ class TestCephUpgrade(fakes.TestCephUpgrade):
         mock_ceph_upgrade.side_effect = exceptions.DeploymentError()
         mock_abspath.return_value = '/home/fake/my-fake-registry.yaml'
         mock_yaml.return_value = {'fake_container': 'fake_value'}
-        argslist = ['--stack', 'overcloud', '--templates',
-                    '--container-registry-file', 'my-fake-registry.yaml']
+        argslist = ['--stack', 'overcloud', '--templates']
         verifylist = [
             ('stack', 'overcloud'),
             ('templates', constants.TRIPLEO_HEAT_TEMPLATES),
-            ('container_registry_file', 'my-fake-registry.yaml')
         ]
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
 
