@@ -26,6 +26,8 @@ import websocket
 
 from tripleoclient import exceptions
 
+from tripleoclient import constants
+
 LOG = logging.getLogger(__name__)
 
 DEFAULT_TRIPLEOCLIENT_API_VERSION = '1'
@@ -83,7 +85,12 @@ class WebsocketClient(object):
 
         LOG.debug('Instantiating messaging websocket client: %s', endpoint)
         try:
-            self._ws = websocket.create_connection(endpoint)
+            if 'wss:' in endpoint:
+                OS_CACERT = {"ca_certs": constants.LOCAL_CACERT_PATH}
+                self._ws = websocket.create_connection(endpoint,
+                                                       sslopt=OS_CACERT)
+            else:
+                self._ws = websocket.create_connection(endpoint)
         except socket.error:
             LOG.error("Could not establish a connection to the Zaqar "
                       "websocket. The command was sent but the answer "
