@@ -61,6 +61,8 @@ ENABLE_SSH_ADMIN_TIMEOUT = 300
 ENABLE_SSH_ADMIN_STATUS_INTERVAL = 5
 ENABLE_SSH_ADMIN_SSH_PORT_TIMEOUT = 300
 
+# The path to the local CA certificate installed on the undercloud
+LOCAL_CACERT_PATH = '/etc/pki/ca-trust/source/anchors/cm-local-ca.pem'
 # Key-value pair of deprecated service and its warning message
 DEPRECATED_SERVICES = {"OS::TripleO::Services::OpenDaylightApi":
                        "You are using OpenDaylight as your networking"
