@@ -74,6 +74,18 @@ Deployment information successfully generated!
 
 ########################################################
 """
+STANDALONE_COMPLETION_MESSAGE = """
+##########################################################
+
+Useful files:
+
+The clouds.yaml file is at {0}
+
+Use "export OS_CLOUD=standalone" before running the
+openstack command.
+
+##########################################################
+"""
 
 
 class Deploy(command.Command):
@@ -89,6 +101,10 @@ class Deploy(command.Command):
     stack_action = 'CREATE'
     deployment_user = None
     ansible_dir = None
+
+    def _is_undercloud_deploy(self, parsed_args):
+        return parsed_args.standalone_role == 'Undercloud' and \
+            parsed_args.stack == 'undercloud'
 
     # NOTE(cjeanner) Quick'n'dirty way before we have proper
     # escalation support through oslo.privsep
@@ -1009,8 +1025,7 @@ class Deploy(command.Command):
     def _standalone_deploy(self, parsed_args):
         # NOTE(aschultz): the tripleo deploy interface is experimental but only
         # when not being invoked via undercloud install. Print a warning...
-        if parsed_args.standalone_role != 'Undercloud' and \
-                parsed_args.stack != 'undercloud':
+        if not self._is_undercloud_deploy(parsed_args):
             self.log.warning('[EXPERIMENTAL] The tripleo deploy interface is '
                              'an experimental interface. It may change in the '
                              'next release.')
@@ -1156,10 +1171,12 @@ class Deploy(command.Command):
                 if parsed_args.output_only:
                     success_messaging = OUTPUT_ONLY_COMPLETION_MESSAGE
                 else:
-                    success_messaging = DEPLOY_COMPLETION_MESSAGE.format(
-                        '~/undercloud-passwords.conf',
-                        '~/stackrc'
-                        )
+                    success_messaging = DEPLOY_COMPLETION_MESSAGE
+
+                if not self._is_undercloud_deploy(parsed_args):
+                    success_messaging = success_messaging + \
+                        STANDALONE_COMPLETION_MESSAGE.format(
+                            '~/.config/openstack/clouds.yaml')
 
                 self.log.warning(success_messaging)
                 if (self.stack_update_mark and
