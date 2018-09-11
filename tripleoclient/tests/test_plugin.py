@@ -106,3 +106,31 @@ class TestPlugin(base.TestCase):
         with mock.patch('tripleoclient.plugin.LOG') as mock_log:
             self.assertRaises(socket.error, client.messaging_websocket)
             mock_log.error.assert_called_once_with(msg)
+
+    @mock.patch("websocket.create_connection")
+    def test_make_tls_client(self, ws_create_connection):
+        clientmgr = mock.MagicMock()
+        clientmgr.get_endpoint_for_service_type.return_value = fakes.WSS_URL
+
+        clientmgr.auth.get_token.return_value = "TOKEN"
+        clientmgr.auth_ref.project_id = "ID"
+        ws_create_connection.return_value.recv.return_value = json.dumps({
+            "headers": {
+                "status": 200
+            }
+        })
+        client = plugin.make_client(clientmgr)
+
+        websocket = client.messaging_websocket()
+        # The second access should not return the same client:
+        self.assertIsNot(client.messaging_websocket(), websocket)
+
+        plugin.make_client(clientmgr)
+
+        # And the functions should only be called when the client is created:
+        self.assertEqual(clientmgr.auth.get_token.call_count, 2)
+        self.assertEqual(clientmgr.get_endpoint_for_service_type.call_count, 2)
+        ws_create_connection.assert_called_with(
+            "wss://0.0.0.0",
+            sslopt={'ca_certs':
+                    '/etc/pki/ca-trust/source/anchors/cm-local-ca.pem'})
