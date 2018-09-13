@@ -859,7 +859,7 @@ class Deploy(command.Command):
             '--heat-user', metavar='<HEAT_USER>',
             dest='heat_user',
             default='heat',
-            help=_('User to execute the non-priveleged heat-all process. '
+            help=_('User to execute the non-privileged heat-all process. '
                    'Defaults to heat.')
         )
         # TODO(cjeanner) drop that once using oslo.privsep
