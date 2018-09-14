@@ -970,6 +970,9 @@ class GetDeploymentStatus(command.Command):
             plan=plan
         )
 
+        if not status:
+            return
+
         payload = status['workflow_status']['payload']
         execution = payload['execution']
         table = PrettyTable(

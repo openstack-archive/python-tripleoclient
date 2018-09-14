@@ -1,0 +1,4 @@
+---
+fixes:
+  - When requesting the deployment status of a non-existant plan, instead of
+    showing a traceback, show a helpful message indicating there is no status.
