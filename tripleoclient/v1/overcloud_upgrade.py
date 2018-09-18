@@ -125,7 +125,7 @@ class UpgradeRun(command.Command):
                                    "playbooks to run. That is the "
                                    "upgrade_steps_playbook.yaml "
                                    "then deploy_steps_playbook.yaml and then "
-                                   "post_upgrade_steps_playbooks.yaml. Set "
+                                   "post_upgrade_steps_playbook.yaml. Set "
                                    "this to each of those playbooks in "
                                    "consecutive invocations of this command "
                                    "if you prefer to run them manually. Note: "
