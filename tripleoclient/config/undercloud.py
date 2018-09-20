@@ -106,7 +106,7 @@ class UndercloudConfig(StandaloneConfig):
                             'node.'),
                         ),
             cfg.ListOpt('undercloud_ntp_servers',
-                        default=[],
+                        default=['pool.ntp.org'],
                         help=_('List of ntp servers to use.')),
             cfg.StrOpt('overcloud_domain_name',
                        default='localdomain',
