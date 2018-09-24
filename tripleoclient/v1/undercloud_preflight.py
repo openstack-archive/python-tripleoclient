@@ -497,6 +497,25 @@ def _check_routed_networks_enabled_if_multiple_subnets_defined():
         raise FailedValidation(msg)
 
 
+def _validate_deprecetad_now_invalid_parameters():
+    invalid_opts = [
+        'masquerade_network',
+    ]
+    deprecate_conf = cfg.CONF
+    invalid_opts_used = []
+
+    for invalid_opt in invalid_opts:
+        deprecate_conf.register_opts([cfg.StrOpt(invalid_opt)])
+        if deprecate_conf.get(invalid_opt):
+            invalid_opts_used.append(invalid_opt)
+    if invalid_opts_used:
+        msg = _('Options that has been deprecated and removed/replaced '
+                'detected. Invalid options: %s') % invalid_opts_used
+        LOG.error(msg)
+        raise FailedValidation(msg)
+    del deprecate_conf
+
+
 def check(verbose_level, upgrade=False):
     # Fetch configuration and use its log file param to add logging to a file
     utils.load_config(CONF, constants.UNDERCLOUD_CONF_PATH)
@@ -515,6 +534,8 @@ def check(verbose_level, upgrade=False):
         _check_sysctl()
         _checking_status('Password file')
         _validate_passwords_file()
+        _checking_status('Deprecated now invalid options')
+        _validate_deprecetad_now_invalid_parameters()
         # Heat templates validations
         if CONF.get('custom_env_files'):
             _checking_status('Custom env file')
