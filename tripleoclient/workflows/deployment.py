@@ -345,23 +345,14 @@ def get_deployment_status(clients, **workflow_input):
 
 def get_deployment_failures(clients, **workflow_input):
     workflow_client = clients.workflow_engine
-    tripleoclients = clients.tripleoclient
 
-    with tripleoclients.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client,
-            'tripleo.deployment.v1.get_deployment_failures',
-            workflow_input=workflow_input
-        )
+    result = base.call_action(
+        workflow_client,
+        'tripleo.deployment.get_deployment_failures',
+        **workflow_input
+    )
 
-        for payload in base.wait_for_messages(workflow_client, ws, execution,
-                                              _WORKFLOW_TIMEOUT):
-            if 'message' in payload:
-                print(payload['message'])
+    if result.get('message', ''):
+        print(result['message'])
 
-    if payload['status'] == 'SUCCESS':
-        return payload['deployment_failures']['failures']
-    else:
-        raise exceptions.WorkflowServiceError(
-            'Exception getting deployment failures: {}'.format(
-                payload.get('message', '')))
+    return result['failures']
