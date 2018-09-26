@@ -135,6 +135,9 @@ class TestOvercloudCreatePlan(utils.TestCommand):
         self.app.client_manager.tripleoclient = self.tripleoclient
 
         self.workflow = self.app.client_manager.workflow_engine
+        execution = mock.Mock()
+        execution.id = "IDID"
+        self.workflow.executions.create.return_value = execution
         self.swift = self.app.client_manager.tripleoclient.object_store
 
     def test_create_default_plan(self):
@@ -376,6 +379,9 @@ class TestOvercloudDeployPlan(utils.TestCommand):
         self.cmd = overcloud_plan.DeployPlan(self.app, app_args)
 
         self.workflow = self.app.client_manager.workflow_engine = mock.Mock()
+        execution = mock.Mock()
+        execution.id = "IDID"
+        self.workflow.executions.create.return_value = execution
         self.orch = self.app.client_manager.orchestration = mock.Mock()
 
         self.websocket = mock.Mock()
