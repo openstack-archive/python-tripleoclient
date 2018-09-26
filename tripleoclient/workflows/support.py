@@ -83,23 +83,23 @@ def fetch_logs(clients, container, server_name, timeout=None,
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
 
-    execution = base.start_workflow(
-        workflow_client,
-        'tripleo.support.v1.fetch_logs',
-        workflow_input=workflow_input
-    )
+    with tripleoclients.messaging_websocket() as ws:
+        execution = base.start_workflow(
+            workflow_client,
+            'tripleo.support.v1.fetch_logs',
+            workflow_input=workflow_input
+        )
 
-    websocket = tripleoclients.messaging_websocket()
-    messages = base.wait_for_messages(workflow_client,
-                                      websocket,
-                                      execution,
-                                      timeout)
+        messages = base.wait_for_messages(workflow_client,
+                                          ws,
+                                          execution,
+                                          timeout)
 
-    for message in messages:
-        if message['status'] != 'SUCCESS':
-            raise LogFetchError(message['message'])
-        if message['message']:
-            print('{}'.format(message['message']))
+        for message in messages:
+            if message['status'] != 'SUCCESS':
+                raise LogFetchError(message['message'])
+            if message['message']:
+                print('{}'.format(message['message']))
 
 
 def delete_container(clients, container, timeout=None, concurrency=None):
@@ -122,20 +122,20 @@ def delete_container(clients, container, timeout=None, concurrency=None):
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
 
-    execution = base.start_workflow(
-        workflow_client,
-        'tripleo.support.v1.delete_container',
-        workflow_input=workflow_input
-    )
+    with tripleoclients.messaging_websocket() as ws:
+        execution = base.start_workflow(
+            workflow_client,
+            'tripleo.support.v1.delete_container',
+            workflow_input=workflow_input
+        )
 
-    websocket = tripleoclients.messaging_websocket()
-    messages = base.wait_for_messages(workflow_client,
-                                      websocket,
-                                      execution,
-                                      timeout)
+        messages = base.wait_for_messages(workflow_client,
+                                          ws,
+                                          execution,
+                                          timeout)
 
-    for message in messages:
-        if message['status'] != 'SUCCESS':
-            raise ContainerDeleteFailed(message['message'])
-        if message['message']:
-            print('{}'.format(message['message']))
+        for message in messages:
+            if message['status'] != 'SUCCESS':
+                raise ContainerDeleteFailed(message['message'])
+            if message['message']:
+                print('{}'.format(message['message']))
