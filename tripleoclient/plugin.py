@@ -138,22 +138,21 @@ class WebsocketClient(object):
         messages.
         """
 
-        if not self._ws.connected:
-            return
-
         if timeout is None:
             LOG.warning("Waiting for messages on queue '{}' with no timeout."
                         .format(self._queue_name))
 
-        self._ws.settimeout(timeout)
-
-        while True:
-            try:
+        try:
+            self._ws.settimeout(timeout)
+            while True:
                 message = self.recv()
                 LOG.debug(message)
                 yield message['body']['payload']
-            except websocket.WebSocketTimeoutException:
-                raise exceptions.WebSocketTimeout()
+
+        except websocket.WebSocketTimeoutException:
+            raise exceptions.WebSocketTimeout()
+        except websocket.WebSocketConnectionClosedException:
+            raise exceptions.WebSocketConnectionClosed()
 
     def __enter__(self):
         """Return self to allow usage as a context manager"""

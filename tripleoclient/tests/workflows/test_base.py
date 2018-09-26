@@ -16,7 +16,7 @@ import mock
 
 from osc_lib.tests import utils
 
-from tripleoclient import exceptions
+from tripleoclient import exceptions as ex
 from tripleoclient.workflows import base
 
 
@@ -48,13 +48,28 @@ class TestBaseWorkflows(utils.TestCommand):
     def test_wait_for_messages_timeout(self):
         mistral = mock.Mock()
         websocket = mock.Mock()
-        websocket.wait_for_messages.side_effect = exceptions.WebSocketTimeout
+        websocket.wait_for_messages.side_effect = ex.WebSocketTimeout
         execution = mock.Mock()
         execution.id = 1
 
         messages = base.wait_for_messages(mistral, websocket, execution)
 
-        self.assertRaises(exceptions.WebSocketTimeout, list, messages)
+        self.assertRaises(ex.WebSocketTimeout, list, messages)
+
+        self.assertTrue(mistral.executions.get.called)
+        websocket.wait_for_messages.assert_called_with(timeout=None)
+
+    def test_wait_for_messages_connection_closed(self):
+        mistral = mock.Mock()
+        websocket = mock.Mock()
+        websocket.wait_for_messages.side_effect = ex.WebSocketConnectionClosed
+
+        execution = mock.Mock()
+        execution.id = 1
+
+        messages = base.wait_for_messages(mistral, websocket, execution)
+
+        self.assertRaises(ex.WebSocketConnectionClosed, list, messages)
 
         self.assertTrue(mistral.executions.get.called)
         websocket.wait_for_messages.assert_called_with(timeout=None)
@@ -78,5 +93,5 @@ class TestBaseWorkflows(utils.TestCommand):
         result.state = 'ERROR'
         mistral.action_executions.create = mock.Mock(return_value=result)
 
-        self.assertRaises(exceptions.WorkflowActionError,
+        self.assertRaises(ex.WorkflowActionError,
                           base.call_action, mistral, action)
