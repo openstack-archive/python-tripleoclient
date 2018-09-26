@@ -48,7 +48,10 @@ class TestCephUpgrade(utils.TestCommand):
         self.app.client_manager.baremetal = mock.Mock()
         self.app.client_manager.orchestration = mock.Mock()
         self.app.client_manager.tripleoclient = FakeClientWrapper()
-        self.app.client_manager.workflow_engine = mock.Mock()
+        workflow = execution = mock.Mock()
+        execution.id = "IDID"
+        workflow.executions.create.return_value = execution
+        self.app.client_manager.workflow_engine = workflow
 
 
 class TestCephUpgradeConverge(utils.TestCommand):

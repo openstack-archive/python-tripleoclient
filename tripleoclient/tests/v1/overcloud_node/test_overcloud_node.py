@@ -13,6 +13,7 @@
 #   under the License.
 #
 
+import collections
 import copy
 import json
 import mock
@@ -46,6 +47,9 @@ class TestDeleteNode(fakes.TestDeleteNode):
         self.workflow = self.app.client_manager.workflow_engine
         self.stack_name = self.app.client_manager.orchestration.stacks.get
         self.stack_name.return_value = mock.Mock(stack_name="overcloud")
+        execution = mock.Mock()
+        execution.id = "IDID"
+        self.workflow.executions.create.return_value = execution
 
     # TODO(someone): This test does not pass with autospec=True, it should
     # probably be fixed so that it can pass with that.
@@ -132,6 +136,7 @@ class TestDeleteNode(fakes.TestDeleteNode):
 
         self.websocket.wait_for_messages.return_value = iter([{
             "status": "FAILED",
+            "execution": {"id": "IDID"},
             "message": """Failed to run action ERROR: Couldn't find \
                 following instances in stack overcloud: wrong_instance"""
         }])
@@ -155,6 +160,9 @@ class TestProvideNode(fakes.TestOvercloudNode):
         super(TestProvideNode, self).setUp()
 
         self.workflow = self.app.client_manager.workflow_engine
+        execution = mock.Mock()
+        execution.id = "IDID"
+        self.workflow.executions.create.return_value = execution
         client = self.app.client_manager.tripleoclient
         self.websocket = client.messaging_websocket()
 
@@ -163,7 +171,8 @@ class TestProvideNode(fakes.TestOvercloudNode):
 
         self.websocket.wait_for_messages.return_value = iter([{
             "status": "SUCCESS",
-            "message": "Success"
+            "message": "Success",
+            "execution": {"id": "IDID"}
         }])
 
     def test_provide_all_manageable_nodes(self):
@@ -227,6 +236,9 @@ class TestIntrospectNode(fakes.TestOvercloudNode):
         super(TestIntrospectNode, self).setUp()
 
         self.workflow = self.app.client_manager.workflow_engine
+        execution = mock.Mock()
+        execution.id = "IDID"
+        self.workflow.executions.create.return_value = execution
         client = self.app.client_manager.tripleoclient
         self.websocket = client.messaging_websocket()
 
@@ -237,7 +249,8 @@ class TestIntrospectNode(fakes.TestOvercloudNode):
         self.websocket.wait_for_messages.return_value = iter([{
             "status": "SUCCESS",
             "message": "Success",
-            "introspected_nodes": {}
+            "introspected_nodes": {},
+            "execution": {"id": "IDID"}
         }] * 2)
 
         self.cmd.take_action(parsed_args)
@@ -261,6 +274,7 @@ class TestIntrospectNode(fakes.TestOvercloudNode):
         self.websocket.wait_for_messages.return_value = [{
             "status": "SUCCESS",
             "message": "Success",
+            "execution": {"id": "IDID"},
         }]
 
         self.cmd.take_action(parsed_args)
@@ -347,7 +361,6 @@ class TestImportNode(fakes.TestOvercloudNode):
                 "00:0b:d0:69:7e:58"
             ]
         }]
-
         self.json_file = tempfile.NamedTemporaryFile(
             mode='w', delete=False, suffix='.json')
         json.dump(self.nodes_list, self.json_file)
@@ -355,11 +368,22 @@ class TestImportNode(fakes.TestOvercloudNode):
         self.addCleanup(os.unlink, self.json_file.name)
 
         self.workflow = self.app.client_manager.workflow_engine
+        execution = mock.Mock()
+        execution.id = "IDID"
+        self.workflow.executions.create.return_value = execution
         client = self.app.client_manager.tripleoclient
         self.websocket = client.messaging_websocket()
 
         # Get the command object to test
         self.cmd = overcloud_node.ImportNode(self.app, None)
+
+        image = collections.namedtuple('image', ['id', 'name'])
+        self.app.client_manager.image = mock.Mock()
+        self.app.client_manager.image.images.list.return_value = [
+            image(id=1, name='bm-deploy-kernel'),
+            image(id=2, name='bm-deploy-ramdisk'),
+            image(id=3, name='overcloud-full'),
+        ]
 
     def _check_workflow_call(self, parsed_args, introspect=False,
                              provide=False, local=True, no_deploy_image=False):
@@ -368,7 +392,8 @@ class TestImportNode(fakes.TestOvercloudNode):
             "message": "Success",
             "registered_nodes": [{
                 "uuid": "MOCK_NODE_UUID"
-            }]
+            }],
+            "execution": {"id": "IDID"}
         }]
 
         self.cmd.take_action(parsed_args)
@@ -459,11 +484,15 @@ class TestConfigureNode(fakes.TestOvercloudNode):
         super(TestConfigureNode, self).setUp()
 
         self.workflow = self.app.client_manager.workflow_engine
+        execution = mock.Mock()
+        execution.id = "IDID"
+        self.workflow.executions.create.return_value = execution
         client = self.app.client_manager.tripleoclient
         self.websocket = client.messaging_websocket()
         self.websocket.wait_for_messages.return_value = iter([{
             "status": "SUCCESS",
-            "message": ""
+            "message": "",
+            "execution": {"id": "IDID"}
         }])
 
         # Get the command object to test
@@ -490,7 +519,8 @@ class TestConfigureNode(fakes.TestOvercloudNode):
     def test_failed_to_configure_all_manageable_nodes(self):
         self.websocket.wait_for_messages.return_value = iter([{
             "status": "FAILED",
-            "message": "Test failure."
+            "message": "Test failure.",
+            "execution": {"id": "IDID"}
         }])
 
         parsed_args = self.check_parser(self.cmd, ['--all-manageable'], [])
@@ -518,7 +548,8 @@ class TestConfigureNode(fakes.TestOvercloudNode):
     def test_failed_to_configure_specified_nodes(self):
         self.websocket.wait_for_messages.return_value = iter([{
             "status": "FAILED",
-            "message": "Test failure."
+            "message": "Test failure.",
+            "execution": {"id": "IDID"}
         }])
 
         parsed_args = self.check_parser(self.cmd, ['node_uuid1'], [])
@@ -631,6 +662,9 @@ class TestDiscoverNode(fakes.TestOvercloudNode):
         super(TestDiscoverNode, self).setUp()
 
         self.workflow = self.app.client_manager.workflow_engine
+        execution = mock.Mock()
+        execution.id = "IDID"
+        self.workflow.executions.create.return_value = execution
         client = self.app.client_manager.tripleoclient
         self.websocket = client.messaging_websocket()
 
@@ -641,7 +675,8 @@ class TestDiscoverNode(fakes.TestOvercloudNode):
             "message": "Success",
             "registered_nodes": [{
                 "uuid": "MOCK_NODE_UUID"
-            }]
+            }],
+            "execution": {"id": "IDID"}
         }]
 
     def test_with_ip_range(self):

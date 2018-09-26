@@ -45,7 +45,8 @@ class TestOvercloudCredentials(test_plugin.TestPluginV1):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         with mock.patch("tripleoclient.utils.open", create=True) as m:
-            self.cmd.take_action(parsed_args)
+            with mock.patch("json.loads"):
+                self.cmd.take_action(parsed_args)
 
         self.assertIn(mock.call('./overcloudrc', 'w'), m.call_args_list)
         mock_chmod.assert_has_calls([
@@ -69,7 +70,8 @@ class TestOvercloudCredentials(test_plugin.TestPluginV1):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         with mock.patch("tripleoclient.utils.open", create=True) as m:
-            self.cmd.take_action(parsed_args)
+            with mock.patch("json.loads"):
+                self.cmd.take_action(parsed_args)
 
         path = "{}/overcloudrc".format(temp)
 

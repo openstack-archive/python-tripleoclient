@@ -47,7 +47,7 @@ class TestOvercloudUpdatePrepare(fakes.TestOvercloudUpdatePrepare):
     @mock.patch('shutil.copytree', autospec=True)
     @mock.patch('six.moves.builtins.open')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_deploy_tripleo_heat_templates', autospec=True)
+                '_deploy_tripleo_heat_templates_tmpdir', autospec=True)
     def test_update_out(self, mock_deploy, mock_open, mock_copy, mock_yaml,
                         mock_abspath, mock_update, mock_logger,
                         mock_get_stack):

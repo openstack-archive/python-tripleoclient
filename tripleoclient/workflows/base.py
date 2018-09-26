@@ -59,7 +59,16 @@ def wait_for_messages(mistral, websocket, execution, timeout=None):
     """
     try:
         for payload in websocket.wait_for_messages(timeout=timeout):
-            yield payload
+            # Ignore messages whose root_execution_id does not match the
+            # id of the execution for which we are waiting.
+            if payload['execution']['id'] != execution.id and \
+                payload['execution'].get('root_execution_id', '') != \
+                    execution.id:
+
+                    LOG.debug("Ignoring message from execution %s"
+                              % payload['execution']['id'])
+            else:
+                yield payload
             # If the message is from a sub-workflow, we just need to pass it
             # on to be displayed. This should never be the last message - so
             # continue and wait for the next.
