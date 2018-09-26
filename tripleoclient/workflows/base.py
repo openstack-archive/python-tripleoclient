@@ -72,7 +72,7 @@ def wait_for_messages(mistral, websocket, execution, timeout=None):
             if payload.get('status', 'RUNNING') != "RUNNING" or \
                     mistral.executions.get(execution.id).state != "RUNNING":
                 return
-    except exceptions.WebSocketTimeout:
+    except (exceptions.WebSocketTimeout, exceptions.WebSocketConnectionClosed):
         check_execution_status(mistral, execution.id)
         raise
 

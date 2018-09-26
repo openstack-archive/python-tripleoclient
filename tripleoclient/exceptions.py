@@ -29,6 +29,10 @@ class WebSocketTimeout(Exception):
     """Timed out waiting for messages on the websocket"""
 
 
+class WebSocketConnectionClosed(Exception):
+    """Websocket connection is closed before wait for messages"""
+
+
 class NotFound(Exception):
     """Resource not found"""
 
