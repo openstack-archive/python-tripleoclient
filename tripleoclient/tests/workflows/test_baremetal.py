@@ -32,6 +32,9 @@ class TestBaremetalWorkflows(utils.TestCommand):
         self.websocket.__exit__ = lambda s, *exc: None
         self.tripleoclient.messaging_websocket.return_value = self.websocket
         self.app.client_manager.tripleoclient = self.tripleoclient
+        execution = mock.Mock()
+        execution.id = "IDID"
+        self.workflow.executions.create.return_value = execution
 
         self.message_success = iter([{
             "execution": {"id": "IDID"},

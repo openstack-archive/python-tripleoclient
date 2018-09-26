@@ -43,7 +43,9 @@ class TestPlanCreationWorkflows(utils.TestCommand):
                 autospec=True)
     def test_create_plan_from_templates_success(self, mock_tarball):
         output = mock.Mock(output='{"result": ""}')
+        output.id = "IDID"
         self.workflow.action_executions.create.return_value = output
+        self.workflow.executions.create.return_value = output
         self.websocket.wait_for_messages.return_value = self.message_success
 
         plan_management.create_plan_from_templates(
@@ -67,7 +69,9 @@ class TestPlanCreationWorkflows(utils.TestCommand):
                 autospec=True)
     def test_create_plan_from_templates_container_error(self, mock_tarball):
         error = mock.Mock(output='{"result": "Error"}')
+        error.id = "IDID"
         self.workflow.action_executions.create.return_value = error
+        self.workflow.executions.create.return_value = error
 
         self.assertRaises(
             exceptions.PlanCreationError,
@@ -90,7 +94,9 @@ class TestPlanCreationWorkflows(utils.TestCommand):
     def test_create_plan_from_templates_roles_data(self, mock_tarball,
                                                    mock_norm_path):
         output = mock.Mock(output='{"result": ""}')
+        output.id = "IDID"
         self.workflow.action_executions.create.return_value = output
+        self.workflow.executions.create.return_value = output
         self.websocket.wait_for_messages.return_value = self.message_success
 
         mock_open_context = mock.mock_open()
@@ -123,7 +129,9 @@ class TestPlanCreationWorkflows(utils.TestCommand):
                 autospec=True)
     def test_create_plan_from_templates_plan_env_data(self, mock_tarball):
         output = mock.Mock(output='{"result": ""}')
+        output.id = "IDID"
         self.workflow.action_executions.create.return_value = output
+        self.workflow.executions.create.return_value = output
         self.websocket.wait_for_messages.return_value = self.message_success
 
         mock_open_context = mock.mock_open()
@@ -156,7 +164,9 @@ class TestPlanCreationWorkflows(utils.TestCommand):
                 autospec=True)
     def test_create_plan_from_templates_networks_data(self, mock_tarball):
         output = mock.Mock(output='{"result": ""}')
+        output.id = "IDID"
         self.workflow.action_executions.create.return_value = output
+        self.workflow.executions.create.return_value = output
         self.websocket.wait_for_messages.return_value = self.message_success
 
         mock_open_context = mock.mock_open()
@@ -187,7 +197,9 @@ class TestPlanCreationWorkflows(utils.TestCommand):
 
     def test_delete_plan(self):
         output = mock.Mock(output='{"result": ""}')
+        output.id = "IDID"
         self.workflow.action_executions.create.return_value = output
+        self.workflow.executions.create.return_value = output
         self.websocket.wait_for_messages.return_value = self.message_success
 
         plan_management.delete_deployment_plan(
@@ -202,7 +214,9 @@ class TestPlanCreationWorkflows(utils.TestCommand):
                 autospec=True)
     def test_create_plan_with_password_gen_disabled(self, mock_tarball):
         output = mock.Mock(output='{"result": ""}')
+        output.id = "IDID"
         self.workflow.action_executions.create.return_value = output
+        self.workflow.executions.create.return_value = output
         self.websocket.wait_for_messages.return_value = self.message_success
 
         plan_management.create_plan_from_templates(
@@ -237,8 +251,10 @@ class TestPlanUpdateWorkflows(base.TestCommand):
         self.websocket.__enter__ = lambda s: self.websocket
         self.websocket.__exit__ = lambda s, *exc: None
         self.tripleoclient.messaging_websocket.return_value = self.websocket
-        self.workflow.action_executions.create.return_value = mock.Mock(
-            output='{"result": ""}')
+        output = mock.Mock(output='{"result": ""}')
+        output.id = "IDID"
+        self.workflow.action_executions.create.return_value = output
+        self.workflow.executions.create.return_value = output
         self.message_success = iter([{
             "execution": {"id": "IDID"},
             "status": "SUCCESS",

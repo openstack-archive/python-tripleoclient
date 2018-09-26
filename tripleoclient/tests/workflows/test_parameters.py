@@ -42,6 +42,9 @@ class TestParameterWorkflows(utils.TestCommand):
         self.websocket.__exit__ = lambda s, *exc: None
         self.tripleoclient.messaging_websocket.return_value = self.websocket
         self.app.client_manager.tripleoclient = self.tripleoclient
+        execution = mock.Mock()
+        execution.id = "IDID"
+        self.workflow.executions.create.return_value = execution
 
     def test_get_overcloud_passwords(self):
         self.websocket.wait_for_messages.return_value = iter([{
