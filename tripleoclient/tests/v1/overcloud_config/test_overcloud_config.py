@@ -27,8 +27,14 @@ class TestOvercloudConfig(utils.TestCommand):
         self.app.client_manager.orchestration = mock.Mock()
         self.workflow = self.app.client_manager.workflow_engine
 
-    @mock.patch('tripleo_common.utils.config.Config.download_config')
-    def test_overcloud_download_config(self, mock_config):
+    @mock.patch('tripleoclient.v1.overcloud_config.processutils.execute')
+    @mock.patch('tripleoclient.v1.overcloud_config.open')
+    @mock.patch('tripleoclient.v1.overcloud_config.request')
+    @mock.patch('shutil.rmtree')
+    @mock.patch('tripleoclient.workflows.deployment.config_download_export')
+    def test_overcloud_download_config(
+            self, mock_config, mock_rmtree, mock_request,
+            mock_open, mock_execute):
         arglist = ['--name', 'overcloud', '--config-dir', '/tmp']
         verifylist = [
             ('name', 'overcloud'),
@@ -38,10 +44,20 @@ class TestOvercloudConfig(utils.TestCommand):
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         self.cmd.take_action(parsed_args)
-        mock_config.assert_called_once_with('overcloud', '/tmp', None, True)
+        mock_config.assert_called_once_with(
+            self.app.client_manager, plan='overcloud', config_type=None)
+        mock_rmtree.assert_not_called()
+        mock_open.assert_called()
+        mock_request.urlopen.assert_called()
 
-    @mock.patch('tripleo_common.utils.config.Config.download_config')
-    def test_overcloud_download_config_no_preserve(self, mock_config):
+    @mock.patch('tripleoclient.v1.overcloud_config.processutils.execute')
+    @mock.patch('tripleoclient.v1.overcloud_config.open')
+    @mock.patch('tripleoclient.v1.overcloud_config.request')
+    @mock.patch('shutil.rmtree')
+    @mock.patch('tripleoclient.workflows.deployment.config_download_export')
+    def test_overcloud_download_config_no_preserve(
+            self, mock_config, mock_rmtree, mock_request,
+            mock_open, mock_execute):
         arglist = ['--name', 'overcloud', '--config-dir', '/tmp',
                    '--no-preserve-config']
         verifylist = [
@@ -52,4 +68,8 @@ class TestOvercloudConfig(utils.TestCommand):
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         self.cmd.take_action(parsed_args)
-        mock_config.assert_called_once_with('overcloud', '/tmp',  None, False)
+        mock_config.assert_called_once_with(
+            self.app.client_manager, plan='overcloud', config_type=None)
+        mock_rmtree.assert_called()
+        mock_open.assert_called()
+        mock_request.urlopen.assert_called()
