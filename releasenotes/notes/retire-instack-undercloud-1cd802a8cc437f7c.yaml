@@ -1,0 +1,7 @@
+---
+upgrade:
+  - The --use-heat option from undercloud install has been removed along with
+    the ability to deploy an undercloud on baremetal using instack-undercloud
+    via 'openstack undercloud install'. Manual deployment may still be possible
+    by directly invoking the instack-undercloud scripts but it is no longer
+    available via the 'openstack undercloud install' command.
