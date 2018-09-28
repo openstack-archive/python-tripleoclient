@@ -110,13 +110,13 @@ def create_overcloudrc(clients, **workflow_input):
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
 
-    execution = base.start_workflow(
-        workflow_client,
-        'tripleo.deployment.v1.create_overcloudrc',
-        workflow_input=workflow_input
-    )
-
     with tripleoclients.messaging_websocket() as ws:
+        execution = base.start_workflow(
+            workflow_client,
+            'tripleo.deployment.v1.create_overcloudrc',
+            workflow_input=workflow_input
+        )
+
         for payload in base.wait_for_messages(workflow_client, ws, execution):
             # the workflow will return the overcloudrc data, an error message
             # or blank.
@@ -276,13 +276,13 @@ def config_download_export(clients, **workflow_input):
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
 
-    execution = base.start_workflow(
-        workflow_client,
-        'tripleo.deployment.v1.config_download_export',
-        workflow_input=workflow_input
-    )
-
     with tripleoclients.messaging_websocket() as ws:
+        execution = base.start_workflow(
+            workflow_client,
+            'tripleo.deployment.v1.config_download_export',
+            workflow_input=workflow_input
+        )
+
         for payload in base.wait_for_messages(workflow_client, ws, execution,
                                               _WORKFLOW_TIMEOUT):
             if 'message' in payload:
@@ -318,13 +318,13 @@ def get_deployment_status(clients, **workflow_input):
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
 
-    execution = base.start_workflow(
-        workflow_client,
-        'tripleo.deployment.v1.get_deployment_status',
-        workflow_input=workflow_input
-    )
-
     with tripleoclients.messaging_websocket() as ws:
+        execution = base.start_workflow(
+            workflow_client,
+            'tripleo.deployment.v1.get_deployment_status',
+            workflow_input=workflow_input
+        )
+
         for payload in base.wait_for_messages(workflow_client, ws, execution,
                                               _WORKFLOW_TIMEOUT):
             if 'message' in payload:
@@ -342,13 +342,13 @@ def get_deployment_failures(clients, **workflow_input):
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
 
-    execution = base.start_workflow(
-        workflow_client,
-        'tripleo.deployment.v1.get_deployment_failures',
-        workflow_input=workflow_input
-    )
-
     with tripleoclients.messaging_websocket() as ws:
+        execution = base.start_workflow(
+            workflow_client,
+            'tripleo.deployment.v1.get_deployment_failures',
+            workflow_input=workflow_input
+        )
+
         for payload in base.wait_for_messages(workflow_client, ws, execution,
                                               _WORKFLOW_TIMEOUT):
             if 'message' in payload:
