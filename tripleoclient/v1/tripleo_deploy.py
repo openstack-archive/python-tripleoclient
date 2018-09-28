@@ -63,7 +63,7 @@ ERROR: Heat log files: {0}
 DEPLOY_COMPLETION_MESSAGE = """
 ########################################################
 
-Deployment successfull!
+Deployment successful!
 
 ########################################################
 """
