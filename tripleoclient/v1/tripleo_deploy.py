@@ -452,7 +452,7 @@ class Deploy(command.Command):
         # we do this as root to chown config files properly for docker, etc.
         if parsed_args.heat_native is not None and \
                 parsed_args.heat_native.lower() == "false":
-            self.heat_launch = heat_launcher.HeatDockerLauncher(
+            self.heat_launch = heat_launcher.HeatContainerLauncher(
                 parsed_args.heat_api_port,
                 parsed_args.heat_container_image,
                 parsed_args.heat_user)
