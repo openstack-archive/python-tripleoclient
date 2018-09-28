@@ -449,13 +449,14 @@ class Deploy(command.Command):
 
     def _launch_heat(self, parsed_args):
         # we do this as root to chown config files properly for docker, etc.
-        if parsed_args.heat_native:
-            self.heat_launch = heat_launcher.HeatNativeLauncher(
+        if parsed_args.heat_native is not None and \
+                parsed_args.heat_native.lower() == "false":
+            self.heat_launch = heat_launcher.HeatDockerLauncher(
                 parsed_args.heat_api_port,
                 parsed_args.heat_container_image,
                 parsed_args.heat_user)
         else:
-            self.heat_launch = heat_launcher.HeatDockerLauncher(
+            self.heat_launch = heat_launcher.HeatNativeLauncher(
                 parsed_args.heat_api_port,
                 parsed_args.heat_container_image,
                 parsed_args.heat_user)
@@ -467,7 +468,8 @@ class Deploy(command.Command):
         # it always below.
         self.heat_pid = os.fork()
         if self.heat_pid == 0:
-            if parsed_args.heat_native:
+            if parsed_args.heat_native is not None and \
+                    parsed_args.heat_native.lower() == "true":
                 try:
                     uid = pwd.getpwnam(parsed_args.heat_user).pw_uid
                     gid = pwd.getpwnam(parsed_args.heat_user).pw_gid
@@ -850,15 +852,17 @@ class Deploy(command.Command):
         parser.add_argument(
             '--heat-container-image', metavar='<HEAT_CONTAINER_IMAGE>',
             dest='heat_container_image',
-            default='tripleomaster/centos-binary-heat-all',
+            default='tripleomaster/centos-binary-heat-all:current-tripleo',
             help=_('The container image to use when launching the heat-all '
                    'process. Defaults to: '
-                   'tripleomaster/centos-binary-heat-all')
+                   'tripleomaster/centos-binary-heat-all:current-tripleo')
         )
         parser.add_argument(
             '--heat-native',
-            action='store_true',
-            default=True,
+            dest='heat_native',
+            nargs='?',
+            default=None,
+            const="true",
             help=_('Execute the heat-all process natively on this host. '
                    'This option requires that the heat-all binaries '
                    'be installed locally on this machine. '

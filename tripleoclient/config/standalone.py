@@ -157,7 +157,12 @@ class StandaloneConfig(BaseConfig):
                        ),
             cfg.BoolOpt('heat_native',
                         default=True,
-                        help=_('Use native heat templates.')),
+                        help=_('Execute the heat-all process natively on this '
+                               'host. This option requires that the heat-all '
+                               'binaries be installed locally on this machine.'
+                               ' This option is enabled by default which means'
+                               ' heat-all is executed on the host OS '
+                               ' directly.')),
             cfg.StrOpt('heat_container_image',
                        default='',
                        help=_('URL for the heat container image to use.')
