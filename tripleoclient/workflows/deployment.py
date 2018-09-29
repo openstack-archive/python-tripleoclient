@@ -243,7 +243,8 @@ def enable_ssh_admin(log, clients, hosts, ssh_user, ssh_key):
 
 
 def config_download(log, clients, stack, templates,
-                    ssh_user, ssh_key, ssh_network, output_dir, verbosity=1):
+                    ssh_user, ssh_key, ssh_network, output_dir,
+                    override_ansible_cfg, verbosity=1):
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
 
@@ -254,6 +255,10 @@ def config_download(log, clients, stack, templates,
     }
     if output_dir:
         workflow_input.update(dict(work_dir=output_dir))
+    if override_ansible_cfg:
+        override_ansible_cfg_contents = open(override_ansible_cfg).read()
+        workflow_input.update(
+            dict(override_ansible_cfg=override_ansible_cfg_contents))
 
     with tripleoclients.messaging_websocket() as ws:
         execution = base.start_workflow(
