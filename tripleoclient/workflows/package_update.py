@@ -22,6 +22,8 @@ from tripleoclient import utils
 
 from tripleoclient.workflows import base
 
+_WORKFLOW_TIMEOUT = 120 * 60  # 2h
+
 
 def update(clients, **workflow_input):
     workflow_client = clients.workflow_engine
@@ -35,7 +37,8 @@ def update(clients, **workflow_input):
             workflow_input=workflow_input
         )
 
-        for payload in base.wait_for_messages(workflow_client, ws, execution):
+        for payload in base.wait_for_messages(workflow_client, ws, execution,
+                                              _WORKFLOW_TIMEOUT):
             assert payload['status'] == "SUCCESS", pprint.pformat(payload)
 
     orchestration_client = clients.orchestration
@@ -65,7 +68,8 @@ def get_config(clients, **workflow_input):
             workflow_input=workflow_input
         )
 
-        for payload in base.wait_for_messages(workflow_client, ws, execution):
+        for payload in base.wait_for_messages(workflow_client, ws, execution,
+                                              _WORKFLOW_TIMEOUT):
             assert payload['status'] == "SUCCESS", pprint.pformat(payload)
 
     if payload['status'] == 'SUCCESS':
@@ -88,7 +92,8 @@ def update_ansible(clients, **workflow_input):
 
         for payload in base.wait_for_messages(workflow_client,
                                               update_ws,
-                                              execution):
+                                              execution,
+                                              _WORKFLOW_TIMEOUT):
                 if payload.get('message'):
                     pprint.pprint(payload['message'].splitlines())
 
@@ -110,7 +115,8 @@ def update_converge_nodes(clients, **workflow_input):
             workflow_input=workflow_input
         )
 
-        for payload in base.wait_for_messages(workflow_client, ws, execution):
+        for payload in base.wait_for_messages(workflow_client, ws, execution,
+                                              _WORKFLOW_TIMEOUT):
             assert payload['status'] == "SUCCESS", pprint.pformat(payload)
 
     if payload['status'] == 'SUCCESS':
@@ -131,7 +137,8 @@ def converge_nodes(clients, **workflow_input):
             workflow_input=workflow_input
         )
 
-        for payload in base.wait_for_messages(workflow_client, ws, execution):
+        for payload in base.wait_for_messages(workflow_client, ws, execution,
+                                              _WORKFLOW_TIMEOUT):
             assert payload['status'] == "SUCCESS", pprint.pformat(payload)
 
     orchestration_client = clients.orchestration
@@ -162,7 +169,8 @@ def ffwd_converge_nodes(clients, **workflow_input):
             workflow_input=workflow_input
         )
 
-        for payload in base.wait_for_messages(workflow_client, ws, execution):
+        for payload in base.wait_for_messages(workflow_client, ws, execution,
+                                              _WORKFLOW_TIMEOUT):
             assert payload['status'] == "SUCCESS", pprint.pformat(payload)
 
     if payload['status'] == 'SUCCESS':
@@ -183,7 +191,8 @@ def run_on_nodes(clients, **workflow_input):
             workflow_input=workflow_input
         )
 
-        for payload in base.wait_for_messages(workflow_client, ws, execution):
+        for payload in base.wait_for_messages(workflow_client, ws, execution,
+                                              _WORKFLOW_TIMEOUT):
             assert payload['status'] == "SUCCESS", pprint.pformat(payload)
 
     if payload['status'] == "SUCCESS":
