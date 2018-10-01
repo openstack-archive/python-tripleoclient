@@ -903,6 +903,7 @@ class DeployOvercloud(command.Command):
             hosts = deployment.get_overcloud_hosts(
                 stack, parsed_args.overcloud_ssh_network)
             deployment.enable_ssh_admin(self.log, self.clients,
+                                        stack.stack_name,
                                         hosts,
                                         parsed_args.overcloud_ssh_user,
                                         parsed_args.overcloud_ssh_key)
