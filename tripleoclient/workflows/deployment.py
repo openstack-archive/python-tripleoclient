@@ -154,7 +154,7 @@ def wait_for_ssh_port(host):
         time.sleep(1)
 
 
-def enable_ssh_admin(log, clients, hosts, ssh_user, ssh_key):
+def enable_ssh_admin(log, clients, plan_name, hosts, ssh_user, ssh_key):
     print("Enabling ssh admin (tripleo-admin) for hosts:")
     print(" ".join(hosts))
     print("Using ssh user %s for initial connection." % ssh_user)
@@ -195,6 +195,7 @@ def enable_ssh_admin(log, clients, hosts, ssh_user, ssh_key):
             "ssh_user": ssh_user,
             "ssh_servers": hosts,
             "ssh_private_key": open(tmp_key_private).read(),
+            "plan_name": plan_name
         }
 
         execution = base.start_workflow(

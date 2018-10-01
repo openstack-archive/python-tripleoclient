@@ -67,7 +67,7 @@ class TestDeploymentWorkflows(utils.TestCommand):
         mock_state.state = 'SUCCESS'
         self.workflow.executions.get.return_value = mock_state
         deployment.enable_ssh_admin(log, self.app.client_manager,
-                                    hosts, ssh_user, ssh_key)
+                                    'overcloud', hosts, ssh_user, ssh_key)
 
         # once for ssh-keygen, then twice per host
         self.assertEqual(7, mock_check_call.call_count)
@@ -112,6 +112,7 @@ class TestDeploymentWorkflows(utils.TestCommand):
         self.assertRaises(exceptions.DeploymentError,
                           deployment.enable_ssh_admin,
                           log, self.app.client_manager,
+                          'overcloud',
                           hosts, ssh_user, ssh_key)
 
     @mock.patch('tripleoclient.utils.get_role_net_ip_map')
