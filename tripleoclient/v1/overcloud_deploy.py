@@ -897,30 +897,40 @@ class DeployOvercloud(command.Command):
 
         if parsed_args.config_download:
             print("Deploying overcloud configuration")
+            deployment.set_deployment_status(
+                self.clients, 'deploying',
+                plan=stack.stack_name)
 
-            hosts = deployment.get_overcloud_hosts(
-                stack, parsed_args.overcloud_ssh_network)
-            deployment.enable_ssh_admin(self.log, self.clients,
-                                        stack.stack_name,
-                                        hosts,
-                                        parsed_args.overcloud_ssh_user,
-                                        parsed_args.overcloud_ssh_key)
+            try:
+                hosts = deployment.get_overcloud_hosts(
+                    stack, parsed_args.overcloud_ssh_network)
+                deployment.enable_ssh_admin(
+                    self.log, self.clients,
+                    stack.stack_name,
+                    hosts,
+                    parsed_args.overcloud_ssh_user,
+                    parsed_args.overcloud_ssh_key)
 
-            if parsed_args.config_download_timeout:
-                timeout = parsed_args.config_download_timeout * 60
-            else:
-                used = int(time.time() - start)
-                timeout = (parsed_args.timeout * 60) - used
+                if parsed_args.config_download_timeout:
+                    timeout = parsed_args.config_download_timeout * 60
+                else:
+                    used = int(time.time() - start)
+                    timeout = (parsed_args.timeout * 60) - used
 
-            deployment.config_download(self.log, self.clients, stack,
-                                       parsed_args.templates,
-                                       parsed_args.overcloud_ssh_user,
-                                       parsed_args.overcloud_ssh_key,
-                                       parsed_args.overcloud_ssh_network,
-                                       parsed_args.output_dir,
-                                       parsed_args.override_ansible_cfg,
-                                       timeout,
-                                       verbosity=self.app_args.verbose_level)
+                deployment.config_download(
+                    self.log, self.clients, stack,
+                    parsed_args.templates, parsed_args.overcloud_ssh_user,
+                    parsed_args.overcloud_ssh_key,
+                    parsed_args.overcloud_ssh_network,
+                    parsed_args.output_dir,
+                    parsed_args.override_ansible_cfg,
+                    timeout,
+                    verbosity=self.app_args.verbose_level)
+            except Exception:
+                deployment.set_deployment_status(
+                    self.clients, 'failed',
+                    plan=stack.stack_name)
+                raise
 
         # Force fetching of attributes
         stack.get()
