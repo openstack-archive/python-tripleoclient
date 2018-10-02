@@ -1533,6 +1533,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertTrue(fixture.mock_enable_ssh_admin.called)
         self.assertTrue(fixture.mock_get_overcloud_hosts.called)
         self.assertTrue(fixture.mock_config_download.called)
+        self.assertTrue(fixture.mock_set_deployment_status.called)
+        self.assertEqual(
+            'deploying',
+            fixture.mock_set_deployment_status.call_args[0][1])
 
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
@@ -1565,6 +1569,51 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertTrue(fixture.mock_enable_ssh_admin.called)
         self.assertTrue(fixture.mock_get_overcloud_hosts.called)
         self.assertTrue(fixture.mock_config_download.called)
+        self.assertTrue(fixture.mock_set_deployment_status.called)
+        self.assertEqual(
+            'deploying',
+            fixture.mock_set_deployment_status.call_args[0][1])
+
+    @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
+                autospec=True)
+    @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
+    @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
+    @mock.patch('tripleoclient.workflows.deployment.create_overcloudrc',
+                autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_deploy_tripleo_heat_templates_tmpdir', autospec=True)
+    def test_config_download_fails(
+            self, mock_deploy_tmpdir,
+            mock_overcloudrc, mock_write_overcloudrc,
+            mock_overcloud_endpoint,
+            mock_create_tempest_deployer_input):
+        fixture = deployment.DeploymentWorkflowFixture()
+        self.useFixture(fixture)
+        clients = self.app.client_manager
+        orchestration_client = clients.orchestration
+        orchestration_client.stacks.get.return_value = mock.Mock()
+
+        arglist = ['--templates', '--config-download-only']
+        verifylist = [
+            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
+            ('config_download_only', True),
+        ]
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        fixture.mock_config_download.side_effect = \
+            exceptions.DeploymentError('fails')
+        self.assertRaises(
+            exceptions.DeploymentError,
+            self.cmd.take_action,
+            parsed_args)
+        self.assertFalse(mock_deploy_tmpdir.called)
+        self.assertTrue(fixture.mock_enable_ssh_admin.called)
+        self.assertTrue(fixture.mock_get_overcloud_hosts.called)
+        self.assertTrue(fixture.mock_config_download.called)
+        self.assertTrue(fixture.mock_set_deployment_status.called)
+        self.assertEqual(
+            'failed',
+            fixture.mock_set_deployment_status.call_args[0][1])
 
     @mock.patch('tripleoclient.workflows.deployment.get_overcloud_hosts')
     @mock.patch('tripleoclient.workflows.deployment.enable_ssh_admin')
