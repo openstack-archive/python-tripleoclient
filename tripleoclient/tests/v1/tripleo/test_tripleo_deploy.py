@@ -339,6 +339,7 @@ class TestDeployUndercloud(TestPluginV1):
                                                      env_files)
         self.assertEqual(expected, results)
 
+    @mock.patch('time.time', return_value=123)
     @mock.patch('yaml.safe_load', return_value={}, autospec=True)
     @mock.patch('yaml.safe_dump', autospec=True)
     @mock.patch('os.path.isfile', return_value=True)
@@ -356,7 +357,7 @@ class TestDeployUndercloud(TestPluginV1):
     def test_setup_heat_environments_dropin(
             self, mock_run, mock_paths, mock_norm, mock_update_pass_env,
             mock_process_hiera, mock_open, mock_os, mock_yaml_dump,
-            mock_yaml_load):
+            mock_yaml_load, mock_time):
 
         parsed_args = self.check_parser(self.cmd,
                                         ['--local-ip', '127.0.0.1/8',
@@ -374,6 +375,7 @@ class TestDeployUndercloud(TestPluginV1):
         # unpack the dump yaml calls to verify if the produced stack update
         # dropin matches our expectations
         found_dropin = False
+        found_identifier = False
         for call in mock_yaml_dump.call_args_list:
             args, kwargs = call
             for a in args:
@@ -383,7 +385,13 @@ class TestDeployUndercloud(TestPluginV1):
                     self.assertTrue(
                         a['parameter_defaults']['StackAction'] == 'UPDATE')
                     found_dropin = True
+                if a.get('parameter_defaults', {}).get('DeployIdentifier',
+                                                       None):
+                    self.assertTrue(
+                        a['parameter_defaults']['DeployIdentifier'] == 123)
+                    found_identifier = True
         self.assertTrue(found_dropin)
+        self.assertTrue(found_identifier)
 
     @mock.patch('heatclient.common.template_utils.'
                 'process_environment_and_files', return_value=({}, {}),
