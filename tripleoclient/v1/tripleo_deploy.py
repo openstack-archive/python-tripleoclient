@@ -27,6 +27,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import time
 import traceback
 import yaml
 
@@ -652,7 +653,9 @@ class Deploy(command.Command):
                                            parsed_args.stack)
         with open(stack_vstate_dropin, 'w') as dropin_file:
             yaml.safe_dump(
-                {'parameter_defaults': {'StackAction': self.stack_action}},
+                {'parameter_defaults': {
+                    'StackAction': self.stack_action,
+                    'DeployIdentifier': int(time.time())}},
                 dropin_file, default_flow_style=False)
         environments.append(stack_vstate_dropin)
 
