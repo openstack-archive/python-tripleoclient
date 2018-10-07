@@ -87,8 +87,7 @@ class FFWDUpgradePrepare(DeployOvercloud):
         package_update.get_config(clients, container=stack_name)
 
         overcloudrcs = deployment.create_overcloudrc(
-            clients.workflow_engine,
-            container=stack_name)
+            clients, container=stack_name)
         oooutils.write_overcloudrc(stack_name, overcloudrcs)
 
         self.log.info("FFWD Upgrade Prepare on stack {0} complete.".format(
