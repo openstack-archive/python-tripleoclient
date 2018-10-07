@@ -121,6 +121,7 @@ class TestUndercloudInstall(TestPluginV1):
                                                      mock_copy, mock_user):
         self.conf.config(output_dir='/foo')
         self.conf.config(templates='/usertht')
+        self.conf.config(heat_native='false')
         self.conf.config(roles_file='foo/roles.yaml')
         arglist = ['--no-validations', '--force-stack-update']
         verifylist = []
@@ -141,7 +142,7 @@ class TestUndercloudInstall(TestPluginV1):
              '--local-ip=192.168.24.1/24',
              '--templates=/usertht',
              '--roles-file=foo/roles.yaml',
-             '--heat-native', '-e',
+             '--heat-native=False', '-e',
              '/usertht/environments/docker.yaml', '-e',
              '/usertht/environments/undercloud.yaml', '-e',
              '/home/stack/foo.yaml', '-e',

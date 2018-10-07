@@ -356,7 +356,9 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
                 tht_templates,
                 "environments/lifecycle/undercloud-upgrade-prepare.yaml")]
 
-    if CONF.get('heat_native', None):
+    if not CONF.get('heat_native', False):
+        deploy_args.append('--heat-native=False')
+    else:
         deploy_args.append('--heat-native')
 
     if CONF.get('heat_container_image'):
