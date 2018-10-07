@@ -398,7 +398,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
 
     if CONF.get('enable_zaqar'):
         deploy_args += ['-e', os.path.join(
-            tht_templates, "environments/services/zaqar.yaml")]
+            tht_templates, "environments/services/zaqar-swift-backend.yaml")]
 
     if CONF.get('enable_telemetry'):
         for env_file in TELEMETRY_DOCKER_ENV_YAML:
