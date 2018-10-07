@@ -163,6 +163,7 @@ def enable_ssh_admin(log, clients, plan_name, hosts, ssh_user, ssh_key):
     ssh_options = ("-o ConnectionAttempts=6 "
                    "-o ConnectTimeout=30 "
                    "-o StrictHostKeyChecking=no "
+                   "-o PasswordAuthentication=no "
                    "-o UserKnownHostsFile=/dev/null")
     tmp_key_dir = tempfile.mkdtemp()
     tmp_key_private = os.path.join(tmp_key_dir, 'id_rsa')
