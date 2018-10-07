@@ -194,7 +194,7 @@ class StandaloneConfig(BaseConfig):
                                '/etc/sysconfig/docker.')
                         ),
             cfg.StrOpt('container_cli',
-                       default='docker',
+                       default='podman',
                        help=_('Container CLI used for deployment; '
                               'Can be docker or podman.')),
         ]
