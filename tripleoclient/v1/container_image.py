@@ -423,7 +423,7 @@ class PrepareImageFiles(command.Command):
 
         subs = {
             'tag': parsed_args.tag,
-            'namespace': parsed_args.namespace,
+            'docker_namespace': parsed_args.namespace,
             'name_prefix': parsed_args.prefix,
             'name_suffix': parsed_args.suffix,
             'neutron_driver': neutron_driver,

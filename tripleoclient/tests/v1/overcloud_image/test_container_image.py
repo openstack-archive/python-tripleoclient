@@ -131,7 +131,7 @@ class TestContainerImagePrepare(TestPluginV1):
             filter=mock.ANY,
             name_prefix='centos-binary-',
             name_suffix='',
-            namespace='docker.io/tripleopike',
+            docker_namespace='docker.io/tripleopike',
             neutron_driver=None,
             tag='latest'
         )
@@ -212,7 +212,7 @@ class TestContainerImagePrepare(TestPluginV1):
             filter=mock.ANY,
             name_prefix='os-',
             name_suffix='foo',
-            namespace='192.0.2.0:8787/t',
+            docker_namespace='192.0.2.0:8787/t',
             tag='passed-ci',
             ceph_image='mydaemon',
             ceph_namespace='myceph',
@@ -304,7 +304,7 @@ class TestContainerImagePrepare(TestPluginV1):
             filter=mock.ANY,
             name_prefix='os-',
             name_suffix='foo',
-            namespace='tripleo',
+            docker_namespace='tripleo',
             tag='passed-ci',
             neutron_driver=neutron_driver,
         )
