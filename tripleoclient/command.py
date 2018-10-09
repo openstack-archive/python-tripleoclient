@@ -12,17 +12,23 @@
 #   License for the specific language governing permissions and limitations
 #   under the License.
 
+import logging
+
 from osc_lib.command import command
-
-
 from tripleoclient import utils
 
 
 class Command(command.Command):
 
+    log = logging.getLogger(__name__ + ".Command")
+
     def run(self, parsed_args):
         utils.store_cli_param(self.cmd_name, parsed_args)
-        super(Command, self).run(parsed_args)
+        try:
+            super(Command, self).run(parsed_args)
+        except Exception:
+            self.log.exception("Exception occured while running the command")
+            raise
 
 
 class Lister(Command, command.Lister):
