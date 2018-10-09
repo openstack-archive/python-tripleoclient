@@ -86,14 +86,8 @@ class UpdateRun(command.Command):
                 "updated in parallel in this minor update "
                 "run invocation. For example: --nodes "
                 "\"compute-0, compute-1, compute-5\". "
-                "NOTE: Using this parameter with nodes of "
-                "controlplane roles (e.g. \"--nodes "
-                "controller-1\") is NOT supported and WILL "
-                "end badly unless you include ALL nodes of "
-                "that role as a comma separated string. You "
-                "should instead use the --roles parameter "
-                "for controlplane roles and specify the "
-                "role name.")
+                "Mutually exclusive with --roles."
+                "Serial is always 1, so update is always done one by one.")
         )
         nodes_or_roles.add_argument(
             '--roles', action="store", help=_(
@@ -101,13 +95,8 @@ class UpdateRun(command.Command):
                 "comma-separated list of roles to be "
                 "updated in this minor update run "
                 "invocation. "
-                "NOTE: Nodes of specified role(s) are "
-                "updated in parallel. This is REQUIRED for "
-                "controlplane roles (e.g., \"Compute\"), "
-                "you may consider instead using the --nodes "
-                "argument to limit the upgrade to a "
-                "specific node or list (comma separated "
-                "string) of nodes.")
+                "Mutually exclusive with --nodes."
+                "Serial is always 1, so update is always done one by one.")
         )
         parser.add_argument('--playbook',
                             action="store",
