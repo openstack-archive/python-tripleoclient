@@ -18,6 +18,7 @@ import datetime
 import json
 import logging
 import os
+import shutil
 import sys
 import tempfile
 import time
@@ -443,6 +444,10 @@ class PrepareImageFiles(command.Command):
         )
         if parsed_args.output_env_file:
             params = prepare_data[parsed_args.output_env_file]
+            if os.path.exists(parsed_args.output_env_file):
+                self.log.warn("Output env file exists, moving it to backup.")
+                shutil.move(parsed_args.output_env_file,
+                            parsed_args.output_env_file + ".backup")
             with os.fdopen(os.open(parsed_args.output_env_file,
                            os.O_CREAT | os.O_TRUNC | os.O_WRONLY, 0o666),
                            'w') as f:
@@ -534,10 +539,14 @@ class TripleOImagePrepareDefault(command.Command):
         env_data = build_env_file(params, self.app.command_options)
         self.app.stdout.write(env_data)
         if parsed_args.output_env_file:
+            if os.path.exists(parsed_args.output_env_file):
+                self.log.warn("Output env file exists, moving it to backup.")
+                shutil.move(parsed_args.output_env_file,
+                            parsed_args.output_env_file + ".backup")
             with os.fdopen(os.open(parsed_args.output_env_file,
                            os.O_CREAT | os.O_TRUNC | os.O_WRONLY, 0o666),
                            'w') as f:
-                f.write(env_data)
+                f.write(build_env_file(params, self.app.command_options))
 
 
 class TripleOImagePrepare(command.Command):
@@ -629,9 +638,13 @@ class TripleOImagePrepare(command.Command):
             cleanup=parsed_args.cleanup)
         env_data = build_env_file(params, self.app.command_options)
         if parsed_args.output_env_file:
+            if os.path.exists(parsed_args.output_env_file):
+                self.log.warn("Output env file exists, moving it to backup.")
+                shutil.move(parsed_args.output_env_file,
+                            parsed_args.output_env_file + ".backup")
             with os.fdopen(os.open(parsed_args.output_env_file,
                            os.O_CREAT | os.O_TRUNC | os.O_WRONLY, 0o666),
                            'w') as f:
-                f.write(env_data)
+                f.write(build_env_file(params, self.app.command_options))
         else:
             self.app.stdout.write(env_data)
