@@ -46,10 +46,10 @@ def deploy(log, clients, **workflow_input):
         )
 
         # The deploy workflow ends once the Heat create/update starts. This
-        # means that is shouldn't take very long. Wait for six minutes for
+        # means that is shouldn't take very long. Wait for 10 minutes for
         # messages from the workflow.
         for payload in base.wait_for_messages(workflow_client, ws, execution,
-                                              360):
+                                              600):
             status = payload.get('status', 'RUNNING')
             if 'message' in payload and status == "RUNNING":
                 print(payload['message'])
