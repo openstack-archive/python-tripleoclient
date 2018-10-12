@@ -115,8 +115,36 @@ class TestDeploymentWorkflows(utils.TestCommand):
                           'overcloud',
                           hosts, ssh_user, ssh_key)
 
+    @mock.patch('tripleoclient.utils.get_blacklisted_ip_addresses')
     @mock.patch('tripleoclient.utils.get_role_net_ip_map')
-    def test_get_overcloud_hosts(self, mock_role_net_ip_map):
+    def test_get_overcloud_hosts(self, mock_role_net_ip_map,
+                                 mock_blacklisted_ip_addresses):
+        stack = mock.Mock()
+        mock_role_net_ip_map.return_value = {
+            'Controller': {
+                'ctlplane': ['1.1.1.1', '2.2.2.2', '3.3.3.3'],
+                'external': ['4.4.4.4', '5.5.5.5', '6.6.6.6']},
+            'Compute': {
+                'ctlplane': ['7.7.7.7', '8.8.8.8', '9.9.9.9'],
+                'external': ['10.10.10.10', '11.11.11.11', '12.12.12.12']},
+        }
+        mock_blacklisted_ip_addresses.return_value = []
+
+        ips = deployment.get_overcloud_hosts(stack, 'ctlplane')
+        expected = ['1.1.1.1', '2.2.2.2', '3.3.3.3',
+                    '7.7.7.7', '8.8.8.8', '9.9.9.9']
+        self.assertEqual(sorted(expected), sorted(ips))
+
+        ips = deployment.get_overcloud_hosts(stack, 'external')
+        expected = ['4.4.4.4', '5.5.5.5', '6.6.6.6',
+                    '10.10.10.10', '11.11.11.11', '12.12.12.12']
+        self.assertEqual(sorted(expected), sorted(ips))
+
+    @mock.patch('tripleoclient.utils.get_blacklisted_ip_addresses')
+    @mock.patch('tripleoclient.utils.get_role_net_ip_map')
+    def test_get_overcloud_hosts_with_blacklist(
+            self, mock_role_net_ip_map,
+            mock_blacklisted_ip_addresses):
         stack = mock.Mock()
         mock_role_net_ip_map.return_value = {
             'Controller': {
@@ -127,12 +155,19 @@ class TestDeploymentWorkflows(utils.TestCommand):
                 'external': ['10.10.10.10', '11.11.11.11', '12.12.12.12']},
         }
 
+        mock_blacklisted_ip_addresses.return_value = ['8.8.8.8']
         ips = deployment.get_overcloud_hosts(stack, 'ctlplane')
         expected = ['1.1.1.1', '2.2.2.2', '3.3.3.3',
-                    '7.7.7.7', '8.8.8.8', '9.9.9.9']
+                    '7.7.7.7', '9.9.9.9']
         self.assertEqual(sorted(expected), sorted(ips))
 
         ips = deployment.get_overcloud_hosts(stack, 'external')
         expected = ['4.4.4.4', '5.5.5.5', '6.6.6.6',
-                    '10.10.10.10', '11.11.11.11', '12.12.12.12']
+                    '10.10.10.10', '12.12.12.12']
+        self.assertEqual(sorted(expected), sorted(ips))
+
+        mock_blacklisted_ip_addresses.return_value = ['7.7.7.7', '9.9.9.9',
+                                                      '2.2.2.2']
+        ips = deployment.get_overcloud_hosts(stack, 'external')
+        expected = ['4.4.4.4', '6.6.6.6', '11.11.11.11']
         self.assertEqual(sorted(expected), sorted(ips))
