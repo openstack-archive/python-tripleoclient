@@ -100,6 +100,7 @@ def deploy_and_wait(log, clients, stack, plan_name, verbose_level,
         orchestration_client, plan_name, marker, action, verbose_events)
     if not create_result:
         shell.OpenStackShell().run(["stack", "failures", "list", plan_name])
+        set_deployment_status(clients, 'failed', plan=plan_name)
         if stack is None:
             raise exceptions.DeploymentError("Heat Stack create failed.")
         else:
@@ -343,6 +344,37 @@ def get_deployment_status(clients, **workflow_input):
     else:
         raise exceptions.WorkflowServiceError(
             'Exception getting deployment status: {}'.format(
+                payload.get('message', '')))
+
+
+def set_deployment_status(clients, status='success', **workflow_input):
+    workflow_client = clients.workflow_engine
+    tripleoclients = clients.tripleoclient
+
+    if status == 'success':
+        workflow = 'tripleo.deployment.v1.set_deployment_status_success'
+    elif status == 'failed':
+        workflow = 'tripleo.deployment.v1.set_deployment_status_failed'
+    elif status == 'deploying':
+        workflow = 'tripleo.deployment.v1.set_deployment_status_deploying'
+    else:
+        raise Exception("Can't set unknown deployment status: %s" % status)
+
+    with tripleoclients.messaging_websocket() as ws:
+        execution = base.start_workflow(
+            workflow_client,
+            workflow,
+            workflow_input=workflow_input
+        )
+
+        for payload in base.wait_for_messages(workflow_client, ws, execution,
+                                              _WORKFLOW_TIMEOUT):
+            # Just continue until workflow is done
+            continue
+
+    if payload['status'] != 'SUCCESS':
+        raise exceptions.WorkflowServiceError(
+            'Exception setting deployment status: {}'.format(
                 payload.get('message', '')))
 
 
