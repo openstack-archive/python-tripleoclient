@@ -131,7 +131,7 @@ class TestContainerImagePrepare(TestPluginV1):
             filter=mock.ANY,
             name_prefix='centos-binary-',
             name_suffix='',
-            namespace='docker.io/tripleoupstream',
+            namespace='docker.io/tripleopike',
             neutron_driver=None,
             tag='latest'
         )

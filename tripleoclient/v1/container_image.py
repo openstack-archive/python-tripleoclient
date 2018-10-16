@@ -206,10 +206,10 @@ class PrepareImageFiles(command.Command):
         parser.add_argument(
             "--namespace",
             dest="namespace",
-            default="docker.io/tripleoupstream",
+            default="docker.io/tripleopike",
             metavar='<namespace>',
             help=_("Override the default namespace substitution.\n"
-                   "Default: docker.io/tripleoupstream"),
+                   "Default: docker.io/tripleopike"),
         )
         parser.add_argument(
             "--prefix",
