@@ -58,6 +58,63 @@ class TestDeployUndercloud(TestPluginV1):
         self.orc.stacks.create = mock.MagicMock(
             return_value={'stack': {'id': 'foo'}})
 
+    def test_get_roles_file_path(self):
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--local-ip', '127.0.0.1/8'], [])
+
+        roles_file = self.cmd._get_roles_file_path(parsed_args)
+        self.assertEqual(roles_file,
+                         '/usr/share/openstack-tripleo-heat-templates/'
+                         'roles_data_undercloud.yaml')
+
+    def test_get_roles_file_path_custom_file(self):
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--local-ip', '127.0.0.1/8',
+                                         '--templates', '/tmp/thtroot',
+                                         '--roles-file', 'foobar.yaml'], [])
+
+        roles_file = self.cmd._get_roles_file_path(parsed_args)
+        self.assertEqual(roles_file, 'foobar.yaml')
+
+    def test_get_roles_file_path_custom_templates(self):
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--local-ip', '127.0.0.1/8',
+                                         '--templates', '/tmp/thtroot'], [])
+
+        import pprint
+        pprint.pprint(parsed_args)
+        roles_file = self.cmd._get_roles_file_path(parsed_args)
+        self.assertEqual(roles_file,
+                         '/tmp/thtroot/roles_data_undercloud.yaml')
+
+    def test_get_plan_env_file_path(self):
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--local-ip', '127.0.0.1/8'], [])
+
+        plan_env_file = self.cmd._get_plan_env_file_path(parsed_args)
+        self.assertEqual(plan_env_file,
+                         '/usr/share/openstack-tripleo-heat-templates/'
+                         'plan-environment.yaml')
+
+    def test_get_plan_env_file_path_custom_file(self):
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--local-ip', '127.0.0.1/8',
+                                         '--templates', '/tmp/thtroot',
+                                         '--plan-environment-file',
+                                         'foobar.yaml'], [])
+
+        plan_env_file = self.cmd._get_plan_env_file_path(parsed_args)
+        self.assertEqual(plan_env_file, 'foobar.yaml')
+
+    def test_get_plan_env_file_path_custom_templates(self):
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--local-ip', '127.0.0.1/8',
+                                         '--templates', '/tmp/thtroot'], [])
+
+        plan_env_file = self.cmd._get_plan_env_file_path(parsed_args)
+        self.assertEqual(plan_env_file,
+                         '/tmp/thtroot/plan-environment.yaml')
+
     @mock.patch('os.path.exists')
     @mock.patch('tripleoclient.utils.fetch_roles_file')
     def test_get_primary_role_name(self, mock_data, mock_exists):
