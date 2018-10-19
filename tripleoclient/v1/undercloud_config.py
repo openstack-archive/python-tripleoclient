@@ -367,7 +367,6 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
 
     # These should be loaded first so we can override all the bits later
     deploy_args += [
-        "-e", os.path.join(tht_templates, "environments/docker.yaml"),
         "-e", os.path.join(tht_templates, "environments/undercloud.yaml")]
 
     # If a container images file is used, copy it into the tempdir to make it
