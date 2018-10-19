@@ -11,6 +11,7 @@
 # under the License.
 from __future__ import print_function
 
+import copy
 import os
 import pprint
 import shutil
@@ -132,8 +133,25 @@ def create_overcloudrc(clients, **workflow_input):
 def get_overcloud_hosts(stack, ssh_network):
     ips = []
     role_net_ip_map = utils.get_role_net_ip_map(stack)
+    blacklisted_ips = utils.get_blacklisted_ip_addresses(stack)
     for net_ip_map in role_net_ip_map.values():
-        ips.extend(net_ip_map.get(ssh_network, []))
+        # get a copy of the lists of ssh_network and ctlplane ips
+        # as blacklisted_ips will only be the ctlplane ips, we need
+        # both lists to determine which to actually blacklist
+        net_ips = copy.copy(net_ip_map.get(ssh_network, []))
+        ctlplane_ips = copy.copy(net_ip_map.get('ctlplane', []))
+
+        blacklisted_ctlplane_ips = \
+            [ip for ip in ctlplane_ips if ip in blacklisted_ips]
+
+        # for each blacklisted ctlplane ip, remove the corresponding
+        # ssh_network ip at that same index in the net_ips list
+        for bcip in blacklisted_ctlplane_ips:
+            index = ctlplane_ips.index(bcip)
+            ctlplane_ips.pop(index)
+            net_ips.pop(index)
+
+        ips.extend(net_ips)
 
     return ips
 

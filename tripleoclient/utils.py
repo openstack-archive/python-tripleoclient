@@ -452,6 +452,12 @@ def get_role_net_hostname_map(stack):
             return output['output_value']
 
 
+def get_blacklisted_ip_addresses(stack):
+    for output in stack.to_dict().get('outputs', {}):
+        if output['output_key'] == 'BlacklistedIpAddresses':
+            return output['output_value']
+
+
 def get_role_net_ip_map(stack):
     for output in stack.to_dict().get('outputs', {}):
         if output['output_key'] == 'RoleNetIpMap':
