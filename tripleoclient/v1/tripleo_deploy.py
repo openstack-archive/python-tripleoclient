@@ -134,10 +134,28 @@ class Deploy(command.Command):
             _('The heat stack {0} action is {1}').format(
                 parsed_args.stack, self.stack_action))
 
+    def _get_roles_file_path(self, parsed_args):
+        """Return roles_file for the deployment"""
+        if not parsed_args.roles_file:
+            roles_file = os.path.join(parsed_args.templates,
+                                      constants.UNDERCLOUD_ROLES_FILE)
+        else:
+            roles_file = parsed_args.roles_file
+        return roles_file
+
+    def _get_plan_env_file_path(self, parsed_args):
+        """Return plan_environment_file for the deployment"""
+        if not parsed_args.plan_environment_file:
+            plan_env = os.path.join(parsed_args.templates,
+                                    constants.PLAN_ENVIRONMENT)
+        else:
+            plan_env = parsed_args.plan_environment_file
+        return plan_env
+
     def _get_primary_role_name(self, parsed_args):
         """Return the primary role name"""
-        roles_data = utils.fetch_roles_file(parsed_args.roles_file,
-                                            parsed_args.templates)
+        roles_data = utils.fetch_roles_file(
+            self._get_roles_file_path(parsed_args), parsed_args.templates)
         if not roles_data:
             # TODO(aschultz): should this be Undercloud instead?
             return 'Controller'
@@ -568,11 +586,13 @@ class Deploy(command.Command):
             parsed_args.templates, self.tht_render, env_files)
 
         # generate jinja templates by its work dir location
-        self.log.debug(_("Using roles file %s") % parsed_args.roles_file)
+        self.log.debug(_("Using roles "
+                         "file %s") % self._get_roles_file_path(parsed_args))
         process_templates = os.path.join(parsed_args.templates,
                                          'tools/process-templates.py')
         args = ['python', process_templates, '--roles-data',
-                parsed_args.roles_file, '--output-dir', self.tht_render]
+                self._get_roles_file_path(parsed_args), '--output-dir',
+                self.tht_render]
         if utils.run_command_and_log(self.log, args, cwd=self.tht_render) != 0:
             # TODO(aschultz): improve error messaging
             msg = _("Problems generating templates.")
@@ -585,7 +605,7 @@ class Deploy(command.Command):
 
         # Include any environments from the plan-environment.yaml
         plan_env_path = utils.rel_or_abs_path(
-            parsed_args.plan_environment_file, self.tht_render)
+            self._get_plan_env_file_path(parsed_args), self.tht_render)
         with open(plan_env_path, 'r') as f:
             plan_env_data = yaml.safe_load(f)
         environments = [utils.rel_or_abs_path(e.get('path'), self.tht_render)
@@ -664,8 +684,8 @@ class Deploy(command.Command):
         return environments + user_environments
 
     def _prepare_container_images(self, env, parsed_args):
-        roles_data = utils.fetch_roles_file(parsed_args.roles_file,
-                                            parsed_args.templates)
+        roles_data = utils.fetch_roles_file(
+            self._get_roles_file_path(parsed_args), parsed_args.templates)
         image_params = kolla_builder.container_images_prepare_multi(
             env, roles_data, dry_run=True)
 
@@ -776,6 +796,7 @@ class Deploy(command.Command):
         parser.add_argument(
             '--templates', nargs='?', const=constants.TRIPLEO_HEAT_TEMPLATES,
             help=_("The directory containing the Heat templates to deploy"),
+            default=constants.TRIPLEO_HEAT_TEMPLATES
         )
         parser.add_argument('--standalone', default=False, action='store_true',
                             help=_("Run deployment as a standalone deployment "
@@ -820,14 +841,12 @@ class Deploy(command.Command):
                 'Roles file, overrides the default %s in the t-h-t templates '
                 'directory used for deployment. May be an '
                 'absolute path or the path relative to the templates dir.'
-                ) % constants.UNDERCLOUD_ROLES_FILE,
-            default=constants.UNDERCLOUD_ROLES_FILE
+                ) % constants.UNDERCLOUD_ROLES_FILE
         )
         parser.add_argument(
             '--plan-environment-file', '-p',
             help=_('Plan Environment file, overrides the default %s in the '
-                   '--templates directory') % constants.PLAN_ENVIRONMENT,
-            default=constants.PLAN_ENVIRONMENT
+                   '--templates directory') % constants.PLAN_ENVIRONMENT
         )
         parser.add_argument(
             '--heat-api-port', metavar='<HEAT_API_PORT>',
