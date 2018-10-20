@@ -139,6 +139,9 @@ class WebsocketClient(object):
         messages.
         """
 
+        if not self._ws.connected:
+            return
+
         if timeout is None:
             LOG.warning("Waiting for messages on queue '{}' with no timeout."
                         .format(self._queue_name))
