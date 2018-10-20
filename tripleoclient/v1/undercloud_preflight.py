@@ -486,6 +486,14 @@ def _checking_status(item):
     LOG.info(_('Checking %s...') % item)
 
 
+def _check_routed_networks_enabled_if_multiple_subnets_defined():
+    if (len(CONF.subnets) > 1 and not CONF.enable_routed_networks):
+        msg = _('Multiple subnets specified: %s but routed networks are not '
+                'enabled.') % CONF.subnets
+        LOG.error(msg)
+        raise FailedValidation(msg)
+
+
 def check(verbose_level, upgrade=False):
     # Fetch configuration and use its log file param to add logging to a file
     utils.load_config(CONF, constants.UNDERCLOUD_CONF_PATH)
@@ -511,6 +519,7 @@ def check(verbose_level, upgrade=False):
         # Networking validations
         _checking_status('Networking values')
         _validate_value_formats()
+        _check_routed_networks_enabled_if_multiple_subnets_defined()
         for subnet in CONF.subnets:
             s = CONF.get(subnet)
             _checking_status('Subnet "%s" is in CIDR' % subnet)
