@@ -50,6 +50,21 @@ class PlanManagementFixture(fixtures.Fixture):
         ).mock
 
 
+class UtilsOvercloudFixture(fixtures.Fixture):
+
+    def _setUp(self):
+        super(UtilsOvercloudFixture, self)._setUp()
+        self.mock_deploy_tht = self.useFixture(fixtures.MockPatch(
+            'tripleoclient.utils.create_tempest_deployer_input')
+        ).mock
+        self.mock_utils_endpoint = self.useFixture(fixtures.MockPatch(
+            'tripleoclient.utils.get_overcloud_endpoint')
+        ).mock
+        self.mock_create_ocrc = self.useFixture(fixtures.MockPatch(
+            'tripleoclient.utils.write_overcloudrc')
+        ).mock
+
+
 class UtilsFixture(fixtures.Fixture):
 
     def _setUp(self):
