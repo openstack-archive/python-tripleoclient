@@ -451,7 +451,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
     else:
         deploy_args += ['-e', os.path.join(
             tht_templates,
-            "environments/no-tls-endpoints-public-ip.yaml")]
+            "environments/ssl/no-tls-endpoints-public-ip.yaml")]
 
     if (CONF.get('generate_service_certificate') or
             CONF.get('undercloud_service_certificate')):
