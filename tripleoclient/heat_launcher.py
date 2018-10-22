@@ -230,15 +230,15 @@ limit_iterators=9000
             temp_file.write(ks_token)
 
 
-class HeatDockerLauncher(HeatBaseLauncher):
+class HeatContainerLauncher(HeatBaseLauncher):
 
     def __init__(self, api_port, container_image, user='heat'):
-        super(HeatDockerLauncher, self).__init__(api_port, container_image,
-                                                 user)
+        super(HeatContainerLauncher, self).__init__(api_port, container_image,
+                                                    user)
 
     def launch_heat(self):
         cmd = [
-            'docker', 'run',
+            'podman', 'run',
             '--name', 'heat_all',
             '--user', self.user,
             '--net', 'host',
@@ -263,7 +263,7 @@ class HeatDockerLauncher(HeatBaseLauncher):
     def heat_db_sync(self):
 
         cmd = [
-            'docker', 'run', '--rm',
+            'podman', 'run', '--rm',
             '--user', self.user,
             '--volume', '%(conf)s:/etc/heat/heat.conf:Z' % {'conf':
                                                             self.config_file},
@@ -276,7 +276,7 @@ class HeatDockerLauncher(HeatBaseLauncher):
 
     def get_heat_uid(self):
         cmd = [
-            'docker', 'run', '--rm',
+            'podman', 'run', '--rm',
             self.container_image,
             'getent', 'passwd', self.user
         ]
@@ -290,7 +290,7 @@ class HeatDockerLauncher(HeatBaseLauncher):
 
     def get_heat_gid(self):
         cmd = [
-            'docker', 'run', '--rm',
+            'podman', 'run', '--rm',
             self.container_image,
             'getent', 'group', self.user
         ]
@@ -303,7 +303,7 @@ class HeatDockerLauncher(HeatBaseLauncher):
         raise Exception('Could not find heat gid')
 
     def kill_heat(self, pid):
-        cmd = ['docker', 'rm', '-f', 'heat_all']
+        cmd = ['podman', 'rm', '-f', 'heat_all']
         log.debug(' '.join(cmd))
         # We don't want to hear from this command..
         subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
