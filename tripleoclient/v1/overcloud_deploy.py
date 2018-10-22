@@ -822,6 +822,7 @@ class DeployOvercloud(command.Command):
         parser.add_argument(
             '--config-download-timeout',
             action='store',
+            type=int,
             default=None,
             help=_('Timeout (in minutes) to use for config-download steps. If '
                    'unset, will default to however much time is leftover '

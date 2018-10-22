@@ -1851,6 +1851,42 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertEqual('ansible.cfg',
                          mock_config_download.call_args[0][8])
 
+    @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
+    @mock.patch('tripleoclient.workflows.deployment.get_horizon_url',
+                autospec=True)
+    @mock.patch('tripleoclient.workflows.deployment.enable_ssh_admin')
+    @mock.patch('tripleoclient.workflows.deployment.get_overcloud_hosts')
+    @mock.patch('tripleoclient.workflows.deployment.config_download')
+    @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
+    @mock.patch('tripleoclient.workflows.deployment.create_overcloudrc',
+                autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_deploy_tripleo_heat_templates_tmpdir', autospec=True)
+    def test_config_download_timeout(
+            self, mock_deploy_tmpdir,
+            mock_overcloudrc,
+            mock_write_overcloudrc,
+            mock_config_download,
+            mock_get_overcloud_hosts,
+            mock_enable_ssh_admin,
+            mock_get_horizon_url,
+            mock_get_overcloud_endpoint):
+        clients = self.app.client_manager
+        orchestration_client = clients.orchestration
+        orchestration_client.stacks.get.return_value = mock.Mock()
+        mock_get_overcloud_hosts.return_value = []
+
+        arglist = ['--templates', '--config-download-timeout', '240']
+        verifylist = [
+            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
+            ('config_download_timeout', 240),
+        ]
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
+        mock_config_download.assert_called()
+        self.assertEqual(240*60, mock_config_download.call_args[0][9])
+
     def test_download_missing_files_from_plan(self):
         # Restore the real function so we don't accidentally call the mock
         self.cmd._download_missing_files_from_plan = self.real_download_missing
