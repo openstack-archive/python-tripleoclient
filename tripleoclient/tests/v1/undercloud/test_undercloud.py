@@ -75,7 +75,9 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'docker.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'undercloud.yaml', '-e', '/home/stack/foo.yaml', '-e',
+             'undercloud.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'use-dns-for-vips.yaml', '-e', '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic.yaml',
              '-e',
@@ -95,8 +97,6 @@ class TestUndercloudInstall(TestPluginV1):
              '--control-virtual-ip', '192.168.24.3', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'ssl/tls-endpoints-public-ip.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'use-dns-for-vips.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-haproxy.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -155,6 +155,7 @@ class TestUndercloudInstall(TestPluginV1):
              '--heat-native', '-e',
              '/usertht/environments/docker.yaml', '-e',
              '/usertht/environments/undercloud.yaml', '-e',
+             '/usertht/environments/use-dns-for-vips.yaml', '-e',
              '/home/stack/foo.yaml', '-e',
              '/usertht/environments/services/ironic.yaml', '-e',
              '/usertht/environments/services/ironic-inspector.yaml', '-e',
@@ -166,7 +167,6 @@ class TestUndercloudInstall(TestPluginV1):
              '--public-virtual-ip', '192.168.24.2',
              '--control-virtual-ip', '192.168.24.3', '-e',
              '/usertht/environments/ssl/tls-endpoints-public-ip.yaml', '-e',
-             '/usertht/environments/use-dns-for-vips.yaml', '-e',
              '/usertht/environments/services/undercloud-haproxy.yaml', '-e',
              '/usertht/environments/services/undercloud-keepalived.yaml',
              # TODO(cjeanner) drop once we have proper oslo.privsep
@@ -307,7 +307,9 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'docker.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'undercloud.yaml', '-e', '/home/stack/foo.yaml', '-e',
+             'undercloud.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'use-dns-for-vips.yaml', '-e', '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/'
              'environments/services/masquerade-networks.yaml',
              '-e',
@@ -330,8 +332,6 @@ class TestUndercloudInstall(TestPluginV1):
              '--control-virtual-ip', '192.168.24.3', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'ssl/tls-endpoints-public-ip.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'use-dns-for-vips.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-haproxy.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -378,7 +378,9 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'docker.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'undercloud.yaml', '-e', '/home/stack/foo.yaml', '-e',
+             'undercloud.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'use-dns-for-vips.yaml', '-e', '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic.yaml',
              '-e',
@@ -398,8 +400,6 @@ class TestUndercloudInstall(TestPluginV1):
              '--control-virtual-ip', '192.168.24.3', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'ssl/tls-endpoints-public-ip.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'use-dns-for-vips.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-haproxy.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -442,7 +442,9 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'docker.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'undercloud.yaml', '-e', '/home/stack/foo.yaml', '-e',
+             'undercloud.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'use-dns-for-vips.yaml', '-e', '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic.yaml',
              '-e',
@@ -462,8 +464,6 @@ class TestUndercloudInstall(TestPluginV1):
              '--control-virtual-ip', '192.168.24.3', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'ssl/tls-endpoints-public-ip.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'use-dns-for-vips.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-haproxy.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -503,7 +503,9 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'docker.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'undercloud.yaml', '-e', '/home/stack/foo.yaml', '-e',
+             'undercloud.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'use-dns-for-vips.yaml', '-e', '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic.yaml',
              '-e',
@@ -527,8 +529,6 @@ class TestUndercloudInstall(TestPluginV1):
              '--control-virtual-ip', '192.168.24.3', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'ssl/tls-endpoints-public-ip.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'use-dns-for-vips.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-haproxy.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -583,7 +583,9 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'docker.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'undercloud.yaml', '-e', '/home/stack/foo.yaml', '-e',
+             'undercloud.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'use-dns-for-vips.yaml', '-e', '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic.yaml',
              '-e',
@@ -603,8 +605,6 @@ class TestUndercloudUpgrade(TestPluginV1):
              '--control-virtual-ip', '192.168.24.3', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'ssl/tls-endpoints-public-ip.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'use-dns-for-vips.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-haproxy.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -670,7 +670,9 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'docker.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'undercloud.yaml', '-e', '/home/stack/foo.yaml', '-e',
+             'undercloud.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'use-dns-for-vips.yaml', '-e', '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic.yaml',
              '-e',
@@ -690,8 +692,6 @@ class TestUndercloudUpgrade(TestPluginV1):
              '--control-virtual-ip', '192.168.24.3', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'ssl/tls-endpoints-public-ip.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'use-dns-for-vips.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-haproxy.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -733,7 +733,9 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'docker.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'undercloud.yaml', '-e', '/home/stack/foo.yaml', '-e',
+             'undercloud.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'use-dns-for-vips.yaml', '-e', '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic.yaml',
              '-e',
@@ -753,8 +755,6 @@ class TestUndercloudUpgrade(TestPluginV1):
              '--control-virtual-ip', '192.168.24.3', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'ssl/tls-endpoints-public-ip.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'use-dns-for-vips.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-haproxy.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -796,7 +796,9 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'docker.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'undercloud.yaml', '-e', '/home/stack/foo.yaml', '-e',
+             'undercloud.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'use-dns-for-vips.yaml', '-e', '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic.yaml',
              '-e',
@@ -816,8 +818,6 @@ class TestUndercloudUpgrade(TestPluginV1):
              '--control-virtual-ip', '192.168.24.3', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'ssl/tls-endpoints-public-ip.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'use-dns-for-vips.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-haproxy.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -863,7 +863,9 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'docker.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'undercloud.yaml', '-e', '/home/stack/foo.yaml', '-e',
+             'undercloud.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'use-dns-for-vips.yaml', '-e', '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic.yaml',
              '-e',
@@ -883,8 +885,6 @@ class TestUndercloudUpgrade(TestPluginV1):
              '--control-virtual-ip', '192.168.24.3', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'ssl/tls-endpoints-public-ip.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'use-dns-for-vips.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-haproxy.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'

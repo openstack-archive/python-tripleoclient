@@ -364,7 +364,9 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
     # These should be loaded first so we can override all the bits later
     deploy_args += [
         "-e", os.path.join(tht_templates, "environments/docker.yaml"),
-        "-e", os.path.join(tht_templates, "environments/undercloud.yaml")]
+        "-e", os.path.join(tht_templates, "environments/undercloud.yaml"),
+        "-e", os.path.join(tht_templates, "environments/use-dns-for-vips.yaml")
+        ]
 
     # If a container images file is used, copy it into the tempdir to make it
     # later into other deployment artifacts and user-provided files.
@@ -468,9 +470,6 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
 
         deploy_args += [
             '-e', endpoint_environment,
-            '-e', os.path.join(
-                tht_templates,
-                'environments/use-dns-for-vips.yaml'),
             '-e', os.path.join(
                 tht_templates,
                 'environments/services/undercloud-haproxy.yaml'),
