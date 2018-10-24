@@ -328,8 +328,13 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
     env_data['LocalContainerRegistry'] = CONF['local_ip'].split('/')[0]
 
     if CONF['additional_architectures']:
+        # In queens (instack-undercloud) we used this to setup additional
+        # architectures.  For rocky+ we want to pass a list and be smarter in
+        # THT.  We can remove this in 'T' when we get there.
         for arch in CONF['additional_architectures']:
             env_data['EnableArchitecture%s' % arch.upper()] = True
+        env_data['AdditionalArchitectures'] = \
+            ','.join(CONF['additional_architectures'])
 
     if CONF.get('local_ip', None):
         deploy_args.append('--local-ip=%s' % CONF['local_ip'])
