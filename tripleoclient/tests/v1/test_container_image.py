@@ -214,7 +214,7 @@ class TestContainerImagePrepare(TestPluginV1):
             '--set',
             'ceph_tag=mytag',
             '-e',
-            'environment/docker.yaml',
+            'environment/docker-ha.yaml',
             '--roles-file',
             roles_file,
             '--modify-role',
@@ -243,7 +243,7 @@ class TestContainerImagePrepare(TestPluginV1):
 
         self.cmd.take_action(parsed_args)
 
-        pmef.assert_called_once_with(['environment/docker.yaml'],
+        pmef.assert_called_once_with(['environment/docker-ha.yaml'],
                                      env_path_is_object=mock.ANY,
                                      object_request=mock.ANY)
         mock_cip.assert_called_once_with(

@@ -73,8 +73,6 @@ class TestUndercloudInstall(TestPluginV1):
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
              '--heat-native', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'docker.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
              'undercloud.yaml', '-e', '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic.yaml',
@@ -143,7 +141,6 @@ class TestUndercloudInstall(TestPluginV1):
              '--templates=/usertht',
              '--roles-file=foo/roles.yaml',
              '--heat-native=False', '-e',
-             '/usertht/environments/docker.yaml', '-e',
              '/usertht/environments/undercloud.yaml', '-e',
              '/home/stack/foo.yaml', '-e',
              '/usertht/environments/services/ironic.yaml', '-e',
@@ -295,8 +292,6 @@ class TestUndercloudInstall(TestPluginV1):
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
              '--heat-native', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'docker.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
              'undercloud.yaml', '-e', '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/'
              'environments/services/masquerade-networks.yaml',
@@ -366,8 +361,6 @@ class TestUndercloudInstall(TestPluginV1):
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
              '--heat-native', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'docker.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
              'undercloud.yaml', '-e', '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic.yaml',
@@ -430,8 +423,6 @@ class TestUndercloudInstall(TestPluginV1):
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
              '--heat-native', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'docker.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
              'undercloud.yaml', '-e', '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic.yaml',
@@ -490,8 +481,6 @@ class TestUndercloudInstall(TestPluginV1):
              '--local-ip=192.168.24.1/24',
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
              '--heat-native', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'docker.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'undercloud.yaml', '-e', '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -571,8 +560,6 @@ class TestUndercloudUpgrade(TestPluginV1):
              'lifecycle/undercloud-upgrade-prepare.yaml',
              '--heat-native', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'docker.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
              'undercloud.yaml', '-e', '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic.yaml',
@@ -635,8 +622,6 @@ class TestUndercloudUpgrade(TestPluginV1):
              'lifecycle/undercloud-upgrade-prepare.yaml',
              '--heat-native', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'docker.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
              'undercloud.yaml', '-e', '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic.yaml',
@@ -698,8 +683,6 @@ class TestUndercloudUpgrade(TestPluginV1):
              'lifecycle/undercloud-upgrade-prepare.yaml',
              '--heat-native', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'docker.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
              'undercloud.yaml', '-e', '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic.yaml',
@@ -760,8 +743,6 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'lifecycle/undercloud-upgrade-prepare.yaml',
              '--heat-native', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'docker.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'undercloud.yaml', '-e', '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -827,8 +808,6 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'lifecycle/undercloud-upgrade-prepare.yaml',
              '--heat-native', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'docker.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'undercloud.yaml', '-e', '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
