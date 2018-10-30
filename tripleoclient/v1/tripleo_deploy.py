@@ -803,6 +803,16 @@ class Deploy(command.Command):
         self.log.debug('Running Ansible Upgrade tasks: %s' % (' '.join(cmd)))
         return utils.run_command_and_log(self.log, cmd)
 
+    def _launch_ansible_post_upgrade(self, ansible_dir):
+        self.log.warning('** Running ansible post-upgrade tasks **')
+        os.chdir(ansible_dir)
+        playbook_inventory = os.path.join(ansible_dir, 'inventory.yaml')
+        cmd = ['ansible-playbook', '-i', playbook_inventory,
+               'post_upgrade_steps_playbook.yaml', '--skip-tags', 'validation']
+        self.log.debug('Running Ansible Post Upgrade '
+                       'tasks: %s' % (' '.join(cmd)))
+        return utils.run_command_and_log(self.log, cmd)
+
     def get_parser(self, prog_name):
         parser = argparse.ArgumentParser(
             description=self.get_description(),
@@ -1146,12 +1156,17 @@ class Deploy(command.Command):
             if not parsed_args.keep_running:
                 self._kill_heat(parsed_args)
             if not parsed_args.output_only:
-                # Run Upgrade tasks before the deployment
                 if parsed_args.upgrade:
+                    # Run Upgrade tasks before the deployment
                     rc = self._launch_ansible_upgrade(self.ansible_dir)
                     if rc != 0:
                         raise exceptions.DeploymentError('Upgrade failed')
                 rc = self._launch_ansible_deploy(self.ansible_dir)
+                if parsed_args.upgrade:
+                    # Run Post Upgrade tasks after the deployment
+                    rc = self._launch_ansible_post_upgrade(self.ansible_dir)
+                    if rc != 0:
+                        raise exceptions.DeploymentError('Post Upgrade failed')
         except Exception as e:
             self.log.error("Exception: %s" % six.text_type(e))
             self.log.error(traceback.print_exc())

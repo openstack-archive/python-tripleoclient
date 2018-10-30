@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    This changes the upgrade workflow for the standalone and undercloud
+    where we now run the post_upgrade_tasks after the deployment.
+    So the order is upgrade_tasks, deployment steps (docker/puppet),
+    then post_upgrade_tasks which is the same order as the overcloud.
+    It will allow us to execute some specific post upgrade tasks on standalone
+    and undercloud, like removing Docker containers when upgrading to Podman.

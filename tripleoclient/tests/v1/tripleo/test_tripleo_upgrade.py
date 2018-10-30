@@ -44,6 +44,20 @@ class TestUpgrade(utils.TestCommand):
             'upgrade_steps_playbook.yaml',
             '--skip-tags', 'validation'])
 
+    @mock.patch('tripleoclient.utils.'
+                'run_command_and_log', autospec=True)
+    @mock.patch('os.chdir')
+    @mock.patch('os.execvp')
+    def test_launch_ansible_post_upgrade(self, mock_execvp, mock_chdir,
+                                         mock_run):
+
+        self.cmd._launch_ansible_post_upgrade('/tmp')
+        mock_chdir.assert_called_once()
+        mock_run.assert_called_once_with(self.cmd.log, [
+            'ansible-playbook', '-i', '/tmp/inventory.yaml',
+            'post_upgrade_steps_playbook.yaml',
+            '--skip-tags', 'validation'])
+
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.take_action',
                 autospec=True)
     def test_take_action(self, mock_deploy):
