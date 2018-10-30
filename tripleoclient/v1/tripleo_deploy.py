@@ -1215,7 +1215,7 @@ class Deploy(command.Command):
                     self.log.warning(
                         _('Writing the stack virtual update mark file %s') %
                         self.stack_update_mark)
-                    open(self.stack_update_mark, 'wa').close()
+                    open(self.stack_update_mark, 'w').close()
                 elif parsed_args.output_only:
                     self.log.warning(
                         _('Not creating the stack %s virtual update mark file '
