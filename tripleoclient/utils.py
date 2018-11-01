@@ -922,7 +922,7 @@ def load_environment_directories(directories):
 
 
 def get_tripleo_ansible_inventory(inventory_file='',
-                                  ssh_user='heat-admin',
+                                  ssh_user='tripleo-admin',
                                   stack='overcloud'):
     if not inventory_file:
         inventory_file = '%s/%s' % (os.path.expanduser('~'),

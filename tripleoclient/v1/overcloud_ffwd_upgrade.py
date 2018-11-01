@@ -90,6 +90,12 @@ class FFWDUpgradePrepare(DeployOvercloud):
             clients, container=stack_name)
         oooutils.write_overcloudrc(stack_name, overcloudrcs)
 
+        # refresh stack info and enable ssh admin for Ansible-via-Mistral
+        stack = oooutils.get_stack(clients.orchestration, parsed_args.stack)
+        deployment.get_hosts_and_enable_ssh_admin(
+            self.log, clients, stack, parsed_args.overcloud_ssh_network,
+            parsed_args.overcloud_ssh_user, parsed_args.overcloud_ssh_key)
+
         self.log.info("FFWD Upgrade Prepare on stack {0} complete.".format(
                       parsed_args.stack))
 
@@ -124,9 +130,9 @@ class FFWDUpgradeRun(command.Command):
         parser.add_argument("--ssh-user",
                             dest="ssh_user",
                             action="store",
-                            default="heat-admin",
-                            help=_("The ssh user name for connecting to "
-                                   "the overcloud nodes.")
+                            default="tripleo-admin",
+                            help=_("DEPRECATED: Only tripleo-admin should be "
+                                   "used as ssh user.")
                             )
         parser.add_argument('--stack', dest='stack',
                             help=_('Name or ID of heat stack '

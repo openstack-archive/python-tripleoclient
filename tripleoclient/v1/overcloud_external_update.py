@@ -54,9 +54,9 @@ class ExternalUpdateRun(command.Command):
         parser.add_argument("--ssh-user",
                             dest="ssh_user",
                             action="store",
-                            default="heat-admin",
-                            help=_("The ssh user name for connecting to "
-                                   "the overcloud nodes.")
+                            default="tripleo-admin",
+                            help=_("DEPRECATED: Only tripleo-admin should be "
+                                   "used as ssh user.")
                             )
         parser.add_argument('--tags',
                             dest='tags',

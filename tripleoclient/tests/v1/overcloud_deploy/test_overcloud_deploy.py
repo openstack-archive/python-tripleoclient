@@ -1675,8 +1675,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertFalse(mock_deploy_tmpdir.called)
 
     @mock.patch('tripleoclient.workflows.deployment.set_deployment_status')
-    @mock.patch('tripleoclient.workflows.deployment.get_overcloud_hosts')
-    @mock.patch('tripleoclient.workflows.deployment.enable_ssh_admin')
+    @mock.patch('tripleoclient.workflows.deployment.'
+                'get_hosts_and_enable_ssh_admin')
     @mock.patch('tripleoclient.workflows.deployment.get_horizon_url',
                 autospec=True)
     @mock.patch('tripleoclient.workflows.deployment.config_download')
@@ -1694,8 +1694,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mock_overcloud_endpoint,
             mock_create_tempest_deployer_input,
             mock_config_download, mock_get_horizon_url,
-            mock_enable_ssh_admin,
-            mock_get_overcloud_hosts,
+            mock_get_hosts_and_enable_ssh_admin,
             mock_set_deployment_status):
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
@@ -1710,8 +1709,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         self.cmd.take_action(parsed_args)
         self.assertTrue(mock_deploy_tmpdir.called)
-        self.assertTrue(mock_enable_ssh_admin.called)
-        self.assertTrue(mock_get_overcloud_hosts.called)
+        self.assertTrue(mock_get_hosts_and_enable_ssh_admin.called)
         self.assertTrue(mock_config_download.called)
         self.assertTrue(mock_set_deployment_status.called)
         self.assertEqual(
@@ -1719,8 +1717,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mock_set_deployment_status.call_args[0][1])
 
     @mock.patch('tripleoclient.workflows.deployment.set_deployment_status')
-    @mock.patch('tripleoclient.workflows.deployment.get_overcloud_hosts')
-    @mock.patch('tripleoclient.workflows.deployment.enable_ssh_admin')
+    @mock.patch('tripleoclient.workflows.deployment.'
+                'get_hosts_and_enable_ssh_admin')
     @mock.patch('tripleoclient.workflows.deployment.get_horizon_url',
                 autospec=True)
     @mock.patch('tripleoclient.workflows.deployment.config_download')
@@ -1738,8 +1736,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mock_overcloud_endpoint,
             mock_create_tempest_deployer_input,
             mock_config_download, mock_get_horizon_url,
-            mock_enable_ssh_admin,
-            mock_get_overcloud_hosts,
+            mock_get_hosts_and_enable_ssh_admin,
             mock_set_deployment_status):
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
@@ -1754,8 +1751,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         self.cmd.take_action(parsed_args)
         self.assertFalse(mock_deploy_tmpdir.called)
-        self.assertTrue(mock_enable_ssh_admin.called)
-        self.assertTrue(mock_get_overcloud_hosts.called)
+        self.assertTrue(mock_get_hosts_and_enable_ssh_admin.called)
         self.assertTrue(mock_config_download.called)
         self.assertTrue(mock_set_deployment_status.called)
         self.assertEqual(
@@ -1763,8 +1759,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mock_set_deployment_status.call_args[0][1])
 
     @mock.patch('tripleoclient.workflows.deployment.set_deployment_status')
-    @mock.patch('tripleoclient.workflows.deployment.get_overcloud_hosts')
-    @mock.patch('tripleoclient.workflows.deployment.enable_ssh_admin')
+    @mock.patch('tripleoclient.workflows.deployment.'
+                'get_hosts_and_enable_ssh_admin')
     @mock.patch('tripleoclient.workflows.deployment.get_horizon_url',
                 autospec=True)
     @mock.patch('tripleoclient.workflows.deployment.config_download')
@@ -1782,8 +1778,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mock_overcloud_endpoint,
             mock_create_tempest_deployer_input,
             mock_config_download, mock_get_horizon_url,
-            mock_enable_ssh_admin,
-            mock_get_overcloud_hosts,
+            mock_get_hosts_and_enable_ssh_admin,
             mock_set_deployment_status):
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
@@ -1803,16 +1798,15 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             self.cmd.take_action,
             parsed_args)
         self.assertFalse(mock_deploy_tmpdir.called)
-        self.assertTrue(mock_enable_ssh_admin.called)
-        self.assertTrue(mock_get_overcloud_hosts.called)
+        self.assertTrue(mock_get_hosts_and_enable_ssh_admin.called)
         self.assertTrue(mock_config_download.called)
         self.assertTrue(mock_set_deployment_status.called)
         self.assertEqual(
             'failed',
             mock_set_deployment_status.call_args[0][1])
 
-    @mock.patch('tripleoclient.workflows.deployment.get_overcloud_hosts')
-    @mock.patch('tripleoclient.workflows.deployment.enable_ssh_admin')
+    @mock.patch('tripleoclient.workflows.deployment.'
+                'get_hosts_and_enable_ssh_admin')
     @mock.patch('tripleoclient.workflows.deployment.get_horizon_url',
                 autospec=True)
     @mock.patch('tripleoclient.workflows.deployment.config_download')
@@ -1830,8 +1824,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mock_overcloud_endpoint,
             mock_create_tempest_deployer_input,
             mock_config_download, mock_get_horizon_url,
-            mock_enable_ssh_admin,
-            mock_get_overcloud_hosts):
+            mock_get_hosts_and_enable_ssh_admin):
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
         orchestration_client.stacks.get.return_value = mock.Mock()
@@ -1845,8 +1838,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.cmd.take_action(parsed_args)
-        self.assertTrue(mock_enable_ssh_admin.called)
-        self.assertTrue(mock_get_overcloud_hosts.called)
+        self.assertTrue(mock_get_hosts_and_enable_ssh_admin.called)
         self.assertTrue(mock_config_download.called)
         self.assertEqual('ansible.cfg',
                          mock_config_download.call_args[0][8])
