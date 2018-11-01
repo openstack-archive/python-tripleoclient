@@ -173,6 +173,13 @@ def wait_for_ssh_port(host):
         time.sleep(1)
 
 
+def get_hosts_and_enable_ssh_admin(log, clients, stack, overcloud_ssh_network,
+                                   overcloud_ssh_user, overcloud_ssh_key):
+    hosts = get_overcloud_hosts(stack, overcloud_ssh_network)
+    enable_ssh_admin(log, clients, stack.stack_name, hosts,
+                     overcloud_ssh_user, overcloud_ssh_key)
+
+
 def enable_ssh_admin(log, clients, plan_name, hosts, ssh_user, ssh_key):
     print("Enabling ssh admin (tripleo-admin) for hosts:")
     print(" ".join(hosts))

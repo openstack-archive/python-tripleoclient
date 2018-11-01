@@ -20,11 +20,9 @@ class DeploymentWorkflowFixture(fixtures.Fixture):
 
     def _setUp(self):
         super(DeploymentWorkflowFixture, self)._setUp()
-        self.mock_get_overcloud_hosts = self.useFixture(fixtures.MockPatch(
-            'tripleoclient.workflows.deployment.get_overcloud_hosts')
-        ).mock
-        self.mock_enable_ssh_admin = self.useFixture(fixtures.MockPatch(
-            'tripleoclient.workflows.deployment.enable_ssh_admin')
+        self.mock_get_hosts_and_enable_ssh_admin = self.useFixture(
+            fixtures.MockPatch('tripleoclient.workflows.deployment.'
+                               'get_hosts_and_enable_ssh_admin')
         ).mock
         self.mock_config_download = self.useFixture(fixtures.MockPatch(
             'tripleoclient.workflows.deployment.config_download')

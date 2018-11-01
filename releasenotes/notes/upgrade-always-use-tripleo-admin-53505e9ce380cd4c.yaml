@@ -1,0 +1,12 @@
+---
+upgrade:
+  - |
+    Upgrades and updates are now use tripleo-admin user to connect to
+    the overcloud by default, which makes it work the same in this
+    regard as fresh deployment.
+deprecations:
+  - |
+    The `--ssh-user` parameter for `overcloud upgrade run` command and
+    similar commands is now deprecated and will be removed. In the
+    future, `tripleo-admin` user will be used always, which will make
+    it work the same as deployment workflow.

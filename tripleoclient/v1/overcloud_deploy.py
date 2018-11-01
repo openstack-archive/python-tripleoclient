@@ -905,12 +905,9 @@ class DeployOvercloud(command.Command):
                 plan=stack.stack_name)
 
             try:
-                hosts = deployment.get_overcloud_hosts(
-                    stack, parsed_args.overcloud_ssh_network)
-                deployment.enable_ssh_admin(
-                    self.log, self.clients,
-                    stack.stack_name,
-                    hosts,
+                deployment.get_hosts_and_enable_ssh_admin(
+                    self.log, self.clients, stack,
+                    parsed_args.overcloud_ssh_network,
                     parsed_args.overcloud_ssh_user,
                     parsed_args.overcloud_ssh_key)
 
