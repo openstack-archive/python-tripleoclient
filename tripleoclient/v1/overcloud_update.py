@@ -118,8 +118,8 @@ class UpdateRun(command.Command):
                             dest="ssh_user",
                             action="store",
                             default="tripleo-admin",
-                            help=_("The ssh user name for connecting to "
-                                   "the overcloud nodes.")
+                            help=_("DEPRECATED: Only tripleo-admin should be "
+                                   "used as ssh user.")
                             )
         parser.add_argument('--static-inventory',
                             dest='static_inventory',

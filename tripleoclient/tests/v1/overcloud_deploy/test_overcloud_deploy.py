@@ -1479,8 +1479,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         self.cmd.take_action(parsed_args)
         self.assertTrue(mock_deploy_tmpdir.called)
-        self.assertTrue(fixture.mock_enable_ssh_admin.called)
-        self.assertTrue(fixture.mock_get_overcloud_hosts.called)
+        self.assertTrue(fixture.mock_get_hosts_and_enable_ssh_admin.called)
         self.assertTrue(fixture.mock_config_download.called)
         self.assertTrue(fixture.mock_set_deployment_status.called)
         self.assertEqual(
@@ -1511,8 +1510,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         self.cmd.take_action(parsed_args)
         self.assertFalse(mock_deploy_tmpdir.called)
-        self.assertTrue(fixture.mock_enable_ssh_admin.called)
-        self.assertTrue(fixture.mock_get_overcloud_hosts.called)
+        self.assertTrue(fixture.mock_get_hosts_and_enable_ssh_admin.called)
         self.assertTrue(fixture.mock_config_download.called)
         self.assertTrue(fixture.mock_set_deployment_status.called)
         self.assertEqual(
@@ -1552,8 +1550,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             self.cmd.take_action,
             parsed_args)
         self.assertFalse(mock_deploy_tmpdir.called)
-        self.assertTrue(fixture.mock_enable_ssh_admin.called)
-        self.assertTrue(fixture.mock_get_overcloud_hosts.called)
+        self.assertTrue(fixture.mock_get_hosts_and_enable_ssh_admin.called)
         self.assertTrue(fixture.mock_config_download.called)
         self.assertTrue(fixture.mock_set_deployment_status.called)
         self.assertEqual(
@@ -1584,8 +1581,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.cmd.take_action(parsed_args)
-        self.assertTrue(fixture.mock_enable_ssh_admin.called)
-        self.assertTrue(fixture.mock_get_overcloud_hosts.called)
+        self.assertTrue(fixture.mock_get_hosts_and_enable_ssh_admin.called)
         self.assertTrue(fixture.mock_config_download.called)
         self.assertEqual('ansible.cfg',
                          fixture.mock_config_download.call_args[0][8])
