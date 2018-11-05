@@ -11,6 +11,7 @@
       - openstackclient-plugin-jobs
       - release-notes-jobs-python3
       - publish-openstack-docs-pti
+      - tripleo-build-containers-jobs
     check:
       jobs:
         - openstack-tox-lower-constraints
