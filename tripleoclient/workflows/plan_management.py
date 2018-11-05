@@ -104,7 +104,7 @@ def delete_deployment_plan(clients, **workflow_input):
 
         for payload in base.wait_for_messages(workflow_client, ws, execution,
                                               _WORKFLOW_TIMEOUT):
-            if 'message' in payload:
+            if payload.get('message'):
                 print(payload['message'])
 
             if payload['status'] != 'SUCCESS':
