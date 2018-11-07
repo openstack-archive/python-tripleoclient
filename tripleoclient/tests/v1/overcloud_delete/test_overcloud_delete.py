@@ -29,28 +29,51 @@ class TestDeleteOvercloud(fakes.TestDeployOvercloud):
         self.workflow = self.app.client_manager.workflow_engine
 
     @mock.patch(
-        'tripleoclient.workflows.stack_management.delete_stack', autospec=True)
-    def test_stack_delete(self, mock_delete_stack):
+        'tripleoclient.workflows.stack_management.plan_undeploy',
+        autospec=True)
+    def test_plan_undeploy(self, mock_plan_undeploy):
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
 
         stack = mock.Mock()
         stack.id = 12345
+        stack.name = "foobar"
         orchestration_client.stacks.get.return_value = stack
 
-        self.cmd._stack_delete(clients, 'overcloud')
+        self.cmd._plan_undeploy(clients, 'overcloud')
 
         orchestration_client.stacks.get.assert_called_once_with('overcloud')
-        mock_delete_stack.assert_called_once_with(
-            clients, stack=12345)
+        mock_plan_undeploy.assert_called_once_with(
+            clients, plan="foobar")
 
-    def test_stack_delete_no_stack(self):
+    @mock.patch(
+        'tripleoclient.workflows.stack_management.base.start_workflow',
+        autospec=True)
+    def test_plan_undeploy_wf_params(self, mock_plan_undeploy_wf):
+        clients = self.app.client_manager
+        orchestration_client = clients.orchestration
+        workflow_engine = clients.workflow_engine
+
+        stack = mock.Mock()
+        stack.id = 12345
+        stack.name = "foobar"
+        orchestration_client.stacks.get.return_value = stack
+
+        self.cmd._plan_undeploy(clients, 'overcloud')
+
+        orchestration_client.stacks.get.assert_called_once_with('overcloud')
+        mock_plan_undeploy_wf.assert_called_once_with(
+            workflow_engine,
+            "tripleo.deployment.v1.undeploy_plan",
+            workflow_input={"container": "foobar"})
+
+    def test_plan_undeploy_no_stack(self):
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
         type(orchestration_client.stacks.get).return_value = None
         self.cmd.log.warning = mock.MagicMock()
 
-        self.cmd._stack_delete(clients, 'overcloud')
+        self.cmd._plan_undeploy(clients, 'overcloud')
 
         orchestration_client.stacks.get.assert_called_once_with('overcloud')
         self.cmd.log.warning.assert_called_once_with(

@@ -47,19 +47,19 @@ class DeleteOvercloud(command.Command):
             raise oscexc.CommandError(
                 "You must specify a stack name")
 
-    def _stack_delete(self, clients, stack_name):
+    def _plan_undeploy(self, clients, stack_name):
         orchestration_client = clients.orchestration
 
-        print("Deleting stack {s}...".format(s=stack_name))
+        print("Undeploying stack {s}...".format(s=stack_name))
         stack = utils.get_stack(orchestration_client, stack_name)
         if stack is None:
             self.log.warning("No stack found ('{s}'), skipping delete".
                              format(s=stack_name))
         else:
             try:
-                stack_management.delete_stack(
+                stack_management.plan_undeploy(
                     clients,
-                    stack=stack.id
+                    plan=stack.name
                 )
             except Exception as e:
                 raise oscexc.CommandError(
@@ -91,6 +91,6 @@ class DeleteOvercloud(command.Command):
 
         clients = self.app.client_manager
 
-        self._stack_delete(clients, parsed_args.stack)
+        self._plan_undeploy(clients, parsed_args.stack)
         self._plan_delete(clients, parsed_args.stack)
         print("Success.")
