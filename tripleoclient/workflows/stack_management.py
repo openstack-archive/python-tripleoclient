@@ -18,24 +18,24 @@ from tripleoclient.exceptions import InvalidConfiguration
 from tripleoclient.workflows import base
 
 
-def delete_stack(clients, stack):
-    """Deletes the stack named in the workflow_input.
+def plan_undeploy(clients, plan):
+    """Undeploy the plan and deletes the stack named in the workflow_input.
 
     :param workflow_client: Workflow client
-    :param stack: Name or ID of stack to delete
+    :param plan: Name or ID of plan to delete
     """
 
     workflow_client = clients.workflow_engine
     tripleoclient = clients.tripleoclient
 
     workflow_input = {
-        'stack': stack
+        'container': plan
     }
 
     with tripleoclient.messaging_websocket() as ws:
         execution = base.start_workflow(
             workflow_client,
-            'tripleo.stack.v1.delete_stack',
+            'tripleo.deployment.v1.undeploy_plan',
             workflow_input=workflow_input
         )
 
