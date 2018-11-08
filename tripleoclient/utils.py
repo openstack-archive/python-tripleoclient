@@ -108,7 +108,7 @@ def run_ansible_playbook(logger,
     play = os.path.join(workdir, playbook)
 
     if os.path.exists(play):
-        cmd = ['ansible-playbook',
+        cmd = ["ansible-playbook-{}".format(sys.version_info[0]),
                '-i', inventory,
                '-c', connection, play
                ]

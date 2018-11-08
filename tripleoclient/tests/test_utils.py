@@ -23,6 +23,8 @@ import os.path
 import subprocess
 import tempfile
 
+import sys
+
 from heatclient import exc as hc_exc
 
 from uuid import uuid4
@@ -41,6 +43,8 @@ class TestRunAnsiblePlaybook(TestCase):
         self.addCleanup(self.unlink_patch.stop)
         self.unlink_patch.start()
         self.mock_log = mock.Mock('logging.getLogger')
+        python_version = sys.version_info[0]
+        self.ansible_playbook_cmd = "ansible-playbook-%s" % (python_version)
 
     @mock.patch('os.path.exists', return_value=False)
     @mock.patch('tripleoclient.utils.run_command_and_log')
@@ -74,7 +78,7 @@ class TestRunAnsiblePlaybook(TestCase):
                           'localhost,'
                           )
         mock_run.assert_called_once_with(self.mock_log,
-                                         ['ansible-playbook', '-i',
+                                         [self.ansible_playbook_cmd, '-i',
                                           'localhost,', '-c', 'smart',
                                           '/tmp/existing.yaml'],
                                          env=env, retcode_only=False)
@@ -110,7 +114,7 @@ class TestRunAnsiblePlaybook(TestCase):
         env = os.environ.copy()
         env['ANSIBLE_CONFIG'] = '/tmp/fooBar.cfg'
         mock_run.assert_called_once_with(self.mock_log,
-                                         ['ansible-playbook', '-i',
+                                         [self.ansible_playbook_cmd, '-i',
                                           'localhost,', '-c', 'smart',
                                           '/tmp/existing.yaml'],
                                          env=env, retcode_only=False)
@@ -137,7 +141,7 @@ class TestRunAnsiblePlaybook(TestCase):
         env = os.environ.copy()
         env['ANSIBLE_CONFIG'] = '/tmp/foo.cfg'
         mock_run.assert_called_once_with(self.mock_log,
-                                         ['ansible-playbook', '-i',
+                                         [self.ansible_playbook_cmd, '-i',
                                           'localhost,', '-c', 'smart',
                                           '/tmp/existing.yaml'],
                                          env=env, retcode_only=False)
@@ -160,7 +164,7 @@ class TestRunAnsiblePlaybook(TestCase):
         env = os.environ.copy()
         env['ANSIBLE_CONFIG'] = '/tmp/fooBar.cfg'
         mock_run.assert_called_once_with(self.mock_log,
-                                         ['ansible-playbook', '-i',
+                                         [self.ansible_playbook_cmd, '-i',
                                           'localhost,', '-c', 'local',
                                           '/tmp/existing.yaml'],
                                          env=env, retcode_only=False)

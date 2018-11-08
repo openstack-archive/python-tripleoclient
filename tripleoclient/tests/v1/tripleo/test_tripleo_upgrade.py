@@ -14,6 +14,7 @@
 #
 
 import mock
+import sys
 
 from osc_lib.tests import utils
 import six
@@ -31,6 +32,9 @@ class TestUpgrade(utils.TestCommand):
         # Get the command object to test
         self.cmd = tripleo_upgrade.Upgrade(self.app, None)
 
+        python_version = sys.version_info[0]
+        self.ansible_playbook_cmd = "ansible-playbook-%s" % (python_version)
+
     @mock.patch('tripleoclient.utils.'
                 'run_command_and_log', autospec=True)
     @mock.patch('os.chdir')
@@ -40,7 +44,7 @@ class TestUpgrade(utils.TestCommand):
         self.cmd._launch_ansible_upgrade('/tmp')
         mock_chdir.assert_called_once()
         mock_run.assert_called_once_with(self.cmd.log, [
-            'ansible-playbook', '-i', '/tmp/inventory.yaml',
+            self.ansible_playbook_cmd, '-i', '/tmp/inventory.yaml',
             'upgrade_steps_playbook.yaml',
             '--skip-tags', 'validation'])
 
@@ -54,7 +58,7 @@ class TestUpgrade(utils.TestCommand):
         self.cmd._launch_ansible_post_upgrade('/tmp')
         mock_chdir.assert_called_once()
         mock_run.assert_called_once_with(self.cmd.log, [
-            'ansible-playbook', '-i', '/tmp/inventory.yaml',
+            self.ansible_playbook_cmd, '-i', '/tmp/inventory.yaml',
             'post_upgrade_steps_playbook.yaml',
             '--skip-tags', 'validation'])
 
