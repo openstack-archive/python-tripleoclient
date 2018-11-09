@@ -139,7 +139,9 @@ def list_deployment_plans(clients, **workflow_input):
                 raise exceptions.WorkflowServiceError(
                     'Exception listing plans: {}'.format(payload['message']))
 
-            return payload['plans']
+            # return plans if the message contains plans
+            if 'plans' in payload:
+                return payload['plans']
 
 
 def create_container(workflow_client, **input_):
