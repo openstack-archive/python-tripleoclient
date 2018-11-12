@@ -57,9 +57,12 @@ def _run_command(args, env=None, name=None):
     if name is None:
         name = args[0]
     try:
-        return subprocess.check_output(args,
-                                       stderr=subprocess.STDOUT,
-                                       env=env).decode('utf-8')
+        output = subprocess.check_output(args,
+                                         stderr=subprocess.STDOUT,
+                                         env=env)
+        if isinstance(output, bytes):
+            output = output.decode('utf-8')
+        return output
     except subprocess.CalledProcessError as e:
         message = '%s failed: %s' % (name, e.output)
         LOG.error(message)
@@ -155,7 +158,7 @@ def _check_hostname():
                 message = _('Configured hostname is not fully qualified.')
                 LOG.error(message)
                 raise RuntimeError(message)
-            sed_cmd = ('sed -i "s/127.0.0.1\(\s*\)/127.0.0.1\\1%s %s /" '
+            sed_cmd = (r'sed -i "s/127.0.0.1\(\s*\)/127.0.0.1\\1%s %s /" '
                        '/etc/hosts' %
                        (detected_static_hostname, short_hostname))
             args = ['sudo', '/bin/bash', '-c', sed_cmd]

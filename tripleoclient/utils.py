@@ -1144,12 +1144,20 @@ def run_command_and_log(log, cmd, cwd=None, env=None, retcode_only=True):
     """
     proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                             stderr=subprocess.STDOUT, shell=False,
-                            bufsize=1, cwd=cwd, env=env)
-
+                            cwd=cwd, env=env)
     if retcode_only:
-        for line in iter(proc.stdout.readline, b''):
-            # TODO(aschultz): this should probably goto a log file
-            log.warning(line.rstrip())
+        # TODO(aschultz): this should probably goto a log file
+        while True:
+            try:
+                line = proc.stdout.readline()
+            except StopIteration:
+                break
+            if line != b'':
+                if isinstance(line, bytes):
+                    line = line.decode('utf-8')
+                log.warning(line.rstrip())
+            else:
+                break
         proc.stdout.close()
         return proc.wait()
     else:

@@ -190,7 +190,7 @@ class TestRunCommandAndLog(TestCase):
         self.mock_popen.assert_called_once_with(self.cmd,
                                                 stdout=subprocess.PIPE,
                                                 stderr=subprocess.STDOUT,
-                                                shell=False, bufsize=1,
+                                                shell=False,
                                                 cwd=None, env=None)
         self.assertEqual(retcode, 0)
         self.mock_logger.warning.assert_has_calls(self.log_calls,
@@ -208,7 +208,7 @@ class TestRunCommandAndLog(TestCase):
         retcode = utils.run_command_and_log(self.mock_logger, self.e_cmd)
         mock_popen.assert_called_once_with(self.e_cmd, stdout=subprocess.PIPE,
                                            stderr=subprocess.STDOUT,
-                                           shell=False, bufsize=1, cwd=None,
+                                           shell=False, cwd=None,
                                            env=None)
 
         self.assertEqual(retcode, 1)
@@ -221,7 +221,7 @@ class TestRunCommandAndLog(TestCase):
         self.mock_popen.assert_called_once_with(self.cmd,
                                                 stdout=subprocess.PIPE,
                                                 stderr=subprocess.STDOUT,
-                                                shell=False, bufsize=1,
+                                                shell=False,
                                                 cwd=None, env=test_env)
         self.assertEqual(retcode, 0)
         self.mock_logger.warning.assert_has_calls(self.log_calls,
@@ -234,7 +234,7 @@ class TestRunCommandAndLog(TestCase):
         self.mock_popen.assert_called_once_with(self.cmd,
                                                 stdout=subprocess.PIPE,
                                                 stderr=subprocess.STDOUT,
-                                                shell=False, bufsize=1,
+                                                shell=False,
                                                 cwd=test_cwd, env=None)
         self.assertEqual(retcode, 0)
         self.mock_logger.warning.assert_has_calls(self.log_calls,
@@ -246,7 +246,7 @@ class TestRunCommandAndLog(TestCase):
         self.mock_popen.assert_called_once_with(self.cmd,
                                                 stdout=subprocess.PIPE,
                                                 stderr=subprocess.STDOUT,
-                                                shell=False, bufsize=1,
+                                                shell=False,
                                                 cwd=None, env=None)
         self.assertEqual(run, self.mock_process)
         self.mock_logger.warning.assert_not_called()
