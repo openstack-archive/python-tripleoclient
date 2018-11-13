@@ -658,7 +658,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         def _fake_heat_deploy(self, stack, stack_name, template_path,
                               parameters, environments, timeout, tht_root,
                               env, update_plan_only, run_validations,
-                              skip_deploy_identifier, plan_env_file):
+                              skip_deploy_identifier, plan_env_file,
+                              deployment_options=None):
             assertEqual(
                 {'parameter_defaults': {'NovaComputeLibvirtType': 'qemu'},
                  'resource_registry': {
@@ -719,7 +720,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         def _fake_heat_deploy(self, stack, stack_name, template_path,
                               parameters, environments, timeout, tht_root,
                               env, update_plan_only, run_validations,
-                              skip_deploy_identifier, plan_env_file):
+                              skip_deploy_identifier, plan_env_file,
+                              deployment_options=None):
             # Should be no breakpoint cleanup because utils.get_stack = None
             assertEqual(
                 {'parameter_defaults': {},
@@ -1030,7 +1032,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             self.cmd, {}, 'overcloud',
             '/fake/path/' + constants.OVERCLOUD_YAML_NAME, {},
             ['~/overcloud-env.json'], 1, '/fake/path', {}, False, True, False,
-            None)
+            None, deployment_options=None)
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_heat_deploy', autospec=True)

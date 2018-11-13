@@ -760,7 +760,8 @@ class Deploy(command.Command):
         return "%s/%s" % (stack_name, stack_id)
 
     def _download_ansible_playbooks(self, client, stack_name,
-                                    tripleo_role_name='Standalone'):
+                                    tripleo_role_name='Standalone',
+                                    python_interpreter=sys.executable):
         stack_config = config.Config(client)
         self._create_working_dirs()
 
@@ -778,7 +779,13 @@ class Deploy(command.Command):
             ansible_ssh_user='root')
 
         inv_path = os.path.join(self.tmp_ansible_dir, 'inventory.yaml')
-        extra_vars = {tripleo_role_name: {'ansible_connection': 'local'}}
+        extra_vars = {
+            tripleo_role_name: {
+                'ansible_connection': 'local',
+                'ansible_python_interpreter': python_interpreter,
+                }
+            }
+
         inventory.write_static_inventory(inv_path, extra_vars)
 
         self.log.info(_('** Downloaded {0} ansible to {1} **').format(
@@ -899,6 +906,13 @@ class Deploy(command.Command):
                    'Defaults to $SUDO_USER. If $SUDO_USER is unset '
                    'it defaults to stack.')
         )
+        parser.add_argument('--deployment-python-interpreter', default=None,
+                            help=_('The path to python interpreter to use for '
+                                   'the deployment actions. If not specified '
+                                   'the python version of the openstackclient '
+                                   'will be used. This may need to be used '
+                                   'if deploying on a python2 host from a '
+                                   'python3 system or vice versa.'))
         parser.add_argument(
             '--heat-container-image', metavar='<HEAT_CONTAINER_IMAGE>',
             dest='heat_container_image',
@@ -1130,10 +1144,12 @@ class Deploy(command.Command):
                 raise exceptions.DeploymentError(message)
 
             # download the ansible playbooks and execute them.
+            depl_python = utils.get_deployment_python_interpreter(parsed_args)
             self.ansible_dir = \
                 self._download_ansible_playbooks(orchestration_client,
                                                  parsed_args.stack,
-                                                 parsed_args.standalone_role)
+                                                 parsed_args.standalone_role,
+                                                 depl_python)
 
             # Do not override user's custom ansible configuraition file,
             # it may have been pre-created with the tripleo CLI, or the like
