@@ -70,7 +70,8 @@ PARAMETER_MAPPING = {
     'upgrade_cleanup': 'UpgradeRemoveUnusedPackages',
     'local_subnet': 'UndercloudCtlplaneLocalSubnet',
     'enable_routed_networks': 'UndercloudEnableRoutedNetworks',
-    'local_interface': 'NeutronPublicInterface'
+    'local_interface': 'NeutronPublicInterface',
+    'docker_bip': 'DockerNetworkOptions'
 }
 
 SUBNET_PARAMETER_MAPPING = {
