@@ -13,6 +13,7 @@
 #   under the License.
 #
 
+import fixtures
 import json
 import mock
 import os
@@ -42,6 +43,9 @@ class TestUndercloudInstall(TestPluginV1):
         self.conf = self.useFixture(oslo_fixture.Config(cfg.CONF))
         self.conf.config(container_images_file='/home/stack/foo.yaml')
         self.conf.set_default('output_dir', '/home/stack')
+        # don't actually load config from ~/undercloud.conf
+        self.mock_config_load = self.useFixture(
+            fixtures.MockPatch('tripleoclient.utils.load_config'))
         # Get the command object to test
         app_args = mock.Mock()
         app_args.verbose_level = 1
@@ -528,6 +532,9 @@ class TestUndercloudUpgrade(TestPluginV1):
         self.conf = self.useFixture(oslo_fixture.Config(cfg.CONF))
         self.conf.config(container_images_file='/home/stack/foo.yaml')
         self.conf.set_default('output_dir', '/home/stack')
+        # don't actually load config from ~/undercloud.conf
+        self.mock_config_load = self.useFixture(
+            fixtures.MockPatch('tripleoclient.utils.load_config'))
         # Get the command object to test
         app_args = mock.Mock()
         app_args.verbose_level = 1
