@@ -102,6 +102,8 @@ class Deploy(command.Command):
     stack_action = 'CREATE'
     deployment_user = None
     ansible_dir = None
+    python_version = sys.version_info[0]
+    ansible_playbook_cmd = "ansible-playbook-{}".format(python_version)
 
     def _is_undercloud_deploy(self, parsed_args):
         return parsed_args.standalone_role == 'Undercloud' and \
@@ -789,7 +791,7 @@ class Deploy(command.Command):
         self.log.warning(_('** Running ansible deploy tasks **'))
         os.chdir(ansible_dir)
         playbook_inventory = os.path.join(ansible_dir, 'inventory.yaml')
-        cmd = ['ansible-playbook', '-i', playbook_inventory,
+        cmd = [self.ansible_playbook_cmd, '-i', playbook_inventory,
                'deploy_steps_playbook.yaml']
         self.log.debug('Running Ansible Deploy tasks: %s' % (' '.join(cmd)))
         return utils.run_command_and_log(self.log, cmd)
@@ -798,7 +800,7 @@ class Deploy(command.Command):
         self.log.warning('** Running ansible upgrade tasks **')
         os.chdir(ansible_dir)
         playbook_inventory = os.path.join(ansible_dir, 'inventory.yaml')
-        cmd = ['ansible-playbook', '-i', playbook_inventory,
+        cmd = [self.ansible_playbook_cmd, '-i', playbook_inventory,
                'upgrade_steps_playbook.yaml', '--skip-tags', 'validation']
         self.log.debug('Running Ansible Upgrade tasks: %s' % (' '.join(cmd)))
         return utils.run_command_and_log(self.log, cmd)
@@ -807,7 +809,7 @@ class Deploy(command.Command):
         self.log.warning('** Running ansible post-upgrade tasks **')
         os.chdir(ansible_dir)
         playbook_inventory = os.path.join(ansible_dir, 'inventory.yaml')
-        cmd = ['ansible-playbook', '-i', playbook_inventory,
+        cmd = [self.ansible_playbook_cmd, '-i', playbook_inventory,
                'post_upgrade_steps_playbook.yaml', '--skip-tags', 'validation']
         self.log.debug('Running Ansible Post Upgrade '
                        'tasks: %s' % (' '.join(cmd)))

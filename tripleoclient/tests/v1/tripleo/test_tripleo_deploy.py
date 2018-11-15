@@ -16,6 +16,7 @@
 import fixtures
 import mock
 import os
+import sys
 import tempfile
 import yaml
 
@@ -57,6 +58,9 @@ class TestDeployUndercloud(TestPluginV1):
         self.orc = self.tc.local_orchestration = mock.MagicMock()
         self.orc.stacks.create = mock.MagicMock(
             return_value={'stack': {'id': 'foo'}})
+
+        python_version = sys.version_info[0]
+        self.ansible_playbook_cmd = "ansible-playbook-%s" % (python_version)
 
     def test_get_roles_file_path(self):
         parsed_args = self.check_parser(self.cmd,
@@ -685,7 +689,7 @@ class TestDeployUndercloud(TestPluginV1):
         self.cmd._launch_ansible_deploy('/tmp')
         mock_chdir.assert_called_once()
         mock_run.assert_called_once_with(self.cmd.log, [
-            'ansible-playbook', '-i', '/tmp/inventory.yaml',
+            self.ansible_playbook_cmd, '-i', '/tmp/inventory.yaml',
             'deploy_steps_playbook.yaml'])
 
     @mock.patch('tripleoclient.utils.fetch_roles_file')
