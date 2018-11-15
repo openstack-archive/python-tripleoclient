@@ -438,7 +438,6 @@ class Deploy(command.Command):
         # we need to ensure the HostnameMap matches our hostname
         hostname_map_name = "%s-%s-0" % (stack_name.lower(), role_name.lower())
         data = {
-            'ControlPlaneSubnetCidr': '%s' % ip_nw.prefixlen,
             'HostnameMap': {
                 hostname_map_name: '%s' % hostname
             },
@@ -457,15 +456,15 @@ class Deploy(command.Command):
             'DeployedServerPortMap': {
                 ('%s-ctlplane' % hostname): {
                     'fixed_ips': [{'ip_address': ip_addr}],
-                    'subnets': [{'cidr': str(ip_nw.prefixlen)}]
+                    'subnets': [{'cidr': str(ip_nw)}]
                 },
                 'control_virtual_ip': {
                     'fixed_ips': [{'ip_address': ctlplane_vip_addr}],
-                    'subnets': [{'cidr': str(ip_nw.prefixlen)}]
+                    'subnets': [{'cidr': str(ip_nw)}]
                 },
                 'public_virtual_ip': {
                     'fixed_ips': [{'ip_address': public_vip_addr}],
-                    'subnets': [{'cidr': str(ip_nw.prefixlen)}]
+                    'subnets': [{'cidr': str(ip_nw)}]
                 }
             }
         }
