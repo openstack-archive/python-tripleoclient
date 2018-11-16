@@ -188,7 +188,8 @@ class DeployOvercloud(command.Command):
 
     def _heat_deploy(self, stack, stack_name, template_path, parameters,
                      env_files, timeout, tht_root, env, update_plan_only,
-                     run_validations, skip_deploy_identifier, plan_env_file):
+                     run_validations, skip_deploy_identifier, plan_env_file,
+                     deployment_options=None):
         """Verify the Baremetal nodes are available and do a stack update"""
 
         self.log.debug("Getting template contents from plan %s" % stack_name)
@@ -231,7 +232,8 @@ class DeployOvercloud(command.Command):
                 stack_name, self.app_args.verbose_level,
                 timeout=timeout,
                 run_validations=run_validations,
-                skip_deploy_identifier=skip_deploy_identifier)
+                skip_deploy_identifier=skip_deploy_identifier,
+                deployment_options=deployment_options)
 
     def _process_and_upload_environment(self, container_name,
                                         env, moved_files, tht_root):
@@ -426,6 +428,11 @@ class DeployOvercloud(command.Command):
         if parsed_args.environment_files:
             created_env_files.extend(parsed_args.environment_files)
 
+        deployment_options = {}
+        if parsed_args.deployment_python_interpreter:
+            deployment_options['ansible_python_interpreter'] = \
+                parsed_args.deployment_python_interpreter
+
         self.log.debug("Processing environment files %s" % created_env_files)
         env_files, localenv = utils.process_multiple_environments(
             created_env_files, tht_root, user_tht_root,
@@ -451,7 +458,8 @@ class DeployOvercloud(command.Command):
             tht_root, stack, parsed_args.stack, parameters, env_files,
             parsed_args.timeout, env, parsed_args.update_plan_only,
             parsed_args.run_validations, parsed_args.skip_deploy_identifier,
-            parsed_args.plan_environment_file)
+            parsed_args.plan_environment_file,
+            deployment_options=deployment_options)
 
     def _try_overcloud_deploy_with_compat_yaml(self, tht_root, stack,
                                                stack_name, parameters,
@@ -459,14 +467,16 @@ class DeployOvercloud(command.Command):
                                                env, update_plan_only,
                                                run_validations,
                                                skip_deploy_identifier,
-                                               plan_env_file):
+                                               plan_env_file,
+                                               deployment_options=None):
         overcloud_yaml = os.path.join(tht_root, constants.OVERCLOUD_YAML_NAME)
         try:
             self._heat_deploy(stack, stack_name, overcloud_yaml,
                               parameters, env_files, timeout,
                               tht_root, env, update_plan_only,
                               run_validations, skip_deploy_identifier,
-                              plan_env_file)
+                              plan_env_file,
+                              deployment_options=deployment_options)
         except ClientException as e:
             messages = 'Failed to deploy: %s' % str(e)
             raise ValueError(messages)
@@ -830,6 +840,11 @@ class DeployOvercloud(command.Command):
                    'unset, will default to however much time is leftover '
                    'from the --timeout parameter after the stack operation.')
         )
+        parser.add_argument('--deployment-python-interpreter', default=None,
+                            help=_('The path to python interpreter to use for '
+                                   'the deployment actions. This may need to '
+                                   'be used if deploying on a python2 host '
+                                   'from a python3 system or vice versa.'))
         return parser
 
     def take_action(self, parsed_args):

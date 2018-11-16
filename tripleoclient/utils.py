@@ -1349,3 +1349,10 @@ def update_nodes_deploy_data(imageclient, nodes):
             if 'ramdisk_id' not in node and ramdisk in img_map:
                 node['ramdisk_id'] = img_map[ramdisk]
                 break
+
+
+def get_deployment_python_interpreter(parsed_args):
+    """Return correct deployment python interpreter """
+    if parsed_args.deployment_python_interpreter:
+        return parsed_args.deployment_python_interpreter
+    return sys.executable

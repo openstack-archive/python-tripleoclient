@@ -419,7 +419,8 @@ class TestOvercloudDeployPlan(utils.TestCommand):
             workflow_input={
                 'container': 'overcast',
                 'run_validations': True,
-                'skip_deploy_identifier': False
+                'skip_deploy_identifier': False,
+                'deployment_options': {},
             }
         )
 

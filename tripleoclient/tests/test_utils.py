@@ -1147,3 +1147,17 @@ class TestDeployNameScenarios(TestWithScenarios):
             observed = self.func()
 
         self.assertEqual(self.expected, observed)
+
+
+class TestDeploymentPythonInterpreter(TestCase):
+    def test_system_default(self):
+        args = mock.MagicMock()
+        args.deployment_python_interpreter = None
+        py = utils.get_deployment_python_interpreter(args)
+        self.assertEqual(py, sys.executable)
+
+    def test_provided_interpreter(self):
+        args = mock.MagicMock()
+        args.deployment_python_interpreter = 'foo'
+        py = utils.get_deployment_python_interpreter(args)
+        self.assertEqual(py, 'foo')

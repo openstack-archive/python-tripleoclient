@@ -669,7 +669,9 @@ class TestDeployUndercloud(TestPluginV1):
                                         mock_importInv, createdir_mock):
 
         fake_output_dir = '/twd'
-        extra_vars = {'Undercloud': {'ansible_connection': 'local'}}
+        extra_vars = {'Undercloud': {
+            'ansible_connection': 'local',
+            'ansible_python_interpreter': sys.executable}}
         mock_inventory = mock.Mock()
         mock_importInv.return_value = mock_inventory
         self.cmd.output_dir = fake_output_dir
@@ -793,7 +795,8 @@ class TestDeployUndercloud(TestPluginV1):
         mock_tht.assert_called_once_with(self.cmd, fake_orchestration,
                                          parsed_args)
         mock_download.assert_called_with(self.cmd, fake_orchestration,
-                                         'undercloud', 'Undercloud')
+                                         'undercloud', 'Undercloud',
+                                         sys.executable)
         mock_launchansible.assert_called_once()
         mock_tarball.assert_called_once()
         mock_cleanupdirs.assert_called_once()
