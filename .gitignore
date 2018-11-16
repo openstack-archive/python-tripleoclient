@@ -40,6 +40,7 @@ install-undercloud.log
 .tox
 nosetests.xml
 .testrepository
+.stestr/*
 
 # Translations
 *.mo
