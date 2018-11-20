@@ -235,7 +235,7 @@ class ImportNode(command.Command):
                             help=_('Skip setting the deploy kernel and '
                                    'ramdisk.'))
         parser.add_argument('--instance-boot-option',
-                            choices=['local', 'netboot'], default='local',
+                            choices=['local', 'netboot'], default=None,
                             help=_('Whether to set instances for booting from '
                                    'local hard drive (local) or network '
                                    '(netboot).'))

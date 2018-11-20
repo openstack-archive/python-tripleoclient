@@ -668,8 +668,8 @@ def assign_and_verify_profiles(bm_client, flavors,
             )
             log.error(
                 "Recommendation: tag more nodes using ironic node-update "
-                "<NODE ID> replace properties/capabilities=profile:%s,"
-                "boot_option:local", profile)
+                "<NODE ID> replace properties/capabilities=profile:%s,",
+                profile)
             predeploy_errors += 1
 
     nodes_without_profile = [uu for uu, caps in free_node_caps.items()
