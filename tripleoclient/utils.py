@@ -1110,7 +1110,12 @@ def bulk_symlink(log, src, dst, tmpd='/tmp'):
     """
     log.debug("Symlinking %s to %s, via temp dir %s" %
               (src, dst, tmpd))
+    tmp = None
     try:
+        if not os.path.exists(tmpd):
+            raise exceptions.NotFound("{} does not exist. Cannot create a "
+                                      "temp folder using this path".format(
+                                          tmpd))
         tmp = tempfile.mkdtemp(dir=tmpd)
         subprocess.check_call(['mkdir', '-p', dst])
         os.chmod(tmp, 0o755)
@@ -1121,7 +1126,8 @@ def bulk_symlink(log, src, dst, tmpd='/tmp'):
     except Exception:
         raise
     finally:
-        shutil.rmtree(tmp, ignore_errors=True)
+        if tmp:
+            shutil.rmtree(tmp, ignore_errors=True)
 
 
 def run_command_and_log(log, cmd, cwd=None, env=None, retcode_only=True):
