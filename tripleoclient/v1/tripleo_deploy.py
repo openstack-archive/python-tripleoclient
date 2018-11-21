@@ -104,6 +104,7 @@ class Deploy(command.Command):
     ansible_dir = None
     python_version = sys.version_info[0]
     ansible_playbook_cmd = "ansible-playbook-{}".format(python_version)
+    python_cmd = "python{}".format(python_version)
 
     def _is_undercloud_deploy(self, parsed_args):
         return parsed_args.standalone_role == 'Undercloud' and \
@@ -610,7 +611,7 @@ class Deploy(command.Command):
                          "file %s") % self._get_roles_file_path(parsed_args))
         process_templates = os.path.join(parsed_args.templates,
                                          'tools/process-templates.py')
-        args = ['python', process_templates, '--roles-data',
+        args = [self.python_cmd, process_templates, '--roles-data',
                 self._get_roles_file_path(parsed_args), '--output-dir',
                 self.tht_render]
         if utils.run_command_and_log(self.log, args, cwd=self.tht_render) != 0:
