@@ -429,7 +429,8 @@ class PrepareImageFiles(command.Command):
             mapping_args=subs,
             output_env_file=parsed_args.output_env_file,
             output_images_file=output_images_file,
-            tag_from_label=parsed_args.tag_from_label
+            tag_from_label=parsed_args.tag_from_label,
+            template_file=parsed_args.template_file
         )
         if parsed_args.output_env_file:
             params = prepare_data[parsed_args.output_env_file]
