@@ -40,5 +40,8 @@ def plan_undeploy(clients, plan):
         )
 
         for payload in base.wait_for_messages(workflow_client, ws, execution):
-            if payload['status'] != "SUCCESS":
+            status = payload['status']
+            if status == 'RUNNING':
+                continue
+            if status != 'SUCCESS':
                 raise InvalidConfiguration(payload['message'])
