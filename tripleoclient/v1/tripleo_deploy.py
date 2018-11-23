@@ -825,6 +825,17 @@ class Deploy(command.Command):
                        'tasks: %s' % (' '.join(cmd)))
         return utils.run_command_and_log(self.log, cmd)
 
+    def _launch_ansible_online_upgrade(self, ansible_dir):
+        self.log.warning('** Running ansible online upgrade tasks **')
+        os.chdir(ansible_dir)
+        playbook_inventory = os.path.join(ansible_dir, 'inventory.yaml')
+        cmd = [self.ansible_playbook_cmd, '-i', playbook_inventory,
+               'external_upgrade_steps_playbook.yaml', '--tags',
+               'online_upgrade']
+        self.log.debug('Running Ansible Online Upgrade '
+                       'tasks: %s' % (' '.join(cmd)))
+        return utils.run_command_and_log(self.log, cmd)
+
     def get_parser(self, prog_name):
         parser = argparse.ArgumentParser(
             description=self.get_description(),
@@ -1188,6 +1199,11 @@ class Deploy(command.Command):
                     rc = self._launch_ansible_post_upgrade(self.ansible_dir)
                     if rc != 0:
                         raise exceptions.DeploymentError('Post Upgrade failed')
+                    # Run Online Upgrade tasks after the deployment
+                    rc = self._launch_ansible_online_upgrade(self.ansible_dir)
+                    if rc != 0:
+                        raise exceptions.DeploymentError(
+                            'Online Upgrade failed')
         except Exception as e:
             self.log.error("Exception: %s" % six.text_type(e))
             self.log.error(traceback.print_exc())
