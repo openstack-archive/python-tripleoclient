@@ -157,7 +157,10 @@ class WebsocketClient(object):
 
     def __exit__(self, *exc):
         """Call cleanup when exiting the context manager"""
-        self.cleanup()
+        try:
+            self.cleanup()
+        except websocket.WebSocketConnectionClosedException:
+            pass
 
 
 class ClientWrapper(object):
