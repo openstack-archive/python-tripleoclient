@@ -52,8 +52,9 @@ def deploy(log, clients, **workflow_input):
         for payload in base.wait_for_messages(workflow_client, ws, execution,
                                               600):
             status = payload.get('status', 'RUNNING')
-            if 'message' in payload and status == "RUNNING":
-                print(payload['message'])
+            message = payload.get('message')
+            if message and status == "RUNNING":
+                print(message)
 
         if payload['status'] != "SUCCESS":
             log.info(pprint.pformat(payload))
@@ -319,8 +320,9 @@ def config_download_export(clients, **workflow_input):
 
         for payload in base.wait_for_messages(workflow_client, ws, execution,
                                               _WORKFLOW_TIMEOUT):
-            if 'message' in payload:
-                print(payload['message'])
+            message = payload.get('message')
+            if message:
+                print(message)
 
     if payload['status'] == 'SUCCESS':
         return payload['tempurl']
@@ -361,8 +363,9 @@ def get_deployment_status(clients, **workflow_input):
 
         for payload in base.wait_for_messages(workflow_client, ws, execution,
                                               _WORKFLOW_TIMEOUT):
-            if 'message' in payload:
-                print(payload['message'])
+            message = payload.get('message')
+            if message:
+                print(message)
 
     if payload['status'] == 'SUCCESS':
         return payload['deployment_status']
@@ -412,7 +415,8 @@ def get_deployment_failures(clients, **workflow_input):
         **workflow_input
     )
 
-    if result.get('message', ''):
-        print(result['message'])
+    message = result.get('message')
+    if message:
+        print(message)
 
     return result['failures']
