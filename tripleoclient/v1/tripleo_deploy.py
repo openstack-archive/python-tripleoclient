@@ -760,7 +760,7 @@ class Deploy(command.Command):
         self.log.warning('** Running ansible online upgrade tasks **')
         os.chdir(ansible_dir)
         playbook_inventory = os.path.join(ansible_dir, 'inventory.yaml')
-        cmd = [self.ansible_playbook_cmd, '-i', playbook_inventory,
+        cmd = ['ansible-playbook', '-i', playbook_inventory,
                'external_upgrade_steps_playbook.yaml', '--tags',
                'online_upgrade']
         self.log.debug('Running Ansible Online Upgrade '
