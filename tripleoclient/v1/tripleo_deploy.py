@@ -1194,6 +1194,8 @@ class Deploy(command.Command):
                     if rc != 0:
                         raise exceptions.DeploymentError('Upgrade failed')
                 rc = self._launch_ansible_deploy(self.ansible_dir)
+                if rc != 0:
+                    raise exceptions.DeploymentError('Deployment failed')
                 if parsed_args.upgrade:
                     # Run Post Upgrade tasks after the deployment
                     rc = self._launch_ansible_post_upgrade(self.ansible_dir)
