@@ -20,6 +20,7 @@ import logging
 import mock
 import os
 import os.path
+import socket
 import subprocess
 import tempfile
 
@@ -35,6 +36,8 @@ import yaml
 
 from tripleoclient import exceptions
 from tripleoclient import utils
+
+from six.moves.urllib import error as url_error
 
 
 class TestRunAnsiblePlaybook(TestCase):
@@ -1161,3 +1164,58 @@ class TestDeploymentPythonInterpreter(TestCase):
         args.deployment_python_interpreter = 'foo'
         py = utils.get_deployment_python_interpreter(args)
         self.assertEqual(py, 'foo')
+
+
+class TestWaitApiPortReady(TestCase):
+    @mock.patch('six.moves.urllib.request.urlopen')
+    def test_success(self, urlopen_mock):
+        has_errors = utils.wait_api_port_ready(8080)
+        self.assertFalse(has_errors)
+
+    @mock.patch(
+        'six.moves.urllib.request.urlopen',
+        side_effect=[
+            url_error.HTTPError("", 201, None, None, None), socket.timeout,
+            url_error.URLError("")
+        ] * 10)
+    @mock.patch('time.sleep')
+    def test_throw_exception_at_max_retries(self, urlopen_mock, sleep_mock):
+        with self.assertRaises(RuntimeError):
+            utils.wait_api_port_ready(8080)
+        self.assertEqual(urlopen_mock.call_count, 30)
+        self.assertEqual(sleep_mock.call_count, 30)
+
+    @mock.patch(
+        'six.moves.urllib.request.urlopen',
+        side_effect=[
+            socket.timeout,
+            url_error.URLError(""),
+            url_error.HTTPError("", 201, None, None, None), None
+        ])
+    @mock.patch('time.sleep')
+    def test_recovers_from_exception(self, urlopen_mock, sleep_mock):
+        self.assertFalse(utils.wait_api_port_ready(8080))
+        self.assertEqual(urlopen_mock.call_count, 4)
+        self.assertEqual(sleep_mock.call_count, 4)
+
+    @mock.patch(
+        'six.moves.urllib.request.urlopen',
+        side_effect=[
+            socket.timeout,
+            url_error.URLError(""),
+            url_error.HTTPError("", 300, None, None, None)
+        ] * 10)
+    @mock.patch('time.sleep')
+    def test_recovers_from_multiple_choices_error_code(self, urlopen_mock,
+                                                       sleep_mock):
+        self.assertTrue(utils.wait_api_port_ready(8080))
+        self.assertEqual(urlopen_mock.call_count, 3)
+        self.assertEqual(sleep_mock.call_count, 3)
+
+    @mock.patch('six.moves.urllib.request.urlopen', side_effect=NameError)
+    @mock.patch('time.sleep')
+    def test_dont_retry_at_unknown_exception(self, urlopen_mock, sleep_mock):
+        with self.assertRaises(NameError):
+            utils.wait_api_port_ready(8080)
+        self.assertEqual(urlopen_mock.call_count, 1)
+        self.assertEqual(sleep_mock.call_count, 1)

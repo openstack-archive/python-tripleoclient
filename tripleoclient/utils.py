@@ -1078,19 +1078,30 @@ def wait_api_port_ready(api_port, host='127.0.0.1'):
 
     :return boolean
     """
+    log = logging.getLogger(__name__ + ".wait_api_port_ready")
+    urlopen_timeout = 1
+    max_retries = 30
     count = 0
-    while count < 30:
+    while count < max_retries:
         time.sleep(1)
         count += 1
         try:
-            request.urlopen("http://%s:%s/" % (host, api_port), timeout=1)
+            request.urlopen(
+                "http://%s:%s/" % (host, api_port), timeout=urlopen_timeout)
+            return False
         except url_error.HTTPError as he:
             if he.code == 300:
                 return True
             pass
         except url_error.URLError:
             pass
-    return False
+        except socket.timeout:
+            log.warning(
+                "Timeout at attempt {} of {} after {}s waiting for API port..."
+                .format(count, max_retries, urlopen_timeout))
+            pass
+    raise RuntimeError(
+        "wait_api_port_ready: Max retries {} reached".format(max_retries))
 
 
 def bulk_symlink(log, src, dst, tmpd='/tmp'):
