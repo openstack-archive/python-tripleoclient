@@ -1235,8 +1235,8 @@ class Deploy(command.Command):
                    os.path.isfile(self.stack_update_mark)):
                     self.log.warning(
                         _('The heat stack %s virtual state/action is '
-                          'is reset to CREATE. Use "--force-stack-update" to '
-                          ' set it forcefully to UPDATE') % parsed_args.stack)
+                          'reset to CREATE. Use "--force-stack-update" to '
+                          'set it forcefully to UPDATE') % parsed_args.stack)
                     self.log.warning(
                         _('Removing the stack virtual update mark file %s') %
                         self.stack_update_mark)
