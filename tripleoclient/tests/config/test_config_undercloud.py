@@ -138,13 +138,18 @@ class TestUndercloudConfig(base.TestCase):
         self.assertEqual(expected, [x.name for x in ret])
 
     def test_get_subnet_opts(self):
-        ret = self.config.get_subnet_opts()
         expected = ['cidr',
                     'dhcp_end',
+                    'dhcp_exclude',
                     'dhcp_start',
                     'gateway',
                     'inspection_iprange',
                     'masquerade']
+
+        ret = self.config.get_local_subnet_opts()
+        self.assertEqual(expected, [x.name for x in ret])
+
+        ret = self.config.get_remote_subnet_opts()
         self.assertEqual(expected, [x.name for x in ret])
 
     def test_get_undercloud_service_opts(self):
