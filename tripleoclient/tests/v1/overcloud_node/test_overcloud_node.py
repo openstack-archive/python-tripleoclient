@@ -370,7 +370,7 @@ class TestImportNode(fakes.TestOvercloudNode):
         ]
 
     def _check_workflow_call(self, parsed_args, introspect=False,
-                             provide=False, local=True, no_deploy_image=False):
+                             provide=False, local=None, no_deploy_image=False):
         self.websocket.wait_for_messages.return_value = [{
             "status": "SUCCESS",
             "message": "Success",
@@ -390,7 +390,8 @@ class TestImportNode(fakes.TestOvercloudNode):
                 'kernel_name': None if no_deploy_image else 'bm-deploy-kernel',
                 'ramdisk_name': (None
                                  if no_deploy_image else 'bm-deploy-ramdisk'),
-                'instance_boot_option': 'local' if local else 'netboot'
+                'instance_boot_option': ('local' if local is True else
+                                         'netboot' if local is False else None)
             }
         )]
 
@@ -522,7 +523,7 @@ class TestImportNodeMultiArch(fakes.TestOvercloudNode):
         ]
 
     def _check_workflow_call(self, parsed_args, introspect=False,
-                             provide=False, local=True, no_deploy_image=False):
+                             provide=False, local=None, no_deploy_image=False):
         self.websocket.wait_for_messages.return_value = [{
             "status": "SUCCESS",
             "message": "Success",
@@ -548,7 +549,8 @@ class TestImportNodeMultiArch(fakes.TestOvercloudNode):
                 'kernel_name': None if no_deploy_image else 'bm-deploy-kernel',
                 'ramdisk_name': (None
                                  if no_deploy_image else 'bm-deploy-ramdisk'),
-                'instance_boot_option': 'local' if local else 'netboot'
+                'instance_boot_option': ('local' if local is True else
+                                         'netboot' if local is False else None)
             }
         )]
 
