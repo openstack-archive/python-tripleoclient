@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    openstack overcloud delete PLAN_NAME now instead of deleting the stack and
+    the plan instead it undeploys the plan to maintain the correct status
+    internally and deletes the stack. This is a backwards incompatible change
+    because we are no longer deleting the plan as it was done previously.
