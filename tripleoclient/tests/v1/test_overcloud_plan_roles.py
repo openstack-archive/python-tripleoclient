@@ -145,6 +145,9 @@ class TestOvercloudListRole(utils.TestCommand):
         self.tripleoclient = mock.Mock()
         self.tripleoclient.messaging_websocket.return_value = self.websocket
         self.app.client_manager.tripleoclient = self.tripleoclient
+        execution = mock.Mock()
+        execution.id = "IDID"
+        self.workflow.executions.create.return_value = execution
 
     def test_list_empty(self):
         self.websocket.wait_for_messages.return_value = [{
@@ -224,6 +227,9 @@ class TestOvercloudShowRole(utils.TestCommand):
         self.tripleoclient = mock.Mock()
         self.tripleoclient.messaging_websocket.return_value = self.websocket
         self.app.client_manager.tripleoclient = self.tripleoclient
+        execution = mock.Mock()
+        execution.id = "IDID"
+        self.workflow.executions.create.return_value = execution
 
     def test_role_not_found(self):
         self.websocket.wait_for_messages.return_value = [{
