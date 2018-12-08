@@ -298,8 +298,7 @@ def config_download(log, clients, stack, templates,
             workflow_input=workflow_input
         )
 
-        for payload in base.wait_for_messages(workflow_client, ws, execution,
-                                              3600):
+        for payload in base.wait_for_messages(workflow_client, ws, execution):
             print(payload['message'])
 
     if payload['status'] == 'SUCCESS':
