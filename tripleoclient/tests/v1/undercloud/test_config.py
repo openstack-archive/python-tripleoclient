@@ -20,10 +20,14 @@ from cryptography import x509
 from cryptography.x509.oid import NameOID
 from datetime import datetime
 from datetime import timedelta
+import fixtures
 import mock
 import os
 import tempfile
 import yaml
+
+from oslo_config import cfg
+from oslo_config import fixture as oslo_fixture
 
 from tripleo_common.image import kolla_builder
 
@@ -103,6 +107,188 @@ class TestProcessDriversAndHardwareTypes(base.TestCase):
             'IronicEnabledRaidInterfaces': ['idrac', 'no-raid'],
             'IronicEnabledVendorInterfaces': ['idrac', 'ipmitool', 'no-vendor']
         }, env)
+
+
+class TestNetworkSettings(base.TestCase):
+    def setUp(self):
+        super(TestNetworkSettings, self).setUp()
+        self.conf = self.useFixture(oslo_fixture.Config(cfg.CONF))
+        # don't actually load config from ~/undercloud.conf
+        self.mock_config_load = self.useFixture(
+            fixtures.MockPatch('tripleoclient.utils.load_config'))
+        self.conf.config(local_ip='192.168.24.1/24',
+                         undercloud_admin_host='192.168.24.3',
+                         undercloud_public_host='192.168.24.2')
+        # ctlplane network - config group options
+        self.grp0 = cfg.OptGroup(name='ctlplane-subnet',
+                                 title='ctlplane-subnet')
+        self.opts = [cfg.StrOpt('cidr'),
+                     cfg.StrOpt('dhcp_start'),
+                     cfg.StrOpt('dhcp_end'),
+                     cfg.StrOpt('inspection_iprange'),
+                     cfg.StrOpt('gateway'),
+                     cfg.BoolOpt('masquerade')]
+        self.conf.register_opts(self.opts, group=self.grp0)
+        self.grp1 = cfg.OptGroup(name='subnet1', title='subnet1')
+        self.grp2 = cfg.OptGroup(name='subnet2', title='subnet2')
+        self.conf.config(cidr='192.168.24.0/24',
+                         dhcp_start='192.168.24.5',
+                         dhcp_end='192.168.24.24',
+                         inspection_iprange='192.168.24.100,192.168.24.120',
+                         gateway='192.168.24.1',
+                         masquerade=False,
+                         group='ctlplane-subnet')
+
+    def test_default(self):
+        env = {}
+        undercloud_config._process_network_args(env)
+        expected = {
+            'ControlPlaneStaticRoutes': [],
+            'DnsServers': '',
+            'IronicInspectorSubnets': [
+                {'gateway': '192.168.24.1',
+                 'ip_range': '192.168.24.100,192.168.24.120',
+                 'netmask': '255.255.255.0',
+                 'tag': 'ctlplane-subnet'}],
+            'MasqueradeNetworks': {},
+            'UndercloudCtlplaneSubnets': {
+                'ctlplane-subnet': {
+                    'DhcpRangeEnd': '192.168.24.24',
+                    'DhcpRangeStart': '192.168.24.5',
+                    'NetworkCidr': '192.168.24.0/24',
+                    'NetworkGateway': '192.168.24.1'}}}
+        self.assertEqual(expected, env)
+
+    def test_routed_network(self):
+        self.conf.config(subnets=['ctlplane-subnet', 'subnet1', 'subnet2'])
+        self.conf.register_opts(self.opts, group=self.grp1)
+        self.conf.register_opts(self.opts, group=self.grp2)
+        self.conf.config(masquerade=True,
+                         group='ctlplane-subnet')
+        self.conf.config(cidr='192.168.10.0/24',
+                         dhcp_start='192.168.10.10',
+                         dhcp_end='192.168.10.99',
+                         inspection_iprange='192.168.10.100,192.168.10.189',
+                         gateway='192.168.10.254',
+                         masquerade=True,
+                         group='subnet1')
+        self.conf.config(cidr='192.168.20.0/24',
+                         dhcp_start='192.168.20.10',
+                         dhcp_end='192.168.20.99',
+                         inspection_iprange='192.168.20.100,192.168.20.189',
+                         gateway='192.168.20.254',
+                         masquerade=True,
+                         group='subnet2')
+        env = {}
+        undercloud_config._process_network_args(env)
+        expected = {
+            'ControlPlaneStaticRoutes': [
+                {'ip_netmask': '192.168.10.0/24', 'next_hop': '192.168.24.1'},
+                {'ip_netmask': '192.168.20.0/24', 'next_hop': '192.168.24.1'}],
+            'DnsServers': '',
+            'IronicInspectorSubnets': [
+                {'gateway': '192.168.24.1',
+                 'ip_range': '192.168.24.100,192.168.24.120',
+                 'netmask': '255.255.255.0',
+                 'tag': 'ctlplane-subnet'},
+                {'gateway': '192.168.10.254',
+                 'ip_range': '192.168.10.100,192.168.10.189',
+                 'netmask': '255.255.255.0',
+                 'tag': 'subnet1'},
+                {'gateway': '192.168.20.254',
+                 'ip_range': '192.168.20.100,192.168.20.189',
+                 'netmask': '255.255.255.0',
+                 'tag': 'subnet2'}
+            ],
+            'MasqueradeNetworks': {
+                '192.168.10.0/24': ['192.168.24.0/24',
+                                    '192.168.10.0/24',
+                                    '192.168.20.0/24'],
+                '192.168.20.0/24': ['192.168.24.0/24',
+                                    '192.168.10.0/24',
+                                    '192.168.20.0/24'],
+                '192.168.24.0/24': ['192.168.24.0/24',
+                                    '192.168.10.0/24',
+                                    '192.168.20.0/24']},
+            'UndercloudCtlplaneSubnets': {
+                # The ctlplane-subnet subnet have defaults
+                'ctlplane-subnet': {
+                    'DhcpRangeEnd': '192.168.24.24',
+                    'DhcpRangeStart': '192.168.24.5',
+                    'NetworkCidr': '192.168.24.0/24',
+                    'NetworkGateway': '192.168.24.1'},
+                'subnet1': {
+                    'DhcpRangeEnd': '192.168.10.99',
+                    'DhcpRangeStart': '192.168.10.10',
+                    'NetworkCidr': '192.168.10.0/24',
+                    'NetworkGateway': '192.168.10.254'},
+                'subnet2': {
+                    'DhcpRangeEnd': '192.168.20.99',
+                    'DhcpRangeStart': '192.168.20.10',
+                    'NetworkCidr': '192.168.20.0/24',
+                    'NetworkGateway': '192.168.20.254'}
+            }
+        }
+        self.assertEqual(expected, env)
+
+    def test_routed_network_no_masquerading(self):
+        self.conf.config(subnets=['ctlplane-subnet', 'subnet1', 'subnet2'])
+        self.conf.register_opts(self.opts, group=self.grp1)
+        self.conf.register_opts(self.opts, group=self.grp2)
+        self.conf.config(cidr='192.168.10.0/24',
+                         dhcp_start='192.168.10.10',
+                         dhcp_end='192.168.10.99',
+                         inspection_iprange='192.168.10.100,192.168.10.189',
+                         gateway='192.168.10.254',
+                         group='subnet1')
+        self.conf.config(cidr='192.168.20.0/24',
+                         dhcp_start='192.168.20.10',
+                         dhcp_end='192.168.20.99',
+                         inspection_iprange='192.168.20.100,192.168.20.189',
+                         gateway='192.168.20.254',
+                         group='subnet2')
+        env = {}
+        undercloud_config._process_network_args(env)
+        expected = {
+            'ControlPlaneStaticRoutes': [
+                {'ip_netmask': '192.168.10.0/24', 'next_hop': '192.168.24.1'},
+                {'ip_netmask': '192.168.20.0/24', 'next_hop': '192.168.24.1'}],
+            'DnsServers': '',
+            'IronicInspectorSubnets': [
+                {'gateway': '192.168.24.1',
+                 'ip_range': '192.168.24.100,192.168.24.120',
+                 'netmask': '255.255.255.0',
+                 'tag': 'ctlplane-subnet'},
+                {'gateway': '192.168.10.254',
+                 'ip_range': '192.168.10.100,192.168.10.189',
+                 'netmask': '255.255.255.0',
+                 'tag': 'subnet1'},
+                {'gateway': '192.168.20.254',
+                 'ip_range': '192.168.20.100,192.168.20.189',
+                 'netmask': '255.255.255.0',
+                 'tag': 'subnet2'}
+            ],
+            'MasqueradeNetworks': {},
+            'UndercloudCtlplaneSubnets': {
+                # The ctlplane-subnet subnet have defaults
+                'ctlplane-subnet': {
+                    'DhcpRangeEnd': '192.168.24.24',
+                    'DhcpRangeStart': '192.168.24.5',
+                    'NetworkCidr': '192.168.24.0/24',
+                    'NetworkGateway': '192.168.24.1'},
+                'subnet1': {
+                    'DhcpRangeEnd': '192.168.10.99',
+                    'DhcpRangeStart': '192.168.10.10',
+                    'NetworkCidr': '192.168.10.0/24',
+                    'NetworkGateway': '192.168.10.254'},
+                'subnet2': {
+                    'DhcpRangeEnd': '192.168.20.99',
+                    'DhcpRangeStart': '192.168.20.10',
+                    'NetworkCidr': '192.168.20.0/24',
+                    'NetworkGateway': '192.168.20.254'}
+            }
+        }
+        self.assertEqual(expected, env)
 
 
 class TestTLSSettings(base.TestCase):
