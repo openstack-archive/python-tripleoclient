@@ -25,9 +25,12 @@ from tripleoclient.workflows import base
 LOG = logging.getLogger(__name__)
 # Plan management workflows should generally be quick. However, the creation
 # of the default plan in instack has demonstrated that sometimes it can take
-# several minutes. This timeout value of 6 minutes is the same as the timeout
-# used in Instack.
-_WORKFLOW_TIMEOUT = 360  # 6 * 60 seconds
+# several minutes. The previous timeout of 6 minutes from Instack does not
+# seem to be sufficient anymore. Bumping this to 20 minutes. It doesn't mean
+# that it will take 20 minutes, but just that the listen for completion will
+# timeout after 20 minutes. If it takes longer than that, something is really
+# wrong.
+_WORKFLOW_TIMEOUT = 20 * 60  # 20 minutes * 60 seconds
 
 
 def _upload_templates(swift_client, container_name, tht_root, roles_file=None,
