@@ -496,7 +496,39 @@ class TestContainerImageBuild(TestPluginV1):
         mock_builder.return_value.build_images.assert_called_once_with([
             self.default_kolla_conf, '/tmp/kolla.conf',
             path
-        ])
+        ], [])
+
+    @mock.patch('tripleo_common.image.kolla_builder.KollaImageBuilder',
+                autospec=True)
+    def test_container_image_build_with_exclude(self, mock_builder):
+        arglist = [
+            '--config-file',
+            '/tmp/foo.yaml',
+            '--config-file',
+            '/tmp/bar.yaml',
+            '--kolla-config-file',
+            '/tmp/kolla.conf',
+            '--exclude',
+            'foo',
+            '--exclude',
+            'bar'
+        ]
+        verifylist = []
+        mock_builder.return_value.build_images.return_value = 'done'
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        f, path = tempfile.mkstemp(dir=self.temp_dir)
+        with mock.patch('tempfile.mkstemp') as mock_mkstemp:
+            mock_mkstemp.return_value = f, path
+            self.cmd.take_action(parsed_args)
+
+        mock_builder.assert_called_once_with([
+            '/tmp/foo.yaml', '/tmp/bar.yaml'])
+        mock_builder.return_value.build_images.assert_called_once_with([
+            self.default_kolla_conf, '/tmp/kolla.conf',
+            path
+        ], ['foo', 'bar'])
 
     @mock.patch('tripleo_common.image.kolla_builder.KollaImageBuilder',
                 autospec=True)
