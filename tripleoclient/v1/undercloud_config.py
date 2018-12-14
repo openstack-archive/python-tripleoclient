@@ -306,7 +306,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
         env_data['SELinuxMode'] = 'permissive'
 
     if CONF.get('undercloud_ntp_servers', None):
-        env_data['NtpServer'] = CONF['undercloud_ntp_servers'][0]
+        env_data['NtpServer'] = CONF['undercloud_ntp_servers']
 
     if CONF.get('enable_validations', False):
         env_data['UndercloudConfigFilePath'] = constants.UNDERCLOUD_CONF_PATH
