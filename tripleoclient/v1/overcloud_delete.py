@@ -59,7 +59,7 @@ class DeleteOvercloud(command.Command):
             try:
                 stack_management.plan_undeploy(
                     clients,
-                    plan=stack.name
+                    plan=stack.stack_name
                 )
             except Exception as e:
                 raise oscexc.CommandError(

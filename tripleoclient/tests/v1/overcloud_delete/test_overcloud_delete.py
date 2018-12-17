@@ -37,7 +37,7 @@ class TestDeleteOvercloud(fakes.TestDeployOvercloud):
 
         stack = mock.Mock()
         stack.id = 12345
-        stack.name = "foobar"
+        stack.stack_name = "foobar"
         orchestration_client.stacks.get.return_value = stack
 
         self.cmd._plan_undeploy(clients, 'overcloud')
@@ -56,7 +56,7 @@ class TestDeleteOvercloud(fakes.TestDeployOvercloud):
 
         stack = mock.Mock()
         stack.id = 12345
-        stack.name = "foobar"
+        stack.stack_name = "foobar"
         orchestration_client.stacks.get.return_value = stack
 
         self.cmd._plan_undeploy(clients, 'overcloud')
