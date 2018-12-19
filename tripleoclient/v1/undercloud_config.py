@@ -77,8 +77,6 @@ PARAMETER_MAPPING = {
 SUBNET_PARAMETER_MAPPING = {
     'cidr': 'NetworkCidr',
     'gateway': 'NetworkGateway',
-    'dhcp_start': 'DhcpRangeStart',
-    'dhcp_end': 'DhcpRangeEnd',
 }
 
 THT_HOME = os.environ.get('THT_HOME',
@@ -108,7 +106,10 @@ load_global_config()
 def _load_subnets_config_groups():
     for group in CONF.subnets:
         g = cfg.OptGroup(name=group, title=group)
-        CONF.register_opts(config.get_subnet_opts(), group=g)
+        if group == CONF.local_subnet:
+            CONF.register_opts(config.get_local_subnet_opts(), group=g)
+        else:
+            CONF.register_opts(config.get_remote_subnet_opts(), group=g)
 
 LOG = logging.getLogger(__name__ + ".undercloud_config")
 
@@ -248,6 +249,62 @@ def _generate_masquerade_networks():
     return masqurade_networks
 
 
+def _calculate_allocation_pools(subnet):
+    """Calculate subnet allocation pools
+
+    Remove the gateway address, the inspection IP range and the undercloud IP's
+    from the subnets full IP range and return all remaining address ranges as
+    allocation pools. If dhcp_start and/or dhcp_end is defined, also remove
+    addresses before dhcp_start and addresses after dhcp_end.
+    """
+    ip_network = netaddr.IPNetwork(subnet.cidr)
+    # NOTE(hjensas): Ignore the default dhcp_start and dhcp_end if cidr is not
+    # the default as well. I.e allow not specifying dhcp_start and dhcp_end.
+    if (subnet.cidr != constants.CTLPLANE_CIDR_DEFAULT
+            and subnet.dhcp_start == constants.CTLPLANE_DHCP_START_DEFAULT
+            and subnet.dhcp_end == constants.CTLPLANE_DHCP_END_DEFAULT):
+        subnet.dhcp_start, subnet.dhcp_end = None, None
+    if subnet.dhcp_start and subnet.dhcp_end:
+        ip_set = netaddr.IPSet()
+        for a, b in zip(subnet.dhcp_start, subnet.dhcp_end):
+            ip_set.add(netaddr.IPRange(netaddr.IPAddress(a),
+                                       netaddr.IPAddress(b)))
+    else:
+        ip_set = netaddr.IPSet(ip_network)
+        # Remove addresses before dhcp_start if defined
+        if subnet.dhcp_start:
+            a = netaddr.IPAddress(ip_network.first)
+            b = netaddr.IPAddress(subnet.dhcp_start[0]) - 1
+            ip_set.remove(netaddr.IPRange(a, b))
+        # Remove addresses after dhcp_end if defined
+        if subnet.dhcp_end:
+            a = netaddr.IPAddress(subnet.dhcp_end[0]) + 1
+            b = netaddr.IPAddress(ip_network.last)
+            ip_set.remove(netaddr.IPRange(a, b))
+    # Remove network address and broadcast address
+    ip_set.remove(ip_network.first)
+    ip_set.remove(ip_network.last)
+    # Remove gateway, local_ip, admin_host and public_host addresses
+    ip_set.remove(netaddr.IPAddress(subnet.get('gateway')))
+    ip_set.remove(netaddr.IPNetwork(CONF.local_ip).ip)
+    ip_set.remove(netaddr.IPNetwork(CONF.undercloud_admin_host))
+    ip_set.remove(netaddr.IPNetwork(CONF.undercloud_public_host))
+    # Remove addresses in the inspection_iprange
+    inspect_start, inspect_end = subnet.get('inspection_iprange').split(',')
+    ip_set.remove(netaddr.IPRange(inspect_start, inspect_end))
+    # Remove dhcp_exclude addresses and ip ranges
+    for exclude in subnet.dhcp_exclude:
+        if '-' in exclude:
+            exclude_start, exclude_end = exclude.split('-')
+            ip_set.remove(netaddr.IPRange(exclude_start, exclude_end))
+        else:
+            ip_set.remove(netaddr.IPAddress(exclude))
+
+    return [{'start': netaddr.IPAddress(ip_range.first).format(),
+             'end': netaddr.IPAddress(ip_range.last).format()}
+            for ip_range in list(ip_set.iter_ipranges())]
+
+
 def _process_network_args(env):
     """Populate the environment with network configuration."""
 
@@ -256,10 +313,22 @@ def _process_network_args(env):
     env['UndercloudCtlplaneSubnets'] = {}
     for subnet in CONF.subnets:
         s = CONF.get(subnet)
-        env['UndercloudCtlplaneSubnets'][subnet] = {}
-        for param_key, param_value in SUBNET_PARAMETER_MAPPING.items():
+        env['UndercloudCtlplaneSubnets'][subnet] = {
+            'AllocationPools': _calculate_allocation_pools(s)
+        }
+        # TODO(hjensas): Remove DhcpRangeStart and DhcpRangeEnd once change:
+        # Ifdf3e9d22766c1b5ede151979b93754a3d244cc3 is merged and THT uses
+        # AllocationPools.
+        if s.get('dhcp_start'):
             env['UndercloudCtlplaneSubnets'][subnet].update(
-                {param_value: s[param_key]})
+                {'DhcpRangeStart': s.get('dhcp_start')[0]})
+        if s.get('dhcp_end'):
+            env['UndercloudCtlplaneSubnets'][subnet].update(
+                {'DhcpRangeEnd': s.get('dhcp_end')[0]})
+        for param_key, param_value in SUBNET_PARAMETER_MAPPING.items():
+            if param_value:
+                env['UndercloudCtlplaneSubnets'][subnet].update(
+                    {param_value: s[param_key]})
     env['MasqueradeNetworks'] = _generate_masquerade_networks()
     env['DnsServers'] = ','.join(CONF['undercloud_nameservers'])
 

@@ -1,0 +1,33 @@
+---
+features:
+  - |
+    The ``dhcp_start`` and ``dhcp_end`` options are now optional for subnet
+    definitions in the Undercloud configuration (``undercloud.conf``).
+    The the allocation_pools are calculated by removing the ``local_ip``,
+    ``gateway``, ``undercloud_admin_host``, ``undercloud_public_host`` and
+    ``inspection_iprange`` from the subnets full IP range. Allocation pools for
+    all remaining ranges will be configured. Additionally the new option
+    ``dhcp_exlcude`` can be used to exclude additional IP addresses and/or
+    IP address ranges, for example to exclude ``172.20.0.105`` and the range
+    ``172.20.0.210-172.20.0.219``::
+
+      dhcp_exclude = 172.20.0.105,172.20.0.210-172.20.0.219
+
+    * When ``dhcp_start`` is defined any addresses prior to this address is
+      also removed from the allocation pools.
+    * When ``dhcp_end`` is defined any addresses after this address is also
+      removed from the allocation pools.
+
+    .. Note:: If the default cidr (``192.168.24.0/24``) is used for the local
+              subnet the ``dhcp_start`` and ``dhcp_end`` cannot simply be
+              removed to utilize the full address space of the subnet. This due
+              to the default values of ``dhcp_start`` and ``dhcp_end``.
+  - |
+    It is now possible to configure non-contiguous allocation pools for the
+    Undercloud ctlplane subnets. The ``dhcp_start`` and ``dhcp_end`` options
+    have been extended to allow a list of start and end address pairs. For
+    example to create allocation pools ``172.20.0.100-172.20.0.150`` and
+    ``172.20.0.200-172.20.0.250``::
+
+      dhcp_start = 172.20.0.100,172.20.0.200
+      dhcp_end = 172.20.0.150,172.20.0.250

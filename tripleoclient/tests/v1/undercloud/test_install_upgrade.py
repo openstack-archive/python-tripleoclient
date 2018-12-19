@@ -199,6 +199,7 @@ class TestUndercloudInstall(TestPluginV1):
         self.conf.config(local_mtu='1234')
         self.conf.config(undercloud_nameservers=['8.8.8.8', '8.8.4.4'])
         self.conf.config(subnets='foo')
+        self.conf.config(local_subnet='foo')
         mock_masq.return_value = {'1.1.1.1/11': ['2.2.2.2/22']}
         mock_sroutes.return_value = {'ip_netmask': '1.1.1.1/11',
                                      'next_hop': '1.1.1.1'}

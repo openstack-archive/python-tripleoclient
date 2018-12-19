@@ -123,8 +123,9 @@ class TestNetworkSettings(base.TestCase):
         self.grp0 = cfg.OptGroup(name='ctlplane-subnet',
                                  title='ctlplane-subnet')
         self.opts = [cfg.StrOpt('cidr'),
-                     cfg.StrOpt('dhcp_start'),
-                     cfg.StrOpt('dhcp_end'),
+                     cfg.ListOpt('dhcp_start'),
+                     cfg.ListOpt('dhcp_end'),
+                     cfg.ListOpt('dhcp_exclude'),
                      cfg.StrOpt('inspection_iprange'),
                      cfg.StrOpt('gateway'),
                      cfg.BoolOpt('masquerade')]
@@ -134,6 +135,7 @@ class TestNetworkSettings(base.TestCase):
         self.conf.config(cidr='192.168.24.0/24',
                          dhcp_start='192.168.24.5',
                          dhcp_end='192.168.24.24',
+                         dhcp_exclude=[],
                          inspection_iprange='192.168.24.100,192.168.24.120',
                          gateway='192.168.24.1',
                          masquerade=False,
@@ -153,10 +155,178 @@ class TestNetworkSettings(base.TestCase):
             'MasqueradeNetworks': {},
             'UndercloudCtlplaneSubnets': {
                 'ctlplane-subnet': {
+                    'AllocationPools': [
+                        {'start': '192.168.24.5', 'end': '192.168.24.24'}],
                     'DhcpRangeEnd': '192.168.24.24',
                     'DhcpRangeStart': '192.168.24.5',
                     'NetworkCidr': '192.168.24.0/24',
                     'NetworkGateway': '192.168.24.1'}}}
+        self.assertEqual(expected, env)
+
+    def test_start_end_all_addresses(self):
+        self.conf.config(dhcp_start='192.168.24.0',
+                         dhcp_end='192.168.24.255',
+                         group='ctlplane-subnet')
+        env = {}
+        undercloud_config._process_network_args(env)
+        expected = {
+            'ControlPlaneStaticRoutes': [],
+            'DnsServers': '',
+            'IronicInspectorSubnets': [
+                {'gateway': '192.168.24.1',
+                 'ip_range': '192.168.24.100,192.168.24.120',
+                 'netmask': '255.255.255.0',
+                 'tag': 'ctlplane-subnet'}],
+            'MasqueradeNetworks': {},
+            'UndercloudCtlplaneSubnets': {
+                'ctlplane-subnet': {
+                    'AllocationPools': [
+                        {'start': '192.168.24.4', 'end': '192.168.24.99'},
+                        {'start': '192.168.24.121', 'end': '192.168.24.254'}],
+                    'DhcpRangeEnd': '192.168.24.255',
+                    'DhcpRangeStart': '192.168.24.0',
+                    'NetworkCidr': '192.168.24.0/24',
+                    'NetworkGateway': '192.168.24.1'}}}
+        self.assertEqual(expected, env)
+
+    def test_ignore_dhcp_start_end_if_default_but_cidr_not_default(self):
+        self.conf.config(cidr='192.168.10.0/24',
+                         inspection_iprange='192.168.10.100,192.168.10.120',
+                         gateway='192.168.10.1',
+                         group='ctlplane-subnet')
+        env = {}
+        undercloud_config._process_network_args(env)
+        expected = {
+            'ControlPlaneStaticRoutes': [],
+            'DnsServers': '',
+            'IronicInspectorSubnets': [
+                {'gateway': '192.168.10.1',
+                 'ip_range': '192.168.10.100,192.168.10.120',
+                 'netmask': '255.255.255.0',
+                 'tag': 'ctlplane-subnet'}],
+            'MasqueradeNetworks': {},
+            'UndercloudCtlplaneSubnets': {
+                'ctlplane-subnet': {
+                    'AllocationPools': [
+                        {'start': '192.168.10.2', 'end': '192.168.10.99'},
+                        {'start': '192.168.10.121', 'end': '192.168.10.254'}],
+                    'DhcpRangeEnd': '192.168.24.24',
+                    'DhcpRangeStart': '192.168.24.5',
+                    'NetworkCidr': '192.168.10.0/24',
+                    'NetworkGateway': '192.168.10.1'}}}
+        self.assertEqual(expected, env)
+
+    def test_dhcp_exclude(self):
+        self.conf.config(cidr='192.168.10.0/24',
+                         inspection_iprange='192.168.10.100,192.168.10.120',
+                         gateway='192.168.10.1',
+                         dhcp_exclude=['192.168.10.50',
+                                       '192.168.10.80-192.168.10.89'],
+                         group='ctlplane-subnet')
+        env = {}
+        undercloud_config._process_network_args(env)
+        expected = {
+            'ControlPlaneStaticRoutes': [],
+            'DnsServers': '',
+            'IronicInspectorSubnets': [
+                {'gateway': '192.168.10.1',
+                 'ip_range': '192.168.10.100,192.168.10.120',
+                 'netmask': '255.255.255.0',
+                 'tag': 'ctlplane-subnet'}],
+            'MasqueradeNetworks': {},
+            'UndercloudCtlplaneSubnets': {
+                'ctlplane-subnet': {
+                    'AllocationPools': [
+                        {'start': '192.168.10.2', 'end': '192.168.10.49'},
+                        {'start': '192.168.10.51', 'end': '192.168.10.79'},
+                        {'start': '192.168.10.90', 'end': '192.168.10.99'},
+                        {'start': '192.168.10.121', 'end': '192.168.10.254'}],
+                    'DhcpRangeEnd': '192.168.24.24',
+                    'DhcpRangeStart': '192.168.24.5',
+                    'NetworkCidr': '192.168.10.0/24',
+                    'NetworkGateway': '192.168.10.1'}}}
+        self.assertEqual(expected, env)
+
+    def test_no_dhcp_start_no_dhcp_end(self):
+        self.conf.config(dhcp_start=[],
+                         dhcp_end=[],
+                         group='ctlplane-subnet')
+        env = {}
+        undercloud_config._process_network_args(env)
+        expected = {
+            'ControlPlaneStaticRoutes': [],
+            'DnsServers': '',
+            'IronicInspectorSubnets': [
+                {'gateway': '192.168.24.1',
+                 'ip_range': '192.168.24.100,192.168.24.120',
+                 'netmask': '255.255.255.0',
+                 'tag': 'ctlplane-subnet'}],
+            'MasqueradeNetworks': {},
+            'UndercloudCtlplaneSubnets': {
+                'ctlplane-subnet': {
+                    'AllocationPools': [
+                        {'start': '192.168.24.4', 'end': '192.168.24.99'},
+                        {'start': '192.168.24.121', 'end': '192.168.24.254'}],
+                    'NetworkCidr': '192.168.24.0/24',
+                    'NetworkGateway': '192.168.24.1'}}}
+        self.assertEqual(expected, env)
+
+    def test_dhcp_start_no_dhcp_end(self):
+        self.conf.config(dhcp_start='192.168.24.10',
+                         dhcp_end=[],
+                         group='ctlplane-subnet')
+        env = {}
+        undercloud_config._process_network_args(env)
+        expected = {
+            'ControlPlaneStaticRoutes': [],
+            'DnsServers': '',
+            'IronicInspectorSubnets': [
+                {'gateway': '192.168.24.1',
+                 'ip_range': '192.168.24.100,192.168.24.120',
+                 'netmask': '255.255.255.0',
+                 'tag': 'ctlplane-subnet'}],
+            'MasqueradeNetworks': {},
+            'UndercloudCtlplaneSubnets': {
+                'ctlplane-subnet': {
+                    'AllocationPools': [
+                        {'start': '192.168.24.10', 'end': '192.168.24.99'},
+                        {'start': '192.168.24.121', 'end': '192.168.24.254'}],
+                    # TODO(hjensas): Remove DhcpRangeStart and DhcpRangeEnd
+                    # once change: Ifdf3e9d22766c1b5ede151979b93754a3d244cc3 is
+                    # merged and THT uses AllocationPools.
+                    'DhcpRangeStart': '192.168.24.10',
+                    'NetworkCidr': '192.168.24.0/24',
+                    'NetworkGateway': '192.168.24.1'}}
+        }
+        self.assertEqual(expected, env)
+
+    def test_dhcp_end_no_dhcp_start(self):
+        self.conf.config(dhcp_start=[],
+                         dhcp_end='192.168.24.220',
+                         group='ctlplane-subnet')
+        env = {}
+        undercloud_config._process_network_args(env)
+        expected = {
+            'ControlPlaneStaticRoutes': [],
+            'DnsServers': '',
+            'IronicInspectorSubnets': [
+                {'gateway': '192.168.24.1',
+                 'ip_range': '192.168.24.100,192.168.24.120',
+                 'netmask': '255.255.255.0',
+                 'tag': 'ctlplane-subnet'}],
+            'MasqueradeNetworks': {},
+            'UndercloudCtlplaneSubnets': {
+                'ctlplane-subnet': {
+                    'AllocationPools': [
+                        {'start': '192.168.24.4', 'end': '192.168.24.99'},
+                        {'start': '192.168.24.121', 'end': '192.168.24.220'}],
+                    # TODO(hjensas): Remove DhcpRangeStart and DhcpRangeEnd
+                    # once change: Ifdf3e9d22766c1b5ede151979b93754a3d244cc3 is
+                    # merged and THT uses AllocationPools.
+                    'DhcpRangeEnd': '192.168.24.220',
+                    'NetworkCidr': '192.168.24.0/24',
+                    'NetworkGateway': '192.168.24.1'}}
+        }
         self.assertEqual(expected, env)
 
     def test_routed_network(self):
@@ -168,6 +338,7 @@ class TestNetworkSettings(base.TestCase):
         self.conf.config(cidr='192.168.10.0/24',
                          dhcp_start='192.168.10.10',
                          dhcp_end='192.168.10.99',
+                         dhcp_exclude=[],
                          inspection_iprange='192.168.10.100,192.168.10.189',
                          gateway='192.168.10.254',
                          masquerade=True,
@@ -175,6 +346,7 @@ class TestNetworkSettings(base.TestCase):
         self.conf.config(cidr='192.168.20.0/24',
                          dhcp_start='192.168.20.10',
                          dhcp_end='192.168.20.99',
+                         dhcp_exclude=[],
                          inspection_iprange='192.168.20.100,192.168.20.189',
                          gateway='192.168.20.254',
                          masquerade=True,
@@ -213,16 +385,25 @@ class TestNetworkSettings(base.TestCase):
             'UndercloudCtlplaneSubnets': {
                 # The ctlplane-subnet subnet have defaults
                 'ctlplane-subnet': {
+                    'AllocationPools': [
+                        {'start': '192.168.24.5', 'end': '192.168.24.24'}],
+                    # TODO(hjensas): Remove DhcpRangeStart and DhcpRangeEnd
+                    # once change: Ifdf3e9d22766c1b5ede151979b93754a3d244cc3 is
+                    # merged and THT uses AllocationPools.
                     'DhcpRangeEnd': '192.168.24.24',
                     'DhcpRangeStart': '192.168.24.5',
                     'NetworkCidr': '192.168.24.0/24',
                     'NetworkGateway': '192.168.24.1'},
                 'subnet1': {
+                    'AllocationPools': [
+                        {'start': '192.168.10.10', 'end': '192.168.10.99'}],
                     'DhcpRangeEnd': '192.168.10.99',
                     'DhcpRangeStart': '192.168.10.10',
                     'NetworkCidr': '192.168.10.0/24',
                     'NetworkGateway': '192.168.10.254'},
                 'subnet2': {
+                    'AllocationPools': [
+                        {'start': '192.168.20.10', 'end': '192.168.20.99'}],
                     'DhcpRangeEnd': '192.168.20.99',
                     'DhcpRangeStart': '192.168.20.10',
                     'NetworkCidr': '192.168.20.0/24',
@@ -238,12 +419,14 @@ class TestNetworkSettings(base.TestCase):
         self.conf.config(cidr='192.168.10.0/24',
                          dhcp_start='192.168.10.10',
                          dhcp_end='192.168.10.99',
+                         dhcp_exclude=[],
                          inspection_iprange='192.168.10.100,192.168.10.189',
                          gateway='192.168.10.254',
                          group='subnet1')
         self.conf.config(cidr='192.168.20.0/24',
                          dhcp_start='192.168.20.10',
                          dhcp_end='192.168.20.99',
+                         dhcp_exclude=[],
                          inspection_iprange='192.168.20.100,192.168.20.189',
                          gateway='192.168.20.254',
                          group='subnet2')
@@ -272,20 +455,125 @@ class TestNetworkSettings(base.TestCase):
             'UndercloudCtlplaneSubnets': {
                 # The ctlplane-subnet subnet have defaults
                 'ctlplane-subnet': {
+                    'AllocationPools': [
+                        {'start': '192.168.24.5', 'end': '192.168.24.24'}],
+                    # TODO(hjensas): Remove DhcpRangeStart and DhcpRangeEnd
+                    # once change: Ifdf3e9d22766c1b5ede151979b93754a3d244cc3 is
+                    # merged and THT uses AllocationPools.
                     'DhcpRangeEnd': '192.168.24.24',
                     'DhcpRangeStart': '192.168.24.5',
                     'NetworkCidr': '192.168.24.0/24',
                     'NetworkGateway': '192.168.24.1'},
                 'subnet1': {
+                    'AllocationPools': [
+                        {'start': '192.168.10.10', 'end': '192.168.10.99'}],
                     'DhcpRangeEnd': '192.168.10.99',
                     'DhcpRangeStart': '192.168.10.10',
                     'NetworkCidr': '192.168.10.0/24',
                     'NetworkGateway': '192.168.10.254'},
                 'subnet2': {
+                    'AllocationPools': [
+                        {'start': '192.168.20.10', 'end': '192.168.20.99'}],
                     'DhcpRangeEnd': '192.168.20.99',
                     'DhcpRangeStart': '192.168.20.10',
                     'NetworkCidr': '192.168.20.0/24',
                     'NetworkGateway': '192.168.20.254'}
+            }
+        }
+        self.assertEqual(expected, env)
+
+    def test_no_allocation_pool_on_remote_network(self):
+        self.conf.config(subnets=['ctlplane-subnet', 'subnet1'])
+        self.conf.register_opts(self.opts, group=self.grp1)
+        self.conf.config(cidr='192.168.10.0/24',
+                         dhcp_exclude=[],
+                         inspection_iprange='192.168.10.200,192.168.10.254',
+                         gateway='192.168.10.254',
+                         masquerade=False,
+                         group='subnet1')
+        env = {}
+        undercloud_config._process_network_args(env)
+        expected = {
+            'ControlPlaneStaticRoutes': [
+                {'ip_netmask': '192.168.10.0/24', 'next_hop': '192.168.24.1'}],
+            'DnsServers': '',
+            'IronicInspectorSubnets': [
+                {'gateway': '192.168.24.1',
+                 'ip_range': '192.168.24.100,192.168.24.120',
+                 'netmask': '255.255.255.0',
+                 'tag': 'ctlplane-subnet'},
+                {'gateway': '192.168.10.254',
+                 'ip_range': '192.168.10.200,192.168.10.254',
+                 'netmask': '255.255.255.0',
+                 'tag': 'subnet1'},
+            ],
+            'MasqueradeNetworks': {},
+            'UndercloudCtlplaneSubnets': {
+                # The ctlplane-subnet subnet have defaults
+                'ctlplane-subnet': {
+                    'AllocationPools': [
+                        {'start': '192.168.24.5', 'end': '192.168.24.24'}],
+                    # TODO(hjensas): Remove DhcpRangeStart and DhcpRangeEnd
+                    # once change: Ifdf3e9d22766c1b5ede151979b93754a3d244cc3 is
+                    # merged and THT uses AllocationPools.
+                    'DhcpRangeEnd': '192.168.24.24',
+                    'DhcpRangeStart': '192.168.24.5',
+                    'NetworkCidr': '192.168.24.0/24',
+                    'NetworkGateway': '192.168.24.1'},
+                'subnet1': {
+                    'AllocationPools': [
+                        {'start': '192.168.10.1', 'end': '192.168.10.199'}],
+                    'NetworkCidr': '192.168.10.0/24',
+                    'NetworkGateway': '192.168.10.254'}
+            }
+        }
+        self.assertEqual(expected, env)
+
+    def test_no_allocation_pool_on_remote_network_three_pools(self):
+        self.conf.config(subnets=['ctlplane-subnet', 'subnet1'])
+        self.conf.register_opts(self.opts, group=self.grp1)
+        self.conf.config(cidr='192.168.10.0/24',
+                         dhcp_exclude=[],
+                         inspection_iprange='192.168.10.100,192.168.10.199',
+                         gateway='192.168.10.222',
+                         masquerade=False,
+                         group='subnet1')
+        env = {}
+        undercloud_config._process_network_args(env)
+        expected = {
+            'ControlPlaneStaticRoutes': [
+                {'ip_netmask': '192.168.10.0/24', 'next_hop': '192.168.24.1'}],
+            'DnsServers': '',
+            'IronicInspectorSubnets': [
+                {'gateway': '192.168.24.1',
+                 'ip_range': '192.168.24.100,192.168.24.120',
+                 'netmask': '255.255.255.0',
+                 'tag': 'ctlplane-subnet'},
+                {'gateway': '192.168.10.222',
+                 'ip_range': '192.168.10.100,192.168.10.199',
+                 'netmask': '255.255.255.0',
+                 'tag': 'subnet1'},
+            ],
+            'MasqueradeNetworks': {},
+            'UndercloudCtlplaneSubnets': {
+                # The ctlplane-subnet subnet have defaults
+                'ctlplane-subnet': {
+                    'AllocationPools': [
+                        {'start': '192.168.24.5', 'end': '192.168.24.24'}],
+                    # TODO(hjensas): Remove DhcpRangeStart and DhcpRangeEnd
+                    # once change: Ifdf3e9d22766c1b5ede151979b93754a3d244cc3 is
+                    # merged and THT uses AllocationPools.
+                    'DhcpRangeEnd': '192.168.24.24',
+                    'DhcpRangeStart': '192.168.24.5',
+                    'NetworkCidr': '192.168.24.0/24',
+                    'NetworkGateway': '192.168.24.1'},
+                'subnet1': {
+                    'AllocationPools': [
+                        {'start': '192.168.10.1', 'end': '192.168.10.99'},
+                        {'start': '192.168.10.200', 'end': '192.168.10.221'},
+                        {'start': '192.168.10.223', 'end': '192.168.10.254'}],
+                    'NetworkCidr': '192.168.10.0/24',
+                    'NetworkGateway': '192.168.10.222'}
             }
         }
         self.assertEqual(expected, env)

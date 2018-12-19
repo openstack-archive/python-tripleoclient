@@ -27,6 +27,27 @@ CONF = cfg.CONF
 # Control plane network name
 SUBNETS_DEFAULT = ['ctlplane-subnet']
 
+CIDR_HELP_STR = _(
+    'Network CIDR for the Neutron-managed subnet for Overcloud instances.')
+DHCP_START_HELP_STR = _(
+    'Start of DHCP allocation range for PXE and DHCP of Overcloud instances '
+    'on this network.')
+DHCP_END_HELP_STR = _(
+    'End of DHCP allocation range for PXE and DHCP of Overcloud instances on '
+    'this network.')
+DHCP_EXCLUDE_HELP_STR = _(
+    'List of IP addresses or IP ranges to exclude from the subnets allocation '
+    'pool. Example: 192.168.24.50,192.168.24.80-192.168.24.90')
+INSPECTION_IPRANGE_HELP_STR = _(
+    'Temporary IP range that will be given to nodes on this network during '
+    'the inspection process. Should not overlap with the range defined by '
+    'dhcp_start and dhcp_end, but should be in the same ip subnet.')
+GATEWAY_HELP_STR = _(
+    'Network gateway for the Neutron-managed network for Overcloud instances '
+    'on this network.')
+MASQUERADE_HELP_STR = _(
+    'The network will be masqueraded for external access.')
+
 # Deprecated options
 _deprecated_opt_network_gateway = [cfg.DeprecatedOpt(
     'network_gateway', group='DEFAULT')]
@@ -315,46 +336,57 @@ class UndercloudConfig(StandaloneConfig):
         _service_opts = self.get_undercloud_service_opts()
         return self.sort_opts(_base_opts + _service_opts)
 
-    def get_subnet_opts(self):
+    def get_local_subnet_opts(self):
         _subnets_opts = [
             cfg.StrOpt('cidr',
-                       default='192.168.24.0/24',
+                       default=constants.CTLPLANE_CIDR_DEFAULT,
                        deprecated_opts=_deprecated_opt_network_cidr,
-                       help=_(
-                           'Network CIDR for the Neutron-managed subnet for '
-                           'Overcloud instances.')),
-            cfg.StrOpt('dhcp_start',
-                       default='192.168.24.5',
-                       deprecated_opts=_deprecated_opt_dhcp_start,
-                       help=_(
-                           'Start of DHCP allocation range for PXE and DHCP '
-                           'of Overcloud instances on this network.')),
-            cfg.StrOpt('dhcp_end',
-                       default='192.168.24.24',
-                       deprecated_opts=_deprecated_opt_dhcp_end,
-                       help=_('End of DHCP allocation range for PXE and DHCP '
-                              'of Overcloud instances on this network.')),
+                       help=CIDR_HELP_STR),
+            cfg.ListOpt('dhcp_start',
+                        default=constants.CTLPLANE_DHCP_START_DEFAULT,
+                        deprecated_opts=_deprecated_opt_dhcp_start,
+                        help=DHCP_START_HELP_STR),
+            cfg.ListOpt('dhcp_end',
+                        default=constants.CTLPLANE_DHCP_END_DEFAULT,
+                        deprecated_opts=_deprecated_opt_dhcp_end,
+                        help=DHCP_END_HELP_STR),
+            cfg.ListOpt('dhcp_exclude',
+                        default=[],
+                        help=DHCP_EXCLUDE_HELP_STR),
             cfg.StrOpt('inspection_iprange',
-                       default='192.168.24.100,192.168.24.120',
+                       default=constants.CTLPLANE_INSPECTION_IPRANGE_DEFAULT,
                        deprecated_opts=_deprecated_opt_inspection_iprange,
-                       help=_(
-                           'Temporary IP range that will be given to nodes on '
-                           'this network during the inspection process. '
-                           'Should not overlap with the range defined by '
-                           'dhcp_start and dhcp_end, but should be in the '
-                           'same ip subnet.'
-                       )),
+                       help=INSPECTION_IPRANGE_HELP_STR),
             cfg.StrOpt('gateway',
-                       default='192.168.24.1',
+                       default=constants.CTLPLANE_GATEWAY_DEFAULT,
                        deprecated_opts=_deprecated_opt_network_gateway,
-                       help=_(
-                           'Network gateway for the Neutron-managed network '
-                           'for Overcloud instances on this network.')),
+                       help=GATEWAY_HELP_STR),
             cfg.BoolOpt('masquerade',
                         default=False,
-                        help=_(
-                            'The network will be masqueraded for external '
-                            'access.')),
+                        help=MASQUERADE_HELP_STR),
+        ]
+        return self.sort_opts(_subnets_opts)
+
+    def get_remote_subnet_opts(self):
+        _subnets_opts = [
+            cfg.StrOpt('cidr',
+                       help=CIDR_HELP_STR),
+            cfg.ListOpt('dhcp_start',
+                        default=[],
+                        help=DHCP_START_HELP_STR),
+            cfg.ListOpt('dhcp_end',
+                        default=[],
+                        help=DHCP_END_HELP_STR),
+            cfg.ListOpt('dhcp_exclude',
+                        default=[],
+                        help=DHCP_EXCLUDE_HELP_STR),
+            cfg.StrOpt('inspection_iprange',
+                       help=INSPECTION_IPRANGE_HELP_STR),
+            cfg.StrOpt('gateway',
+                       help=GATEWAY_HELP_STR),
+            cfg.BoolOpt('masquerade',
+                        default=False,
+                        help=MASQUERADE_HELP_STR),
         ]
         return self.sort_opts(_subnets_opts)
 
@@ -364,7 +396,8 @@ def list_opts():
     config = UndercloudConfig()
     _opts = config.get_opts()
     return [(None, copy.deepcopy(_opts)),
-            (SUBNETS_DEFAULT[0], copy.deepcopy(config.get_subnet_opts()))]
+            (SUBNETS_DEFAULT[0],
+             copy.deepcopy(config.get_local_subnet_opts()))]
 
 
 def load_global_config():

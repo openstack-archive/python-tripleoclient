@@ -288,8 +288,15 @@ def _validate_in_cidr(subnet_props, subnet_name):
                 raise FailedValidation(message)
 
     validate_addr_in_cidr(subnet_props.gateway, 'gateway')
-    validate_addr_in_cidr(subnet_props.dhcp_start, 'dhcp_start')
-    validate_addr_in_cidr(subnet_props.dhcp_end, 'dhcp_end')
+    # NOTE(hjensas): Ignore the default dhcp_start and dhcp_end if cidr is not
+    # the default as well. I.e allow not specifying dhcp_start and dhcp_end.
+    if not (subnet_props.cidr != constants.CTLPLANE_CIDR_DEFAULT and
+            subnet_props.dhcp_start == constants.CTLPLANE_DHCP_START_DEFAULT
+            and subnet_props.dhcp_end == constants.CTLPLANE_DHCP_END_DEFAULT):
+        for start in subnet_props.dhcp_start:
+            validate_addr_in_cidr(start, 'dhcp_start')
+        for end in subnet_props.dhcp_end:
+            validate_addr_in_cidr(end, 'dhcp_end')
     if subnet_name == CONF.local_subnet:
         validate_addr_in_cidr(str(netaddr.IPNetwork(CONF.local_ip).ip),
                               'local_ip')
@@ -308,14 +315,26 @@ def _validate_in_cidr(subnet_props, subnet_name):
                                   require_ip=False)
 
 
-def _validate_dhcp_range(subnet_props):
-    start = netaddr.IPAddress(subnet_props.dhcp_start)
-    end = netaddr.IPAddress(subnet_props.dhcp_end)
-    if start >= end:
-        message = (_('Invalid dhcp range specified, dhcp_start "{0}" does '
-                     'not come before dhcp_end "{1}"').format(start, end))
+def _validate_dhcp_range(subnet_props, subnet_name):
+    len_dhcp_start = len(subnet_props.dhcp_start)
+    len_dhcp_end = len(subnet_props.dhcp_end)
+    if (len_dhcp_start > 1 or len_dhcp_end > 1 and
+            len_dhcp_start != len_dhcp_end):
+        message = (_('Number of elements in dhcp_start and dhcp_end must be '
+                     'identical. Subnet "{0}" have "{1}" dhcp_start elements '
+                     'and "{2}" dhcp_end elements.').format(subnet_name,
+                                                            len_dhcp_start,
+                                                            len_dhcp_end))
         LOG.error(message)
         raise FailedValidation(message)
+    for a, b in zip(subnet_props.dhcp_start, subnet_props.dhcp_end):
+        start = netaddr.IPAddress(a)
+        end = netaddr.IPAddress(b)
+        if start >= end:
+            message = (_('Invalid dhcp range specified, dhcp_start "{0}" does '
+                         'not come before dhcp_end "{1}"').format(start, end))
+            LOG.error(message)
+            raise FailedValidation(message)
 
 
 def _validate_inspection_range(subnet_props):
@@ -324,23 +343,6 @@ def _validate_inspection_range(subnet_props):
     if start >= end:
         message = (_('Invalid inspection range specified, inspection_iprange '
                      '"{0}" does not come before "{1}"').format(start, end))
-        LOG.error(message)
-        raise FailedValidation(message)
-
-
-def _validate_no_overlap(subnet_props):
-    """Validate the provisioning and inspection ip ranges do not overlap"""
-    dhcp_set = netaddr.IPSet(netaddr.IPRange(subnet_props.dhcp_start,
-                                             subnet_props.dhcp_end))
-    inspection_set = netaddr.IPSet(netaddr.IPRange(
-        subnet_props.inspection_iprange.split(',')[0],
-        subnet_props.inspection_iprange.split(',')[1]))
-    if dhcp_set.intersection(inspection_set):
-        message = (_('Inspection DHCP range "{0}-{1} overlaps provisioning '
-                   'DHCP range "{2}-{3}".') %
-                   (subnet_props.inspection_iprange.split(',')[0],
-                    subnet_props.inspection_iprange.split(',')[1],
-                    subnet_props.dhcp_start, subnet_props.dhcp_end))
         LOG.error(message)
         raise FailedValidation(message)
 
@@ -549,11 +551,9 @@ def check(verbose_level, upgrade=False):
             _checking_status('Subnet "%s" is in CIDR' % subnet)
             _validate_in_cidr(s, subnet)
             _checking_status('DHCP range is in subnet "%s"' % subnet)
-            _validate_dhcp_range(s)
+            _validate_dhcp_range(s, subnet)
             _checking_status('Inspection range for subnet "%s"' % subnet)
             _validate_inspection_range(s)
-            _checking_status('Subnet "%s" has no overlap' % subnet)
-            _validate_no_overlap(s)
         _checking_status('IP addresses')
         _validate_ips()
         _checking_status('Network interfaces')

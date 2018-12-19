@@ -82,3 +82,10 @@ ANSIBLE_VALIDATION_DIR = '/usr/share/openstack-tripleo-validations/validations'
 
 # The path to the local CA certificate installed on the undercloud
 LOCAL_CACERT_PATH = '/etc/pki/ca-trust/source/anchors/cm-local-ca.pem'
+
+# ctlplane network defaults
+CTLPLANE_CIDR_DEFAULT = '192.168.24.0/24'
+CTLPLANE_DHCP_START_DEFAULT = ['192.168.24.5']
+CTLPLANE_DHCP_END_DEFAULT = ['192.168.24.24']
+CTLPLANE_INSPECTION_IPRANGE_DEFAULT = '192.168.24.100,192.168.24.120'
+CTLPLANE_GATEWAY_DEFAULT = '192.168.24.1'
