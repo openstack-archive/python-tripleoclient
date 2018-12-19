@@ -140,16 +140,30 @@ class CleanNode(command.Command):
                            action='store_true',
                            help=_("Clean all nodes currently in 'manageable'"
                                   " state"))
+        parser.add_argument('--provide',
+                            action='store_true',
+                            help=_('Provide (make available) the nodes once '
+                                   'cleaned'))
         return parser
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
 
-        if parsed_args.node_uuids:
+        nodes = parsed_args.node_uuids
+
+        if nodes:
             baremetal.clean_nodes(self.app.client_manager,
                                   node_uuids=parsed_args.node_uuids)
         else:
             baremetal.clean_manageable_nodes(self.app.client_manager)
+
+        if parsed_args.provide:
+            if nodes:
+                baremetal.provide(self.app.client_manager,
+                                  node_uuids=nodes,
+                                  )
+            else:
+                baremetal.provide_manageable_nodes(self.app.client_manager)
 
 
 class IntrospectNode(command.Command):

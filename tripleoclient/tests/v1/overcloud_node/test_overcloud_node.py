@@ -339,6 +339,101 @@ class TestIntrospectNode(fakes.TestOvercloudNode):
                           self.cmd, argslist, verifylist)
 
 
+class TestCleanNode(fakes.TestOvercloudNode):
+
+    def setUp(self):
+        super(TestCleanNode, self).setUp()
+
+        self.workflow = self.app.client_manager.workflow_engine
+        execution = mock.Mock()
+        execution.id = "IDID"
+        self.workflow.executions.create.return_value = execution
+        client = self.app.client_manager.tripleoclient
+        self.websocket = client.messaging_websocket()
+
+        # Get the command object to test
+        self.cmd = overcloud_node.CleanNode(self.app, None)
+
+    def _check_clean_all_manageable(self, parsed_args, provide=False):
+        self.websocket.wait_for_messages.return_value = iter([{
+            "status": "SUCCESS",
+            "message": "Success",
+            "cleaned_nodes": {},
+            "execution": {"id": "IDID"}
+        }] * 2)
+
+        self.cmd.take_action(parsed_args)
+
+        call_list = [mock.call(
+            'tripleo.baremetal.v1.clean_manageable_nodes',
+            workflow_input={}
+        )]
+
+        if provide:
+            call_list.append(mock.call(
+                'tripleo.baremetal.v1.provide_manageable_nodes',
+                workflow_input={}
+            ))
+
+        self.workflow.executions.create.assert_has_calls(call_list)
+        self.assertEqual(self.workflow.executions.create.call_count,
+                         2 if provide else 1)
+
+    def _check_clean_nodes(self, parsed_args, nodes, provide=False):
+        self.websocket.wait_for_messages.return_value = [{
+            "status": "SUCCESS",
+            "message": "Success",
+            "execution": {"id": "IDID"}
+        }]
+
+        self.cmd.take_action(parsed_args)
+
+        call_list = [mock.call(
+            'tripleo.baremetal.v1.clean_nodes', workflow_input={
+                'node_uuids': nodes}
+        )]
+
+        if provide:
+            call_list.append(mock.call(
+                'tripleo.baremetal.v1.provide', workflow_input={
+                    'node_uuids': nodes}
+            ))
+
+        self.workflow.executions.create.assert_has_calls(call_list)
+        self.assertEqual(self.workflow.executions.create.call_count,
+                         2 if provide else 1)
+
+    def test_clean_all_manageable_nodes_without_provide(self):
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--all-manageable'],
+                                        [('all_manageable', True)])
+        self._check_clean_all_manageable(parsed_args, provide=False)
+
+    def test_clean_all_manageable_nodes_with_provide(self):
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--all-manageable', '--provide'],
+                                        [('all_manageable', True),
+                                         ('provide', True)])
+        self._check_clean_all_manageable(parsed_args, provide=True)
+
+    def test_clean_nodes_without_provide(self):
+        nodes = ['node_uuid1', 'node_uuid2']
+        parsed_args = self.check_parser(self.cmd,
+                                        nodes,
+                                        [('node_uuids', nodes)])
+        self._check_clean_nodes(parsed_args, nodes, provide=False)
+
+    def test_clean_nodes_with_provide(self):
+        nodes = ['node_uuid1', 'node_uuid2']
+        argslist = nodes + ['--provide']
+
+        parsed_args = self.check_parser(self.cmd,
+                                        argslist,
+                                        [('node_uuids', nodes),
+                                         ('provide', True)])
+        self._check_clean_nodes(parsed_args, nodes, provide=True)
+
+
 class TestImportNode(fakes.TestOvercloudNode):
 
     def setUp(self):
