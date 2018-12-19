@@ -316,15 +316,6 @@ def _process_network_args(env):
         env['UndercloudCtlplaneSubnets'][subnet] = {
             'AllocationPools': _calculate_allocation_pools(s)
         }
-        # TODO(hjensas): Remove DhcpRangeStart and DhcpRangeEnd once change:
-        # Ifdf3e9d22766c1b5ede151979b93754a3d244cc3 is merged and THT uses
-        # AllocationPools.
-        if s.get('dhcp_start'):
-            env['UndercloudCtlplaneSubnets'][subnet].update(
-                {'DhcpRangeStart': s.get('dhcp_start')[0]})
-        if s.get('dhcp_end'):
-            env['UndercloudCtlplaneSubnets'][subnet].update(
-                {'DhcpRangeEnd': s.get('dhcp_end')[0]})
         for param_key, param_value in SUBNET_PARAMETER_MAPPING.items():
             if param_value:
                 env['UndercloudCtlplaneSubnets'][subnet].update(
