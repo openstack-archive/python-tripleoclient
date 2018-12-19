@@ -248,6 +248,22 @@ def _generate_masquerade_networks():
     return masqurade_networks
 
 
+def _process_network_args(env):
+    """Populate the environment with network configuration."""
+
+    env['IronicInspectorSubnets'] = _generate_inspection_subnets()
+    env['ControlPlaneStaticRoutes'] = _generate_subnets_static_routes()
+    env['UndercloudCtlplaneSubnets'] = {}
+    for subnet in CONF.subnets:
+        s = CONF.get(subnet)
+        env['UndercloudCtlplaneSubnets'][subnet] = {}
+        for param_key, param_value in SUBNET_PARAMETER_MAPPING.items():
+            env['UndercloudCtlplaneSubnets'][subnet].update(
+                {param_value: s[param_key]})
+    env['MasqueradeNetworks'] = _generate_masquerade_networks()
+    env['DnsServers'] = ','.join(CONF['undercloud_nameservers'])
+
+
 def prepare_undercloud_deploy(upgrade=False, no_validations=False,
                               verbose_level=1, yes=False,
                               force_stack_update=False, dry_run=False):
@@ -285,17 +301,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
                 env_data[env_value] = CONF[undercloud_key]
 
     # Set up parameters for undercloud networking
-    env_data['IronicInspectorSubnets'] = _generate_inspection_subnets()
-    env_data['ControlPlaneStaticRoutes'] = _generate_subnets_static_routes()
-    env_data['UndercloudCtlplaneSubnets'] = {}
-    for subnet in CONF.subnets:
-        s = CONF.get(subnet)
-        env_data['UndercloudCtlplaneSubnets'][subnet] = {}
-        for param_key, param_value in SUBNET_PARAMETER_MAPPING.items():
-            env_data['UndercloudCtlplaneSubnets'][subnet].update(
-                {param_value: s[param_key]})
-    env_data['MasqueradeNetworks'] = _generate_masquerade_networks()
-    env_data['DnsServers'] = ','.join(CONF['undercloud_nameservers'])
+    _process_network_args(env_data)
 
     # Parse the undercloud.conf options to include necessary args and
     # yaml files for undercloud deploy command
