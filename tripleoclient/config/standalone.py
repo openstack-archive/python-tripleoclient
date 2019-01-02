@@ -155,6 +155,12 @@ class StandaloneConfig(BaseConfig):
                               'absolute path or the path relative to the '
                               't-h-t templates directory used for deployment')
                        ),
+            cfg.StrOpt('networks_file',
+                       default=None,
+                       help=_('Networks file to override for heat. May be an '
+                              'absolute path or the path relative to the '
+                              't-h-t templates directory used for deployment')
+                       ),
             cfg.BoolOpt('heat_native',
                         default=True,
                         help=_('Execute the heat-all process natively on this '

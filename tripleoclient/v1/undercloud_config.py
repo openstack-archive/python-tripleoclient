@@ -426,6 +426,12 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
     if CONF.get('roles_file', constants.UNDERCLOUD_ROLES_FILE):
         deploy_args.append('--roles-file=%s' % CONF['roles_file'])
 
+    if CONF.get('networks_file'):
+        deploy_args.append('--networks-file=%s' % CONF['networks_file'])
+    else:
+        deploy_args.append('--networks-file=%s' %
+                           constants.UNDERCLOUD_NETWORKS_FILE)
+
     if yes:
         deploy_args += ['-y']
 

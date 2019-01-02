@@ -162,6 +162,14 @@ class Deploy(command.Command):
             roles_file = parsed_args.roles_file
         return roles_file
 
+    def _get_networks_file_path(self, parsed_args):
+        """Return networks_file for the deployment"""
+        if not parsed_args.networks_file:
+            return os.path.join(parsed_args.templates,
+                                constants.STANDALONE_NETWORKS_FILE)
+        else:
+            return parsed_args.networks_file
+
     def _get_plan_env_file_path(self, parsed_args):
         """Return plan_environment_file for the deployment"""
         if not parsed_args.plan_environment_file:
@@ -582,7 +590,8 @@ class Deploy(command.Command):
                 environments.append(target_dest)
         return environments
 
-    def _setup_heat_environments(self, roles_file_path, parsed_args):
+    def _setup_heat_environments(self, roles_file_path, networks_file_path,
+                                 parsed_args):
         """Process tripleo heat templates with jinja and deploy into work dir
 
         * Process j2/install additional templates there
@@ -611,7 +620,8 @@ class Deploy(command.Command):
         process_templates = os.path.join(parsed_args.templates,
                                          'tools/process-templates.py')
         args = [self.python_cmd, process_templates, '--roles-data',
-                roles_file_path, '--output-dir', self.tht_render]
+                roles_file_path, '--network-data', networks_file_path,
+                '--output-dir', self.tht_render]
         if utils.run_command_and_log(self.log, args, cwd=self.tht_render) != 0:
             # TODO(aschultz): improve error messaging
             msg = _("Problems generating templates.")
@@ -718,10 +728,11 @@ class Deploy(command.Command):
                                        parsed_args):
         """Deploy the fixed templates in TripleO Heat Templates"""
         roles_file_path = self._get_roles_file_path(parsed_args)
+        networks_file_path = self._get_networks_file_path(parsed_args)
 
         # sets self.tht_render to the working dir with deployed templates
         environments = self._setup_heat_environments(
-            roles_file_path, parsed_args)
+            roles_file_path, networks_file_path, parsed_args)
 
         # rewrite paths to consume t-h-t env files from the working dir
         self.log.debug(_("Processing environment files %s") % environments)
@@ -753,7 +764,7 @@ class Deploy(command.Command):
                 f.write(yaml.safe_dump(roles_data))
             # Redo the dance
             environments = self._setup_heat_environments(
-                roles_file_path, parsed_args)
+                roles_file_path, networks_file_path, parsed_args)
             env_files, env = utils.process_multiple_environments(
                 environments, self.tht_render, parsed_args.templates,
                 cleanup=parsed_args.cleanup)
@@ -919,6 +930,14 @@ class Deploy(command.Command):
                 'directory used for deployment. May be an '
                 'absolute path or the path relative to the templates dir.'
                 ) % constants.UNDERCLOUD_ROLES_FILE
+        )
+        parser.add_argument(
+            '--networks-file', '-n', dest='networks_file',
+            help=_(
+                'Roles file, overrides the default %s in the t-h-t templates '
+                'directory used for deployment. May be an '
+                'absolute path or the path relative to the templates dir.'
+                ) % constants.STANDALONE_NETWORKS_FILE
         )
         parser.add_argument(
             '--plan-environment-file', '-p',
