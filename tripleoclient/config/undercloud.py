@@ -130,6 +130,10 @@ class UndercloudConfig(StandaloneConfig):
                         default=['0.pool.ntp.org', '1.pool.ntp.org',
                                  '2.pool.ntp.org', '3.pool.ntp.org'],
                         help=_('List of ntp servers to use.')),
+            cfg.StrOpt('undercloud_timezone', default=None,
+                       help=_('Host timezone to be used. If no timezone is '
+                              'specified, the existing timezone configuration '
+                              'is used.')),
             cfg.StrOpt('overcloud_domain_name',
                        default='localdomain',
                        help=_(
