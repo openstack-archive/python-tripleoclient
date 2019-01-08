@@ -153,7 +153,7 @@ class UpdateRun(command.Command):
         inventory = oooutils.get_tripleo_ansible_inventory(
             parsed_args.static_inventory, parsed_args.ssh_user, stack)
         oooutils.run_update_ansible_action(self.log, clients, nodes, inventory,
-                                           playbook, constants.UPDATE_QUEUE,
+                                           playbook,
                                            constants.MINOR_UPDATE_PLAYBOOKS,
                                            package_update,
                                            parsed_args.ssh_user)

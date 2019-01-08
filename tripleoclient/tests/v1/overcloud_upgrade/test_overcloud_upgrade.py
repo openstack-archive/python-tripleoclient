@@ -163,7 +163,6 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                 nodes='Compute, Controller',
                 inventory_file=mock_open().read(),
                 playbook='fake-playbook.yaml',
-                ansible_queue_name=constants.UPGRADE_QUEUE,
                 node_user='tripleo-admin',
                 skip_tags=''
             )
@@ -195,7 +194,6 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                     nodes='Compute',
                     inventory_file=mock_open().read(),
                     playbook=book,
-                    ansible_queue_name=constants.UPGRADE_QUEUE,
                     node_user='heat-admin',
                     skip_tags='validation'
                 )
@@ -225,7 +223,6 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                 nodes='compute-0, compute-1',
                 inventory_file=mock_open().read(),
                 playbook='fake-playbook.yaml',
-                ansible_queue_name=constants.UPGRADE_QUEUE,
                 node_user='heat-admin',
                 skip_tags=''
             )
@@ -255,7 +252,6 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                     nodes='swift-1',
                     inventory_file=mock_open().read(),
                     playbook=book,
-                    ansible_queue_name=constants.UPGRADE_QUEUE,
                     node_user='heat-admin',
                     skip_tags=''
                 )
@@ -287,7 +283,6 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                     nodes='swift-1',
                     inventory_file=mock_open().read(),
                     playbook=book,
-                    ansible_queue_name=constants.UPGRADE_QUEUE,
                     node_user='heat-admin',
                     skip_tags='pre-upgrade,validation'
                 )

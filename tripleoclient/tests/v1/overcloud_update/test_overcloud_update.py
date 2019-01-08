@@ -149,7 +149,6 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
                 nodes='Compute',
                 inventory_file=mock_open().read(),
                 playbook='fake-playbook.yaml',
-                ansible_queue_name=constants.UPDATE_QUEUE,
                 node_user='tripleo-admin',
                 skip_tags=''
             )
@@ -179,7 +178,6 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
                     nodes='Compute',
                     inventory_file=mock_open().read(),
                     playbook=book,
-                    ansible_queue_name=constants.UPDATE_QUEUE,
                     node_user='heat-admin',
                     skip_tags=''
                 )
@@ -208,7 +206,6 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
                     nodes=None,
                     inventory_file=mock_open().read(),
                     playbook=book,
-                    ansible_queue_name=constants.UPDATE_QUEUE,
                     node_user='heat-admin',
                     skip_tags=''
                 )

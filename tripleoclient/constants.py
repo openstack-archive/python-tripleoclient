@@ -32,13 +32,8 @@ DEFAULT_ENV_DIRECTORY = "~/.tripleo/environments"
 TRIPLEO_PUPPET_MODULES = "/usr/share/openstack-puppet/modules/"
 PUPPET_MODULES = "/etc/puppet/modules/"
 PUPPET_BASE = "/etc/puppet/"
-# Update Queue
-UPDATE_QUEUE = 'update'
-UPGRADE_QUEUE = 'upgrade'
-FFWD_UPGRADE_QUEUE = 'ffwdupgrade'
-CEPH_UPGRADE_QUEUE = 'cephupgrade'
-STACK_TIMEOUT = 240
 
+STACK_TIMEOUT = 240
 
 # The default ffwd upgrade ansible playbooks generated from heat stack output
 FFWD_UPGRADE_PLAYBOOK = "fast_forward_upgrade_playbook.yaml"

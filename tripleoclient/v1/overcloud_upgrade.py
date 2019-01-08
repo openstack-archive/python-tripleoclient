@@ -202,7 +202,6 @@ class UpgradeRun(command.Command):
         skip_tags = self._validate_skip_tags(parsed_args.skip_tags)
         oooutils.run_update_ansible_action(self.log, clients, limit_hosts,
                                            inventory, playbook,
-                                           constants.UPGRADE_QUEUE,
                                            constants.MAJOR_UPGRADE_PLAYBOOKS,
                                            package_update,
                                            parsed_args.ssh_user, skip_tags)
