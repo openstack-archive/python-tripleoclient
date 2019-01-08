@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Added new `exclude` option to the container build command that allows the
+    user to skip building a specific container.  This option can be specified
+    muiltiple times to skip building multiple containers.

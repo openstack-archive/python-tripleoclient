@@ -160,6 +160,16 @@ class BuildImage(command.Command):
             help=_('Show the image build dependencies instead of '
                    'building them.')
         )
+        parser.add_argument(
+            "--exclude",
+            dest="excludes",
+            metavar='<container-name>',
+            default=[],
+            action="append",
+            help=_("Name of a container to match against the list of "
+                   "containers to be built to skip. Can be specified multiple "
+                   "times."),
+        )
         return parser
 
     def take_action(self, parsed_args):
@@ -175,7 +185,8 @@ class BuildImage(command.Command):
 
         try:
             builder = kolla_builder.KollaImageBuilder(parsed_args.config_files)
-            result = builder.build_images(kolla_config_files)
+            result = builder.build_images(kolla_config_files,
+                                          parsed_args.excludes)
             if parsed_args.list_dependencies:
                 deps = json.loads(result)
                 yaml.safe_dump(deps, self.app.stdout, indent=2,
