@@ -155,7 +155,7 @@ def _process_drivers_and_hardware_types(conf, env):
             mgmt_interfaces.add(iface)
 
     # Two hardware types use non-default boot interfaces.
-    boot_interfaces = {'pxe'}
+    boot_interfaces = {'ipxe', 'pxe'}
     for hw_type in ('ilo', 'irmc'):
         if hw_type in enabled_hardware_types:
             boot_interfaces.add('%s-pxe' % hw_type)

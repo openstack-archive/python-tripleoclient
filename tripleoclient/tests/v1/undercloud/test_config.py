@@ -48,7 +48,7 @@ class TestProcessDriversAndHardwareTypes(base.TestCase):
         undercloud_config._process_drivers_and_hardware_types(self.conf, env)
         self.assertEqual({
             'IronicEnabledHardwareTypes': ['idrac', 'ilo', 'ipmi', 'redfish'],
-            'IronicEnabledBootInterfaces': ['ilo-pxe', 'pxe'],
+            'IronicEnabledBootInterfaces': ['ilo-pxe', 'ipxe', 'pxe'],
             'IronicEnabledManagementInterfaces': ['fake', 'idrac', 'ilo',
                                                   'ipmitool', 'noop',
                                                   'redfish'],
@@ -67,7 +67,7 @@ class TestProcessDriversAndHardwareTypes(base.TestCase):
         self.assertEqual({
             # ipmi added because it's the default discovery driver
             'IronicEnabledHardwareTypes': ['ipmi', 'redfish'],
-            'IronicEnabledBootInterfaces': ['pxe'],
+            'IronicEnabledBootInterfaces': ['ipxe', 'pxe'],
             'IronicEnabledManagementInterfaces': ['fake', 'ipmitool',
                                                   'noop', 'redfish'],
             'IronicEnabledPowerInterfaces': ['fake', 'ipmitool', 'redfish'],
@@ -93,7 +93,8 @@ class TestProcessDriversAndHardwareTypes(base.TestCase):
                                            'idrac', 'ilo', 'ipmi', 'irmc',
                                            'redfish', 'snmp', 'staging-ovirt',
                                            'xclarity'],
-            'IronicEnabledBootInterfaces': ['ilo-pxe', 'irmc-pxe', 'pxe'],
+            'IronicEnabledBootInterfaces': ['ilo-pxe', 'ipxe', 'irmc-pxe',
+                                            'pxe'],
             'IronicEnabledManagementInterfaces': ['cimc', 'fake', 'idrac',
                                                   'ilo', 'ipmitool', 'irmc',
                                                   'noop', 'redfish',
