@@ -39,12 +39,7 @@ DEFAULT_ENV_DIRECTORY = os.path.join(os.environ.get('HOME'),
 TRIPLEO_PUPPET_MODULES = "/usr/share/openstack-puppet/modules/"
 PUPPET_MODULES = "/etc/puppet/modules/"
 PUPPET_BASE = "/etc/puppet/"
-# Update Queue
-UPDATE_QUEUE = 'update'
-UPGRADE_QUEUE = 'upgrade'
-FFWD_UPGRADE_QUEUE = 'ffwdupgrade'
-EXTERNAL_UPDATE_QUEUE = 'externalupdate'
-EXTERNAL_UPGRADE_QUEUE = 'externalupgrade'
+
 STACK_TIMEOUT = 240
 
 IRONIC_HTTP_BOOT_BIND_MOUNT = '/var/lib/ironic/httpboot'

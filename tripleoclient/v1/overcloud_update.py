@@ -153,7 +153,6 @@ class UpdateRun(command.Command):
             parsed_args.static_inventory, parsed_args.ssh_user, stack)
         oooutils.run_update_ansible_action(self.log, clients, limit_hosts,
                                            inventory, playbook,
-                                           constants.UPDATE_QUEUE,
                                            constants.MINOR_UPDATE_PLAYBOOKS,
                                            package_update,
                                            parsed_args.ssh_user)

@@ -81,24 +81,19 @@ def get_config(clients, **workflow_input):
 def update_ansible(clients, **workflow_input):
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
-    ansible_queue = workflow_input['ansible_queue_name']
 
-    with tripleoclients.messaging_websocket(ansible_queue) as update_ws:
+    with tripleoclients.messaging_websocket() as ws:
         execution = base.start_workflow(
             workflow_client,
             'tripleo.package_update.v1.update_nodes',
             workflow_input=workflow_input
         )
 
-        for payload in base.wait_for_messages(workflow_client,
-                                              update_ws,
-                                              execution,
-                                              _WORKFLOW_TIMEOUT):
-                if payload.get('message'):
-                    pprint.pprint(payload['message'].splitlines())
+        for payload in base.wait_for_messages(workflow_client, ws, execution):
+            print(payload['message'])
 
     if payload['status'] == 'SUCCESS':
-        print('Success')
+        print("Success")
     else:
         raise RuntimeError('Update failed with: {}'.format(payload))
 
@@ -161,8 +156,7 @@ def ffwd_converge_nodes(clients, **workflow_input):
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
 
-    with tripleoclients.messaging_websocket(
-            workflow_input['queue_name']) as ws:
+    with tripleoclients.messaging_websocket() as ws:
         execution = base.start_workflow(
             workflow_client,
             'tripleo.package_update.v1.ffwd_upgrade_converge_plan',
@@ -183,8 +177,7 @@ def run_on_nodes(clients, **workflow_input):
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
 
-    with tripleoclients.messaging_websocket(
-            workflow_input['queue_name']) as ws:
+    with tripleoclients.messaging_websocket() as ws:
         execution = base.start_workflow(
             workflow_client,
             'tripleo.deployment.v1.deploy_on_servers',
