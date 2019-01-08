@@ -94,7 +94,6 @@ class ExternalUpdateRun(command.Command):
         playbook = 'all'
         oooutils.run_update_ansible_action(
             self.log, clients, limit_hosts, inventory, playbook,
-            constants.EXTERNAL_UPDATE_QUEUE,
             constants.EXTERNAL_UPDATE_PLAYBOOKS,
             package_update, parsed_args.ssh_user,
             tags=parsed_args.tags, skip_tags=parsed_args.skip_tags)
