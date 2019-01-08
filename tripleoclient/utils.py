@@ -842,7 +842,7 @@ def replace_links_in_template_contents(contents, link_replacement):
     """Replace get_file and type file links in Heat template contents
 
     If the string contents passed in is a Heat template, scan the
-    template for 'get_file' and 'type' occurences, and replace the
+    template for 'get_file' and 'type' occurrences, and replace the
     file paths according to link_replacement dict. (Key/value in
     link_replacement are from/to, respectively.)
 
@@ -868,7 +868,7 @@ def replace_links_in_template_contents(contents, link_replacement):
 def replace_links_in_template(template_part, link_replacement):
     """Replace get_file and type file links in a Heat template
 
-    Scan the template for 'get_file' and 'type' occurences, and
+    Scan the template for 'get_file' and 'type' occurrences, and
     replace the file paths according to link_replacement
     dict. (Key/value in link_replacement are from/to, respectively.)
     """

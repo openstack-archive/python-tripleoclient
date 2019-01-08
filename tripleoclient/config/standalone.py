@@ -132,7 +132,7 @@ class StandaloneConfig(BaseConfig):
                        default='',
                        help=_(
                            'Path to network config override template.'
-                           'Relative paths get computed inside of of $HOME. '
+                           'Relative paths get computed inside of $HOME. '
                            'Must be in the json format.'
                            'Its content overrides anything in t-h-t '
                            'UndercloudNetConfigOverride. The processed '
@@ -186,7 +186,7 @@ class StandaloneConfig(BaseConfig):
                        default='',
                        help=_(
                            'An optional docker \'registry-mirror\' that will '
-                           'beconfigured in /etc/docker/daemon.json.')
+                           'be configured in /etc/docker/daemon.json.')
                        ),
             cfg.ListOpt('docker_insecure_registries',
                         default=[],
