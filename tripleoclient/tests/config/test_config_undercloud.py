@@ -71,6 +71,7 @@ class TestUndercloudConfig(base.TestCase):
                     'undercloud_ntp_servers',
                     'undercloud_public_host',
                     'undercloud_service_certificate',
+                    'undercloud_timezone',
                     'undercloud_update_packages',
                     'upgrade_cleanup']
         self.assertEqual(expected, [x.name for x in ret])
@@ -133,6 +134,7 @@ class TestUndercloudConfig(base.TestCase):
                     'undercloud_ntp_servers',
                     'undercloud_public_host',
                     'undercloud_service_certificate',
+                    'undercloud_timezone',
                     'undercloud_update_packages',
                     'upgrade_cleanup']
         self.assertEqual(expected, [x.name for x in ret])

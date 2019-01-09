@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    Host timezone can be managed during the undercloud installation. The default
+    timezone is the timezone already configured for the system. The timezone
+    can be configured by setting undercloud_timezone in undercloud.conf
+upgrade:
+  - |
+    Host timezone can be managed during the undercloud upgrade. The default
+    timezone is the timezone already configured for the system. The timezone
+    can be configured by setting undercloud_timezone in undercloud.conf and it
+    is recommended to set this going forward.
