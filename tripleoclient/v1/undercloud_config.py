@@ -673,8 +673,9 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
     if force_stack_update:
         deploy_args += ["--force-stack-update"]
 
-    cmd = ["sudo", "openstack", "tripleo", "deploy", "--standalone",
-           "--standalone-role", "Undercloud", "--stack", "undercloud"]
+    cmd = ["sudo", "--preserve-env", "openstack", "tripleo", "deploy",
+           "--standalone", "--standalone-role", "Undercloud", "--stack",
+           "undercloud"]
     cmd += deploy_args[:]
 
     # In dry-run, also report the expected heat stack virtual state/action
