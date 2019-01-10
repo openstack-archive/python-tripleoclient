@@ -158,8 +158,6 @@ class TestNetworkSettings(base.TestCase):
                 'ctlplane-subnet': {
                     'AllocationPools': [
                         {'start': '192.168.24.5', 'end': '192.168.24.24'}],
-                    'DhcpRangeEnd': '192.168.24.24',
-                    'DhcpRangeStart': '192.168.24.5',
                     'NetworkCidr': '192.168.24.0/24',
                     'NetworkGateway': '192.168.24.1'}}}
         self.assertEqual(expected, env)
@@ -184,8 +182,6 @@ class TestNetworkSettings(base.TestCase):
                     'AllocationPools': [
                         {'start': '192.168.24.4', 'end': '192.168.24.99'},
                         {'start': '192.168.24.121', 'end': '192.168.24.254'}],
-                    'DhcpRangeEnd': '192.168.24.255',
-                    'DhcpRangeStart': '192.168.24.0',
                     'NetworkCidr': '192.168.24.0/24',
                     'NetworkGateway': '192.168.24.1'}}}
         self.assertEqual(expected, env)
@@ -211,8 +207,6 @@ class TestNetworkSettings(base.TestCase):
                     'AllocationPools': [
                         {'start': '192.168.10.2', 'end': '192.168.10.99'},
                         {'start': '192.168.10.121', 'end': '192.168.10.254'}],
-                    'DhcpRangeEnd': '192.168.24.24',
-                    'DhcpRangeStart': '192.168.24.5',
                     'NetworkCidr': '192.168.10.0/24',
                     'NetworkGateway': '192.168.10.1'}}}
         self.assertEqual(expected, env)
@@ -242,8 +236,6 @@ class TestNetworkSettings(base.TestCase):
                         {'start': '192.168.10.51', 'end': '192.168.10.79'},
                         {'start': '192.168.10.90', 'end': '192.168.10.99'},
                         {'start': '192.168.10.121', 'end': '192.168.10.254'}],
-                    'DhcpRangeEnd': '192.168.24.24',
-                    'DhcpRangeStart': '192.168.24.5',
                     'NetworkCidr': '192.168.10.0/24',
                     'NetworkGateway': '192.168.10.1'}}}
         self.assertEqual(expected, env)
@@ -292,10 +284,6 @@ class TestNetworkSettings(base.TestCase):
                     'AllocationPools': [
                         {'start': '192.168.24.10', 'end': '192.168.24.99'},
                         {'start': '192.168.24.121', 'end': '192.168.24.254'}],
-                    # TODO(hjensas): Remove DhcpRangeStart and DhcpRangeEnd
-                    # once change: Ifdf3e9d22766c1b5ede151979b93754a3d244cc3 is
-                    # merged and THT uses AllocationPools.
-                    'DhcpRangeStart': '192.168.24.10',
                     'NetworkCidr': '192.168.24.0/24',
                     'NetworkGateway': '192.168.24.1'}}
         }
@@ -321,10 +309,6 @@ class TestNetworkSettings(base.TestCase):
                     'AllocationPools': [
                         {'start': '192.168.24.4', 'end': '192.168.24.99'},
                         {'start': '192.168.24.121', 'end': '192.168.24.220'}],
-                    # TODO(hjensas): Remove DhcpRangeStart and DhcpRangeEnd
-                    # once change: Ifdf3e9d22766c1b5ede151979b93754a3d244cc3 is
-                    # merged and THT uses AllocationPools.
-                    'DhcpRangeEnd': '192.168.24.220',
                     'NetworkCidr': '192.168.24.0/24',
                     'NetworkGateway': '192.168.24.1'}}
         }
@@ -388,25 +372,16 @@ class TestNetworkSettings(base.TestCase):
                 'ctlplane-subnet': {
                     'AllocationPools': [
                         {'start': '192.168.24.5', 'end': '192.168.24.24'}],
-                    # TODO(hjensas): Remove DhcpRangeStart and DhcpRangeEnd
-                    # once change: Ifdf3e9d22766c1b5ede151979b93754a3d244cc3 is
-                    # merged and THT uses AllocationPools.
-                    'DhcpRangeEnd': '192.168.24.24',
-                    'DhcpRangeStart': '192.168.24.5',
                     'NetworkCidr': '192.168.24.0/24',
                     'NetworkGateway': '192.168.24.1'},
                 'subnet1': {
                     'AllocationPools': [
                         {'start': '192.168.10.10', 'end': '192.168.10.99'}],
-                    'DhcpRangeEnd': '192.168.10.99',
-                    'DhcpRangeStart': '192.168.10.10',
                     'NetworkCidr': '192.168.10.0/24',
                     'NetworkGateway': '192.168.10.254'},
                 'subnet2': {
                     'AllocationPools': [
                         {'start': '192.168.20.10', 'end': '192.168.20.99'}],
-                    'DhcpRangeEnd': '192.168.20.99',
-                    'DhcpRangeStart': '192.168.20.10',
                     'NetworkCidr': '192.168.20.0/24',
                     'NetworkGateway': '192.168.20.254'}
             }
@@ -458,25 +433,16 @@ class TestNetworkSettings(base.TestCase):
                 'ctlplane-subnet': {
                     'AllocationPools': [
                         {'start': '192.168.24.5', 'end': '192.168.24.24'}],
-                    # TODO(hjensas): Remove DhcpRangeStart and DhcpRangeEnd
-                    # once change: Ifdf3e9d22766c1b5ede151979b93754a3d244cc3 is
-                    # merged and THT uses AllocationPools.
-                    'DhcpRangeEnd': '192.168.24.24',
-                    'DhcpRangeStart': '192.168.24.5',
                     'NetworkCidr': '192.168.24.0/24',
                     'NetworkGateway': '192.168.24.1'},
                 'subnet1': {
                     'AllocationPools': [
                         {'start': '192.168.10.10', 'end': '192.168.10.99'}],
-                    'DhcpRangeEnd': '192.168.10.99',
-                    'DhcpRangeStart': '192.168.10.10',
                     'NetworkCidr': '192.168.10.0/24',
                     'NetworkGateway': '192.168.10.254'},
                 'subnet2': {
                     'AllocationPools': [
                         {'start': '192.168.20.10', 'end': '192.168.20.99'}],
-                    'DhcpRangeEnd': '192.168.20.99',
-                    'DhcpRangeStart': '192.168.20.10',
                     'NetworkCidr': '192.168.20.0/24',
                     'NetworkGateway': '192.168.20.254'}
             }
@@ -514,11 +480,6 @@ class TestNetworkSettings(base.TestCase):
                 'ctlplane-subnet': {
                     'AllocationPools': [
                         {'start': '192.168.24.5', 'end': '192.168.24.24'}],
-                    # TODO(hjensas): Remove DhcpRangeStart and DhcpRangeEnd
-                    # once change: Ifdf3e9d22766c1b5ede151979b93754a3d244cc3 is
-                    # merged and THT uses AllocationPools.
-                    'DhcpRangeEnd': '192.168.24.24',
-                    'DhcpRangeStart': '192.168.24.5',
                     'NetworkCidr': '192.168.24.0/24',
                     'NetworkGateway': '192.168.24.1'},
                 'subnet1': {
@@ -561,11 +522,6 @@ class TestNetworkSettings(base.TestCase):
                 'ctlplane-subnet': {
                     'AllocationPools': [
                         {'start': '192.168.24.5', 'end': '192.168.24.24'}],
-                    # TODO(hjensas): Remove DhcpRangeStart and DhcpRangeEnd
-                    # once change: Ifdf3e9d22766c1b5ede151979b93754a3d244cc3 is
-                    # merged and THT uses AllocationPools.
-                    'DhcpRangeEnd': '192.168.24.24',
-                    'DhcpRangeStart': '192.168.24.5',
                     'NetworkCidr': '192.168.24.0/24',
                     'NetworkGateway': '192.168.24.1'},
                 'subnet1': {
