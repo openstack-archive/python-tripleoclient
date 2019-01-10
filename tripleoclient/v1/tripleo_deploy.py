@@ -155,10 +155,10 @@ class Deploy(command.Command):
             plan_env = parsed_args.plan_environment_file
         return plan_env
 
-    def _get_primary_role_name(self, parsed_args):
+    def _get_primary_role_name(self, roles_file_path, templates):
         """Return the primary role name"""
         roles_data = utils.fetch_roles_file(
-            self._get_roles_file_path(parsed_args), parsed_args.templates)
+            roles_file_path, templates)
         if not roles_data:
             # TODO(aschultz): should this be Undercloud instead?
             return 'Controller'
@@ -217,7 +217,7 @@ class Deploy(command.Command):
             self.tht_render = os.path.join(self.output_dir,
                                            'tripleo-heat-installer-templates')
             # Clear dir since we're using a static name and shutils.copytree
-            # needs the fodler to not exist. We'll generate the
+            # needs the folder to not exist. We'll generate the
             # contents each time. This should clear the folder on the first
             # run of this function.
             shutil.rmtree(self.tht_render, ignore_errors=True)
@@ -557,7 +557,7 @@ class Deploy(command.Command):
                 environments.append(target_dest)
         return environments
 
-    def _setup_heat_environments(self, parsed_args):
+    def _setup_heat_environments(self, roles_file_path, parsed_args):
         """Process tripleo heat templates with jinja and deploy into work dir
 
         * Process j2/install additional templates there
@@ -582,13 +582,11 @@ class Deploy(command.Command):
             parsed_args.templates, self.tht_render, env_files)
 
         # generate jinja templates by its work dir location
-        self.log.debug(_("Using roles "
-                         "file %s") % self._get_roles_file_path(parsed_args))
+        self.log.debug(_("Using roles file %s") % roles_file_path)
         process_templates = os.path.join(parsed_args.templates,
                                          'tools/process-templates.py')
         args = [self.python_cmd, process_templates, '--roles-data',
-                self._get_roles_file_path(parsed_args), '--output-dir',
-                self.tht_render]
+                roles_file_path, '--output-dir', self.tht_render]
         if utils.run_command_and_log(self.log, args, cwd=self.tht_render) != 0:
             # TODO(aschultz): improve error messaging
             msg = _("Problems generating templates.")
@@ -646,7 +644,8 @@ class Deploy(command.Command):
         tmp_env.update(self._generate_portmap_parameters(
             ip, ip_nw, c_ip, p_ip,
             stack_name=parsed_args.stack,
-            role_name=self._get_primary_role_name(parsed_args)))
+            role_name=self._get_primary_role_name(
+                roles_file_path, parsed_args.templates)))
 
         with open(maps_file, 'w') as env_file:
             yaml.safe_dump({'parameter_defaults': tmp_env}, env_file,
@@ -675,9 +674,7 @@ class Deploy(command.Command):
 
         return environments + user_environments
 
-    def _prepare_container_images(self, env, parsed_args):
-        roles_data = utils.fetch_roles_file(
-            self._get_roles_file_path(parsed_args), parsed_args.templates)
+    def _prepare_container_images(self, env, roles_data):
         image_params = kolla_builder.container_images_prepare_multi(
             env, roles_data, dry_run=True)
 
@@ -691,9 +688,11 @@ class Deploy(command.Command):
     def _deploy_tripleo_heat_templates(self, orchestration_client,
                                        parsed_args):
         """Deploy the fixed templates in TripleO Heat Templates"""
+        roles_file_path = self._get_roles_file_path(parsed_args)
 
         # sets self.tht_render to the working dir with deployed templates
-        environments = self._setup_heat_environments(parsed_args)
+        environments = self._setup_heat_environments(
+            roles_file_path, parsed_args)
 
         # rewrite paths to consume t-h-t env files from the working dir
         self.log.debug(_("Processing environment files %s") % environments)
@@ -701,7 +700,36 @@ class Deploy(command.Command):
             environments, self.tht_render, parsed_args.templates,
             cleanup=parsed_args.cleanup)
 
-        self._prepare_container_images(env, parsed_args)
+        roles_data = utils.fetch_roles_file(
+            roles_file_path, parsed_args.templates)
+        to_remove = set()
+        for key, value in env.get('resource_registry', {}).items():
+            if (key.startswith('OS::TripleO::Services::') and
+                    value == 'OS::Heat::None'):
+                to_remove.add(key)
+        if to_remove:
+            for role in roles_data:
+                for service in to_remove:
+                    try:
+                        role.get('ServicesDefault', []).remove(service)
+                    except ValueError:
+                        pass
+            self.log.info('Removing unused services, updating roles')
+            # This will clean up the directory and set it up again
+            self.tht_render = None
+            self._populate_templates_dir(parsed_args.templates)
+            roles_file_path = os.path.join(
+                self.tht_render, 'roles-data-override.yaml')
+            with open(roles_file_path, "w") as f:
+                f.write(yaml.safe_dump(roles_data))
+            # Redo the dance
+            environments = self._setup_heat_environments(
+                roles_file_path, parsed_args)
+            env_files, env = utils.process_multiple_environments(
+                environments, self.tht_render, parsed_args.templates,
+                cleanup=parsed_args.cleanup)
+
+        self._prepare_container_images(env, roles_data)
 
         self.log.debug(_("Getting template contents"))
         template_path = os.path.join(self.tht_render, 'overcloud.yaml')
