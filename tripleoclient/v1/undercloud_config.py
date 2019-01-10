@@ -166,6 +166,11 @@ def _process_drivers_and_hardware_types(conf, env):
         if hw_type in enabled_hardware_types:
             boot_interfaces.add('%s-pxe' % hw_type)
 
+    inspect_interfaces = {'inspector', 'no-inspect'}
+    for hw_type in ('redfish', 'idrac', 'ilo', 'irmc'):
+        if hw_type in enabled_hardware_types:
+            inspect_interfaces.add(hw_type)
+
     raid_interfaces = {'no-raid'}
     if 'idrac' in enabled_hardware_types:
         raid_interfaces.add('idrac')
@@ -187,6 +192,7 @@ def _process_drivers_and_hardware_types(conf, env):
 
     env['IronicEnabledBiosInterfaces'] = sorted(bios_interfaces)
     env['IronicEnabledBootInterfaces'] = sorted(boot_interfaces)
+    env['IronicEnabledInspectInterfaces'] = sorted(inspect_interfaces)
     env['IronicEnabledManagementInterfaces'] = sorted(mgmt_interfaces)
     env['IronicEnabledPowerInterfaces'] = sorted(power_interfaces)
     env['IronicEnabledRaidInterfaces'] = sorted(raid_interfaces)

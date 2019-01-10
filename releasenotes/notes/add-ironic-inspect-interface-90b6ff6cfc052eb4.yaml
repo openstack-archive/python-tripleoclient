@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Automatically enables ironic inspection interfaces for enabled ironic
+    hardware types supporting out-of-band inspection.
