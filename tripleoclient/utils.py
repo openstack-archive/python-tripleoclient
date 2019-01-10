@@ -1064,7 +1064,7 @@ def get_short_hostname():
     """
     p = subprocess.Popen(["hostname", "-s"], stdout=subprocess.PIPE,
                          universal_newlines=True)
-    return p.communicate()[0].rstrip()
+    return p.communicate()[0].rstrip().lower()
 
 
 def wait_api_port_ready(api_port, host='127.0.0.1'):
