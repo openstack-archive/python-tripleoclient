@@ -49,6 +49,7 @@ class TestProcessDriversAndHardwareTypes(base.TestCase):
         self.assertEqual({
             'IronicEnabledHardwareTypes': ['idrac', 'ilo', 'ipmi', 'redfish'],
             'IronicEnabledBootInterfaces': ['ilo-pxe', 'ipxe', 'pxe'],
+            'IronicEnabledBiosInterfaces': ['ilo', 'no-bios', 'redfish'],
             'IronicEnabledManagementInterfaces': ['fake', 'idrac', 'ilo',
                                                   'ipmitool', 'noop',
                                                   'redfish'],
@@ -68,6 +69,7 @@ class TestProcessDriversAndHardwareTypes(base.TestCase):
             # ipmi added because it's the default discovery driver
             'IronicEnabledHardwareTypes': ['ipmi', 'redfish'],
             'IronicEnabledBootInterfaces': ['ipxe', 'pxe'],
+            'IronicEnabledBiosInterfaces': ['no-bios', 'redfish'],
             'IronicEnabledManagementInterfaces': ['fake', 'ipmitool',
                                                   'noop', 'redfish'],
             'IronicEnabledPowerInterfaces': ['fake', 'ipmitool', 'redfish'],
@@ -95,6 +97,8 @@ class TestProcessDriversAndHardwareTypes(base.TestCase):
                                            'xclarity'],
             'IronicEnabledBootInterfaces': ['ilo-pxe', 'ipxe', 'irmc-pxe',
                                             'pxe'],
+            'IronicEnabledBiosInterfaces': ['ilo', 'irmc',
+                                            'no-bios', 'redfish'],
             'IronicEnabledManagementInterfaces': ['cimc', 'fake', 'idrac',
                                                   'ilo', 'ipmitool', 'irmc',
                                                   'noop', 'redfish',

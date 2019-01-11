@@ -155,6 +155,11 @@ def _process_drivers_and_hardware_types(conf, env):
         if hw_type in enabled_hardware_types:
             mgmt_interfaces.add(iface)
 
+    bios_interfaces = {'no-bios'}
+    for hw_type in ['ilo', 'irmc', 'redfish']:
+        if hw_type in enabled_hardware_types:
+            bios_interfaces.add(hw_type)
+
     # Two hardware types use non-default boot interfaces.
     boot_interfaces = {'ipxe', 'pxe'}
     for hw_type in ('ilo', 'irmc'):
@@ -180,6 +185,7 @@ def _process_drivers_and_hardware_types(conf, env):
 
     env['IronicEnabledHardwareTypes'] = sorted(enabled_hardware_types)
 
+    env['IronicEnabledBiosInterfaces'] = sorted(bios_interfaces)
     env['IronicEnabledBootInterfaces'] = sorted(boot_interfaces)
     env['IronicEnabledManagementInterfaces'] = sorted(mgmt_interfaces)
     env['IronicEnabledPowerInterfaces'] = sorted(power_interfaces)
