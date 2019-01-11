@@ -1071,6 +1071,12 @@ class Deploy(command.Command):
 
         target = override_file
         data = open(target, 'r').read()
+        if not data.strip():
+            # since an empty file isn't valid yaml, let's be more specific
+            msg = (_("hieradata override file (%s) cannot be empty") % target)
+            self.log.error(msg)
+            raise exceptions.DeploymentError(msg)
+
         hiera_data = yaml.safe_load(data)
         if not hiera_data:
             msg = (_('Unsupported data format in hieradata override %s') %
