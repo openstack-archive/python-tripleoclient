@@ -112,13 +112,15 @@ def _check_diskspace(upgrade=False):
     else:
         playbook = 'undercloud-disk-space.yaml'
 
+    python_interpreter = "/usr/bin/python{}".format(sys.version_info[0])
     utils.run_ansible_playbook(logger=LOG,
                                workdir=constants.ANSIBLE_VALIDATION_DIR,
                                playbook=playbook,
                                inventory='undercloud,',
                                retries=False,
                                connection='local',
-                               output_callback='validation_output')
+                               output_callback='validation_output',
+                               python_interpreter=python_interpreter)
 
 
 def _check_hostname():
