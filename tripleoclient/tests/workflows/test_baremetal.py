@@ -37,13 +37,13 @@ class TestBaremetalWorkflows(utils.TestCommand):
         self.workflow.executions.create.return_value = execution
 
         self.message_success = iter([{
-            "execution": {"id": "IDID"},
+            "execution_id": "IDID",
             "status": "SUCCESS",
             "message": "Success.",
             "registered_nodes": [],
         }])
         self.message_failed = iter([{
-            "execution": {"id": "IDID"},
+            "execution_id": "IDID",
             "status": "FAIL",
             "message": "Fail.",
         }])
@@ -127,7 +127,7 @@ class TestBaremetalWorkflows(utils.TestCommand):
     def test_provide_error_with_format_message(self):
 
         self.websocket.wait_for_messages.return_value = iter([{
-            "execution": {"id": "IDID"},
+            "execution_id": "IDID",
             "status": "FAIL",
             "message": ['Error1', 'Error2']
         }])
@@ -175,7 +175,7 @@ class TestBaremetalWorkflows(utils.TestCommand):
     def test_introspect_manageable_nodes_success(self):
 
         self.websocket.wait_for_messages.return_value = iter([{
-            "execution": {"id": "IDID"},
+            "execution_id": "IDID",
             "status": "SUCCESS",
             "introspected_nodes": {},
         }])
@@ -209,7 +209,7 @@ class TestBaremetalWorkflows(utils.TestCommand):
     def test_introspect_manageable_nodes_mixed_status(self):
 
         self.websocket.wait_for_messages.return_value = iter([{
-            "execution": {"id": "IDID"},
+            "execution_id": "IDID",
             "status": "SUCCESS",
             "introspected_nodes": {'node1': {'error': None},
                                    'node2': {'error': 'Error'}}
@@ -342,7 +342,7 @@ class TestBaremetalWorkflows(utils.TestCommand):
     def test_clean_manageable_nodes_success(self):
 
         self.websocket.wait_for_messages.return_value = iter([{
-            "execution": {"id": "IDID"},
+            "execution_id": "IDID",
             "status": "SUCCESS",
             "cleaned_nodes": [],
         }])

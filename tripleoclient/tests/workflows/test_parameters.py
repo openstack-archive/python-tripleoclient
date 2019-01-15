@@ -48,7 +48,7 @@ class TestParameterWorkflows(utils.TestCommand):
 
     def test_get_overcloud_passwords(self):
         self.websocket.wait_for_messages.return_value = iter([{
-            "execution": {"id": "IDID"},
+            "execution_id": "IDID",
             "status": "SUCCESS",
             "message": "passwords",
         }])
@@ -77,7 +77,7 @@ class TestParameterWorkflows(utils.TestCommand):
         mock_safe_load.return_value = plan_env_data
 
         self.websocket.wait_for_messages.return_value = iter([{
-            "execution": {"id": "IDID"},
+            "execution_id": "IDID",
             "status": "SUCCESS",
             "message": "",
             "result": {}
@@ -110,7 +110,7 @@ class TestParameterWorkflows(utils.TestCommand):
         mock_safe_load.return_value = plan_env_data
 
         self.websocket.wait_for_messages.return_value = iter([{
-            "execution": {"id": "IDID"},
+            "execution_id": "IDID",
             "status": "FAILED",
             "message": "workflow failure",
             "result": ""
@@ -158,7 +158,7 @@ class TestParameterWorkflows(utils.TestCommand):
 
     def test_check_deprecated_params_no_output(self):
         self.websocket.wait_for_messages.return_value = iter([{
-            "execution": {"id": "IDID"},
+            "execution_id": "IDID",
             "status": "SUCCESS",
         }])
 
@@ -176,7 +176,7 @@ class TestParameterWorkflows(utils.TestCommand):
                               'deprecated': True,
                               'user_defined': True}]
         self.websocket.wait_for_messages.return_value = iter([{
-            "execution": {"id": "IDID"},
+            "execution_id": "IDID",
             "status": "SUCCESS",
             "deprecated": deprecated_params
         }])
@@ -197,7 +197,7 @@ class TestParameterWorkflows(utils.TestCommand):
         deprecated_params = [{'parameter': 'TestParameter1',
                               'deprecated': True}]
         self.websocket.wait_for_messages.return_value = iter([{
-            "execution": {"id": "IDID"},
+            "execution_id": "IDID",
             "status": "SUCCESS",
             "deprecated": deprecated_params
         }])
@@ -215,7 +215,7 @@ class TestParameterWorkflows(utils.TestCommand):
 
     def test_generate_fencing_parameters(self):
         self.websocket.wait_for_messages.return_value = iter([{
-            "execution": {"id": "IDID"},
+            "execution_id": "IDID",
             "status": "SUCCESS",
             "fencing_parameters": "{}"
         }])

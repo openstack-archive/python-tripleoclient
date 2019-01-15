@@ -38,7 +38,7 @@ class TestCreateRAID(fakes.TestBaremetal):
         websocket = tripleoclient.messaging_websocket()
         websocket.wait_for_messages.return_value = iter([
             {'status': "SUCCESS",
-             'execution': {'id': 'IDID'}}
+             'execution_id': 'IDID'}
         ])
         self.websocket = websocket
 
