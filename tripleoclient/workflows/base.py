@@ -60,19 +60,32 @@ def wait_for_messages(mistral, websocket, execution, timeout=None):
     try:
         for payload in websocket.wait_for_messages(timeout=timeout):
             # Ignore messages whose root_execution_id does not match the
-            # id of the execution for which we are waiting.
-            if payload['execution']['id'] != execution.id and \
-                payload['execution'].get('root_execution_id', '') != \
-                    execution.id:
+            # id of the execution for which we are waiting
+
+            # New versions of tripleo-common don't sent the execution anymore
+            # but keeping the old way ot getting it is important to keep
+            # backwards compatibility.
+
+            # TODO(apetrich) payload.execution is deprecated and will be
+            # removed from stein. We should keep this until payload.execution
+            #  is removed from the LTS
+            payload_exec_id = payload.get('execution_id') or \
+                payload.get('execution', {}).get('id')
+
+            payload_root_exec_id = payload.get('root_execution_id', '') or \
+                payload.get('execution', {}).get('root_execution_id', '')
+
+            if payload_exec_id != execution.id and \
+                    payload_root_exec_id != execution.id:
 
                     LOG.debug("Ignoring message from execution %s"
-                              % payload['execution']['id'])
+                              % payload_exec_id)
             else:
                 yield payload
             # If the message is from a sub-workflow, we just need to pass it
             # on to be displayed. This should never be the last message - so
             # continue and wait for the next.
-            if payload['execution']['id'] != execution.id:
+            if payload_exec_id != execution.id:
                 continue
             # Check the status of the payload, if we are not given one
             # default to running and assume it is just an "in progress"
