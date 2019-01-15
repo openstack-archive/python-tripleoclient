@@ -156,10 +156,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'NeutronPublicInterface': 'nic1',
             'NtpServer': '',
             'SnmpdReadonlyUserPassword': 'PASSWORD',
-            'DeployIdentifier': self.time_value,
             'UpdateIdentifier': '',
             'StackAction': 'UPDATE',
-            'DeployIdentifier': '',
+            'DeployIdentifier': ''
         }
 
         def _custom_create_params_env(_self, parameters, tht_root,
@@ -384,10 +383,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'NeutronTunnelTypes': 'gre',
             'NtpServer': '',
             'SnmpdReadonlyUserPassword': 'PASSWORD',
-            'DeployIdentifier': self.time_value,
             'UpdateIdentifier': '',
             'StackAction': 'CREATE',
-            'DeployIdentifier': '',
+            'DeployIdentifier': ''
         }
 
         testcase = self
@@ -1320,11 +1318,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'NeutronPublicInterface': 'nic1',
             'NeutronTunnelTypes': 'gre',
             'SnmpdReadonlyUserPassword': 'PASSWORD',
-            'DeployIdentifier': self.time_value,
             'UpdateIdentifier': '',
             'StackAction': 'CREATE',
             'NtpServer': 'ntp',
-            'DeployIdentifier': '',
+            'DeployIdentifier': ''
         }
 
         def _custom_create_params_env(_self, parameters, tht_root,
