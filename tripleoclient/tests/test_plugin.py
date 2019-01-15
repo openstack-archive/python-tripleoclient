@@ -66,7 +66,7 @@ class TestPlugin(base.TestCase):
                 "payload": {
                     "status": 200,
                     "message": "Result for IDID",
-                    "execution": {"id": "IDID"},
+                    "execution_id": "IDID",
                 }
             }
         }, send_ack]
@@ -84,7 +84,7 @@ class TestPlugin(base.TestCase):
                 self.assertEqual(payload, {
                     "status": 200,
                     "message": "Result for IDID",
-                    "execution": {"id": "IDID"},
+                    "execution_id": "IDID",
                 })
                 # We only want to test the first message, as there is only one.
                 # The last one, the send_ack will be used by the context
