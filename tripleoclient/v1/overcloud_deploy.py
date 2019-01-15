@@ -46,9 +46,6 @@ class DeployOvercloud(command.Command):
     """Deploy Overcloud"""
 
     log = logging.getLogger(__name__ + ".DeployOvercloud")
-    predeploy_errors = 0
-    predeploy_warnings = 0
-    _password_cache = None
 
     # This may be switched on by default in the future, but for now
     # we'll want this behavior only in `overcloud update stack` and
