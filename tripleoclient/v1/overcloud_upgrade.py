@@ -166,6 +166,14 @@ class UpgradeRun(command.Command):
                             help=_("DEPRECATED: Only tripleo-admin should be "
                                    "used as ssh user.")
                             )
+        parser.add_argument('--tags',
+                            dest='tags',
+                            action="store",
+                            default="",
+                            help=_('A string specifying the tag or comma '
+                                   'separated list of tags to be passed '
+                                   'as --tags to ansible-playbook.')
+                            )
         parser.add_argument('--skip-tags',
                             dest='skip_tags',
                             action="store",
@@ -221,8 +229,9 @@ class UpgradeRun(command.Command):
                                            constants.MAJOR_UPGRADE_PLAYBOOKS,
                                            package_update,
                                            parsed_args.ssh_user,
-                                           skip_tags=skip_tags,
-                                           verbosity=verbosity)
+                                           parsed_args.tags,
+                                           skip_tags,
+                                           verbosity)
 
         playbooks = (constants.MAJOR_UPGRADE_PLAYBOOKS
                      if playbook == 'all' else playbook)
