@@ -56,7 +56,8 @@ def run_ansible_playbook(logger,
                          ansible_config=None,
                          retries=True,
                          connection='smart',
-                         output_callback='json'):
+                         output_callback='json',
+                         python_interpreter=None):
     """Simple wrapper for ansible-playbook
 
     :param logger: logger instance
@@ -83,6 +84,10 @@ def run_ansible_playbook(logger,
 
     :param output_callback: Callback for output format. Defaults to "json"
     :type output_callback: String
+
+    :param python_interpreter: Absolute path for the Python interpreter
+    on the host where Ansible is run.
+    :type python_interpreter: String
     """
     env = os.environ.copy()
     cleanup = False
@@ -104,6 +109,9 @@ def run_ansible_playbook(logger,
                                ansible_config)
     elif os.path.exists(os.path.join(workdir, ansible_config)):
         env['ANSIBLE_CONFIG'] = os.path.join(workdir, ansible_config)
+
+    if python_interpreter is not None:
+        env['ANSIBLE_PYTHON_INTERPRETER'] = python_interpreter
 
     play = os.path.join(workdir, playbook)
 
