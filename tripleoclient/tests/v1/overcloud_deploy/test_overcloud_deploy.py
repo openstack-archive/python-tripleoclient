@@ -109,6 +109,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                        mock_config_download,
                        mock_enable_ssh_admin,
                        mock_get_overcloud_hosts):
+        clients = self.app.client_manager
+        orchestration_client = clients.orchestration
+        mock_stack = fakes.create_tht_stack()
+        orchestration_client.stacks.get.return_value = mock_stack
 
         arglist = ['--templates', '--ceph-storage-scale', '3']
         verifylist = [
@@ -662,6 +666,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_tripleo_heat_templates', autospec=True)
     def test_missing_sat_url(self, mock_deploy_tht):
+        clients = self.app.client_manager
+        orchestration_client = clients.orchestration
+        mock_stack = fakes.create_tht_stack()
+        orchestration_client.stacks.get.return_value = mock_stack
 
         arglist = ['--templates', '--rhel-reg',
                    '--reg-method', 'satellite', '--reg-org', '123456789',
@@ -957,6 +965,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                       mock_get_overcloud_hosts):
 
         clients = self.app.client_manager
+        orchestration_client = clients.orchestration
+        mock_stack = fakes.create_tht_stack()
+        orchestration_client.stacks.get.return_value = mock_stack
+
         workflow_client = clients.workflow_engine
         workflow_client.action_executions.create.return_value = mock.MagicMock(
             output='{"result":[]}')
@@ -1024,6 +1036,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                              mock_config_download,
                              mock_enable_ssh_admin,
                              mock_get_overcloud_hosts):
+        clients = self.app.client_manager
+        orchestration_client = clients.orchestration
+        mock_stack = fakes.create_tht_stack()
+        orchestration_client.stacks.get.return_value = mock_stack
 
         arglist = ['--templates', '--rhel-reg',
                    '--reg-sat-url', 'https://example.com',
@@ -1221,7 +1237,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                      mock_oc_endpoint,
                      mock_create_ocrc,
                      mock_create_tempest_deployer_input):
-
+        clients = self.app.client_manager
+        orchestration_client = clients.orchestration
+        mock_stack = fakes.create_tht_stack()
+        orchestration_client.stacks.get.return_value = mock_stack
         arglist = ['--templates', '--dry-run']
         verifylist = [
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
@@ -1263,6 +1282,11 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                           mock_config_download,
                           mock_enable_ssh_admin,
                           mock_get_overcloud_hosts):
+        clients = self.app.client_manager
+        orchestration_client = clients.orchestration
+        mock_stack = fakes.create_tht_stack()
+        orchestration_client.stacks.get.return_value = mock_stack
+
         clients = self.app.client_manager
 
         workflow_client = clients.workflow_engine
@@ -1385,6 +1409,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                   mock_write_overcloudrc,
                                   mock_create_parameters_env,
                                   mock_tarball):
+        clients = self.app.client_manager
+        orchestration_client = clients.orchestration
+        mock_stack = fakes.create_tht_stack()
+        orchestration_client.stacks.get.return_value = mock_stack
 
         arglist = ['--templates', '--control-scale', '3']
         verifylist = [
@@ -1641,7 +1669,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mock_get_overcloud_hosts):
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
-        orchestration_client.stacks.get.return_value = mock.Mock()
+        orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
 
         arglist = ['--templates', '--disable-validations']
         verifylist = [
@@ -1677,7 +1705,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mock_get_overcloud_hosts):
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
-        orchestration_client.stacks.get.return_value = mock.Mock()
+        orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
 
         arglist = ['--templates']
         verifylist = [
@@ -1703,7 +1731,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mock_overcloud_endpoint, mock_get_horizon_url):
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
-        orchestration_client.stacks.get.return_value = mock.Mock()
+        orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
         self.cmd._predeploy_verify_capabilities = mock.Mock(
             return_value=(1, 0))
 
@@ -1751,7 +1779,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         clients.baremetal = mock.Mock()
         clients.compute = mock.Mock()
         orchestration_client = clients.orchestration
-        orchestration_client.stacks.get.return_value = mock.Mock()
+        orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         self.cmd.take_action(parsed_args)
         self.assertTrue(mock_deploy_tmpdir.called)
@@ -1802,7 +1830,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mock_get_overcloud_hosts):
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
-        orchestration_client.stacks.get.return_value = mock.Mock()
+        orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
 
         arglist = ['--templates', '--config-download']
         verifylist = [

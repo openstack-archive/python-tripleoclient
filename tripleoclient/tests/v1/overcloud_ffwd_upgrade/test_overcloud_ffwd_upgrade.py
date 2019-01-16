@@ -65,8 +65,7 @@ class TestFFWDUpgradePrepare(fakes.TestFFWDUpgradePrepare):
                           mock_prepend_env,
                           mock_write_overcloudrc,
                           mock_overcloudrc):
-
-        mock_stack = mock.Mock()
+        mock_stack = mock.Mock(parameters={'DeployIdentifier': ''})
         mock_stack.stack_name = 'mystack'
         mock_get_stack.return_value = mock_stack
         mock_yaml.return_value = {'fake_container': 'fake_value'}
@@ -93,6 +92,7 @@ class TestFFWDUpgradePrepare(fakes.TestFFWDUpgradePrepare):
         mock_write_overcloudrc.assert_called_once_with("mystack",
                                                        mock.ANY)
 
+    @mock.patch('tripleoclient.utils.get_stack', autospec=True)
     @mock.patch('tripleoclient.utils.prepend_environment', autospec=True)
     @mock.patch('tripleoclient.workflows.package_update.update',
                 autospec=True)
@@ -104,7 +104,11 @@ class TestFFWDUpgradePrepare(fakes.TestFFWDUpgradePrepare):
                 '_deploy_tripleo_heat_templates', autospec=True)
     def test_ffwd_upgrade_failed(
         self, mock_deploy, mock_copy, mock_yaml, mock_abspath, mock_open,
-            mock_ffwd_upgrade, mock_prepend_env):
+            mock_ffwd_upgrade, mock_prepend_env, mock_get_stack):
+
+        mock_stack = mock.Mock(parameters={'DeployIdentifier': ''})
+        mock_stack.stack_name = 'overcloud'
+        mock_get_stack.return_value = mock_stack
         mock_ffwd_upgrade.side_effect = exceptions.DeploymentError()
         mock_yaml.return_value = {'fake_container': 'fake_value'}
         argslist = ['--stack', 'overcloud', '--templates',

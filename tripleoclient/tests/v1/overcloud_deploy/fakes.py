@@ -26,6 +26,7 @@ FAKE_STACK = {
         'ObjectStorageCount': 0,
         'BlockStorageCount': 0,
         'CephStorageCount': 0,
+        'DeployIdentifier': '',
     },
     'stack_name': 'overcloud',
     'stack_status': "CREATE_COMPLETE",

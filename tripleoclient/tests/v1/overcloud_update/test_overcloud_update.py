@@ -51,7 +51,7 @@ class TestOvercloudUpdatePrepare(fakes.TestOvercloudUpdatePrepare):
     def test_update_out(self, mock_deploy, mock_open, mock_copy, mock_yaml,
                         mock_abspath, mock_update, mock_logger,
                         mock_get_stack):
-        mock_stack = mock.Mock()
+        mock_stack = mock.Mock(parameters={'DeployIdentifier': ''})
         mock_stack.stack_name = 'mystack'
         mock_get_stack.return_value = mock_stack
         mock_yaml.return_value = {'fake_container': 'fake_value'}
@@ -76,6 +76,8 @@ class TestOvercloudUpdatePrepare(fakes.TestOvercloudUpdatePrepare):
                                       '/site-docker.yml.sample'
             )
 
+    @mock.patch('tripleoclient.utils.get_stack',
+                autospec=True)
     @mock.patch('tripleoclient.workflows.package_update.update',
                 autospec=True)
     @mock.patch('six.moves.builtins.open')
@@ -85,7 +87,11 @@ class TestOvercloudUpdatePrepare(fakes.TestOvercloudUpdatePrepare):
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_tripleo_heat_templates', autospec=True)
     def test_update_failed(self, mock_deploy, mock_copy, mock_yaml,
-                           mock_abspath, mock_open, mock_update):
+                           mock_abspath, mock_open, mock_update,
+                           mock_get_stack):
+        mock_stack = mock.Mock(parameters={'DeployIdentifier': ''})
+        mock_stack.stack_name = 'overcloud'
+        mock_get_stack.return_value = mock_stack
         mock_update.side_effect = exceptions.DeploymentError()
         mock_yaml.return_value = {'fake_container': 'fake_value'}
         argslist = ['--stack', 'overcloud', '--templates', ]
