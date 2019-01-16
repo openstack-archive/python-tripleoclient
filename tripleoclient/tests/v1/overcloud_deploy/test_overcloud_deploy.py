@@ -109,6 +109,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                        mock_events):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
+        clients = self.app.client_manager
+        orchestration_client = clients.orchestration
+        mock_stack = fakes.create_tht_stack()
+        orchestration_client.stacks.get.return_value = mock_stack
         plane_management_fixture = deployment.PlanManagementFixture()
         self.useFixture(plane_management_fixture)
         utils_fixture = deployment.UtilsFixture()
@@ -578,6 +582,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_tripleo_heat_templates', autospec=True)
     def test_missing_sat_url(self, mock_deploy_tht):
+        clients = self.app.client_manager
+        orchestration_client = clients.orchestration
+        mock_stack = fakes.create_tht_stack()
+        orchestration_client.stacks.get.return_value = mock_stack
 
         arglist = ['--templates', '--rhel-reg',
                    '--reg-method', 'satellite', '--reg-org', '123456789',
@@ -825,6 +833,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.useFixture(utils_fixture)
 
         clients = self.app.client_manager
+        orchestration_client = clients.orchestration
+        mock_stack = fakes.create_tht_stack()
+        orchestration_client.stacks.get.return_value = mock_stack
+
         workflow_client = clients.workflow_engine
         workflow_client.action_executions.create.return_value = mock.MagicMock(
             output='{"result":[]}')
@@ -867,6 +879,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                              mock_deploy_postconfig,
                              mock_breakpoints_cleanup,
                              mock_events):
+        clients = self.app.client_manager
+        orchestration_client = clients.orchestration
+        mock_stack = fakes.create_tht_stack()
+        orchestration_client.stacks.get.return_value = mock_stack
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         plane_management_fixture = deployment.PlanManagementFixture()
@@ -1062,6 +1078,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_dry_run(self, mock_create_tempest_deployer_input):
         utils_fixture = deployment.UtilsOvercloudFixture()
         self.useFixture(utils_fixture)
+        clients = self.app.client_manager
+        orchestration_client = clients.orchestration
+        mock_stack = fakes.create_tht_stack()
+        orchestration_client.stacks.get.return_value = mock_stack
         arglist = ['--templates', '--dry-run']
         verifylist = [
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
@@ -1082,6 +1102,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                           mock_heat_deploy):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
+        clients = self.app.client_manager
+        orchestration_client = clients.orchestration
+        mock_stack = fakes.create_tht_stack()
+        orchestration_client.stacks.get.return_value = mock_stack
         plane_management_fixture = deployment.PlanManagementFixture()
         self.useFixture(plane_management_fixture)
         utils_fixture = deployment.UtilsOvercloudFixture()
@@ -1202,6 +1226,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                   mock_create_parameters_env):
         plane_management_fixture = deployment.PlanManagementFixture()
         self.useFixture(plane_management_fixture)
+        clients = self.app.client_manager
+        orchestration_client = clients.orchestration
+        mock_stack = fakes.create_tht_stack()
+        orchestration_client.stacks.get.return_value = mock_stack
 
         arglist = ['--templates', '--control-scale', '3']
         verifylist = [
@@ -1429,7 +1457,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         clients.baremetal = mock.Mock()
         clients.compute = mock.Mock()
         orchestration_client = clients.orchestration
-        orchestration_client.stacks.get.return_value = mock.Mock()
+        orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         self.cmd.take_action(parsed_args)
         self.assertTrue(mock_deploy_tmpdir.called)
@@ -1467,7 +1495,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.useFixture(utils_fixture)
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
-        orchestration_client.stacks.get.return_value = mock.Mock()
+        orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
 
         arglist = ['--templates', '--config-download']
         verifylist = [
@@ -1498,7 +1526,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.useFixture(utils_fixture)
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
-        orchestration_client.stacks.get.return_value = mock.Mock()
+        orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
 
         arglist = ['--templates', '--config-download-only']
         verifylist = [
@@ -1533,7 +1561,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.useFixture(fixture)
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
-        orchestration_client.stacks.get.return_value = mock.Mock()
+        orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
 
         arglist = ['--templates', '--config-download-only']
         verifylist = [
@@ -1569,7 +1597,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.useFixture(utils_fixture)
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
-        orchestration_client.stacks.get.return_value = mock.Mock()
+        orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
 
         arglist = ['--templates',
                    '--override-ansible-cfg', 'ansible.cfg']
@@ -1598,7 +1626,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.useFixture(utils_fixture)
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
-        orchestration_client.stacks.get.return_value = mock.Mock()
+        orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
 
         arglist = ['--templates', '--config-download-timeout', '240']
         verifylist = [

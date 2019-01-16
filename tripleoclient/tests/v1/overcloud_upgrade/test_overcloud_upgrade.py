@@ -68,7 +68,7 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
                          mock_overcloudrc,
                          mock_enable_ssh_admin):
 
-        mock_stack = mock.Mock()
+        mock_stack = mock.Mock(parameters={'DeployIdentifier': ''})
         mock_stack.stack_name = 'overcloud'
         mock_get_stack.return_value = mock_stack
         mock_yaml.return_value = {'fake_container': 'fake_value'}
@@ -96,6 +96,8 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
             parsed_args.overcloud_ssh_network,
             parsed_args.overcloud_ssh_user, parsed_args.overcloud_ssh_key)
 
+    @mock.patch('tripleoclient.utils.get_stack',
+                autospec=True)
     @mock.patch('tripleoclient.utils.prepend_environment', autospec=True)
     @mock.patch('tripleoclient.workflows.package_update.update',
                 autospec=True)
@@ -106,9 +108,13 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_tripleo_heat_templates', autospec=True)
     def test_upgrade_failed(self, mock_deploy, mock_copy, mock_yaml,
-                            mock_abspath, mock_open, mock_upgrade, add_env):
+                            mock_abspath, mock_open, mock_upgrade,
+                            add_env, mock_get_stack):
         mock_upgrade.side_effect = exceptions.DeploymentError()
         mock_yaml.return_value = {'fake_container': 'fake_value'}
+        mock_stack = mock.Mock(parameters={'DeployIdentifier': ''})
+        mock_stack.stack_name = 'overcloud'
+        mock_get_stack.return_value = mock_stack
         add_env = mock.Mock()
         add_env.return_value = True
         argslist = ['--stack', 'overcloud', '--templates', ]
