@@ -110,16 +110,18 @@ def run_ansible_playbook(logger,
     elif os.path.exists(os.path.join(workdir, ansible_config)):
         env['ANSIBLE_CONFIG'] = os.path.join(workdir, ansible_config)
 
-    if python_interpreter is not None:
-        env['ANSIBLE_PYTHON_INTERPRETER'] = python_interpreter
-
     play = os.path.join(workdir, playbook)
 
     if os.path.exists(play):
         cmd = ["ansible-playbook-{}".format(sys.version_info[0]),
                '-i', inventory,
-               '-c', connection, play
                ]
+        if python_interpreter is not None:
+            cmd.extend(['-e', 'ansible_python_interpreter=%s' %
+                              python_interpreter])
+
+        cmd.extend(['-c', connection, play])
+
         proc = run_command_and_log(logger, cmd, env=env, retcode_only=False)
         proc.wait()
         cleanup and os.unlink(tmp_config)
