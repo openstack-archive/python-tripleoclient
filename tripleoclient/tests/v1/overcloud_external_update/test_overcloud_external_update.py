@@ -61,4 +61,5 @@ class TestOvercloudExternalUpdateRun(fakes.TestOvercloudExternalUpdateRun):
                 node_user='tripleo-admin',
                 tags='ceph',
                 skip_tags='',
+                verbosity=1
             )
