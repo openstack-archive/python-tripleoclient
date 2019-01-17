@@ -190,6 +190,7 @@ class UpgradeRun(command.Command):
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
         clients = self.app.client_manager
+        verbosity = self.app_args.verbose_level
         stack = parsed_args.stack
 
         # Run ansible:
@@ -205,7 +206,8 @@ class UpgradeRun(command.Command):
                                            constants.MAJOR_UPGRADE_PLAYBOOKS,
                                            package_update,
                                            parsed_args.ssh_user,
-                                           skip_tags=skip_tags)
+                                           skip_tags=skip_tags,
+                                           verbosity=verbosity)
 
         playbooks = (constants.MAJOR_UPGRADE_PLAYBOOKS
                      if playbook == 'all' else playbook)

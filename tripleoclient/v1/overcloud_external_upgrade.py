@@ -85,6 +85,7 @@ class ExternalUpgradeRun(command.Command):
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
         clients = self.app.client_manager
+        verbosity = self.app_args.verbose_level
         stack = parsed_args.stack
 
         # Run ansible:
@@ -96,6 +97,7 @@ class ExternalUpgradeRun(command.Command):
             self.log, clients, limit_hosts, inventory, playbook,
             constants.EXTERNAL_UPGRADE_PLAYBOOKS,
             package_update, parsed_args.ssh_user,
-            tags=parsed_args.tags, skip_tags=parsed_args.skip_tags)
+            tags=parsed_args.tags, skip_tags=parsed_args.skip_tags,
+            verbosity=verbosity)
 
         self.log.info("Completed Overcloud External Upgrade Run.")
