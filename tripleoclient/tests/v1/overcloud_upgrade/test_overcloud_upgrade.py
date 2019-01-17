@@ -164,7 +164,8 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                 inventory_file=mock_open().read(),
                 playbook='fake-playbook.yaml',
                 node_user='tripleo-admin',
-                skip_tags=''
+                skip_tags='',
+                verbosity=1
             )
 
     @mock.patch('tripleoclient.workflows.package_update.update_ansible',
@@ -195,7 +196,8 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                     inventory_file=mock_open().read(),
                     playbook=book,
                     node_user='heat-admin',
-                    skip_tags='validation'
+                    skip_tags='validation',
+                    verbosity=1
                 )
 
     @mock.patch('tripleoclient.workflows.package_update.update_ansible',
@@ -224,7 +226,8 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                 inventory_file=mock_open().read(),
                 playbook='fake-playbook.yaml',
                 node_user='heat-admin',
-                skip_tags=''
+                skip_tags='',
+                verbosity=1
             )
 
     @mock.patch('tripleoclient.workflows.package_update.update_ansible',
@@ -253,7 +256,8 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                     inventory_file=mock_open().read(),
                     playbook=book,
                     node_user='heat-admin',
-                    skip_tags=''
+                    skip_tags='',
+                    verbosity=1
                 )
 
     @mock.patch('tripleoclient.workflows.package_update.update_ansible',
@@ -284,7 +288,8 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                     inventory_file=mock_open().read(),
                     playbook=book,
                     node_user='heat-admin',
-                    skip_tags='pre-upgrade,validation'
+                    skip_tags='pre-upgrade,validation',
+                    verbosity=1
                 )
 
     @mock.patch('tripleoclient.workflows.package_update.update_ansible',
