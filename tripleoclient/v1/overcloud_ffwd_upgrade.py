@@ -65,8 +65,7 @@ class FFWDUpgradePrepare(DeployOvercloud):
         package_update.run_on_nodes(
             clients, server_name='all',
             config_name='ffwd-upgrade-prepare',
-            config=constants.FFWD_UPGRADE_PREPARE_SCRIPT, group='script',
-            queue_name=constants.FFWD_UPGRADE_QUEUE)
+            config=constants.FFWD_UPGRADE_PREPARE_SCRIPT, group='script')
 
         # In case of update and upgrade we need to force the
         # update_plan_only. The heat stack update is done by the
@@ -156,8 +155,8 @@ class FFWDUpgradeRun(command.Command):
         limit_hosts = ''
         oooutils.run_update_ansible_action(
             self.log, clients, limit_hosts, inventory,
-            constants.FFWD_UPGRADE_PLAYBOOK, constants.FFWD_UPGRADE_QUEUE,
-            [], package_update, parsed_args.ssh_user)
+            constants.FFWD_UPGRADE_PLAYBOOK, [], package_update,
+            parsed_args.ssh_user)
 
 
 class FFWDUpgradeConverge(DeployOvercloud):
