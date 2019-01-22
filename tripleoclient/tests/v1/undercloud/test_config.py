@@ -31,6 +31,7 @@ from oslo_config import fixture as oslo_fixture
 
 from tripleo_common.image import kolla_builder
 
+from tripleoclient import exceptions
 from tripleoclient.tests import base
 from tripleoclient.v1 import undercloud_config
 
@@ -172,6 +173,15 @@ class TestNetworkSettings(base.TestCase):
                     'NetworkCidr': '192.168.24.0/24',
                     'NetworkGateway': '192.168.24.1'}}}
         self.assertEqual(expected, env)
+
+    def test_nameserver_toomany_fail(self):
+        env = {}
+        self.conf.config(undercloud_nameservers=['1.1.1.1', '1.1.1.2',
+                                                 '1.1.1.3', '1.1.1.4',
+                                                 '1.1.1.5', '1.1.1.6'])
+        self.assertRaises(exceptions.InvalidConfiguration,
+                          undercloud_config._process_network_args,
+                          env)
 
     def test_start_end_all_addresses(self):
         self.conf.config(dhcp_start='192.168.24.0',
