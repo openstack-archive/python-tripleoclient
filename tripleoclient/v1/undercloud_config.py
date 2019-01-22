@@ -20,6 +20,7 @@ import logging
 import netaddr
 import os
 import shutil
+import sys
 
 from cryptography import x509
 
@@ -362,6 +363,8 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
     # Set the undercloud home dir parameter so that stackrc is produced in
     # the users home directory.
     env_data['UndercloudHomeDir'] = USER_HOME
+
+    env_data['PythonInterpreter'] = sys.executable
 
     for param_key, param_value in PARAMETER_MAPPING.items():
         if param_key in CONF.keys():
