@@ -106,6 +106,18 @@ class Deploy(command.Command):
     ansible_playbook_cmd = "ansible-playbook-{}".format(python_version)
     python_cmd = "python{}".format(python_version)
 
+    # https://bugs.launchpad.net/tripleo/+bug/1812837
+    if not os.path.exists('/usr/bin/ansible-playbook'):
+        if os.path.exists('/usr/bin/' + ansible_playbook_cmd):
+            if not os.path.exists('/usr/local/bin/ansible-playbook'):
+                os.symlink('/usr/bin/' + ansible_playbook_cmd,
+                           '/usr/local/bin/ansible-playbook')
+    else:
+        if not os.path.exists('/usr/bin/' + ansible_playbook_cmd):
+            if not os.path.exists('/usr/local/bin/' + ansible_playbook_cmd):
+                os.symlink('/usr/bin/ansible-playbook',
+                           '/usr/local/bin/' + ansible_playbook_cmd)
+
     def _is_undercloud_deploy(self, parsed_args):
         return parsed_args.standalone_role == 'Undercloud' and \
             parsed_args.stack == 'undercloud'
