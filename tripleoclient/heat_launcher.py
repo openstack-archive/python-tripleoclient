@@ -120,7 +120,8 @@ class HeatBaseLauncher(object):
             # This one may fail but it's just cleanup.
             p = subprocess.Popen(['umount', heatdir],
                                  stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE)
+                                 stderr=subprocess.PIPE,
+                                 universal_newlines=True)
             cmd_stdout, cmd_stderr = p.communicate()
             retval = p.returncode
             if retval != 0:
