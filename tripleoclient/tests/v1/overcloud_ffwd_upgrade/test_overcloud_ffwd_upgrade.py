@@ -168,7 +168,8 @@ class TestFFWDUpgradeRun(fakes.TestFFWDUpgradeRun):
                 playbook=constants.FFWD_UPGRADE_PLAYBOOK,
                 node_user='heat-admin',
                 tags='',
-                skip_tags=''
+                skip_tags='',
+                verbosity=1
             )
 
     @mock.patch('tripleoclient.workflows.package_update.update_ansible',
@@ -193,7 +194,8 @@ class TestFFWDUpgradeRun(fakes.TestFFWDUpgradeRun):
                 playbook=constants.FFWD_UPGRADE_PLAYBOOK,
                 node_user='my-user',
                 tags='',
-                skip_tags=''
+                skip_tags='',
+                verbosity=1
             )
 
     @mock.patch('tripleoclient.workflows.package_update.update_ansible',

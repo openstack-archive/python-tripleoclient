@@ -144,7 +144,7 @@ class FFWDUpgradeRun(command.Command):
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
         oooutils.ffwd_upgrade_operator_confirm(parsed_args.yes, self.log)
-
+        verbosity = self.app_args.verbose_level
         clients = self.app.client_manager
 
         # Run ansible:
@@ -156,7 +156,7 @@ class FFWDUpgradeRun(command.Command):
         oooutils.run_update_ansible_action(
             self.log, clients, limit_hosts, inventory,
             constants.FFWD_UPGRADE_PLAYBOOK, [], package_update,
-            parsed_args.ssh_user)
+            parsed_args.ssh_user, verbosity=verbosity)
 
 
 class FFWDUpgradeConverge(DeployOvercloud):
