@@ -39,7 +39,14 @@ def update(clients, **workflow_input):
 
         for payload in base.wait_for_messages(workflow_client, ws, execution,
                                               _WORKFLOW_TIMEOUT):
-            assert payload['status'] == "SUCCESS", pprint.pformat(payload)
+            status = payload.get('status', 'RUNNING')
+            message = payload.get('message')
+            if message and status == "RUNNING":
+                print(message)
+
+        if payload['status'] == "FAILED":
+            raise RuntimeError('Upgrade failed with: {}'
+                               ''.format(payload['message']))
 
     orchestration_client = clients.orchestration
 
@@ -95,7 +102,7 @@ def update_ansible(clients, **workflow_input):
     if payload['status'] == 'SUCCESS':
         print("Success")
     else:
-        raise RuntimeError('Update failed with: {}'.format(payload))
+        raise RuntimeError('Update failed with: {}'.format(payload['message']))
 
 
 def update_converge_nodes(clients, **workflow_input):
