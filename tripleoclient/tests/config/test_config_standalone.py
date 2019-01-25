@@ -36,6 +36,7 @@ class TestStandaloneConfig(base.TestCase):
                     'heat_native',
                     'hieradata_override',
                     'net_config_override',
+                    'networks_file',
                     'output_dir',
                     'roles_file',
                     'templates']
@@ -105,6 +106,7 @@ class TestStandaloneConfig(base.TestCase):
                     'heat_native',
                     'hieradata_override',
                     'net_config_override',
+                    'networks_file',
                     'output_dir',
                     'roles_file',
                     'templates']

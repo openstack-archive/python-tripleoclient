@@ -91,6 +91,29 @@ class TestDeployUndercloud(TestPluginV1):
         self.assertEqual(roles_file,
                          '/tmp/thtroot/roles_data_undercloud.yaml')
 
+    def test_get_networks_file_path(self):
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--local-ip', '127.0.0.1/8'], [])
+
+        networks_file = self.cmd._get_networks_file_path(parsed_args)
+        self.assertEqual('/dev/null', networks_file)
+
+    def test_get_networks_file_path_custom_file(self):
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--local-ip', '127.0.0.1/8',
+                                         '--networks-file', 'foobar.yaml'], [])
+
+        networks_file = self.cmd._get_networks_file_path(parsed_args)
+        self.assertEqual('foobar.yaml', networks_file)
+
+    def test_get_networks_file_path_custom_templates(self):
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--local-ip', '127.0.0.1/8',
+                                         '--templates', '/tmp/thtroot'], [])
+
+        networks_file = self.cmd._get_networks_file_path(parsed_args)
+        self.assertEqual('/dev/null', networks_file)
+
     def test_get_plan_env_file_path(self):
         parsed_args = self.check_parser(self.cmd,
                                         ['--local-ip', '127.0.0.1/8'], [])
@@ -575,8 +598,8 @@ class TestDeployUndercloud(TestPluginV1):
         self.cmd.output_dir = 'tht_to'
         self.cmd.tht_render = 'tht_from'
         self.cmd.stack_action = 'UPDATE'
-        environment = self.cmd._setup_heat_environments(parsed_args.roles_file,
-                                                        parsed_args)
+        environment = self.cmd._setup_heat_environments(
+            parsed_args.roles_file, parsed_args.networks_file, parsed_args)
 
         self.assertIn(dropin, environment)
         mock_open.assert_has_calls([mock.call(dropin, 'w')])
@@ -746,7 +769,8 @@ class TestDeployUndercloud(TestPluginV1):
         with mock.patch('os.path.abspath', side_effect=abs_path_stub):
             with mock.patch('os.path.isfile'):
                 environment = self.cmd._setup_heat_environments(
-                    parsed_args.roles_file, parsed_args)
+                    parsed_args.roles_file, parsed_args.networks_file,
+                    parsed_args)
 
                 self.assertEqual(expected_env, environment)
 

@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Standalone deployment now support for custom networks data
+    (``network_data.yaml``). By default Standalone deploys with no networks
+    data (all services on the ctlplane network). The new option
+    ``networks_file`` can be used to provide custom networks data.
