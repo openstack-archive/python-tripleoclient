@@ -288,12 +288,6 @@ def wait_for_stack_ready(orchestration_client, stack_name, marker=None,
     return stack_status == '%s_COMPLETE' % action
 
 
-def nodes_in_states(baremetal_client, states):
-    """List the introspectable nodes with the right provision_states."""
-    nodes = baremetal_client.node.list(maintenance=False, associated=False)
-    return [node for node in nodes if node.provision_state in states]
-
-
 def wait_for_provision_state(baremetal_client, node_uuid, provision_state,
                              loops=10, sleep=1):
     """Wait for a given Provisioning state in Ironic
@@ -438,30 +432,6 @@ def get_endpoint_map(stack):
     return endpoint_map
 
 
-def get_role_data(stack):
-    role_data = {}
-    for output in stack.to_dict().get('outputs', {}):
-        if output['output_key'] == 'RoleData':
-            for role in output['output_value']:
-                role_data[role] = output['output_value'][role]
-    return role_data
-
-
-def get_role_config(stack):
-    role_data = {}
-    for output in stack.to_dict().get('outputs', {}):
-        if output['output_key'] == 'RoleConfig':
-            for role in output['output_value']:
-                role_data[role] = output['output_value'][role]
-    return role_data
-
-
-def get_role_net_hostname_map(stack):
-    for output in stack.to_dict().get('outputs', {}):
-        if output['output_key'] == 'RoleNetHostnameMap':
-            return output['output_value']
-
-
 def get_blacklisted_ip_addresses(stack):
     for output in stack.to_dict().get('outputs', {}):
         if output['output_key'] == 'BlacklistedIpAddresses':
@@ -471,12 +441,6 @@ def get_blacklisted_ip_addresses(stack):
 def get_role_net_ip_map(stack):
     for output in stack.to_dict().get('outputs', {}):
         if output['output_key'] == 'RoleNetIpMap':
-            return output['output_value']
-
-
-def get_hosts_entry(stack):
-    for output in stack.to_dict().get('outputs', {}):
-        if output['output_key'] == 'HostsEntry':
             return output['output_value']
 
 
