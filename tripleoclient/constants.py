@@ -79,3 +79,6 @@ ENABLE_SSH_ADMIN_SSH_PORT_TIMEOUT = 300
 ADDITIONAL_ARCHITECTURES = ['ppc64le']
 
 ANSIBLE_VALIDATION_DIR = '/usr/share/openstack-tripleo-validations/validations'
+
+# The path to the local CA certificate installed on the undercloud
+LOCAL_CACERT_PATH = '/etc/pki/ca-trust/source/anchors/cm-local-ca.pem'
