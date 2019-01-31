@@ -20,6 +20,7 @@ import logging
 import mock
 import os
 import os.path
+import shutil
 import socket
 import subprocess
 import tempfile
@@ -37,6 +38,7 @@ import yaml
 from tripleoclient import exceptions
 from tripleoclient import utils
 
+from six.moves.configparser import ConfigParser
 from six.moves.urllib import error as url_error
 
 
@@ -1302,3 +1304,44 @@ class TestCheckEnvForProxy(TestCase):
         self.assertRaises(RuntimeError,
                           utils.check_env_for_proxy,
                           ['foo', 'bar'])
+
+
+class TestConfigParser(TestCase):
+    def setUp(self):
+        self.tmp_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        if self.tmp_dir:
+            shutil.rmtree(self.tmp_dir)
+            self.tmp_dir = None
+
+    def test_get_config_value(self):
+        cfile, cfile_name = tempfile.mkstemp(dir=self.tmp_dir)
+        cfp = open(cfile_name, 'w')
+        cfg = ConfigParser()
+        cfg.add_section('foo')
+        cfg.set('foo', 'bar', 'baz')
+        cfg.write(cfp)
+        cfp.close()
+        config = utils.get_config_value(cfile_name, 'foo', 'bar')
+        self.assertEqual(config, 'baz')
+
+    def test_get_config_value_multiple_files(self):
+        _, cfile1_name = tempfile.mkstemp(dir=self.tmp_dir, text=True)
+        _, cfile2_name = tempfile.mkstemp(dir=self.tmp_dir, text=True)
+        cfiles = [cfile1_name, cfile2_name]
+        cfg = ConfigParser()
+        cfg.add_section('foo')
+        cfg.set('foo', 'bar', 'baz')
+        with open(cfile1_name, 'w') as fp:
+            cfg.write(fp)
+        cfg.set('foo', 'bar', 'boop')
+        with open(cfile2_name, 'w') as fp:
+            cfg.write(fp)
+        config = utils.get_config_value(cfiles, 'foo', 'bar')
+        self.assertEqual(config, 'boop')
+
+    def test_get_config_value_bad_file(self):
+        self.assertRaises(exceptions.NotFound,
+                          utils.get_config_value,
+                          'does-not-exist', 'foo', 'bar')

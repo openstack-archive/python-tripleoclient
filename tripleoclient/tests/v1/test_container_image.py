@@ -500,7 +500,52 @@ class TestContainerImageBuild(TestPluginV1):
         mock_builder.return_value.build_images.assert_called_once_with([
             self.default_kolla_conf, '/tmp/kolla.conf',
             path
-        ], [])
+        ], [], False, None)
+
+    @mock.patch('os.fdopen', autospec=True)
+    @mock.patch('tempfile.mkdtemp')
+    @mock.patch('tempfile.mkstemp')
+    @mock.patch('tripleoclient.v1.container_image.BuildImage.kolla_cfg')
+    @mock.patch('tripleo_common.image.builder.buildah.BuildahBuilder',
+                autospec=True)
+    @mock.patch('tripleo_common.image.kolla_builder.KollaImageBuilder',
+                autospec=True)
+    @mock.patch('os.remove')
+    def test_container_image_build_with_buildah(self, mock_remove,
+                                                mock_builder, mock_buildah,
+                                                mock_kolla_cfg, mock_mkstemp,
+                                                mock_mkdtemp, mock_fdopen):
+        arglist = [
+            '--config-file',
+            '/tmp/bar.yaml',
+            '--kolla-config-file',
+            '/tmp/kolla.conf',
+            '--use-buildah'
+        ]
+
+        parsed_args = self.check_parser(self.cmd, arglist, [])
+        deps = '{"base": ["qrouterd"]}'
+        mock_builder.return_value.build_images.return_value = deps
+
+        mock_mkstemp.return_value = (1, '/tmp/whatever_file')
+        mock_mkdtemp.return_value = '/tmp/whatever_dir'
+
+        mock_bb = mock.MagicMock()
+        mock_bb.build_all = mock.MagicMock()
+        mock_buildah.return_value = mock_bb
+        self.cmd.take_action(parsed_args)
+
+        cfg_files = list(parsed_args.kolla_config_files)
+        cfg_files.append('/tmp/whatever_file')
+        cfg_calls = [
+            mock.call(cfg_files, 'base'),
+            mock.call(cfg_files, 'type'),
+            mock.call(cfg_files, 'tag'),
+            mock.call(cfg_files, 'namespace'),
+            mock.call(cfg_files, 'registry'),
+        ]
+        mock_kolla_cfg.assert_has_calls(cfg_calls)
+        mock_bb.build_all.assert_called_once()
 
     @mock.patch('tripleo_common.image.kolla_builder.KollaImageBuilder',
                 autospec=True)
@@ -532,7 +577,7 @@ class TestContainerImageBuild(TestPluginV1):
         mock_builder.return_value.build_images.assert_called_once_with([
             self.default_kolla_conf, '/tmp/kolla.conf',
             path
-        ], ['foo', 'bar'])
+        ], ['foo', 'bar'], False, None)
 
     @mock.patch('tripleo_common.image.kolla_builder.KollaImageBuilder',
                 autospec=True)
