@@ -1089,7 +1089,8 @@ class Deploy(command.Command):
             raise exceptions.DeploymentError(msg)
 
         target = override_file
-        data = open(target, 'r').read()
+        with open(target, 'rb') as fb:
+            data = fb.read()
         if not data.strip():
             # since an empty file isn't valid yaml, let's be more specific
             msg = (_("hieradata override file (%s) cannot be empty") % target)
