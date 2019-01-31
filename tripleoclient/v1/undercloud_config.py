@@ -335,6 +335,11 @@ def _process_network_args(env):
                 env['UndercloudCtlplaneSubnets'][subnet].update(
                     {param_value: s[param_key]})
     env['MasqueradeNetworks'] = _generate_masquerade_networks()
+    if len(CONF['undercloud_nameservers']) > 5:
+        raise exceptions.InvalidConfiguration('Too many nameservers provided. '
+                                              'Please provide less than 6 '
+                                              'servers in undercloud_'
+                                              'nameservers.')
     env['DnsServers'] = ','.join(CONF['undercloud_nameservers'])
 
 
