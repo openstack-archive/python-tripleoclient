@@ -12,6 +12,7 @@
 #   License for the specific language governing permissions and limitations
 #   under the License.
 
+from argparse import _StoreAction
 import logging
 
 from osc_lib.command import command
@@ -33,3 +34,24 @@ class Command(command.Command):
 
 class Lister(Command, command.Lister):
     pass
+
+
+class DeprecatedActionStore(_StoreAction):
+    """To deprecated an option an store the value"""
+    log = logging.getLogger(__name__)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        """Display the warning message"""
+        if len(self.option_strings) == 1:
+            message = 'The option {option} is deprecated, it will be removed'\
+                      ' in a future version'.format(
+                              option=self.option_strings[0])
+        else:
+            option = ', '.join(self.option_strings)
+            message = 'The options {option} is deprecated, it will be removed'\
+                      ' in a future version'.format(
+                            option=option)
+
+        self.log.warning(message)
+        super(DeprecatedActionStore, self).__call__(
+            parser, namespace, values, option_string)

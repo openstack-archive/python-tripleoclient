@@ -215,10 +215,10 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
     def test_upgrade_nodes_with_playbook_no_skip_tags(
             self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
         mock_expanduser.return_value = '/home/fake/'
-        argslist = ['--nodes', 'compute-0, compute-1',
+        argslist = ['--limit', 'compute-0, compute-1',
                     '--playbook', 'fake-playbook.yaml', ]
         verifylist = [
-            ('nodes', 'compute-0, compute-1'),
+            ('limit', 'compute-0, compute-1'),
             ('static_inventory', None),
             ('playbook', 'fake-playbook.yaml'),
         ]
@@ -246,9 +246,9 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
     def test_upgrade_node_all_playbooks_skip_tags_default(
             self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
         mock_expanduser.return_value = '/home/fake/'
-        argslist = ['--nodes', 'swift-1', '--playbook', 'all']
+        argslist = ['--limit', 'swift-1', '--playbook', 'all']
         verifylist = [
-            ('nodes', 'swift-1'),
+            ('limit', 'swift-1'),
             ('static_inventory', None),
             ('playbook', 'all'),
         ]
@@ -277,10 +277,10 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
     def test_upgrade_node_all_playbooks_skip_tags_all_supported(
             self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
         mock_expanduser.return_value = '/home/fake/'
-        argslist = ['--nodes', 'swift-1', '--playbook', 'all',
+        argslist = ['--limit', 'swift-1', '--playbook', 'all',
                     '--skip-tags', 'pre-upgrade,validation']
         verifylist = [
-            ('nodes', 'swift-1'),
+            ('limit', 'swift-1'),
             ('static_inventory', None),
             ('playbook', 'all'),
             ('skip_tags', 'pre-upgrade,validation')
@@ -307,8 +307,8 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
     @mock.patch('six.moves.builtins.open')
-    def test_upgrade_no_nodes_or_roles(self, mock_open, mock_execute,
-                                       mock_expanduser, upgrade_ansible):
+    def test_upgrade_with_no_nodes_or_roles_or_limit(
+            self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
         mock_expanduser.return_value = '/home/fake/'
         argslist = []
         verifylist = []
@@ -342,10 +342,10 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
     def test_upgrade_skip_tags_validations(self, mock_open, mock_execute,
                                            mock_expanduser, upgrade_ansible):
         mock_expanduser.return_value = '/home/fake/'
-        argslist = ['--nodes', 'overcloud-compute-1',
+        argslist = ['--limit', 'overcloud-compute-1',
                     '--skip-tags', 'validations']
         verifylist = [
-            ('nodes', 'overcloud-compute-1'),
+            ('limit', 'overcloud-compute-1'),
             ('static_inventory', None),
             ('playbook', 'all'),
             ('skip_tags', 'validations'),
@@ -365,10 +365,10 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
     def test_upgrade_skip_tags_unsupported_validation_anything_else(
             self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
         mock_expanduser.return_value = '/home/fake/'
-        argslist = ['--nodes', 'overcloud-compute-1',
+        argslist = ['--limit', 'overcloud-compute-1',
                     '--skip-tags', 'validation,anything-else']
         verifylist = [
-            ('nodes', 'overcloud-compute-1'),
+            ('limit', 'overcloud-compute-1'),
             ('static_inventory', None),
             ('playbook', 'all'),
             ('skip_tags', 'validation,anything-else'),
@@ -388,10 +388,10 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
     def test_upgrade_skip_tags_unsupported_pre_upgrade_anything_else(
             self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
         mock_expanduser.return_value = '/home/fake/'
-        argslist = ['--nodes', 'overcloud-compute-1',
+        argslist = ['--limit', 'overcloud-compute-1',
                     '--skip-tags', 'pre-upgrade,anything-else']
         verifylist = [
-            ('nodes', 'overcloud-compute-1'),
+            ('limit', 'overcloud-compute-1'),
             ('static_inventory', None),
             ('playbook', 'all'),
             ('skip_tags', 'pre-upgrade,anything-else'),
