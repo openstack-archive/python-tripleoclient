@@ -13,3 +13,4 @@
       - tripleo-build-containers-jobs
       - tripleo-multinode-container-minimal
       - tripleo-undercloud-jobs
+      - tripleo-standalone-scenarios-full
