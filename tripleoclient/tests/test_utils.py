@@ -1219,3 +1219,43 @@ class TestWaitApiPortReady(TestCase):
             utils.wait_api_port_ready(8080)
         self.assertEqual(urlopen_mock.call_count, 1)
         self.assertEqual(sleep_mock.call_count, 1)
+
+
+class TestCheckHostname(TestCase):
+    @mock.patch('tripleoclient.utils.run_command')
+    def test_hostname_ok(self, mock_run):
+        mock_run.side_effect = ['host.domain', 'host.domain']
+        mock_open_ctx = mock.mock_open(read_data='127.0.0.1 host.domain')
+        with mock.patch('tripleoclient.utils.open', mock_open_ctx):
+            utils.check_hostname(False)
+        run_calls = [
+            mock.call(['hostnamectl', '--static'], name='hostnamectl'),
+            mock.call(['hostnamectl', '--transient'], name='hostnamectl')]
+        self.assertEqual(mock_run.mock_calls, run_calls)
+
+    @mock.patch('tripleoclient.utils.run_command')
+    def test_hostname_fix_hosts_ok(self, mock_run):
+        mock_run.side_effect = ['host.domain', 'host.domain', '']
+        mock_open_ctx = mock.mock_open(read_data='')
+        with mock.patch('tripleoclient.utils.open', mock_open_ctx):
+            utils.check_hostname(True)
+        sed_cmd = 'sed -i "s/127.0.0.1\\(\\s*\\)/127.0.0.1\\\\1host.domain ' \
+                  'host /" /etc/hosts'
+        run_calls = [
+            mock.call(['hostnamectl', '--static'], name='hostnamectl'),
+            mock.call(['hostnamectl', '--transient'], name='hostnamectl'),
+            mock.call(['sudo', '/bin/bash', '-c', sed_cmd],
+                      name='hostname-to-etc-hosts')]
+        import pprint
+        pprint.pprint(mock_run.mock_calls)
+        self.assertEqual(mock_run.mock_calls, run_calls)
+
+    @mock.patch('tripleoclient.utils.run_command')
+    def test_hostname_mismatch_fail(self, mock_run):
+        mock_run.side_effect = ['host.domain', '']
+        self.assertRaises(RuntimeError, utils.check_hostname)
+
+    @mock.patch('tripleoclient.utils.run_command')
+    def test_hostname_short_fail(self, mock_run):
+        mock_run.side_effect = ['host', 'host']
+        self.assertRaises(RuntimeError, utils.check_hostname)

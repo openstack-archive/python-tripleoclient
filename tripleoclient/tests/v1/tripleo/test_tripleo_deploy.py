@@ -62,6 +62,39 @@ class TestDeployUndercloud(TestPluginV1):
         python_version = sys.version_info[0]
         self.ansible_playbook_cmd = "ansible-playbook-%s" % (python_version)
 
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy._is_undercloud_deploy')
+    @mock.patch('tripleoclient.utils.check_hostname')
+    def test_run_preflight_checks(self, mock_check_hostname, mock_uc):
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--local-ip', '127.0.0.1/8'], [])
+
+        mock_uc.return_value = False
+        self.cmd._run_preflight_checks(parsed_args)
+        mock_check_hostname.called_one_with(False)
+
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy._is_undercloud_deploy')
+    @mock.patch('tripleoclient.utils.check_hostname')
+    def test_run_preflight_checks_output_only(self, mock_check_hostname,
+                                              mock_uc):
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--local-ip', '127.0.0.1/8',
+                                         '--output-only'], [])
+
+        mock_uc.return_value = False
+        self.cmd._run_preflight_checks(parsed_args)
+        mock_check_hostname.assert_not_called()
+
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy._is_undercloud_deploy')
+    @mock.patch('tripleoclient.utils.check_hostname')
+    def test_run_preflight_checks_undercloud(self, mock_check_hostname,
+                                             mock_uc):
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--local-ip', '127.0.0.1/8'], [])
+
+        mock_uc.return_value = True
+        self.cmd._run_preflight_checks(parsed_args)
+        mock_check_hostname.assert_not_called()
+
     def test_get_roles_file_path(self):
         parsed_args = self.check_parser(self.cmd,
                                         ['--local-ip', '127.0.0.1/8'], [])

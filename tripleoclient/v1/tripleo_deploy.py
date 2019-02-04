@@ -122,6 +122,24 @@ class Deploy(command.Command):
         return parsed_args.standalone_role == 'Undercloud' and \
             parsed_args.stack == 'undercloud'
 
+    def _run_preflight_checks(self, parsed_args):
+        """Run preflight deployment checks
+
+        Perform any pre-deployment checks that we want to run when deploying
+        standalone deployments. This is skipped when in output only mode or
+        when used with an undercloud. The undercloud has it's own set of
+        deployment preflight requirements.
+
+        :param parsed_args: parsed arguments from the cli
+        """
+        # we skip preflight checks for output only and undercloud
+        if parsed_args.output_only or self._is_undercloud_deploy(parsed_args):
+            return
+
+        # in standalone we don't want to fixup the /etc/hosts as we'll be
+        # managing that elsewhere during the deployment
+        utils.check_hostname(fix_etc_hosts=False, logger=self.log)
+
     # NOTE(cjeanner) Quick'n'dirty way before we have proper
     # escalation support through oslo.privsep
     def _set_data_rights(self, file_name, user=None,
@@ -1177,6 +1195,8 @@ class Deploy(command.Command):
             msg = _("Please run as root.")
             self.log.error(msg)
             raise exceptions.DeploymentError(msg)
+
+        self._run_preflight_checks(parsed_args)
 
         # prepare working spaces
         self.output_dir = os.path.abspath(parsed_args.output_dir)
