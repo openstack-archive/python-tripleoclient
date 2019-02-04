@@ -45,27 +45,6 @@ PASSWORD_PATH = '%s/%s' % (constants.UNDERCLOUD_OUTPUT_DIR,
 LOG = logging.getLogger(__name__ + ".UndercloudSetup")
 
 
-def _run_command(args, env=None, name=None):
-    """Run the command defined by args and return its output
-
-    :param args: List of arguments for the command to be run.
-    :param env: Dict defining the environment variables. Pass None to use
-        the current environment.
-    :param name: User-friendly name for the command being run. A value of
-        None will cause args[0] to be used.
-    """
-    if name is None:
-        name = args[0]
-    try:
-        return subprocess.check_output(args,
-                                       stderr=subprocess.STDOUT,
-                                       env=env).decode('utf-8')
-    except subprocess.CalledProcessError as e:
-        message = '%s failed: %s' % (name, e.output)
-        LOG.error(message)
-        raise RuntimeError(message)
-
-
 def _run_live_command(args, env=None, name=None, cwd=None, wait=True):
     """Run the command defined by args, env and cwd
 
@@ -115,52 +94,6 @@ def _check_diskspace(upgrade=False):
                                retries=False,
                                connection='local',
                                output_callback='validation_output')
-
-
-def _check_hostname():
-    """Check system hostname configuration
-
-    Rabbit and Puppet require pretty specific hostname configuration. This
-    function ensures that the system hostname settings are valid before
-    continuing with the installation.
-    """
-    if CONF.undercloud_hostname is not None:
-        args = ['sudo', 'hostnamectl', 'set-hostname',
-                CONF.undercloud_hostname]
-        _run_command(args, name='hostnamectl')
-
-    LOG.info('Checking for a FQDN hostname...')
-    args = ['sudo', 'hostnamectl', '--static']
-    detected_static_hostname = _run_command(args, name='hostnamectl').rstrip()
-    LOG.info('Static hostname detected as %s', detected_static_hostname)
-    args = ['sudo', 'hostnamectl', '--transient']
-    detected_transient_hostname = _run_command(args,
-                                               name='hostnamectl').rstrip()
-    LOG.info('Transient hostname detected as %s', detected_transient_hostname)
-    if detected_static_hostname != detected_transient_hostname:
-        LOG.error('Static hostname "%s" does not match transient hostname '
-                  '"%s".', detected_static_hostname,
-                  detected_transient_hostname)
-        LOG.error('Use hostnamectl to set matching hostnames.')
-        raise RuntimeError('Static and transient hostnames do not match')
-    with open('/etc/hosts') as hosts_file:
-        for line in hosts_file:
-            if (not line.lstrip().startswith('#') and
-                    detected_static_hostname in line.split()):
-                break
-        else:
-            short_hostname = detected_static_hostname.split('.')[0]
-            if short_hostname == detected_static_hostname:
-                message = _('Configured hostname is not fully qualified.')
-                LOG.error(message)
-                raise RuntimeError(message)
-            sed_cmd = ('sed -i "s/127.0.0.1\(\s*\)/127.0.0.1\\1%s %s /" '
-                       '/etc/hosts' %
-                       (detected_static_hostname, short_hostname))
-            args = ['sudo', '/bin/bash', '-c', sed_cmd]
-            _run_command(args, name='hostname-to-etc-hosts')
-            LOG.info('Added hostname %s to /etc/hosts',
-                     detected_static_hostname)
 
 
 def _check_memory():
@@ -502,7 +435,7 @@ def check(verbose_level, upgrade=False):
     try:
         # Other validations
         _checking_status('Hostname')
-        _check_hostname()
+        utils.check_hostname()
         _checking_status('Memory')
         _check_memory()
         _checking_status('Disk space')

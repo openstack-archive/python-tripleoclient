@@ -48,6 +48,8 @@ from six.moves.urllib import request
 from tripleoclient import constants
 from tripleoclient import exceptions
 
+LOG = logging.getLogger(__name__ + ".utils")
+
 
 def run_ansible_playbook(logger,
                          workdir,
@@ -1340,3 +1342,89 @@ def update_nodes_deploy_data(imageclient, nodes):
             if 'ramdisk_id' not in node and ramdisk in img_map:
                 node['ramdisk_id'] = img_map[ramdisk]
                 break
+
+
+def run_command(args, env=None, name=None, logger=None):
+    """Run the command defined by args and return its output
+
+    :param args: List of arguments for the command to be run.
+    :param env: Dict defining the environment variables. Pass None to use
+        the current environment.
+    :param name: User-friendly name for the command being run. A value of
+        None will cause args[0] to be used.
+    """
+    if logger is None:
+        logger = LOG
+    if name is None:
+        name = args[0]
+    try:
+        output = subprocess.check_output(args,
+                                         stderr=subprocess.STDOUT,
+                                         env=env)
+        if isinstance(output, bytes):
+            output = output.decode('utf-8')
+        return output
+    except subprocess.CalledProcessError as e:
+        message = '%s failed: %s' % (name, e.output)
+        logger.error(message)
+        raise RuntimeError(message)
+
+
+def set_hostname(hostname):
+    """Set system hostname to provided hostname
+
+    :param hostname: The hostname to set
+    """
+    args = ['sudo', 'hostnamectl', 'set-hostname', hostname]
+    return run_command(args, name='hostnamectl')
+
+
+def check_hostname(fix_etc_hosts=True, logger=None):
+    """Check system hostname configuration
+
+    Rabbit and Puppet require pretty specific hostname configuration. This
+    function ensures that the system hostname settings are valid before
+    continuing with the installation.
+
+    :param fix_etc_hosts: Boolean to to enable adding hostname to /etc/hosts
+        if not found.
+    """
+    if logger is None:
+        logger = LOG
+    logger.info('Checking for a FQDN hostname...')
+    args = ['hostnamectl', '--static']
+    detected_static_hostname = run_command(args, name='hostnamectl').rstrip()
+    logger.info('Static hostname detected as %s', detected_static_hostname)
+    args = ['hostnamectl', '--transient']
+    detected_transient_hostname = run_command(args,
+                                              name='hostnamectl').rstrip()
+    logger.info('Transient hostname detected as %s',
+                detected_transient_hostname)
+    if detected_static_hostname != detected_transient_hostname:
+        logger.error('Static hostname "%s" does not match transient hostname '
+                     '"%s".', detected_static_hostname,
+                     detected_transient_hostname)
+        logger.error('Use hostnamectl to set matching hostnames.')
+        raise RuntimeError('Static and transient hostnames do not match')
+    short_hostname = detected_static_hostname.split('.')[0]
+    if short_hostname == detected_static_hostname:
+        message = _('Configured hostname is not fully qualified.')
+        logger.error(message)
+        raise RuntimeError(message)
+    with open('/etc/hosts') as hosts_file:
+        for line in hosts_file:
+            # check if hostname is in /etc/hosts
+            if (not line.lstrip().startswith('#') and
+                    detected_static_hostname in line.split()):
+                break
+        else:
+            # hostname not found, add it to /etc/hosts
+            if not fix_etc_hosts:
+                return
+            sed_cmd = (r'sed -i "s/127.0.0.1\(\s*\)/127.0.0.1\\1%s %s /" '
+                       '/etc/hosts' %
+                       (detected_static_hostname, short_hostname))
+            args = ['sudo', '/bin/bash', '-c', sed_cmd]
+            run_command(args, name='hostname-to-etc-hosts')
+            logger.info('Added hostname %s to /etc/hosts',
+                        detected_static_hostname)
