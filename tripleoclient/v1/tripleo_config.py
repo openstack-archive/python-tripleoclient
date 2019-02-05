@@ -54,6 +54,8 @@ class GenerateAnsibleConfig(command.Command):
                                    "ansible.log files."),
                             default=constants.UNDERCLOUD_OUTPUT_DIR)
 
+        return parser
+
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
         if utils.get_deployment_user() != parsed_args.deployment_user:
