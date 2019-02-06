@@ -220,8 +220,8 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
     @mock.patch('six.moves.builtins.open')
-    def test_update_with_no_nodes_or_roles(self, mock_open, mock_execute,
-                                           mock_expanduser, update_ansible):
+    def test_update_with_no_nodes_or_roles_or_limit(
+            self, mock_open, mock_execute, mock_expanduser, update_ansible):
         mock_expanduser.return_value = '/home/fake/'
         argslist = []
         verifylist = [

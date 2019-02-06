@@ -98,9 +98,12 @@ class UpgradeRun(command.Command):
 
     def get_parser(self, prog_name):
         parser = super(UpgradeRun, self).get_parser(prog_name)
-        nodes_or_roles = parser.add_mutually_exclusive_group(required=True)
-        nodes_or_roles.add_argument(
-            '--nodes', action="store", help=_(
+        nodes_or_roles_or_limit = parser.add_mutually_exclusive_group(
+            required=True)
+        nodes_or_roles_or_limit.add_argument(
+            '--nodes', action=command.DeprecatedActionStore, help=_(
+                "DEPRECATED: This option will be remove in the future release"
+                " Use the limit option instead."
                 "A string that identifies a single node or comma-separated "
                 "list of nodes to be upgraded in parallel in this upgrade run "
                 "invocation. For example: --nodes \"compute-0, compute-1, "
@@ -111,8 +114,10 @@ class UpgradeRun(command.Command):
                 "comma separated string. You should instead use the --roles "
                 "parameter for controlplane roles and specify the role name.")
         )
-        nodes_or_roles.add_argument(
-            '--roles', action="store", help=_(
+        nodes_or_roles_or_limit.add_argument(
+            '--roles', action=command.DeprecatedActionStore, help=_(
+                "DEPRECATED: This option will be remove in the future release"
+                " Use the limit option instead."
                 "A string that identifies the role or comma-separated list of"
                 "roles to be upgraded in this upgrade run invocation. "
                 "NOTE: nodes of specified role(s) are upgraded in parallel. "
@@ -121,6 +126,12 @@ class UpgradeRun(command.Command):
                 "instead using the --nodes argument to limit the upgrade to "
                 "a specific node or list (comma separated string) of nodes.")
         )
+        nodes_or_roles_or_limit.add_argument(
+                '--limit', action='store', help=_(
+                    "A string that identifies a single node or comma-separated"
+                    "list of nodes to be upgraded in parallel in this upgrade"
+                    " run invocation. For example: --limit \"compute-0,"
+                    " compute-1, compute-5\"."))
         parser.add_argument('--playbook',
                             action="store",
                             default="all",
@@ -194,9 +205,13 @@ class UpgradeRun(command.Command):
         stack = parsed_args.stack
 
         # Run ansible:
-        roles = parsed_args.roles
-        nodes = parsed_args.nodes
-        limit_hosts = roles or nodes
+        if parsed_args.limit:
+            limit_hosts = parsed_args.limit
+        else:
+            roles = parsed_args.roles
+            nodes = parsed_args.nodes
+            limit_hosts = roles or nodes
+
         playbook = parsed_args.playbook
         inventory = oooutils.get_tripleo_ansible_inventory(
             parsed_args.static_inventory, parsed_args.ssh_user, stack)
