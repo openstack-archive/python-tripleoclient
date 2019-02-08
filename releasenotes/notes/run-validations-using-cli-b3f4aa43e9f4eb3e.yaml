@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Running and listing the validations was only possible by executing 
+    the Mistral workflow associated with those tasks.
+    Now we have the possibility of running and listing the validations
+    using the TripleO CLI.
+    The commands added are 'openstack tripleo validator run' and
+    'openstack tripleo validator list' with its corresponding parameters.
