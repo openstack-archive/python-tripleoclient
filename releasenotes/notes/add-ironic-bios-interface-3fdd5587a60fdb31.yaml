@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Automatically enables ironic BIOS management interfaces based on enabled
+    ironic hardware types supporting BIOS management.
