@@ -72,3 +72,5 @@ DEPRECATED_SERVICES = {"OS::TripleO::Services::OpenDaylightApi":
                        "OpenDaylight to another networking backend. We "
                        "recommend you understand other networking "
                        "alternatives such as OVS or OVN. "}
+
+DEFAULT_VALIDATIONS_BASEDIR = '/usr/share/openstack-tripleo-validations'

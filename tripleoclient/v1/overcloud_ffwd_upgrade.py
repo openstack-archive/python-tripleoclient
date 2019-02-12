@@ -154,8 +154,8 @@ class FFWDUpgradeRun(command.Command):
         limit_hosts = ''
         oooutils.run_update_ansible_action(
             self.log, clients, limit_hosts, inventory,
-            constants.FFWD_UPGRADE_PLAYBOOK, [], package_update,
-            parsed_args.ssh_user, verbosity=verbosity)
+            constants.FFWD_UPGRADE_PLAYBOOK, [], parsed_args.ssh_user,
+            package_update, verbosity=verbosity)
 
 
 class FFWDUpgradeConverge(DeployOvercloud):

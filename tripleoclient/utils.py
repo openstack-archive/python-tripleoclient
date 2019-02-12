@@ -26,6 +26,7 @@ import six
 import socket
 import subprocess
 import sys
+import tempfile
 import time
 import yaml
 
@@ -36,8 +37,179 @@ from osc_lib.i18n import _
 from oslo_concurrency import processutils
 from six.moves import configparser
 
+from tripleo_common.utils import config
 from tripleoclient import constants
 from tripleoclient import exceptions
+
+
+LOG = logging.getLogger(__name__ + ".utils")
+
+
+def run_ansible_playbook(logger,
+                         workdir,
+                         playbook,
+                         inventory,
+                         ansible_config=None,
+                         retries=True,
+                         connection='smart',
+                         output_callback='json',
+                         python_interpreter=None,
+                         ssh_user='root',
+                         key=None,
+                         module_path=None,
+                         limit_hosts=None,
+                         tags='',
+                         skip_tags='',
+                         verbosity=1):
+    """Simple wrapper for ansible-playbook
+
+    :param logger: logger instance
+    :type logger: Logger
+
+    :param workdir: location of the playbook
+    :type workdir: String
+
+    :param playbook: playbook filename
+    :type playbook: String
+
+    :param inventory: either proper inventory file, or a coma-separated list
+    :type inventory: String
+
+    :param ansible_config: Pass either Absolute Path, or None to generate a
+    temporary file, or False to not manage configuration at all
+    :type ansible_config: String
+
+    :param retries: do you want to get a retry_file?
+    :type retries: Boolean
+
+    :param connection: connection type (local, smart, etc)
+    :type connection: String
+
+    :param output_callback: Callback for output format. Defaults to "json"
+    :type output_callback: String
+
+    :param python_interpreter: Absolute path for the Python interpreter
+    on the host where Ansible is run.
+    :type python_interpreter: String
+
+    :param ssh_user: user for the ssh connection
+    :type ssh_user: String
+
+    :param key: private key to use for the ssh connection
+    :type key: String
+
+    :param module_path: location of the ansible module and library
+    :type module_path: String
+
+    :param limit_hosts: limit the execution to the hosts
+    :type limit_hosts: String
+
+    :param tags: run specific tags
+    :type tags: String
+
+    :param skip_tags: skip specific tags
+    :type skip_tags: String
+
+    :param verbosity: verbosity level for Ansible execution
+    :type verbosity: Interger
+    """
+    env = os.environ.copy()
+
+    env['ANSIBLE_LIBRARY'] = \
+        ('/root/.ansible/plugins/modules:'
+         '/usr/share/ansible/plugins/modules:'
+         '%s/library' % constants.DEFAULT_VALIDATIONS_BASEDIR)
+    env['ANSIBLE_LOOKUP_PLUGINS'] = \
+        ('root/.ansible/plugins/lookup:'
+         '/usr/share/ansible/plugins/lookup:'
+         '%s/lookup_plugins' % constants.DEFAULT_VALIDATIONS_BASEDIR)
+    env['ANSIBLE_CALLBACK_PLUGINS'] = \
+        ('~/.ansible/plugins/callback:'
+         '/usr/share/ansible/plugins/callback:'
+         '%s/callback_plugins' % constants.DEFAULT_VALIDATIONS_BASEDIR)
+    env['ANSIBLE_ROLES_PATH'] = \
+        ('/root/.ansible/roles:'
+         '/usr/share/ansible/roles:'
+         '/etc/ansible/roles:'
+         '%s/roles' % constants.DEFAULT_VALIDATIONS_BASEDIR)
+    env['ANSIBLE_LOG_PATH'] = os.path.join(workdir, 'ansible.log')
+    env['ANSIBLE_HOST_KEY_CHECKING'] = 'False'
+
+    cleanup = False
+    if ansible_config is None:
+        _, tmp_config = tempfile.mkstemp(prefix=playbook, suffix='ansible.cfg')
+        with open(tmp_config, 'w+') as f:
+            f.write("[defaults]\nstdout_callback = %s\n" % output_callback)
+            if not retries:
+                f.write("retry_files_enabled = False\n")
+            f.close()
+        env['ANSIBLE_CONFIG'] = tmp_config
+        cleanup = True
+
+    elif os.path.isabs(ansible_config):
+        if os.path.exists(ansible_config):
+            env['ANSIBLE_CONFIG'] = ansible_config
+        else:
+            raise RuntimeError('No such configuration file: %s' %
+                               ansible_config)
+    elif os.path.exists(os.path.join(workdir, ansible_config)):
+        env['ANSIBLE_CONFIG'] = os.path.join(workdir, ansible_config)
+
+    play = os.path.join(workdir, playbook)
+
+    if os.path.exists(play):
+        cmd = ["ansible-playbook-{}".format(sys.version_info[0]),
+               '-u', ssh_user,
+               '-i', inventory
+               ]
+
+        if 0 < verbosity < 6:
+            cmd.extend(['-' + ('v' * verbosity)])
+
+        if key is not None:
+            cmd.extend(['--private-key=%s' % key])
+
+        if module_path is not None:
+            cmd.extend(['--module-path=%s' % module_path])
+
+        if limit_hosts is not None:
+            cmd.extend(['-l %s' % limit_hosts])
+
+        if tags is not '':
+            cmd.extend(['-t %s' % tags])
+
+        if skip_tags is not '':
+            cmd.extend(['--skip_tags %s' % skip_tags])
+
+        if python_interpreter is not None:
+            cmd.extend(['-e', 'ansible_python_interpreter=%s' %
+                              python_interpreter])
+
+        cmd.extend(['-c', connection, play])
+
+        proc = run_command_and_log(logger, cmd, env=env, retcode_only=False)
+        proc.wait()
+        cleanup and os.unlink(tmp_config)
+        if proc.returncode != 0:
+            raise RuntimeError(proc.stdout.read())
+        return proc.returncode
+    else:
+        cleanup and os.unlink(tmp_config)
+        raise RuntimeError('No such playbook: %s' % play)
+
+
+def download_ansible_playbooks(client, stack_name, output_dir='/tmp'):
+
+    log = logging.getLogger(__name__ + ".download_ansible_playbooks")
+    stack_config = config.Config(client)
+    tmp_ansible_dir = tempfile.mkdtemp(prefix='tripleo-ansible-',
+                                       dir=output_dir)
+
+    log.warning(_('Downloading {0} ansible playbooks...').format(stack_name))
+    stack_config.write_config(stack_config.fetch_config(stack_name),
+                              stack_name,
+                              tmp_ansible_dir)
+    return tmp_ansible_dir
 
 
 def bracket_ipv6(address):
@@ -892,17 +1064,89 @@ def get_tripleo_ansible_inventory(inventory_file='',
             "Inventory file %s can not be found." % inventory_file)
 
 
-def run_update_ansible_action(log, clients, nodes, inventory, playbook,
-                              all_playbooks, action, ssh_user,
-                              skip_tags='', verbosity=1):
+def run_update_ansible_action(log, clients, nodes, inventory,
+                              playbook, all_playbooks, ssh_user,
+                              action=None, skip_tags='',
+                              verbosity='1', workdir='', priv_key=''):
+
     playbooks = [playbook]
     if playbook == "all":
         playbooks = all_playbooks
     for book in playbooks:
         log.debug("Running ansible playbook %s " % book)
-        action.update_ansible(clients, nodes=nodes, inventory_file=inventory,
-                              playbook=book, node_user=ssh_user,
-                              skip_tags=skip_tags, verbosity=verbosity)
+        if action:
+            action.update_ansible(clients, nodes=nodes,
+                                  inventory_file=inventory,
+                                  playbook=book, node_user=ssh_user,
+                                  skip_tags=skip_tags,
+                                  verbosity=verbosity)
+        else:
+            run_ansible_playbook(logger=LOG,
+                                 workdir=workdir,
+                                 playbook=book,
+                                 inventory=inventory,
+                                 ssh_user=ssh_user,
+                                 key=ssh_private_key(workdir, priv_key),
+                                 module_path='/usr/share/ansible-modules',
+                                 limit_hosts=nodes,
+                                 skip_tags=skip_tags)
+
+
+def ssh_private_key(workdir, key):
+    if not key:
+        return None
+    if (isinstance(key, six.string_types) and
+            os.path.exists(key)):
+        return key
+
+    path = os.path.join(workdir, 'ssh_private_key')
+    with open(path, 'w') as ssh_key:
+        ssh_key.write(key)
+    os.chmod(path, 0o600)
+    return path
+
+
+def parse_extra_vars(extra_var_strings):
+    """Parses extra variables like Ansible would.
+
+    Each element in extra_var_strings is like the raw value of -e
+    parameter of ansible-playbook command. It can either be very
+    simple 'key=val key2=val2' format or it can be '{ ... }'
+    representing a YAML/JSON object.
+
+    The 'key=val key2=val2' format gets processed as if it was
+    '{"key": "val", "key2": "val2"}' object, and all YAML/JSON objects
+    get shallow-merged together in the order as they appear in
+    extra_var_strings, latter objects taking precedence over earlier
+    ones.
+
+    :param extra_var_strings: unparsed value(s) of -e parameter(s)
+    :type extra_var_strings: list of strings
+
+    :returns dict representing a merged object of all extra vars
+    """
+    result = {}
+
+    for extra_var_string in extra_var_strings:
+        invalid_yaml = False
+
+        try:
+            parse_vars = yaml.safe_load(extra_var_string)
+        except yaml.YAMLError:
+            invalid_yaml = True
+
+        if invalid_yaml or not isinstance(parse_vars, dict):
+            try:
+                parse_vars = dict(
+                    item.split('=') for item in extra_var_string.split())
+            except ValueError:
+                raise ValueError(
+                    'Invalid format for {extra_var_string}'.format(
+                        extra_var_string=extra_var_string))
+
+        result.update(parse_vars)
+
+    return result
 
 
 def prepend_environment(environment_files, templates_dir, environment):
@@ -984,3 +1228,43 @@ def check_file_for_enabled_service(env_file):
 def check_deprecated_service_is_enabled(environment_files):
     for env_file in environment_files:
         check_file_for_enabled_service(env_file)
+
+
+def run_command_and_log(log, cmd, cwd=None, env=None, retcode_only=True):
+    """Run command and log output
+
+    :param log: logger instance for logging
+    :type log: Logger
+
+    :param cmd: command in list form
+    :type cmd: List
+
+    :param cwd: current worknig directory for execution
+    :type cmd: String
+
+    :param env: modified environment for command run
+    :type env: List
+
+    :param retcode_only: Returns only retcode instead or proc objec
+    :type retcdode_only: Boolean
+    """
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT, shell=False,
+                            cwd=cwd, env=env)
+    if retcode_only:
+        # TODO(aschultz): this should probably goto a log file
+        while True:
+            try:
+                line = proc.stdout.readline()
+            except StopIteration:
+                break
+            if line != b'':
+                if isinstance(line, bytes):
+                    line = line.decode('utf-8')
+                log.warning(line.rstrip())
+            else:
+                break
+        proc.stdout.close()
+        return proc.wait()
+    else:
+        return proc

@@ -211,10 +211,10 @@ class UpgradeRun(command.Command):
         oooutils.run_update_ansible_action(self.log, clients, limit_hosts,
                                            inventory, playbook,
                                            constants.MAJOR_UPGRADE_PLAYBOOKS,
-                                           package_update,
                                            parsed_args.ssh_user,
-                                           skip_tags=skip_tags,
-                                           verbosity=verbosity)
+                                           package_update,
+                                           skip_tags,
+                                           verbosity)
 
         playbooks = (constants.MAJOR_UPGRADE_PLAYBOOKS
                      if playbook == 'all' else playbook)

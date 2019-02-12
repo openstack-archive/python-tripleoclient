@@ -16,10 +16,14 @@
 
 import argparse
 import datetime
+import logging
 import mock
 import os.path
+import subprocess
 import tempfile
 from uuid import uuid4
+
+import sys
 
 from unittest import TestCase
 import yaml
@@ -27,6 +31,313 @@ import yaml
 from heatclient import exc as hc_exc
 from tripleoclient import exceptions
 from tripleoclient import utils
+
+
+class TestRunAnsiblePlaybook(TestCase):
+    def setUp(self):
+        self.unlink_patch = mock.patch('os.unlink')
+        self.addCleanup(self.unlink_patch.stop)
+        self.unlink_patch.start()
+        self.mock_log = mock.Mock('logging.getLogger')
+        python_version = sys.version_info[0]
+        self.ansible_playbook_cmd = "ansible-playbook-%s" % (python_version)
+
+    @mock.patch('os.path.exists', return_value=False)
+    @mock.patch('tripleoclient.utils.run_command_and_log')
+    def test_no_playbook(self, mock_run, mock_exists):
+        self.assertRaises(RuntimeError,
+                          utils.run_ansible_playbook,
+                          self.mock_log,
+                          '/tmp',
+                          'non-existing.yaml',
+                          'localhost,'
+                          )
+        mock_exists.assert_called_once_with('/tmp/non-existing.yaml')
+        mock_run.assert_not_called()
+
+    @mock.patch('tempfile.mkstemp', return_value=('foo', '/tmp/fooBar.cfg'))
+    @mock.patch('os.path.exists', return_value=True)
+    @mock.patch('tripleoclient.utils.run_command_and_log')
+    def test_subprocess_error(self, mock_run, mock_exists, mock_mkstemp):
+        mock_process = mock.Mock()
+        mock_process.returncode = 1
+        mock_process.stdout.read.side_effect = ["Error\n"]
+        mock_run.return_value = mock_process
+
+        env = os.environ.copy()
+        env['ANSIBLE_LIBRARY'] = \
+            ('/root/.ansible/plugins/modules:'
+             '/usr/share/ansible/plugins/modules:'
+             '/usr/share/openstack-tripleo-validations/library')
+        env['ANSIBLE_LOOKUP_PLUGINS'] = \
+            ('root/.ansible/plugins/lookup:'
+             '/usr/share/ansible/plugins/lookup:'
+             '/usr/share/openstack-tripleo-validations/lookup_plugins')
+        env['ANSIBLE_CALLBACK_PLUGINS'] = \
+            ('~/.ansible/plugins/callback:'
+             '/usr/share/ansible/plugins/callback:'
+             '/usr/share/openstack-tripleo-validations/callback_plugins')
+        env['ANSIBLE_ROLES_PATH'] = \
+            ('/root/.ansible/roles:'
+             '/usr/share/ansible/roles:'
+             '/etc/ansible/roles:'
+             '/usr/share/openstack-tripleo-validations/roles')
+        env['ANSIBLE_CONFIG'] = '/tmp/fooBar.cfg'
+        env['ANSIBLE_HOST_KEY_CHECKING'] = 'False'
+        env['ANSIBLE_LOG_PATH'] = '/tmp/ansible.log'
+
+        self.assertRaises(RuntimeError,
+                          utils.run_ansible_playbook,
+                          self.mock_log,
+                          '/tmp',
+                          'existing.yaml',
+                          'localhost,'
+                          )
+        mock_run.assert_called_once_with(self.mock_log,
+                                         [self.ansible_playbook_cmd,
+                                          '-u', 'root',
+                                          '-i', 'localhost,', '-v',
+                                          '-c', 'smart',
+                                          '/tmp/existing.yaml'],
+                                         env=env, retcode_only=False)
+
+    @mock.patch('os.path.isabs')
+    @mock.patch('os.path.exists', return_value=False)
+    @mock.patch('tripleoclient.utils.run_command_and_log')
+    def test_non_existing_config(self, mock_run, mock_exists, mock_isabs):
+        self.assertRaises(RuntimeError,
+                          utils.run_ansible_playbook, self.mock_log,
+                          '/tmp', 'existing.yaml', 'localhost,',
+                          '/tmp/foo.cfg'
+                          )
+        mock_exists.assert_called_once_with('/tmp/foo.cfg')
+        mock_isabs.assert_called_once_with('/tmp/foo.cfg')
+        mock_run.assert_not_called()
+
+    @mock.patch('tempfile.mkstemp', return_value=('foo', '/tmp/fooBar.cfg'))
+    @mock.patch('os.path.exists', return_value=True)
+    @mock.patch('tripleoclient.utils.run_command_and_log')
+    def test_run_success_default(self, mock_run, mock_exists, mock_mkstemp):
+        mock_process = mock.Mock()
+        mock_process.returncode = 0
+        mock_run.return_value = mock_process
+
+        retcode = utils.run_ansible_playbook(self.mock_log,
+                                             '/tmp',
+                                             'existing.yaml',
+                                             'localhost,')
+        self.assertEqual(retcode, 0)
+        mock_exists.assert_called_once_with('/tmp/existing.yaml')
+
+        env = os.environ.copy()
+        env['ANSIBLE_LIBRARY'] = \
+            ('/root/.ansible/plugins/modules:'
+             '/usr/share/ansible/plugins/modules:'
+             '/usr/share/openstack-tripleo-validations/library')
+        env['ANSIBLE_LOOKUP_PLUGINS'] = \
+            ('root/.ansible/plugins/lookup:'
+             '/usr/share/ansible/plugins/lookup:'
+             '/usr/share/openstack-tripleo-validations/lookup_plugins')
+        env['ANSIBLE_CALLBACK_PLUGINS'] = \
+            ('~/.ansible/plugins/callback:'
+             '/usr/share/ansible/plugins/callback:'
+             '/usr/share/openstack-tripleo-validations/callback_plugins')
+        env['ANSIBLE_ROLES_PATH'] = \
+            ('/root/.ansible/roles:'
+             '/usr/share/ansible/roles:'
+             '/etc/ansible/roles:'
+             '/usr/share/openstack-tripleo-validations/roles')
+        env['ANSIBLE_CONFIG'] = '/tmp/fooBar.cfg'
+        env['ANSIBLE_HOST_KEY_CHECKING'] = 'False'
+        env['ANSIBLE_LOG_PATH'] = '/tmp/ansible.log'
+
+        mock_run.assert_called_once_with(self.mock_log,
+                                         [self.ansible_playbook_cmd,
+                                          '-u', 'root',
+                                          '-i', 'localhost,', '-v',
+                                          '-c', 'smart',
+                                          '/tmp/existing.yaml'],
+                                         env=env, retcode_only=False)
+
+    @mock.patch('os.path.isabs')
+    @mock.patch('os.path.exists', return_value=True)
+    @mock.patch('tripleoclient.utils.run_command_and_log')
+    def test_run_success_ansible_cfg(self, mock_run, mock_exists, mock_isabs):
+        mock_process = mock.Mock()
+        mock_process.returncode = 0
+        mock_run.return_value = mock_process
+
+        retcode = utils.run_ansible_playbook(self.mock_log, '/tmp',
+                                             'existing.yaml', 'localhost,',
+                                             ansible_config='/tmp/foo.cfg')
+        self.assertEqual(retcode, 0)
+
+        mock_isabs.assert_called_once_with('/tmp/foo.cfg')
+
+        exist_calls = [mock.call('/tmp/foo.cfg'),
+                       mock.call('/tmp/existing.yaml')]
+        mock_exists.assert_has_calls(exist_calls, any_order=False)
+
+        env = os.environ.copy()
+        env['ANSIBLE_LIBRARY'] = \
+            ('/root/.ansible/plugins/modules:'
+             '/usr/share/ansible/plugins/modules:'
+             '/usr/share/openstack-tripleo-validations/library')
+        env['ANSIBLE_LOOKUP_PLUGINS'] = \
+            ('root/.ansible/plugins/lookup:'
+             '/usr/share/ansible/plugins/lookup:'
+             '/usr/share/openstack-tripleo-validations/lookup_plugins')
+        env['ANSIBLE_CALLBACK_PLUGINS'] = \
+            ('~/.ansible/plugins/callback:'
+             '/usr/share/ansible/plugins/callback:'
+             '/usr/share/openstack-tripleo-validations/callback_plugins')
+        env['ANSIBLE_ROLES_PATH'] = \
+            ('/root/.ansible/roles:'
+             '/usr/share/ansible/roles:'
+             '/etc/ansible/roles:'
+             '/usr/share/openstack-tripleo-validations/roles')
+        env['ANSIBLE_CONFIG'] = '/tmp/foo.cfg'
+        env['ANSIBLE_HOST_KEY_CHECKING'] = 'False'
+        env['ANSIBLE_LOG_PATH'] = '/tmp/ansible.log'
+
+        mock_run.assert_called_once_with(self.mock_log,
+                                         [self.ansible_playbook_cmd,
+                                          '-u', 'root',
+                                          '-i', 'localhost,', '-v',
+                                          '-c', 'smart',
+                                          '/tmp/existing.yaml'],
+                                         env=env, retcode_only=False)
+
+    @mock.patch('tempfile.mkstemp', return_value=('foo', '/tmp/fooBar.cfg'))
+    @mock.patch('os.path.exists', return_value=True)
+    @mock.patch('tripleoclient.utils.run_command_and_log')
+    def test_run_success_connection_local(self, mock_run, mock_exists,
+                                          mok_mkstemp):
+        mock_process = mock.Mock()
+        mock_process.returncode = 0
+        mock_run.return_value = mock_process
+
+        retcode = utils.run_ansible_playbook(self.mock_log, '/tmp',
+                                             'existing.yaml',
+                                             'localhost,',
+                                             connection='local')
+        self.assertEqual(retcode, 0)
+        mock_exists.assert_called_once_with('/tmp/existing.yaml')
+        env = os.environ.copy()
+        env['ANSIBLE_LIBRARY'] = \
+            ('/root/.ansible/plugins/modules:'
+             '/usr/share/ansible/plugins/modules:'
+             '/usr/share/openstack-tripleo-validations/library')
+        env['ANSIBLE_LOOKUP_PLUGINS'] = \
+            ('root/.ansible/plugins/lookup:'
+             '/usr/share/ansible/plugins/lookup:'
+             '/usr/share/openstack-tripleo-validations/lookup_plugins')
+        env['ANSIBLE_CALLBACK_PLUGINS'] = \
+            ('~/.ansible/plugins/callback:'
+             '/usr/share/ansible/plugins/callback:'
+             '/usr/share/openstack-tripleo-validations/callback_plugins')
+        env['ANSIBLE_ROLES_PATH'] = \
+            ('/root/.ansible/roles:'
+             '/usr/share/ansible/roles:'
+             '/etc/ansible/roles:'
+             '/usr/share/openstack-tripleo-validations/roles')
+        env['ANSIBLE_CONFIG'] = '/tmp/fooBar.cfg'
+        env['ANSIBLE_HOST_KEY_CHECKING'] = 'False'
+        env['ANSIBLE_LOG_PATH'] = '/tmp/ansible.log'
+
+        mock_run.assert_called_once_with(self.mock_log,
+                                         [self.ansible_playbook_cmd,
+                                          '-u', 'root',
+                                          '-i', 'localhost,', '-v',
+                                          '-c', 'local',
+                                          '/tmp/existing.yaml'],
+                                         env=env, retcode_only=False)
+
+
+class TestRunCommandAndLog(TestCase):
+    def setUp(self):
+        self.mock_logger = mock.Mock(spec=logging.Logger)
+
+        self.mock_process = mock.Mock()
+        self.mock_process.stdout.readline.side_effect = ['foo\n', 'bar\n']
+        self.mock_process.wait.side_effect = [0]
+        self.mock_process.returncode = 0
+
+        mock_sub = mock.patch('subprocess.Popen',
+                              return_value=self.mock_process)
+        self.mock_popen = mock_sub.start()
+        self.addCleanup(mock_sub.stop)
+
+        self.cmd = ['exit', '0']
+        self.e_cmd = ['exit', '1']
+        self.log_calls = [mock.call('foo'),
+                          mock.call('bar')]
+
+    def test_success_default(self):
+        retcode = utils.run_command_and_log(self.mock_logger, self.cmd)
+        self.mock_popen.assert_called_once_with(self.cmd,
+                                                stdout=subprocess.PIPE,
+                                                stderr=subprocess.STDOUT,
+                                                shell=False,
+                                                cwd=None, env=None)
+        self.assertEqual(retcode, 0)
+        self.mock_logger.warning.assert_has_calls(self.log_calls,
+                                                  any_order=False)
+
+    @mock.patch('subprocess.Popen')
+    def test_error_subprocess(self, mock_popen):
+        mock_process = mock.Mock()
+        mock_process.stdout.readline.side_effect = ['Error\n']
+        mock_process.wait.side_effect = [1]
+        mock_process.returncode = 1
+
+        mock_popen.return_value = mock_process
+
+        retcode = utils.run_command_and_log(self.mock_logger, self.e_cmd)
+        mock_popen.assert_called_once_with(self.e_cmd, stdout=subprocess.PIPE,
+                                           stderr=subprocess.STDOUT,
+                                           shell=False, cwd=None,
+                                           env=None)
+
+        self.assertEqual(retcode, 1)
+        self.mock_logger.warning.assert_called_once_with('Error')
+
+    def test_success_env(self):
+        test_env = os.environ.copy()
+        retcode = utils.run_command_and_log(self.mock_logger, self.cmd,
+                                            env=test_env)
+        self.mock_popen.assert_called_once_with(self.cmd,
+                                                stdout=subprocess.PIPE,
+                                                stderr=subprocess.STDOUT,
+                                                shell=False,
+                                                cwd=None, env=test_env)
+        self.assertEqual(retcode, 0)
+        self.mock_logger.warning.assert_has_calls(self.log_calls,
+                                                  any_order=False)
+
+    def test_success_cwd(self):
+        test_cwd = '/usr/local/bin'
+        retcode = utils.run_command_and_log(self.mock_logger, self.cmd,
+                                            cwd=test_cwd)
+        self.mock_popen.assert_called_once_with(self.cmd,
+                                                stdout=subprocess.PIPE,
+                                                stderr=subprocess.STDOUT,
+                                                shell=False,
+                                                cwd=test_cwd, env=None)
+        self.assertEqual(retcode, 0)
+        self.mock_logger.warning.assert_has_calls(self.log_calls,
+                                                  any_order=False)
+
+    def test_success_no_retcode(self):
+        run = utils.run_command_and_log(self.mock_logger, self.cmd,
+                                        retcode_only=False)
+        self.mock_popen.assert_called_once_with(self.cmd,
+                                                stdout=subprocess.PIPE,
+                                                stderr=subprocess.STDOUT,
+                                                shell=False,
+                                                cwd=None, env=None)
+        self.assertEqual(run, self.mock_process)
+        self.mock_logger.warning.assert_not_called()
 
 
 class TestWaitForStackUtil(TestCase):
