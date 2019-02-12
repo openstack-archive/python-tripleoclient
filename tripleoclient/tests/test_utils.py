@@ -92,6 +92,9 @@ class TestRunAnsiblePlaybook(TestCase):
              '/etc/ansible/roles:'
              '/usr/share/openstack-tripleo-validations/roles')
         env['ANSIBLE_CONFIG'] = '/tmp/fooBar.cfg'
+        env['ANSIBLE_HOST_KEY_CHECKING'] = 'False'
+        env['ANSIBLE_LOG_PATH'] = '/tmp/ansible.log'
+
         self.assertRaises(RuntimeError,
                           utils.run_ansible_playbook,
                           self.mock_log,
@@ -100,8 +103,10 @@ class TestRunAnsiblePlaybook(TestCase):
                           'localhost,'
                           )
         mock_run.assert_called_once_with(self.mock_log,
-                                         [self.ansible_playbook_cmd, '-i',
-                                          'localhost,', '-c', 'smart',
+                                         [self.ansible_playbook_cmd,
+                                          '-u', 'root',
+                                          '-i', 'localhost,', '-v',
+                                          '-c', 'smart',
                                           '/tmp/existing.yaml'],
                                          env=env, retcode_only=False)
 
@@ -152,9 +157,14 @@ class TestRunAnsiblePlaybook(TestCase):
              '/etc/ansible/roles:'
              '/usr/share/openstack-tripleo-validations/roles')
         env['ANSIBLE_CONFIG'] = '/tmp/fooBar.cfg'
+        env['ANSIBLE_HOST_KEY_CHECKING'] = 'False'
+        env['ANSIBLE_LOG_PATH'] = '/tmp/ansible.log'
+
         mock_run.assert_called_once_with(self.mock_log,
-                                         [self.ansible_playbook_cmd, '-i',
-                                          'localhost,', '-c', 'smart',
+                                         [self.ansible_playbook_cmd,
+                                          '-u', 'root',
+                                          '-i', 'localhost,', '-v',
+                                          '-c', 'smart',
                                           '/tmp/existing.yaml'],
                                          env=env, retcode_only=False)
 
@@ -196,9 +206,14 @@ class TestRunAnsiblePlaybook(TestCase):
              '/etc/ansible/roles:'
              '/usr/share/openstack-tripleo-validations/roles')
         env['ANSIBLE_CONFIG'] = '/tmp/foo.cfg'
+        env['ANSIBLE_HOST_KEY_CHECKING'] = 'False'
+        env['ANSIBLE_LOG_PATH'] = '/tmp/ansible.log'
+
         mock_run.assert_called_once_with(self.mock_log,
-                                         [self.ansible_playbook_cmd, '-i',
-                                          'localhost,', '-c', 'smart',
+                                         [self.ansible_playbook_cmd,
+                                          '-u', 'root',
+                                          '-i', 'localhost,', '-v',
+                                          '-c', 'smart',
                                           '/tmp/existing.yaml'],
                                          env=env, retcode_only=False)
 
@@ -236,9 +251,14 @@ class TestRunAnsiblePlaybook(TestCase):
              '/etc/ansible/roles:'
              '/usr/share/openstack-tripleo-validations/roles')
         env['ANSIBLE_CONFIG'] = '/tmp/fooBar.cfg'
+        env['ANSIBLE_HOST_KEY_CHECKING'] = 'False'
+        env['ANSIBLE_LOG_PATH'] = '/tmp/ansible.log'
+
         mock_run.assert_called_once_with(self.mock_log,
-                                         [self.ansible_playbook_cmd, '-i',
-                                          'localhost,', '-c', 'local',
+                                         [self.ansible_playbook_cmd,
+                                          '-u', 'root',
+                                          '-i', 'localhost,', '-v',
+                                          '-c', 'local',
                                           '/tmp/existing.yaml'],
                                          env=env, retcode_only=False)
 

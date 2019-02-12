@@ -102,7 +102,7 @@ class ExternalUpgradeRun(command.Command):
         oooutils.run_update_ansible_action(
             self.log, clients, limit_hosts, inventory, playbook,
             constants.EXTERNAL_UPGRADE_PLAYBOOKS,
-            package_update, parsed_args.ssh_user,
+            parsed_args.ssh_user, package_update,
             tags=parsed_args.tags, skip_tags=parsed_args.skip_tags,
             verbosity=verbosity, extra_vars=extra_vars)
 
