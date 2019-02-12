@@ -178,8 +178,24 @@ def wait_for_ssh_port(host):
 def get_hosts_and_enable_ssh_admin(log, clients, stack, overcloud_ssh_network,
                                    overcloud_ssh_user, overcloud_ssh_key):
     hosts = get_overcloud_hosts(stack, overcloud_ssh_network)
-    enable_ssh_admin(log, clients, stack.stack_name, hosts,
-                     overcloud_ssh_user, overcloud_ssh_key)
+    if [host for host in hosts if host]:
+
+        try:
+            enable_ssh_admin(log, clients, stack.stack_name, hosts,
+                             overcloud_ssh_user, overcloud_ssh_key)
+        except subprocess.CalledProcessError as e:
+            if e.returncode == 255:
+                log.error("Couldn't not import keys to one of {}. "
+                          "Check if the user/ip are corrects.\n".format(hosts))
+            else:
+                log.error("Unknown error. "
+                          "Original message is:\n{}".format(hosts, e.message))
+
+    else:
+        raise exceptions.DeploymentError("Cannot find any hosts on '{}'"
+                                         " in network '{}'"
+                                         .format(stack.stack_name,
+                                                 overcloud_ssh_network))
 
 
 def enable_ssh_admin(log, clients, plan_name, hosts, ssh_user, ssh_key):
