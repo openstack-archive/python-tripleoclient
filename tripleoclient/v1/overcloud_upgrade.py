@@ -236,8 +236,8 @@ class UpgradeRun(command.Command):
         oooutils.run_update_ansible_action(self.log, clients, limit_hosts,
                                            inventory, playbook,
                                            constants.MAJOR_UPGRADE_PLAYBOOKS,
-                                           package_update,
                                            parsed_args.ssh_user,
+                                           package_update,
                                            parsed_args.tags,
                                            skip_tags,
                                            verbosity)
