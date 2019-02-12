@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import sys
+import os, sys
 
 sys.path.insert(0, os.path.abspath('../..'))
 # -- General configuration ----------------------------------------------------
@@ -22,8 +21,8 @@ sys.path.insert(0, os.path.abspath('../..'))
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = [
     'sphinx.ext.autodoc',
-    #'sphinx.ext.intersphinx',
-    'openstackdocstheme'
+    'openstackdocstheme',
+    'cliff.sphinxext',
 ]
 
 # autodoc generation is a bit aggressive and a nuisance when doing heavy
@@ -38,7 +37,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'tripleoclient'
-copyright = u'2015 Red Hat, Inc.'
+copyright = u'2017 Red Hat, Inc.'
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
 add_function_parentheses = True
@@ -80,3 +79,4 @@ bug_tag = ''
 
 # Last updated timestamp
 html_last_updated_fmt = '%Y-%m-%d %H:%M'
+autoprogram_cliff_application = 'openstack'

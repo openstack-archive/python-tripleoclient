@@ -12,7 +12,7 @@ Contents:
    readme
    installation
    usage
-   command-list
+   commands
    contributing
 
 Indices and tables
