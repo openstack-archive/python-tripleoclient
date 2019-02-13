@@ -1183,3 +1183,46 @@ class TestCheckHostname(TestCase):
     def test_hostname_short_fail(self, mock_run):
         mock_run.side_effect = ['host', 'host']
         self.assertRaises(RuntimeError, utils.check_hostname)
+
+
+class TestCheckEnvForProxy(TestCase):
+    def test_no_proxy(self):
+        utils.check_env_for_proxy()
+
+    @mock.patch.dict(os.environ,
+                     {'http_proxy': 'foo:1111',
+                      'no_proxy': 'foo'})
+    def test_http_proxy_ok(self):
+        utils.check_env_for_proxy(['foo'])
+
+    @mock.patch.dict(os.environ,
+                     {'https_proxy': 'bar:1111',
+                      'no_proxy': 'foo,bar'})
+    def test_https_proxy_ok(self):
+        utils.check_env_for_proxy(['foo', 'bar'])
+
+    @mock.patch.dict(os.environ,
+                     {'http_proxy': 'foo:1111',
+                      'https_proxy': 'bar:1111',
+                      'no_proxy': 'foobar'})
+    def test_proxy_fail(self):
+        self.assertRaises(RuntimeError,
+                          utils.check_env_for_proxy,
+                          ['foo', 'bar'])
+
+    @mock.patch.dict(os.environ,
+                     {'http_proxy': 'foo:1111',
+                      'https_proxy': 'bar:1111',
+                      'no_proxy': 'foobar'})
+    def test_proxy_fail_partial_match(self):
+        self.assertRaises(RuntimeError,
+                          utils.check_env_for_proxy,
+                          ['foo', 'bar'])
+
+    @mock.patch.dict(os.environ,
+                     {'http_proxy': 'foo:1111',
+                      'https_proxy': 'bar:1111'})
+    def test_proxy_fail_no_proxy_unset(self):
+        self.assertRaises(RuntimeError,
+                          utils.check_env_for_proxy,
+                          ['foo', 'bar'])

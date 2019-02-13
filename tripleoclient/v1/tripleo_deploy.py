@@ -116,6 +116,11 @@ class Deploy(command.Command):
         # managing that elsewhere during the deployment
         utils.check_hostname(fix_etc_hosts=False, logger=self.log)
 
+        # Users can use http_proxy and https_proxy as part of the deployment,
+        # however we need localhost to not be proxied because we use it to talk
+        # to our heat api.
+        utils.check_env_for_proxy(no_proxy_hosts=['127.0.0.1'])
+
     # NOTE(cjeanner) Quick'n'dirty way before we have proper
     # escalation support through oslo.privsep
     def _set_data_rights(self, file_name, user=None,
