@@ -23,6 +23,7 @@ import logging
 import shutil
 from six.moves.configparser import ConfigParser
 
+import json
 import os
 import os.path
 import simplejson
@@ -31,6 +32,7 @@ import socket
 import subprocess
 import sys
 import tempfile
+import textwrap
 import time
 import yaml
 
@@ -48,6 +50,8 @@ from six.moves.urllib import request
 
 from tripleoclient import constants
 from tripleoclient import exceptions
+
+from prettytable import PrettyTable
 
 LOG = logging.getLogger(__name__ + ".utils")
 
@@ -1553,6 +1557,40 @@ def get_config_value(cfg, section, option):
                                                      option=option,
                                                      config=cfg))
     return val
+
+
+def get_validations_table(validations_data):
+    """Return the validations information as a pretty printed table """
+    t = PrettyTable(border=True, header=True, padding_width=1)
+    t.title = "TripleO validations"
+    t.field_names = ["ID", "Name", "Description", "Groups", "Metadata"]
+    for validation in validations_data['validations']:
+        t.add_row([validation['id'],
+                   validation['name'],
+                   "\n".join(textwrap.wrap(validation['description'])),
+                   "\n".join(textwrap.wrap(' '.join(validation['groups']))),
+                   validation['metadata']])
+
+    t.sortby = "ID"
+    t.align["ID"] = "l"
+    t.align["Name"] = "l"
+    t.align["Description"] = "l"
+    t.align["Groups"] = "l"
+    t.align["Metadata"] = "l"
+    return t
+
+
+def get_validations_json(validations_data):
+    """Return the validations information as a pretty printed json """
+    return json.dumps(validations_data, indent=4, sort_keys=True)
+
+
+def get_validations_yaml(validations_data):
+    """Return the validations information as a pretty printed yaml """
+    return yaml.safe_dump(validations_data,
+                          allow_unicode=True,
+                          default_flow_style=False,
+                          indent=2)
 
 
 def ansible_symlink():

@@ -77,6 +77,15 @@ ADDITIONAL_ARCHITECTURES = ['ppc64le']
 
 ANSIBLE_VALIDATION_DIR = '/usr/share/openstack-tripleo-validations/validations'
 
+VALIDATION_GROUPS = ['openshift-on-openstack',
+                     'prep',
+                     'pre-introspection',
+                     'pre-deployment',
+                     'post-deployment',
+                     'pre-upgrade',
+                     'post-upgrade']
+
+
 # The path to the local CA certificate installed on the undercloud
 LOCAL_CACERT_PATH = '/etc/pki/ca-trust/source/anchors/cm-local-ca.pem'
 
