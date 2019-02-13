@@ -1434,3 +1434,26 @@ def check_hostname(fix_etc_hosts=True, logger=None):
             run_command(args, name='hostname-to-etc-hosts')
             logger.info('Added hostname %s to /etc/hosts',
                         detected_static_hostname)
+
+
+def check_env_for_proxy(no_proxy_hosts=None):
+    """Check env proxy settings
+
+    :param no_proxy_hosts: array of hosts to check if in no_proxy env var
+    """
+    if no_proxy_hosts is None:
+        no_proxy_hosts = ['127.0.0.1']
+    http_proxy = os.environ.get('http_proxy', None)
+    https_proxy = os.environ.get('https_proxy', None)
+    if os.environ.get('no_proxy'):
+        no_proxy = os.environ.get('no_proxy').split(',')
+    else:
+        no_proxy = []
+    missing_hosts = []
+    if http_proxy or https_proxy:
+        missing_hosts = set(no_proxy_hosts) - set(no_proxy)
+    if missing_hosts:
+        message = _('http_proxy or https_proxy is set but the following local '
+                    'addresses "{}" may be missing from the no_proxy '
+                    'environment variable').format(','.join(missing_hosts))
+        raise RuntimeError(message)
