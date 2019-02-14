@@ -21,7 +21,6 @@ from osc_lib.i18n import _
 
 from tripleoclient import constants
 from tripleoclient import utils as oooutils
-
 from tripleoclient.workflows import validations
 
 LOG = logging.getLogger(__name__ + ".TripleoValidator")
@@ -36,6 +35,11 @@ class _CommaListGroupAction(argparse.Action):
                                .format(value=value,
                                        choice=opts))
                     raise argparse.ArgumentError(self, message)
+        setattr(namespace, self.dest, values.split(','))
+
+
+class _CommaListAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
         setattr(namespace, self.dest, values.split(','))
 
 
@@ -98,3 +102,78 @@ class TripleOValidatorList(command.Command):
 
     def take_action(self, parsed_args):
         self._run_validator_list(parsed_args)
+
+
+class TripleOValidatorRun(command.Command):
+    """Run the available validations"""
+
+    def get_parser(self, prog_name):
+        parser = argparse.ArgumentParser(
+            description=self.get_description(),
+            prog=prog_name,
+            add_help=False
+        )
+
+        parser.add_argument(
+            '--plan',
+            action='store',
+            default='overcloud',
+            help=_("Execute the validations using a "
+                   "custom plan name. "
+                   "Defaults to: overcloud")
+        )
+
+        ex_group = parser.add_mutually_exclusive_group(required=True)
+
+        ex_group.add_argument(
+            '--validation-name',
+            metavar='<validation_id>[,<validation_id>,...]',
+            action=_CommaListAction,
+            default=[],
+            help=_("Run specific validations, "
+                   "if more than one validation is required "
+                   "separate the names with commas"
+                   "Defaults to: [] "
+                   "i.e. --validation-name check-ftype,512e "
+                   " --validation-name 512e")
+        )
+
+        ex_group.add_argument(
+            '--group',
+            metavar='<group>[,<group>,...]',
+            action=_CommaListGroupAction,
+            default=[],
+            help=_("Run specific group validations, "
+                   "if more than one group is required "
+                   "separate the group names with commas"
+                   "Defaults to: ['pre-deployment'] "
+                   "i.e. --group pre-upgrade,prep "
+                   " --group openshift-on-openstack")
+        )
+
+        return parser
+
+    def _run_validator_run(self, parsed_args):
+        clients = self.app.client_manager
+
+        if not parsed_args.validation_name:
+            workflow_input = {
+                "plan": parsed_args.plan,
+                "group_names": parsed_args.group
+            }
+        else:
+            workflow_input = {
+                "plan": parsed_args.plan,
+                "validation_names": parsed_args.validation_name
+            }
+
+        LOG.debug(_('Runnning the validations'))
+        try:
+            output = validations.run_validations(clients, workflow_input)
+            print(oooutils.get_validations_json(output))
+        except Exception as e:
+            print(_("Running the validations finished with errors"))
+            print('Output: {}'.format(e))
+
+    def take_action(self, parsed_args):
+        self._run_validator_run(parsed_args)

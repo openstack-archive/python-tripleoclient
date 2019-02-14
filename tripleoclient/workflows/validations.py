@@ -16,6 +16,8 @@ import pprint
 
 from tripleoclient.workflows import base
 
+from tripleoclient import exceptions
+
 
 def list_validations(clients, workflow_input):
 
@@ -33,3 +35,37 @@ def list_validations(clients, workflow_input):
             if 'message' in payload:
                 assert payload['status'] == "SUCCESS", pprint.pformat(payload)
                 return payload['validations']
+
+
+def run_validations(clients, workflow_input):
+
+    workflow_client = clients.workflow_engine
+    tripleoclients = clients.tripleoclient
+
+    with tripleoclients.messaging_websocket() as ws:
+
+        if 'group_names' in workflow_input:
+            print('Running group validations')
+            execution = base.start_workflow(
+                workflow_client,
+                'tripleo.validations.v1.run_groups',
+                workflow_input=workflow_input
+            )
+        else:
+            print('Running single validations')
+            execution = base.start_workflow(
+                workflow_client,
+                'tripleo.validations.v1.run_validations',
+                workflow_input=workflow_input
+            )
+
+        for payload in base.wait_for_messages(workflow_client, ws, execution):
+            if 'message' in payload:
+                if payload['status'] == 'SUCCESS':
+                    return payload['message']
+
+                if payload['status'] == 'FAILED':
+                    raise exceptions.RegisterOrUpdateError(
+                        'Exception running validations: {}'.format(
+                            payload['message'])
+                    )
