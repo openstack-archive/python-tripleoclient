@@ -371,6 +371,8 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
 
     env_data['PythonInterpreter'] = sys.executable
 
+    env_data['ContainerImagePrepareDebug'] = CONF['undercloud_debug']
+
     for param_key, param_value in PARAMETER_MAPPING.items():
         if param_key in CONF.keys():
             env_data[param_value] = CONF[param_key]
