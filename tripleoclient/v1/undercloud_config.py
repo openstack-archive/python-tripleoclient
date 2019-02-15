@@ -674,6 +674,9 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
 
         deploy_args += ['--hieradata-override=%s' % data_file]
 
+    if CONF.get('undercloud_hostname'):
+        utils.set_hostname(CONF.get('undercloud_hostname'))
+
     if CONF.get('enable_validations') and not no_validations:
         undercloud_preflight.check(verbose_level, upgrade)
         deploy_args += ['-e', os.path.join(
