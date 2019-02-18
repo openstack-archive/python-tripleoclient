@@ -1375,3 +1375,73 @@ class TestAnsibleSymlink(TestCase):
     def test_ansible_symlink_not_needed(self, mock_path, mock_cmd):
         utils.ansible_symlink()
         mock_cmd.assert_not_called()
+
+
+class TestParseExtraVars(TestCase):
+    def test_simple_case_text_format(self):
+        input_parameter = ['key1=val1', 'key2=val2 key3=val3']
+        expected = {
+            'key1': 'val1',
+            'key2': 'val2',
+            'key3': 'val3'
+        }
+        result = utils.parse_extra_vars(input_parameter)
+        self.assertEqual(result, expected)
+
+    def test_simple_case_json_format(self):
+        input_parameter = ['{"key1": "val1", "key2": "val2"}']
+        expected = {
+            'key1': 'val1',
+            'key2': 'val2'
+        }
+        result = utils.parse_extra_vars(input_parameter)
+        self.assertEqual(result, expected)
+
+    def test_multiple_format(self):
+        input_parameter = [
+            'key1=val1', 'key2=val2 key3=val3',
+            '{"key4": "val4", "key5": "val5"}']
+        expected = {
+            'key1': 'val1',
+            'key2': 'val2',
+            'key3': 'val3',
+            'key4': 'val4',
+            'key5': 'val5'
+        }
+        result = utils.parse_extra_vars(input_parameter)
+        self.assertEqual(result, expected)
+
+    def test_same_key(self):
+        input_parameter = [
+            'key1=val1', 'key2=val2 key3=val3',
+            '{"key1": "other_value", "key5": "val5"}']
+        expected = {
+            'key1': 'other_value',
+            'key2': 'val2',
+            'key3': 'val3',
+            'key5': 'val5'
+        }
+        result = utils.parse_extra_vars(input_parameter)
+        self.assertEqual(result, expected)
+
+    def test_with_multiple_space(self):
+        input_parameter = ['key1=val1', ' key2=val2   key3=val3 ']
+        expected = {
+            'key1': 'val1',
+            'key2': 'val2',
+            'key3': 'val3'
+        }
+        result = utils.parse_extra_vars(input_parameter)
+        self.assertEqual(result, expected)
+
+    def test_invalid_string(self):
+        input_parameter = [
+            'key1=val1', 'key2=val2 key3=val3',
+            '{"key1": "other_value", "key5": "val5']
+        self.assertRaises(
+            ValueError, utils.parse_extra_vars, input_parameter)
+
+    def test_invalid_format(self):
+        input_parameter = ['key1 val1']
+        self.assertRaises(
+            ValueError, utils.parse_extra_vars, input_parameter)

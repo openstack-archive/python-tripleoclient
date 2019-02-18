@@ -61,5 +61,38 @@ class TestOvercloudExternalUpdateRun(fakes.TestOvercloudExternalUpdateRun):
                 node_user='tripleo-admin',
                 tags='ceph',
                 skip_tags='',
-                verbosity=1
+                verbosity=1,
+                extra_vars={}
+            )
+
+    @mock.patch('tripleoclient.workflows.package_update.update_ansible',
+                autospec=True)
+    @mock.patch('os.path.expanduser')
+    @mock.patch('oslo_concurrency.processutils.execute')
+    @mock.patch('six.moves.builtins.open')
+    def test_update_with_user_and_extra_vars(self, mock_open, mock_execute,
+                                             mock_expanduser, update_ansible):
+        mock_expanduser.return_value = '/home/fake/'
+        argslist = ['--ssh-user', 'tripleo-admin',
+                    '--extra-vars', 'key1=val1',
+                    '--extra-vars', 'key2=val2']
+        verifylist = [
+            ('ssh_user', 'tripleo-admin'),
+            ('extra_vars', ['key1=val1', 'key2=val2'])
+        ]
+
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+        with mock.patch('os.path.exists') as mock_exists:
+            mock_exists.return_value = True
+            self.cmd.take_action(parsed_args)
+            update_ansible.assert_called_once_with(
+                self.app.client_manager,
+                nodes='all',
+                inventory_file=mock_open().read(),
+                playbook='external_update_steps_playbook.yaml',
+                node_user='tripleo-admin',
+                tags='',
+                skip_tags='',
+                verbosity=1,
+                extra_vars={'key1': 'val1', 'key2': 'val2'}
             )

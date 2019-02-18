@@ -79,6 +79,10 @@ class ExternalUpgradeRun(command.Command):
                                    '(default=Env: OVERCLOUD_STACK_NAME)'),
                             default=utils.env('OVERCLOUD_STACK_NAME',
                                               default='overcloud'))
+        parser.add_argument(
+            '-e', '--extra-vars', dest='extra_vars', action='append',
+            help='Set additional variables as key=value or yaml/json',
+            default=[])
 
         return parser
 
@@ -93,11 +97,13 @@ class ExternalUpgradeRun(command.Command):
             parsed_args.static_inventory, parsed_args.ssh_user, stack)
         limit_hosts = 'all'
         playbook = 'all'
+        extra_vars = oooutils.parse_extra_vars(parsed_args.extra_vars)
+
         oooutils.run_update_ansible_action(
             self.log, clients, limit_hosts, inventory, playbook,
             constants.EXTERNAL_UPGRADE_PLAYBOOKS,
             package_update, parsed_args.ssh_user,
             tags=parsed_args.tags, skip_tags=parsed_args.skip_tags,
-            verbosity=verbosity)
+            verbosity=verbosity, extra_vars=extra_vars)
 
         self.log.info("Completed Overcloud External Upgrade Run.")
