@@ -186,10 +186,13 @@ class TestContainerImagePrepare(TestPluginV1):
         mock_get.side_effect = requests.exceptions.SSLError('ouch')
         mock_bsf.return_value = set(['OS::TripleO::Services::AodhEvaluator'])
 
-        resource_registry = {'resource_registry': {
-            'OS::TripleO::Services::AodhEvaluator': aodh_file,
-            'OS::TripleO::Services::AodhApi': aodh_file
-        }}
+        resource_registry = {
+            'parameter_defaults': {
+                'NeutronMechanismDrivers': 'ovn'},
+            'resource_registry': {
+                'OS::TripleO::Services::AodhEvaluator': aodh_file,
+                'OS::TripleO::Services::AodhApi': aodh_file
+            }}
         pmef.return_value = None, resource_registry
 
         arglist = [
@@ -255,6 +258,7 @@ class TestContainerImagePrepare(TestPluginV1):
                 'ceph_tag': 'mytag',
                 'ceph_image': 'mydaemon',
                 'tag': 'passed-ci',
+                'neutron_driver': 'ovn',
                 'ceph_namespace': 'myceph',
                 'name_prefix': 'os-'
             },

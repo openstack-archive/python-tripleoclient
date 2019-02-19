@@ -415,6 +415,8 @@ class PrepareImageFiles(command.Command):
             'name_suffix': parsed_args.suffix,
         }
         self.parse_set_values(mapping_args, parsed_args.set)
+        pd = env.get('parameter_defaults', {})
+        kolla_builder.set_neutron_driver(pd, mapping_args)
 
         output_images_file = (parsed_args.output_images_file
                               or 'container_images.yaml')
