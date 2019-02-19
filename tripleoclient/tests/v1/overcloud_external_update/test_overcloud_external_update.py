@@ -15,7 +15,6 @@
 
 import mock
 
-from tripleoclient import constants
 from tripleoclient.tests.v1.overcloud_external_update import fakes
 from tripleoclient.v1 import overcloud_external_update
 
@@ -59,7 +58,6 @@ class TestOvercloudExternalUpdateRun(fakes.TestOvercloudExternalUpdateRun):
                 nodes='all',
                 inventory_file=mock_open().read(),
                 playbook='external_update_steps_playbook.yaml',
-                ansible_queue_name=constants.EXTERNAL_UPDATE_QUEUE,
                 node_user='tripleo-admin',
                 tags='ceph',
                 skip_tags='',

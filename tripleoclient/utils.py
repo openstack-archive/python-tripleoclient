@@ -1029,16 +1029,15 @@ def process_multiple_environments(created_env_files, tht_root,
 
 
 def run_update_ansible_action(log, clients, nodes, inventory, playbook,
-                              queue, all_playbooks, action, ssh_user,
-                              tags='', skip_tags=''):
+                              all_playbooks, action, ssh_user, tags='',
+                              skip_tags=''):
     playbooks = [playbook]
     if playbook == "all":
         playbooks = all_playbooks
     for book in playbooks:
         log.debug("Running ansible playbook %s " % book)
         action.update_ansible(clients, nodes=nodes, inventory_file=inventory,
-                              playbook=book, ansible_queue_name=queue,
-                              node_user=ssh_user, tags=tags,
+                              playbook=book, node_user=ssh_user, tags=tags,
                               skip_tags=skip_tags)
 
 
