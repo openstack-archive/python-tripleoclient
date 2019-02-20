@@ -264,7 +264,8 @@ class UndercloudConfig(StandaloneConfig):
                         default=True,
                         help=_(
                             'Whether to enable the debug log level for '
-                            'Undercloud OpenStack services.')
+                            'Undercloud OpenStack services and Container '
+                            'Image Prepare step.')
                         ),
             cfg.BoolOpt('undercloud_enable_selinux',
                         default=True,
