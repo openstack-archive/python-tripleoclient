@@ -1,0 +1,8 @@
+---
+deprecations:
+  - |
+    `docker_bip` undercloud configuration option will be removed.
+  - |
+    `docker_insecure_registries` has been deprecated for `container_insecure_registries`
+  - |
+    `docker_registry_mirror` has been deprecated for `container_registry_mirror`

@@ -216,6 +216,7 @@ class UndercloudConfig(StandaloneConfig):
                        ),
             cfg.StrOpt('docker_bip',
                        default='--bip=172.31.0.1/24',
+                       deprecated_for_removal=True,
                        help=_('Docker bridge IP for the undercloud.')
                        ),
 

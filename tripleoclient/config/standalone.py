@@ -188,16 +188,18 @@ class StandaloneConfig(BaseConfig):
                                'any derived values. This should be used '
                                'only by advanced users.')),
             # docker config bits
-            cfg.StrOpt('docker_registry_mirror',
+            cfg.StrOpt('container_registry_mirror',
+                       deprecated_name='docker_registry_mirror',
                        default='',
                        help=_(
-                           'An optional docker \'registry-mirror\' that will '
-                           'be configured in /etc/docker/daemon.json.')
+                           'An optional container registry mirror that will '
+                           'be used.')
                        ),
-            cfg.ListOpt('docker_insecure_registries',
+            cfg.ListOpt('container_insecure_registries',
+                        deprecated_name='docker_insecure_registries',
                         default=[],
-                        help=_('Used to add custom insecure registries in '
-                               '/etc/sysconfig/docker.')
+                        help=_('Used to add custom insecure registries for '
+                               'containers.')
                         ),
             cfg.StrOpt('container_cli',
                        default='podman',

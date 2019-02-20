@@ -73,7 +73,6 @@ PARAMETER_MAPPING = {
     'local_subnet': 'UndercloudCtlplaneLocalSubnet',
     'enable_routed_networks': 'UndercloudEnableRoutedNetworks',
     'local_interface': 'NeutronPublicInterface',
-    'docker_bip': 'DockerNetworkOptions'
 }
 
 SUBNET_PARAMETER_MAPPING = {
@@ -416,12 +415,16 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
     env_data['DockerInsecureRegistryAddress'].append(
         '%s:8787' % CONF['undercloud_admin_host'])
     env_data['DockerInsecureRegistryAddress'].extend(
-        CONF['docker_insecure_registries'])
+        CONF['container_insecure_registries'])
 
     env_data['ContainerCli'] = CONF['container_cli']
 
-    if CONF.get('docker_registry_mirror', None):
-        env_data['DockerRegistryMirror'] = CONF['docker_registry_mirror']
+    # NOTE(aschultz): deprecated in Stein
+    if CONF.get('docker_bip', None):
+        env_data['DockerNetworkOptions'] = CONF['docker_bip']
+
+    if CONF.get('container_registry_mirror', None):
+        env_data['DockerRegistryMirror'] = CONF['container_registry_mirror']
 
     # This parameter the IP address used to bind the local container registry
     env_data['LocalContainerRegistry'] = CONF['local_ip'].split('/')[0]
