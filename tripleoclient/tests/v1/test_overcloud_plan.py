@@ -88,7 +88,7 @@ class TestOvercloudDeletePlan(utils.TestCommand):
                                         [('plans', ['test-plan'])])
 
         self.websocket.wait_for_messages.return_value = iter([{
-            "execution": {"id": "IDID"},
+            "execution_id": "IDID",
             "status": "SUCCESS"
         }])
 
@@ -104,7 +104,7 @@ class TestOvercloudDeletePlan(utils.TestCommand):
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
 
         self.websocket.wait_for_messages.return_value = iter([{
-            "execution": {"id": "IDID"},
+            "execution_id": "IDID",
             "status": "SUCCESS"
         }])
 
@@ -151,7 +151,7 @@ class TestOvercloudCreatePlan(utils.TestCommand):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.websocket.wait_for_messages.return_value = iter([{
-            "execution": {"id": "IDID"},
+            "execution_id": "IDID",
             "status": "SUCCESS"
         }])
 
@@ -179,7 +179,7 @@ class TestOvercloudCreatePlan(utils.TestCommand):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.websocket.wait_for_messages.return_value = iter([{
-            "execution": {"id": "IDID"},
+            "execution_id": "IDID",
             "status": "ERROR", "message": "failed"
         }])
 
@@ -209,7 +209,7 @@ class TestOvercloudCreatePlan(utils.TestCommand):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.websocket.wait_for_messages.return_value = iter([{
-            "execution": {"id": "IDID"},
+            "execution_id": "IDID",
             "status": "SUCCESS"
         }])
         mock_result = mock.Mock(output='{"result": null}')
@@ -243,7 +243,7 @@ class TestOvercloudCreatePlan(utils.TestCommand):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.websocket.wait_for_messages.return_value = iter([{
-            "execution": {"id": "IDID"},
+            "execution_id": "IDID",
             "status": "ERROR", "message": "failed"
         }])
         mock_result = mock.Mock(output='{"result": null}')
@@ -310,7 +310,7 @@ class TestOvercloudCreatePlan(utils.TestCommand):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.websocket.wait_for_messages.return_value = iter([{
-            "execution": {"id": "IDID"},
+            "execution_id": "IDID",
             "status": "SUCCESS"
         }])
         mock_result = mock.Mock(output='{"result": null}')
@@ -351,7 +351,7 @@ class TestOvercloudCreatePlan(utils.TestCommand):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.websocket.wait_for_messages.return_value = iter([{
-            "execution": {"id": "IDID"},
+            "execution_id": "IDID",
             "status": "SUCCESS"
         }])
 
@@ -410,7 +410,7 @@ class TestOvercloudDeployPlan(utils.TestCommand):
         self.orch.stacks.get.return_value = None
 
         self.websocket.wait_for_messages.return_value = iter([{
-            'execution': {'id': 'IDID'},
+            'execution_id': 'IDID',
             'status': 'SUCCESS'
         }])
 

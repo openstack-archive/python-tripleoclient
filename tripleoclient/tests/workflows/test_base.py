@@ -25,13 +25,13 @@ class TestBaseWorkflows(utils.TestCommand):
     def test_wait_for_messages_success(self):
         payload_a = {
             'status': 'ERROR',
-            'execution': {'id': 2,
-                          'root_execution_id': 1}
+            'execution_id': 2,
+            'root_execution_id': 1
         }
         payload_b = {
             'status': 'ERROR',
-            'execution': {'id': 1,
-                          'root_execution_id': 1}
+            'execution_id': 1,
+            'root_execution_id': 1
         }
 
         mistral = mock.Mock()
@@ -77,6 +77,56 @@ class TestBaseWorkflows(utils.TestCommand):
         websocket.wait_for_messages.assert_called_with(timeout=None)
 
     def test_wait_for_messages_different_execution(self):
+        payload_a = {
+            'status': 'RUNNING',
+            'execution_id': 'aaaa',
+            'root_execution_id': 'aaaa'
+        }
+        payload_b = {
+            'status': 'RUNNING',
+            'execution_id': 'bbbb',
+            'root_execution_id': 'bbbb'
+        }
+
+        mistral = mock.Mock()
+        websocket = mock.Mock()
+        websocket.wait_for_messages.return_value = iter([payload_a, payload_b])
+        execution = mock.Mock()
+        execution.id = 'aaaa'
+
+        messages = list(base.wait_for_messages(mistral, websocket, execution))
+
+        # Assert only payload_a was returned
+        self.assertEqual([payload_a], messages)
+
+        websocket.wait_for_messages.assert_called_with(timeout=None)
+
+    def test_backwards_compat_wait_for_messages_success(self):
+        payload_a = {
+            'status': 'ERROR',
+            'execution': {'id': 2,
+                          'root_execution_id': 1}
+        }
+        payload_b = {
+            'status': 'ERROR',
+            'execution': {'id': 1,
+                          'root_execution_id': 1}
+        }
+
+        mistral = mock.Mock()
+        websocket = mock.Mock()
+        websocket.wait_for_messages.return_value = iter([payload_a, payload_b])
+        execution = mock.Mock()
+        execution.id = 1
+
+        messages = list(base.wait_for_messages(mistral, websocket, execution))
+
+        self.assertEqual([payload_a, payload_b], messages)
+
+        self.assertFalse(mistral.executions.get.called)
+        websocket.wait_for_messages.assert_called_with(timeout=None)
+
+    def test_backwards_compatible_call_with_different_execution(self):
         payload_a = {
             'status': 'RUNNING',
             'execution': {'id': 'aaaa',

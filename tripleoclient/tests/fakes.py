@@ -47,7 +47,7 @@ class FakeWebSocket(object):
 
     def wait_for_messages(self, timeout=None):
         yield {
-            'execution': {'id': 'IDID'},
+            'execution_id': 'IDID',
             'status': 'SUCCESS',
         }
 
