@@ -505,6 +505,8 @@ class DeployOvercloud(command.Command):
         template_utils.deep_update(env, localenv)
 
         if stack:
+            # note(aschultz): network validation goes here before we deploy
+            utils.check_stack_network_matches_env_files(stack, env)
             bp_cleanup = self._create_breakpoint_cleanup_env(
                 tht_root, parsed_args.stack)
             template_utils.deep_update(env, bp_cleanup)

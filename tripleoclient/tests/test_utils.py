@@ -149,6 +149,71 @@ class TestWaitForStackUtil(TestCase):
             utils.wait_for_provision_state(baremetal_client, 'UUID',
                                            "available", loops=1, sleep=0.01)
 
+    def test_check_stack_network_matches_env_files(self):
+        stack_reg = {
+            'OS::TripleO::Hosts::SoftwareConfig': 'val',
+            'OS::TripleO::Network': 'val',
+            'OS::TripleO::Network::External': 'val',
+            'OS::TripleO::Network::ExtraConfig': 'OS::Heat::None',
+            'OS::TripleO::Network::InternalApi': 'val',
+            'OS::TripleO::Network::Port::InternalApi': 'val',
+            'OS::TripleO::Network::Management': 'val',
+            'OS::TripleO::Network::Storage': 'val',
+            'OS::TripleO::Network::StorageMgmt': 'val',
+            'OS::TripleO::Network::Tenant': 'val'
+        }
+        env_reg = {
+            'OS::TripleO::Hosts::SoftwareConfig': 'newval',
+            'OS::TripleO::Network': 'newval',
+            'OS::TripleO::Network::External': 'newval',
+            'OS::TripleO::Network::ExtraConfig': 'OS::Heat::None',
+            'OS::TripleO::Network::InternalApi': 'newval',
+            'OS::TripleO::Network::Management': 'newval',
+            'OS::TripleO::Network::Storage': 'val',
+            'OS::TripleO::Network::StorageMgmt': 'val',
+            'OS::TripleO::Network::Tenant': 'val'
+        }
+        mock_stack = mock.MagicMock()
+        mock_stack.environment = mock.MagicMock()
+        mock_stack.environment.return_value = {
+            'resource_registry':  stack_reg
+        }
+        env = {
+            'resource_registry':  env_reg
+        }
+        utils.check_stack_network_matches_env_files(mock_stack, env)
+
+    def test_check_stack_network_matches_env_files_fail(self):
+        stack_reg = {
+            'OS::TripleO::Hosts::SoftwareConfig': 'val',
+            'OS::TripleO::LoggingConfiguration': 'val',
+            'OS::TripleO::Network': 'val',
+            'OS::TripleO::Network::External': 'val',
+            'OS::TripleO::Network::ExtraConfig': 'OS::Heat::None',
+            'OS::TripleO::Network::InternalApi': 'val',
+            'OS::TripleO::Network::Port::InternalApi': 'val',
+            'OS::TripleO::Network::Management': 'val',
+            'OS::TripleO::Network::Storage': 'val',
+            'OS::TripleO::Network::StorageMgmt': 'val',
+            'OS::TripleO::Network::Tenant': 'val'
+        }
+        env_reg = {
+            'OS::TripleO::Hosts::SoftwareConfig': 'newval',
+            'OS::TripleO::LoggingConfiguration': 'newval',
+            'OS::TripleO::Network': 'newval',
+            'OS::TripleO::Network::InternalApi': 'newval'
+        }
+        mock_stack = mock.MagicMock()
+        mock_stack.environment = mock.MagicMock()
+        mock_stack.environment.return_value = {
+            'resource_registry':  stack_reg
+        }
+        env = {
+            'resource_registry':  env_reg
+        }
+        with self.assertRaises(exceptions.InvalidConfiguration):
+            utils.check_stack_network_matches_env_files(mock_stack, env)
+
     @mock.patch('subprocess.check_call')
     @mock.patch('os.path.exists')
     def test_remove_known_hosts(self, mock_exists, mock_check_call):
