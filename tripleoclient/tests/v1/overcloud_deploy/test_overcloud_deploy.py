@@ -93,6 +93,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.cmd._download_missing_files_from_plan = self.real_download_missing
         shutil.rmtree = self.real_shutil
 
+    @mock.patch('tripleoclient.utils.check_stack_network_matches_env_files')
     @mock.patch("heatclient.common.event_utils.get_events")
     @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env',
                 autospec=True)
@@ -106,7 +107,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                        mock_create_tempest_deployer_input,
                        mock_create_parameters_env,
                        mock_breakpoints_cleanup,
-                       mock_events):
+                       mock_events, mock_stack_network_check):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         clients = self.app.client_manager
@@ -304,6 +305,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertEqual(env_map.get('parameter_defaults'),
                          parameters_env.get('parameter_defaults'))
 
+    @mock.patch('tripleoclient.utils.check_stack_network_matches_env_files')
     @mock.patch('shutil.rmtree', autospec=True)
     @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
@@ -328,7 +330,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mock_validate_args,
             mock_breakpoints_cleanup,
             mock_postconfig, mock_shutil_rmtree,
-            mock_invoke_plan_env_wf):
+            mock_invoke_plan_env_wf,
+            mock_stack_network_check):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         plane_management_fixture = deployment.PlanManagementFixture()
@@ -432,6 +435,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         clients.tripleoclient.object_store.put_object.assert_called()
         self.assertTrue(mock_invoke_plan_env_wf.called)
 
+    @mock.patch('tripleoclient.utils.check_stack_network_matches_env_files')
     @mock.patch('tripleoclient.workflows.parameters.'
                 'check_deprecated_parameters', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
@@ -451,7 +455,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mock_get_template_contents,
             mock_create_parameters_env, mock_validate_args,
             mock_breakpoints_cleanup,
-            mock_postconfig, mock_deprecated_params):
+            mock_postconfig, mock_deprecated_params, mock_stack_network_check):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         plane_management_fixture = deployment.PlanManagementFixture()
@@ -515,6 +519,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         deploy_plan_call_input = deploy_plan_call[1]['workflow_input']
         self.assertTrue(deploy_plan_call_input['skip_deploy_identifier'])
 
+    @mock.patch('tripleoclient.utils.check_stack_network_matches_env_files')
     @mock.patch("heatclient.common.event_utils.get_events", autospec=True)
     @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env',
                 autospec=True)
@@ -528,7 +533,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                      mock_create_tempest_deployer_input,
                                      mock_deploy_postconfig,
                                      mock_breakpoints_cleanup,
-                                     mock_events):
+                                     mock_events, mock_stack_network_check):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         plane_management_fixture = deployment.PlanManagementFixture()
@@ -621,6 +626,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             self.cmd.take_action, parsed_args)
         self.assertFalse(mock_deploy_tht.called)
 
+    @mock.patch('tripleoclient.utils.check_stack_network_matches_env_files')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
@@ -628,7 +634,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_heat_deploy', autospec=True)
     def test_environment_dirs(self, mock_deploy_heat,
-                              mock_update_parameters, mock_post_config):
+                              mock_update_parameters, mock_post_config,
+                              mock_stack_network_check):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         plane_management_fixture = deployment.PlanManagementFixture()
@@ -683,6 +690,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         self.cmd.take_action(parsed_args)
 
+    @mock.patch('tripleoclient.utils.check_stack_network_matches_env_files')
     @mock.patch('tripleoclient.utils.get_stack', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig', autospec=True)
@@ -692,7 +700,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 '_heat_deploy', autospec=True)
     def test_environment_dirs_env(self, mock_deploy_heat,
                                   mock_update_parameters, mock_post_config,
-                                  mock_utils_get_stack):
+                                  mock_utils_get_stack,
+                                  mock_stack_network_check):
 
         plane_management_fixture = deployment.PlanManagementFixture()
         self.useFixture(plane_management_fixture)
@@ -861,6 +870,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         utils_fixture.mock_deploy_tht.assert_called_with()
 
+    @mock.patch('tripleoclient.utils.check_stack_network_matches_env_files')
     @mock.patch("heatclient.common.event_utils.get_events", autospec=True)
     @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env',
                 autospec=True)
@@ -878,7 +888,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                              mock_create_tempest_deployer_input,
                              mock_deploy_postconfig,
                              mock_breakpoints_cleanup,
-                             mock_events):
+                             mock_events, mock_stack_network_check):
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
         mock_stack = fakes.create_tht_stack()
@@ -1094,12 +1104,13 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertFalse(utils_fixture.mock_create_ocrc.called)
         self.assertFalse(mock_create_tempest_deployer_input.called)
 
+    @mock.patch('tripleoclient.utils.check_stack_network_matches_env_files')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_heat_deploy', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True)
     @mock.patch('shutil.rmtree', autospec=True)
     def test_answers_file(self, mock_rmtree, mock_tmpdir,
-                          mock_heat_deploy):
+                          mock_heat_deploy, mock_stack_network_check):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         clients = self.app.client_manager
@@ -1213,6 +1224,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             role_counts,
             self.cmd._get_default_role_counts(mock.Mock()))
 
+    @mock.patch('tripleoclient.utils.check_stack_network_matches_env_files')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_create_parameters_env', autospec=True)
     @mock.patch('tripleoclient.utils.write_overcloudrc')
@@ -1223,7 +1235,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_ntp_server_mandatory(self, mock_get_template_contents,
                                   mock_process_env,
                                   mock_write_overcloudrc,
-                                  mock_create_parameters_env):
+                                  mock_create_parameters_env,
+                                  mock_stack_network_check):
         plane_management_fixture = deployment.PlanManagementFixture()
         self.useFixture(plane_management_fixture)
         clients = self.app.client_manager
@@ -1264,6 +1277,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                           self.cmd.take_action,
                           parsed_args)
 
+    @mock.patch('tripleoclient.utils.check_stack_network_matches_env_files')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig', autospec=True)
     @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env')
@@ -1283,7 +1297,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                  mock_create_parameters_env,
                                  mock_validate_args,
                                  mock_breakpoints_cleanup,
-                                 mock_deploy_post_config):
+                                 mock_deploy_post_config,
+                                 mock_stack_network_check):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         plane_management_fixture = deployment.PlanManagementFixture()
