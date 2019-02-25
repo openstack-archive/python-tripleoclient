@@ -225,7 +225,8 @@ class TestOvercloudCreatePlan(utils.TestCommand):
             'tripleo.plan_management.v1.create_deployment_plan',
             workflow_input={
                 'container': 'overcast',
-                'generate_passwords': True
+                'generate_passwords': True,
+                'validate_stack': False
             })
 
     @mock.patch("tripleoclient.workflows.plan_management.tarball")
@@ -282,7 +283,8 @@ class TestOvercloudCreatePlan(utils.TestCommand):
             'tripleo.plan_management.v1.create_deployment_plan',
             workflow_input={
                 'container': 'overcast',
-                'generate_passwords': True
+                'generate_passwords': True,
+                'validate_stack': False
             })
 
         self.swift.get_account.assert_called_once()
@@ -327,7 +329,8 @@ class TestOvercloudCreatePlan(utils.TestCommand):
             'tripleo.plan_management.v1.create_deployment_plan',
             workflow_input={
                 'container': 'overcast',
-                'generate_passwords': True
+                'generate_passwords': True,
+                'validate_stack': False
             })
 
         mock_open_context.assert_has_calls(
