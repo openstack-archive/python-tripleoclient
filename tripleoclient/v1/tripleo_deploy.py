@@ -106,19 +106,26 @@ class Deploy(command.Command):
     ansible_playbook_cmd = "ansible-playbook-{}".format(python_version)
     python_cmd = "python{}".format(python_version)
 
-    # https://bugs.launchpad.net/tripleo/+bug/1812837
-    if os.getuid() == 0:
-        if not os.path.exists('/usr/bin/ansible-playbook'):
-            if os.path.exists('/usr/bin/' + ansible_playbook_cmd):
-                if not os.path.exists('/usr/local/bin/ansible-playbook'):
-                    os.symlink('/usr/bin/' + ansible_playbook_cmd,
-                               '/usr/local/bin/ansible-playbook')
+    def __new__(cls, *args, **kwargs):
+        # https://bugs.launchpad.net/tripleo/+bug/1812837
+        if os.getuid() != 0:
+            cls.log.warning('Will not consider symlink creation (E_NOROOT).')
         else:
-            if not os.path.exists('/usr/bin/' + ansible_playbook_cmd):
-                if not os.path.exists(
-                        '/usr/local/bin/' + ansible_playbook_cmd):
-                    os.symlink('/usr/bin/ansible-playbook',
-                               '/usr/local/bin/' + ansible_playbook_cmd)
+            if not os.path.exists('/usr/bin/ansible-playbook'):
+                if os.path.exists('/usr/bin/' + cls.ansible_playbook_cmd):
+                    if not os.path.exists('/usr/bin/ansible-playbook'):
+                        os.symlink('/usr/bin/' + cls.ansible_playbook_cmd,
+                                   '/usr/bin/ansible-playbook')
+            else:
+                if not os.path.exists('/usr/bin/' + cls.ansible_playbook_cmd):
+                    if not os.path.exists(
+                            '/usr/bin/' + cls.ansible_playbook_cmd):
+                        os.symlink('/usr/bin/ansible-playbook',
+                                   '/usr/bin/' + cls.ansible_playbook_cmd)
+        if cls.python_version == 3:
+            return super().__new__(cls)
+        else:
+            return super(Deploy, cls).__new__(cls, *args, **kwargs)
 
     def _is_undercloud_deploy(self, parsed_args):
         return parsed_args.standalone_role == 'Undercloud' and \

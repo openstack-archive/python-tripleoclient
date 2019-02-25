@@ -45,12 +45,11 @@ class DeprecatedActionStore(_StoreAction):
         if len(self.option_strings) == 1:
             message = 'The option {option} is deprecated, it will be removed'\
                       ' in a future version'.format(
-                              option=self.option_strings[0])
+                          option=self.option_strings[0])
         else:
             option = ', '.join(self.option_strings)
             message = 'The options {option} is deprecated, it will be removed'\
-                      ' in a future version'.format(
-                            option=option)
+                      ' in a future version'.format(option=option)
 
         self.log.warning(message)
         super(DeprecatedActionStore, self).__call__(

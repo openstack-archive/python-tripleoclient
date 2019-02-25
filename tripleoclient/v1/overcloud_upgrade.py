@@ -127,11 +127,12 @@ class UpgradeRun(command.Command):
                 "a specific node or list (comma separated string) of nodes.")
         )
         nodes_or_roles_or_limit.add_argument(
-                '--limit', action='store', help=_(
-                    "A string that identifies a single node or comma-separated"
-                    "list of nodes to be upgraded in parallel in this upgrade"
-                    " run invocation. For example: --limit \"compute-0,"
-                    " compute-1, compute-5\"."))
+            '--limit', action='store', help=_(
+                "A string that identifies a single node or comma-separated"
+                "list of nodes to be upgraded in parallel in this upgrade"
+                " run invocation. For example: --limit \"compute-0,"
+                " compute-1, compute-5\".")
+        )
         parser.add_argument('--playbook',
                             action="store",
                             default="all",
