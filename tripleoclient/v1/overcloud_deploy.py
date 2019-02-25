@@ -387,13 +387,15 @@ class DeployOvercloud(command.Command):
                 parsed_args.roles_file, generate_passwords,
                 parsed_args.plan_environment_file,
                 parsed_args.networks_file,
-                type(self)._keep_env_on_update)
+                type(self)._keep_env_on_update,
+                validate_stack=False)
         else:
             plan_management.create_plan_from_templates(
                 self.clients, parsed_args.stack, tht_root,
                 parsed_args.roles_file, generate_passwords,
                 parsed_args.plan_environment_file,
-                parsed_args.networks_file)
+                parsed_args.networks_file,
+                validate_stack=False)
 
         # Get any missing (e.g j2 rendered) files from the plan to tht_root
         self._download_missing_files_from_plan(
