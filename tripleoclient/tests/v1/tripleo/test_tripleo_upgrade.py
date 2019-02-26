@@ -41,7 +41,7 @@ class TestUpgrade(utils.TestCommand):
     @mock.patch('os.execvp')
     def test_launch_ansible_upgrade(self, mock_execvp, mock_chdir, mock_run):
 
-        self.cmd._launch_ansible_upgrade('/tmp')
+        self.cmd._launch_ansible('/tmp', operation='upgrade')
         mock_chdir.assert_called_once()
         mock_run.assert_called_once_with(self.cmd.log, [
             self.ansible_playbook_cmd, '-i', '/tmp/inventory.yaml',
@@ -54,13 +54,25 @@ class TestUpgrade(utils.TestCommand):
     @mock.patch('os.execvp')
     def test_launch_ansible_post_upgrade(self, mock_execvp, mock_chdir,
                                          mock_run):
-
-        self.cmd._launch_ansible_post_upgrade('/tmp')
+        self.cmd._launch_ansible('/tmp', operation='post-upgrade')
         mock_chdir.assert_called_once()
         mock_run.assert_called_once_with(self.cmd.log, [
             self.ansible_playbook_cmd, '-i', '/tmp/inventory.yaml',
             'post_upgrade_steps_playbook.yaml',
             '--skip-tags', 'validation'])
+
+    @mock.patch('tripleoclient.utils.'
+                'run_command_and_log', autospec=True)
+    @mock.patch('os.chdir')
+    @mock.patch('os.execvp')
+    def test_launch_ansible_online_upgrade(self, mock_execvp, mock_chdir,
+                                           mock_run):
+        self.cmd._launch_ansible('/tmp', operation='online-upgrade')
+        mock_chdir.assert_called_once()
+        mock_run.assert_called_once_with(self.cmd.log, [
+            self.ansible_playbook_cmd, '-i', '/tmp/inventory.yaml',
+            'external_upgrade_steps_playbook.yaml',
+            '--tags', 'online_upgrade'])
 
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.take_action',
                 autospec=True)

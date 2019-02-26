@@ -841,11 +841,31 @@ class TestDeployUndercloud(TestPluginV1):
     @mock.patch('os.execvp')
     def test_launch_ansible_deploy(self, mock_execvp, mock_chdir, mock_run):
 
-        self.cmd._launch_ansible_deploy('/tmp')
+        self.cmd._launch_ansible('/tmp')
         mock_chdir.assert_called_once()
         mock_run.assert_called_once_with(self.cmd.log, [
             self.ansible_playbook_cmd, '-i', '/tmp/inventory.yaml',
             'deploy_steps_playbook.yaml'])
+
+    @mock.patch('tripleoclient.utils.'
+                'run_command_and_log', autospec=True)
+    @mock.patch('os.chdir')
+    @mock.patch('os.execvp')
+    def test_launch_ansible_with_args(self, mock_execvp, mock_chdir, mock_run):
+
+        args = ['deploy_steps_playbook.yaml', '--skip-tags',
+                'validation']
+        self.cmd._launch_ansible('/tmp', args, operation='deploy')
+        mock_chdir.assert_called_once()
+        mock_run.assert_called_once_with(self.cmd.log, [
+            self.ansible_playbook_cmd, '-i', '/tmp/inventory.yaml',
+            'deploy_steps_playbook.yaml', '--skip-tags', 'validation'])
+
+    @mock.patch('os.execvp')
+    def test_launch_ansible_invalid_op(self, mock_execvp):
+
+        self.assertRaises(exceptions.DeploymentError, self.cmd._launch_ansible,
+                          '/tmp', operation='unploy')
 
     @mock.patch('tripleo_common.image.kolla_builder.'
                 'container_images_prepare_multi')
@@ -884,7 +904,7 @@ class TestDeployUndercloud(TestPluginV1):
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_create_install_artifact', return_value='/tmp/foo.tar.bzip2')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
-                '_launch_ansible_deploy', return_value=0)
+                '_launch_ansible', return_value=0)
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_cleanup_working_dirs')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'

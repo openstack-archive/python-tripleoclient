@@ -86,3 +86,15 @@ CTLPLANE_DHCP_START_DEFAULT = ['192.168.24.5']
 CTLPLANE_DHCP_END_DEFAULT = ['192.168.24.24']
 CTLPLANE_INSPECTION_IPRANGE_DEFAULT = '192.168.24.100,192.168.24.120'
 CTLPLANE_GATEWAY_DEFAULT = '192.168.24.1'
+
+# Ansible parameters used for the actions being
+# executed during tripleo deploy/upgrade.
+DEPLOY_ANSIBLE_ACTIONS = {
+    'deploy': 'deploy_steps_playbook.yaml',
+    'upgrade': 'upgrade_steps_playbook.yaml --skip-tags '
+               'validation',
+    'post-upgrade': 'post_upgrade_steps_playbook.yaml '
+                    '--skip-tags validation',
+    'online-upgrade': 'external_upgrade_steps_playbook.yaml '
+                      '--tags online_upgrade',
+}

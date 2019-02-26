@@ -873,43 +873,21 @@ class Deploy(command.Command):
         return self.tmp_ansible_dir
 
     # Never returns, calls exec()
-    def _launch_ansible_deploy(self, ansible_dir):
-        self.log.warning(_('** Running ansible deploy tasks **'))
-        os.chdir(ansible_dir)
-        playbook_inventory = os.path.join(ansible_dir, 'inventory.yaml')
-        cmd = [self.ansible_playbook_cmd, '-i', playbook_inventory,
-               'deploy_steps_playbook.yaml']
-        self.log.debug('Running Ansible Deploy tasks: %s' % (' '.join(cmd)))
-        return utils.run_command_and_log(self.log, cmd)
+    def _launch_ansible(self, ansible_dir, list_args=None, operation="deploy"):
 
-    def _launch_ansible_upgrade(self, ansible_dir):
-        self.log.warning('** Running ansible upgrade tasks **')
-        os.chdir(ansible_dir)
-        playbook_inventory = os.path.join(ansible_dir, 'inventory.yaml')
-        cmd = [self.ansible_playbook_cmd, '-i', playbook_inventory,
-               'upgrade_steps_playbook.yaml', '--skip-tags', 'validation']
-        self.log.debug('Running Ansible Upgrade tasks: %s' % (' '.join(cmd)))
-        return utils.run_command_and_log(self.log, cmd)
+        if list_args is None:
+            if operation not in constants.DEPLOY_ANSIBLE_ACTIONS.keys():
+                self.log.error(_('Operation %s is not allowed') % operation)
+                raise exceptions.DeploymentError('Invalid operation to run in '
+                                                 'ansible.')
+            list_args = constants.DEPLOY_ANSIBLE_ACTIONS[operation].split()
 
-    def _launch_ansible_post_upgrade(self, ansible_dir):
-        self.log.warning('** Running ansible post-upgrade tasks **')
+        self.log.warning(_('** Running ansible %s tasks **') % operation)
         os.chdir(ansible_dir)
         playbook_inventory = os.path.join(ansible_dir, 'inventory.yaml')
-        cmd = [self.ansible_playbook_cmd, '-i', playbook_inventory,
-               'post_upgrade_steps_playbook.yaml', '--skip-tags', 'validation']
-        self.log.debug('Running Ansible Post Upgrade '
-                       'tasks: %s' % (' '.join(cmd)))
-        return utils.run_command_and_log(self.log, cmd)
-
-    def _launch_ansible_online_upgrade(self, ansible_dir):
-        self.log.warning('** Running ansible online upgrade tasks **')
-        os.chdir(ansible_dir)
-        playbook_inventory = os.path.join(ansible_dir, 'inventory.yaml')
-        cmd = [self.ansible_playbook_cmd, '-i', playbook_inventory,
-               'external_upgrade_steps_playbook.yaml', '--tags',
-               'online_upgrade']
-        self.log.debug('Running Ansible Online Upgrade '
-                       'tasks: %s' % (' '.join(cmd)))
+        cmd = [self.ansible_playbook_cmd, '-i', playbook_inventory] + list_args
+        self.log.debug('Running Ansible %s tasks: %s' % (operation, ' '
+                       .join(cmd)))
         return utils.run_command_and_log(self.log, cmd)
 
     def get_parser(self, prog_name):
@@ -1283,19 +1261,22 @@ class Deploy(command.Command):
             if not parsed_args.output_only:
                 if parsed_args.upgrade:
                     # Run Upgrade tasks before the deployment
-                    rc = self._launch_ansible_upgrade(self.ansible_dir)
+                    rc = self._launch_ansible(self.ansible_dir,
+                                              operation='upgrade')
                     if rc != 0:
                         raise exceptions.DeploymentError('Upgrade failed')
-                rc = self._launch_ansible_deploy(self.ansible_dir)
+                rc = self._launch_ansible(self.ansible_dir)
                 if rc != 0:
                     raise exceptions.DeploymentError('Deployment failed')
                 if parsed_args.upgrade:
                     # Run Post Upgrade tasks after the deployment
-                    rc = self._launch_ansible_post_upgrade(self.ansible_dir)
+                    rc = self._launch_ansible(self.ansible_dir,
+                                              operation='post-upgrade')
                     if rc != 0:
                         raise exceptions.DeploymentError('Post Upgrade failed')
                     # Run Online Upgrade tasks after the deployment
-                    rc = self._launch_ansible_online_upgrade(self.ansible_dir)
+                    rc = self._launch_ansible(self.ansible_dir,
+                                              operation='online-upgrade')
                     if rc != 0:
                         raise exceptions.DeploymentError(
                             'Online Upgrade failed')
