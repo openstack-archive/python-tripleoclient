@@ -21,6 +21,7 @@ import glob
 import hashlib
 import logging
 import shutil
+from six.moves.configparser import ConfigParser
 
 import os
 import os.path
@@ -1457,3 +1458,17 @@ def check_env_for_proxy(no_proxy_hosts=None):
                     'addresses "{}" may be missing from the no_proxy '
                     'environment variable').format(','.join(missing_hosts))
         raise RuntimeError(message)
+
+
+def get_config_value(cfg, section, option):
+    """Return the value of an option in ini config file(s)"""
+    config = ConfigParser()
+    config.read(cfg)
+    try:
+        val = config.get(section, option)
+    except Exception:
+        raise exceptions.NotFound(_('Unable to find {section}/{option} in '
+                                  '{config}').format(section=section,
+                                                     option=option,
+                                                     config=cfg))
+    return val

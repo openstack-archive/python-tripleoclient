@@ -28,6 +28,7 @@ from osc_lib.i18n import _
 import six
 import yaml
 
+from tripleo_common.image.builder import buildah
 from tripleo_common.image import image_uploader
 from tripleo_common.image import kolla_builder
 
@@ -170,7 +171,20 @@ class BuildImage(command.Command):
                    "containers to be built to skip. Can be specified multiple "
                    "times."),
         )
+        parser.add_argument(
+            '--use-buildah',
+            dest='use_buildah',
+            action='store_true',
+            default=False,
+            help=_('Use Buildah instead of Docker to build the images '
+                   'with Kolla.')
+        )
         return parser
+
+    @staticmethod
+    def kolla_cfg(cfg, param):
+        """Return a parameter from Kolla config"""
+        return utils.get_config_value(cfg, 'DEFAULT', param)
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
@@ -182,12 +196,32 @@ class BuildImage(command.Command):
                 tmp.write('list_dependencies=true')
         kolla_config_files = list(parsed_args.kolla_config_files)
         kolla_config_files.append(path)
+        kolla_tmp_dir = None
+        if parsed_args.use_buildah:
+            # A temporary directory is needed to let Kolla generates the
+            # Dockerfiles that will be used by Buildah to build the images.
+            kolla_tmp_dir = tempfile.mkdtemp(prefix='kolla-')
 
         try:
             builder = kolla_builder.KollaImageBuilder(parsed_args.config_files)
             result = builder.build_images(kolla_config_files,
-                                          parsed_args.excludes)
-            if parsed_args.list_dependencies:
+                                          parsed_args.excludes,
+                                          parsed_args.use_buildah,
+                                          kolla_tmp_dir)
+
+            if parsed_args.use_buildah:
+                deps = json.loads(result)
+                cfg = kolla_config_files
+                bb = buildah.BuildahBuilder(kolla_tmp_dir, deps,
+                                            BuildImage.kolla_cfg(cfg, 'base'),
+                                            BuildImage.kolla_cfg(cfg, 'type'),
+                                            BuildImage.kolla_cfg(cfg, 'tag'),
+                                            BuildImage.kolla_cfg(cfg,
+                                                                 'namespace'),
+                                            BuildImage.kolla_cfg(cfg,
+                                                                 'registry'))
+                bb.build_all()
+            elif parsed_args.list_dependencies:
                 deps = json.loads(result)
                 yaml.safe_dump(deps, self.app.stdout, indent=2,
                                default_flow_style=False)
