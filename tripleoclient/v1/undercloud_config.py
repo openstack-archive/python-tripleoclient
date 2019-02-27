@@ -683,6 +683,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
         utils.set_hostname(CONF.get('undercloud_hostname'))
 
     if CONF.get('enable_validations') and not no_validations:
+        utils.ansible_symlink()
         undercloud_preflight.check(verbose_level, upgrade)
         deploy_args += ['-e', os.path.join(
             tht_templates, "environments/tripleo-validations.yaml")]

@@ -1472,3 +1472,20 @@ def get_config_value(cfg, section, option):
                                                      option=option,
                                                      config=cfg))
     return val
+
+
+def ansible_symlink():
+    # https://bugs.launchpad.net/tripleo/+bug/1812837
+    python_version = sys.version_info[0]
+    ansible_playbook_cmd = "ansible-playbook-{}".format(python_version)
+    cmd = ['sudo', 'ln', '-s']
+    if not os.path.exists('/usr/bin/ansible-playbook'):
+        if os.path.exists('/usr/bin/' + ansible_playbook_cmd):
+            cmd.extend(['/usr/bin/' + ansible_playbook_cmd,
+                       '/usr/bin/ansible-playbook'])
+            run_command(cmd, name='ansible-playbook-symlink')
+    else:
+        if not os.path.exists('/usr/bin/' + ansible_playbook_cmd):
+            cmd.extend(['/usr/bin/ansible-playbook',
+                       '/usr/bin/' + ansible_playbook_cmd])
+            run_command(cmd, name='ansible-playbook-3-symlink')

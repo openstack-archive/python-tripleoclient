@@ -930,7 +930,8 @@ class TestDeployUndercloud(TestPluginV1):
                 return_value=('CREATE_COMPLETE', 0))
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_set_default_plan')
-    def test_take_action_standalone(self, mock_def_plan, mock_poll,
+    @mock.patch('tripleoclient.utils.ansible_symlink')
+    def test_take_action_standalone(self, mock_slink, mock_def_plan, mock_poll,
                                     mock_environ, mock_geteuid, mock_puppet,
                                     mock_killheat, mock_launchheat,
                                     mock_download, mock_tht,
@@ -939,7 +940,7 @@ class TestDeployUndercloud(TestPluginV1):
                                     mock_tarball, mock_templates_dir,
                                     mock_open, mock_os, mock_user, mock_cc,
                                     mock_chmod, mock_ac):
-
+        mock_slink.side_effect = 'fake-cmd'
         parsed_args = self.check_parser(self.cmd,
                                         ['--local-ip', '127.0.0.1',
                                          '--templates', '/tmp/thtroot',
@@ -972,7 +973,9 @@ class TestDeployUndercloud(TestPluginV1):
         mock_cleanupdirs.assert_called_once()
         self.assertEqual(mock_killheat.call_count, 2)
 
-    def test_take_action(self):
+    @mock.patch('tripleoclient.utils.ansible_symlink')
+    def test_take_action(self, mock_slink):
+        mock_slink.side_effect = 'fake-cmd'
         parsed_args = self.check_parser(self.cmd,
                                         ['--local-ip', '127.0.0.1',
                                          '--templates', '/tmp/thtroot',
@@ -983,7 +986,9 @@ class TestDeployUndercloud(TestPluginV1):
 
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy._standalone_deploy',
                 return_value=1)
-    def test_take_action_failure(self, mock_deploy):
+    @mock.patch('tripleoclient.utils.ansible_symlink')
+    def test_take_action_failure(self, mock_slink, mock_deploy):
+        mock_slink.side_effect = 'fake-cmd'
         parsed_args = self.check_parser(self.cmd,
                                         ['--local-ip', '127.0.0.1',
                                          '--templates', '/tmp/thtroot',

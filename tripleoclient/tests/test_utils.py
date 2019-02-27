@@ -1345,3 +1345,33 @@ class TestConfigParser(TestCase):
         self.assertRaises(exceptions.NotFound,
                           utils.get_config_value,
                           'does-not-exist', 'foo', 'bar')
+
+
+class TestAnsibleSymlink(TestCase):
+    @mock.patch('tripleoclient.utils.run_command')
+    @mock.patch('os.path.exists', side_effect=[False, True])
+    def test_ansible_symlink_needed(self, mock_path, mock_cmd):
+        utils.ansible_symlink()
+        python_version = sys.version_info[0]
+        ansible_playbook_cmd = "ansible-playbook-{}".format(python_version)
+        mock_cmd.assert_called_once_with(['sudo', 'ln', '-s',
+                                          '/usr/bin/' + ansible_playbook_cmd,
+                                          '/usr/bin/ansible-playbook'],
+                                         name='ansible-playbook-symlink')
+
+    @mock.patch('tripleoclient.utils.run_command')
+    @mock.patch('os.path.exists', side_effect=[True, False])
+    def test_ansible3_symlink_needed(self, mock_path, mock_cmd):
+        utils.ansible_symlink()
+        python_version = sys.version_info[0]
+        ansible_playbook_cmd = "ansible-playbook-{}".format(python_version)
+        mock_cmd.assert_called_once_with(['sudo', 'ln', '-s',
+                                          '/usr/bin/ansible-playbook',
+                                          '/usr/bin/' + ansible_playbook_cmd],
+                                         name='ansible-playbook-3-symlink')
+
+    @mock.patch('tripleoclient.utils.run_command')
+    @mock.patch('os.path.exists', side_effect=[False, False])
+    def test_ansible_symlink_not_needed(self, mock_path, mock_cmd):
+        utils.ansible_symlink()
+        mock_cmd.assert_not_called()

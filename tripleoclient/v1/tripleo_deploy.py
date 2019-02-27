@@ -106,27 +106,6 @@ class Deploy(command.Command):
     ansible_playbook_cmd = "ansible-playbook-{}".format(python_version)
     python_cmd = "python{}".format(python_version)
 
-    def __new__(cls, *args, **kwargs):
-        # https://bugs.launchpad.net/tripleo/+bug/1812837
-        if os.getuid() != 0:
-            cls.log.warning('Will not consider symlink creation (E_NOROOT).')
-        else:
-            if not os.path.exists('/usr/bin/ansible-playbook'):
-                if os.path.exists('/usr/bin/' + cls.ansible_playbook_cmd):
-                    if not os.path.exists('/usr/bin/ansible-playbook'):
-                        os.symlink('/usr/bin/' + cls.ansible_playbook_cmd,
-                                   '/usr/bin/ansible-playbook')
-            else:
-                if not os.path.exists('/usr/bin/' + cls.ansible_playbook_cmd):
-                    if not os.path.exists(
-                            '/usr/bin/' + cls.ansible_playbook_cmd):
-                        os.symlink('/usr/bin/ansible-playbook',
-                                   '/usr/bin/' + cls.ansible_playbook_cmd)
-        if cls.python_version == 3:
-            return super().__new__(cls)
-        else:
-            return super(Deploy, cls).__new__(cls, *args, **kwargs)
-
     def _is_undercloud_deploy(self, parsed_args):
         return parsed_args.standalone_role == 'Undercloud' and \
             parsed_args.stack == 'undercloud'
@@ -1366,6 +1345,7 @@ class Deploy(command.Command):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+        utils.ansible_symlink()
         unconf_msg = _('User did not confirm upgrade, so exiting. '
                        'Consider using the --yes parameter if you '
                        'prefer to skip this warning in the future')
