@@ -127,11 +127,11 @@ class BuildImage(command.Command):
             metavar='<yaml config file>',
             default=[],
             action="append",
-            required=True,
             help=_("YAML config file specifying the images to build. May be "
                    "specified multiple times. Order is preserved, and later "
                    "files will override some options in previous files. "
-                   "Other options will append."),
+                   "Other options will append. If not specified, the default "
+                   "set of containers will be built."),
         )
         parser.add_argument(
             "--kolla-config-file",
