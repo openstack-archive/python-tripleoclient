@@ -22,6 +22,8 @@ from tripleoclient import utils
 
 from tripleoclient.workflows import base
 
+_WORKFLOW_TIMEOUT = 120 * 60  # 2h
+
 
 def update(clients, **workflow_input):
     workflow_client = clients.workflow_engine
@@ -35,8 +37,16 @@ def update(clients, **workflow_input):
             workflow_input=workflow_input
         )
 
-        for payload in base.wait_for_messages(workflow_client, ws, execution):
-            assert payload['status'] == "SUCCESS", pprint.pformat(payload)
+        for payload in base.wait_for_messages(workflow_client, ws, execution,
+                                              _WORKFLOW_TIMEOUT):
+            status = payload.get('status', 'RUNNING')
+            message = payload.get('message')
+            if message and status == "RUNNING":
+                print(message)
+
+        if payload['status'] == "FAILED":
+            raise RuntimeError('Upgrade failed with: {}'
+                               ''.format(payload['message']))
 
     orchestration_client = clients.orchestration
 
@@ -91,7 +101,7 @@ def update_ansible(clients, **workflow_input):
     if payload['status'] == 'SUCCESS':
         print("Success")
     else:
-        raise RuntimeError('Update failed with: {}'.format(payload))
+        raise RuntimeError('Update failed with: {}'.format(payload['message']))
 
 
 def update_converge_nodes(clients, **workflow_input):
