@@ -1541,17 +1541,22 @@ def check_env_for_proxy(no_proxy_hosts=None):
         raise RuntimeError(message)
 
 
-def get_config_value(cfg, section, option):
-    """Return the value of an option in ini config file(s)"""
+def get_read_config(cfg):
+    """Return the config read from ini config file(s)"""
     config = ConfigParser()
     config.read(cfg)
+    return config
+
+
+def get_from_cfg(cfg, param, section="DEFAULT"):
+    """Return a parameter from Kolla config"""
     try:
-        val = config.get(section, option)
+        val = cfg.get(section, param)
     except Exception:
-        raise exceptions.NotFound(_('Unable to find {section}/{option} in '
-                                  '{config}').format(section=section,
-                                                     option=option,
-                                                     config=cfg))
+        raise exceptions.NotFound(_("Unable to find {section}/{option} in "
+                                    "{config}").format(section=param,
+                                                       option=section,
+                                                       config=cfg))
     return val
 
 

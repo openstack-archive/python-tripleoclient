@@ -1372,6 +1372,7 @@ class TestCheckEnvForProxy(TestCase):
 
 
 class TestConfigParser(TestCase):
+
     def setUp(self):
         self.tmp_dir = tempfile.mkdtemp()
 
@@ -1381,14 +1382,10 @@ class TestConfigParser(TestCase):
             self.tmp_dir = None
 
     def test_get_config_value(self):
-        cfile, cfile_name = tempfile.mkstemp(dir=self.tmp_dir)
-        cfp = open(cfile_name, 'w')
         cfg = ConfigParser()
         cfg.add_section('foo')
         cfg.set('foo', 'bar', 'baz')
-        cfg.write(cfp)
-        cfp.close()
-        config = utils.get_config_value(cfile_name, 'foo', 'bar')
+        config = utils.get_from_cfg(cfg, 'bar', 'foo')
         self.assertEqual(config, 'baz')
 
     def test_get_config_value_multiple_files(self):
@@ -1403,13 +1400,14 @@ class TestConfigParser(TestCase):
         cfg.set('foo', 'bar', 'boop')
         with open(cfile2_name, 'w') as fp:
             cfg.write(fp)
-        config = utils.get_config_value(cfiles, 'foo', 'bar')
+        cfgs = utils.get_read_config(cfiles)
+        config = utils.get_from_cfg(cfgs, 'bar', 'foo')
         self.assertEqual(config, 'boop')
 
     def test_get_config_value_bad_file(self):
         self.assertRaises(exceptions.NotFound,
-                          utils.get_config_value,
-                          'does-not-exist', 'foo', 'bar')
+                          utils.get_from_cfg,
+                          'does-not-exist', 'bar', 'foo')
 
 
 class TestAnsibleSymlink(TestCase):
