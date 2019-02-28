@@ -468,6 +468,43 @@ def get_stack(orchestration_client, stack_name):
         pass
 
 
+def check_stack_network_matches_env_files(stack, environment):
+    """Check stack against proposed env files to ensure non-breaking change
+
+    Historically we have have had issues with folks forgetting the network
+    isolation templates in subsequent overcloud actions which have completely
+    broken the stack. We need to check that the networks continue to be
+    provided on updates and if they aren't, it's likely that the user has
+    failed to provide the network-isolation templates. This is a light check
+    to only ensure they are defined. A user can still change settings in these
+    networks that may break things but this will catch folks who forget
+    network-isolation in a subsequent update.
+    """
+    def _get_networks(registry):
+        nets = set()
+        for k, v in six.iteritems(registry):
+            if (k.startswith('OS::TripleO::Network::')
+                and not k.startswith('OS::TripleO::Network::Port')
+                    and v != 'OS::Heat::None'):
+                nets.add(k)
+        return nets
+
+    stack_registry = stack.environment().get('resource_registry', {})
+    env_registry = environment.get('resource_registry', {})
+
+    stack_nets = _get_networks(stack_registry)
+    env_nets = _get_networks(env_registry)
+
+    env_diff = set(stack_nets) - set(env_nets)
+    if env_diff:
+        raise exceptions.InvalidConfiguration('Missing networks from '
+                                              'environment configuration. '
+                                              'Ensure the following networks '
+                                              'are properly configured in '
+                                              'the provided environment files '
+                                              '[{}]'.format(env_diff))
+
+
 def remove_known_hosts(overcloud_ip):
     """For a given IP address remove SSH keys from the known_hosts file"""
 
