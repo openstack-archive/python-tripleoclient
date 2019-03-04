@@ -21,6 +21,7 @@ import re
 import subprocess
 import sys
 
+from glanceclient.common.progressbar import VerboseFileWrapper
 from osc_lib import exceptions
 from osc_lib.i18n import _
 from osc_lib import utils
@@ -177,7 +178,12 @@ class UploadOvercloudImage(command.Command):
     def _read_image_file_pointer(self, dirname, filename):
         filepath = os.path.join(dirname, filename)
         self._check_file_exists(filepath)
-        return open(filepath, 'rb')
+        file_descriptor = open(filepath, 'rb')
+
+        if self._progress:
+            file_descriptor = VerboseFileWrapper(file_descriptor)
+
+        return file_descriptor
 
     def _copy_file(self, src, dest):
         subprocess.check_call('sudo cp -f "{0}" "{1}"'.format(src, dest),
@@ -302,12 +308,20 @@ class UploadOvercloudImage(command.Command):
                    "(os for the overcloud image or ironic-python-agent for "
                    "the ironic-python-agent one)"),
         )
+        parser.add_argument(
+            "--progress",
+            dest="progress",
+            action="store_true",
+            default=False,
+            help=_('Show progress bar for upload files action'))
+
         return parser
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
         glance_client_adaptor = self._get_glance_client_adaptor()
         self.updated = False
+        self._progress = parsed_args.progress
 
         if parsed_args.platform and not parsed_args.architecture:
             raise exceptions.CommandError('You supplied a platform (%s) '
