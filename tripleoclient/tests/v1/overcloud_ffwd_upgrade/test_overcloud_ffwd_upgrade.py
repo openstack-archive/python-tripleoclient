@@ -169,7 +169,8 @@ class TestFFWDUpgradeRun(fakes.TestFFWDUpgradeRun):
                 node_user='heat-admin',
                 tags='',
                 skip_tags='',
-                verbosity=1
+                verbosity=1,
+                extra_vars=None
             )
 
     @mock.patch('tripleoclient.workflows.package_update.update_ansible',
@@ -195,7 +196,8 @@ class TestFFWDUpgradeRun(fakes.TestFFWDUpgradeRun):
                 node_user='my-user',
                 tags='',
                 skip_tags='',
-                verbosity=1
+                verbosity=1,
+                extra_vars=None
             )
 
     @mock.patch('tripleoclient.workflows.package_update.update_ansible',

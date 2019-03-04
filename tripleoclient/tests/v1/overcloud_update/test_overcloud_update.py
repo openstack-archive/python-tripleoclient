@@ -151,7 +151,8 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
                 node_user='tripleo-admin',
                 tags='',
                 skip_tags='',
-                verbosity=1
+                verbosity=1,
+                extra_vars=None
             )
 
     @mock.patch('tripleoclient.workflows.package_update.update_ansible',
@@ -182,7 +183,8 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
                     node_user='tripleo-admin',
                     tags='',
                     skip_tags='',
-                    verbosity=1
+                    verbosity=1,
+                    extra_vars=None
                 )
 
     @mock.patch('tripleoclient.workflows.package_update.update_ansible',
@@ -212,7 +214,8 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
                     node_user='tripleo-admin',
                     tags='',
                     skip_tags='',
-                    verbosity=1
+                    verbosity=1,
+                    extra_vars=None
                 )
 
     @mock.patch('tripleoclient.workflows.package_update.update_ansible',

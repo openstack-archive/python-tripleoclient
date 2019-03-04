@@ -1042,7 +1042,7 @@ def process_multiple_environments(created_env_files, tht_root,
 
 def run_update_ansible_action(log, clients, nodes, inventory, playbook,
                               all_playbooks, action, ssh_user, tags='',
-                              skip_tags='', verbosity='1'):
+                              skip_tags='', verbosity='1', extra_vars=None):
     playbooks = [playbook]
     if playbook == "all":
         playbooks = all_playbooks
@@ -1050,7 +1050,51 @@ def run_update_ansible_action(log, clients, nodes, inventory, playbook,
         log.debug("Running ansible playbook %s " % book)
         action.update_ansible(clients, nodes=nodes, inventory_file=inventory,
                               playbook=book, node_user=ssh_user, tags=tags,
-                              skip_tags=skip_tags, verbosity=verbosity)
+                              skip_tags=skip_tags, verbosity=verbosity,
+                              extra_vars=extra_vars)
+
+
+def parse_extra_vars(extra_var_strings):
+    """Parses extra variables like Ansible would.
+
+    Each element in extra_var_strings is like the raw value of -e
+    parameter of ansible-playbook command. It can either be very
+    simple 'key=val key2=val2' format or it can be '{ ... }'
+    representing a YAML/JSON object.
+
+    The 'key=val key2=val2' format gets processed as if it was
+    '{"key": "val", "key2": "val2"}' object, and all YAML/JSON objects
+    get shallow-merged together in the order as they appear in
+    extra_var_strings, latter objects taking precedence over earlier
+    ones.
+
+    :param extra_var_strings: unparsed value(s) of -e parameter(s)
+    :type extra_var_strings: list of strings
+
+    :returns dict representing a merged object of all extra vars
+    """
+    result = {}
+
+    for extra_var_string in extra_var_strings:
+        invalid_yaml = False
+
+        try:
+            parse_vars = yaml.safe_load(extra_var_string)
+        except yaml.YAMLError:
+            invalid_yaml = True
+
+        if invalid_yaml or not isinstance(parse_vars, dict):
+            try:
+                parse_vars = dict(
+                    item.split('=') for item in extra_var_string.split())
+            except ValueError:
+                raise ValueError(
+                    'Invalid format for {extra_var_string}'.format(
+                        extra_var_string=extra_var_string))
+
+        result.update(parse_vars)
+
+    return result
 
 
 def prepend_environment(environment_files, templates_dir, environment):
