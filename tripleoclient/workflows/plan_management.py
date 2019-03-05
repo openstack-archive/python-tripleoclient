@@ -151,7 +151,7 @@ def create_container(workflow_client, **input_):
 
 def create_plan_from_templates(clients, name, tht_root, roles_file=None,
                                generate_passwords=True, plan_env_file=None,
-                               networks_file=None):
+                               networks_file=None, validate_stack=True):
     workflow_client = clients.workflow_engine
     swift_client = clients.tripleoclient.object_store
 
@@ -170,7 +170,8 @@ def create_plan_from_templates(clients, name, tht_root, roles_file=None,
 
     try:
         create_deployment_plan(clients, container=name,
-                               generate_passwords=generate_passwords)
+                               generate_passwords=generate_passwords,
+                               validate_stack=validate_stack)
     except exceptions.WorkflowServiceError:
         swiftutils.delete_container(swift_client, name)
         raise
@@ -178,7 +179,8 @@ def create_plan_from_templates(clients, name, tht_root, roles_file=None,
 
 def update_plan_from_templates(clients, name, tht_root, roles_file=None,
                                generate_passwords=True, plan_env_file=None,
-                               networks_file=None, keep_env=False):
+                               networks_file=None, keep_env=False,
+                               validate_stack=True):
     swift_client = clients.tripleoclient.object_store
     passwords = None
     keep_file_contents = {}
@@ -232,7 +234,8 @@ def update_plan_from_templates(clients, name, tht_root, roles_file=None,
 
     update_deployment_plan(clients, container=name,
                            generate_passwords=generate_passwords,
-                           source_url=None)
+                           source_url=None,
+                           validate_stack=validate_stack)
 
 
 def _load_content_or_file(swift_client, container, remote_and_local_map):
