@@ -449,25 +449,19 @@ class TestCreateOvercloudRC(TestCase):
 
         tempdir = tempfile.mkdtemp()
         rcfile = os.path.join(tempdir, 'teststackrc')
-        rcfile_v3 = os.path.join(tempdir, 'teststackrc.v3')
 
         overcloudrcs = {
-            "overcloudrc": "overcloudrc not v3",
-            "overcloudrc.v3": "overcloudrc.v3",
+            "overcloudrc": "overcloudrc",
         }
 
         try:
             utils.write_overcloudrc(stack_name, overcloudrcs,
                                     config_directory=tempdir)
             rc = open(rcfile, 'rt').read()
-            self.assertIn('overcloudrc not v3', rc)
-            rc_v3 = open(rcfile_v3, 'rt').read()
-            self.assertIn('overcloudrc.v3', rc_v3)
+            self.assertEqual('overcloudrc', rc)
         finally:
             if os.path.exists(rcfile):
                 os.unlink(rcfile)
-            if os.path.exists(rcfile_v3):
-                os.unlink(rcfile_v3)
 
             os.rmdir(tempdir)
 
