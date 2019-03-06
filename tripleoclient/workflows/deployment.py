@@ -203,9 +203,10 @@ def enable_ssh_admin(log, clients, hosts, ssh_user, ssh_key):
             elif state == 'SUCCESS':
                 print("ssh admin enablement workflow - COMPLETE.")
                 break
-            elif state == 'FAILED':
-                raise exceptions.DeploymentError(
-                    "ssh admin enablement workflow - FAILED.")
+            elif state in ('FAILED', 'ERROR'):
+                error = "ssh admin enablement workflow - FAILED.\n"
+                error += execution.to_dict()['state_info']
+                raise exceptions.DeploymentError(error)
 
         for host in hosts:
             rm_tmp_key_command = ["ssh"] + ssh_options.split()
