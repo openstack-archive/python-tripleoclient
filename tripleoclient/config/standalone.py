@@ -91,6 +91,7 @@ class StandaloneConfig(BaseConfig):
                         ),
             cfg.BoolOpt('enable_ui',
                         default=tripleo_ui,
+                        deprecated_for_removal=True,
                         help=_('Whether to install the TripleO UI.')
                         ),
             cfg.BoolOpt('enable_validations',
