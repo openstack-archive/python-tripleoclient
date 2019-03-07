@@ -203,5 +203,5 @@ class ExportPlan(command.Command):
         f = request.urlopen(tempurl)
         tarball_contents = f.read()
 
-        with open(outfile, 'w') as f:
+        with open(outfile, 'wb') as f:
             f.write(tarball_contents)
