@@ -18,6 +18,20 @@ from tripleoclient import exceptions
 from tripleoclient.v1 import overcloud_plan
 
 
+class TestStringCapture(object):
+    def __init__(self):
+        self.capture_string = ''
+
+    def write(self, msg):
+        self.capture_string = self.capture_string + msg
+
+    def getvalue(self):
+        return self.capture_string
+
+    def flush(self):
+        return
+
+
 class TestOvercloudPlanList(utils.TestCommand):
 
     def setUp(self):

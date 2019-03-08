@@ -1,0 +1,4 @@
+---
+features:
+  - A new command, openstack overcloud status, is added to show
+    the status of a deployment plan when using config-download.
