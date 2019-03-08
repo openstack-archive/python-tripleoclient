@@ -127,7 +127,9 @@ class TestUpgrade(utils.TestCommand):
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy',
                 autospec=True)
     @mock.patch('sys.stdin', spec=six.StringIO)
-    def test_take_action_prompt_no(self, mock_stdin, mock_deploy):
+    @mock.patch('tripleoclient.utils.ansible_symlink')
+    def test_take_action_prompt_no(self, mock_slink, mock_stdin, mock_deploy):
+        mock_slink.side_effect = 'fake-cmd'
         mock_stdin.isatty.return_value = True
         mock_stdin.readline.return_value = 'n'
         parsed_args = self.check_parser(self.cmd,
@@ -151,7 +153,10 @@ class TestUpgrade(utils.TestCommand):
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy',
                 autospec=True)
     @mock.patch('sys.stdin', spec=six.StringIO)
-    def test_take_action_prompt_invalid_option(self, mock_stdin, mock_deploy):
+    @mock.patch('tripleoclient.utils.ansible_symlink')
+    def test_take_action_prompt_invalid_option(self, mock_slink, mock_stdin,
+                                               mock_deploy):
+        mock_slink.side_effect = 'fake-cmd'
         mock_stdin.isatty.return_value = True
         mock_stdin.readline.return_value = 'Dontwant'
         parsed_args = self.check_parser(self.cmd,
