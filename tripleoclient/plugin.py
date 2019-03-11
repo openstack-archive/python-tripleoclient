@@ -26,8 +26,6 @@ import websocket
 
 from tripleoclient import exceptions
 
-from tripleoclient import constants
-
 LOG = logging.getLogger(__name__)
 
 DEFAULT_TRIPLEOCLIENT_API_VERSION = '1'
@@ -69,7 +67,7 @@ def build_option_parser(parser):
 
 class WebsocketClient(object):
 
-    def __init__(self, instance, queue_name="tripleo"):
+    def __init__(self, instance, queue_name="tripleo", cacert=None):
         self._project_id = None
         self._ws = None
         self._websocket_client_id = None
@@ -85,8 +83,8 @@ class WebsocketClient(object):
 
         LOG.debug('Instantiating messaging websocket client: %s', endpoint)
         try:
-            if 'wss:' in endpoint:
-                OS_CACERT = {"ca_certs": constants.LOCAL_CACERT_PATH}
+            if 'wss:' in endpoint and cacert:
+                OS_CACERT = {"ca_certs": cacert}
                 self._ws = websocket.create_connection(endpoint,
                                                        sslopt=OS_CACERT)
             else:
@@ -209,7 +207,8 @@ class ClientWrapper(object):
 
     def messaging_websocket(self, queue_name='tripleo'):
         """Returns a websocket for the messaging service"""
-        return WebsocketClient(self._instance, queue_name)
+        return WebsocketClient(self._instance, queue_name,
+                               cacert=self._instance.cacert)
 
     @property
     def object_store(self):
