@@ -75,5 +75,30 @@ ADDITIONAL_ARCHITECTURES = ['ppc64le']
 
 ANSIBLE_VALIDATION_DIR = '/usr/share/openstack-tripleo-validations/validations'
 
-# The path to the local CA certificate installed on the undercloud
-LOCAL_CACERT_PATH = '/etc/pki/ca-trust/source/anchors/cm-local-ca.pem'
+VALIDATION_GROUPS = ['openshift-on-openstack',
+                     'prep',
+                     'pre-introspection',
+                     'pre-deployment',
+                     'post-deployment',
+                     'pre-upgrade',
+                     'post-upgrade']
+
+
+# ctlplane network defaults
+CTLPLANE_CIDR_DEFAULT = '192.168.24.0/24'
+CTLPLANE_DHCP_START_DEFAULT = ['192.168.24.5']
+CTLPLANE_DHCP_END_DEFAULT = ['192.168.24.24']
+CTLPLANE_INSPECTION_IPRANGE_DEFAULT = '192.168.24.100,192.168.24.120'
+CTLPLANE_GATEWAY_DEFAULT = '192.168.24.1'
+
+# Ansible parameters used for the actions being
+# executed during tripleo deploy/upgrade.
+DEPLOY_ANSIBLE_ACTIONS = {
+    'deploy': 'deploy_steps_playbook.yaml',
+    'upgrade': 'upgrade_steps_playbook.yaml --skip-tags '
+               'validation',
+    'post-upgrade': 'post_upgrade_steps_playbook.yaml '
+                    '--skip-tags validation',
+    'online-upgrade': 'external_upgrade_steps_playbook.yaml '
+                      '--tags online_upgrade',
+}
