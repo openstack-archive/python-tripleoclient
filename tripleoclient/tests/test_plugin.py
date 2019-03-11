@@ -30,6 +30,7 @@ class TestPlugin(base.TestCase):
 
         clientmgr.auth.get_token.return_value = "TOKEN"
         clientmgr.auth_ref.project_id = "ID"
+        clientmgr.cacert = None
         ws_create_connection.return_value.recv.return_value = json.dumps({
             "headers": {
                 "status": 200
@@ -74,6 +75,7 @@ class TestPlugin(base.TestCase):
         clientmgr.get_endpoint_for_service_type.return_value = fakes.WS_URL
         clientmgr.auth.get_token.return_value = "TOKEN"
         clientmgr.auth_ref.project_id = "ID"
+        clientmgr.cacert = None
 
         client = plugin.make_client(clientmgr)
 
@@ -98,6 +100,7 @@ class TestPlugin(base.TestCase):
         clientmgr.get_endpoint_for_service_type.return_value = fakes.WS_URL
         clientmgr.auth.get_token.return_value = "TOKEN"
         clientmgr.auth_ref.project_id = "ID"
+        clientmgr.cacert = None
 
         client = plugin.make_client(clientmgr)
 
@@ -114,6 +117,7 @@ class TestPlugin(base.TestCase):
 
         clientmgr.auth.get_token.return_value = "TOKEN"
         clientmgr.auth_ref.project_id = "ID"
+        clientmgr.cacert = '/etc/pki/ca-trust/source/anchors/cm-local-ca.pem'
         ws_create_connection.return_value.recv.return_value = json.dumps({
             "headers": {
                 "status": 200

@@ -86,9 +86,6 @@ VALIDATION_GROUPS = ['openshift-on-openstack',
                      'post-upgrade']
 
 
-# The path to the local CA certificate installed on the undercloud
-LOCAL_CACERT_PATH = '/etc/pki/ca-trust/source/anchors/cm-local-ca.pem'
-
 # ctlplane network defaults
 CTLPLANE_CIDR_DEFAULT = '192.168.24.0/24'
 CTLPLANE_DHCP_START_DEFAULT = ['192.168.24.5']
