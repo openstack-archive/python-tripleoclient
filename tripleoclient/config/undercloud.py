@@ -47,6 +47,10 @@ GATEWAY_HELP_STR = _(
     'on this network.')
 MASQUERADE_HELP_STR = _(
     'The network will be masqueraded for external access.')
+HOST_ROUTES_HELP_STR = _(
+    'Host routes for the Neutron-managed subnet for the Overcloud instances '
+    'on this network. The host routes on the local_subnet will also be '
+    'configured on the undercloud.')
 
 # Deprecated options
 _deprecated_opt_network_gateway = [cfg.DeprecatedOpt(
@@ -370,6 +374,13 @@ class UndercloudConfig(StandaloneConfig):
             cfg.BoolOpt('masquerade',
                         default=False,
                         help=MASQUERADE_HELP_STR),
+            cfg.ListOpt('host_routes',
+                        item_type=cfg.types.Dict(bounds=True),
+                        bounds=True,
+                        default=[],
+                        sample_default=('[{destination: 10.10.10.0, '
+                                        'nexthop: 192.168.24.1}]'),
+                        help=HOST_ROUTES_HELP_STR),
         ]
         return self.sort_opts(_subnets_opts)
 
@@ -393,6 +404,11 @@ class UndercloudConfig(StandaloneConfig):
             cfg.BoolOpt('masquerade',
                         default=False,
                         help=MASQUERADE_HELP_STR),
+            cfg.ListOpt('host_routes',
+                        item_type=cfg.types.Dict(bounds=True),
+                        bounds=True,
+                        default=[],
+                        help=HOST_ROUTES_HELP_STR),
         ]
         return self.sort_opts(_subnets_opts)
 

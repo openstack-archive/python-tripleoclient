@@ -78,6 +78,7 @@ PARAMETER_MAPPING = {
 SUBNET_PARAMETER_MAPPING = {
     'cidr': 'NetworkCidr',
     'gateway': 'NetworkGateway',
+    'host_routes': 'HostRoutes'
 }
 
 THT_HOME = os.environ.get('THT_HOME',
@@ -237,6 +238,10 @@ def _generate_subnets_static_routes():
             continue
         s = CONF.get(subnet)
         env_list.append({'ip_netmask': s.cidr, 'next_hop': local_router})
+    for route in CONF.get(CONF.local_subnet).host_routes:
+        env_list.append({'ip_netmask': route['destination'],
+                         'next_hop': route['nexthop']})
+
     return env_list
 
 

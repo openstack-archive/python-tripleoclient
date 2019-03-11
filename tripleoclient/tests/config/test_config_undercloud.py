@@ -147,6 +147,7 @@ class TestUndercloudConfig(base.TestCase):
                     'dhcp_exclude',
                     'dhcp_start',
                     'gateway',
+                    'host_routes',
                     'inspection_iprange',
                     'masquerade']
 

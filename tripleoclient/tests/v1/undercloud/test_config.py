@@ -141,7 +141,10 @@ class TestNetworkSettings(base.TestCase):
                      cfg.ListOpt('dhcp_exclude'),
                      cfg.StrOpt('inspection_iprange'),
                      cfg.StrOpt('gateway'),
-                     cfg.BoolOpt('masquerade')]
+                     cfg.BoolOpt('masquerade'),
+                     cfg.ListOpt('host_routes',
+                                 item_type=cfg.types.Dict(bounds=True),
+                                 bounds=True,)]
         self.conf.register_opts(self.opts, group=self.grp0)
         self.grp1 = cfg.OptGroup(name='subnet1', title='subnet1')
         self.grp2 = cfg.OptGroup(name='subnet2', title='subnet2')
@@ -152,6 +155,7 @@ class TestNetworkSettings(base.TestCase):
                          inspection_iprange='192.168.24.100,192.168.24.120',
                          gateway='192.168.24.1',
                          masquerade=False,
+                         host_routes=[],
                          group='ctlplane-subnet')
 
     def test_default(self):
@@ -170,6 +174,7 @@ class TestNetworkSettings(base.TestCase):
                 'ctlplane-subnet': {
                     'AllocationPools': [
                         {'start': '192.168.24.5', 'end': '192.168.24.24'}],
+                    'HostRoutes': [],
                     'NetworkCidr': '192.168.24.0/24',
                     'NetworkGateway': '192.168.24.1'}}}
         self.assertEqual(expected, env)
@@ -203,6 +208,7 @@ class TestNetworkSettings(base.TestCase):
                     'AllocationPools': [
                         {'start': '192.168.24.4', 'end': '192.168.24.99'},
                         {'start': '192.168.24.121', 'end': '192.168.24.254'}],
+                    'HostRoutes': [],
                     'NetworkCidr': '192.168.24.0/24',
                     'NetworkGateway': '192.168.24.1'}}}
         self.assertEqual(expected, env)
@@ -228,6 +234,7 @@ class TestNetworkSettings(base.TestCase):
                     'AllocationPools': [
                         {'start': '192.168.10.2', 'end': '192.168.10.99'},
                         {'start': '192.168.10.121', 'end': '192.168.10.254'}],
+                    'HostRoutes': [],
                     'NetworkCidr': '192.168.10.0/24',
                     'NetworkGateway': '192.168.10.1'}}}
         self.assertEqual(expected, env)
@@ -257,6 +264,7 @@ class TestNetworkSettings(base.TestCase):
                         {'start': '192.168.10.51', 'end': '192.168.10.79'},
                         {'start': '192.168.10.90', 'end': '192.168.10.99'},
                         {'start': '192.168.10.121', 'end': '192.168.10.254'}],
+                    'HostRoutes': [],
                     'NetworkCidr': '192.168.10.0/24',
                     'NetworkGateway': '192.168.10.1'}}}
         self.assertEqual(expected, env)
@@ -281,6 +289,7 @@ class TestNetworkSettings(base.TestCase):
                     'AllocationPools': [
                         {'start': '192.168.24.4', 'end': '192.168.24.99'},
                         {'start': '192.168.24.121', 'end': '192.168.24.254'}],
+                    'HostRoutes': [],
                     'NetworkCidr': '192.168.24.0/24',
                     'NetworkGateway': '192.168.24.1'}}}
         self.assertEqual(expected, env)
@@ -305,6 +314,7 @@ class TestNetworkSettings(base.TestCase):
                     'AllocationPools': [
                         {'start': '192.168.24.10', 'end': '192.168.24.99'},
                         {'start': '192.168.24.121', 'end': '192.168.24.254'}],
+                    'HostRoutes': [],
                     'NetworkCidr': '192.168.24.0/24',
                     'NetworkGateway': '192.168.24.1'}}
         }
@@ -330,6 +340,7 @@ class TestNetworkSettings(base.TestCase):
                     'AllocationPools': [
                         {'start': '192.168.24.4', 'end': '192.168.24.99'},
                         {'start': '192.168.24.121', 'end': '192.168.24.220'}],
+                    'HostRoutes': [],
                     'NetworkCidr': '192.168.24.0/24',
                     'NetworkGateway': '192.168.24.1'}}
         }
@@ -347,6 +358,7 @@ class TestNetworkSettings(base.TestCase):
                          dhcp_exclude=[],
                          inspection_iprange='192.168.10.100,192.168.10.189',
                          gateway='192.168.10.254',
+                         host_routes=[],
                          masquerade=True,
                          group='subnet1')
         self.conf.config(cidr='192.168.20.0/24',
@@ -355,6 +367,7 @@ class TestNetworkSettings(base.TestCase):
                          dhcp_exclude=[],
                          inspection_iprange='192.168.20.100,192.168.20.189',
                          gateway='192.168.20.254',
+                         host_routes=[],
                          masquerade=True,
                          group='subnet2')
         env = {}
@@ -393,16 +406,19 @@ class TestNetworkSettings(base.TestCase):
                 'ctlplane-subnet': {
                     'AllocationPools': [
                         {'start': '192.168.24.5', 'end': '192.168.24.24'}],
+                    'HostRoutes': [],
                     'NetworkCidr': '192.168.24.0/24',
                     'NetworkGateway': '192.168.24.1'},
                 'subnet1': {
                     'AllocationPools': [
                         {'start': '192.168.10.10', 'end': '192.168.10.99'}],
+                    'HostRoutes': [],
                     'NetworkCidr': '192.168.10.0/24',
                     'NetworkGateway': '192.168.10.254'},
                 'subnet2': {
                     'AllocationPools': [
                         {'start': '192.168.20.10', 'end': '192.168.20.99'}],
+                    'HostRoutes': [],
                     'NetworkCidr': '192.168.20.0/24',
                     'NetworkGateway': '192.168.20.254'}
             }
@@ -419,6 +435,7 @@ class TestNetworkSettings(base.TestCase):
                          dhcp_exclude=[],
                          inspection_iprange='192.168.10.100,192.168.10.189',
                          gateway='192.168.10.254',
+                         host_routes=[],
                          group='subnet1')
         self.conf.config(cidr='192.168.20.0/24',
                          dhcp_start='192.168.20.10',
@@ -426,6 +443,7 @@ class TestNetworkSettings(base.TestCase):
                          dhcp_exclude=[],
                          inspection_iprange='192.168.20.100,192.168.20.189',
                          gateway='192.168.20.254',
+                         host_routes=[],
                          group='subnet2')
         env = {}
         undercloud_config._process_network_args(env)
@@ -454,16 +472,19 @@ class TestNetworkSettings(base.TestCase):
                 'ctlplane-subnet': {
                     'AllocationPools': [
                         {'start': '192.168.24.5', 'end': '192.168.24.24'}],
+                    'HostRoutes': [],
                     'NetworkCidr': '192.168.24.0/24',
                     'NetworkGateway': '192.168.24.1'},
                 'subnet1': {
                     'AllocationPools': [
                         {'start': '192.168.10.10', 'end': '192.168.10.99'}],
+                    'HostRoutes': [],
                     'NetworkCidr': '192.168.10.0/24',
                     'NetworkGateway': '192.168.10.254'},
                 'subnet2': {
                     'AllocationPools': [
                         {'start': '192.168.20.10', 'end': '192.168.20.99'}],
+                    'HostRoutes': [],
                     'NetworkCidr': '192.168.20.0/24',
                     'NetworkGateway': '192.168.20.254'}
             }
@@ -477,6 +498,7 @@ class TestNetworkSettings(base.TestCase):
                          dhcp_exclude=[],
                          inspection_iprange='192.168.10.200,192.168.10.254',
                          gateway='192.168.10.254',
+                         host_routes=[],
                          masquerade=False,
                          group='subnet1')
         env = {}
@@ -501,11 +523,13 @@ class TestNetworkSettings(base.TestCase):
                 'ctlplane-subnet': {
                     'AllocationPools': [
                         {'start': '192.168.24.5', 'end': '192.168.24.24'}],
+                    'HostRoutes': [],
                     'NetworkCidr': '192.168.24.0/24',
                     'NetworkGateway': '192.168.24.1'},
                 'subnet1': {
                     'AllocationPools': [
                         {'start': '192.168.10.1', 'end': '192.168.10.199'}],
+                    'HostRoutes': [],
                     'NetworkCidr': '192.168.10.0/24',
                     'NetworkGateway': '192.168.10.254'}
             }
@@ -519,6 +543,7 @@ class TestNetworkSettings(base.TestCase):
                          dhcp_exclude=[],
                          inspection_iprange='192.168.10.100,192.168.10.199',
                          gateway='192.168.10.222',
+                         host_routes=[],
                          masquerade=False,
                          group='subnet1')
         env = {}
@@ -543,6 +568,7 @@ class TestNetworkSettings(base.TestCase):
                 'ctlplane-subnet': {
                     'AllocationPools': [
                         {'start': '192.168.24.5', 'end': '192.168.24.24'}],
+                    'HostRoutes': [],
                     'NetworkCidr': '192.168.24.0/24',
                     'NetworkGateway': '192.168.24.1'},
                 'subnet1': {
@@ -550,8 +576,84 @@ class TestNetworkSettings(base.TestCase):
                         {'start': '192.168.10.1', 'end': '192.168.10.99'},
                         {'start': '192.168.10.200', 'end': '192.168.10.221'},
                         {'start': '192.168.10.223', 'end': '192.168.10.254'}],
+                    'HostRoutes': [],
                     'NetworkCidr': '192.168.10.0/24',
                     'NetworkGateway': '192.168.10.222'}
+            }
+        }
+        self.assertEqual(expected, env)
+
+    def test_additional_host_routes(self):
+        self.conf.config(subnets=['ctlplane-subnet', 'subnet1', 'subnet2'])
+        self.conf.config(host_routes=[{'destination': '10.10.10.254/32',
+                                       'nexthop': '192.168.24.1'}],
+                         group='ctlplane-subnet')
+        self.conf.register_opts(self.opts, group=self.grp1)
+        self.conf.register_opts(self.opts, group=self.grp2)
+        self.conf.config(cidr='192.168.10.0/24',
+                         dhcp_start='192.168.10.10',
+                         dhcp_end='192.168.10.99',
+                         dhcp_exclude=[],
+                         inspection_iprange='192.168.10.100,192.168.10.189',
+                         gateway='192.168.10.254',
+                         host_routes=[{'destination': '10.10.10.254/32',
+                                       'nexthop': '192.168.10.254'}],
+                         group='subnet1')
+        self.conf.config(cidr='192.168.20.0/24',
+                         dhcp_start='192.168.20.10',
+                         dhcp_end='192.168.20.99',
+                         dhcp_exclude=[],
+                         inspection_iprange='192.168.20.100,192.168.20.189',
+                         gateway='192.168.20.254',
+                         host_routes=[{'destination': '10.10.10.254/32',
+                                       'nexthop': '192.168.20.254'}],
+                         group='subnet2')
+        env = {}
+        undercloud_config._process_network_args(env)
+        expected = {
+            'ControlPlaneStaticRoutes': [
+                {'ip_netmask': '192.168.10.0/24', 'next_hop': '192.168.24.1'},
+                {'ip_netmask': '192.168.20.0/24', 'next_hop': '192.168.24.1'},
+                {'ip_netmask': '10.10.10.254/32', 'next_hop': '192.168.24.1'}],
+            'DnsServers': '',
+            'IronicInspectorSubnets': [
+                {'gateway': '192.168.24.1',
+                 'ip_range': '192.168.24.100,192.168.24.120',
+                 'netmask': '255.255.255.0',
+                 'tag': 'ctlplane-subnet'},
+                {'gateway': '192.168.10.254',
+                 'ip_range': '192.168.10.100,192.168.10.189',
+                 'netmask': '255.255.255.0',
+                 'tag': 'subnet1'},
+                {'gateway': '192.168.20.254',
+                 'ip_range': '192.168.20.100,192.168.20.189',
+                 'netmask': '255.255.255.0',
+                 'tag': 'subnet2'}
+            ],
+            'MasqueradeNetworks': {},
+            'UndercloudCtlplaneSubnets': {
+                # The ctlplane-subnet subnet have defaults
+                'ctlplane-subnet': {
+                    'AllocationPools': [
+                        {'start': '192.168.24.5', 'end': '192.168.24.24'}],
+                    'HostRoutes': [{'destination': '10.10.10.254/32',
+                                    'nexthop': '192.168.24.1'}],
+                    'NetworkCidr': '192.168.24.0/24',
+                    'NetworkGateway': '192.168.24.1'},
+                'subnet1': {
+                    'AllocationPools': [
+                        {'start': '192.168.10.10', 'end': '192.168.10.99'}],
+                    'HostRoutes': [{'destination': '10.10.10.254/32',
+                                    'nexthop': '192.168.10.254'}],
+                    'NetworkCidr': '192.168.10.0/24',
+                    'NetworkGateway': '192.168.10.254'},
+                'subnet2': {
+                    'AllocationPools': [
+                        {'start': '192.168.20.10', 'end': '192.168.20.99'}],
+                    'HostRoutes': [{'destination': '10.10.10.254/32',
+                                    'nexthop': '192.168.20.254'}],
+                    'NetworkCidr': '192.168.20.0/24',
+                    'NetworkGateway': '192.168.20.254'}
             }
         }
         self.assertEqual(expected, env)
