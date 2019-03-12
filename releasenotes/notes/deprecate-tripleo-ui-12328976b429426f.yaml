@@ -1,0 +1,4 @@
+---
+deprecations:
+  - |
+    enable_ui is deprecated for removal in Train.
