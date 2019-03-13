@@ -155,7 +155,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
                             'validate_stack': False})
 
         mock_open_context.assert_has_calls(
-            [mock.call('the-plan-environment.yaml')])
+            [mock.call('the-plan-environment.yaml', 'rb')])
 
         self.tripleoclient.object_store.put_object.assert_called_once_with(
             'test-overcloud', 'plan-environment.yaml', mock_open_context())
@@ -190,7 +190,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
                             'validate_stack': False})
 
         mock_open_context.assert_has_calls(
-            [mock.call('the-network-data.yaml')])
+            [mock.call('the-network-data.yaml', 'rb')])
 
         self.tripleoclient.object_store.put_object.assert_called_once_with(
             'test-overcloud', 'network_data.yaml', mock_open_context())

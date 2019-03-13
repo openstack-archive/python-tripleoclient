@@ -277,7 +277,7 @@ def _list_plan_files(swift_client, container):
 
 
 def _upload_file(swift_client, container, filename, local_filename):
-    with open(local_filename) as file_content:
+    with open(local_filename, 'rb') as file_content:
         swift_client.put_object(container, filename, file_content)
 
 

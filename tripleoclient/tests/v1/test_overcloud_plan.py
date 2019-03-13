@@ -337,7 +337,7 @@ class TestOvercloudCreatePlan(utils.TestCommand):
             })
 
         mock_open_context.assert_has_calls(
-            [mock.call('the_plan_environment.yaml')])
+            [mock.call('the_plan_environment.yaml', 'rb')])
 
         self.tripleoclient.object_store.put_object.assert_called_once_with(
             'overcast', 'plan-environment.yaml', mock_open_context())
