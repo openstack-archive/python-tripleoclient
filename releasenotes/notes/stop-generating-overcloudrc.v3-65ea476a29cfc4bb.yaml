@@ -1,0 +1,5 @@
+---
+deprecations:
+  - |
+    The overcloudrc.v3 file is no longer generated. The same contents are
+    available in overcloudrc.

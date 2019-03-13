@@ -18,7 +18,7 @@ from tripleoclient.workflows import deployment
 
 
 class OvercloudCredentials(command.Command):
-    """Create the overcloudrc and overcloudrc.v3 files"""
+    """Create the overcloudrc files"""
 
     log = logging.getLogger(__name__ + ".OvercloudCredentials")
 
