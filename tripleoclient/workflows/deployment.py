@@ -295,3 +295,18 @@ def get_deployment_status(clients, **workflow_input):
         raise exceptions.WorkflowServiceError(
             'Exception getting deployment status: {}'.format(
                 payload.get('message', '')))
+
+
+def get_deployment_failures(clients, **workflow_input):
+    workflow_client = clients.workflow_engine
+
+    result = base.call_action(
+        workflow_client,
+        'tripleo.deployment.get_deployment_failures',
+        **workflow_input
+    )
+
+    if result.get('message', ''):
+        print(result['message'])
+
+    return result['failures']
