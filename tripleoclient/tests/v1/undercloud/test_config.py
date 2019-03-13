@@ -166,6 +166,7 @@ class TestNetworkSettings(base.TestCase):
             'DnsServers': '',
             'IronicInspectorSubnets': [
                 {'gateway': '192.168.24.1',
+                 'host_routes': [],
                  'ip_range': '192.168.24.100,192.168.24.120',
                  'netmask': '255.255.255.0',
                  'tag': 'ctlplane-subnet'}],
@@ -199,6 +200,7 @@ class TestNetworkSettings(base.TestCase):
             'DnsServers': '',
             'IronicInspectorSubnets': [
                 {'gateway': '192.168.24.1',
+                 'host_routes': [],
                  'ip_range': '192.168.24.100,192.168.24.120',
                  'netmask': '255.255.255.0',
                  'tag': 'ctlplane-subnet'}],
@@ -225,6 +227,7 @@ class TestNetworkSettings(base.TestCase):
             'DnsServers': '',
             'IronicInspectorSubnets': [
                 {'gateway': '192.168.10.1',
+                 'host_routes': [],
                  'ip_range': '192.168.10.100,192.168.10.120',
                  'netmask': '255.255.255.0',
                  'tag': 'ctlplane-subnet'}],
@@ -253,6 +256,7 @@ class TestNetworkSettings(base.TestCase):
             'DnsServers': '',
             'IronicInspectorSubnets': [
                 {'gateway': '192.168.10.1',
+                 'host_routes': [],
                  'ip_range': '192.168.10.100,192.168.10.120',
                  'netmask': '255.255.255.0',
                  'tag': 'ctlplane-subnet'}],
@@ -280,6 +284,7 @@ class TestNetworkSettings(base.TestCase):
             'DnsServers': '',
             'IronicInspectorSubnets': [
                 {'gateway': '192.168.24.1',
+                 'host_routes': [],
                  'ip_range': '192.168.24.100,192.168.24.120',
                  'netmask': '255.255.255.0',
                  'tag': 'ctlplane-subnet'}],
@@ -305,6 +310,7 @@ class TestNetworkSettings(base.TestCase):
             'DnsServers': '',
             'IronicInspectorSubnets': [
                 {'gateway': '192.168.24.1',
+                 'host_routes': [],
                  'ip_range': '192.168.24.100,192.168.24.120',
                  'netmask': '255.255.255.0',
                  'tag': 'ctlplane-subnet'}],
@@ -331,6 +337,7 @@ class TestNetworkSettings(base.TestCase):
             'DnsServers': '',
             'IronicInspectorSubnets': [
                 {'gateway': '192.168.24.1',
+                 'host_routes': [],
                  'ip_range': '192.168.24.100,192.168.24.120',
                  'netmask': '255.255.255.0',
                  'tag': 'ctlplane-subnet'}],
@@ -379,14 +386,17 @@ class TestNetworkSettings(base.TestCase):
             'DnsServers': '',
             'IronicInspectorSubnets': [
                 {'gateway': '192.168.24.1',
+                 'host_routes': [],
                  'ip_range': '192.168.24.100,192.168.24.120',
                  'netmask': '255.255.255.0',
                  'tag': 'ctlplane-subnet'},
                 {'gateway': '192.168.10.254',
+                 'host_routes': [],
                  'ip_range': '192.168.10.100,192.168.10.189',
                  'netmask': '255.255.255.0',
                  'tag': 'subnet1'},
                 {'gateway': '192.168.20.254',
+                 'host_routes': [],
                  'ip_range': '192.168.20.100,192.168.20.189',
                  'netmask': '255.255.255.0',
                  'tag': 'subnet2'}
@@ -454,14 +464,17 @@ class TestNetworkSettings(base.TestCase):
             'DnsServers': '',
             'IronicInspectorSubnets': [
                 {'gateway': '192.168.24.1',
+                 'host_routes': [],
                  'ip_range': '192.168.24.100,192.168.24.120',
                  'netmask': '255.255.255.0',
                  'tag': 'ctlplane-subnet'},
                 {'gateway': '192.168.10.254',
+                 'host_routes': [],
                  'ip_range': '192.168.10.100,192.168.10.189',
                  'netmask': '255.255.255.0',
                  'tag': 'subnet1'},
                 {'gateway': '192.168.20.254',
+                 'host_routes': [],
                  'ip_range': '192.168.20.100,192.168.20.189',
                  'netmask': '255.255.255.0',
                  'tag': 'subnet2'}
@@ -509,10 +522,12 @@ class TestNetworkSettings(base.TestCase):
             'DnsServers': '',
             'IronicInspectorSubnets': [
                 {'gateway': '192.168.24.1',
+                 'host_routes': [],
                  'ip_range': '192.168.24.100,192.168.24.120',
                  'netmask': '255.255.255.0',
                  'tag': 'ctlplane-subnet'},
                 {'gateway': '192.168.10.254',
+                 'host_routes': [],
                  'ip_range': '192.168.10.200,192.168.10.254',
                  'netmask': '255.255.255.0',
                  'tag': 'subnet1'},
@@ -554,10 +569,12 @@ class TestNetworkSettings(base.TestCase):
             'DnsServers': '',
             'IronicInspectorSubnets': [
                 {'gateway': '192.168.24.1',
+                 'host_routes': [],
                  'ip_range': '192.168.24.100,192.168.24.120',
                  'netmask': '255.255.255.0',
                  'tag': 'ctlplane-subnet'},
                 {'gateway': '192.168.10.222',
+                 'host_routes': [],
                  'ip_range': '192.168.10.100,192.168.10.199',
                  'netmask': '255.255.255.0',
                  'tag': 'subnet1'},
@@ -618,14 +635,20 @@ class TestNetworkSettings(base.TestCase):
             'DnsServers': '',
             'IronicInspectorSubnets': [
                 {'gateway': '192.168.24.1',
+                 'host_routes': [{'destination': '10.10.10.254/32',
+                                  'nexthop': '192.168.24.1'}],
                  'ip_range': '192.168.24.100,192.168.24.120',
                  'netmask': '255.255.255.0',
                  'tag': 'ctlplane-subnet'},
                 {'gateway': '192.168.10.254',
+                 'host_routes': [{'destination': '10.10.10.254/32',
+                                  'nexthop': '192.168.10.254'}],
                  'ip_range': '192.168.10.100,192.168.10.189',
                  'netmask': '255.255.255.0',
                  'tag': 'subnet1'},
                 {'gateway': '192.168.20.254',
+                 'host_routes': [{'destination': '10.10.10.254/32',
+                                  'nexthop': '192.168.20.254'}],
                  'ip_range': '192.168.20.100,192.168.20.189',
                  'netmask': '255.255.255.0',
                  'tag': 'subnet2'}

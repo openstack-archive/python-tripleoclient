@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    The routes defined using ``host_routes`` option for subnet definitions in
+    the Undercloud configuration is now also configured in ironic inspeactors
+    dnsmasq on the Undercloud. The advanced routing options will be pushed to
+    the inspection ramdisk similar to the way they are already pushed to
+    IPA (ironic-python-agent).
