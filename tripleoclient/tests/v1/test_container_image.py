@@ -120,7 +120,7 @@ class TestContainerImagePrepare(TestPluginV1):
                                             mock_cipd):
         mock_bsf.return_value = None
         mock_cipd.return_value = {
-            'neutron_driver': None,
+            'neutron_driver': 'ovn',
             'name_suffix': '',
             'tag': 'latest',
             'namespace': 'docker.io/tripleomaster',
@@ -140,6 +140,7 @@ class TestContainerImagePrepare(TestPluginV1):
             excludes=[],
             includes=[],
             mapping_args={
+                'neutron_driver': 'ovn',
                 'name_suffix': '',
                 'tag': 'latest',
                 'namespace': 'docker.io/tripleomaster',
