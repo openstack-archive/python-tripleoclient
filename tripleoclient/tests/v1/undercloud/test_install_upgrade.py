@@ -43,6 +43,8 @@ class TestUndercloudInstall(TestPluginV1):
         self.conf = self.useFixture(oslo_fixture.Config(cfg.CONF))
         self.conf.config(container_images_file='/home/stack/foo.yaml')
         self.conf.set_default('output_dir', '/home/stack')
+        # setting this so we don't have to mock get_local_timezone everywhere
+        self.conf.set_default('undercloud_timezone', 'UTC')
         # don't actually load config from ~/undercloud.conf
         self.mock_config_load = self.useFixture(
             fixtures.MockPatch('tripleoclient.utils.load_config'))
@@ -550,6 +552,8 @@ class TestUndercloudUpgrade(TestPluginV1):
         self.conf = self.useFixture(oslo_fixture.Config(cfg.CONF))
         self.conf.config(container_images_file='/home/stack/foo.yaml')
         self.conf.set_default('output_dir', '/home/stack')
+        # setting this so we don't have to mock get_local_timezone everywhere
+        self.conf.set_default('undercloud_timezone', 'UTC')
         # don't actually load config from ~/undercloud.conf
         self.mock_config_load = self.useFixture(
             fixtures.MockPatch('tripleoclient.utils.load_config'))

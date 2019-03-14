@@ -1589,6 +1589,21 @@ def get_validations_yaml(validations_data):
                           indent=2)
 
 
+def get_local_timezone():
+    info = run_command(['timedatectl'], name='timedatectl')
+    timezoneline = [tz for tz in info.split('\n') if 'Time zone:' in tz]
+    if not timezoneline:
+        LOG.warning('Unable to determine timezone, using UTC')
+        return 'UTC'
+    # The line returned is "[whitespace]Time zone: [timezone] ([tz], [offset])"
+    try:
+        timezone = timezoneline[0].strip().split(' ')[2]
+    except Exception:
+        LOG.error('Unable to parse timezone from timedatectl, using UTC')
+        timezone = 'UTC'
+    return timezone
+
+
 def ansible_symlink():
     # https://bugs.launchpad.net/tripleo/+bug/1812837
     python_version = sys.version_info[0]

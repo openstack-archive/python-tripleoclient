@@ -33,7 +33,6 @@ from jinja2 import meta
 
 from osc_lib.i18n import _
 from oslo_config import cfg
-from time import strftime
 from tripleo_common.image import kolla_builder
 
 from tripleoclient.config.undercloud import load_global_config
@@ -404,7 +403,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
     if CONF.get('undercloud_timezone', None):
         env_data['TimeZone'] = CONF['undercloud_timezone']
     else:
-        env_data['TimeZone'] = strftime("%Z")
+        env_data['TimeZone'] = utils.get_local_timezone()
 
     if CONF.get('enable_validations', False):
         env_data['UndercloudConfigFilePath'] = constants.UNDERCLOUD_CONF_PATH

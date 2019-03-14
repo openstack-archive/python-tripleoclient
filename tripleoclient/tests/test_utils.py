@@ -1406,6 +1406,31 @@ class TestConfigParser(TestCase):
                           'does-not-exist', 'foo', 'bar')
 
 
+class TestGetLocalTimezone(TestCase):
+    @mock.patch('tripleoclient.utils.run_command')
+    def test_get_local_timezone(self, run_mock):
+        run_mock.return_value = "" \
+            "               Local time: Thu 2019-03-14 12:05:49 EDT\n" \
+            "           Universal time: Thu 2019-03-14 16:05:49 UTC\n" \
+            "                 RTC time: Thu 2019-03-14 16:15:50\n" \
+            "                Time zone: America/New_York (EDT, -0400)\n" \
+            "System clock synchronized: yes\n" \
+            "              NTP service: active\n"\
+            "          RTC in local TZ: no\n"
+        self.assertEqual('America/New_York', utils.get_local_timezone())
+
+    @mock.patch('tripleoclient.utils.run_command')
+    def test_get_local_timezone_bad_timedatectl(self, run_mock):
+        run_mock.return_value = "meh"
+        self.assertEqual('UTC', utils.get_local_timezone())
+
+    @mock.patch('tripleoclient.utils.run_command')
+    def test_get_local_timezone_bad_timezone_line(self, run_mock):
+        run_mock.return_value = "" \
+            "                Time zone: "
+        self.assertEqual('UTC', utils.get_local_timezone())
+
+
 class TestAnsibleSymlink(TestCase):
     @mock.patch('tripleoclient.utils.run_command')
     @mock.patch('os.path.exists', side_effect=[False, True])
