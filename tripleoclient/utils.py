@@ -901,7 +901,7 @@ def replace_links_in_template(template_part, link_replacement):
         return {k: replaced_dict_value(k, v)
                 for k, v in six.iteritems(template_part)}
     elif isinstance(template_part, list):
-        return map(replaced_list_value, template_part)
+        return list(map(replaced_list_value, template_part))
     else:
         return template_part
 
