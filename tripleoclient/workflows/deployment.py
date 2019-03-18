@@ -165,12 +165,16 @@ def wait_for_ssh_port(host):
         if (now - start) > constants.ENABLE_SSH_ADMIN_SSH_PORT_TIMEOUT:
             raise exceptions.DeploymentError(
                 "Timed out waiting for port 22 from %s" % host)
-
+        # first check ipv4 then check ipv6
         try:
             socket.socket().connect((host, 22))
             return
         except socket.error:
-            pass
+            try:
+                socket.socket(socket.AF_INET6).connect((host, 22))
+                return
+            except socket.error:
+                pass
 
         time.sleep(1)
 
