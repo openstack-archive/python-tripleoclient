@@ -181,11 +181,6 @@ class BuildImage(command.Command):
         )
         return parser
 
-    @staticmethod
-    def kolla_cfg(cfg, param):
-        """Return a parameter from Kolla config"""
-        return utils.get_config_value(cfg, 'DEFAULT', param)
-
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
 
@@ -211,15 +206,14 @@ class BuildImage(command.Command):
 
             if parsed_args.use_buildah:
                 deps = json.loads(result)
-                cfg = kolla_config_files
-                bb = buildah.BuildahBuilder(kolla_tmp_dir, deps,
-                                            BuildImage.kolla_cfg(cfg, 'base'),
-                                            BuildImage.kolla_cfg(cfg, 'type'),
-                                            BuildImage.kolla_cfg(cfg, 'tag'),
-                                            BuildImage.kolla_cfg(cfg,
-                                                                 'namespace'),
-                                            BuildImage.kolla_cfg(cfg,
-                                                                 'registry'))
+                kolla_cfg = utils.get_read_config(kolla_config_files)
+                bb = buildah.BuildahBuilder(
+                    kolla_tmp_dir, deps,
+                    utils.get_from_cfg(kolla_cfg, "base"),
+                    utils.get_from_cfg(kolla_cfg, "type"),
+                    utils.get_from_cfg(kolla_cfg, "tag"),
+                    utils.get_from_cfg(kolla_cfg, "namespace"),
+                    utils.get_from_cfg(kolla_cfg, "registry"))
                 bb.build_all()
             elif parsed_args.list_dependencies:
                 deps = json.loads(result)

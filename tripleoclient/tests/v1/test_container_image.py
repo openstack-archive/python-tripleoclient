@@ -508,13 +508,16 @@ class TestContainerImageBuild(TestPluginV1):
     @mock.patch('os.fdopen', autospec=True)
     @mock.patch('tempfile.mkdtemp')
     @mock.patch('tempfile.mkstemp')
-    @mock.patch('tripleoclient.v1.container_image.BuildImage.kolla_cfg')
+    @mock.patch(
+        'tripleoclient.utils.get_from_cfg')
     @mock.patch('tripleo_common.image.builder.buildah.BuildahBuilder',
                 autospec=True)
     @mock.patch('tripleo_common.image.kolla_builder.KollaImageBuilder',
                 autospec=True)
+    @mock.patch('tripleoclient.utils.get_read_config')
     @mock.patch('os.remove')
     def test_container_image_build_with_buildah(self, mock_remove,
+                                                mock_read_conf,
                                                 mock_builder, mock_buildah,
                                                 mock_kolla_cfg, mock_mkstemp,
                                                 mock_mkdtemp, mock_fdopen):
@@ -540,12 +543,13 @@ class TestContainerImageBuild(TestPluginV1):
 
         cfg_files = list(parsed_args.kolla_config_files)
         cfg_files.append('/tmp/whatever_file')
+        mock_read_conf.assert_any_call(cfg_files)
         cfg_calls = [
-            mock.call(cfg_files, 'base'),
-            mock.call(cfg_files, 'type'),
-            mock.call(cfg_files, 'tag'),
-            mock.call(cfg_files, 'namespace'),
-            mock.call(cfg_files, 'registry'),
+            mock.call(mock_read_conf.return_value, 'base'),
+            mock.call(mock_read_conf.return_value, 'type'),
+            mock.call(mock_read_conf.return_value, 'tag'),
+            mock.call(mock_read_conf.return_value, 'namespace'),
+            mock.call(mock_read_conf.return_value, 'registry'),
         ]
         mock_kolla_cfg.assert_has_calls(cfg_calls)
         mock_bb.build_all.assert_called_once()
