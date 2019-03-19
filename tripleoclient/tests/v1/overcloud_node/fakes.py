@@ -24,7 +24,8 @@ class FakeClientWrapper(object):
         self._mock_websocket = mock.Mock()
         self._mock_websocket.__enter__ = mock.Mock(
             return_value=self._mock_websocket)
-        self._mock_websocket.__exit__ = mock.Mock()
+        # Return False to avoid silencing exceptions
+        self._mock_websocket.__exit__ = mock.Mock(return_value=False)
 
     def messaging_websocket(self):
         return self._mock_websocket
