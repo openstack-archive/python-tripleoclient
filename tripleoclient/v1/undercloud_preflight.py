@@ -352,8 +352,10 @@ def _validate_env_files_paths():
     LOG.debug(_("Using roles file {0} from {1}").format(roles_file, tht_path))
     process_templates = os.path.join(tht_path,
                                      'tools/process-templates.py')
+    python_interpreter = "/usr/bin/python{}".format(sys.version_info[0])
     p = _run_live_command(
-        ['python', process_templates, '--roles-data', roles_file, '--dry-run'],
+        [python_interpreter, process_templates, '--roles-data', roles_file,
+         '--dry-run'],
         name='process-templates-dry-run', cwd=tht_path, wait=False)
 
     # parse the list for the rendered from j2 file names
