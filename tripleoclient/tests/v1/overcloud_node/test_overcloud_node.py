@@ -21,6 +21,7 @@ import os
 import tempfile
 
 from osc_lib.tests import utils as test_utils
+import yaml
 
 from tripleoclient import exceptions
 from tripleoclient.tests.v1.overcloud_node import fakes
@@ -1010,3 +1011,55 @@ class TestDiscoverNode(fakes.TestOvercloudNode):
                       )
         ]
         self.workflow.executions.create.assert_has_calls(workflows_calls)
+
+
+class TestProvisionNode(fakes.TestOvercloudNode):
+
+    def setUp(self):
+        super(TestProvisionNode, self).setUp()
+
+        self.workflow = self.app.client_manager.workflow_engine
+        execution = mock.Mock()
+        execution.id = "IDID"
+        self.workflow.executions.create.return_value = execution
+        client = self.app.client_manager.tripleoclient
+        self.websocket = client.messaging_websocket()
+        self.websocket.wait_for_messages.return_value = [{
+            "status": "SUCCESS",
+            "message": "Success",
+            "environment": {"cat": "meow"},
+            "execution": {"id": "IDID"}
+        }]
+
+        self.cmd = overcloud_node.ProvisionNode(self.app, None)
+
+    def test_ok(self):
+        with tempfile.NamedTemporaryFile() as inp:
+            with tempfile.NamedTemporaryFile() as outp:
+                with tempfile.NamedTemporaryFile() as keyf:
+                    inp.write(b'- name: Compute\n- name: Controller\n')
+                    inp.flush()
+                    keyf.write(b'I am a key')
+                    keyf.flush()
+
+                    argslist = ['--output', outp.name,
+                                '--overcloud-ssh-key', keyf.name,
+                                inp.name]
+                    verifylist = [('input', inp.name),
+                                  ('output', outp.name),
+                                  ('overcloud_ssh_key', keyf.name)]
+
+                    parsed_args = self.check_parser(self.cmd,
+                                                    argslist, verifylist)
+                    self.cmd.take_action(parsed_args)
+
+                    data = yaml.safe_load(outp)
+                    self.assertEqual({"cat": "meow"}, data)
+
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.baremetal_deploy.v1.deploy_roles',
+            workflow_input={'roles': [{'name': 'Compute'},
+                                      {'name': 'Controller'}],
+                            'ssh_keys': ['I am a key'],
+                            'ssh_user_name': 'heat-admin'}
+        )

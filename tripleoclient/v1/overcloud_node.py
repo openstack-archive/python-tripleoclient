@@ -15,9 +15,11 @@
 
 import argparse
 import logging
+import os
 
 from osc_lib.i18n import _
 from osc_lib import utils
+import yaml
 
 from tripleoclient import command
 from tripleoclient import constants
@@ -447,3 +449,55 @@ class DiscoverNode(command.Command):
             baremetal.provide(self.app.client_manager,
                               node_uuids=nodes_uuids
                               )
+
+
+class ProvisionNode(command.Command):
+    """Provision a new node using Ironic."""
+
+    log = logging.getLogger(__name__ + ".DiscoverNode")
+
+    def get_parser(self, prog_name):
+        parser = super(ProvisionNode, self).get_parser(prog_name)
+        parser.add_argument('input',
+                            metavar='<baremetal_deployment.yaml>',
+                            help=_('Configuration file describing the '
+                                   'baremetal deployment'))
+        parser.add_argument('-o', '--output',
+                            default='baremetal_environment.yaml',
+                            help=_('The output environment file path'))
+        parser.add_argument('--stack', dest='stack',
+                            help=_('Name or ID of heat stack '
+                                   '(default=Env: OVERCLOUD_STACK_NAME)'),
+                            default=utils.env('OVERCLOUD_STACK_NAME',
+                                              default='overcloud'))
+
+        parser.add_argument('--overcloud-ssh-user',
+                            default='heat-admin',
+                            help=_('User for SSH access to newly deployed '
+                                   'nodes'))
+        parser.add_argument('--overcloud-ssh-key',
+                            default=os.path.join(
+                                os.path.expanduser('~'), '.ssh', 'id_rsa.pub'),
+                            help=_('Public key path for SSH access to newly '
+                                   'deployed nodes'))
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)" % parsed_args)
+
+        with open(parsed_args.input, 'r') as fp:
+            roles = yaml.safe_load(fp)
+
+        with open(parsed_args.overcloud_ssh_key, 'rt') as fp:
+            ssh_key = fp.read()
+
+        output = baremetal.deploy_roles(
+            self.app.client_manager,
+            roles=roles, ssh_keys=[ssh_key],
+            ssh_user_name=parsed_args.overcloud_ssh_user)
+
+        with open(parsed_args.output, 'w') as fp:
+            yaml.safe_dump(output['environment'], fp)
+
+        print('Nodes deployed successfully, add %s to your deployment' %
+              parsed_args.output)
