@@ -864,7 +864,8 @@ def get_tripleo_ansible_inventory(inventory_file='',
 
 
 def run_update_ansible_action(log, clients, nodes, inventory, playbook,
-                              all_playbooks, action, ssh_user, skip_tags=''):
+                              all_playbooks, action, ssh_user,
+                              skip_tags='', verbosity=1):
     playbooks = [playbook]
     if playbook == "all":
         playbooks = all_playbooks
@@ -872,7 +873,7 @@ def run_update_ansible_action(log, clients, nodes, inventory, playbook,
         log.debug("Running ansible playbook %s " % book)
         action.update_ansible(clients, nodes=nodes, inventory_file=inventory,
                               playbook=book, node_user=ssh_user,
-                              skip_tags=skip_tags)
+                              skip_tags=skip_tags, verbosity=verbosity)
 
 
 def prepend_environment(environment_files, templates_dir, environment):
