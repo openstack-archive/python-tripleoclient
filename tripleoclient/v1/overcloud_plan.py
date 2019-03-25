@@ -133,7 +133,8 @@ class CreatePlan(command.Command):
             plan_management.create_plan_from_templates(
                 clients, name, parsed_args.templates,
                 generate_passwords=generate_passwords,
-                plan_env_file=parsed_args.plan_environment_file)
+                plan_env_file=parsed_args.plan_environment_file,
+                validate_stack=False)
         else:
             plan_management.create_deployment_plan(
                 clients, container=name,
