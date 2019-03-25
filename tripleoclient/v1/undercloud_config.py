@@ -225,6 +225,7 @@ def _generate_inspection_subnets():
         env_dict['ip_range'] = s.inspection_iprange
         env_dict['netmask'] = str(netaddr.IPNetwork(s.cidr).netmask)
         env_dict['gateway'] = s.gateway
+        env_dict['host_routes'] = s.host_routes
         env_list.append(env_dict)
     return env_list
 
