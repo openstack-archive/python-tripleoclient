@@ -836,6 +836,7 @@ def prompt_user_for_confirmation(message, logger, positive_response='y'):
             return False
         else:
             sys.stdout.write(message)
+            sys.stdout.flush()
             prompt_response = sys.stdin.readline().lower()
             if not prompt_response.startswith(positive_response):
                 logger.info(_(
