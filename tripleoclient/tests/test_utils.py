@@ -74,6 +74,23 @@ class TestRunAnsiblePlaybook(TestCase):
         mock_run.return_value = mock_process
 
         env = os.environ.copy()
+        env['ANSIBLE_LIBRARY'] = \
+            ('/root/.ansible/plugins/modules:'
+             '/usr/share/ansible/plugins/modules:'
+             '/usr/share/openstack-tripleo-validations/library')
+        env['ANSIBLE_LOOKUP_PLUGINS'] = \
+            ('root/.ansible/plugins/lookup:'
+             '/usr/share/ansible/plugins/lookup:'
+             '/usr/share/openstack-tripleo-validations/lookup_plugins')
+        env['ANSIBLE_CALLBACK_PLUGINS'] = \
+            ('~/.ansible/plugins/callback:'
+             '/usr/share/ansible/plugins/callback:'
+             '/usr/share/openstack-tripleo-validations/callback_plugins')
+        env['ANSIBLE_ROLES_PATH'] = \
+            ('/root/.ansible/roles:'
+             '/usr/share/ansible/roles:'
+             '/etc/ansible/roles:'
+             '/usr/share/openstack-tripleo-validations/roles')
         env['ANSIBLE_CONFIG'] = '/tmp/fooBar.cfg'
         self.assertRaises(RuntimeError,
                           utils.run_ansible_playbook,
@@ -117,6 +134,23 @@ class TestRunAnsiblePlaybook(TestCase):
         mock_exists.assert_called_once_with('/tmp/existing.yaml')
 
         env = os.environ.copy()
+        env['ANSIBLE_LIBRARY'] = \
+            ('/root/.ansible/plugins/modules:'
+             '/usr/share/ansible/plugins/modules:'
+             '/usr/share/openstack-tripleo-validations/library')
+        env['ANSIBLE_LOOKUP_PLUGINS'] = \
+            ('root/.ansible/plugins/lookup:'
+             '/usr/share/ansible/plugins/lookup:'
+             '/usr/share/openstack-tripleo-validations/lookup_plugins')
+        env['ANSIBLE_CALLBACK_PLUGINS'] = \
+            ('~/.ansible/plugins/callback:'
+             '/usr/share/ansible/plugins/callback:'
+             '/usr/share/openstack-tripleo-validations/callback_plugins')
+        env['ANSIBLE_ROLES_PATH'] = \
+            ('/root/.ansible/roles:'
+             '/usr/share/ansible/roles:'
+             '/etc/ansible/roles:'
+             '/usr/share/openstack-tripleo-validations/roles')
         env['ANSIBLE_CONFIG'] = '/tmp/fooBar.cfg'
         mock_run.assert_called_once_with(self.mock_log,
                                          [self.ansible_playbook_cmd, '-i',
@@ -144,6 +178,23 @@ class TestRunAnsiblePlaybook(TestCase):
         mock_exists.assert_has_calls(exist_calls, any_order=False)
 
         env = os.environ.copy()
+        env['ANSIBLE_LIBRARY'] = \
+            ('/root/.ansible/plugins/modules:'
+             '/usr/share/ansible/plugins/modules:'
+             '/usr/share/openstack-tripleo-validations/library')
+        env['ANSIBLE_LOOKUP_PLUGINS'] = \
+            ('root/.ansible/plugins/lookup:'
+             '/usr/share/ansible/plugins/lookup:'
+             '/usr/share/openstack-tripleo-validations/lookup_plugins')
+        env['ANSIBLE_CALLBACK_PLUGINS'] = \
+            ('~/.ansible/plugins/callback:'
+             '/usr/share/ansible/plugins/callback:'
+             '/usr/share/openstack-tripleo-validations/callback_plugins')
+        env['ANSIBLE_ROLES_PATH'] = \
+            ('/root/.ansible/roles:'
+             '/usr/share/ansible/roles:'
+             '/etc/ansible/roles:'
+             '/usr/share/openstack-tripleo-validations/roles')
         env['ANSIBLE_CONFIG'] = '/tmp/foo.cfg'
         mock_run.assert_called_once_with(self.mock_log,
                                          [self.ansible_playbook_cmd, '-i',
@@ -167,6 +218,23 @@ class TestRunAnsiblePlaybook(TestCase):
         self.assertEqual(retcode, 0)
         mock_exists.assert_called_once_with('/tmp/existing.yaml')
         env = os.environ.copy()
+        env['ANSIBLE_LIBRARY'] = \
+            ('/root/.ansible/plugins/modules:'
+             '/usr/share/ansible/plugins/modules:'
+             '/usr/share/openstack-tripleo-validations/library')
+        env['ANSIBLE_LOOKUP_PLUGINS'] = \
+            ('root/.ansible/plugins/lookup:'
+             '/usr/share/ansible/plugins/lookup:'
+             '/usr/share/openstack-tripleo-validations/lookup_plugins')
+        env['ANSIBLE_CALLBACK_PLUGINS'] = \
+            ('~/.ansible/plugins/callback:'
+             '/usr/share/ansible/plugins/callback:'
+             '/usr/share/openstack-tripleo-validations/callback_plugins')
+        env['ANSIBLE_ROLES_PATH'] = \
+            ('/root/.ansible/roles:'
+             '/usr/share/ansible/roles:'
+             '/etc/ansible/roles:'
+             '/usr/share/openstack-tripleo-validations/roles')
         env['ANSIBLE_CONFIG'] = '/tmp/fooBar.cfg'
         mock_run.assert_called_once_with(self.mock_log,
                                          [self.ansible_playbook_cmd, '-i',

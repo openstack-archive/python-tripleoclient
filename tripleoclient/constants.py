@@ -75,7 +75,10 @@ ENABLE_SSH_ADMIN_SSH_PORT_TIMEOUT = 300
 
 ADDITIONAL_ARCHITECTURES = ['ppc64le']
 
-ANSIBLE_VALIDATION_DIR = '/usr/share/openstack-tripleo-validations/validations'
+DEFAULT_VALIDATIONS_BASEDIR = '/usr/share/openstack-tripleo-validations'
+
+ANSIBLE_VALIDATION_DIR = \
+    '/usr/share/openstack-tripleo-validations/playbooks'
 
 VALIDATION_GROUPS = ['openshift-on-openstack',
                      'prep',
