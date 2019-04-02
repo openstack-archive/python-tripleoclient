@@ -1549,10 +1549,20 @@ def get_read_config(cfg):
     return config
 
 
+def getboolean_from_cfg(cfg, param, section="DEFAULT"):
+    """Return a parameter from Kolla config"""
+    return _get_from_cfg(cfg, cfg.getboolean, param, section)
+
+
 def get_from_cfg(cfg, param, section="DEFAULT"):
     """Return a parameter from Kolla config"""
+    return _get_from_cfg(cfg, cfg.get, param, section)
+
+
+def _get_from_cfg(cfg, accessor, param, section):
+    """Return a parameter from Kolla config"""
     try:
-        val = cfg.get(section, param)
+        val = accessor(section, param)
     except Exception:
         raise exceptions.NotFound(_("Unable to find {section}/{option} in "
                                     "{config}").format(section=param,

@@ -1394,6 +1394,29 @@ class TestConfigParser(TestCase):
         config = utils.get_from_cfg(cfg, 'bar', 'foo')
         self.assertEqual(config, 'baz')
 
+    def test_getboolean_config_value(self):
+        cfg = ConfigParser()
+        cfg.add_section('foo')
+        test_data_set = [
+            (True, 'True'),
+            (True, 'true'),
+            (False, 'False'),
+            (False, 'false')
+        ]
+        for test_data in test_data_set:
+            expected_value, config_value = test_data
+            cfg.set('foo', 'bar', config_value)
+            obtained_value = utils.getboolean_from_cfg(cfg, 'bar', 'foo')
+            self.assertEqual(obtained_value, expected_value)
+
+    def test_getboolean_bad_config_value(self):
+        cfg = ConfigParser()
+        cfg.add_section('foo')
+        cfg.set('foo', 'bar', 'I am not a boolean')
+        self.assertRaises(exceptions.NotFound,
+                          utils.getboolean_from_cfg,
+                          cfg, 'bar', 'foo')
+
     def test_get_config_value_multiple_files(self):
         _, cfile1_name = tempfile.mkstemp(dir=self.tmp_dir, text=True)
         _, cfile2_name = tempfile.mkstemp(dir=self.tmp_dir, text=True)
@@ -1411,7 +1434,7 @@ class TestConfigParser(TestCase):
         self.assertEqual(config, 'boop')
 
     def test_get_config_value_bad_file(self):
-        self.assertRaises(exceptions.NotFound,
+        self.assertRaises(AttributeError,
                           utils.get_from_cfg,
                           'does-not-exist', 'bar', 'foo')
 
