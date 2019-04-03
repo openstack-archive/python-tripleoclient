@@ -80,6 +80,71 @@ class TestContainerImageUpload(TestPluginV1):
         mock_manager.return_value.upload.assert_called_once_with()
 
 
+class TestContainerImageList(TestPluginV1):
+
+    def setUp(self):
+        super(TestContainerImageList, self).setUp()
+        self.cmd = container_image.TripleOContainerImageList(self.app, None)
+
+    @mock.patch('tripleo_common.image.image_uploader.ImageUploadManager')
+    def test_take_action(self, mock_manager):
+        arglist = []
+        verifylist = []
+
+        mock_manager.return_value.uploader.return_value.list.return_value = \
+            ['a', 'b']
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        rv = self.cmd.take_action(parsed_args)
+        actual = (('Image Name',), [('a',), ('b',)])
+        self.assertEqual(actual, rv)
+
+    @mock.patch('tripleo_common.image.image_uploader.ImageUploadManager')
+    def test_take_action_auth(self, mock_manager):
+        # check arg parsing items
+        arglist = ['--registry-url', 'reg-url',
+                   '--username', 'foo',
+                   '--password', 'bar']
+        verifylist = [('registry_url', 'reg-url'),
+                      ('username', 'foo'),
+                      ('password', 'bar')]
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        # mock manager object
+        mock_mgr = mock.Mock()
+        mock_manager.return_value = mock_mgr
+
+        # mock uploader object
+        mock_uploader = mock.Mock()
+        mock_mgr.uploader.return_value = mock_uploader
+
+        # mock return url object from uploader._image_to_url
+        mock_url = mock.Mock()
+        mock_url.geturl.return_value = 'munged-reg-url'
+
+        mock_uploader._image_to_url.return_value = mock_url
+
+        # mock return session object from uploader.authenticate
+        mock_session = mock.Mock()
+        mock_uploader.authenticate.return_value = mock_session
+
+        # mock image list function
+        mock_uploader.list.return_value = ['a', 'b']
+
+        rv = self.cmd.take_action(parsed_args)
+
+        # check various functions are called with expected inputs
+        mock_mgr.uploader.assert_called_with('python')
+        mock_uploader._image_to_url.assert_called_with('reg-url')
+        mock_uploader.authenticate.assert_called_with(mock_url, 'foo', 'bar')
+        mock_uploader.list.assert_called_with('munged-reg-url',
+                                              session=mock_session)
+
+        # check data format for lister
+        actual = (('Image Name',), [('a',), ('b',)])
+        self.assertEqual(actual, rv)
+
+
 class TestContainerImagePrepare(TestPluginV1):
 
     def setUp(self):
