@@ -98,8 +98,30 @@ class TestUndercloudUpgrade(TestPluginV1):
             [
                 mock.call(['sudo', 'yum', 'update', '-y',
                            'instack-undercloud']),
-                mock.call('instack-pre-upgrade-undercloud'),
-                mock.call('instack-upgrade-undercloud'),
+                mock.call(['instack-pre-upgrade-undercloud']),
+                mock.call(['instack-upgrade-undercloud']),
+                mock.call(['sudo', 'systemctl', 'restart',
+                          'openstack-nova-api'])
+            ]
+        )
+
+    @mock.patch('subprocess.check_call', autospec=True)
+    def test_undercloud_upgrade_with_force(self, mock_subprocess):
+        arglist = ['--force']
+        verifylist = []
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        # DisplayCommandBase.take_action() returns two tuples
+        self.cmd.take_action(parsed_args)
+
+        mock_subprocess.assert_has_calls(
+            [
+                mock.call(['sudo', 'yum', 'update', '-y',
+                           'instack-undercloud']),
+                mock.call(['instack-pre-upgrade-undercloud',
+                           'TRIPLEO_FORCED_UPDATE']),
+                mock.call(['instack-upgrade-undercloud',
+                           'TRIPLEO_FORCED_UPDATE']),
                 mock.call(['sudo', 'systemctl', 'restart',
                           'openstack-nova-api'])
             ]

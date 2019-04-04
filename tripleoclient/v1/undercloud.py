@@ -74,6 +74,17 @@ class UpgradeUndercloud(InstallUndercloud):
     auth_required = False
     log = logging.getLogger(__name__ + ".UpgradeUndercloud")
 
+    def get_parser(self, prog_name):
+        parser = super(UpgradeUndercloud, self).get_parser(prog_name)
+        parser.add_argument('--force',
+                            action='store_true',
+                            default=False,
+                            help=_('No to be used in normal update/upgrade! '
+                                   'This helps getting out of an error loop '
+                                   'when the overcloud is in error and '
+                                   'it needs new code to work again.'))
+        return parser
+
     def take_action(self, parsed_args):
         self.log.debug("take action(%s)" % parsed_args)
 
@@ -88,8 +99,13 @@ class UpgradeUndercloud(InstallUndercloud):
         else:
             subprocess.check_call(['sudo', 'yum', 'update', '-y',
                                   'instack-undercloud'])
-            subprocess.check_call("instack-pre-upgrade-undercloud")
-            subprocess.check_call("instack-upgrade-undercloud")
+            commands = ["instack-pre-upgrade-undercloud",
+                        "instack-upgrade-undercloud"]
+            for cmd in commands:
+                final_cmd = [cmd]
+                if parsed_args.force:
+                    final_cmd += ["TRIPLEO_FORCED_UPDATE"]
+                subprocess.check_call(final_cmd)
             # restart nova-api
             # https://bugzilla.redhat.com/show_bug.cgi?id=1315467
             subprocess.check_call(['sudo', 'systemctl', 'restart',
