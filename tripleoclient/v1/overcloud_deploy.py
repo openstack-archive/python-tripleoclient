@@ -194,6 +194,15 @@ class DeployOvercloud(command.Command):
                      deployment_options=None):
         """Verify the Baremetal nodes are available and do a stack update"""
 
+        if stack:
+            self.log.debug(
+                "Checking compatibilities of neutron drivers for {0}".format(
+                    stack_name))
+            msg = update.check_neutron_mechanism_drivers(
+                env, stack, self.object_client, stack_name)
+            if msg:
+                raise oscexc.CommandError(msg)
+
         self.log.debug("Getting template contents from plan %s" % stack_name)
         # We need to reference the plan here, not the local
         # tht root, as we need template_object to refer to
