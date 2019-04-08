@@ -213,7 +213,8 @@ class BuildImage(command.Command):
                     utils.get_from_cfg(kolla_cfg, "type"),
                     utils.get_from_cfg(kolla_cfg, "tag"),
                     utils.get_from_cfg(kolla_cfg, "namespace"),
-                    utils.get_from_cfg(kolla_cfg, "registry"))
+                    utils.get_from_cfg(kolla_cfg, "registry"),
+                    utils.getboolean_from_cfg(kolla_cfg, "push"))
                 bb.build_all()
             elif parsed_args.list_dependencies:
                 deps = json.loads(result)

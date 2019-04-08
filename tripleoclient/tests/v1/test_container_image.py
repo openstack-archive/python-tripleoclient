@@ -510,6 +510,8 @@ class TestContainerImageBuild(TestPluginV1):
     @mock.patch('tempfile.mkstemp')
     @mock.patch(
         'tripleoclient.utils.get_from_cfg')
+    @mock.patch(
+        'tripleoclient.utils.getboolean_from_cfg')
     @mock.patch('tripleo_common.image.builder.buildah.BuildahBuilder',
                 autospec=True)
     @mock.patch('tripleo_common.image.kolla_builder.KollaImageBuilder',
@@ -519,6 +521,7 @@ class TestContainerImageBuild(TestPluginV1):
     def test_container_image_build_with_buildah(self, mock_remove,
                                                 mock_read_conf,
                                                 mock_builder, mock_buildah,
+                                                mock_kolla_boolean_cfg,
                                                 mock_kolla_cfg, mock_mkstemp,
                                                 mock_mkdtemp, mock_fdopen):
         arglist = [
@@ -551,7 +554,11 @@ class TestContainerImageBuild(TestPluginV1):
             mock.call(mock_read_conf.return_value, 'namespace'),
             mock.call(mock_read_conf.return_value, 'registry'),
         ]
+        cfg_boolean_calls = [
+            mock.call(mock_read_conf.return_value, 'push'),
+        ]
         mock_kolla_cfg.assert_has_calls(cfg_calls)
+        mock_kolla_boolean_cfg.assert_has_calls(cfg_boolean_calls)
         mock_bb.build_all.assert_called_once()
 
     @mock.patch('tripleo_common.image.kolla_builder.KollaImageBuilder',
