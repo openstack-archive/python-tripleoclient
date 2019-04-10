@@ -102,7 +102,7 @@ class DownloadConfig(command.Command):
         tarball_name = "%s-config.tar.gz" % name
         tarball_path = os.path.join(config_dir, tarball_name)
 
-        with open(tarball_path, 'w') as f:
+        with open(tarball_path, 'wb') as f:
             f.write(tarball_contents)
 
         print("Extracting config-download...")
