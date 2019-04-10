@@ -18,6 +18,26 @@ from tripleoclient.exceptions import InvalidConfiguration
 from tripleoclient.workflows import base
 
 
+def ansible_tear_down(clients, **workflow_input):
+
+    workflow_client = clients.workflow_engine
+    tripleoclients = clients.tripleoclient
+
+    with tripleoclients.messaging_websocket() as ws:
+        execution = base.start_workflow(
+            workflow_client,
+            'tripleo.scale.v1.ansible_scale_down',
+            workflow_input=workflow_input
+        )
+
+        for payload in base.wait_for_messages(workflow_client, ws, execution):
+            status = payload['status']
+            if status == 'RUNNING':
+                continue
+            if status != 'SUCCESS':
+                raise InvalidConfiguration(payload['message'])
+
+
 def delete_node(clients, **workflow_input):
 
     workflow_client = clients.workflow_engine
@@ -39,7 +59,7 @@ def delete_node(clients, **workflow_input):
 
 
 def scale_down(clients, plan_name, nodes, timeout=None):
-    """Deletes overcloud nodes from a heat stack.
+    """Unprovision and deletes overcloud nodes from a heat stack.
 
     :param clients: openstack clients
     :param plan_name: name of the container holding the plan data
@@ -55,4 +75,5 @@ def scale_down(clients, plan_name, nodes, timeout=None):
     if timeout is not None:
         workflow_input['timeout'] = timeout
 
+    ansible_tear_down(clients, **workflow_input)
     delete_node(clients, **workflow_input)
