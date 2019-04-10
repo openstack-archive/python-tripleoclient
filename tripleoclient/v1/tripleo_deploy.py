@@ -45,6 +45,7 @@ from tripleoclient import utils
 
 from tripleo_common import constants as tc_constants
 from tripleo_common.image import kolla_builder
+from tripleo_common.utils import parameters
 from tripleo_common.utils import passwords as password_utils
 
 # For ansible download and config generation
@@ -794,6 +795,7 @@ class Deploy(command.Command):
                 cleanup=parsed_args.cleanup)
 
         self._prepare_container_images(env, roles_data)
+        parameters.convert_docker_params(env)
 
         self.log.debug(_("Getting template contents"))
         template_path = os.path.join(self.tht_render, 'overcloud.yaml')
