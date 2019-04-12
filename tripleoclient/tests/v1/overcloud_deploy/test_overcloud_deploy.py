@@ -1399,7 +1399,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('os.path.relpath', autospec=True)
     @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env',
                 autospec=True)
-    def test_heat_deploy_update_plan_only(self, mock_breakpoints_cleanup,
+    @mock.patch('tripleo_common.update.check_neutron_mechanism_drivers')
+    def test_heat_deploy_update_plan_only(self, check_mech,
+                                          mock_breakpoints_cleanup,
                                           mock_relpath,
                                           mock_get_template_contents,
                                           mock_upload_missing_files,
@@ -1407,6 +1409,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                           mock_deploy_and_wait,
                                           mock_deprecated_params):
         clients = self.app.client_manager
+        check_mech.return_value = None
         orchestration_client = clients.orchestration
         mock_stack = fakes.create_tht_stack()
         orchestration_client.stacks.get.side_effect = [
@@ -1428,7 +1431,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_get_template_contents.return_value = [{}, {}]
 
         self.cmd.clients = {}
-
+        self.cmd.object_client = object_client
         self.cmd._heat_deploy(mock_stack, 'mock_stack', '/tmp', {},
                               {}, 1, '/tmp', {}, True, False, False, None)
 
