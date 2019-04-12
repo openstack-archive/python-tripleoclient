@@ -316,6 +316,11 @@ class UndercloudConfig(StandaloneConfig):
                             '(Experimental) Whether to clean undercloud rpms '
                             'after an upgrade to a containerized '
                             'undercloud.')),
+            cfg.BoolOpt('container_healthcheck_disabled',
+                        default=False,
+                        help=_(
+                            'Whether or not we disable the container '
+                            'healthchecks.')),
             cfg.ListOpt('enabled_hardware_types',
                         default=['ipmi', 'redfish', 'ilo', 'idrac'],
                         help=_('List of enabled bare metal hardware types '

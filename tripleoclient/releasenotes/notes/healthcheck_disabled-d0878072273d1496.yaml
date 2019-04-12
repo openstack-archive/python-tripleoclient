@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Disable the container healthchecks on the Undercloud in the undercloud.conf
+    with the new option container_healthcheck_disabled, false by default.
