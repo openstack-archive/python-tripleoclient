@@ -69,6 +69,7 @@ PARAMETER_MAPPING = {
     'local_mtu': 'UndercloudLocalMtu',
     'clean_nodes': 'IronicAutomatedClean',
     'upgrade_cleanup': 'UpgradeRemoveUnusedPackages',
+    'container_healthcheck_disabled': 'ContainerHealthcheckDisabled',
     'local_subnet': 'UndercloudCtlplaneLocalSubnet',
     'enable_routed_networks': 'UndercloudEnableRoutedNetworks',
     'local_interface': 'NeutronPublicInterface',
