@@ -149,7 +149,6 @@ class TestContainerImagePrepare(TestPluginV1):
             },
             output_env_file=None,
             output_images_file='container_images.yaml',
-            pull_source=None,
             push_destination=None,
             service_filter=None,
             tag_from_label=None,
@@ -267,7 +266,6 @@ class TestContainerImagePrepare(TestPluginV1):
             },
             output_env_file=env_file,
             output_images_file=images_file,
-            pull_source=None,
             push_destination=None,
             service_filter=set([
                 'OS::TripleO::Services::AodhEvaluator',
