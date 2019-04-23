@@ -127,8 +127,11 @@ class UndercloudConfig(StandaloneConfig):
             cfg.ListOpt('undercloud_nameservers',
                         default=[],
                         help=_(
-                            'DNS nameserver(s) to use for the undercloud '
-                            'node.'),
+                            'DNS nameserver(s). Use for the undercloud '
+                            'node and for the overcloud nodes. (NOTE: To use '
+                            'different nameserver(s) for the overcloud, '
+                            'override the DnsServers parameter in overcloud '
+                            'environment.)'),
                         ),
             cfg.ListOpt('undercloud_ntp_servers',
                         default=['0.pool.ntp.org', '1.pool.ntp.org',
