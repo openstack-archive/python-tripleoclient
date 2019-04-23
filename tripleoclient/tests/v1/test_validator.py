@@ -14,6 +14,7 @@
 #
 
 import mock
+import sys
 
 from osc_lib.tests import utils
 from tripleoclient.v1 import tripleo_validator
@@ -54,8 +55,9 @@ class TestValidatorRun(utils.TestCommand):
 
     @mock.patch('tripleoclient.workflows.validations.run_validations',
                 autospec=True)
-    def test_validation_run_withargs(self, plan_mock):
+    def test_validation_run_with_mistral(self, plan_mock):
         arglist = [
+            '--use-mistral',
             '--validation-name',
             'check-ftype'
         ]
@@ -68,3 +70,39 @@ class TestValidatorRun(utils.TestCommand):
             mock.ANY,
             {'plan': 'overcloud',
              'validation_names': ['check-ftype']})
+
+    @mock.patch('logging.getLogger')
+    @mock.patch('pwd.getpwuid')
+    @mock.patch('os.getuid')
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
+                autospec=True)
+    def test_validation_run_with_ansible(self, plan_mock, mock_getuid,
+                                         mock_getpwuid, mock_logger):
+        mock_pwuid = mock.Mock()
+        mock_pwuid.pw_dir = '/home/stack'
+        mock_getpwuid.return_value = mock_pwuid
+
+        mock_log = mock.Mock()
+        mock_logger.return_value = mock_log
+
+        playbooks_dir = '/usr/share/openstack-tripleo-validations/playbooks'
+        arglist = [
+            '--validation-name',
+            'check-ftype'
+        ]
+        verifylist = []
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        self.cmd.take_action(parsed_args)
+
+        plan_mock.assert_called_once_with(
+            logger=mock_log,
+            connection='local',
+            inventory='/usr/bin/tripleo-ansible-inventory',
+            workdir=playbooks_dir,
+            log_path_dir='/home/stack',
+            playbook='check-ftype.yaml',
+            retries=False,
+            output_callback='validation_output',
+            python_interpreter='/usr/bin/python{}'.format(sys.version_info[0])
+        )

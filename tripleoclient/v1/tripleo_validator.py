@@ -15,6 +15,9 @@
 
 import argparse
 import logging
+import os
+import pwd
+import sys
 
 from osc_lib.command import command
 from osc_lib.i18n import _
@@ -123,6 +126,15 @@ class TripleOValidatorRun(command.Command):
                    "Defaults to: overcloud")
         )
 
+        parser.add_argument(
+            '--use-mistral',
+            action='store_true',
+            default=False,
+            help=_("Execute the validations using "
+                   "Mistral. "
+                   "Defaults to: false")
+        )
+
         ex_group = parser.add_mutually_exclusive_group(required=True)
 
         ex_group.add_argument(
@@ -155,25 +167,53 @@ class TripleOValidatorRun(command.Command):
 
     def _run_validator_run(self, parsed_args):
         clients = self.app.client_manager
+        LOG = logging.getLogger(__name__ + ".ValidationsRun")
 
-        if not parsed_args.validation_name:
-            workflow_input = {
-                "plan": parsed_args.plan,
-                "group_names": parsed_args.group
-            }
+        if parsed_args.use_mistral or parsed_args.group:
+            if not parsed_args.validation_name:
+                workflow_input = {
+                    "plan": parsed_args.plan,
+                    "group_names": parsed_args.group
+                }
+            else:
+                workflow_input = {
+                    "plan": parsed_args.plan,
+                    "validation_names": parsed_args.validation_name
+                }
+
+            LOG.debug(_('Running the validations with Mistral'))
+            output = validations.run_validations(clients, workflow_input)
+            for out in output:
+                print('[{}] - {}\n{}'.format(
+                    out.get('status'),
+                    out.get('validation_name'),
+                    oooutils.indent(out.get('stdout'))))
         else:
-            workflow_input = {
-                "plan": parsed_args.plan,
-                "validation_names": parsed_args.validation_name
-            }
+            playbooks = []
+            for pb in parsed_args.validation_name:
+                playbooks.append(pb + '.yaml')
 
-        LOG.debug(_('Runnning the validations'))
-        output = validations.run_validations(clients, workflow_input)
-        for out in output:
-            print('[{}] - {}\n{}'.format(
-                out.get('status'),
-                out.get('validation_name'),
-                oooutils.indent(out.get('stdout'))))
+            python_interpreter = \
+                "/usr/bin/python{}".format(sys.version_info[0])
+
+            for playbook in playbooks:
+                try:
+                    LOG.debug(_('Running the validations with Ansible'))
+                    rc, output = oooutils.run_ansible_playbook(
+                        logger=LOG,
+                        workdir=constants.ANSIBLE_VALIDATION_DIR,
+                        log_path_dir=pwd.getpwuid(os.getuid()).pw_dir,
+                        playbook=playbook,
+                        inventory='/usr/bin/tripleo-ansible-inventory',
+                        retries=False,
+                        connection='local',
+                        output_callback='validation_output',
+                        python_interpreter=python_interpreter)
+                    print('[SUCCESS] - {}\n{}'.format(
+                        playbook, oooutils.indent(output)))
+                except Exception as e:
+                    print('[FAILED] - {}\n{}'.format(
+                        playbook, oooutils.indent(e.args[0])))
 
     def take_action(self, parsed_args):
         self._run_validator_run(parsed_args)

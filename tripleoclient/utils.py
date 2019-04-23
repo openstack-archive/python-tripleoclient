@@ -216,7 +216,7 @@ def run_ansible_playbook(logger,
         cleanup and os.unlink(tmp_config)
         if proc.returncode != 0:
             raise RuntimeError(proc.stdout.read())
-        return proc.returncode
+        return proc.returncode, proc.stdout.read()
     else:
         cleanup and os.unlink(tmp_config)
         raise RuntimeError('No such playbook: %s' % play)
