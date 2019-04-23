@@ -296,7 +296,7 @@ def _load_passwords(swift_client, name):
 def _update_passwords(swift_client, name, passwords):
     # Update the plan environment with the generated passwords. This
     # will be solved more elegantly once passwords are saved in a
-    # separate environment (https://review.openstack.org/#/c/467909/)
+    # separate environment (https://review.opendev.org/#/c/467909/)
     if passwords:
         try:
             env = yaml.safe_load(swift_client.get_object(
