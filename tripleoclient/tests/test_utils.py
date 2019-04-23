@@ -131,10 +131,8 @@ class TestRunAnsiblePlaybook(TestCase):
         mock_process.returncode = 0
         mock_run.return_value = mock_process
 
-        retcode = utils.run_ansible_playbook(self.mock_log,
-                                             '/tmp',
-                                             'existing.yaml',
-                                             'localhost,')
+        retcode, output = utils.run_ansible_playbook(
+            self.mock_log, '/tmp', 'existing.yaml', 'localhost,')
         self.assertEqual(retcode, 0)
         mock_exists.assert_called_once_with('/tmp/existing.yaml')
 
@@ -176,9 +174,12 @@ class TestRunAnsiblePlaybook(TestCase):
         mock_process.returncode = 0
         mock_run.return_value = mock_process
 
-        retcode = utils.run_ansible_playbook(self.mock_log, '/tmp',
-                                             'existing.yaml', 'localhost,',
-                                             ansible_config='/tmp/foo.cfg')
+        retcode, output = utils.run_ansible_playbook(
+            self.mock_log,
+            '/tmp',
+            'existing.yaml',
+            'localhost,',
+            ansible_config='/tmp/foo.cfg')
         self.assertEqual(retcode, 0)
 
         mock_isabs.assert_called_once_with('/tmp/foo.cfg')
@@ -226,10 +227,12 @@ class TestRunAnsiblePlaybook(TestCase):
         mock_process.returncode = 0
         mock_run.return_value = mock_process
 
-        retcode = utils.run_ansible_playbook(self.mock_log, '/tmp',
-                                             'existing.yaml',
-                                             'localhost,',
-                                             connection='local')
+        retcode, output = utils.run_ansible_playbook(
+            self.mock_log,
+            '/tmp',
+            'existing.yaml',
+            'localhost,',
+            connection='local')
         self.assertEqual(retcode, 0)
         mock_exists.assert_called_once_with('/tmp/existing.yaml')
         env = os.environ.copy()
