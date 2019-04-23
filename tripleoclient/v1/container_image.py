@@ -343,28 +343,11 @@ class PrepareImageFiles(command.Command):
                    "excluded. --exclude is ignored if --include is used."),
         )
         parser.add_argument(
-            "--images-file",
-            dest="output_images_file",
-            metavar='<file path>',
-            help=_("File to write resulting image entries to, as well as "
-                   "stdout. Any existing file will be overwritten."
-                   "(DEPRECATED. Use --output-images-file instead)"),
-        )
-        parser.add_argument(
             "--output-images-file",
             dest="output_images_file",
             metavar='<file path>',
             help=_("File to write resulting image entries to, as well as "
                    "stdout. Any existing file will be overwritten."),
-        )
-        parser.add_argument(
-            '--service-environment-file', metavar='<file path>',
-            action='append', dest='environment_files',
-            help=_('Environment files specifying which services are '
-                   'containerized. Entries will be filtered to only contain '
-                   'images used by containerized services. (Can be specified '
-                   'more than once.)'
-                   "(DEPRECATED. Use --environment-file instead)"),
         )
         parser.add_argument(
             '--environment-file', '-e', metavar='<file path>',
@@ -383,14 +366,6 @@ class PrepareImageFiles(command.Command):
                    'to only contain images used by containerized services. '
                    'Can be specified more than once. Files in directories are '
                    'loaded in ascending sort order.')
-        )
-        parser.add_argument(
-            "--env-file",
-            dest="output_env_file",
-            metavar='<file path>',
-            help=_("File to write heat environment file which specifies all "
-                   "image parameters. Any existing file will be overwritten."
-                   "(DEPRECATED. Use --output-env-file instead)"),
         )
         parser.add_argument(
             "--output-env-file",
