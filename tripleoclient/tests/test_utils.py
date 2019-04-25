@@ -956,6 +956,70 @@ class TestBracketIPV6(TestCase):
         self.assertEqual('[::1]', result)
 
 
+class TestIsValidIP(TestCase):
+    def test_with_valid_ipv4(self):
+        result = utils.is_valid_ip('192.168.0.1')
+        self.assertEqual(True, result)
+
+    def test_with_valid_ipv6(self):
+        result = utils.is_valid_ip('::1')
+        self.assertEqual(True, result)
+
+    def test_with_invalid_ip(self):
+        result = utils.is_valid_ip('192.168.1%bad')
+        self.assertEqual(False, result)
+
+
+class TestIsLoopback(TestCase):
+    def test_with_loopback(self):
+        result = utils.is_loopback('127.0.0.1')
+        self.assertEqual(True, result)
+
+    def test_with_no_loopback(self):
+        result = utils.is_loopback('10.0.0.1')
+        self.assertEqual(False, result)
+
+
+class TestGetHostIps(TestCase):
+    def test_get_host_ips(self):
+        with mock.patch.object(socket, 'getaddrinfo') as mock_addrinfo:
+            mock_addrinfo.return_value = [('', '', 6, '', ('127.0.0.1', 0))]
+            result = utils.get_host_ips('myhost.domain')
+            self.assertEqual(['127.0.0.1'], result)
+
+
+class TestGetSingleIp(TestCase):
+    def test_with_fqdn_and_valid_ip(self):
+        with mock.patch.object(utils, 'get_host_ips') as mock_gethostips:
+            mock_gethostips.return_value = ['192.168.0.1']
+            result = utils.get_single_ip('myhost.domain')
+            self.assertEqual('192.168.0.1', result)
+
+    def test_with_fqdn_and_loopback(self):
+        with mock.patch.object(utils, 'get_host_ips') as mock_gethostips:
+            mock_gethostips.return_value = ['127.0.0.1']
+            self.assertRaises(exceptions.LookupError,
+                              utils.get_single_ip, 'myhost.domain')
+
+    def test_with_too_much_ips(self):
+        with mock.patch.object(utils, 'get_host_ips') as mock_gethostips:
+            mock_gethostips.return_value = ['192.168.0.1', '192.168.0.2']
+            self.assertRaises(exceptions.LookupError,
+                              utils.get_single_ip, 'myhost.domain')
+
+    def test_without_ip(self):
+        with mock.patch.object(utils, 'get_host_ips') as mock_gethostips:
+            mock_gethostips.return_value = []
+            self.assertRaises(exceptions.LookupError,
+                              utils.get_single_ip, 'myhost.domain')
+
+    def test_with_invalid_ip(self):
+        with mock.patch.object(utils, 'get_host_ips') as mock_gethostips:
+            mock_gethostips.return_value = ['192.168.23.x']
+            self.assertRaises(exceptions.LookupError,
+                              utils.get_single_ip, 'myhost.domain')
+
+
 class TestStoreCliParam(TestCase):
 
     def setUp(self):

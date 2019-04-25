@@ -24,6 +24,7 @@ import shutil
 from six.moves.configparser import ConfigParser
 
 import json
+import netaddr
 import os
 import os.path
 import simplejson
@@ -169,6 +170,84 @@ def bracket_ipv6(address):
         return "[%s]" % address
     except socket.error:
         return address
+
+
+def is_valid_ip(ip):
+    """Return True if the IP is either v4 or v6
+
+    Return False if invalid.
+    """
+    return netaddr.valid_ipv4(ip) or netaddr.valid_ipv6(ip)
+
+
+def is_loopback(host):
+    """Return True of the IP or the host is a loopback
+
+    Return False if not.
+    """
+    loopbacks = ['127', '::1']
+    for l in loopbacks:
+        if host.startswith(l):
+            return True
+    return False
+
+
+def get_host_ips(host, type=None):
+    """Lookup an host to return a list of IPs.
+
+    :param host: Host to lookup
+    :type  host: string
+
+    :param type: Type of socket (e.g. socket.AF_INET, socket.AF_INET6)
+    :type  type: string
+    """
+
+    ips = set()
+    if type:
+        types = (type,)
+    else:
+        types = (socket.AF_INET, socket.AF_INET6)
+    for t in types:
+        try:
+            res = socket.getaddrinfo(host, None, t, socket.SOCK_STREAM)
+        except socket.error:
+            continue
+        nips = set([x[4][0] for x in res])
+        ips.update(nips)
+    return list(ips)
+
+
+def get_single_ip(host, allow_loopback=False):
+    """Translate an hostname into a single IP address if it is a valid IP.
+
+    :param host: IP or hostname or FQDN to lookup
+    :type  host: string
+
+    :param allow_loopback: Whether or not a loopback IP can be returned.
+    Defaults is False.
+    :type  allow_loopback: boolean
+
+    Return the host unchanged if it is already an IPv4 or IPv6 address.
+    """
+
+    ip = host
+    if not is_valid_ip(host):
+        ips = get_host_ips(host)
+        if not ips:
+            raise exceptions.LookupError('No IP was found for the host: '
+                                         '%s' % host)
+        else:
+            ip = ips[0]
+        if len(ips) > 1:
+            raise exceptions.LookupError('More than one IP was found for the '
+                                         'host %s: %s' % (host, ips))
+        if not allow_loopback and is_loopback(ip):
+            raise exceptions.LookupError('IP address for host %s is a loopback'
+                                         ' IP: %s' % (host, ip))
+        if not is_valid_ip(ip):
+            raise exceptions.LookupError('IP address for host %s is not a '
+                                         'valid IP: %s' % (host, ip))
+    return ip
 
 
 def write_env_file(env_data, env_file, registry_overwrites):
