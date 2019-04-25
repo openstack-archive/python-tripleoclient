@@ -77,7 +77,8 @@ ADDITIONAL_ARCHITECTURES = ['ppc64le']
 
 ANSIBLE_VALIDATION_DIR = '/usr/share/openstack-tripleo-validations/validations'
 
-VALIDATION_GROUPS = ['openshift-on-openstack',
+VALIDATION_GROUPS = ['no-op',
+                     'openshift-on-openstack',
                      'prep',
                      'pre-introspection',
                      'pre-deployment',
