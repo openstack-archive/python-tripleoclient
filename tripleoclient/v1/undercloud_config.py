@@ -463,18 +463,19 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
             CONF.get('undercloud_service_certificate')):
         endpoint_environment = _get_tls_endpoint_environment(
             CONF.get('undercloud_public_host'), tht_templates)
-        try:
-            public_host = CONF.get('undercloud_public_host')
-            netaddr.IPAddress(public_host)
-            deploy_args += ['--public-virtual-ip', public_host]
 
-            admin_host = CONF.get('undercloud_admin_host')
-            netaddr.IPAddress(admin_host)
-            deploy_args += ['--control-virtual-ip', admin_host]
-        except netaddr.core.AddrFormatError:
-            # TODO(jaosorior): We could do a reverse lookup for the hostnames
-            # if the *_host variables are DNS names and not IPs.
-            pass
+        public_host = utils.get_single_ip(CONF.get('undercloud_public_host'))
+        netaddr.IPAddress(public_host)
+        deploy_args += ['--public-virtual-ip', public_host]
+
+        # To make sure the resolved host is set to the right IP in /etc/hosts
+        if not utils.is_valid_ip(CONF.get('undercloud_public_host')):
+            extra_host = public_host + ' ' + CONF.get('undercloud_public_host')
+            env_data['ExtraHostFileEntries'] = extra_host
+
+        admin_host = utils.get_single_ip(CONF.get('undercloud_admin_host'))
+        netaddr.IPAddress(admin_host)
+        deploy_args += ['--control-virtual-ip', admin_host]
 
         deploy_args += [
             '-e', endpoint_environment,
