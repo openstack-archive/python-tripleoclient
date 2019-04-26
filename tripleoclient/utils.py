@@ -703,10 +703,10 @@ def add_deployment_plan_arguments(parser, mark_as_depr=False):
     """Add deployment plan arguments (flavors and scales) to a parser"""
 
     depr_warning = _(' (DEPRECATED. Use an environment file and set the '
-                     'parameter %s. It will be removed after the "P" '
+                     'parameter %s. This option will be removed in the "U" '
                      'release.)')
 
-    # TODO(d0ugal): Deprecated in Newton. Remove these in P.
+    # TODO(d0ugal): Deprecated in Newton. Remove these in U.
     parser.add_argument('--control-scale', type=int,
                         help=_('New number of control nodes.')
                         + (depr_warning % 'ControllerCount'
