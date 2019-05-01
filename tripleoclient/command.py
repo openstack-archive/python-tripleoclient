@@ -17,6 +17,8 @@ import logging
 
 from osc_lib.command import command
 from osc_lib import exceptions as oscexc
+
+from tripleoclient import exceptions
 from tripleoclient import utils
 
 
@@ -28,7 +30,7 @@ class Command(command.Command):
         utils.store_cli_param(self.cmd_name, parsed_args)
         try:
             super(Command, self).run(parsed_args)
-        except oscexc.CommandError:
+        except (oscexc.CommandError, exceptions.Base):
             raise
         except Exception:
             self.log.exception("Exception occured while running the command")
