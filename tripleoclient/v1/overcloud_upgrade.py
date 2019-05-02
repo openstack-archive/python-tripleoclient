@@ -98,6 +98,7 @@ class UpgradeRun(command.Command):
 
     def get_parser(self, prog_name):
         parser = super(UpgradeRun, self).get_parser(prog_name)
+        # The nodes and roles options will be removed in the train version
         nodes_or_roles_or_limit = parser.add_mutually_exclusive_group(
             required=True)
         nodes_or_roles_or_limit.add_argument(
