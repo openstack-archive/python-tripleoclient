@@ -158,14 +158,14 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
     @mock.patch('six.moves.builtins.open')
-    def test_upgrade_limit_with_playbook_and_user(
+    def test_upgrade_roles_with_playbook_and_user(
             self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
         mock_expanduser.return_value = '/home/fake/'
-        argslist = ['--limit', 'Compute, Controller',
+        argslist = ['--roles', 'Compute, Controller',
                     '--playbook', 'fake-playbook.yaml',
                     '--ssh-user', 'tripleo-admin']
         verifylist = [
-            ('limit', 'Compute, Controller'),
+            ('roles', 'Compute, Controller'),
             ('static_inventory', None),
             ('playbook', 'fake-playbook.yaml')
         ]
@@ -191,13 +191,13 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
     @mock.patch('six.moves.builtins.open')
-    def test_upgrade_limit_all_playbooks_skip_validation(
+    def test_upgrade_role_all_playbooks_skip_validation(
             self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
         mock_expanduser.return_value = '/home/fake/'
-        argslist = ['--limit', 'Compute', '--playbook', 'all',
+        argslist = ['--roles', 'Compute', '--playbook', 'all',
                     '--skip-tags', 'validation']
         verifylist = [
-            ('limit', 'Compute'),
+            ('roles', 'Compute'),
             ('static_inventory', None),
             ('playbook', 'all'),
             ('skip_tags', 'validation')
@@ -225,13 +225,13 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
     @mock.patch('six.moves.builtins.open')
-    def test_upgrade_limit_all_playbooks_only_validation(
+    def test_upgrade_role_all_playbooks_only_validation(
             self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
         mock_expanduser.return_value = '/home/fake/'
-        argslist = ['--limit', 'Compute', '--playbook', 'all',
+        argslist = ['--roles', 'Compute', '--playbook', 'all',
                     '--tags', 'validation']
         verifylist = [
-            ('limit', 'Compute'),
+            ('roles', 'Compute'),
             ('static_inventory', None),
             ('playbook', 'all'),
             ('tags', 'validation')
@@ -357,11 +357,29 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
     @mock.patch('six.moves.builtins.open')
-    def test_upgrade_with_no_limit(
+    def test_upgrade_with_no_nodes_or_roles_or_limit(
             self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
         mock_expanduser.return_value = '/home/fake/'
         argslist = []
         verifylist = []
+        self.assertRaises(ParserException, lambda: self.check_parser(
+            self.cmd, argslist, verifylist))
+
+    @mock.patch('tripleoclient.workflows.package_update.update_ansible',
+                autospec=True)
+    @mock.patch('os.path.expanduser')
+    @mock.patch('oslo_concurrency.processutils.execute')
+    @mock.patch('six.moves.builtins.open')
+    def test_upgrade_nodes_and_roles(self, mock_open, mock_execute,
+                                     mock_expanduser, upgrade_ansible):
+        mock_expanduser.return_value = '/home/fake/'
+        argslist = ['--roles', 'Compute', '--nodes', 'overcloud-controller-1']
+        verifylist = [
+            ('roles', 'Compute'),
+            ('nodes', 'overcloud-controller-1'),
+            ('static_inventory', None),
+            ('playbook', 'all')
+        ]
         self.assertRaises(ParserException, lambda: self.check_parser(
             self.cmd, argslist, verifylist))
 

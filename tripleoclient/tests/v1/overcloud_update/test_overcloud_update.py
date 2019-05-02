@@ -129,11 +129,11 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
     def test_update_with_playbook_and_user(self, mock_open, mock_execute,
                                            mock_expanduser, update_ansible):
         mock_expanduser.return_value = '/home/fake/'
-        argslist = ['--limit', 'Compute',
+        argslist = ['--roles', 'Compute',
                     '--playbook', 'fake-playbook.yaml',
                     '--ssh-user', 'tripleo-admin']
         verifylist = [
-            ('limit', 'Compute'),
+            ('roles', 'Compute'),
             ('static_inventory', None),
             ('playbook', 'fake-playbook.yaml'),
             ('ssh_user', 'tripleo-admin')
@@ -160,12 +160,12 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
     @mock.patch('six.moves.builtins.open')
-    def test_update_limit_with_all_playbooks(self, mock_open, mock_execute,
+    def test_update_roles_with_all_playbooks(self, mock_open, mock_execute,
                                              mock_expanduser, update_ansible):
         mock_expanduser.return_value = '/home/fake/'
-        argslist = ['--limit', 'Compute', '--playbook', 'all']
+        argslist = ['--roles', 'Compute', '--playbook', 'all']
         verifylist = [
-            ('limit', 'Compute'),
+            ('roles', 'Compute'),
             ('static_inventory', None),
             ('playbook', 'all')
         ]
@@ -192,11 +192,61 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
     @mock.patch('six.moves.builtins.open')
-    def test_update_with_no_limit(
+    def test_update_nodes_with_all_playbooks(
+            self, mock_open, mock_execute, mock_expanduser, update_ansible):
+        mock_expanduser.return_value = '/home/fake/'
+        argslist = ['--nodes', 'compute-0, compute-1']
+        verifylist = [
+            ('static_inventory', None),
+            ('playbook', 'all'),
+            ('nodes', 'compute-0, compute-1')
+        ]
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+        with mock.patch('os.path.exists') as mock_exists:
+            mock_exists.return_value = True
+            self.cmd.take_action(parsed_args)
+            for book in constants.MINOR_UPDATE_PLAYBOOKS:
+                update_ansible.assert_any_call(
+                    self.app.client_manager,
+                    nodes='compute-0, compute-1',
+                    inventory_file=mock_open().read(),
+                    playbook=book,
+                    node_user='tripleo-admin',
+                    tags='',
+                    skip_tags='',
+                    verbosity=1,
+                    extra_vars=None
+                )
+
+    @mock.patch('tripleoclient.workflows.package_update.update_ansible',
+                autospec=True)
+    @mock.patch('os.path.expanduser')
+    @mock.patch('oslo_concurrency.processutils.execute')
+    @mock.patch('six.moves.builtins.open')
+    def test_update_with_no_nodes_or_roles_or_limit(
             self, mock_open, mock_execute, mock_expanduser, update_ansible):
         mock_expanduser.return_value = '/home/fake/'
         argslist = []
         verifylist = [
+            ('static_inventory', None),
+            ('playbook', 'all')
+        ]
+        self.assertRaises(ParserException, lambda: self.check_parser(
+            self.cmd, argslist, verifylist))
+
+    @mock.patch('tripleoclient.workflows.package_update.update_ansible',
+                autospec=True)
+    @mock.patch('os.path.expanduser')
+    @mock.patch('oslo_concurrency.processutils.execute')
+    @mock.patch('six.moves.builtins.open')
+    def test_update_with_nodes_and_roles(self, mock_open, mock_execute,
+                                         mock_expanduser, update_ansible):
+        mock_expanduser.return_value = '/home/fake/'
+        argslist = ['--roles', 'Controller',
+                    '--nodes', 'overcloud-controller-1']
+        verifylist = [
+            ('roles', 'Controller'),
+            ('nodes', 'overcloud-controller-1'),
             ('static_inventory', None),
             ('playbook', 'all')
         ]
