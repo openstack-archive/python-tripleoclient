@@ -47,6 +47,13 @@ class UpgradePrepare(DeployOvercloud):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+
+        # Throw deprecation warning if service is enabled and
+        # ask user if upgrade should still be continued.
+        if parsed_args.environment_files:
+            oooutils.check_deprecated_service_is_enabled(
+                parsed_args.environment_files)
+
         clients = self.app.client_manager
 
         stack = oooutils.get_stack(clients.orchestration,

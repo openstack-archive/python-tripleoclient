@@ -64,6 +64,12 @@ class UpdatePrepare(DeployOvercloud):
             parsed_args.environment_files, templates_dir,
             constants.UPDATE_PREPARE_ENV)
 
+        # Throw deprecation warning if service is enabled and
+        # ask user if update should still be continued.
+        if parsed_args.environment_files:
+            oooutils.check_deprecated_service_is_enabled(
+                parsed_args.environment_files)
+
         super(UpdatePrepare, self).take_action(parsed_args)
         package_update.update(clients, container=stack_name)
         package_update.get_config(clients, container=stack_name)
