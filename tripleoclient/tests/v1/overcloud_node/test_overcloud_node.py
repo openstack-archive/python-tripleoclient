@@ -73,7 +73,7 @@ class TestDeleteNode(fakes.TestDeleteNode):
         self.cmd.take_action(parsed_args)
 
         # Verify
-        self.workflow.executions.create.assert_called_once_with(
+        self.workflow.executions.create.assert_called_with(
             'tripleo.scale.v1.delete_node',
             workflow_input={
                 'container': 'overcast',
@@ -117,7 +117,7 @@ class TestDeleteNode(fakes.TestDeleteNode):
         self.cmd.take_action(parsed_args)
 
         # Verify
-        self.workflow.executions.create.assert_called_once_with(
+        self.workflow.executions.create.assert_called_with(
             'tripleo.scale.v1.delete_node',
             workflow_input={
                 'container': 'overcloud',
@@ -146,8 +146,8 @@ class TestDeleteNode(fakes.TestDeleteNode):
                           self.cmd.take_action, parsed_args)
 
         # Verify
-        self.workflow.executions.create.assert_called_once_with(
-            'tripleo.scale.v1.delete_node',
+        self.workflow.executions.create.assert_called_with(
+            'tripleo.scale.v1.ansible_scale_down',
             workflow_input={
                 'container': 'overcloud',
                 'nodes': ['wrong_instance', ],
