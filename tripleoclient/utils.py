@@ -31,10 +31,12 @@ import yaml
 
 from heatclient.common import event_utils
 from heatclient.exc import HTTPNotFound
+from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
 from oslo_concurrency import processutils
 from six.moves import configparser
 
+from tripleoclient import constants
 from tripleoclient import exceptions
 
 
@@ -917,3 +919,41 @@ def ffwd_upgrade_operator_confirm(parsed_args_yes, log):
             log.debug("Fast forward upgrade cancelled on user request")
             print("Cancelling fast forward upgrade")
             sys.exit(1)
+
+
+def check_file_for_enabled_service(env_file):
+    # This function checks environment file for the said service.
+    # If stack to be deployed/updated/upgraded has any deprecated service
+    # enabled, throw a warning about its deprecation and ask the user
+    # whether to proceed with deployment despite deprecation.
+    # For ODL as an example:
+    # If "OS::TripleO::Services::OpenDaylightApi" service is included
+    # in any of the parsed env_files, then check its value.
+    # OS::TripleO::Services::OpenDaylightApi NOT OS::Heat::None
+    # ODL is enabled.
+
+    log = logging.getLogger(__name__ + ".check_file_for_enabled_service")
+
+    if os.path.exists(env_file):
+        content = yaml.load(open(env_file))
+        deprecated_services_enabled = []
+        for service in constants.DEPRECATED_SERVICES.keys():
+            if ("resource_registry" in content and
+                    service in content["resource_registry"]):
+                if content["resource_registry"][service] != "OS::Heat::None":
+                    log.warning("service " + service + " is enabled in "
+                                + str(env_file) + ". " +
+                                constants.DEPRECATED_SERVICES[service])
+                    deprecated_services_enabled.append(service)
+
+        if deprecated_services_enabled:
+            confirm = prompt_user_for_confirmation(
+                message="Do you still wish to continue with deployment [y/N]",
+                logger=log)
+            if not confirm:
+                raise oscexc.CommandError("Action not confirmed, exiting.")
+
+
+def check_deprecated_service_is_enabled(environment_files):
+    for env_file in environment_files:
+        check_file_for_enabled_service(env_file)

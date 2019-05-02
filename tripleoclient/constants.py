@@ -60,3 +60,13 @@ CEPH_UPGRADE_PREPARE_ENV = "environments/lifecycle/ceph-upgrade-prepare.yaml"
 ENABLE_SSH_ADMIN_TIMEOUT = 300
 ENABLE_SSH_ADMIN_STATUS_INTERVAL = 5
 ENABLE_SSH_ADMIN_SSH_PORT_TIMEOUT = 300
+
+# Key-value pair of deprecated service and its warning message
+DEPRECATED_SERVICES = {"OS::TripleO::Services::OpenDaylightApi":
+                       "You are using OpenDaylight as your networking"
+                       " driver for OpenStack. OpenDaylight is deprecated"
+                       " starting from Rocky and removed since Stein and "
+                       "there is no upgrade or migration path from "
+                       "OpenDaylight to another networking backend. We "
+                       "recommend you understand other networking "
+                       "alternatives such as OVS or OVN. "}
