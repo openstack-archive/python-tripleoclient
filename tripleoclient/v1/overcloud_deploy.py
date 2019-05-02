@@ -852,6 +852,12 @@ class DeployOvercloud(command.Command):
 
         self._validate_args(parsed_args)
 
+        # Throw warning if deprecated service is enabled and
+        # ask user if deployment should still be continued.
+        if parsed_args.environment_files:
+            utils.check_deprecated_service_is_enabled(
+                parsed_args.environment_files)
+
         stack = utils.get_stack(self.orchestration_client, parsed_args.stack)
 
         if stack and stack.stack_status == 'IN_PROGRESS':
