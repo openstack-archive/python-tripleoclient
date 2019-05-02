@@ -104,3 +104,13 @@ DEPLOY_ANSIBLE_ACTIONS = {
     'online-upgrade': 'external_upgrade_steps_playbook.yaml '
                       '--tags online_upgrade',
 }
+
+# Key-value pair of deprecated service and its warning message
+DEPRECATED_SERVICES = {"OS::TripleO::Services::OpenDaylightApi":
+                       "You are using OpenDaylight as your networking"
+                       " driver for OpenStack. OpenDaylight is deprecated"
+                       " starting from Rocky and removed since Stein and "
+                       "there is no upgrade or migration path from "
+                       "OpenDaylight to another networking backend. We "
+                       "recommend you understand other networking "
+                       "alternatives such as OVS or OVN. "}
