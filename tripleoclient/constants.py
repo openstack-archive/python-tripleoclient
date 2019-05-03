@@ -18,6 +18,10 @@ import os
 TRIPLEO_HEAT_TEMPLATES = "/usr/share/openstack-tripleo-heat-templates/"
 OVERCLOUD_YAML_NAME = "overcloud.yaml"
 OVERCLOUD_ROLES_FILE = "roles_data.yaml"
+MINION_ROLES_FILE = "roles/UndercloudMinion.yaml"
+MINION_OUTPUT_DIR = os.path.join(os.environ.get('HOME', '~/'))
+MINION_CONF_PATH = os.path.join(MINION_OUTPUT_DIR, "minion.conf")
+MINION_LOG_FILE = "install-minion.log"
 UNDERCLOUD_ROLES_FILE = "roles_data_undercloud.yaml"
 UNDERCLOUD_OUTPUT_DIR = os.path.join(os.environ.get('HOME', '~/'))
 STANDALONE_EPHEMERAL_STACK_VSTATE = '/var/lib/tripleo-heat-installer'

@@ -887,6 +887,8 @@ class TestDeployUndercloud(TestPluginV1):
             env
         )
 
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_download_stack_outputs')
     @mock.patch('tripleo_common.actions.ansible.'
                 'write_default_ansible_cfg')
     # TODO(cjeanner) drop once we have proper oslo.privsep
@@ -937,7 +939,7 @@ class TestDeployUndercloud(TestPluginV1):
                                     mock_cleanupdirs, mock_launchansible,
                                     mock_tarball, mock_templates_dir,
                                     mock_open, mock_os, mock_user, mock_cc,
-                                    mock_chmod, mock_ac):
+                                    mock_chmod, mock_ac, mock_outputs):
         mock_slink.side_effect = 'fake-cmd'
         parsed_args = self.check_parser(self.cmd,
                                         ['--local-ip', '127.0.0.1',

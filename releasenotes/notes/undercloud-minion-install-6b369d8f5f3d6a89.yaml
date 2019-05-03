@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Adds `openstack undercloud minion install` and `openstack undercloud
+    minion upgrade` to install or upgrade an undercloud minion that can be used
+    to scale heat-engine and ironic-conductor horizontally.
