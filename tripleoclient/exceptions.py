@@ -17,49 +17,51 @@
 """Exception definitions"""
 
 
-class Timeout(Exception):
+class Base(Exception):
+    """Base TripleO exception."""
+
+
+class Timeout(Base):
     """An operation timed out"""
 
 
-class WorkflowServiceError(Exception):
+class WorkflowServiceError(Base):
     """The service type is unknown"""
 
 
-class WebSocketTimeout(Exception):
+class WebSocketTimeout(Base):
     """Timed out waiting for messages on the websocket"""
 
 
-class WebSocketConnectionClosed(Exception):
+class WebSocketConnectionClosed(Base):
     """Websocket connection is closed before wait for messages"""
 
 
-class NotFound(Exception):
+class NotFound(Base):
     """Resource not found"""
 
 
-class DeploymentError(RuntimeError):
+class DeploymentError(Base):
     """Deployment failed"""
-    def __init__(self, *args, **kwargs):
-        super(RuntimeError, self).__init__(*args, **kwargs)
 
 
-class PlanEnvWorkflowError(RuntimeError):
+class PlanEnvWorkflowError(Base):
     """Plan Environment workflow has failed"""
 
 
-class StackInProgress(RuntimeError):
+class StackInProgress(Base):
     """Unable to deploy as the stack is busy"""
 
 
-class RootUserExecution(Exception):
+class RootUserExecution(Base):
     """Command was executed by a root user"""
 
 
-class InvalidConfiguration(ValueError):
+class InvalidConfiguration(Base, ValueError):
     """Invalid parameters were specified for the deployment"""
 
 
-class IntrospectionError(RuntimeError):
+class IntrospectionError(Base):
     """Introspection failed"""
 
 
@@ -75,23 +77,23 @@ class NodeConfigurationError(WorkflowServiceError):
     """Node Configuration failed."""
 
 
-class StateTransitionFailed(Exception):
+class StateTransitionFailed(Base):
     """Ironic node state transition failed"""
 
 
-class ProfileMatchingError(Exception):
+class ProfileMatchingError(Base):
     """Failed to validate or assign node profiles"""
 
 
-class PlanCreationError(Exception):
+class PlanCreationError(Base):
     """Plan creation failed"""
 
 
-class PlanExportError(Exception):
+class PlanExportError(Base):
     """Plan export failed"""
 
 
-class WorkflowActionError(Exception):
+class WorkflowActionError(Base):
     """Workflow action failed"""
     msg_format = "Action {} execution failed: {}"
 
@@ -100,17 +102,17 @@ class WorkflowActionError(Exception):
         super(WorkflowActionError, self).__init__(message)
 
 
-class DownloadError(Exception):
+class DownloadError(Base):
     """Download attempt failed"""
 
 
-class LogFetchError(Exception):
+class LogFetchError(Base):
     """Fetching logs failed"""
 
 
-class ContainerDeleteFailed(Exception):
+class ContainerDeleteFailed(Base):
     """Container deletion failed"""
 
 
-class UndercloudUpgradeNotConfirmed(Exception):
+class UndercloudUpgradeNotConfirmed(Base):
     """Undercloud upgrade security question not confirmed."""
