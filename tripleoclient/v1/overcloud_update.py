@@ -80,6 +80,7 @@ class UpdateRun(command.Command):
         parser = super(UpdateRun, self).get_parser(prog_name)
         nodes_or_roles_or_limit = parser.add_mutually_exclusive_group(
             required=True)
+        # The nodes and roles options will be removed in the train version
         nodes_or_roles_or_limit.add_argument(
             '--nodes', action=command.DeprecatedActionStore, help=_(
                 "DEPRECATED: This option will be remove in the future release"
