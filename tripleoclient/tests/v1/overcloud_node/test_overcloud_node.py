@@ -65,7 +65,8 @@ class TestDeleteNode(fakes.TestDeleteNode):
 
         self.websocket.wait_for_messages.return_value = iter([{
             "execution_id": "IDID",
-            "status": "SUCCESS"
+            "status": "SUCCESS",
+            "message": "Success.",
         }])
 
         self.stack_name.return_value = mock.Mock(stack_name="overcast")
@@ -76,7 +77,7 @@ class TestDeleteNode(fakes.TestDeleteNode):
         self.workflow.executions.create.assert_called_with(
             'tripleo.scale.v1.delete_node',
             workflow_input={
-                'container': 'overcast',
+                'plan_name': 'overcast',
                 'nodes': ['instance1', 'instance2'],
                 'timeout': 90
             })
@@ -111,7 +112,8 @@ class TestDeleteNode(fakes.TestDeleteNode):
 
         self.websocket.wait_for_messages.return_value = iter([{
             "execution_id": "IDID",
-            "status": "SUCCESS"
+            "status": "SUCCESS",
+            "message": "Success.",
         }])
 
         self.cmd.take_action(parsed_args)
@@ -120,7 +122,7 @@ class TestDeleteNode(fakes.TestDeleteNode):
         self.workflow.executions.create.assert_called_with(
             'tripleo.scale.v1.delete_node',
             workflow_input={
-                'container': 'overcloud',
+                'plan_name': 'overcloud',
                 'nodes': ['instance1', ],
                 'timeout': 240
             })
@@ -142,17 +144,9 @@ class TestDeleteNode(fakes.TestDeleteNode):
                 following instances in stack overcloud: wrong_instance"""
         }])
 
-        self.assertRaises(exceptions.InvalidConfiguration,
-                          self.cmd.take_action, parsed_args)
-
         # Verify
-        self.workflow.executions.create.assert_called_with(
-            'tripleo.scale.v1.ansible_scale_down',
-            workflow_input={
-                'container': 'overcloud',
-                'nodes': ['wrong_instance', ],
-                'timeout': 240
-            })
+        self.assertRaises(exceptions.DeploymentError,
+                          self.cmd.take_action, parsed_args)
 
 
 class TestProvideNode(fakes.TestOvercloudNode):
