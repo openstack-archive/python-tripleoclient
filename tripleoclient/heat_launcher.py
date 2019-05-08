@@ -178,6 +178,7 @@ class HeatBaseLauncher(object):
 
     def _write_heat_config(self, config_file, sqlite_db, log_file, api_port,
                            policy_file, token_file):
+        # TODO(ksambor) It will be nice to have possibilities to configure heat
         heat_config = '''
 [DEFAULT]
 log_file = %(log_file)s
@@ -190,7 +191,7 @@ convergence_engine = true
 max_json_body_size = 8388608
 heat_metadata_server_url=http://127.0.0.1:%(api_port)s/
 default_deployment_signal_transport = HEAT_SIGNAL
-max_nested_stack_depth = 6
+max_nested_stack_depth = 10
 keystone_backend = heat.engine.clients.os.keystone.fake_keystoneclient\
 .FakeKeystoneClient
 
