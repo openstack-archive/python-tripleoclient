@@ -41,6 +41,10 @@ class NotFound(Base):
     """Resource not found"""
 
 
+class LookupError(Base):
+    """Lookup Error"""
+
+
 class DeploymentError(Base):
     """Deployment failed"""
 
