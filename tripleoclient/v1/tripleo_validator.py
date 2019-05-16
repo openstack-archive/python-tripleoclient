@@ -30,11 +30,11 @@ class _CommaListGroupAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         opts = constants.VALIDATION_GROUPS
         for value in values.split(','):
-                if value not in opts:
-                    message = ("Invalid choice: {value} (choose from {choice})"
-                               .format(value=value,
-                                       choice=opts))
-                    raise argparse.ArgumentError(self, message)
+            if value not in opts:
+                message = ("Invalid choice: {value} (choose from {choice})"
+                           .format(value=value,
+                                   choice=opts))
+                raise argparse.ArgumentError(self, message)
         setattr(namespace, self.dest, values.split(','))
 
 
@@ -168,12 +168,12 @@ class TripleOValidatorRun(command.Command):
             }
 
         LOG.debug(_('Runnning the validations'))
-        try:
-            output = validations.run_validations(clients, workflow_input)
-            print(oooutils.get_validations_json(output))
-        except Exception as e:
-            print(_("Running the validations finished with errors"))
-            print('Output: {}'.format(e))
+        output = validations.run_validations(clients, workflow_input)
+        for out in output:
+            print('[{}] - {}\n{}'.format(
+                out.get('status'),
+                out.get('validation_name'),
+                oooutils.indent(out.get('stdout'))))
 
     def take_action(self, parsed_args):
         self._run_validator_run(parsed_args)
