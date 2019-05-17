@@ -14,7 +14,7 @@
 # under the License.
 from __future__ import print_function
 
-from tripleoclient.exceptions import InvalidConfiguration
+from tripleoclient import exceptions
 from tripleoclient.workflows import base
 
 
@@ -22,26 +22,30 @@ def ansible_tear_down(clients, **workflow_input):
 
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
+    workflow_input['playbook_name'] = 'scale_playbook.yaml'
 
     with tripleoclients.messaging_websocket() as ws:
         execution = base.start_workflow(
             workflow_client,
-            'tripleo.scale.v1.ansible_scale_down',
+            'tripleo.deployment.v1.config_download_deploy',
             workflow_input=workflow_input
         )
 
         for payload in base.wait_for_messages(workflow_client, ws, execution):
-            status = payload['status']
-            if status == 'RUNNING':
-                continue
-            if status != 'SUCCESS':
-                raise InvalidConfiguration(payload['message'])
+            print(payload['message'])
+
+    if payload['status'] == 'SUCCESS':
+        print("Scale-down configuration completed.")
+    else:
+        raise exceptions.DeploymentError("Scale-down configuration failed.")
 
 
-def delete_node(clients, **workflow_input):
+def delete_node(clients, timeout, **workflow_input):
 
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
+    if timeout is not None:
+        workflow_input['timeout'] = timeout
 
     with tripleoclients.messaging_websocket() as ws:
         execution = base.start_workflow(
@@ -55,7 +59,7 @@ def delete_node(clients, **workflow_input):
             if status == 'RUNNING':
                 continue
             if status != 'SUCCESS':
-                raise InvalidConfiguration(payload['message'])
+                raise exceptions.InvalidConfiguration(payload['message'])
 
 
 def scale_down(clients, plan_name, nodes, timeout=None):
@@ -68,12 +72,9 @@ def scale_down(clients, plan_name, nodes, timeout=None):
     """
 
     workflow_input = {
-        "container": plan_name,
+        "plan_name": plan_name,
         "nodes": nodes,
     }
 
-    if timeout is not None:
-        workflow_input['timeout'] = timeout
-
     ansible_tear_down(clients, **workflow_input)
-    delete_node(clients, **workflow_input)
+    delete_node(clients, timeout, **workflow_input)
