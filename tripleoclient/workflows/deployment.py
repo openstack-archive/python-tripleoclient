@@ -299,7 +299,7 @@ def config_download(log, clients, stack, templates,
     tripleoclients = clients.tripleoclient
 
     workflow_input = {
-        'verbosity': verbosity or 1,
+        'verbosity': verbosity,
         'plan_name': stack.stack_name,
         'ssh_network': ssh_network,
         'config_download_timeout': timeout
