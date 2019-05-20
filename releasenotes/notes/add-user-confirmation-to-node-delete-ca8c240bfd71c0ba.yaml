@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Added a y/n prompt to the node delete command to prevent a user from
+    accidently executing a node delete action since it's a destructive
+    action.

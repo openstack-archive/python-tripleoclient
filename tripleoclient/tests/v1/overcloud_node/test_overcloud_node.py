@@ -20,6 +20,7 @@ import mock
 import os
 import tempfile
 
+from osc_lib import exceptions as oscexc
 from osc_lib.tests import utils as test_utils
 import yaml
 
@@ -56,7 +57,7 @@ class TestDeleteNode(fakes.TestDeleteNode):
     # probably be fixed so that it can pass with that.
     def test_node_delete(self):
         argslist = ['instance1', 'instance2', '--templates',
-                    '--stack', 'overcast', '--timeout', '90']
+                    '--stack', 'overcast', '--timeout', '90', '--yes']
         verifylist = [
             ('stack', 'overcast'),
             ('nodes', ['instance1', 'instance2'])
@@ -82,9 +83,24 @@ class TestDeleteNode(fakes.TestDeleteNode):
                 'timeout': 90
             })
 
+    @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
+                return_value=False)
+    def test_node_delete_no_confirm(self, confirm_mock):
+        argslist = ['instance1', 'instance2', '--templates',
+                    '--stack', 'overcast', '--timeout', '90']
+        verifylist = [
+            ('stack', 'overcast'),
+            ('nodes', ['instance1', 'instance2'])
+        ]
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+
+        self.assertRaises(oscexc.CommandError,
+                          self.cmd.take_action,
+                          parsed_args)
+
     def test_node_wrong_stack(self):
         argslist = ['instance1', '--templates',
-                    '--stack', 'overcast']
+                    '--stack', 'overcast', '--yes']
         verifylist = [
             ('stack', 'overcast'),
             ('nodes', ['instance1', ])
@@ -102,7 +118,7 @@ class TestDeleteNode(fakes.TestDeleteNode):
 
     def test_node_delete_without_stack(self):
 
-        arglist = ['instance1', ]
+        arglist = ['instance1', '--yes']
 
         verifylist = [
             ('stack', 'overcloud'),
@@ -130,7 +146,7 @@ class TestDeleteNode(fakes.TestDeleteNode):
     def test_node_delete_wrong_instance(self):
 
         argslist = ['wrong_instance', '--templates',
-                    '--stack', 'overcloud']
+                    '--stack', 'overcloud', '--yes']
         verifylist = [
             ('stack', 'overcloud'),
             ('nodes', ['wrong_instance']),

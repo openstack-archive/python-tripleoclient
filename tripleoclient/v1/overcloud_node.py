@@ -17,6 +17,7 @@ import argparse
 import logging
 import os
 
+from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
 from osc_lib import utils
 import yaml
@@ -69,11 +70,24 @@ class DeleteNode(command.Command):
                    "Keep in mind that due to keystone session duration "
                    "that timeout has an upper bound of 4 hours ")
         )
+        parser.add_argument('-y', '--yes',
+                            help=_('Skip yes/no prompt (assume yes).'),
+                            default=False,
+                            action="store_true")
         return parser
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
         clients = self.app.client_manager
+
+        if not parsed_args.yes:
+            confirm = oooutils.prompt_user_for_confirmation(
+                message=_("Are you sure you want to delete these overcloud "
+                          "nodes [y/N]? "),
+                logger=self.log)
+            if not confirm:
+                raise oscexc.CommandError("Action not confirmed, exiting.")
+
         orchestration_client = clients.orchestration
 
         stack = oooutils.get_stack(orchestration_client, parsed_args.stack)
