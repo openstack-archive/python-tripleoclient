@@ -99,6 +99,25 @@ def run_ansible_playbook(logger,
     :type python_interpreter: String
     """
     env = os.environ.copy()
+
+    env['ANSIBLE_LIBRARY'] = \
+        ('/root/.ansible/plugins/modules:'
+         '/usr/share/ansible/plugins/modules:'
+         '%s/library' % constants.DEFAULT_VALIDATIONS_BASEDIR)
+    env['ANSIBLE_LOOKUP_PLUGINS'] = \
+        ('root/.ansible/plugins/lookup:'
+         '/usr/share/ansible/plugins/lookup:'
+         '%s/lookup_plugins' % constants.DEFAULT_VALIDATIONS_BASEDIR)
+    env['ANSIBLE_CALLBACK_PLUGINS'] = \
+        ('~/.ansible/plugins/callback:'
+         '/usr/share/ansible/plugins/callback:'
+         '%s/callback_plugins' % constants.DEFAULT_VALIDATIONS_BASEDIR)
+    env['ANSIBLE_ROLES_PATH'] = \
+        ('/root/.ansible/roles:'
+         '/usr/share/ansible/roles:'
+         '/etc/ansible/roles:'
+         '%s/roles' % constants.DEFAULT_VALIDATIONS_BASEDIR)
+
     cleanup = False
     if ansible_config is None:
         _, tmp_config = tempfile.mkstemp(prefix=playbook, suffix='ansible.cfg')
