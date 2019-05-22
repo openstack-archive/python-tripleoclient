@@ -33,6 +33,10 @@ class NotFound(Exception):
     """Resource not found"""
 
 
+class LookupError(Exception):
+    """Lookup Error"""
+
+
 class DeploymentError(RuntimeError):
     """Deployment failed"""
     def __init__(self, *args, **kwargs):
