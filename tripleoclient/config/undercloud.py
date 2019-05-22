@@ -386,7 +386,7 @@ class UndercloudConfig(StandaloneConfig):
                         item_type=cfg.types.Dict(bounds=True),
                         bounds=True,
                         default=[],
-                        sample_default=('[{destination: 10.10.10.0, '
+                        sample_default=('[{destination: 10.10.10.0/24, '
                                         'nexthop: 192.168.24.1}]'),
                         help=HOST_ROUTES_HELP_STR),
         ]
