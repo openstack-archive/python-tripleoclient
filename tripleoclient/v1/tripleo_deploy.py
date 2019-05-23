@@ -283,7 +283,8 @@ class Deploy(command.Command):
         """
         self._create_working_dirs()
         if not os.path.exists(source_templates_dir):
-            raise exceptions.NotFound("%s template director does not exists" %
+            raise exceptions.NotFound("%s templates directory does not exist "
+                                      "or permission denied" %
                                       source_templates_dir)
         if not os.path.exists(self.tht_render):
             shutil.copytree(source_templates_dir, self.tht_render,
