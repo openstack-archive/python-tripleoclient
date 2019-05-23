@@ -512,10 +512,19 @@ def set_nodes_state(baremetal_client, nodes, transition, target_state,
         yield node.uuid
 
 
-def get_overcloud_endpoint(stack):
+def get_stack_output_item(stack, item):
+    if not stack:
+        return None
+
     for output in stack.to_dict().get('outputs', {}):
-        if output['output_key'] == 'KeystoneURL':
+        if output['output_key'] == item:
             return output['output_value']
+    # item not found in outputs
+    return None
+
+
+def get_overcloud_endpoint(stack):
+    return get_stack_output_item(stack, 'KeystoneURL')
 
 
 def get_service_ips(stack):
@@ -526,24 +535,18 @@ def get_service_ips(stack):
 
 
 def get_endpoint_map(stack):
-    endpoint_map = {}
-    for output in stack.to_dict().get('outputs', {}):
-        if output['output_key'] == 'EndpointMap':
-            endpoint_map = output['output_value']
-            break
+    endpoint_map = get_stack_output_item(stack, 'EndpointMap')
+    if not endpoint_map:
+        endpoint_map = {}
     return endpoint_map
 
 
 def get_blacklisted_ip_addresses(stack):
-    for output in stack.to_dict().get('outputs', {}):
-        if output['output_key'] == 'BlacklistedIpAddresses':
-            return output['output_value']
+    return get_stack_output_item(stack, 'BlacklistedIpAddresses')
 
 
 def get_role_net_ip_map(stack):
-    for output in stack.to_dict().get('outputs', {}):
-        if output['output_key'] == 'RoleNetIpMap':
-            return output['output_value']
+    return get_stack_output_item(stack, 'RoleNetIpMap')
 
 
 def get_endpoint(key, stack):

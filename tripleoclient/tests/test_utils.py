@@ -613,6 +613,36 @@ class TestCreateTempestDeployerInput(TestCase):
                 '[volume-feature-enabled]\nbootable = true', cfg)
 
 
+class TestGetStackOutputItem(TestCase):
+
+    def test_get_stack_output_item(self):
+        stack = mock.MagicMock()
+        emap = {'KeystonePublic': {'uri': 'http://foo:8000/'}}
+        stack.to_dict.return_value = {
+            'outputs': [{'output_key': 'EndpointMap',
+                         'output_value': emap}]
+        }
+
+        endpoint_map = utils.get_stack_output_item(stack, 'EndpointMap')
+        self.assertEqual(endpoint_map,
+                         {'KeystonePublic': {'uri': 'http://foo:8000/'}})
+
+    def test_get_stack_output_item_not_found(self):
+        stack = mock.MagicMock()
+        stack.to_dict.return_value = {
+            'outputs': [{'output_key': 'foo',
+                         'output_value': 'bar'}]
+        }
+
+        val = utils.get_stack_output_item(stack, 'baz')
+        self.assertEqual(val, None)
+
+    def test_get_stack_output_item_no_stack(self):
+        stack = None
+        val = utils.get_stack_output_item(stack, 'baz')
+        self.assertEqual(val, None)
+
+
 class TestGetEndpointMap(TestCase):
 
     def test_get_endpoint_map(self):
