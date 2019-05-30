@@ -1,0 +1,6 @@
+---
+other:
+  - When running with --config-download-only, the enable ssh admin will now be
+    skipped. Skipping the ssh admin workflow saves time when trying to do the
+    config download workflow only. If the ssh admin workflow needs to be rerun,
+    the "openstack overcloud admin" command can be used.

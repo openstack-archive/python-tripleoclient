@@ -1538,7 +1538,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         self.cmd.take_action(parsed_args)
         self.assertFalse(mock_deploy_tmpdir.called)
-        self.assertTrue(fixture.mock_get_hosts_and_enable_ssh_admin.called)
+        self.assertFalse(fixture.mock_get_hosts_and_enable_ssh_admin.called)
         self.assertTrue(fixture.mock_config_download.called)
         self.assertTrue(fixture.mock_set_deployment_status.called)
         self.assertEqual(
@@ -1578,7 +1578,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             self.cmd.take_action,
             parsed_args)
         self.assertFalse(mock_deploy_tmpdir.called)
-        self.assertTrue(fixture.mock_get_hosts_and_enable_ssh_admin.called)
         self.assertTrue(fixture.mock_config_download.called)
         self.assertTrue(fixture.mock_set_deployment_status.called)
         self.assertEqual(
