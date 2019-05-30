@@ -50,5 +50,12 @@
             dependencies: *deps_unit_lint
         - tripleo-ci-centos-7-containerized-undercloud-upgrades:
             dependencies: *deps_unit_lint
+        - tripleo-ci-centos-7-containers-undercloud-minion:
+            dependencies: *deps_unit_lint
+            files:
+              - ^config-generator/.*minion.*$
+              - ^tripleoclient/config/.*minion.*$
+              - ^tripleoclient/v1/.*minion.*$
+              - ^tripleoclient/v1/tripleo_deploy.py$
     gate:
       queue: tripleo
