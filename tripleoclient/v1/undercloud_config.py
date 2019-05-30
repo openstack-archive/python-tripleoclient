@@ -418,10 +418,16 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
         env_data['NeutronDnsDomain'] = CONF['overcloud_domain_name']
         deploy_args.append('--local-domain=%s' % CONF['overcloud_domain_name'])
 
-    env_data['DockerInsecureRegistryAddress'] = [
-        '%s:8787' % CONF['local_ip'].split('/')[0]]
-    env_data['DockerInsecureRegistryAddress'].append(
-        '%s:8787' % CONF['undercloud_admin_host'])
+    if CONF.get('container_cli', 'podman') == 'podman':
+        env_data['DockerInsecureRegistryAddress'] = [
+            CONF['local_ip'].split('/')[0]]
+        env_data['DockerInsecureRegistryAddress'].append(
+            CONF['undercloud_admin_host'])
+    else:
+        env_data['DockerInsecureRegistryAddress'] = [
+            '%s:8787' % CONF['local_ip'].split('/')[0]]
+        env_data['DockerInsecureRegistryAddress'].append(
+            '%s:8787' % CONF['undercloud_admin_host'])
     env_data['DockerInsecureRegistryAddress'].extend(
         CONF['container_insecure_registries'])
 
