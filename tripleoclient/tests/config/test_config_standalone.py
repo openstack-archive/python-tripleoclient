@@ -51,7 +51,6 @@ class TestStandaloneConfig(base.TestCase):
                     'enable_novajoin',
                     'enable_telemetry',
                     'enable_tempest',
-                    'enable_ui',
                     'enable_validations',
                     'enable_zaqar']
         self.assertEqual(expected, [x.name for x in ret])
@@ -76,7 +75,6 @@ class TestStandaloneConfig(base.TestCase):
                     'enable_novajoin',
                     'enable_telemetry',
                     'enable_tempest',
-                    'enable_ui',
                     'enable_validations',
                     'enable_zaqar']
         self.assertEqual(expected, [x.name for x in ret])
@@ -99,7 +97,6 @@ class TestStandaloneConfig(base.TestCase):
                     'enable_novajoin',
                     'enable_telemetry',
                     'enable_tempest',
-                    'enable_ui',
                     'enable_validations',
                     'enable_zaqar',
                     'heat_container_image',

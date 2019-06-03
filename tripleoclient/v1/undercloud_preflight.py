@@ -232,13 +232,8 @@ def _validate_in_cidr(subnet_props, subnet_name):
     if subnet_name == CONF.local_subnet:
         validate_addr_in_cidr(str(netaddr.IPNetwork(CONF.local_ip).ip),
                               'local_ip')
-        # NOTE(bnemec): The ui needs to be externally accessible, which means
-        # in many cases we can't have the public vip on the provisioning
-        # network. In that case users are on their own to ensure they've picked
-        # valid values for the VIP hosts.
-        if ((CONF.undercloud_service_certificate or
-             CONF.generate_service_certificate) and
-                not CONF.enable_ui):
+        if (CONF.undercloud_service_certificate or
+                CONF.generate_service_certificate):
             validate_addr_in_cidr(CONF['undercloud_public_host'],
                                   'undercloud_public_host',
                                   require_ip=False, log_only=True)

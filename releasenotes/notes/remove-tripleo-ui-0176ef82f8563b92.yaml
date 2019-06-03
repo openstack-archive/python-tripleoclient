@@ -1,0 +1,4 @@
+---
+upgrade:
+  - |
+    `enable_ui` has been removed from the undercloud configuration options.
