@@ -89,11 +89,6 @@ class StandaloneConfig(BaseConfig):
                                '(ceilometer, gnocchi, aodh, panko ) in the '
                                'Undercloud.')
                         ),
-            cfg.BoolOpt('enable_ui',
-                        default=tripleo_ui,
-                        deprecated_for_removal=True,
-                        help=_('Whether to install the TripleO UI.')
-                        ),
             cfg.BoolOpt('enable_validations',
                         default=validations,
                         help=_(
