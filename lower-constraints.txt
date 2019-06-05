@@ -134,6 +134,7 @@ simplegeneric==0.8.1
 simplejson==3.5.1
 six==1.10.0
 smmap==0.9.0
+Sphinx==1.6.2
 sqlalchemy-migrate==0.11.0
 SQLAlchemy==1.0.10
 sqlparse==0.2.2
