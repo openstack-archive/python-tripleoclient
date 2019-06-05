@@ -511,6 +511,72 @@ class DiscoverImageTag(command.Command):
         ))
 
 
+class TripleOContainerImageDelete(command.Command):
+    """Delete specified image from registry."""
+
+    auth_required = False
+    log = logging.getLogger(__name__ + ".TripleoContainerImageDelete")
+
+    def get_parser(self, prog_name):
+        parser = super(TripleOContainerImageDelete, self).get_parser(prog_name)
+        parser.add_argument(
+            "--registry-url",
+            dest="registry_url",
+            metavar='<registry url>',
+            default=image_uploader.get_undercloud_registry(),
+            help=_("URL of registry images are to be listed from in the "
+                   "form <fqdn>:<port>.")
+        )
+        parser.add_argument(
+            dest="image_to_delete",
+            metavar='<image to delete>',
+            help=_("Full URL of image to be deleted in the "
+                   "form <fqdn>:<port>/path/to/image")
+        )
+        parser.add_argument(
+            "--username",
+            dest="username",
+            metavar='<username>',
+            help=_("Username for image registry.")
+        )
+        parser.add_argument(
+            "--password",
+            dest="password",
+            metavar='<password>',
+            help=_("Password for image registry.")
+        )
+        parser.add_argument(
+            '-y', '--yes',
+            help=_('Skip yes/no prompt (assume yes).'),
+            default=False,
+            action="store_true")
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)" % parsed_args)
+
+        if not parsed_args.yes:
+            confirm = utils.prompt_user_for_confirmation(
+                    message=_("Are you sure you want to delete this image "
+                              "[y/N]? "),
+                    logger=self.log)
+            if not confirm:
+                raise oscexc.CommandError("Action not confirmed, exiting.")
+
+        manager = image_uploader.ImageUploadManager()
+        uploader = manager.uploader('python')
+        url = uploader._image_to_url(parsed_args.registry_url)
+        session = uploader.authenticate(url, parsed_args.username,
+                                        parsed_args.password)
+
+        try:
+            uploader.delete(parsed_args.image_to_delete, session=session)
+        except OSError as e:
+            self.log.error("Unable to remove due to permissions. "
+                           "Please prefix command with sudo.")
+            raise oscexc.CommandError(e)
+
+
 class TripleOContainerImageList(command.Lister):
     """List images discovered in registry."""
 
