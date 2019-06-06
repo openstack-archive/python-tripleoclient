@@ -258,13 +258,6 @@ class PrepareImageFiles(command.Command):
                    "Default: %s") % kolla_builder.DEFAULT_TEMPLATE_FILE,
         )
         parser.add_argument(
-            "--pull-source",
-            dest="pull_source",
-            metavar='<location>',
-            help=_("Location of image registry to pull images from. "
-                   "(DEPRECATED. Include the registry in --namespace)"),
-        )
-        parser.add_argument(
             "--push-destination",
             dest="push_destination",
             metavar='<location>',
@@ -449,7 +442,6 @@ class PrepareImageFiles(command.Command):
             excludes=parsed_args.excludes,
             includes=parsed_args.includes,
             service_filter=service_filter,
-            pull_source=parsed_args.pull_source,
             push_destination=parsed_args.push_destination,
             mapping_args=mapping_args,
             output_env_file=parsed_args.output_env_file,
