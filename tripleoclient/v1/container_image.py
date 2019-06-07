@@ -511,6 +511,51 @@ class DiscoverImageTag(command.Command):
         ))
 
 
+class TripleOContainerImageList(command.Lister):
+    """List images discovered in registry."""
+
+    auth_required = False
+    log = logging.getLogger(__name__ + ".TripleoContainerImageList")
+
+    def get_parser(self, prog_name):
+        parser = super(TripleOContainerImageList, self).get_parser(prog_name)
+        parser.add_argument(
+            "--registry-url",
+            dest="registry_url",
+            metavar='<registry url>',
+            default=image_uploader.get_undercloud_registry(),
+            help=_("URL of registry images are to be listed from in the "
+                   "form <fqdn>:<port>.")
+        )
+        parser.add_argument(
+            "--username",
+            dest="username",
+            metavar='<username>',
+            help=_("Username for image registry.")
+        )
+        parser.add_argument(
+            "--password",
+            dest="password",
+            metavar='<password>',
+            help=_("Password for image registry.")
+        )
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)" % parsed_args)
+
+        manager = image_uploader.ImageUploadManager()
+        uploader = manager.uploader('python')
+        url = uploader._image_to_url(parsed_args.registry_url)
+        session = uploader.authenticate(url, parsed_args.username,
+                                        parsed_args.password)
+        results = uploader.list(url.geturl(), session=session)
+        cliff_results = []
+        for r in results:
+            cliff_results.append((r,))
+        return (("Image Name",), cliff_results)
+
+
 class TripleOImagePrepareDefault(command.Command):
     """Generate a default ContainerImagePrepare parameter."""
 
