@@ -20,6 +20,7 @@ import mock
 import os
 import tempfile
 
+import fixtures
 from osc_lib import exceptions as oscexc
 from osc_lib.tests import utils as test_utils
 import yaml
@@ -486,10 +487,16 @@ class TestImportNode(fakes.TestOvercloudNode):
         image = collections.namedtuple('image', ['id', 'name'])
         self.app.client_manager.image = mock.Mock()
         self.app.client_manager.image.images.list.return_value = [
-            image(id=1, name='bm-deploy-kernel'),
-            image(id=2, name='bm-deploy-ramdisk'),
             image(id=3, name='overcloud-full'),
         ]
+
+        self.http_boot = '/var/lib/ironic/httpboot'
+
+        self.useFixture(fixtures.MockPatch(
+            'os.path.exists', autospec=True,
+            side_effect=lambda path: path in [os.path.join(self.http_boot, i)
+                                              for i in ('agent.kernel',
+                                                        'agent.ramdisk')]))
 
     def _check_workflow_call(self, parsed_args, introspect=False,
                              provide=False, local=None, no_deploy_image=False):
@@ -505,14 +512,17 @@ class TestImportNode(fakes.TestOvercloudNode):
         self.cmd.take_action(parsed_args)
 
         nodes_list = copy.deepcopy(self.nodes_list)
+        if not no_deploy_image:
+            for node in nodes_list:
+                node.update({
+                    'kernel_id': 'file://%s/agent.kernel' % self.http_boot,
+                    'ramdisk_id': 'file://%s/agent.ramdisk' % self.http_boot,
+                })
 
         call_count = 1
         call_list = [mock.call(
             'tripleo.baremetal.v1.register_or_update', workflow_input={
                 'nodes_json': nodes_list,
-                'kernel_name': None if no_deploy_image else 'bm-deploy-kernel',
-                'ramdisk_name': (None
-                                 if no_deploy_image else 'bm-deploy-ramdisk'),
                 'instance_boot_option': ('local' if local is True else
                                          'netboot' if local is False else None)
             }
@@ -637,16 +647,20 @@ class TestImportNodeMultiArch(fakes.TestOvercloudNode):
         image = collections.namedtuple('image', ['id', 'name'])
         self.app.client_manager.image = mock.Mock()
         self.app.client_manager.image.images.list.return_value = [
-            image(id=1, name='bm-deploy-kernel'),
-            image(id=2, name='bm-deploy-ramdisk'),
             image(id=3, name='overcloud-full'),
-            image(id=4, name='x86_64-bm-deploy-kernel'),
-            image(id=5, name='x86_64-bm-deploy-ramdisk'),
             image(id=6, name='x86_64-overcloud-full'),
-            image(id=7, name='SNB-x86_64-bm-deploy-kernel'),
-            image(id=8, name='SNB-x86_64-bm-deploy-ramdisk'),
             image(id=9, name='SNB-x86_64-overcloud-full'),
         ]
+
+        self.http_boot = '/var/lib/ironic/httpboot'
+
+        existing = ['agent', 'x86_64/agent', 'SNB-x86_64/agent']
+        existing = {os.path.join(self.http_boot, name + ext)
+                    for name in existing for ext in ('.kernel', '.ramdisk')}
+
+        self.useFixture(fixtures.MockPatch(
+            'os.path.exists', autospec=True,
+            side_effect=lambda path: path in existing))
 
     def _check_workflow_call(self, parsed_args, introspect=False,
                              provide=False, local=None, no_deploy_image=False):
@@ -662,20 +676,24 @@ class TestImportNodeMultiArch(fakes.TestOvercloudNode):
         self.cmd.take_action(parsed_args)
 
         nodes_list = copy.deepcopy(self.nodes_list)
-        # We expect update_nodes_deploy_data() to set these values for the
-        # nodes with an 'arch' field
-        nodes_list[1]['kernel_id'] = 4
-        nodes_list[1]['ramdisk_id'] = 5
-        nodes_list[2]['kernel_id'] = 7
-        nodes_list[2]['ramdisk_id'] = 8
+        if not no_deploy_image:
+            nodes_list[0]['kernel_id'] = (
+                'file://%s/agent.kernel' % self.http_boot)
+            nodes_list[0]['ramdisk_id'] = (
+                'file://%s/agent.ramdisk' % self.http_boot)
+            nodes_list[1]['kernel_id'] = (
+                'file://%s/x86_64/agent.kernel' % self.http_boot)
+            nodes_list[1]['ramdisk_id'] = (
+                'file://%s/x86_64/agent.ramdisk' % self.http_boot)
+            nodes_list[2]['kernel_id'] = (
+                'file://%s/SNB-x86_64/agent.kernel' % self.http_boot)
+            nodes_list[2]['ramdisk_id'] = (
+                'file://%s/SNB-x86_64/agent.ramdisk' % self.http_boot)
 
         call_count = 1
         call_list = [mock.call(
             'tripleo.baremetal.v1.register_or_update', workflow_input={
                 'nodes_json': nodes_list,
-                'kernel_name': None if no_deploy_image else 'bm-deploy-kernel',
-                'ramdisk_name': (None
-                                 if no_deploy_image else 'bm-deploy-ramdisk'),
                 'instance_boot_option': ('local' if local is True else
                                          'netboot' if local is False else None)
             }
@@ -768,12 +786,14 @@ class TestConfigureNode(fakes.TestOvercloudNode):
         # Get the command object to test
         self.cmd = overcloud_node.ConfigureNode(self.app, None)
 
-        self.workflow_input = {'kernel_name': 'bm-deploy-kernel',
-                               'ramdisk_name': 'bm-deploy-ramdisk',
-                               'instance_boot_option': None,
-                               'root_device': None,
-                               'root_device_minimum_size': 4,
-                               'overwrite_root_device_hints': False}
+        self.workflow_input = {
+            'kernel_name': 'file:///var/lib/ironic/httpboot/agent.kernel',
+            'ramdisk_name': 'file:///var/lib/ironic/httpboot/agent.ramdisk',
+            'instance_boot_option': None,
+            'root_device': None,
+            'root_device_minimum_size': 4,
+            'overwrite_root_device_hints': False
+        }
 
     def test_configure_all_manageable_nodes(self):
         parsed_args = self.check_parser(self.cmd,

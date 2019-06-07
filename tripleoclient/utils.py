@@ -1456,14 +1456,19 @@ def configure_logging(log, level, log_file):
     log.addHandler(fhandler)
 
 
-def _name_helper(basename, arch=None, platform=None):
+def _name_helper(basename, arch=None, platform=None, use_subdir=False):
     # NOTE(tonyb): We don't accept a platform with an arch.  This caught when
     # import the nodes / process args, but lets be a little cautious here
     # anyway.
+    if use_subdir:
+        delim = '/'
+    else:
+        delim = '-'
+
     if arch and platform:
-        basename = platform + '-' + arch + '-' + basename
+        basename = platform + '-' + arch + delim + basename
     elif arch:
-        basename = arch + '-' + basename
+        basename = arch + delim + basename
     return basename
 
 
@@ -1485,48 +1490,71 @@ def overcloud_image(basename, arch=None, platform=None):
 
 
 def deploy_kernel(arch=None, platform=None):
-    return (_name_helper('bm-deploy-kernel', arch=arch, platform=platform),
-            '.kernel')
+    return _name_helper('agent', arch=arch, platform=platform,
+                        use_subdir=True) + '.kernel'
 
 
 def deploy_ramdisk(arch=None, platform=None):
-    return (_name_helper('bm-deploy-ramdisk', arch=arch, platform=platform),
-            '.initramfs')
+    return _name_helper('agent', arch=arch, platform=platform,
+                        use_subdir=True) + '.ramdisk'
 
 
-def update_nodes_deploy_data(imageclient, nodes):
+def _candidate_files(node, call):
+    arch = node.get('arch')
+    platform = node.get('platform')
+
+    if arch:
+        if platform:
+            yield call(arch=arch, platform=platform)
+        yield call(arch=arch)
+
+    yield call()
+
+
+def update_nodes_deploy_data(nodes,
+                             http_boot=constants.IRONIC_HTTP_BOOT_BIND_MOUNT):
     """Add specific kernel and ramdisk IDs to a node.
 
     Look at all images and update node data with the most specific
     deploy_kernel and deploy_ramdisk for the architecture/platform comination
     platform.
     """
-    img_map = {}
-    for image in imageclient.images.list():
-        name = image.name
-        # NOTE(tonyb): We don't want to include the default kernel or ramdisk
-        # in the map as that will short-circuit logic elesewhere.
-        if name != deploy_kernel()[0] and name != deploy_ramdisk()[0]:
-            img_map[image.name] = image.id
-
     for node in nodes:
-        arch = node.get('arch')
-        platform = node.get('platform')
 
         # NOTE(tonyb): Check to see if we have a specific kernel for this node
-        # and use that.
-        for kernel in [deploy_kernel(arch=arch, platform=platform)[0],
-                       deploy_kernel(arch=arch)[0]]:
-            if 'kernel_id' not in node and kernel in img_map:
-                node['kernel_id'] = img_map[kernel]
-                break
+        # and use that. Fall back to the generic image.
+        if 'kernel_id' not in node:
+            kernel_locations = list(_candidate_files(node, deploy_kernel))
+
+            for kernel in kernel_locations:
+                path = os.path.join(http_boot, kernel)
+                if os.path.exists(path):
+                    # NOTE(dtantsur): we don't use http_boot here since we
+                    # assume that the path in containers is fixed
+                    node['kernel_id'] = 'file://%s/%s' % (
+                        constants.IRONIC_HTTP_BOOT_BIND_MOUNT,
+                        kernel)
+                    break
+            else:
+                raise RuntimeError('No kernel image provided and none of %s '
+                                   'found in %s' % (kernel_locations,
+                                                    http_boot))
 
         # NOTE(tonyb): As above except for ramdisks
-        for ramdisk in [deploy_ramdisk(arch=arch, platform=platform)[0],
-                        deploy_ramdisk(arch=arch)[0]]:
-            if 'ramdisk_id' not in node and ramdisk in img_map:
-                node['ramdisk_id'] = img_map[ramdisk]
-                break
+        if 'ramdisk_id' not in node:
+            ramdisk_locations = list(_candidate_files(node, deploy_ramdisk))
+
+            for ramdisk in ramdisk_locations:
+                path = os.path.join(http_boot, ramdisk)
+                if os.path.exists(path):
+                    node['ramdisk_id'] = 'file://%s/%s' % (
+                        constants.IRONIC_HTTP_BOOT_BIND_MOUNT,
+                        ramdisk)
+                    break
+            else:
+                raise RuntimeError('No ramdisk image provided and none of %s '
+                                   'found in %s' % (ramdisk_locations,
+                                                    http_boot))
 
 
 def get_deployment_python_interpreter(parsed_args):
