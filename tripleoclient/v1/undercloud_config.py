@@ -359,6 +359,21 @@ def _process_network_args(env):
         env['RedisIPv6'] = True
         env['MysqlIPv6'] = True
 
+    # We do not use undercloud ips for env, but just validate the configured
+    # value here.
+    if (CONF.get('generate_service_certificate') or
+            CONF.get('undercloud_service_certificate')):
+        undercloud_ips = [
+            CONF.local_ip.split('/')[0],
+            CONF.undercloud_admin_host,
+            CONF.undercloud_public_host
+        ]
+        if len(undercloud_ips) != len(set(undercloud_ips)):
+            msg = ("The same IP is used for multiple endpoints. Please use "
+                   "unique ips for local_ip, undercloud_admin_host and "
+                   "undercloud_public_host")
+            raise exceptions.InvalidConfiguration(msg)
+
 
 def prepare_undercloud_deploy(upgrade=False, no_validations=False,
                               verbose_level=1, yes=False,
