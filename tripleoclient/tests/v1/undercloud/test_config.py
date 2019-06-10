@@ -189,6 +189,44 @@ class TestNetworkSettings(base.TestCase):
                           undercloud_config._process_network_args,
                           env)
 
+    def test_undercloud_ips_duplicated_fail(self):
+        env = {}
+
+        # local_ip == undercloud_admin_host
+        self.conf.config(local_ip='192.168.24.1/24',
+                         undercloud_admin_host='192.168.24.1',
+                         undercloud_public_host='192.168.24.2',
+                         generate_service_certificate=True)
+        self.assertRaises(exceptions.InvalidConfiguration,
+                          undercloud_config._process_network_args,
+                          env)
+
+        # local_ip == undercloud_public_host
+        self.conf.config(local_ip='192.168.24.1/24',
+                         undercloud_admin_host='192.168.24.3',
+                         undercloud_public_host='192.168.24.1',
+                         generate_service_certificate=True)
+        self.assertRaises(exceptions.InvalidConfiguration,
+                          undercloud_config._process_network_args,
+                          env)
+
+        # undercloud_admin_host == undercloud_public_host
+        self.conf.config(local_ip='192.168.24.1/24',
+                         undercloud_admin_host='192.168.24.2',
+                         undercloud_public_host='192.168.24.2',
+                         generate_service_certificate=True)
+        self.assertRaises(exceptions.InvalidConfiguration,
+                          undercloud_config._process_network_args,
+                          env)
+
+        # We do not care about ip duplication when ssl is disabled
+        self.conf.config(local_ip='192.168.24.1/24',
+                         undercloud_admin_host='192.168.24.1',
+                         undercloud_public_host='192.168.24.2',
+                         generate_service_certificate=False,
+                         undercloud_service_certificate='')
+        undercloud_config._process_network_args(env)
+
     def test_start_end_all_addresses(self):
         self.conf.config(dhcp_start='192.168.24.0',
                          dhcp_end='192.168.24.255',
