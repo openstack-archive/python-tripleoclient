@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    OpenStack overcloud services cli and api is currently accessed through
+    overcloudrc and clouds.yaml.
+    This adds support for overcloud clouds.yaml file generation after
+    deployment. The file can be found at ~/.config/openstack/clouds.yaml
+    and /etc/openstack/clouds.yaml.
