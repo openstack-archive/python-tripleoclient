@@ -1055,12 +1055,9 @@ class GetDeploymentStatus(command.Command):
             return
 
         payload = status['workflow_status']['payload']
-        execution = payload['execution']
         table = PrettyTable(
-            ['Plan Name', 'Created', 'Updated', 'Deployment Status'])
+            ['Plan Name', 'Deployment Status'])
         table.add_row([payload['plan_name'],
-                       execution['created_at'],
-                       execution['updated_at'],
                        payload['deployment_status']])
         print(table, file=self.app.stdout)
 
