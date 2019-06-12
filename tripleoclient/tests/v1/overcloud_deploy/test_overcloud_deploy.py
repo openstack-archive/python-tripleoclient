@@ -1943,10 +1943,6 @@ class TestGetDeploymentStatus(utils.TestCommand):
         status = {
             'workflow_status': {
                 'payload': {
-                    'execution': {
-                        'created_at': 'yesterday',
-                        'updated_at': 'today'
-                    },
                     'plan_name': 'testplan',
                     'deployment_status': 'SUCCESS'
                 }
@@ -1958,11 +1954,11 @@ class TestGetDeploymentStatus(utils.TestCommand):
         self.cmd.take_action(parsed_args)
 
         expected = (
-            '+-----------+-----------+---------+-------------------+\n'
-            '| Plan Name |  Created  | Updated | Deployment Status |\n'
-            '+-----------+-----------+---------+-------------------+\n'
-            '|  testplan | yesterday |  today  |      SUCCESS      |\n'
-            '+-----------+-----------+---------+-------------------+\n')
+            '+-----------+-------------------+\n'
+            '| Plan Name | Deployment Status |\n'
+            '+-----------+-------------------+\n'
+            '|  testplan |      SUCCESS      |\n'
+            '+-----------+-------------------+\n')
 
         self.assertEqual(expected, self.cmd.app.stdout.getvalue())
 
