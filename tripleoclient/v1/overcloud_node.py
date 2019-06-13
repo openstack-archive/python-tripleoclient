@@ -511,7 +511,7 @@ class ProvisionNode(command.Command):
             ssh_user_name=parsed_args.overcloud_ssh_user)
 
         with open(parsed_args.output, 'w') as fp:
-            yaml.safe_dump(output['environment'], fp)
+            yaml.safe_dump(output['environment'], fp, default_flow_style=False)
 
-        print('Nodes deployed successfully, add %s to your deployment' %
-              parsed_args.output)
+        print('Nodes deployed successfully, add %s to your deployment '
+              'environment' % parsed_args.output)
