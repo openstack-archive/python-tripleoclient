@@ -52,7 +52,7 @@ class StandaloneConfig(BaseConfig):
 
     def get_enable_service_opts(self, cinder=False, ironic=False,
                                 ironic_inspector=False, mistral=False,
-                                novajoin=False, tempest=False,
+                                nova=False, novajoin=False, tempest=False,
                                 telemetry=False, tripleo_ui=False,
                                 validations=False, zaqar=False):
         _opts = [
@@ -73,6 +73,9 @@ class StandaloneConfig(BaseConfig):
             cfg.BoolOpt('enable_mistral',
                         default=mistral,
                         help=_('Whether to enable the mistral service.')),
+            cfg.BoolOpt('enable_nova',
+                        default=nova,
+                        help=_('Whether to enable the nova service.')),
             cfg.BoolOpt('enable_novajoin',
                         default=novajoin,
                         help=_('Whether to install novajoin metadata service '
