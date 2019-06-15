@@ -949,11 +949,12 @@ class DeployOvercloud(command.Command):
                 plan=stack.stack_name)
 
             try:
-                deployment.get_hosts_and_enable_ssh_admin(
-                    self.log, self.clients, stack,
-                    parsed_args.overcloud_ssh_network,
-                    parsed_args.overcloud_ssh_user,
-                    parsed_args.overcloud_ssh_key)
+                if not parsed_args.config_download_only:
+                    deployment.get_hosts_and_enable_ssh_admin(
+                        self.log, self.clients, stack,
+                        parsed_args.overcloud_ssh_network,
+                        parsed_args.overcloud_ssh_user,
+                        parsed_args.overcloud_ssh_key)
 
                 if parsed_args.config_download_timeout:
                     timeout = parsed_args.config_download_timeout * 60
