@@ -789,8 +789,6 @@ class TestDeployUndercloud(TestPluginV1):
             os.path.join(tht_render, plan_env_env_name),
             os.path.join(tht_render, 'passwords.yaml'),
             os.path.join(tht_render,
-                         'environments/config-download-environment.yaml'),
-            os.path.join(tht_render,
                          'environments/deployed-server-noop-ctlplane.yaml'),
             os.path.join(tht_render,
                          'tripleoclient-hosts-portmaps.yaml'),
