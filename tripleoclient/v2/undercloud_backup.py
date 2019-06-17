@@ -18,7 +18,9 @@ import logging
 
 from osc_lib.command import command
 from osc_lib.i18n import _
-from tripleoclient.workflows import undercloud_backup
+
+from tripleoclient import constants
+from tripleoclient import utils
 
 LOG = logging.getLogger(__name__ + ".BackupUndercloud")
 
@@ -53,11 +55,19 @@ class BackupUndercloud(command.Command):
                    "i.e. --exclude-path /this/is/a/folder/ "
                    " --exclude-path /this/is/a/texfile.txt")
         )
+        parser.add_argument(
+            '--save-swift',
+            default=False,
+            action='store_true',
+            help=_("Save backup to swift. "
+                   "Defaults to: False "
+                   "Special attention should be taken that "
+                   "Swift itself is backed up if you call this multiple times "
+                   "the backup size will grow exponentially")
+        )
         return parser
 
     def _run_backup_undercloud(self, parsed_args):
-
-        clients = self.app.client_manager
 
         merge_paths = sorted(list(set(parsed_args.add_path)))
         for exc in parsed_args.exclude_path:
@@ -69,22 +79,24 @@ class BackupUndercloud(command.Command):
         # Define the backup sources_path (files to backup).
         # This is a comma separated string.
         # I.e. "/this/is/a/folder/,/this/is/a/texfile.txt"
-        workflow_input = {
-            "sources_path": files_to_backup
-        }
+        extra_vars = {"sources_path": files_to_backup}
+        if parsed_args.save_swift:
+            extra_vars.update({"save_swift": True})
 
         LOG.debug(_('Launch the Undercloud Backup'))
-        try:
-            output = undercloud_backup.backup(clients, workflow_input)
-            LOG.info(output)
-        except Exception as e:
-            print(_("Undercloud backup finished with errors"))
-            print('Output: {}'.format(e))
-            LOG.info(e)
+        with utils.TempDirs() as tmp:
+            utils.run_ansible_playbook(
+                playbook='cli-undercloud-backup.yaml',
+                inventory='localhost,',
+                workdir=tmp,
+                playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                extra_vars=extra_vars
+            )
 
     def take_action(self, parsed_args):
 
-        LOG.info(_(
+        self._run_backup_undercloud(parsed_args)
+        print(
             '\n'
             ' #############################################################\n'
             ' #                  Disclaimer                               #\n'
@@ -94,7 +106,5 @@ class BackupUndercloud(command.Command):
             ' # backup file path will be shown on a successful execution. #\n'
             ' #                                                           #\n'
             ' # .-Stay safe and avoid future issues-.                     #\n'
-            ' #############################################################\n')
+            ' #############################################################\n'
         )
-
-        self._run_backup_undercloud(parsed_args)

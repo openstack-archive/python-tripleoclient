@@ -81,6 +81,8 @@ DEFAULT_VALIDATIONS_BASEDIR = '/usr/share/openstack-tripleo-validations'
 
 ANSIBLE_VALIDATION_DIR = \
     '/usr/share/openstack-tripleo-validations/playbooks'
+ANSIBLE_TRIPLEO_PLAYBOOKS = \
+    '/usr/share/ansible/tripleo-playbooks'
 
 VALIDATION_GROUPS_INFO = '%s/groups.yaml' % DEFAULT_VALIDATIONS_BASEDIR
 

@@ -16,7 +16,9 @@
 import mock
 
 from osc_lib.tests import utils
-from tripleoclient.v1 import undercloud_backup
+
+from tripleoclient import constants
+from tripleoclient.v2 import undercloud_backup
 
 
 class TestUndercloudBackup(utils.TestCommand):
@@ -29,21 +31,28 @@ class TestUndercloudBackup(utils.TestCommand):
         self.app.client_manager.workflow_engine = mock.Mock()
         self.workflow = self.app.client_manager.workflow_engine
 
-    @mock.patch('tripleoclient.workflows.undercloud_backup.backup',
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
-    def test_undercloud_backup_noargs(self, plan_mock):
+    def test_undercloud_backup_noargs(self, mock_playbook):
         arglist = []
         verifylist = []
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.cmd.take_action(parsed_args)
-        plan_mock.assert_called_once_with(
-            mock.ANY, {'sources_path': '/home/stack/'})
+        mock_playbook.assert_called_once_with(
+            workdir=mock.ANY,
+            playbook='cli-undercloud-backup.yaml',
+            inventory='localhost,',
+            playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            extra_vars={
+                'sources_path': '/home/stack/'
+            }
+        )
 
-    @mock.patch('tripleoclient.workflows.undercloud_backup.backup',
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
-    def test_undercloud_backup_withargs(self, plan_mock):
+    def test_undercloud_backup_withargs(self, mock_playbook):
         arglist = [
             '--add-path',
             '/tmp/foo.yaml',
@@ -55,13 +64,17 @@ class TestUndercloudBackup(utils.TestCommand):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.cmd.take_action(parsed_args)
-        plan_mock.assert_called_once_with(
-            mock.ANY,
-            {'sources_path': '/home/stack/,/tmp/bar.yaml,/tmp/foo.yaml'})
+        mock_playbook.assert_called_once_with(
+            workdir=mock.ANY,
+            playbook=mock.ANY,
+            inventory=mock.ANY,
+            playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            extra_vars={'sources_path':
+                        '/home/stack/,/tmp/bar.yaml,/tmp/foo.yaml'})
 
-    @mock.patch('tripleoclient.workflows.undercloud_backup.backup',
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
-    def test_undercloud_backup_withargs_remove(self, plan_mock):
+    def test_undercloud_backup_withargs_remove(self, mock_playbook):
         arglist = [
             '--add-path',
             '/tmp/foo.yaml',
@@ -77,13 +90,17 @@ class TestUndercloudBackup(utils.TestCommand):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.cmd.take_action(parsed_args)
-        plan_mock.assert_called_once_with(
-            mock.ANY,
-            {'sources_path': '/tmp/foo.yaml'})
+        mock_playbook.assert_called_once_with(
+            workdir=mock.ANY,
+            playbook=mock.ANY,
+            inventory=mock.ANY,
+            playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            extra_vars={'sources_path':
+                        '/tmp/foo.yaml'})
 
-    @mock.patch('tripleoclient.workflows.undercloud_backup.backup',
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
-    def test_undercloud_backup_withargs_remove_double(self, plan_mock):
+    def test_undercloud_backup_withargs_remove_double(self, mock_playbook):
         arglist = [
             '--add-path',
             '/tmp/foo.yaml',
@@ -99,13 +116,17 @@ class TestUndercloudBackup(utils.TestCommand):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.cmd.take_action(parsed_args)
-        plan_mock.assert_called_once_with(
-            mock.ANY,
-            {'sources_path': '/home/stack/,/tmp/bar.yaml'})
+        mock_playbook.assert_called_once_with(
+            workdir=mock.ANY,
+            playbook=mock.ANY,
+            inventory=mock.ANY,
+            playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            extra_vars={'sources_path':
+                        '/home/stack/,/tmp/bar.yaml'})
 
-    @mock.patch('tripleoclient.workflows.undercloud_backup.backup',
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
-    def test_undercloud_backup_withargs_remove_unex(self, plan_mock):
+    def test_undercloud_backup_withargs_remove_unex(self, mock_playbook):
         arglist = [
             '--add-path',
             '/tmp/foo.yaml',
@@ -117,6 +138,10 @@ class TestUndercloudBackup(utils.TestCommand):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.cmd.take_action(parsed_args)
-        plan_mock.assert_called_once_with(
-            mock.ANY,
-            {'sources_path': '/home/stack/,/tmp/foo.yaml'})
+        mock_playbook.assert_called_once_with(
+            workdir=mock.ANY,
+            playbook=mock.ANY,
+            inventory=mock.ANY,
+            playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            extra_vars={'sources_path':
+                        '/home/stack/,/tmp/foo.yaml'})
