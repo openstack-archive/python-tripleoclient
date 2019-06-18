@@ -50,6 +50,7 @@ from heatclient import exc as hc_exc
 from six.moves.urllib import error as url_error
 from six.moves.urllib import request
 
+from tripleo_common.utils import config
 from tripleoclient import constants
 from tripleoclient import exceptions
 
@@ -66,7 +67,14 @@ def run_ansible_playbook(logger,
                          retries=True,
                          connection='smart',
                          output_callback='json',
-                         python_interpreter=None):
+                         python_interpreter=None,
+                         ssh_user='root',
+                         key=None,
+                         module_path=None,
+                         limit_hosts=None,
+                         tags='',
+                         skip_tags='',
+                         verbosity=1):
     """Simple wrapper for ansible-playbook
 
     :param logger: logger instance
@@ -88,8 +96,8 @@ def run_ansible_playbook(logger,
     :param retries: do you want to get a retry_file?
     :type retries: Boolean
 
-    :param connect: connection type (local, smart, etc)
-    :type connect: String
+    :param connection: connection type (local, smart, etc)
+    :type connection: String
 
     :param output_callback: Callback for output format. Defaults to "json"
     :type output_callback: String
@@ -97,6 +105,27 @@ def run_ansible_playbook(logger,
     :param python_interpreter: Absolute path for the Python interpreter
     on the host where Ansible is run.
     :type python_interpreter: String
+
+    :param ssh_user: user for the ssh connection
+    :type ssh_user: String
+
+    :param key: private key to use for the ssh connection
+    :type key: String
+
+    :param module_path: location of the ansible module and library
+    :type module_path: String
+
+    :param limit_hosts: limit the execution to the hosts
+    :type limit_hosts: String
+
+    :param tags: run specific tags
+    :type tags: String
+
+    :param skip_tags: skip specific tags
+    :type skip_tags: String
+
+    :param verbosity: verbosity level for Ansible execution
+    :type verbosity: Interger
     """
     env = os.environ.copy()
 
@@ -117,6 +146,8 @@ def run_ansible_playbook(logger,
          '/usr/share/ansible/roles:'
          '/etc/ansible/roles:'
          '%s/roles' % constants.DEFAULT_VALIDATIONS_BASEDIR)
+    env['ANSIBLE_LOG_PATH'] = os.path.join(workdir, 'ansible.log')
+    env['ANSIBLE_HOST_KEY_CHECKING'] = 'False'
 
     cleanup = False
     if ansible_config is None:
@@ -142,8 +173,28 @@ def run_ansible_playbook(logger,
 
     if os.path.exists(play):
         cmd = ["ansible-playbook-{}".format(sys.version_info[0]),
-               '-i', inventory,
+               '-u', ssh_user,
+               '-i', inventory
                ]
+
+        if 0 < verbosity < 6:
+            cmd.extend(['-' + ('v' * verbosity)])
+
+        if key is not None:
+            cmd.extend(['--private-key=%s' % key])
+
+        if module_path is not None:
+            cmd.extend(['--module-path=%s' % module_path])
+
+        if limit_hosts is not None:
+            cmd.extend(['-l %s' % limit_hosts])
+
+        if tags is not '':
+            cmd.extend(['-t %s' % tags])
+
+        if skip_tags is not '':
+            cmd.extend(['--skip_tags %s' % skip_tags])
+
         if python_interpreter is not None:
             cmd.extend(['-e', 'ansible_python_interpreter=%s' %
                               python_interpreter])
@@ -159,6 +210,20 @@ def run_ansible_playbook(logger,
     else:
         cleanup and os.unlink(tmp_config)
         raise RuntimeError('No such playbook: %s' % play)
+
+
+def download_ansible_playbooks(client, stack_name, output_dir='/tmp'):
+
+    log = logging.getLogger(__name__ + ".download_ansible_playbooks")
+    stack_config = config.Config(client)
+    tmp_ansible_dir = tempfile.mkdtemp(prefix='tripleo-ansible-',
+                                       dir=output_dir)
+
+    log.warning(_('Downloading {0} ansible playbooks...').format(stack_name))
+    stack_config.write_config(stack_config.fetch_config(stack_name),
+                              stack_name,
+                              tmp_ansible_dir)
+    return tmp_ansible_dir
 
 
 def bracket_ipv6(address):
@@ -1144,18 +1209,47 @@ def process_multiple_environments(created_env_files, tht_root,
     return env_files, localenv
 
 
-def run_update_ansible_action(log, clients, nodes, inventory, playbook,
-                              all_playbooks, action, ssh_user, tags='',
-                              skip_tags='', verbosity='1', extra_vars=None):
+def run_update_ansible_action(log, clients, nodes, inventory,
+                              playbook, all_playbooks, ssh_user,
+                              action=None, tags='', skip_tags='',
+                              verbosity='1', extra_vars=None,
+                              workdir='', priv_key=''):
+
     playbooks = [playbook]
     if playbook == "all":
         playbooks = all_playbooks
     for book in playbooks:
         log.debug("Running ansible playbook %s " % book)
-        action.update_ansible(clients, nodes=nodes, inventory_file=inventory,
-                              playbook=book, node_user=ssh_user, tags=tags,
-                              skip_tags=skip_tags, verbosity=verbosity,
-                              extra_vars=extra_vars)
+        if action:
+            action.update_ansible(clients, nodes=nodes,
+                                  inventory_file=inventory,
+                                  playbook=book, node_user=ssh_user,
+                                  tags=tags, skip_tags=skip_tags,
+                                  verbosity=verbosity, extra_vars=extra_vars)
+        else:
+            run_ansible_playbook(logger=LOG,
+                                 workdir=workdir,
+                                 playbook=book,
+                                 inventory=inventory,
+                                 ssh_user=ssh_user,
+                                 key=ssh_private_key(workdir, priv_key),
+                                 module_path='/usr/share/ansible-modules',
+                                 limit_hosts=nodes, tags=tags,
+                                 skip_tags=skip_tags)
+
+
+def ssh_private_key(workdir, key):
+    if not key:
+        return None
+    if (isinstance(key, six.string_types) and
+            os.path.exists(key)):
+        return key
+
+    path = os.path.join(workdir, 'ssh_private_key')
+    with open(path, 'w') as ssh_key:
+        ssh_key.write(key)
+    os.chmod(path, 0o600)
+    return path
 
 
 def parse_extra_vars(extra_var_strings):
