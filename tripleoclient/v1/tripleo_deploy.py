@@ -1369,12 +1369,17 @@ class Deploy(command.Command):
                 raise exceptions.UndercloudUpgradeNotConfirmed("(ctrl-d) %s" %
                                                                unconf_msg)
 
-        if parsed_args.standalone:
-            if self._standalone_deploy(parsed_args) != 0:
-                msg = _('Deployment failed.')
+        try:
+            if parsed_args.standalone:
+                if self._standalone_deploy(parsed_args) != 0:
+                    msg = _('Deployment failed.')
+                    self.log.error(msg)
+                    raise exceptions.DeploymentError(msg)
+            else:
+                msg = _('Non-standalone is currently not supported')
                 self.log.error(msg)
                 raise exceptions.DeploymentError(msg)
-        else:
-            msg = _('Non-standalone is currently not supported')
-            self.log.error(msg)
-            raise exceptions.DeploymentError(msg)
+        finally:
+            # send erase sequence to reset the cmdline if paunch/ansible
+            # mangled some escape sequences
+            utils.send_cmdline_erase_sequence()

@@ -1798,3 +1798,10 @@ def check_file_for_enabled_service(env_file):
 def check_deprecated_service_is_enabled(environment_files):
     for env_file in environment_files:
         check_file_for_enabled_service(env_file)
+
+
+def send_cmdline_erase_sequence():
+    # Send's an erase in line sequence to the output
+    # https://www.vt100.net/docs/vt100-ug/chapter3.html#EL
+    sys.stdout.write(u'\u001b[0K')
+    sys.stdout.flush()
