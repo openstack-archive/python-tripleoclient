@@ -30,7 +30,7 @@ import time
 import yaml
 
 from heatclient.common import event_utils
-from heatclient.exc import HTTPNotFound
+from heatclient import exc as hc_exc
 from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
 from oslo_concurrency import processutils
@@ -142,7 +142,8 @@ def create_tempest_deployer_input(config_name='tempest-deployer-input.conf'):
 
 
 def wait_for_stack_ready(orchestration_client, stack_name, marker=None,
-                         action='CREATE', verbose=False):
+                         action='CREATE', verbose=False, poll_period=5,
+                         nested_depth=2, max_retries=10):
     """Check the status of an orchestration stack
 
     Get the status of an orchestration stack and check whether it is complete
@@ -162,7 +163,17 @@ def wait_for_stack_ready(orchestration_client, stack_name, marker=None,
 
     :param verbose: Whether to print events
     :type verbose: boolean
+
+    :param nested_depth: Max depth to look for events
+    :type nested_depth: int
+
+    :param poll_period: How often to poll for events
+    :type poll_period: int
+
+    :param max_retries: Number of retries in the case of server problems
+    :type max_retries: int
     """
+    log = logging.getLogger(__name__ + ".wait_for_stack_ready")
     stack = get_stack(orchestration_client, stack_name)
     if not stack:
         return False
@@ -172,11 +183,27 @@ def wait_for_stack_ready(orchestration_client, stack_name, marker=None,
         out = sys.stdout
     else:
         out = open(os.devnull, "w")
-    stack_status, msg = event_utils.poll_for_events(
-        orchestration_client, stack_name, action=action,
-        poll_period=5, marker=marker, out=out, nested_depth=2)
-    print(msg)
-    return stack_status == '%s_COMPLETE' % action
+    retries = 0
+    while retries <= max_retries:
+        try:
+            stack_status, msg = event_utils.poll_for_events(
+                orchestration_client, stack_name, action=action,
+                poll_period=5, marker=marker, out=out,
+                nested_depth=nested_depth)
+            print(msg)
+            return stack_status == '%s_COMPLETE' % action
+        except hc_exc.HTTPException as e:
+            if e.code in [503, 504]:
+                retries += 1
+                log.warning("Server issue while waiting for stack to be ready."
+                            " Attempting retry {} of {}".format(retries,
+                                                                max_retries))
+                time.sleep(retries * 5)
+                continue
+            log.error("Error occured while waiting for stack to be ready.")
+            raise e
+    raise RuntimeError(
+        "wait_for_stack_ready: Max retries {} reached".format(max_retries))
 
 
 def nodes_in_states(baremetal_client, states):
@@ -376,7 +403,7 @@ def get_stack(orchestration_client, stack_name):
     try:
         stack = orchestration_client.stacks.get(stack_name)
         return stack
-    except HTTPNotFound:
+    except hc_exc.HTTPNotFound:
         pass
 
 
