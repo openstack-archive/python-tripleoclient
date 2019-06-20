@@ -677,12 +677,6 @@ class Deploy(command.Command):
         # use deployed-server because we run os-collect-config locally
         deployed_server_env = os.path.join(
             self.tht_render, 'environments',
-            'config-download-environment.yaml')
-        environments.append(deployed_server_env)
-
-        # use deployed-server because we run os-collect-config locally
-        deployed_server_env = os.path.join(
-            self.tht_render, 'environments',
             'deployed-server-noop-ctlplane.yaml')
         environments.append(deployed_server_env)
 
