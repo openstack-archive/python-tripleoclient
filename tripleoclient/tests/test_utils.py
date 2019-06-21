@@ -376,6 +376,54 @@ class TestWaitForStackUtil(TestCase):
         complete = utils.wait_for_stack_ready(self.mock_orchestration, 'stack')
         self.assertTrue(complete)
 
+    @mock.patch("time.sleep")
+    @mock.patch("heatclient.common.event_utils.poll_for_events")
+    @mock.patch("tripleoclient.utils.get_stack")
+    def test_wait_for_stack_ready_retry(self, mock_get_stack, mock_poll,
+                                        mock_time):
+        stack = mock.Mock()
+        stack.stack_name = 'stack'
+        stack.stack_id = 'id'
+        stack.stack_status = "CREATE_COMPLETE"
+        mock_get_stack.return_value = stack
+        mock_poll.side_effect = [hc_exc.HTTPException(code=504),
+                                 ("CREATE_COMPLETE", "ready retry message")]
+
+        complete = utils.wait_for_stack_ready(self.mock_orchestration, 'stack')
+        self.assertTrue(complete)
+
+    @mock.patch("time.sleep")
+    @mock.patch("heatclient.common.event_utils.poll_for_events")
+    @mock.patch("tripleoclient.utils.get_stack")
+    def test_wait_for_stack_ready_retry_fail(self, mock_get_stack, mock_poll,
+                                             mock_time):
+        stack = mock.Mock()
+        stack.stack_name = 'stack'
+        stack.stack_id = 'id'
+        stack.stack_status = "CREATE_COMPLETE"
+        mock_get_stack.return_value = stack
+        mock_poll.side_effect = hc_exc.HTTPException(code=504)
+
+        self.assertRaises(RuntimeError,
+                          utils.wait_for_stack_ready,
+                          self.mock_orchestration, 'stack')
+
+    @mock.patch("time.sleep")
+    @mock.patch("heatclient.common.event_utils.poll_for_events")
+    @mock.patch("tripleoclient.utils.get_stack")
+    def test_wait_for_stack_ready_server_fail(self, mock_get_stack, mock_poll,
+                                              mock_time):
+        stack = mock.Mock()
+        stack.stack_name = 'stack'
+        stack.stack_id = 'id'
+        stack.stack_status = "CREATE_COMPLETE"
+        mock_get_stack.return_value = stack
+        mock_poll.side_effect = hc_exc.HTTPException(code=500)
+
+        self.assertRaises(hc_exc.HTTPException,
+                          utils.wait_for_stack_ready,
+                          self.mock_orchestration, 'stack')
+
     def test_wait_for_stack_ready_no_stack(self):
         self.mock_orchestration.stacks.get.return_value = None
 
