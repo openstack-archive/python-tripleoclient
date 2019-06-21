@@ -2016,14 +2016,15 @@ def check_file_for_enabled_service(env_file):
             content = yaml.load(f)
         deprecated_services_enabled = []
         for service in constants.DEPRECATED_SERVICES.keys():
-            if ("resource_registry" in content and
-                    service in content["resource_registry"]):
+            try:
                 if content["resource_registry"][service] != "OS::Heat::None":
                     LOG.warning("service " + service + " is enabled in "
                                 + str(env_file) + ". " +
                                 constants.DEPRECATED_SERVICES[service])
                     deprecated_services_enabled.append(service)
-
+            except (KeyError, TypeError) as e:
+                # ignore if content["resource_registry"] is empty
+                pass
         if deprecated_services_enabled:
             confirm = prompt_user_for_confirmation(
                 message="Do you still wish to continue with deployment [y/N]",
