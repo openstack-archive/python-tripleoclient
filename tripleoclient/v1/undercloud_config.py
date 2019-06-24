@@ -348,6 +348,12 @@ def _process_network_args(env):
                                               'servers in undercloud_'
                                               'nameservers.')
     env['DnsServers'] = ','.join(CONF['undercloud_nameservers'])
+    if netaddr.IPNetwork(CONF['local_ip']).version == 6:
+        env['NovaIPv6'] = True
+        env['RabbitIPv6'] = True
+        env['MemcachedIPv6'] = True
+        env['RedisIPv6'] = True
+        env['MysqlIPv6'] = True
 
 
 def prepare_undercloud_deploy(upgrade=False, no_validations=False,

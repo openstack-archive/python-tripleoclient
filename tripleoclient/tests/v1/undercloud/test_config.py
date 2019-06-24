@@ -180,6 +180,47 @@ class TestNetworkSettings(base.TestCase):
                     'NetworkGateway': '192.168.24.1'}}}
         self.assertEqual(expected, env)
 
+    def test_ipv6_control_plane(self):
+        env = {}
+        self.conf.config(local_ip='fd12:3456:789a:1::2/64',
+                         undercloud_admin_host='fd12:3456:789a:1::3',
+                         undercloud_public_host='fd12:3456:789a:1::4')
+        self.conf.config(cidr='fd12:3456:789a:1::/64',
+                         dhcp_start='fd12:3456:789a:1::10',
+                         dhcp_end='fd12:3456:789a:1::20',
+                         dhcp_exclude=[],
+                         inspection_iprange=('fd12:3456:789a:1::30,'
+                                             'fd12:3456:789a:1::40'),
+                         gateway='fd12:3456:789a:1::1',
+                         masquerade=False,
+                         host_routes=[],
+                         group='ctlplane-subnet')
+        undercloud_config._process_network_args(env)
+        expected = {
+            'NovaIPv6': True,
+            'RabbitIPv6': True,
+            'MemcachedIPv6': True,
+            'RedisIPv6': True,
+            'MysqlIPv6': True,
+            'ControlPlaneStaticRoutes': [],
+            'DnsServers': '',
+            'IronicInspectorSubnets': [
+                {'gateway': 'fd12:3456:789a:1::1',
+                 'host_routes': [],
+                 'ip_range': 'fd12:3456:789a:1::30,fd12:3456:789a:1::40',
+                 'netmask': 'ffff:ffff:ffff:ffff::',
+                 'tag': 'ctlplane-subnet'}],
+            'MasqueradeNetworks': {},
+            'UndercloudCtlplaneSubnets': {
+                'ctlplane-subnet': {
+                    'AllocationPools': [
+                        {'start': 'fd12:3456:789a:1::10',
+                         'end': 'fd12:3456:789a:1::20'}],
+                    'HostRoutes': [],
+                    'NetworkCidr': 'fd12:3456:789a:1::/64',
+                    'NetworkGateway': 'fd12:3456:789a:1::1'}}}
+        self.assertEqual(expected, env)
+
     def test_nameserver_toomany_fail(self):
         env = {}
         self.conf.config(undercloud_nameservers=['1.1.1.1', '1.1.1.2',
