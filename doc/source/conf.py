@@ -72,6 +72,9 @@ latex_documents = [
      u'OpenStack Foundation', 'manual'),
 ]
 
+# Allow deeper levels of nesting for \begin...\end stanzas
+latex_elements = {'maxlistdepth': 10}
+
 # openstackdocstheme options
 repository_name = 'openstack/python-tripleoclient'
 bug_project = 'python-tripleoclient'
