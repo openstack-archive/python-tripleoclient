@@ -447,6 +447,21 @@ def _validate_deprecetad_now_invalid_parameters():
     del deprecate_conf
 
 
+def _validate_dnsnameservers(s):
+    ip_version = netaddr.IPNetwork(s['cidr']).version
+    if s['dns_nameservers']:
+        nameservers = s['dns_nameservers']
+    else:
+        nameservers = CONF.undercloud_nameservers
+
+    for nameserver in nameservers:
+        if not netaddr.IPAddress(nameserver).version == ip_version:
+            message = (_('IP version missmatch. Nameserver {0} is not valid '
+                         'for subnet {1}').format(nameserver, s['cidr']))
+            LOG.error(message)
+            raise FailedValidation(message)
+
+
 def check(verbose_level, upgrade=False):
     # Fetch configuration and use its log file param to add logging to a file
     utils.load_config(CONF, constants.UNDERCLOUD_CONF_PATH)
@@ -483,6 +498,7 @@ def check(verbose_level, upgrade=False):
             _validate_dhcp_range(s, subnet)
             _checking_status('Inspection range for subnet "%s"' % subnet)
             _validate_inspection_range(s)
+            _validate_dnsnameservers(s)
         _checking_status('IP addresses')
         _validate_ips()
         _checking_status('Network interfaces')

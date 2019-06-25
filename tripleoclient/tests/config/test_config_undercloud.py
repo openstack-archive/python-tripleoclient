@@ -148,6 +148,7 @@ class TestUndercloudConfig(base.TestCase):
                     'dhcp_end',
                     'dhcp_exclude',
                     'dhcp_start',
+                    'dns_nameservers',
                     'gateway',
                     'host_routes',
                     'inspection_iprange',

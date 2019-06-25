@@ -131,7 +131,8 @@ class TestNetworkSettings(base.TestCase):
             fixtures.MockPatch('tripleoclient.utils.load_config'))
         self.conf.config(local_ip='192.168.24.1/24',
                          undercloud_admin_host='192.168.24.3',
-                         undercloud_public_host='192.168.24.2')
+                         undercloud_public_host='192.168.24.2',
+                         undercloud_nameservers=['10.10.10.10', '10.10.10.11'])
         # ctlplane network - config group options
         self.grp0 = cfg.OptGroup(name='ctlplane-subnet',
                                  title='ctlplane-subnet')
@@ -144,7 +145,8 @@ class TestNetworkSettings(base.TestCase):
                      cfg.BoolOpt('masquerade'),
                      cfg.ListOpt('host_routes',
                                  item_type=cfg.types.Dict(bounds=True),
-                                 bounds=True,)]
+                                 bounds=True,),
+                     cfg.ListOpt('dns_nameservers')]
         self.conf.register_opts(self.opts, group=self.grp0)
         self.grp1 = cfg.OptGroup(name='subnet1', title='subnet1')
         self.grp2 = cfg.OptGroup(name='subnet2', title='subnet2')
@@ -156,14 +158,15 @@ class TestNetworkSettings(base.TestCase):
                          gateway='192.168.24.1',
                          masquerade=False,
                          host_routes=[],
+                         dns_nameservers=[],
                          group='ctlplane-subnet')
 
     def test_default(self):
         env = {}
         undercloud_config._process_network_args(env)
         expected = {
+            'DnsServers': '10.10.10.10,10.10.10.11',
             'ControlPlaneStaticRoutes': [],
-            'DnsServers': '',
             'IronicInspectorSubnets': [
                 {'gateway': '192.168.24.1',
                  'host_routes': [],
@@ -175,6 +178,7 @@ class TestNetworkSettings(base.TestCase):
                 'ctlplane-subnet': {
                     'AllocationPools': [
                         {'start': '192.168.24.5', 'end': '192.168.24.24'}],
+                    'DnsNameServers': ['10.10.10.10', '10.10.10.11'],
                     'HostRoutes': [],
                     'NetworkCidr': '192.168.24.0/24',
                     'NetworkGateway': '192.168.24.1'}}}
@@ -189,6 +193,8 @@ class TestNetworkSettings(base.TestCase):
                          dhcp_start='fd12:3456:789a:1::10',
                          dhcp_end='fd12:3456:789a:1::20',
                          dhcp_exclude=[],
+                         dns_nameservers=['fd12:3456:789a:1::5',
+                                          'fd12:3456:789a:1::6'],
                          inspection_iprange=('fd12:3456:789a:1::30,'
                                              'fd12:3456:789a:1::40'),
                          gateway='fd12:3456:789a:1::1',
@@ -203,7 +209,7 @@ class TestNetworkSettings(base.TestCase):
             'RedisIPv6': True,
             'MysqlIPv6': True,
             'ControlPlaneStaticRoutes': [],
-            'DnsServers': '',
+            'DnsServers': '10.10.10.10,10.10.10.11',
             'IronicInspectorSubnets': [
                 {'gateway': 'fd12:3456:789a:1::1',
                  'host_routes': [],
@@ -216,6 +222,8 @@ class TestNetworkSettings(base.TestCase):
                     'AllocationPools': [
                         {'start': 'fd12:3456:789a:1::10',
                          'end': 'fd12:3456:789a:1::20'}],
+                    'DnsNameServers': ['fd12:3456:789a:1::5',
+                                       'fd12:3456:789a:1::6'],
                     'HostRoutes': [],
                     'NetworkCidr': 'fd12:3456:789a:1::/64',
                     'NetworkGateway': 'fd12:3456:789a:1::1'}}}
@@ -237,8 +245,8 @@ class TestNetworkSettings(base.TestCase):
         env = {}
         undercloud_config._process_network_args(env)
         expected = {
+            'DnsServers': '10.10.10.10,10.10.10.11',
             'ControlPlaneStaticRoutes': [],
-            'DnsServers': '',
             'IronicInspectorSubnets': [
                 {'gateway': '192.168.24.1',
                  'host_routes': [],
@@ -251,6 +259,7 @@ class TestNetworkSettings(base.TestCase):
                     'AllocationPools': [
                         {'start': '192.168.24.4', 'end': '192.168.24.99'},
                         {'start': '192.168.24.121', 'end': '192.168.24.254'}],
+                    'DnsNameServers': ['10.10.10.10', '10.10.10.11'],
                     'HostRoutes': [],
                     'NetworkCidr': '192.168.24.0/24',
                     'NetworkGateway': '192.168.24.1'}}}
@@ -264,8 +273,8 @@ class TestNetworkSettings(base.TestCase):
         env = {}
         undercloud_config._process_network_args(env)
         expected = {
+            'DnsServers': '10.10.10.10,10.10.10.11',
             'ControlPlaneStaticRoutes': [],
-            'DnsServers': '',
             'IronicInspectorSubnets': [
                 {'gateway': '192.168.10.1',
                  'host_routes': [],
@@ -278,6 +287,7 @@ class TestNetworkSettings(base.TestCase):
                     'AllocationPools': [
                         {'start': '192.168.10.2', 'end': '192.168.10.99'},
                         {'start': '192.168.10.121', 'end': '192.168.10.254'}],
+                    'DnsNameServers': ['10.10.10.10', '10.10.10.11'],
                     'HostRoutes': [],
                     'NetworkCidr': '192.168.10.0/24',
                     'NetworkGateway': '192.168.10.1'}}}
@@ -293,8 +303,8 @@ class TestNetworkSettings(base.TestCase):
         env = {}
         undercloud_config._process_network_args(env)
         expected = {
+            'DnsServers': '10.10.10.10,10.10.10.11',
             'ControlPlaneStaticRoutes': [],
-            'DnsServers': '',
             'IronicInspectorSubnets': [
                 {'gateway': '192.168.10.1',
                  'host_routes': [],
@@ -309,6 +319,7 @@ class TestNetworkSettings(base.TestCase):
                         {'start': '192.168.10.51', 'end': '192.168.10.79'},
                         {'start': '192.168.10.90', 'end': '192.168.10.99'},
                         {'start': '192.168.10.121', 'end': '192.168.10.254'}],
+                    'DnsNameServers': ['10.10.10.10', '10.10.10.11'],
                     'HostRoutes': [],
                     'NetworkCidr': '192.168.10.0/24',
                     'NetworkGateway': '192.168.10.1'}}}
@@ -321,8 +332,8 @@ class TestNetworkSettings(base.TestCase):
         env = {}
         undercloud_config._process_network_args(env)
         expected = {
+            'DnsServers': '10.10.10.10,10.10.10.11',
             'ControlPlaneStaticRoutes': [],
-            'DnsServers': '',
             'IronicInspectorSubnets': [
                 {'gateway': '192.168.24.1',
                  'host_routes': [],
@@ -335,6 +346,7 @@ class TestNetworkSettings(base.TestCase):
                     'AllocationPools': [
                         {'start': '192.168.24.4', 'end': '192.168.24.99'},
                         {'start': '192.168.24.121', 'end': '192.168.24.254'}],
+                    'DnsNameServers': ['10.10.10.10', '10.10.10.11'],
                     'HostRoutes': [],
                     'NetworkCidr': '192.168.24.0/24',
                     'NetworkGateway': '192.168.24.1'}}}
@@ -347,8 +359,8 @@ class TestNetworkSettings(base.TestCase):
         env = {}
         undercloud_config._process_network_args(env)
         expected = {
+            'DnsServers': '10.10.10.10,10.10.10.11',
             'ControlPlaneStaticRoutes': [],
-            'DnsServers': '',
             'IronicInspectorSubnets': [
                 {'gateway': '192.168.24.1',
                  'host_routes': [],
@@ -361,6 +373,7 @@ class TestNetworkSettings(base.TestCase):
                     'AllocationPools': [
                         {'start': '192.168.24.10', 'end': '192.168.24.99'},
                         {'start': '192.168.24.121', 'end': '192.168.24.254'}],
+                    'DnsNameServers': ['10.10.10.10', '10.10.10.11'],
                     'HostRoutes': [],
                     'NetworkCidr': '192.168.24.0/24',
                     'NetworkGateway': '192.168.24.1'}}
@@ -374,8 +387,8 @@ class TestNetworkSettings(base.TestCase):
         env = {}
         undercloud_config._process_network_args(env)
         expected = {
+            'DnsServers': '10.10.10.10,10.10.10.11',
             'ControlPlaneStaticRoutes': [],
-            'DnsServers': '',
             'IronicInspectorSubnets': [
                 {'gateway': '192.168.24.1',
                  'host_routes': [],
@@ -388,6 +401,7 @@ class TestNetworkSettings(base.TestCase):
                     'AllocationPools': [
                         {'start': '192.168.24.4', 'end': '192.168.24.99'},
                         {'start': '192.168.24.121', 'end': '192.168.24.220'}],
+                    'DnsNameServers': ['10.10.10.10', '10.10.10.11'],
                     'HostRoutes': [],
                     'NetworkCidr': '192.168.24.0/24',
                     'NetworkGateway': '192.168.24.1'}}
@@ -399,6 +413,7 @@ class TestNetworkSettings(base.TestCase):
         self.conf.register_opts(self.opts, group=self.grp1)
         self.conf.register_opts(self.opts, group=self.grp2)
         self.conf.config(masquerade=True,
+                         dns_nameservers=['10.1.1.100', '10.1.1.101'],
                          group='ctlplane-subnet')
         self.conf.config(cidr='192.168.10.0/24',
                          dhcp_start='192.168.10.10',
@@ -406,6 +421,7 @@ class TestNetworkSettings(base.TestCase):
                          dhcp_exclude=[],
                          inspection_iprange='192.168.10.100,192.168.10.189',
                          gateway='192.168.10.254',
+                         dns_nameservers=['10.2.2.100', '10.2.2.101'],
                          host_routes=[],
                          masquerade=True,
                          group='subnet1')
@@ -415,16 +431,17 @@ class TestNetworkSettings(base.TestCase):
                          dhcp_exclude=[],
                          inspection_iprange='192.168.20.100,192.168.20.189',
                          gateway='192.168.20.254',
+                         dns_nameservers=['10.3.3.100', '10.3.3.101'],
                          host_routes=[],
                          masquerade=True,
                          group='subnet2')
         env = {}
         undercloud_config._process_network_args(env)
         expected = {
+            'DnsServers': '10.10.10.10,10.10.10.11',
             'ControlPlaneStaticRoutes': [
                 {'ip_netmask': '192.168.10.0/24', 'next_hop': '192.168.24.1'},
                 {'ip_netmask': '192.168.20.0/24', 'next_hop': '192.168.24.1'}],
-            'DnsServers': '',
             'IronicInspectorSubnets': [
                 {'gateway': '192.168.24.1',
                  'host_routes': [],
@@ -457,18 +474,21 @@ class TestNetworkSettings(base.TestCase):
                 'ctlplane-subnet': {
                     'AllocationPools': [
                         {'start': '192.168.24.5', 'end': '192.168.24.24'}],
+                    'DnsNameServers': ['10.1.1.100', '10.1.1.101'],
                     'HostRoutes': [],
                     'NetworkCidr': '192.168.24.0/24',
                     'NetworkGateway': '192.168.24.1'},
                 'subnet1': {
                     'AllocationPools': [
                         {'start': '192.168.10.10', 'end': '192.168.10.99'}],
+                    'DnsNameServers': ['10.2.2.100', '10.2.2.101'],
                     'HostRoutes': [],
                     'NetworkCidr': '192.168.10.0/24',
                     'NetworkGateway': '192.168.10.254'},
                 'subnet2': {
                     'AllocationPools': [
                         {'start': '192.168.20.10', 'end': '192.168.20.99'}],
+                    'DnsNameServers': ['10.3.3.100', '10.3.3.101'],
                     'HostRoutes': [],
                     'NetworkCidr': '192.168.20.0/24',
                     'NetworkGateway': '192.168.20.254'}
@@ -486,6 +506,7 @@ class TestNetworkSettings(base.TestCase):
                          dhcp_exclude=[],
                          inspection_iprange='192.168.10.100,192.168.10.189',
                          gateway='192.168.10.254',
+                         dns_nameservers=[],
                          host_routes=[],
                          group='subnet1')
         self.conf.config(cidr='192.168.20.0/24',
@@ -494,15 +515,16 @@ class TestNetworkSettings(base.TestCase):
                          dhcp_exclude=[],
                          inspection_iprange='192.168.20.100,192.168.20.189',
                          gateway='192.168.20.254',
+                         dns_nameservers=[],
                          host_routes=[],
                          group='subnet2')
         env = {}
         undercloud_config._process_network_args(env)
         expected = {
+            'DnsServers': '10.10.10.10,10.10.10.11',
             'ControlPlaneStaticRoutes': [
                 {'ip_netmask': '192.168.10.0/24', 'next_hop': '192.168.24.1'},
                 {'ip_netmask': '192.168.20.0/24', 'next_hop': '192.168.24.1'}],
-            'DnsServers': '',
             'IronicInspectorSubnets': [
                 {'gateway': '192.168.24.1',
                  'host_routes': [],
@@ -526,18 +548,21 @@ class TestNetworkSettings(base.TestCase):
                 'ctlplane-subnet': {
                     'AllocationPools': [
                         {'start': '192.168.24.5', 'end': '192.168.24.24'}],
+                    'DnsNameServers': ['10.10.10.10', '10.10.10.11'],
                     'HostRoutes': [],
                     'NetworkCidr': '192.168.24.0/24',
                     'NetworkGateway': '192.168.24.1'},
                 'subnet1': {
                     'AllocationPools': [
                         {'start': '192.168.10.10', 'end': '192.168.10.99'}],
+                    'DnsNameServers': ['10.10.10.10', '10.10.10.11'],
                     'HostRoutes': [],
                     'NetworkCidr': '192.168.10.0/24',
                     'NetworkGateway': '192.168.10.254'},
                 'subnet2': {
                     'AllocationPools': [
                         {'start': '192.168.20.10', 'end': '192.168.20.99'}],
+                    'DnsNameServers': ['10.10.10.10', '10.10.10.11'],
                     'HostRoutes': [],
                     'NetworkCidr': '192.168.20.0/24',
                     'NetworkGateway': '192.168.20.254'}
@@ -552,15 +577,16 @@ class TestNetworkSettings(base.TestCase):
                          dhcp_exclude=[],
                          inspection_iprange='192.168.10.200,192.168.10.254',
                          gateway='192.168.10.254',
+                         dns_nameservers=[],
                          host_routes=[],
                          masquerade=False,
                          group='subnet1')
         env = {}
         undercloud_config._process_network_args(env)
         expected = {
+            'DnsServers': '10.10.10.10,10.10.10.11',
             'ControlPlaneStaticRoutes': [
                 {'ip_netmask': '192.168.10.0/24', 'next_hop': '192.168.24.1'}],
-            'DnsServers': '',
             'IronicInspectorSubnets': [
                 {'gateway': '192.168.24.1',
                  'host_routes': [],
@@ -579,12 +605,14 @@ class TestNetworkSettings(base.TestCase):
                 'ctlplane-subnet': {
                     'AllocationPools': [
                         {'start': '192.168.24.5', 'end': '192.168.24.24'}],
+                    'DnsNameServers': ['10.10.10.10', '10.10.10.11'],
                     'HostRoutes': [],
                     'NetworkCidr': '192.168.24.0/24',
                     'NetworkGateway': '192.168.24.1'},
                 'subnet1': {
                     'AllocationPools': [
                         {'start': '192.168.10.1', 'end': '192.168.10.199'}],
+                    'DnsNameServers': ['10.10.10.10', '10.10.10.11'],
                     'HostRoutes': [],
                     'NetworkCidr': '192.168.10.0/24',
                     'NetworkGateway': '192.168.10.254'}
@@ -599,15 +627,16 @@ class TestNetworkSettings(base.TestCase):
                          dhcp_exclude=[],
                          inspection_iprange='192.168.10.100,192.168.10.199',
                          gateway='192.168.10.222',
+                         dns_nameservers=[],
                          host_routes=[],
                          masquerade=False,
                          group='subnet1')
         env = {}
         undercloud_config._process_network_args(env)
         expected = {
+            'DnsServers': '10.10.10.10,10.10.10.11',
             'ControlPlaneStaticRoutes': [
                 {'ip_netmask': '192.168.10.0/24', 'next_hop': '192.168.24.1'}],
-            'DnsServers': '',
             'IronicInspectorSubnets': [
                 {'gateway': '192.168.24.1',
                  'host_routes': [],
@@ -626,6 +655,7 @@ class TestNetworkSettings(base.TestCase):
                 'ctlplane-subnet': {
                     'AllocationPools': [
                         {'start': '192.168.24.5', 'end': '192.168.24.24'}],
+                    'DnsNameServers': ['10.10.10.10', '10.10.10.11'],
                     'HostRoutes': [],
                     'NetworkCidr': '192.168.24.0/24',
                     'NetworkGateway': '192.168.24.1'},
@@ -634,6 +664,7 @@ class TestNetworkSettings(base.TestCase):
                         {'start': '192.168.10.1', 'end': '192.168.10.99'},
                         {'start': '192.168.10.200', 'end': '192.168.10.221'},
                         {'start': '192.168.10.223', 'end': '192.168.10.254'}],
+                    'DnsNameServers': ['10.10.10.10', '10.10.10.11'],
                     'HostRoutes': [],
                     'NetworkCidr': '192.168.10.0/24',
                     'NetworkGateway': '192.168.10.222'}
@@ -654,6 +685,7 @@ class TestNetworkSettings(base.TestCase):
                          dhcp_exclude=[],
                          inspection_iprange='192.168.10.100,192.168.10.189',
                          gateway='192.168.10.254',
+                         dns_nameservers=[],
                          host_routes=[{'destination': '10.10.10.254/32',
                                        'nexthop': '192.168.10.254'}],
                          group='subnet1')
@@ -663,17 +695,18 @@ class TestNetworkSettings(base.TestCase):
                          dhcp_exclude=[],
                          inspection_iprange='192.168.20.100,192.168.20.189',
                          gateway='192.168.20.254',
+                         dns_nameservers=[],
                          host_routes=[{'destination': '10.10.10.254/32',
                                        'nexthop': '192.168.20.254'}],
                          group='subnet2')
         env = {}
         undercloud_config._process_network_args(env)
         expected = {
+            'DnsServers': '10.10.10.10,10.10.10.11',
             'ControlPlaneStaticRoutes': [
                 {'ip_netmask': '192.168.10.0/24', 'next_hop': '192.168.24.1'},
                 {'ip_netmask': '192.168.20.0/24', 'next_hop': '192.168.24.1'},
                 {'ip_netmask': '10.10.10.254/32', 'next_hop': '192.168.24.1'}],
-            'DnsServers': '',
             'IronicInspectorSubnets': [
                 {'gateway': '192.168.24.1',
                  'host_routes': [{'destination': '10.10.10.254/32',
@@ -700,6 +733,7 @@ class TestNetworkSettings(base.TestCase):
                 'ctlplane-subnet': {
                     'AllocationPools': [
                         {'start': '192.168.24.5', 'end': '192.168.24.24'}],
+                    'DnsNameServers': ['10.10.10.10', '10.10.10.11'],
                     'HostRoutes': [{'destination': '10.10.10.254/32',
                                     'nexthop': '192.168.24.1'}],
                     'NetworkCidr': '192.168.24.0/24',
@@ -707,6 +741,7 @@ class TestNetworkSettings(base.TestCase):
                 'subnet1': {
                     'AllocationPools': [
                         {'start': '192.168.10.10', 'end': '192.168.10.99'}],
+                    'DnsNameServers': ['10.10.10.10', '10.10.10.11'],
                     'HostRoutes': [{'destination': '10.10.10.254/32',
                                     'nexthop': '192.168.10.254'}],
                     'NetworkCidr': '192.168.10.0/24',
@@ -714,6 +749,7 @@ class TestNetworkSettings(base.TestCase):
                 'subnet2': {
                     'AllocationPools': [
                         {'start': '192.168.20.10', 'end': '192.168.20.99'}],
+                    'DnsNameServers': ['10.10.10.10', '10.10.10.11'],
                     'HostRoutes': [{'destination': '10.10.10.254/32',
                                     'nexthop': '192.168.20.254'}],
                     'NetworkCidr': '192.168.20.0/24',

@@ -78,7 +78,7 @@ PARAMETER_MAPPING = {
 SUBNET_PARAMETER_MAPPING = {
     'cidr': 'NetworkCidr',
     'gateway': 'NetworkGateway',
-    'host_routes': 'HostRoutes'
+    'host_routes': 'HostRoutes',
 }
 
 THT_HOME = os.environ.get('THT_HOME',
@@ -310,6 +310,9 @@ def _calculate_allocation_pools(subnet):
         CONF.undercloud_admin_host)))
     ip_set.remove(netaddr.IPNetwork(utils.get_single_ip(
         CONF.undercloud_public_host)))
+    # Remove dns nameservers
+    for addr in subnet.get('dns_nameservers', []):
+        ip_set.remove(netaddr.IPAddress(addr))
     # Remove addresses in the inspection_iprange
     inspect_start, inspect_end = subnet.get('inspection_iprange').split(',')
     ip_set.remove(netaddr.IPRange(inspect_start, inspect_end))
@@ -337,6 +340,12 @@ def _process_network_args(env):
         env['UndercloudCtlplaneSubnets'][subnet] = {
             'AllocationPools': _calculate_allocation_pools(s)
         }
+        if s.get('dns_nameservers'):
+            env['UndercloudCtlplaneSubnets'][subnet].update(
+                {'DnsNameServers': s['dns_nameservers']})
+        else:
+            env['UndercloudCtlplaneSubnets'][subnet].update(
+                {'DnsNameServers': CONF['undercloud_nameservers']})
         for param_key, param_value in SUBNET_PARAMETER_MAPPING.items():
             if param_value:
                 env['UndercloudCtlplaneSubnets'][subnet].update(
