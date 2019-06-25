@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Undercloud ``ctlplane`` subnets can now have individual nameservers
+    (per-subnet option ``dns_nameservers``). If no subnet specific nameservers
+    are specified for a subnet it will fall back to ``undercloud_nameservers``.
