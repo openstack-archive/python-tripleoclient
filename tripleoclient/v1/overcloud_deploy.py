@@ -592,6 +592,22 @@ class DeployOvercloud(command.Command):
                     if not os.path.isfile(env_file.replace(".yaml",
                                                            ".j2.yaml")):
                         nonexisting_envs.append(env_file)
+
+            # Check networks_file existence
+            if parsed_args.networks_file:
+                if not os.path.isfile(parsed_args.networks_file):
+                    nonexisting_envs.append(parsed_args.networks_file)
+
+            # check plan_environment_file existence
+            if parsed_args.plan_environment_file:
+                if not os.path.isfile(parsed_args.plan_environment_file):
+                    nonexisting_envs.append(parsed_args.plan_environment_file)
+
+            # check answers_file existence
+            if parsed_args.answers_file:
+                if not os.path.isfile(parsed_args.answers_file):
+                    nonexisting_envs.append(parsed_args.answers_file)
+
             if jinja2_envs:
                 rewritten_paths = [e.replace(".j2.yaml", ".yaml")
                                    for e in jinja2_envs]
