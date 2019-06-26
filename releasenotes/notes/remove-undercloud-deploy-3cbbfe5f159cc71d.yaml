@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    The `openstack undercloud deploy` command has been removed. Use `openstack
+    tripleo deploy` instead.
