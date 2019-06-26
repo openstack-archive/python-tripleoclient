@@ -134,9 +134,9 @@ class StandaloneConfig(BaseConfig):
                            'Relative paths get computed inside of $HOME. '
                            'Must be in the json format.'
                            'Its content overrides anything in t-h-t '
-                           'UndercloudNetConfigOverride. The processed '
+                           '<role>NetConfigOverride. The processed '
                            'template is then passed in Heat via the '
-                           'undercloud_parameters.yaml file created in '
+                           'generated parameters file created in '
                            'output_dir and used to configure the networking '
                            'via run-os-net-config. If you wish to disable '
                            'you can set this location to an empty file.'
@@ -204,6 +204,11 @@ class StandaloneConfig(BaseConfig):
                        default='podman',
                        help=_('Container CLI used for deployment; '
                               'Can be docker or podman.')),
+            cfg.BoolOpt('container_healthcheck_disabled',
+                        default=False,
+                        help=_(
+                            'Whether or not we disable the container '
+                            'healthchecks.')),
         ]
         return self.sort_opts(_base_opts + _opts)
 

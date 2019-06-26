@@ -27,6 +27,7 @@ class TestStandaloneConfig(base.TestCase):
         ret = self.config.get_base_opts()
         expected = ['cleanup',
                     'container_cli',
+                    'container_healthcheck_disabled',
                     'container_images_file',
                     'container_insecure_registries',
                     'container_registry_mirror',
@@ -88,6 +89,7 @@ class TestStandaloneConfig(base.TestCase):
         ret = self.config.get_opts()
         expected = ['cleanup',
                     'container_cli',
+                    'container_healthcheck_disabled',
                     'container_images_file',
                     'container_insecure_registries',
                     'container_registry_mirror',

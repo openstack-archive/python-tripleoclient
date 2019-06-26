@@ -108,8 +108,10 @@ class Deploy(command.Command):
     python_cmd = "python{}".format(python_version)
 
     def _is_undercloud_deploy(self, parsed_args):
-        return parsed_args.standalone_role == 'Undercloud' and \
-            parsed_args.stack == 'undercloud'
+        role = parsed_args.standalone_role
+        stack = parsed_args.stack
+        return (role in ['Undercloud', 'UndercloudMinion'] and
+                stack in ['undercloud', 'minion'])
 
     def _run_preflight_checks(self, parsed_args):
         """Run preflight deployment checks
@@ -855,6 +857,34 @@ class Deploy(command.Command):
         sys.stdout.flush()
         return self.tmp_ansible_dir
 
+    def _download_stack_outputs(self, client, stack_name):
+        stack = utils.get_stack(client, stack_name)
+        output_file = 'tripleo-{}-outputs.yaml'.format(stack_name)
+        endpointmap_file = os.path.join(self.output_dir, output_file)
+
+        outputs = {}
+        endpointmap = utils.get_endpoint_map(stack)
+        if endpointmap:
+            outputs['EndpointMapOverride'] = endpointmap
+
+        allnodescfg = utils.get_stack_output_item(stack, 'AllNodesConfig')
+        if allnodescfg:
+            outputs['AllNodesExtraMapData'] = allnodescfg
+
+        hosts = utils.get_stack_output_item(stack, 'HostsEntry')
+        if hosts:
+            outputs['ExtraHostFileEntries'] = hosts
+
+        globalcfg = utils.get_stack_output_item(stack, 'GlobalConfig')
+        if globalcfg:
+            outputs['GlobalConfigExtraMapData'] = globalcfg
+
+        self._create_working_dirs()
+        output = {'parameter_defaults': outputs}
+        with open(endpointmap_file, 'w') as f:
+            yaml.safe_dump(output, f, default_flow_style=False)
+        return output
+
     # Never returns, calls exec()
     def _launch_ansible(self, ansible_dir, list_args=None, operation="deploy"):
 
@@ -1218,6 +1248,10 @@ class Deploy(command.Command):
                                                  parsed_args.stack,
                                                  parsed_args.standalone_role,
                                                  depl_python)
+
+            # output an file with EndpointMapOverride for use with other stacks
+            self._download_stack_outputs(orchestration_client,
+                                         parsed_args.stack)
 
             # Do not override user's custom ansible configuraition file,
             # it may have been pre-created with the tripleo CLI, or the like
