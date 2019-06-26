@@ -270,7 +270,7 @@ class UploadOvercloudImage(command.Command):
             default=self._get_environment_var(
                 'HTTP_BOOT',
                 constants.IRONIC_HTTP_BOOT_BIND_MOUNT),
-            help=_("Root directory for the introspection image")
+            help=_("Root directory for the ironic-python-agent image")
         )
         parser.add_argument(
             "--update-existing",
@@ -458,43 +458,7 @@ class UploadOvercloudImage(command.Command):
 
         if parsed_args.image_type is None or \
                 parsed_args.image_type == 'ironic-python-agent':
-            (deploy_kernel_name,
-             deploy_kernel_extension) = plugin_utils.deploy_kernel(
-                 arch=arch, platform=platform)
-            deploy_kernel_file = os.path.join(parsed_args.image_path,
-                                              parsed_args.ipa_name +
-                                              deploy_kernel_extension)
-            self._image_try_update(deploy_kernel_name, deploy_kernel_file,
-                                   parsed_args) or \
-                glance_client_adaptor.upload_image(
-                    name=deploy_kernel_name,
-                    is_public=True,
-                    disk_format='aki',
-                    properties=properties,
-                    data=self._read_image_file_pointer(
-                        parsed_args.image_path,
-                        deploy_kernel_file))
-
-            (deploy_ramdisk_name,
-             deploy_ramdisk_extension) = plugin_utils.deploy_ramdisk(
-                 arch=arch, platform=platform)
-            deploy_ramdisk_file = os.path.join(parsed_args.image_path,
-                                               parsed_args.ipa_name +
-                                               deploy_ramdisk_extension)
-            self._image_try_update(deploy_ramdisk_name, deploy_ramdisk_file,
-                                   parsed_args) or \
-                glance_client_adaptor.upload_image(
-                    name=deploy_ramdisk_name,
-                    is_public=True,
-                    disk_format='ari',
-                    properties=properties,
-                    data=self._read_image_file_pointer(parsed_args.image_path,
-                                                       deploy_ramdisk_file))
-
             self.log.debug("copy agent images to HTTP BOOT dir")
-
-            # TODO(tonyb) Decide how to handle platform specific httpboot
-            # files/names
 
             self._file_create_or_update(
                 os.path.join(parsed_args.image_path,

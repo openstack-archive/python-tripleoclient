@@ -234,7 +234,7 @@ class TestUploadOvercloudImage(TestPluginV1):
             self.app.client_manager.image.images.delete.call_count
         )
         self.assertEqual(
-            5,
+            3,
             self.app.client_manager.image.images.create.call_count
         )
         self.app.client_manager.image.images.create.assert_has_calls([
@@ -250,14 +250,6 @@ class TestUploadOvercloudImage(TestPluginV1):
                       disk_format='qcow2',
                       container_format='bare',
                       visibility='public'),
-            mock.call(name='bm-deploy-kernel',
-                      disk_format='aki',
-                      container_format='bare',
-                      visibility='public'),
-            mock.call(name='bm-deploy-ramdisk',
-                      disk_format='ari',
-                      container_format='bare',
-                      visibility='public')
         ])
 
         self.assertEqual(mock_subprocess_call.call_count, 2)
@@ -285,7 +277,7 @@ class TestUploadOvercloudImage(TestPluginV1):
             self.app.client_manager.image.images.delete.call_count
         )
         self.assertEqual(
-            5,
+            3,
             self.app.client_manager.image.images.create.call_count
         )
         self.app.client_manager.image.images.create.assert_has_calls([
@@ -306,16 +298,6 @@ class TestUploadOvercloudImage(TestPluginV1):
                       container_format='bare',
                       disk_format='qcow2',
                       is_public=True),
-            mock.call(properties={'hw_architecture': self._arch},
-                      data=b'IMGDATA',
-                      name='bm-deploy-kernel',
-                      disk_format='aki',
-                      is_public=True),
-            mock.call(properties={'hw_architecture': self._arch},
-                      data=b'IMGDATA',
-                      name='bm-deploy-ramdisk',
-                      disk_format='ari',
-                      is_public=True)
         ])
 
     @mock.patch('os.path.isfile', autospec=True)
@@ -335,7 +317,7 @@ class TestUploadOvercloudImage(TestPluginV1):
             self.app.client_manager.image.images.delete.call_count
         )
         self.assertEqual(
-            5,
+            3,
             self.app.client_manager.image.images.create.call_count
         )
         self.app.client_manager.image.images.create.assert_has_calls([
@@ -356,16 +338,6 @@ class TestUploadOvercloudImage(TestPluginV1):
                       container_format='bare',
                       disk_format='qcow2',
                       is_public=True),
-            mock.call(properties={'hw_architecture': 'x86_64'},
-                      data=b'IMGDATA',
-                      name='x86_64-bm-deploy-kernel',
-                      disk_format='aki',
-                      is_public=True),
-            mock.call(properties={'hw_architecture': 'x86_64'},
-                      data=b'IMGDATA',
-                      name='x86_64-bm-deploy-ramdisk',
-                      disk_format='ari',
-                      is_public=True)
         ])
 
         self.assertEqual(mock_subprocess_call.call_count, 2)
@@ -395,11 +367,12 @@ class TestUploadOvercloudImage(TestPluginV1):
                       mock.ANY),
             mock.call('overcloud-full', '/foo/overcloud-full.qcow2',
                       mock.ANY),
-            mock.call('bm-deploy-kernel', '/foo/ironic-python-agent.kernel',
-                      mock.ANY),
-            mock.call('bm-deploy-ramdisk',
-                      '/foo/ironic-python-agent.initramfs',
-                      mock.ANY),
+        ])
+        mock_subprocess_call.assert_has_calls([
+            mock.call('sudo cp -f "/foo/ironic-python-agent.kernel" '
+                      '"/var/lib/ironic/httpboot/agent.kernel"', shell=True),
+            mock.call('sudo cp -f "/foo/ironic-python-agent.initramfs" '
+                      '"/var/lib/ironic/httpboot/agent.ramdisk"', shell=True)
         ])
 
     @mock.patch('os.path.isfile', autospec=True)
@@ -455,11 +428,11 @@ class TestUploadOvercloudImage(TestPluginV1):
             self.app.client_manager.image.images.delete.call_count
         )
         self.assertEqual(
-            5,
+            3,
             self.app.client_manager.image.images.create.call_count
         )
         self.assertEqual(
-            10,  # 5 for new uploads, 5 updating the existsing
+            6,  # 3 for new uploads, 3 updating the existsing
             self.app.client_manager.image.images.update.call_count
         )
         self.assertEqual(mock_subprocess_call.call_count, 2)
@@ -498,7 +471,7 @@ class TestUploadOvercloudImageFull(TestPluginV1):
             self.app.client_manager.image.images.delete.call_count
         )
         self.assertEqual(
-            3,
+            1,
             self.app.client_manager.image.images.create.call_count
         )
 
@@ -507,19 +480,9 @@ class TestUploadOvercloudImageFull(TestPluginV1):
                       disk_format='qcow2',
                       container_format='bare',
                       visibility='public'),
-            mock.call(name='bm-deploy-kernel',
-                      disk_format='aki',
-                      container_format='bare',
-                      visibility='public'),
-            mock.call(name='bm-deploy-ramdisk',
-                      disk_format='ari',
-                      container_format='bare',
-                      visibility='public')
         ])
         # properties are set by updating the image
         self.app.client_manager.image.images.update.assert_has_calls([
-            mock.call(mock.ANY, hw_architecture=self._arch),
-            mock.call(mock.ANY, hw_architecture=self._arch),
             mock.call(mock.ANY, hw_architecture=self._arch),
         ])
 
@@ -549,7 +512,7 @@ class TestUploadOvercloudImageFull(TestPluginV1):
             self.app.client_manager.image.images.delete.call_count
         )
         self.assertEqual(
-            3,
+            1,
             self.app.client_manager.image.images.create.call_count
         )
 
@@ -558,19 +521,9 @@ class TestUploadOvercloudImageFull(TestPluginV1):
                       disk_format='qcow2',
                       container_format='bare',
                       visibility='public'),
-            mock.call(name='x86_64-bm-deploy-kernel',
-                      disk_format='aki',
-                      container_format='bare',
-                      visibility='public'),
-            mock.call(name='x86_64-bm-deploy-ramdisk',
-                      disk_format='ari',
-                      container_format='bare',
-                      visibility='public')
         ])
 
         self.app.client_manager.image.images.update.assert_has_calls([
-            mock.call(mock.ANY, hw_architecture='x86_64'),
-            mock.call(mock.ANY, hw_architecture='x86_64'),
             mock.call(mock.ANY, hw_architecture='x86_64'),
         ])
         self.assertEqual(mock_subprocess_call.call_count, 2)
@@ -632,11 +585,11 @@ class TestUploadOvercloudImageFull(TestPluginV1):
             self.app.client_manager.image.images.delete.call_count
         )
         self.assertEqual(
-            3,
+            1,
             self.app.client_manager.image.images.create.call_count
         )
         self.assertEqual(
-            6,  # update 3 images *and* add properties to 3 images
+            2,  # update 1 image *and* add properties to 1 image
             self.app.client_manager.image.images.update.call_count
         )
         self.assertEqual(mock_subprocess_call.call_count, 2)
@@ -698,7 +651,7 @@ class TestUploadOvercloudImageFullMultiArch(TestPluginV1):
             self.app.client_manager.image.images.delete.call_count
         )
         self.assertEqual(
-            6,
+            2,
             self.app.client_manager.image.images.create.call_count
         )
 
@@ -707,32 +660,15 @@ class TestUploadOvercloudImageFullMultiArch(TestPluginV1):
                       disk_format='qcow2',
                       container_format='bare',
                       visibility='public'),
-            mock.call(name='bm-deploy-kernel',
-                      disk_format='aki',
-                      container_format='bare',
-                      visibility='public'),
-            mock.call(name='bm-deploy-ramdisk',
-                      disk_format='ari',
-                      container_format='bare',
-                      visibility='public'),
             mock.call(name='ppc64le-overcloud-full',
                       disk_format='qcow2',
                       container_format='bare',
                       visibility='public'),
-            mock.call(name='ppc64le-bm-deploy-kernel',
-                      disk_format='aki',
-                      container_format='bare',
-                      visibility='public'),
-            mock.call(name='ppc64le-bm-deploy-ramdisk',
-                      disk_format='ari',
-                      container_format='bare',
-                      visibility='public')
         ])
 
         self.app.client_manager.image.images.update.assert_has_calls([
-            mock.call(13, hw_architecture='ppc64le'),
-            mock.call(14, hw_architecture='ppc64le'),
-            mock.call(15, hw_architecture='ppc64le'),
+            mock.call(10, hw_architecture='x86_64'),
+            mock.call(11, hw_architecture='ppc64le'),
         ])
         self.assertEqual(mock_subprocess_call.call_count, 4)
         mock_subprocess_call.assert_has_calls([
@@ -779,7 +715,7 @@ class TestUploadOvercloudImageFullMultiArch(TestPluginV1):
             self.app.client_manager.image.images.delete.call_count
         )
         self.assertEqual(
-            9,
+            3,
             self.app.client_manager.image.images.create.call_count
         )
 
@@ -788,47 +724,20 @@ class TestUploadOvercloudImageFullMultiArch(TestPluginV1):
                       disk_format='qcow2',
                       container_format='bare',
                       visibility='public'),
-            mock.call(name='bm-deploy-kernel',
-                      disk_format='aki',
-                      container_format='bare',
-                      visibility='public'),
-            mock.call(name='bm-deploy-ramdisk',
-                      disk_format='ari',
-                      container_format='bare',
-                      visibility='public'),
             mock.call(name='ppc64le-overcloud-full',
                       disk_format='qcow2',
-                      container_format='bare',
-                      visibility='public'),
-            mock.call(name='ppc64le-bm-deploy-kernel',
-                      disk_format='aki',
-                      container_format='bare',
-                      visibility='public'),
-            mock.call(name='ppc64le-bm-deploy-ramdisk',
-                      disk_format='ari',
                       container_format='bare',
                       visibility='public'),
             mock.call(name='p9-ppc64le-overcloud-full',
                       disk_format='qcow2',
                       container_format='bare',
                       visibility='public'),
-            mock.call(name='p9-ppc64le-bm-deploy-kernel',
-                      disk_format='aki',
-                      container_format='bare',
-                      visibility='public'),
-            mock.call(name='p9-ppc64le-bm-deploy-ramdisk',
-                      disk_format='ari',
-                      container_format='bare',
-                      visibility='public')
         ])
 
         self.app.client_manager.image.images.update.assert_has_calls([
-            mock.call(13, hw_architecture='ppc64le'),
-            mock.call(14, hw_architecture='ppc64le'),
-            mock.call(15, hw_architecture='ppc64le'),
-            mock.call(16, hw_architecture='ppc64le', tripleo_platform='p9'),
-            mock.call(17, hw_architecture='ppc64le', tripleo_platform='p9'),
-            mock.call(18, hw_architecture='ppc64le', tripleo_platform='p9'),
+            mock.call(10, hw_architecture='x86_64'),
+            mock.call(11, hw_architecture='ppc64le'),
+            mock.call(12, hw_architecture='ppc64le', tripleo_platform='p9'),
         ])
         self.assertEqual(mock_subprocess.call_count, 6)
         mock_subprocess.assert_has_calls([
@@ -880,12 +789,7 @@ class TestUploadOnlyExisting(TestPluginV1):
                               [mock.call('./ironic-python-agent.initramfs'),
                                mock.call('./ironic-python-agent.kernel')])
 
-        # ensure try_update has been called just with ipa
-        files = []
-        for item in self.cmd._image_try_update.call_args_list:
-            files.append(item[0][1])
-        self.assertEqual(files, ['./ironic-python-agent.kernel',
-                                 './ironic-python-agent.initramfs'])
+        self.assertFalse(self.cmd._image_try_update.called)
 
     @mock.patch('subprocess.check_call', autospec=True)
     @mock.patch('os.path.isfile', autospec=True)
@@ -930,12 +834,7 @@ class TestUploadOnlyExisting(TestPluginV1):
                               [mock.call('./ironic-python-agent.initramfs'),
                                mock.call('./ironic-python-agent.kernel')])
 
-        # ensure try_update has been called just with ipa
-        files = []
-        for item in self.cmd._image_try_update.call_args_list:
-            files.append(item[0][1])
-        self.assertEqual(files, ['./ironic-python-agent.kernel',
-                                 './ironic-python-agent.initramfs'])
+        self.assertFalse(self.cmd._image_try_update.called)
 
     @mock.patch('subprocess.check_call', autospec=True)
     @mock.patch('os.path.isfile', autospec=True)

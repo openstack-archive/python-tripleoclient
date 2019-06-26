@@ -269,6 +269,12 @@ class ImportNode(command.Command):
                             help=_('Whether to set instances for booting from '
                                    'local hard drive (local) or network '
                                    '(netboot).'))
+        parser.add_argument("--http-boot",
+                            default=os.environ.get(
+                                'HTTP_BOOT',
+                                constants.IRONIC_HTTP_BOOT_BIND_MOUNT),
+                            help=_("Root directory for the ironic-python-agent"
+                                   " image"))
         parser.add_argument('env_file', type=argparse.FileType('r'))
         return parser
 
@@ -281,22 +287,14 @@ class ImportNode(command.Command):
             return baremetal.validate_nodes(self.app.client_manager,
                                             nodes_json=nodes_config)
 
-        if parsed_args.no_deploy_image:
-            deploy_kernel = None
-            deploy_ramdisk = None
-        else:
-            deploy_kernel = oooutils.deploy_kernel()[0]
-            deploy_ramdisk = oooutils.deploy_ramdisk()[0]
-
         # Look for *specific* deploy images and update the node data if
         # one is found.
-        oooutils.update_nodes_deploy_data(self.app.client_manager.image,
-                                          nodes_config)
+        if not parsed_args.no_deploy_image:
+            oooutils.update_nodes_deploy_data(nodes_config,
+                                              http_boot=parsed_args.http_boot)
         nodes = baremetal.register_or_update(
             self.app.client_manager,
             nodes_json=nodes_config,
-            kernel_name=deploy_kernel,
-            ramdisk_name=deploy_ramdisk,
             instance_boot_option=parsed_args.instance_boot_option
         )
 
@@ -332,12 +330,16 @@ class ConfigureNode(command.Command):
                            action='store_true',
                            help=_("Configure all nodes currently in "
                                   "'manageable' state"))
-        parser.add_argument('--deploy-kernel',
-                            default='bm-deploy-kernel',
-                            help=_('Image with deploy kernel.'))
-        parser.add_argument('--deploy-ramdisk',
-                            default='bm-deploy-ramdisk',
-                            help=_('Image with deploy ramdisk.'))
+        parser.add_argument(
+            '--deploy-kernel',
+            default='file://%s/agent.kernel' %
+            constants.IRONIC_HTTP_BOOT_BIND_MOUNT,
+            help=_('Image with deploy kernel.'))
+        parser.add_argument(
+            '--deploy-ramdisk',
+            default='file://%s/agent.ramdisk' %
+            constants.IRONIC_HTTP_BOOT_BIND_MOUNT,
+            help=_('Image with deploy ramdisk.'))
         parser.add_argument('--instance-boot-option',
                             choices=['local', 'netboot'],
                             help=_('Whether to set instances for booting from '
