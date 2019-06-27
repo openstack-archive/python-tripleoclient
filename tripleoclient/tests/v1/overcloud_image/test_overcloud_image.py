@@ -626,10 +626,12 @@ class TestUploadOvercloudImageFullMultiArch(TestPluginV1):
         self.cmd._read_image_file_pointer = mock.Mock(return_value=b'IMGDATA')
         self.cmd._check_file_exists = mock.Mock(return_value=True)
 
+    @mock.patch('tripleo_common.arch.kernel_arch', autospec=True,
+                return_value='x86_64')
     @mock.patch('os.path.isfile', autospec=True)
     @mock.patch('subprocess.check_call', autospec=True)
     def test_overcloud_create_images_with_arch(self, mock_subprocess_call,
-                                               mock_isfile):
+                                               mock_isfile, mock_arch):
         mock_isfile.return_value = False
 
         self.cmd._get_image = mock.Mock(return_value=None)
@@ -682,11 +684,14 @@ class TestUploadOvercloudImageFullMultiArch(TestPluginV1):
                       '"/httpboot/ppc64le/agent.ramdisk"', shell=True),
         ])
 
+    @mock.patch('tripleo_common.arch.kernel_arch', autospec=True,
+                return_value='x86_64')
     @mock.patch('os.path.isfile', autospec=True)
     @mock.patch('subprocess.check_call', autospec=True)
     def test_overcloud_create_images_with_arch_and_pltform(self,
                                                            mock_subprocess,
-                                                           mock_isfile):
+                                                           mock_isfile,
+                                                           mock_arch):
         mock_isfile.return_value = False
 
         self.cmd._get_image = mock.Mock(return_value=None)
