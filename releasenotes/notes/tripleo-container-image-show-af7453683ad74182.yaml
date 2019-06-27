@@ -1,0 +1,8 @@
+---
+features:
+  - | 
+    With the new podman container setup comes an Apache served local image
+    registry.
+
+    `openstack tripleo container image show` will perform an inspection on
+    a given image, and present the details.
