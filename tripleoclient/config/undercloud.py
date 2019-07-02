@@ -51,6 +51,10 @@ HOST_ROUTES_HELP_STR = _(
     'Host routes for the Neutron-managed subnet for the Overcloud instances '
     'on this network. The host routes on the local_subnet will also be '
     'configured on the undercloud.')
+DNS_NAMESERVERS_HELP_STR = _(
+    'DNS nameservers for the Neutron-managed subnet for the Overcloud '
+    'instances on this network. If no nameservers are defined for the subnet, '
+    'the nameservers defined for undercloud_nameservers will be used.')
 
 # Deprecated options
 _deprecated_opt_network_gateway = [cfg.DeprecatedOpt(
@@ -385,6 +389,9 @@ class UndercloudConfig(StandaloneConfig):
                         sample_default=('[{destination: 10.10.10.0/24, '
                                         'nexthop: 192.168.24.1}]'),
                         help=HOST_ROUTES_HELP_STR),
+            cfg.ListOpt('dns_nameservers',
+                        default=constants.CTLPLANE_DNS_NAMESERVERS_DEFAULT,
+                        help=DNS_NAMESERVERS_HELP_STR),
         ]
         return self.sort_opts(_subnets_opts)
 
@@ -413,6 +420,9 @@ class UndercloudConfig(StandaloneConfig):
                         bounds=True,
                         default=[],
                         help=HOST_ROUTES_HELP_STR),
+            cfg.ListOpt('dns_nameservers',
+                        default=constants.CTLPLANE_DNS_NAMESERVERS_DEFAULT,
+                        help=DNS_NAMESERVERS_HELP_STR),
         ]
         return self.sort_opts(_subnets_opts)
 
