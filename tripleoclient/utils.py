@@ -1732,6 +1732,11 @@ def get_validations_yaml(validations_data):
                           indent=2)
 
 
+def indent(text):
+    '''Indent the given text by four spaces.'''
+    return ''.join('    {}\n'.format(line) for line in text.splitlines())
+
+
 def get_local_timezone():
     info = run_command(['timedatectl'], name='timedatectl')
     timezoneline = [tz for tz in info.split('\n') if 'Time zone:' in tz]
