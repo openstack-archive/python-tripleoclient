@@ -117,10 +117,10 @@ class TestRunAnsiblePlaybook(TestCase):
         self.assertRaises(RuntimeError,
                           utils.run_ansible_playbook, self.mock_log,
                           '/tmp', 'existing.yaml', 'localhost,',
-                          '/tmp/foo.cfg'
+                          '/home/foo', '/tmp/foo.cfg'
                           )
-        mock_exists.assert_called_once_with('/tmp/foo.cfg')
-        mock_isabs.assert_called_once_with('/tmp/foo.cfg')
+        mock_exists.assert_called_with('/tmp/foo.cfg')
+        mock_isabs.assert_called_with('/tmp/foo.cfg')
         mock_run.assert_not_called()
 
     @mock.patch('tempfile.mkstemp', return_value=('foo', '/tmp/fooBar.cfg'))
