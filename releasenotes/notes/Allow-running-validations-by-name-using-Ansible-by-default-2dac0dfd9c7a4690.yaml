@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    The validations can now be performed by calling Mistral or by calling
+    ``ansible-playbook``. By default, the latter is used. The new ``--use-mistral``
+    option allows to execute either groups or a set of specific validations by
+    calling Mistral instead of using the default mechanism, ie. ``ansible-playbook``.
+
