@@ -926,9 +926,7 @@ class TestDeployUndercloud(TestPluginV1):
                 '_configure_puppet')
     @mock.patch('os.geteuid', return_value=0)
     @mock.patch('os.environ', return_value='CREATE_COMPLETE')
-    @mock.patch('tripleoclient.v1.tripleo_deploy.'
-                'event_utils.poll_for_events',
-                return_value=('CREATE_COMPLETE', 0))
+    @mock.patch('tripleoclient.utils.wait_for_stack_ready', return_value=True)
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_set_default_plan')
     @mock.patch('tripleoclient.utils.ansible_symlink')

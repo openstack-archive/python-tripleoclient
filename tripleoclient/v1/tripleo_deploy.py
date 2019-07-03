@@ -33,7 +33,6 @@ import yaml
 
 from cliff import command
 from datetime import datetime
-from heatclient.common import event_utils
 from heatclient.common import template_utils
 from osc_lib.i18n import _
 from six.moves import configparser
@@ -1234,10 +1233,10 @@ class Deploy(command.Command):
                                                     parsed_args)
 
             # Wait for complete..
-            status, msg = event_utils.poll_for_events(
-                orchestration_client, stack_id, nested_depth=6)
-            if status != "CREATE_COMPLETE":
-                message = _("Stack create failed; %s") % msg
+            status = utils.wait_for_stack_ready(orchestration_client, stack_id,
+                                                nested_depth=6)
+            if not status:
+                message = _("Stack create failed")
                 self.log.error(message)
                 raise exceptions.DeploymentError(message)
 
