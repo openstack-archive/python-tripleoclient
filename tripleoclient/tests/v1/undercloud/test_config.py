@@ -165,7 +165,6 @@ class TestNetworkSettings(base.TestCase):
         env = {}
         undercloud_config._process_network_args(env)
         expected = {
-            'DnsServers': '10.10.10.10,10.10.10.11',
             'ControlPlaneStaticRoutes': [],
             'IronicInspectorSubnets': [
                 {'gateway': '192.168.24.1',
@@ -209,7 +208,6 @@ class TestNetworkSettings(base.TestCase):
             'RedisIPv6': True,
             'MysqlIPv6': True,
             'ControlPlaneStaticRoutes': [],
-            'DnsServers': '10.10.10.10,10.10.10.11',
             'IronicInspectorSubnets': [
                 {'gateway': 'fd12:3456:789a:1::1',
                  'host_routes': [],
@@ -245,7 +243,6 @@ class TestNetworkSettings(base.TestCase):
         env = {}
         undercloud_config._process_network_args(env)
         expected = {
-            'DnsServers': '10.10.10.10,10.10.10.11',
             'ControlPlaneStaticRoutes': [],
             'IronicInspectorSubnets': [
                 {'gateway': '192.168.24.1',
@@ -273,7 +270,6 @@ class TestNetworkSettings(base.TestCase):
         env = {}
         undercloud_config._process_network_args(env)
         expected = {
-            'DnsServers': '10.10.10.10,10.10.10.11',
             'ControlPlaneStaticRoutes': [],
             'IronicInspectorSubnets': [
                 {'gateway': '192.168.10.1',
@@ -303,7 +299,6 @@ class TestNetworkSettings(base.TestCase):
         env = {}
         undercloud_config._process_network_args(env)
         expected = {
-            'DnsServers': '10.10.10.10,10.10.10.11',
             'ControlPlaneStaticRoutes': [],
             'IronicInspectorSubnets': [
                 {'gateway': '192.168.10.1',
@@ -332,7 +327,6 @@ class TestNetworkSettings(base.TestCase):
         env = {}
         undercloud_config._process_network_args(env)
         expected = {
-            'DnsServers': '10.10.10.10,10.10.10.11',
             'ControlPlaneStaticRoutes': [],
             'IronicInspectorSubnets': [
                 {'gateway': '192.168.24.1',
@@ -359,7 +353,6 @@ class TestNetworkSettings(base.TestCase):
         env = {}
         undercloud_config._process_network_args(env)
         expected = {
-            'DnsServers': '10.10.10.10,10.10.10.11',
             'ControlPlaneStaticRoutes': [],
             'IronicInspectorSubnets': [
                 {'gateway': '192.168.24.1',
@@ -387,7 +380,6 @@ class TestNetworkSettings(base.TestCase):
         env = {}
         undercloud_config._process_network_args(env)
         expected = {
-            'DnsServers': '10.10.10.10,10.10.10.11',
             'ControlPlaneStaticRoutes': [],
             'IronicInspectorSubnets': [
                 {'gateway': '192.168.24.1',
@@ -438,7 +430,6 @@ class TestNetworkSettings(base.TestCase):
         env = {}
         undercloud_config._process_network_args(env)
         expected = {
-            'DnsServers': '10.10.10.10,10.10.10.11',
             'ControlPlaneStaticRoutes': [
                 {'ip_netmask': '192.168.10.0/24', 'next_hop': '192.168.24.1'},
                 {'ip_netmask': '192.168.20.0/24', 'next_hop': '192.168.24.1'}],
@@ -521,7 +512,6 @@ class TestNetworkSettings(base.TestCase):
         env = {}
         undercloud_config._process_network_args(env)
         expected = {
-            'DnsServers': '10.10.10.10,10.10.10.11',
             'ControlPlaneStaticRoutes': [
                 {'ip_netmask': '192.168.10.0/24', 'next_hop': '192.168.24.1'},
                 {'ip_netmask': '192.168.20.0/24', 'next_hop': '192.168.24.1'}],
@@ -584,7 +574,6 @@ class TestNetworkSettings(base.TestCase):
         env = {}
         undercloud_config._process_network_args(env)
         expected = {
-            'DnsServers': '10.10.10.10,10.10.10.11',
             'ControlPlaneStaticRoutes': [
                 {'ip_netmask': '192.168.10.0/24', 'next_hop': '192.168.24.1'}],
             'IronicInspectorSubnets': [
@@ -634,7 +623,6 @@ class TestNetworkSettings(base.TestCase):
         env = {}
         undercloud_config._process_network_args(env)
         expected = {
-            'DnsServers': '10.10.10.10,10.10.10.11',
             'ControlPlaneStaticRoutes': [
                 {'ip_netmask': '192.168.10.0/24', 'next_hop': '192.168.24.1'}],
             'IronicInspectorSubnets': [
@@ -702,7 +690,6 @@ class TestNetworkSettings(base.TestCase):
         env = {}
         undercloud_config._process_network_args(env)
         expected = {
-            'DnsServers': '10.10.10.10,10.10.10.11',
             'ControlPlaneStaticRoutes': [
                 {'ip_netmask': '192.168.10.0/24', 'next_hop': '192.168.24.1'},
                 {'ip_netmask': '192.168.20.0/24', 'next_hop': '192.168.24.1'},
