@@ -23,6 +23,8 @@ import sys
 import tempfile
 import yaml
 
+from osc_lib import exceptions as oscexc
+
 from tripleo_common.image import image_uploader
 from tripleo_common.image import kolla_builder
 from tripleoclient.tests.v1.test_plugin import TestPluginV1
@@ -78,6 +80,46 @@ class TestContainerImageUpload(TestPluginV1):
         mock_manager.assert_called_once_with(
             ['/tmp/foo.yaml', '/tmp/bar.yaml'], cleanup='full')
         mock_manager.return_value.upload.assert_called_once_with()
+
+
+class TestContainerImageDelete(TestPluginV1):
+
+    def setUp(self):
+        super(TestContainerImageDelete, self).setUp()
+        self.cmd = container_image.TripleOContainerImageDelete(self.app, None)
+
+    @mock.patch('tripleo_common.image.image_uploader.ImageUploadManager')
+    def test_oserror(self, mock_manager):
+
+        arglist = ['-y', 'foo']
+        verifylist = [('yes', True),
+                      ('image_to_delete', 'foo')]
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        # mock manager object
+        mock_mgr = mock.Mock()
+        mock_manager.return_value = mock_mgr
+
+        # mock uploader object
+        mock_uploader = mock.Mock()
+        mock_mgr.uploader.return_value = mock_uploader
+
+        # mock return url object from uploader._image_to_url
+        mock_url = mock.Mock()
+        mock_url.geturl.return_value = 'munged-reg-url'
+
+        mock_uploader._image_to_url.return_value = mock_url
+
+        # mock return session object from uploader.authenticate
+        mock_session = mock.Mock()
+        mock_uploader.authenticate.return_value = mock_session
+
+        mock_uploader.delete.side_effect = OSError('Errno 13')
+        self.assertRaises(oscexc.CommandError,
+                          self.cmd.take_action,
+                          parsed_args)
+        mock_uploader.delete.assert_called_once_with('foo',
+                                                     session=mock_session)
 
 
 class TestContainerImageList(TestPluginV1):

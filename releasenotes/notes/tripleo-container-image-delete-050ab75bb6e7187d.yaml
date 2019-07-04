@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    With the new podman container setup comes an Apache served local image
+    registry.
+
+    `openstack tripleo container image delete` allows you to maintain those
+    images, and remove those that are no longer required.
+
