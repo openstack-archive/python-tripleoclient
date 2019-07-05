@@ -63,6 +63,7 @@ def run_ansible_playbook(logger,
                          workdir,
                          playbook,
                          inventory,
+                         log_path_dir=None,
                          ansible_config=None,
                          retries=True,
                          connection='smart',
@@ -92,6 +93,10 @@ def run_ansible_playbook(logger,
     :param ansible_config: Pass either Absolute Path, or None to generate a
     temporary file, or False to not manage configuration at all
     :type ansible_config: String
+
+    :param log_path_dir: Dir path location for ansible log file.
+    Defaults to "None"
+    :type retries: String
 
     :param retries: do you want to get a retry_file?
     :type retries: Boolean
@@ -146,7 +151,12 @@ def run_ansible_playbook(logger,
          '/usr/share/ansible/roles:'
          '/etc/ansible/roles:'
          '%s/roles' % constants.DEFAULT_VALIDATIONS_BASEDIR)
-    env['ANSIBLE_LOG_PATH'] = os.path.join(workdir, 'ansible.log')
+
+    if not log_path_dir or not os.path.exists(log_path_dir):
+        env['ANSIBLE_LOG_PATH'] = os.path.join(workdir, 'ansible.log')
+    else:
+        env['ANSIBLE_LOG_PATH'] = os.path.join(log_path_dir, 'ansible.log')
+
     env['ANSIBLE_HOST_KEY_CHECKING'] = 'False'
 
     cleanup = False
