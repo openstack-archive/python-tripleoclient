@@ -37,6 +37,7 @@ from tripleoclient import command
 from tripleoclient import constants
 from tripleoclient import exceptions
 from tripleoclient import utils
+from tripleoclient.workflows import baremetal
 from tripleoclient.workflows import deployment
 from tripleoclient.workflows import parameters as workflow_params
 from tripleoclient.workflows import plan_management
@@ -405,6 +406,9 @@ class DeployOvercloud(command.Command):
         env = {}
         created_env_files = []
 
+        created_env_files.extend(
+            self._provision_baremetal(parsed_args, tht_root))
+
         if parsed_args.environment_directories:
             created_env_files.extend(utils.load_environment_directories(
                 parsed_args.environment_directories))
@@ -576,6 +580,12 @@ class DeployOvercloud(command.Command):
                     "Error: The following files were not found: {0}".format(
                         ", ".join(nonexisting_envs)))
 
+        if (parsed_args.baremetal_deployment
+                and not parsed_args.deployed_server):
+            raise oscexc.CommandError(
+                "Error: --deployed-server must be used when using "
+                "--baremetal-deployment")
+
         if parsed_args.deployed_server and (parsed_args.run_validations
            or not parsed_args.disable_validations):
                 raise oscexc.CommandError(
@@ -622,6 +632,29 @@ class DeployOvercloud(command.Command):
                 count_default)
 
         return default_role_counts
+
+    def _provision_baremetal(self, parsed_args, tht_root):
+
+        if not parsed_args.baremetal_deployment:
+            return []
+
+        with open(parsed_args.baremetal_deployment, 'r') as fp:
+            roles = yaml.safe_load(fp)
+
+        with open(parsed_args.overcloud_ssh_key, 'rt') as fp:
+            ssh_key = fp.read()
+
+        parameter_defaults = baremetal.deploy_roles(
+            self.app.client_manager,
+            roles=roles, ssh_keys=[ssh_key],
+            ssh_user_name=parsed_args.overcloud_ssh_user)
+
+        env_path, swift_path = self._write_user_environment(
+            parameter_defaults,
+            'baremetal-deployed.yaml',
+            tht_root,
+            parsed_args.stack)
+        return [env_path]
 
     def get_parser(self, prog_name):
         # add_help doesn't work properly, set it to False:
@@ -884,6 +917,10 @@ class DeployOvercloud(command.Command):
                                    'the deployment actions. This may need to '
                                    'be used if deploying on a python2 host '
                                    'from a python3 system or vice versa.'))
+        parser.add_argument('-b', '--baremetal-deployment',
+                            metavar='<baremetal_deployment.yaml>',
+                            help=_('Configuration file describing the '
+                                   'baremetal deployment'))
         return parser
 
     def take_action(self, parsed_args):

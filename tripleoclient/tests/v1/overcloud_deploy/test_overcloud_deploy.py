@@ -1673,6 +1673,62 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                           self.cmd.take_action,
                           parsed_args)
 
+    @mock.patch('tripleoclient.workflows.baremetal.deploy_roles',
+                autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_write_user_environment', autospec=True)
+    def test_provision_baremetal(self, mock_write, mock_deploy_roles):
+        mock_write.return_value = (
+            '/tmp/tht/user-environments/baremetal-deployed.yaml',
+            'overcloud/user-environments/baremetal-deployed.yaml'
+        )
+        mock_deploy_roles.return_value = {
+            'parameter_defaults': {'foo': 'bar'}
+        }
+
+        bm_deploy_path = self.tmp_dir.join('bm_deploy.yaml')
+        deploy_data = [
+            {'name': 'Compute', 'count': 10},
+            {'name': 'Controller', 'count': 3},
+        ]
+        with open(bm_deploy_path, 'w') as temp_file:
+            yaml.safe_dump(deploy_data, temp_file)
+
+        ssh_key_path = self.tmp_dir.join('id_rsa.pub')
+        with open(ssh_key_path, 'w') as temp_file:
+            temp_file.write('sekrit')
+
+        arglist = [
+            '--baremetal-deployment', bm_deploy_path,
+            '--overcloud-ssh-key', ssh_key_path
+        ]
+        verifylist = [
+            ('baremetal_deployment', bm_deploy_path),
+            ('overcloud_ssh_key', ssh_key_path),
+        ]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        tht_root = '/tmp/tht'
+        result = self.cmd._provision_baremetal(parsed_args, tht_root)
+        self.assertEqual(
+            ['/tmp/tht/user-environments/baremetal-deployed.yaml'],
+            result
+        )
+        mock_deploy_roles.assert_called_once_with(
+            self.app.client_manager,
+            roles=deploy_data,
+            ssh_keys=['sekrit'],
+            ssh_user_name='heat-admin'
+        )
+        mock_write.assert_called_once_with(
+            self.cmd,
+            {'parameter_defaults': {'foo': 'bar'}},
+            'baremetal-deployed.yaml',
+            '/tmp/tht',
+            'overcloud'
+        )
+
 
 class TestArgumentValidation(fakes.TestDeployOvercloud):
 
