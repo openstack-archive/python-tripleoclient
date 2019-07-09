@@ -168,8 +168,9 @@ class TripleOValidatorRun(command.Command):
     def _run_validator_run(self, parsed_args):
         clients = self.app.client_manager
         LOG = logging.getLogger(__name__ + ".ValidationsRun")
+        playbooks = []
 
-        if parsed_args.use_mistral or parsed_args.group:
+        if parsed_args.use_mistral:
             if not parsed_args.validation_name:
                 workflow_input = {
                     "plan": parsed_args.plan,
@@ -189,9 +190,25 @@ class TripleOValidatorRun(command.Command):
                     out.get('validation_name'),
                     oooutils.indent(out.get('stdout'))))
         else:
-            playbooks = []
-            for pb in parsed_args.validation_name:
-                playbooks.append(pb + '.yaml')
+            if parsed_args.group:
+                workflow_input = {
+                    "group_names": parsed_args.group
+                }
+
+                LOG.debug(_('Getting the validations list by group'))
+                try:
+                    output = validations.list_validations(
+                        clients, workflow_input)
+                    for val in output:
+                        playbooks.append(val.get('id') + '.yaml')
+                except Exception as e:
+                    print(
+                        _("Validations listing by group finished with errors"))
+                    print('Output: {}'.format(e))
+
+            else:
+                for pb in parsed_args.validation_name:
+                    playbooks.append(pb + '.yaml')
 
             python_interpreter = \
                 "/usr/bin/python{}".format(sys.version_info[0])
