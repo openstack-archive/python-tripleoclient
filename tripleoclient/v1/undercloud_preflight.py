@@ -462,6 +462,20 @@ def _validate_dnsnameservers(s):
             raise FailedValidation(message)
 
 
+def _check_all_or_no_subnets_use_dns_nameservers():
+    x = [CONF.get(s).get('dns_nameservers') for s in CONF.subnets]
+    if any(([len(y) == 0 for y in x])) and any(([len(y) > 0 for y in x])):
+        message = (_('Option dns_nameservers is defined for subnets: {0}. '
+                     'Option dns_nameservers is also required for subnets: '
+                     '{1}.').format(
+            ', '.join([s for s in CONF.subnets if
+                       CONF.get(s).get('dns_nameservers')]),
+            ', '.join([s for s in CONF.subnets if
+                       not CONF.get(s).get('dns_nameservers')])))
+        LOG.error(message)
+        raise FailedValidation(message)
+
+
 def check(verbose_level, upgrade=False):
     # Fetch configuration and use its log file param to add logging to a file
     utils.load_config(CONF, constants.UNDERCLOUD_CONF_PATH)
@@ -490,6 +504,7 @@ def check(verbose_level, upgrade=False):
         _checking_status('Networking values')
         _validate_value_formats()
         _check_routed_networks_enabled_if_multiple_subnets_defined()
+        _check_all_or_no_subnets_use_dns_nameservers()
         for subnet in CONF.subnets:
             s = CONF.get(subnet)
             _checking_status('Subnet "%s" is in CIDR' % subnet)
