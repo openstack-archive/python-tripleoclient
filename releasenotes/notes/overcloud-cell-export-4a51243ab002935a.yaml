@@ -1,0 +1,15 @@
+---
+features:
+  - |
+    [1] provides the steps on how to setup multiple cells using tripleo.
+    This requires to extract deployment information from the overcloud
+    /control plane stack which then is used as input for the cell deployment.
+
+    With this patch we provide a new tripleoclient functionality which helps
+    to automate the export steps from [1]:
+    * Export the default cell EndpointMap
+    * Export the default cell HostsEntry
+    * Export AllNodesConfig and GlobalConfig information
+    * Export passwords
+
+    [1] https://docs.openstack.org/tripleo-docs/latest/install/advanced_deployment/deploy_cellv2.html#deploy-an-additional-nova-cell-v2

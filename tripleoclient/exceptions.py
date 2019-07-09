@@ -120,3 +120,7 @@ class ContainerDeleteFailed(Base):
 
 class UndercloudUpgradeNotConfirmed(Base):
     """Undercloud upgrade security question not confirmed."""
+
+
+class CellExportError(Base):
+    """Cell export failed"""
