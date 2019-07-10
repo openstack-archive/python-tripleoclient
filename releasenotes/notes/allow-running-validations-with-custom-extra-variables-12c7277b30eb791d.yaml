@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    The operator is now able to pass extra variables while executing validations
+    through the command line. The command line will accept either a Dict with
+    the new --extra-vars argument or the absolute path of a file (JSON or YAML
+    when using ansible and JSON only when using Mistral) with the new
+    --extra-vars-file argument.

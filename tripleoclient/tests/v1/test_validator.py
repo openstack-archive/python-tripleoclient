@@ -67,9 +67,11 @@ class TestValidatorRun(utils.TestCommand):
 
         self.cmd.take_action(parsed_args)
         plan_mock.assert_called_once_with(
-            mock.ANY,
-            {'plan': 'overcloud',
-             'validation_names': ['check-ftype']})
+            mock.ANY, {
+                'plan': 'overcloud',
+                'validation_names': ['check-ftype'],
+                'validation_inputs': {}
+            })
 
     @mock.patch('logging.getLogger')
     @mock.patch('pwd.getpwuid')
@@ -104,5 +106,6 @@ class TestValidatorRun(utils.TestCommand):
             playbook='check-ftype.yaml',
             retries=False,
             output_callback='validation_output',
+            extra_vars={},
             python_interpreter='/usr/bin/python{}'.format(sys.version_info[0])
         )
