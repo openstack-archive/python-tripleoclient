@@ -1878,14 +1878,55 @@ def _get_from_cfg(cfg, accessor, param, section):
     return val
 
 
+def get_param_field_name(validations_data=None):
+    """Get the current parameters field name in a Dict
+
+    Returns either 'parameters' or 'metadata'.
+    By Default, it returns 'parameters'.
+    """
+    # TODO(gchamoul): Added for backwards compatibility and will be
+    # removed for Train release.
+    if validations_data is None:
+        validations_data = {}
+
+    if 'metadata' in validations_data.get('validations', [[]])[0]:
+        return 'metadata'
+    return 'parameters'
+
+
+def get_validations_parameters(validations_data,
+                               validation_name=None,
+                               groups=None):
+    if validation_name is None:
+        validation_name = []
+
+    if groups is None:
+        groups = []
+
+    params = {}
+    param_field_name = get_param_field_name(validations_data)
+
+    for val in validations_data['validations']:
+        wanted_validation = False
+        wanted_group = False
+        if val.get('id') in validation_name:
+            wanted_validation = True
+
+        for grp in groups:
+            if grp in val.get('groups'):
+                wanted_group = True
+
+        if wanted_validation or wanted_group:
+            params[val.get('id')] = {
+                'parameters': val.get(param_field_name)
+            }
+
+    return params
+
+
 def get_validations_table(validations_data):
     """Return the validations information as a pretty printed table """
-    # TODO(gchamoul): Added for backwards compatibility and will be removed for
-    # Train Release.
-    if 'parameters' in validations_data['validations'][0]:
-        param_field_name = 'parameters'
-    else:
-        param_field_name = 'metadata'
+    param_field_name = get_param_field_name(validations_data)
 
     t = PrettyTable(border=True, header=True, padding_width=1)
     t.title = "TripleO validations"

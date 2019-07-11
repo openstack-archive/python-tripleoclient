@@ -1780,6 +1780,51 @@ class TestAnsibleSymlink(TestCase):
         mock_cmd.assert_not_called()
 
 
+class TestGetParamFieldName(TestCase):
+    def test_with_empty_val_data(self):
+        input_parameter = {}
+        expected = "parameters"
+
+        result = utils.get_param_field_name(input_parameter)
+        self.assertEqual(result, expected)
+
+    def test_with_val_data_and_returns_parameters(self):
+        input_parameter = {'validations': [
+            {'description': 'validation number one',
+             'groups': ['prep', 'pre-deployment'],
+             'id': 'Validation_Number_One',
+             'name': 'Validation Number One',
+             'parameters': {}},
+            {'description': 'validation number two',
+             'groups': ['post-deployment'],
+             'id': 'Validation_Number_Two',
+             'name': 'Validation Number Two',
+             'parameters': {'config_file': "/etc/config.conf"}},
+        ]}
+        expected = "parameters"
+
+        result = utils.get_param_field_name(input_parameter)
+        self.assertEqual(result, expected)
+
+    def test_with_val_data_and_returns_metadata(self):
+        input_parameter = {'validations': [
+            {'description': 'validation number one',
+             'groups': ['prep', 'pre-deployment'],
+             'id': 'Validation_Number_One',
+             'name': 'Validation Number One',
+             'metadata': {}},
+            {'description': 'validation number two',
+             'groups': ['post-deployment'],
+             'id': 'Validation_Number_Two',
+             'name': 'Validation Number Two',
+             'metadata': {'config_file': "/etc/config.conf"}},
+        ]}
+        expected = "metadata"
+
+        result = utils.get_param_field_name(input_parameter)
+        self.assertEqual(result, expected)
+
+
 class TestParseExtraVars(TestCase):
     def test_simple_case_text_format(self):
         input_parameter = ['key1=val1', 'key2=val2 key3=val3']
