@@ -173,6 +173,13 @@ class UpgradeRun(command.Command):
                                    '(default=Env: OVERCLOUD_STACK_NAME)'),
                             default=utils.env('OVERCLOUD_STACK_NAME',
                                               default='overcloud'))
+        parser.add_argument('--no-workflow', dest='no_workflow',
+                            action='store_true',
+                            default=False,
+                            help=_('Run ansible-playbook directly via '
+                                   'system command instead of running Ansible'
+                                   'via the TripleO mistral workflows.')
+                            )
 
         return parser
 
@@ -190,7 +197,16 @@ class UpgradeRun(command.Command):
         self.log.debug("take_action(%s)" % parsed_args)
         clients = self.app.client_manager
         verbosity = self.app_args.verbose_level
+        orchestration = clients.orchestration
         stack = parsed_args.stack
+
+        ansible_dir = None
+        key = None
+        # Disable mistral
+        if parsed_args.no_workflow:
+            ansible_dir = oooutils.download_ansible_playbooks(orchestration,
+                                                              stack)
+            key = package_update.get_key(clients)
 
         # Run ansible:
         limit_hosts = parsed_args.limit
@@ -203,10 +219,13 @@ class UpgradeRun(command.Command):
                                            inventory, playbook,
                                            constants.MAJOR_UPGRADE_PLAYBOOKS,
                                            parsed_args.ssh_user,
-                                           package_update,
+                                           (None if parsed_args.no_workflow
+                                            else package_update),
                                            parsed_args.tags,
                                            skip_tags,
-                                           verbosity)
+                                           verbosity,
+                                           workdir=ansible_dir,
+                                           priv_key=key)
 
         playbooks = (constants.MAJOR_UPGRADE_PLAYBOOKS
                      if playbook == 'all' else playbook)

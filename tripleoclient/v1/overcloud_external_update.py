@@ -79,18 +79,35 @@ class ExternalUpdateRun(command.Command):
                                    '(default=Env: OVERCLOUD_STACK_NAME)'),
                             default=utils.env('OVERCLOUD_STACK_NAME',
                                               default='overcloud'))
-        parser.add_argument(
-            '-e', '--extra-vars', dest='extra_vars', action='append',
-            help='Set additional variables as key=value or yaml/json',
-            default=[])
+        parser.add_argument('-e', '--extra-vars', dest='extra_vars',
+                            action='append',
+                            help=('Set additional variables as key=value or '
+                                  'yaml/json'),
+                            default=[])
+        parser.add_argument('--no-workflow', dest='no_workflow',
+                            action='store_true',
+                            default=False,
+                            help=_('Run ansible-playbook directly via '
+                                   'system command instead of running Ansible'
+                                   'via the TripleO mistral workflows.')
+                            )
 
         return parser
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
         clients = self.app.client_manager
+        orchestration = clients.orchestration
         verbosity = self.app_args.verbose_level
         stack = parsed_args.stack
+
+        ansible_dir = None
+        key = None
+        # Disable mistral
+        if parsed_args.no_workflow:
+            ansible_dir = oooutils.download_ansible_playbooks(orchestration,
+                                                              stack)
+            key = package_update.get_key(clients)
 
         # Run ansible:
         inventory = oooutils.get_tripleo_ansible_inventory(
@@ -101,9 +118,10 @@ class ExternalUpdateRun(command.Command):
 
         oooutils.run_update_ansible_action(
             self.log, clients, limit_hosts, inventory, playbook,
-            constants.EXTERNAL_UPDATE_PLAYBOOKS,
-            parsed_args.ssh_user, package_update,
+            constants.EXTERNAL_UPDATE_PLAYBOOKS, parsed_args.ssh_user,
+            (None if parsed_args.no_workflow else package_update),
             tags=parsed_args.tags, skip_tags=parsed_args.skip_tags,
-            verbosity=verbosity, extra_vars=extra_vars)
+            verbosity=verbosity, extra_vars=extra_vars, workdir=ansible_dir,
+            priv_key=key)
 
         self.log.info("Completed Overcloud External Update Run.")
