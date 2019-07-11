@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    The 'openstack tripleo validator list' subcommand can only display all the
+    available parameters for the validations using the new --parameters
+    argument and extract them to a file using the new --create-vars-file argument.
