@@ -56,7 +56,7 @@ class TestOvercloudExternalUpgradeRun(fakes.TestOvercloudExternalUpgradeRun):
             update_ansible.assert_called_once_with(
                 self.app.client_manager,
                 nodes='all',
-                inventory_file=mock_open().read(),
+                inventory_file=mock_open().__enter__().read(),
                 playbook='external_upgrade_steps_playbook.yaml',
                 node_user='tripleo-admin',
                 tags='ceph',
@@ -88,7 +88,7 @@ class TestOvercloudExternalUpgradeRun(fakes.TestOvercloudExternalUpgradeRun):
             update_ansible.assert_called_once_with(
                 self.app.client_manager,
                 nodes='all',
-                inventory_file=mock_open().read(),
+                inventory_file=mock_open().__enter__().read(),
                 playbook='external_upgrade_steps_playbook.yaml',
                 node_user='tripleo-admin',
                 tags='',
