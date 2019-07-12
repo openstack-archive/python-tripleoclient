@@ -146,7 +146,7 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
             update_ansible.assert_called_once_with(
                 self.app.client_manager,
                 nodes='Compute',
-                inventory_file=mock_open().read(),
+                inventory_file=mock_open().__enter__().read(),
                 playbook='fake-playbook.yaml',
                 node_user='tripleo-admin',
                 tags='',
@@ -178,7 +178,7 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
                 update_ansible.assert_any_call(
                     self.app.client_manager,
                     nodes='Compute',
-                    inventory_file=mock_open().read(),
+                    inventory_file=mock_open().__enter__().read(),
                     playbook=book,
                     node_user='tripleo-admin',
                     tags='',
@@ -209,7 +209,7 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
                 update_ansible.assert_any_call(
                     self.app.client_manager,
                     nodes='compute-0, compute-1',
-                    inventory_file=mock_open().read(),
+                    inventory_file=mock_open().__enter__().read(),
                     playbook=book,
                     node_user='tripleo-admin',
                     tags='',

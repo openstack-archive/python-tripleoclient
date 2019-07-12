@@ -488,6 +488,10 @@ def wait_for_stack_ready(orchestration_client, stack_name, marker=None,
                 continue
             log.error("Error occured while waiting for stack to be ready.")
             raise e
+        finally:
+            if not verbose:
+                out.close()
+
     raise RuntimeError(
         "wait_for_stack_ready: Max retries {} reached".format(max_retries))
 
@@ -1154,7 +1158,8 @@ def get_tripleo_ansible_inventory(inventory_file='',
                 message = _("Failed to generate inventory: %s") % str(e)
                 raise exceptions.InvalidConfiguration(message)
     if os.path.exists(inventory_file):
-        inventory = open(inventory_file, 'r').read()
+        with open(inventory_file, "r") as f:
+            inventory = f.read()
         return inventory
     else:
         raise exceptions.InvalidConfiguration(_(
@@ -1885,7 +1890,8 @@ def check_file_for_enabled_service(env_file):
     # ODL is enabled.
 
     if os.path.exists(env_file):
-        content = yaml.load(open(env_file))
+        with open(env_file, "r") as f:
+            content = yaml.load(f)
         deprecated_services_enabled = []
         for service in constants.DEPRECATED_SERVICES.keys():
             if ("resource_registry" in content and

@@ -163,7 +163,7 @@ class TestFFWDUpgradeRun(fakes.TestFFWDUpgradeRun):
             self.cmd.take_action(parsed_args)
             upgrade_ansible.assert_called_once_with(
                 self.app.client_manager,
-                inventory_file=mock_open().read(),
+                inventory_file=mock_open().__enter__().read(),
                 nodes='',
                 playbook=constants.FFWD_UPGRADE_PLAYBOOK,
                 node_user='heat-admin',
@@ -190,7 +190,7 @@ class TestFFWDUpgradeRun(fakes.TestFFWDUpgradeRun):
             self.cmd.take_action(parsed_args)
             upgrade_ansible.assert_called_once_with(
                 self.app.client_manager,
-                inventory_file=mock_open().read(),
+                inventory_file=mock_open().__enter__().read(),
                 nodes='',
                 playbook=constants.FFWD_UPGRADE_PLAYBOOK,
                 node_user='my-user',
