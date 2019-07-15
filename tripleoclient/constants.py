@@ -123,3 +123,7 @@ DEPRECATED_SERVICES = {"OS::TripleO::Services::OpenDaylightApi":
                        "OpenDaylight to another networking backend. We "
                        "recommend you understand other networking "
                        "alternatives such as OVS or OVN. "}
+
+# clouds_yaml related constants
+CLOUD_HOME_DIR = os.path.expanduser("~")
+CLOUDS_YAML_DIR = os.path.join('.config', 'openstack')
