@@ -199,8 +199,8 @@ class TripleOValidatorRun(command.Command):
         )
 
         parser.add_argument(
-            '--plan',
-            action='store',
+            '--plan', '--stack',
+            dest='plan',
             default='overcloud',
             help=_("Execute the validations using a custom plan name")
         )
@@ -342,6 +342,7 @@ class TripleOValidatorRun(command.Command):
                 LOG.debug(_('Running the validations with Ansible'))
                 rc, output = oooutils.run_ansible_playbook(
                     logger=LOG,
+                    plan=parsed_args.plan,
                     workdir=constants.ANSIBLE_VALIDATION_DIR,
                     log_path_dir=pwd.getpwuid(os.getuid()).pw_dir,
                     playbook=playbook,
