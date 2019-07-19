@@ -622,6 +622,68 @@ class TripleOContainerImageList(command.Lister):
         return (("Image Name",), cliff_results)
 
 
+class TripleOContainerImageShow(command.ShowOne):
+    """Show image selected from the registry."""
+
+    auth_required = False
+    log = logging.getLogger(__name__ + ".TripleoContainerImageShow")
+
+    def get_parser(self, prog_name):
+        parser = super(TripleOContainerImageShow, self).get_parser(prog_name)
+        parser.add_argument(
+            "--registry-url",
+            dest="registry_url",
+            metavar='<registry url>',
+            default=image_uploader.get_undercloud_registry(),
+            help=_("URL of registry images are to be listed from in the "
+                   "form <fqdn>:<port>.")
+        )
+        parser.add_argument(
+            "--username",
+            dest="username",
+            metavar='<username>',
+            help=_("Username for image registry.")
+        )
+        parser.add_argument(
+            "--password",
+            dest="password",
+            metavar='<password>',
+            help=_("Password for image registry.")
+        )
+        parser.add_argument(
+            dest="image_to_inspect",
+            metavar='<image to inspect>',
+            help=_("Image to be inspected.")
+        )
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)" % parsed_args)
+
+        manager = image_uploader.ImageUploadManager()
+        uploader = manager.uploader('python')
+        url = uploader._image_to_url(parsed_args.registry_url)
+        session = uploader.authenticate(url, parsed_args.username,
+                                        parsed_args.password)
+
+        image_inspect_result = uploader.inspect(parsed_args.image_to_inspect,
+                                                session=session)
+
+        return self.format_image_inspect(image_inspect_result)
+
+    def format_image_inspect(self, image_inspect_result):
+        column_names = ['Name']
+        data = [image_inspect_result.pop('Name')]
+
+        result_fields = list(image_inspect_result.keys())
+        result_fields.sort()
+        for field in result_fields:
+            column_names.append(field)
+            data.append(image_inspect_result[field])
+
+        return column_names, data
+
+
 class TripleOImagePrepareDefault(command.Command):
     """Generate a default ContainerImagePrepare parameter."""
 

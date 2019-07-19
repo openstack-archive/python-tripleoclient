@@ -187,6 +187,58 @@ class TestContainerImageList(TestPluginV1):
         self.assertEqual(actual, rv)
 
 
+class TestContainerImageShow(TestPluginV1):
+
+    def setUp(self):
+        super(TestContainerImageShow, self).setUp()
+        self.cmd = container_image.TripleOContainerImageShow(self.app, None)
+
+    @mock.patch('tripleoclient.v1.container_image.TripleOContainerImageShow.'
+                'format_image_inspect')
+    @mock.patch('tripleo_common.image.image_uploader.ImageUploadManager')
+    def test_take_action(self, mock_manager, mock_formatter):
+
+        arglist = ['foo']
+        verifylist = [('image_to_inspect', 'foo')]
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        # mock manager object
+        mock_mgr = mock.Mock()
+        mock_manager.return_value = mock_mgr
+
+        # mock uploader object
+        mock_uploader = mock.Mock()
+        mock_mgr.uploader.return_value = mock_uploader
+
+        # mock return url object from uploader._image_to_url
+        mock_url = mock.Mock()
+        mock_url.geturl.return_value = 'munged-reg-url'
+
+        mock_uploader._image_to_url.return_value = mock_url
+
+        # mock return session object from uploader.authenticate
+        mock_session = mock.Mock()
+        mock_uploader.authenticate.return_value = mock_session
+        mock_inspect = mock.Mock()
+        data = {'Name': 'a', 'Layers': 'b'}
+        mock_inspect.return_value = data
+        mock_uploader.inspect = mock_inspect
+
+        # mock format image inspect
+        formatted_data = (['Name', 'Layers'], ['a', 'b'])
+        mock_formatter.return_value = formatted_data
+
+        rv = self.cmd.take_action(parsed_args)
+
+        mock_formatter.assert_called_once_with(data)
+        self.assertEqual(formatted_data, rv)
+
+    def test_format_image_inspect(self):
+        test_data = {'Name': 'foo', 'Layers': 'bar'}
+        self.assertEqual(self.cmd.format_image_inspect(test_data),
+                         (['Name', 'Layers'], ['foo', 'bar']))
+
+
 class TestContainerImagePrepare(TestPluginV1):
 
     def setUp(self):
