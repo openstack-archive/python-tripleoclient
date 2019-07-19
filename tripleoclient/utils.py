@@ -1190,9 +1190,10 @@ def load_environment_directories(directories):
     return environments
 
 
-def get_tripleo_ansible_inventory(inventory_file='',
+def get_tripleo_ansible_inventory(inventory_file=None,
                                   ssh_user='tripleo-admin',
-                                  stack='overcloud'):
+                                  stack='overcloud',
+                                  return_inventory_file_path=False):
     if not inventory_file:
         inventory_file = '%s/%s' % (os.path.expanduser('~'),
                                     'tripleo-ansible-inventory.yaml')
@@ -1204,15 +1205,24 @@ def get_tripleo_ansible_inventory(inventory_file='',
                 '--undercloud-connection', 'ssh',
                 '--static-yaml-inventory', inventory_file)
         except processutils.ProcessExecutionError as e:
-                message = _("Failed to generate inventory: %s") % str(e)
-                raise exceptions.InvalidConfiguration(message)
+            message = _("Failed to generate inventory: %s") % str(e)
+            raise exceptions.InvalidConfiguration(message)
     if os.path.exists(inventory_file):
+        if return_inventory_file_path:
+            return inventory_file
+
         with open(inventory_file, "r") as f:
             inventory = f.read()
         return inventory
     else:
         raise exceptions.InvalidConfiguration(_(
             "Inventory file %s can not be found.") % inventory_file)
+
+
+def cleanup_tripleo_ansible_inventory_file(path):
+    """Remove the static tripleo-ansible-inventory file from disk"""
+    if os.path.exists(path):
+        processutils.execute('/usr/bin/rm', '-f', path)
 
 
 def process_multiple_environments(created_env_files, tht_root,
