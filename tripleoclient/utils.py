@@ -1840,22 +1840,34 @@ def _get_from_cfg(cfg, accessor, param, section):
 
 def get_validations_table(validations_data):
     """Return the validations information as a pretty printed table """
+    # TODO(gchamoul): Added for backwards compatibility and will be removed for
+    # Train Release.
+    if 'parameters' in validations_data['validations'][0]:
+        param_field_name = 'parameters'
+    else:
+        param_field_name = 'metadata'
+
     t = PrettyTable(border=True, header=True, padding_width=1)
     t.title = "TripleO validations"
-    t.field_names = ["ID", "Name", "Description", "Groups", "Metadata"]
+    t.field_names = [
+        "ID", "Name",
+        "Description", "Groups",
+        param_field_name.capitalize()
+    ]
+
     for validation in validations_data['validations']:
         t.add_row([validation['id'],
                    validation['name'],
                    "\n".join(textwrap.wrap(validation['description'])),
                    "\n".join(textwrap.wrap(' '.join(validation['groups']))),
-                   validation['metadata']])
+                   validation[param_field_name]])
 
     t.sortby = "ID"
     t.align["ID"] = "l"
     t.align["Name"] = "l"
     t.align["Description"] = "l"
     t.align["Groups"] = "l"
-    t.align["Metadata"] = "l"
+    t.align[param_field_name.capitalize()] = "l"
     return t
 
 
