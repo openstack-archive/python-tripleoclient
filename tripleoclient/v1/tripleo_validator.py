@@ -337,6 +337,12 @@ class TripleOValidatorRun(command.Command):
         python_interpreter = \
             "/usr/bin/python{}".format(sys.version_info[0])
 
+        static_inventory = oooutils.get_tripleo_ansible_inventory(
+            ssh_user='heat-admin', stack=parsed_args.plan,
+            return_inventory_file_path=True)
+
+        failed_val = False
+
         for playbook in playbooks:
             try:
                 LOG.debug(_('Running the validations with Ansible'))
@@ -346,16 +352,26 @@ class TripleOValidatorRun(command.Command):
                     workdir=constants.ANSIBLE_VALIDATION_DIR,
                     log_path_dir=pwd.getpwuid(os.getuid()).pw_dir,
                     playbook=playbook,
-                    inventory='/usr/bin/tripleo-ansible-inventory',
+                    inventory=static_inventory,
                     retries=False,
                     output_callback='validation_output',
                     extra_vars=extra_vars_input,
                     python_interpreter=python_interpreter)
-                print('[SUCCESS] - {}\n{}'.format(
-                    playbook, oooutils.indent(output)))
+                print('[SUCCESS] - {}\n{}'.format(playbook,
+                                                  oooutils.indent(output)))
             except Exception as e:
-                print('[FAILED] - {}\n{}'.format(
+                failed_val = True
+                LOG.error('[FAILED] - {}\n{}'.format(
                     playbook, oooutils.indent(e.args[0])))
+
+        LOG.debug(_('Removing static tripleo ansible inventory file'))
+        oooutils.cleanup_tripleo_ansible_inventory_file(
+            static_inventory)
+
+        if failed_val:
+            LOG.error(_('One or more validations have failed!'))
+            sys.exit(1)
+        sys.exit(0)
 
     def take_action(self, parsed_args):
         if parsed_args.use_mistral:
