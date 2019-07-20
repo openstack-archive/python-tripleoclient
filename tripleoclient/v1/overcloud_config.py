@@ -19,6 +19,7 @@ from osc_lib.i18n import _
 from oslo_concurrency import processutils
 
 from tripleoclient import command
+from tripleoclient import utils
 from tripleoclient.workflows import deployment
 
 
@@ -76,8 +77,7 @@ class DownloadConfig(command.Command):
                                                                str(e))
                 raise OSError(message)
 
-        if not os.path.exists(config_dir):
-            os.makedirs(config_dir)
+        utils.makedirs(config_dir)
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)

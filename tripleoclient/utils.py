@@ -28,13 +28,14 @@ import getpass
 import glob
 import hashlib
 import logging
-import shutil
 from six.moves.configparser import ConfigParser
 
 import json
 import netaddr
 import os
 import os.path
+import pwd
+import shutil
 import simplejson
 import six
 import socket
@@ -43,6 +44,8 @@ import sys
 import tempfile
 import time
 import yaml
+
+import ansible_runner
 
 from heatclient.common import event_utils
 from heatclient.common import template_utils
@@ -63,204 +66,450 @@ from tripleoclient import exceptions
 LOG = logging.getLogger(__name__ + ".utils")
 
 
-def run_ansible_playbook(logger,
-                         workdir,
-                         playbook,
-                         inventory,
-                         log_path_dir=None,
-                         ansible_config=None,
-                         retries=True,
-                         connection='smart',
-                         output_callback='json',
-                         python_interpreter=None,
-                         ssh_user='root',
-                         key=None,
-                         module_path=None,
-                         limit_hosts=None,
-                         tags=None,
-                         skip_tags=None,
-                         verbosity=1,
-                         extra_vars=None,
-                         plan='overcloud',
-                         gathering_policy=None):
-    """Simple wrapper for ansible-playbook
+# NOTE(cloudnull): This is setting the FileExistsError for py2 environments.
+#                  When we no longer support py2 (centos7) this should be
+#                  removed.
+try:
+    FileExistsError = FileExistsError
+except NameError:
+    FileExistsError = OSError
 
-    :param logger: logger instance
-    :type logger: Logger
 
-    :param plan: plan name (Defaults to "overcloud")
-    :type plan: String
+class Pushd(object):
+    """Simple context manager to change directories and then return."""
 
-    :param workdir: location of the playbook
-    :type workdir: String
+    def __init__(self, directory):
+        """This context manager will enter and exit directories.
 
-    :param playbook: playbook filename
+        >>> with Pushd(directory='/tmp'):
+        ...     with open('file', 'w') as f:
+        ...         f.write('test')
+
+        :param directory: path to change directory to
+        :type directory: `string`
+        """
+        self.dir = directory
+        self.pwd = self.cwd = os.getcwd()
+
+    def __enter__(self):
+        os.chdir(self.dir)
+        self.cwd = os.getcwd()
+        return self
+
+    def __exit__(self, *args):
+        if self.pwd != self.cwd:
+            os.chdir(self.pwd)
+
+
+class TempDirs(object):
+    """Simple context manager to manage temp directories."""
+
+    def __init__(self, dir_path=None, dir_prefix='tripleo', cleanup=True,
+                 chdir=True):
+        """This context manager will create, push, and cleanup temp directories.
+
+        >>> with TempDirs() as t:
+        ...     with open('file', 'w') as f:
+        ...         f.write('test')
+        ...     print(t)
+        ...     os.mkdir('testing')
+        ...     with open(os.path.join(t, 'file')) as w:
+        ...         print(w.read())
+        ...     with open('testing/file', 'w') as f:
+        ...         f.write('things')
+        ...     with open(os.path.join(t, 'testing/file')) as w:
+        ...         print(w.read())
+
+        :param dir_path: path to create the temp directory
+        :type dir_path: `string`
+        :param dir_prefix: prefix to add to a temp directory
+        :type dir_prefix: `string`
+        :paramm cleanup: when enabled the temp directory will be
+                         removed on exit.
+        :type cleanup: `boolean`
+        :param chdir: Change to/from the created temporary dir on enter/exit.
+        :type chdir: `boolean`
+        """
+
+        # NOTE(cloudnull): kwargs for tempfile.mkdtemp are created
+        #                  because args are not processed correctly
+        #                  in py2. When we drop py2 support (cent7)
+        #                  these args can be removed and used directly
+        #                  in the `tempfile.mkdtemp` function.
+        tempdir_kwargs = dict()
+        if dir_path:
+            tempdir_kwargs['dir'] = dir_path
+
+        if dir_prefix:
+            tempdir_kwargs['prefix'] = dir_prefix
+
+        self.dir = tempfile.mkdtemp(**tempdir_kwargs)
+        self.pushd = Pushd(directory=self.dir)
+        self.cleanup = cleanup
+        self.chdir = chdir
+
+    def __enter__(self):
+        if self.chdir:
+            self.pushd.__enter__()
+        return self.dir
+
+    def __exit__(self, *args):
+        if self.chdir:
+            self.pushd.__exit__()
+        if self.cleanup:
+            self.clean()
+        else:
+            LOG.warning("Not cleaning temporary directory [ %s ]" % self.dir)
+
+    def clean(self):
+        shutil.rmtree(self.dir, ignore_errors=True)
+        LOG.info("Temporary directory [ %s ] cleaned up" % self.dir)
+
+
+def _encode_envvars(env):
+    """Encode a hash of values.
+
+    :param env: A hash of key=value items.
+    :type env: `dict`.
+    """
+    for key, value in env.items():
+        env[key] = six.text_type(value)
+    else:
+        return env
+
+
+def makedirs(dir_path):
+    """Recursively make directories and log the interaction.
+
+    :param dir_path: full path of the directories to make.
+    :type dir_path: `string`
+    :returns: `boolean`
+    """
+
+    try:
+        os.makedirs(dir_path)
+    except FileExistsError:
+        LOG.debug(
+            'Directory "{}" was not created because it'
+            ' already exists.'.format(
+                dir_path
+            )
+        )
+        return False
+    else:
+        LOG.debug('Directory "{}" was created.'.format(dir_path))
+        return True
+
+
+def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
+                         connection='smart', output_callback='yaml',
+                         ssh_user='root', key=None, module_path=None,
+                         limit_hosts=None, tags=None, skip_tags=None,
+                         verbosity=0, quiet=False, extra_vars=None,
+                         plan='overcloud', gathering_policy='smart',
+                         extra_env_variables=None):
+    """Simple wrapper for ansible-playbook.
+
+    :param playbook: Playbook filename.
     :type playbook: String
 
-    :param inventory: either proper inventory file, or a coma-separated list
+    :param inventory: Either proper inventory file, or a coma-separated list.
     :type inventory: String
 
-    :param ansible_config: Pass either Absolute Path, or None to generate a
-    temporary file, or False to not manage configuration at all
-    :type ansible_config: String
+    :param workdir: Location of the working directory.
+    :type workdir: String
 
-    :param log_path_dir: Dir path location for ansible log file.
-    Defaults to "None"
-    :type retries: String
+    :param playbook_dir: Location of the playbook directory.
+                         (defaults to workdir).
+    :type playbook_dir: String
 
-    :param retries: do you want to get a retry_file?
-    :type retries: Boolean
-
-    :param connection: connection type (local, smart, etc)
+    :param connection: Connection type (local, smart, etc).
     :type connection: String
 
-    :param output_callback: Callback for output format. Defaults to "json"
+    :param output_callback: Callback for output format. Defaults to "json".
     :type output_callback: String
 
-    :param python_interpreter: Absolute path for the Python interpreter
-    on the host where Ansible is run.
-    :type python_interpreter: String
-
-    :param ssh_user: user for the ssh connection
+    :param ssh_user: User for the ssh connection.
     :type ssh_user: String
 
-    :param key: private key to use for the ssh connection
+    :param key: Private key to use for the ssh connection.
     :type key: String
 
-    :param module_path: location of the ansible module and library
+    :param module_path: Location of the ansible module and library.
     :type module_path: String
 
-    :param limit_hosts: limit the execution to the hosts
+    :param limit_hosts: Limit the execution to the hosts.
     :type limit_hosts: String
 
-    :param tags: run specific tags
+    :param tags: Run specific tags.
     :type tags: String
 
-    :param skip_tags: skip specific tags
+    :param skip_tags: Skip specific tags.
     :type skip_tags: String
 
-    :param verbosity: verbosity level for Ansible execution
+    :param verbosity: Verbosity level for Ansible execution.
     :type verbosity: Integer
 
-    :param extra_vars: set additional variables as a Dict
-    or the absolute path of a JSON or YAML file type
+    :param quiet: Disable all output (Defaults to False)
+    :type quiet: Boolean
+
+    :param extra_vars: Set additional variables as a Dict or the absolute
+                       path of a JSON or YAML file type.
     :type extra_vars: Either a Dict or the absolute path of JSON or YAML
 
-    :param gathering_policy: This setting controls the default policy of
-    fact gathering ('smart', 'implicit', 'explicit'). Defaults to None.
-    When not specified, the policy will be the default Ansible one, ie.
-    'implicit'.
-    :type gathering_facts: String
-    """
-    env = os.environ.copy()
+    :param plan: Plan name (Defaults to "overcloud").
+    :type plan: String
 
-    env['ANSIBLE_LIBRARY'] = \
-        ('/root/.ansible/plugins/modules:'
-         '/usr/share/ansible/plugins/modules:'
-         '%s/library' % constants.DEFAULT_VALIDATIONS_BASEDIR)
-    env['ANSIBLE_LOOKUP_PLUGINS'] = \
-        ('root/.ansible/plugins/lookup:'
-         '/usr/share/ansible/plugins/lookup:'
-         '%s/lookup_plugins' % constants.DEFAULT_VALIDATIONS_BASEDIR)
-    env['ANSIBLE_CALLBACK_PLUGINS'] = \
-        ('~/.ansible/plugins/callback:'
-         '/usr/share/ansible/plugins/callback:'
-         '%s/callback_plugins' % constants.DEFAULT_VALIDATIONS_BASEDIR)
-    env['ANSIBLE_ROLES_PATH'] = \
-        ('/root/.ansible/roles:'
-         '/usr/share/ansible/roles:'
-         '/etc/ansible/roles:'
-         '%s/roles' % constants.DEFAULT_VALIDATIONS_BASEDIR)
+    :param gathering_policy: This setting controls the default policy of
+                             fact gathering ('smart', 'implicit', 'explicit').
+    :type gathering_facts: String
+
+    :param extra_env_variables: Dict option to extend or override any of the
+                                default environment variables.
+    :type extra_env_variables: Dict
+    """
+
+    def _playbook_check(play):
+        if not os.path.exists(play):
+            play = os.path.join(playbook_dir, play)
+            if not os.path.exists(play):
+                raise RuntimeError('No such playbook: {}'.format(play))
+        LOG.debug('Ansible playbook {} found'.format(play))
+        return play
+
+    if not playbook_dir:
+        playbook_dir = workdir
+
+    if isinstance(playbook, (list, set)):
+        playbook = [_playbook_check(play=i) for i in playbook]
+        LOG.info(
+            'Running Ansible playbooks: {},'
+            ' Working directory: {},'
+            ' Playbook directory: {}'.format(
+                playbook,
+                workdir,
+                playbook_dir
+            )
+        )
+    else:
+        playbook = _playbook_check(play=playbook)
+        LOG.info(
+            'Running Ansible playbook: {},'
+            ' Working directory: {},'
+            ' Playbook directory: {}'.format(
+                playbook,
+                workdir,
+                playbook_dir
+            )
+        )
+
+    cwd = os.getcwd()
+    ansible_fact_path = os.path.join(
+        os.path.join(
+            tempfile.gettempdir(),
+            'tripleo-ansible'
+        ),
+        'fact_cache'
+    )
+    makedirs(ansible_fact_path)
+    extravars = {
+        'ansible_ssh_extra_args': (
+            '-o UserKnownHostsFile={} '
+            '-o StrictHostKeyChecking=no '
+            '-o ControlMaster=auto '
+            '-o ControlPersist=30m '
+            '-o ServerAliveInterval=64 '
+            '-o ServerAliveCountMax=1024 '
+            '-o Compression=no '
+            '-o TCPKeepAlive=yes '
+            '-o VerifyHostKeyDNS=no '
+            '-o ForwardX11=no '
+            '-o ForwardAgent=yes '
+            '-o PreferredAuthentications=publickey '
+            '-T'
+        ).format(os.devnull)
+    }
+    if extra_vars:
+        if isinstance(extra_vars, dict):
+            extravars.update(extra_vars)
+        elif os.path.exists(extra_vars) and os.path.isfile(extra_vars):
+            with open(extra_vars) as f:
+                extravars.update(yaml.safe_load(f.read()))
+
+    env = os.environ.copy()
+    env['ANSIBLE_DISPLAY_FAILED_STDERR'] = True
+    env['ANSIBLE_FORKS'] = 36
+    env['ANSIBLE_TIMEOUT'] = 30
+    env['ANSIBLE_GATHER_TIMEOUT'] = 45
+    env['ANSIBLE_SSH_RETRIES'] = 3
+    env['ANSIBLE_PIPELINING'] = True
+    env['ANSIBLE_REMOTE_USER'] = ssh_user
+    env['ANSIBLE_STDOUT_CALLBACK'] = output_callback
+    env['ANSIBLE_LIBRARY'] = os.path.expanduser(
+        '~/.ansible/plugins/modules:'
+        '{}:{}:'
+        '/usr/share/ansible/tripleo-plugins/modules:'
+        '/usr/share/ansible/plugins/modules:'
+        '/usr/share/ceph-ansible/library:'
+        '{}/library'.format(
+            os.path.join(workdir, 'modules'),
+            os.path.join(cwd, 'modules'),
+            constants.DEFAULT_VALIDATIONS_BASEDIR
+        )
+    )
+    env['ANSIBLE_LOOKUP_PLUGINS'] = os.path.expanduser(
+        '~/.ansible/plugins/lookup:'
+        '{}:{}:'
+        '/usr/share/ansible/tripleo-plugins/lookup:'
+        '/usr/share/ansible/plugins/lookup:'
+        '/usr/share/ceph-ansible/plugins/lookup:'
+        '{}/lookup_plugins'.format(
+            os.path.join(workdir, 'lookup'),
+            os.path.join(cwd, 'lookup'),
+            constants.DEFAULT_VALIDATIONS_BASEDIR
+        )
+    )
+    env['ANSIBLE_CALLBACK_PLUGINS'] = os.path.expanduser(
+        '~/.ansible/plugins/callback:'
+        '{}:{}:'
+        '/usr/share/ansible/tripleo-plugins/callback:'
+        '/usr/share/ansible/plugins/callback:'
+        '/usr/share/ceph-ansible/plugins/callback:'
+        '{}/callback_plugins'.format(
+            os.path.join(workdir, 'callback'),
+            os.path.join(cwd, 'callback'),
+            constants.DEFAULT_VALIDATIONS_BASEDIR
+        )
+    )
+    env['ANSIBLE_ACTION_PLUGINS'] = os.path.expanduser(
+        '~/.ansible/plugins/action:'
+        '{}:{}:'
+        '/usr/share/ansible/tripleo-plugins/action:'
+        '/usr/share/ansible/plugins/action:'
+        '/usr/share/ceph-ansible/plugins/actions:'
+        '{}/action_plugins'.format(
+            os.path.join(workdir, 'action'),
+            os.path.join(cwd, 'action'),
+            constants.DEFAULT_VALIDATIONS_BASEDIR
+        )
+    )
+    env['ANSIBLE_FILTER_PLUGINS'] = os.path.expanduser(
+        '~/.ansible/plugins/filter:'
+        '{}:{}:'
+        '/usr/share/ansible/tripleo-plugins/filter:'
+        '/usr/share/ansible/plugins/filter:'
+        '/usr/share/ceph-ansible/plugins/filter:'
+        '{}/filter_plugins'.format(
+            os.path.join(workdir, 'filter'),
+            os.path.join(cwd, 'filter'),
+            constants.DEFAULT_VALIDATIONS_BASEDIR
+        )
+    )
+    env['ANSIBLE_ROLES_PATH'] = os.path.expanduser(
+        '~/.ansible/roles:'
+        '{}:{}:'
+        '/usr/share/ansible/tripleo-roles:'
+        '/usr/share/ansible/roles:'
+        '/usr/share/ceph-ansible/roles:'
+        '/etc/ansible/roles:'
+        '{}/roles'.format(
+            os.path.join(workdir, 'roles'),
+            os.path.join(cwd, 'roles'),
+            constants.DEFAULT_VALIDATIONS_BASEDIR
+        )
+    )
+    env['ANSIBLE_CALLBACK_WHITELIST'] = 'profile_tasks,validation_output'
+    env['ANSIBLE_RETRY_FILES_ENABLED'] = False
+    env['ANSIBLE_HOST_KEY_CHECKING'] = False
+    env['ANSIBLE_TRANSPORT'] = connection
+    env['ANSIBLE_CACHE_PLUGIN_TIMEOUT'] = 7200
+
+    if connection == 'local':
+        env['ANSIBLE_PYTHON_INTERPRETER'] = sys.executable
+
+    if gathering_policy in ('smart', 'explicit', 'implicit'):
+        env['ANSIBLE_GATHERING'] = gathering_policy
+
+    if module_path:
+        env['ANSIBLE_LIBRARY'] = ':'.join(
+            [env['ANSIBLE_LIBRARY'], module_path]
+        )
 
     env['TRIPLEO_PLAN_NAME'] = plan
 
-    if not log_path_dir or not os.path.exists(log_path_dir):
-        env['ANSIBLE_LOG_PATH'] = os.path.join(workdir, 'ansible.log')
+    try:
+        user_pwd = pwd.getpwuid(int(os.getenv('SUDO_UID', os.getuid())))
+    except TypeError:
+        home = os.path.expanduser('~')
     else:
-        env['ANSIBLE_LOG_PATH'] = os.path.join(log_path_dir, 'ansible.log')
+        home = user_pwd.pw_dir
 
-    env['ANSIBLE_HOST_KEY_CHECKING'] = 'False'
+    env['ANSIBLE_LOG_PATH'] = os.path.join(home, 'ansible.log')
 
-    if gathering_policy in ['smart', 'explicit', 'implicit']:
-        env['ANSIBLE_GATHERING'] = gathering_policy
+    if key:
+        env['ANSIBLE_PRIVATE_KEY_FILE'] = key
 
-    if extra_vars is None:
-        extra_vars = {}
-
-    cleanup = False
-    if ansible_config is None:
-        _, tmp_config = tempfile.mkstemp(prefix=playbook, suffix='ansible.cfg')
-        with open(tmp_config, 'w+') as f:
-            f.write("[defaults]\nstdout_callback = %s\n" % output_callback)
-            if not retries:
-                f.write("retry_files_enabled = False\n")
-            f.close()
-        env['ANSIBLE_CONFIG'] = tmp_config
-        cleanup = True
-
-    elif os.path.isabs(ansible_config):
-        if os.path.exists(ansible_config):
-            env['ANSIBLE_CONFIG'] = ansible_config
+    if extra_env_variables:
+        if not isinstance(extra_env_variables, dict):
+            msg = "extra_env_variables must be a dict"
+            LOG.error(msg)
+            raise SystemError(msg)
         else:
-            raise RuntimeError('No such configuration file: %s' %
-                               ansible_config)
-    elif os.path.exists(os.path.join(workdir, ansible_config)):
-        env['ANSIBLE_CONFIG'] = os.path.join(workdir, ansible_config)
+            env.update(extra_env_variables)
 
-    play = os.path.join(workdir, playbook)
-
-    if os.path.exists(play):
-        cmd = ["ansible-playbook-{}".format(sys.version_info[0]),
-               '-u', ssh_user,
-               '-i', inventory
-               ]
-
-        if 0 < verbosity < 6:
-            cmd.extend(['-' + ('v' * verbosity)])
-
-        if key:
-            cmd.extend(['--private-key=%s' % key])
-
-        if module_path:
-            cmd.extend(['--module-path=%s' % module_path])
-
-        if limit_hosts:
-            cmd.extend(['-l %s' % limit_hosts])
-
-        if tags:
-            cmd.extend(['-t %s' % tags])
+    with TempDirs(chdir=False) as ansible_artifact_path:
+        r_opts = {
+            'private_data_dir': workdir,
+            'project_dir': playbook_dir,
+            'inventory': inventory,
+            'envvars': _encode_envvars(env=env),
+            'playbook': playbook,
+            'verbosity': verbosity,
+            'quiet': quiet,
+            'extravars': extravars,
+            'fact_cache': ansible_fact_path,
+            'fact_cache_type': 'jsonfile',
+            'artifact_dir': ansible_artifact_path,
+            'rotate_artifacts': 256
+        }
 
         if skip_tags:
-            cmd.extend(['--skip_tags %s' % skip_tags])
+            r_opts['skip_tags'] = skip_tags
 
-        if python_interpreter:
-            cmd.extend([
-                '--extra-vars',
-                'ansible_python_interpreter=%s' % python_interpreter
-            ])
+        if tags:
+            r_opts['tags'] = tags
 
-        if extra_vars:
-            if isinstance(extra_vars, dict) and extra_vars:
-                cmd.extend(['--extra-vars', '%s' % convert(extra_vars)])
-            elif os.path.exists(extra_vars) and os.path.isfile(extra_vars):
-                # We don't need to check if the content of the file is
-                # a valid YAML or JSON, the ansible-playbook command
-                # will do it better
-                cmd.extend(['--extra-vars', '@{}'.format(extra_vars)])
-            else:
-                raise RuntimeError('No such extra vars file: %s' % extra_vars)
+        if limit_hosts:
+            r_opts['limit'] = limit_hosts
 
-        cmd.extend(['-c', connection, play])
+        runner_config = ansible_runner.runner_config.RunnerConfig(**r_opts)
+        runner_config.prepare()
+        runner = ansible_runner.Runner(config=runner_config)
+        status, rc = runner.run()
 
-        proc = run_command_and_log(logger, cmd, env=env, retcode_only=False)
-        proc.wait()
-        cleanup and os.unlink(tmp_config)
-        if proc.returncode != 0:
-            raise RuntimeError(proc.stdout.read())
-        return proc.returncode, proc.stdout.read()
+    if verbosity > 1:
+        status = runner.stdout
+
+    if rc == 0:
+        LOG.info(
+            'Ansible execution success. playbook: {}'.format(
+                playbook
+            )
+        )
+        return rc, status
     else:
-        cleanup and os.unlink(tmp_config)
-        raise RuntimeError('No such playbook: %s' % play)
+        err_msg = (
+            'Ansible execution failed. playbook: {},'
+            ' Run Status: {},'
+            ' Return Code: {}'.format(
+                playbook,
+                status,
+                rc
+            )
+        )
+        if not quiet:
+            LOG.error(err_msg)
+        raise RuntimeError(err_msg)
 
 
 def convert(data):
@@ -398,13 +647,7 @@ def store_cli_param(command_name, parsed_args):
     command_name = command_name.replace(" ", "-")
 
     history_path = os.path.join(os.path.expanduser("~"), '.tripleo')
-    if not os.path.exists(history_path):
-        try:
-            os.mkdir(history_path)
-        except OSError as e:
-            messages = _("Unable to create TripleO history directory: "
-                         "{0}, {1}").format(history_path, e)
-            raise OSError(messages)
+    makedirs(history_path)
     if os.path.isdir(history_path):
         try:
             with open(os.path.join(history_path,
@@ -1190,14 +1433,14 @@ def run_update_ansible_action(log, clients, nodes, inventory,
                                   tags=tags, skip_tags=skip_tags,
                                   verbosity=verbosity, extra_vars=extra_vars)
         else:
-            run_ansible_playbook(logger=LOG,
-                                 workdir=workdir,
-                                 playbook=book,
+            run_ansible_playbook(playbook=book,
                                  inventory=inventory,
+                                 workdir=workdir,
                                  ssh_user=ssh_user,
                                  key=ssh_private_key(workdir, priv_key),
                                  module_path='/usr/share/ansible-modules',
-                                 limit_hosts=nodes, tags=tags,
+                                 limit_hosts=nodes,
+                                 tags=tags,
                                  skip_tags=skip_tags)
 
 
@@ -1339,24 +1582,14 @@ def bulk_symlink(log, src, dst, tmpd='/tmp'):
     """
     log.debug("Symlinking %s to %s, via temp dir %s" %
               (src, dst, tmpd))
-    tmp = None
-    try:
-        if not os.path.exists(tmpd):
-            raise exceptions.NotFound("{} does not exist. Cannot create a "
-                                      "temp folder using this path".format(
-                                          tmpd))
-        tmp = tempfile.mkdtemp(dir=tmpd)
-        subprocess.check_call(['mkdir', '-p', dst])
-        os.chmod(tmp, 0o755)
+
+    makedirs(dst)
+    with TempDirs(dir_path=tmpd) as tmp:
         for obj in os.listdir(src):
-            tmpf = os.path.join(tmp, obj)
-            os.symlink(os.path.join(src, obj), tmpf)
-            os.rename(tmpf, os.path.join(dst, obj))
-    except Exception:
-        raise
-    finally:
-        if tmp:
-            shutil.rmtree(tmp, ignore_errors=True)
+            if not os.path.exists(os.path.join(dst, obj)):
+                tmpf = os.path.join(tmp, obj)
+                os.symlink(os.path.join(src, obj), tmpf)
+                os.rename(tmpf, os.path.join(dst, obj))
 
 
 def run_command_and_log(log, cmd, cwd=None, env=None, retcode_only=True):
@@ -1450,12 +1683,13 @@ def build_prepare_env(environment_files, environment_directories):
         env_url = heat_utils.normalise_file_path_to_url(path)
         return request.urlopen(env_url).read()
 
-    env_f, env = (
+    return (
         template_utils.process_multiple_environments_and_files(
-            env_files, env_path_is_object=lambda path: True,
-            object_request=get_env_file))
-
-    return env
+            env_files,
+            env_path_is_object=lambda path: True,
+            object_request=get_env_file
+        )
+    )[1]
 
 
 def rel_or_abs_path(file_path, tht_root):
@@ -1812,7 +2046,7 @@ def parse_all_validations_on_disk(path, groups=None):
     validations_abspath = glob.glob("{path}/*.yaml".format(path=path))
 
     for pl in validations_abspath:
-        validation_id, ext = os.path.splitext(os.path.basename(pl))
+        validation_id, _ext = os.path.splitext(os.path.basename(pl))
 
         with open(pl, 'r') as val_playbook:
             contents = yaml.safe_load(val_playbook)
@@ -1910,23 +2144,6 @@ def get_local_timezone():
     return timezone
 
 
-def ansible_symlink():
-    # https://bugs.launchpad.net/tripleo/+bug/1812837
-    python_version = sys.version_info[0]
-    ansible_playbook_cmd = "ansible-playbook-{}".format(python_version)
-    cmd = ['sudo', 'ln', '-s']
-    if not os.path.exists('/usr/bin/ansible-playbook'):
-        if os.path.exists('/usr/bin/' + ansible_playbook_cmd):
-            cmd.extend(['/usr/bin/' + ansible_playbook_cmd,
-                       '/usr/bin/ansible-playbook'])
-            run_command(cmd, name='ansible-playbook-symlink')
-    else:
-        if not os.path.exists('/usr/bin/' + ansible_playbook_cmd):
-            cmd.extend(['/usr/bin/ansible-playbook',
-                       '/usr/bin/' + ansible_playbook_cmd])
-            run_command(cmd, name='ansible-playbook-3-symlink')
-
-
 def check_file_for_enabled_service(env_file):
     """Checks environment file for the said service.
 
@@ -1979,7 +2196,7 @@ def reset_cmdline():
     output = ''
     try:
         output = run_command(['reset', '-I'])
-    except RuntimeError as e:
+    except RuntimeError:
         LOG.warning('Unable to reset command line. Try manually running '
                     '"reset" if the command line is broken.')
     sys.stdout.write(output)
@@ -2003,7 +2220,7 @@ def safe_write(path, data):
             f.write(data)
     except OSError as error:
         if error.errno != errno.EEXIST:
-            msg = _('The output file %(file)s can not be '
-                    'created. Error: %(msg)') % {'file': path,
-                                                 'msg': error.message}
+            msg = _(
+                'The output file {file} can not be created. Error: {msg}'
+            ).format(file=path, msg=str(error))
             raise oscexc.CommandError(msg)

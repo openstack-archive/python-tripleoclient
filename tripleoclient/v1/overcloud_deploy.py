@@ -24,7 +24,6 @@ import re
 import shutil
 import six
 import subprocess
-import tempfile
 import time
 import yaml
 
@@ -167,8 +166,7 @@ class DeployOvercloud(command.Command):
         user_env_path = os.path.join(
             user_env_dir, os.path.basename(abs_env_path))
         self.log.debug("user_env_path=%s" % user_env_path)
-        if not os.path.exists(user_env_dir):
-            os.makedirs(user_env_dir)
+        utils.makedirs(user_env_dir)
         with open(user_env_path, 'w') as f:
             self.log.debug("Writing user environment %s" % user_env_path)
             f.write(contents)
@@ -350,8 +348,7 @@ class DeployOvercloud(command.Command):
             if not os.path.isfile(file_path):
                 self.log.debug("Missing in templates directory, downloading \
                                %s from swift into %s" % (pf, file_path))
-                if not os.path.exists(os.path.dirname(file_path)):
-                    os.makedirs(os.path.dirname(file_path))
+                utils.makedirs(os.path.dirname(file_path))
                 # open in binary as the swiftclient get/put error under
                 # python3 if opened as Text I/O
                 with open(file_path, 'wb') as f:
@@ -361,20 +358,16 @@ class DeployOvercloud(command.Command):
         # copy tht_root to temporary directory because we need to
         # download any missing (e.g j2 rendered) files from the plan
         tht_root = os.path.abspath(parsed_args.templates)
-        tht_tmp = tempfile.mkdtemp(prefix='tripleoclient-')
-        new_tht_root = "%s/tripleo-heat-templates" % tht_tmp
-        self.log.debug("Creating temporary templates tree in %s"
-                       % new_tht_root)
-        try:
+
+        with utils.TempDirs(dir_prefix='tripleoclient-',
+                            cleanup=(not parsed_args.no_cleanup)) as tht_tmp:
+            new_tht_root = "%s/tripleo-heat-templates" % tht_tmp
+            self.log.debug(
+                "Creating temporary templates tree in %s" % new_tht_root
+            )
             shutil.copytree(tht_root, new_tht_root, symlinks=True)
             self._deploy_tripleo_heat_templates(stack, parsed_args,
                                                 new_tht_root, tht_root)
-        finally:
-            if parsed_args.no_cleanup:
-                self.log.warning("Not cleaning temporary directory %s"
-                                 % tht_tmp)
-            else:
-                shutil.rmtree(tht_tmp)
 
     def _deploy_tripleo_heat_templates(self, stack, parsed_args,
                                        tht_root, user_tht_root):

@@ -103,7 +103,7 @@ class Deploy(command.Command):
     deployment_user = None
     ansible_dir = None
     python_version = sys.version_info[0]
-    ansible_playbook_cmd = "ansible-playbook-{}".format(python_version)
+    ansible_playbook_cmd = "ansible-playbook"
     python_cmd = "python{}".format(python_version)
 
     def _is_undercloud_deploy(self, parsed_args):
@@ -256,13 +256,12 @@ class Deploy(command.Command):
 
     def _create_persistent_dirs(self):
         """Creates temporary working directories"""
-        if not os.path.exists(constants.STANDALONE_EPHEMERAL_STACK_VSTATE):
-            os.mkdir(constants.STANDALONE_EPHEMERAL_STACK_VSTATE)
+        utils.makedirs(constants.STANDALONE_EPHEMERAL_STACK_VSTATE)
 
     def _create_working_dirs(self, stack_name='undercloud'):
         """Creates temporary working directories"""
-        if self.output_dir and not os.path.exists(self.output_dir):
-            os.mkdir(self.output_dir)
+        if self.output_dir:
+            utils.makedirs(self.output_dir)
         if not self.tht_render:
             self.tht_render = os.path.join(self.output_dir,
                                            'tripleo-heat-installer-templates')
@@ -901,27 +900,6 @@ class Deploy(command.Command):
             yaml.safe_dump(output, f, default_flow_style=False)
         return output
 
-    # Never returns, calls exec()
-    def _launch_ansible(self, ansible_dir, extra_args=None,
-                        operation="deploy"):
-
-        if operation not in constants.DEPLOY_ANSIBLE_ACTIONS.keys():
-            self.log.error(_('Operation %s is not allowed') % operation)
-            raise exceptions.DeploymentError('Invalid operation to run in '
-                                             'ansible.')
-        list_args = constants.DEPLOY_ANSIBLE_ACTIONS[operation].split()
-
-        if extra_args:
-            list_args.extend(extra_args)
-
-        self.log.warning(_('** Running ansible %s tasks **') % operation)
-        os.chdir(ansible_dir)
-        playbook_inventory = os.path.join(ansible_dir, 'inventory.yaml')
-        cmd = [self.ansible_playbook_cmd, '-i', playbook_inventory] + list_args
-        self.log.debug('Running Ansible %s tasks: %s' % (operation, ' '
-                       .join(cmd)))
-        return utils.run_command_and_log(self.log, cmd)
-
     def get_parser(self, prog_name):
         parser = argparse.ArgumentParser(
             description=self.get_description(),
@@ -1303,38 +1281,46 @@ class Deploy(command.Command):
                     _('Using the existing %s for deployment') % ansible_config)
                 shutil.copy(ansible_config, self.ansible_dir)
 
-            extra_args = []
+            extra_args = dict()
             if not parsed_args.inflight:
-                extra_args = ['--skip-tags', 'opendev-validation']
+                extra_args = {'skip_tags': 'opendev-validation'}
             # Kill heat, we're done with it now.
             if not parsed_args.keep_running:
                 self._kill_heat(parsed_args)
             if not parsed_args.output_only:
+                operations = list()
                 if parsed_args.upgrade:
                     # Run Upgrade tasks before the deployment
-                    rc = self._launch_ansible(self.ansible_dir,
-                                              operation='upgrade',
-                                              extra_args=extra_args)
-                    if rc != 0:
-                        raise exceptions.DeploymentError('Upgrade failed')
-                rc = self._launch_ansible(self.ansible_dir,
-                                          extra_args=extra_args)
-                if rc != 0:
-                    raise exceptions.DeploymentError('Deployment failed')
+                    operations.append(
+                        constants.DEPLOY_ANSIBLE_ACTIONS['upgrade']
+                    )
+                operations.append(
+                    constants.DEPLOY_ANSIBLE_ACTIONS['deploy']
+                )
                 if parsed_args.upgrade:
                     # Run Post Upgrade tasks after the deployment
-                    rc = self._launch_ansible(self.ansible_dir,
-                                              operation='post-upgrade',
-                                              extra_args=extra_args)
-                    if rc != 0:
-                        raise exceptions.DeploymentError('Post Upgrade failed')
+                    operations.append(
+                        constants.DEPLOY_ANSIBLE_ACTIONS['post-upgrade']
+                    )
                     # Run Online Upgrade tasks after the deployment
-                    rc = self._launch_ansible(self.ansible_dir,
-                                              operation='online-upgrade',
-                                              extra_args=extra_args)
-                    if rc != 0:
-                        raise exceptions.DeploymentError(
-                            'Online Upgrade failed')
+                    operations.append(
+                        constants.DEPLOY_ANSIBLE_ACTIONS['online-upgrade']
+                    )
+                with utils.Pushd(self.ansible_dir):
+                    for operation in operations:
+                        for k, v in extra_args.items():
+                            if k in operation:
+                                operation[k] = ','.join([operation[k], v])
+                            else:
+                                operation[k] = v
+                        rc = utils.run_ansible_playbook(
+                            inventory=os.path.join(
+                                self.ansible_dir,
+                                'inventory.yaml'
+                            ),
+                            workdir=self.ansible_dir,
+                            **operation
+                        )[0]
         except Exception as e:
             self.log.error("Exception: %s" % six.text_type(e))
             self.log.error(traceback.print_exc())
@@ -1415,7 +1401,6 @@ class Deploy(command.Command):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
-        utils.ansible_symlink()
         unconf_msg = _('User did not confirm upgrade, so exiting. '
                        'Consider using the --yes parameter if you '
                        'prefer to skip this warning in the future')

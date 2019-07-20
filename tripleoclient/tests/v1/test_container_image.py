@@ -968,17 +968,21 @@ class TestContainerImageBuild(TestPluginV1):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         f, path = tempfile.mkstemp(dir=self.temp_dir)
-        with mock.patch('tempfile.mkstemp') as mock_mkstemp:
-            mock_mkstemp.return_value = f, path
-            self.cmd.take_action(parsed_args)
+        with mock.patch('tempfile.mkdtemp') as mock_mkd:
+            mock_mkd.return_value = '/tmp/testing'
+            with mock.patch('tempfile.mkstemp') as mock_mkstemp:
+                with mock.patch('os.chdir'):
+                    mock_mkstemp.return_value = f, path
+                    self.cmd.take_action(parsed_args)
 
         mock_builder.assert_called_once_with([
             '/tmp/foo.yaml', '/tmp/bar.yaml'])
         mock_builder.return_value.build_images.assert_called_once_with([
             self.default_kolla_conf, '/tmp/kolla.conf',
             path
-        ], [], False, None)
+        ], [], False, '/tmp/testing')
 
+    @mock.patch('os.chdir')
     @mock.patch('os.fdopen', autospec=True)
     @mock.patch('tempfile.mkdtemp')
     @mock.patch('tempfile.mkstemp')
@@ -997,7 +1001,8 @@ class TestContainerImageBuild(TestPluginV1):
                                                 mock_builder, mock_buildah,
                                                 mock_kolla_boolean_cfg,
                                                 mock_kolla_cfg, mock_mkstemp,
-                                                mock_mkdtemp, mock_fdopen):
+                                                mock_mkdtemp, mock_fdopen,
+                                                mock_chdir):
         arglist = [
             '--config-file',
             '/tmp/bar.yaml',
@@ -1056,16 +1061,19 @@ class TestContainerImageBuild(TestPluginV1):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         f, path = tempfile.mkstemp(dir=self.temp_dir)
-        with mock.patch('tempfile.mkstemp') as mock_mkstemp:
-            mock_mkstemp.return_value = f, path
-            self.cmd.take_action(parsed_args)
+        with mock.patch('tempfile.mkdtemp') as mock_mkd:
+            mock_mkd.return_value = '/tmp/testing'
+            with mock.patch('tempfile.mkstemp') as mock_mkstemp:
+                with mock.patch('os.chdir'):
+                    mock_mkstemp.return_value = f, path
+                    self.cmd.take_action(parsed_args)
 
         mock_builder.assert_called_once_with([
             '/tmp/foo.yaml', '/tmp/bar.yaml'])
         mock_builder.return_value.build_images.assert_called_once_with([
             self.default_kolla_conf, '/tmp/kolla.conf',
             path
-        ], ['foo', 'bar'], False, None)
+        ], ['foo', 'bar'], False, '/tmp/testing')
 
     @mock.patch('tripleo_common.image.kolla_builder.KollaImageBuilder',
                 autospec=True)

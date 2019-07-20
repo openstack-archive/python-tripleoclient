@@ -417,8 +417,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
     # we move any user provided environment files into this root later.
     tempdir = os.path.join(os.path.abspath(CONF['output_dir']),
                            'tripleo-config-generated-env-files')
-    if not os.path.isdir(tempdir):
-        os.mkdir(tempdir)
+    utils.makedirs(tempdir)
 
     # Set the undercloud home dir parameter so that stackrc is produced in
     # the users home directory.
@@ -705,8 +704,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
     deploy_args += ['--deployment-user', u]
 
     deploy_args += ['--output-dir=%s' % CONF['output_dir']]
-    if not os.path.isdir(CONF['output_dir']):
-        os.mkdir(CONF['output_dir'])
+    utils.makedirs(CONF['output_dir'])
 
     if CONF.get('cleanup'):
         deploy_args.append('--cleanup')
@@ -782,7 +780,6 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
         deploy_args += ['--hieradata-override=%s' % data_file]
 
     if CONF.get('enable_validations') and not no_validations:
-        utils.ansible_symlink()
         undercloud_preflight.check(verbose_level, upgrade)
         deploy_args += ['-e', os.path.join(
             tht_templates, "environments/tripleo-validations.yaml")]

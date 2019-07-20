@@ -80,3 +80,8 @@ class FakeClientWrapper(object):
 
     def messaging_websocket(self):
         return self.ws
+
+
+def fake_ansible_runner_run_return(rc=0):
+
+    return 'Test Status', rc

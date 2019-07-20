@@ -148,8 +148,7 @@ def prepare_minion_deploy(upgrade=False, no_validations=False,
     # we move any user provided environment files into this root later.
     tempdir = os.path.join(os.path.abspath(CONF['output_dir']),
                            'tripleo-config-generated-env-files')
-    if not os.path.isdir(tempdir):
-        os.mkdir(tempdir)
+    utils.makedirs(tempdir)
 
     env_data['PythonInterpreter'] = sys.executable
 
@@ -275,8 +274,7 @@ def prepare_minion_deploy(upgrade=False, no_validations=False,
     deploy_args += ['--deployment-user', u]
 
     deploy_args += ['--output-dir=%s' % CONF['output_dir']]
-    if not os.path.isdir(CONF['output_dir']):
-        os.mkdir(CONF['output_dir'])
+    utils.makedirs(CONF['output_dir'])
 
     # TODO(aschultz): move this to a central class
     if CONF.get('net_config_override', None):
@@ -345,7 +343,6 @@ def prepare_minion_deploy(upgrade=False, no_validations=False,
         utils.set_hostname(CONF.get('minion_hostname'))
 
     if CONF.get('minion_enable_validations') and not no_validations:
-        utils.ansible_symlink()
         undercloud_preflight.minion_check(verbose_level, upgrade)
 
     if CONF.get('custom_env_files'):

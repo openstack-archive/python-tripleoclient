@@ -19,3 +19,4 @@ websocket-client>=0.44.0 # LGPLv2+
 tripleo-common>=11.3.1 # Apache-2.0
 cryptography>=2.1 # BSD/Apache-2.0
 futures>=3.0.0;python_version=='2.7' or python_version=='2.6' # BSD
+ansible-runner>=1.4.4 # Apache 2.0

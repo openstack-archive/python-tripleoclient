@@ -102,16 +102,33 @@ CTLPLANE_INSPECTION_IPRANGE_DEFAULT = '192.168.24.100,192.168.24.120'
 CTLPLANE_GATEWAY_DEFAULT = '192.168.24.1'
 CTLPLANE_DNS_NAMESERVERS_DEFAULT = []
 
-# Ansible parameters used for the actions being
-# executed during tripleo deploy/upgrade.
+# Ansible parameters used for the actions being executed during tripleo
+# deploy/upgrade. Used as kwargs in the `utils.run_ansible_playbook`
+# function. A playbook entry is either a string representing the name of
+# one the playbook or a list of playbooks to execute. The lookup
+# will search for the playbook in the work directory path.
 DEPLOY_ANSIBLE_ACTIONS = {
-    'deploy': 'deploy_steps_playbook.yaml',
-    'upgrade': 'upgrade_steps_playbook.yaml --skip-tags '
-               'validation',
-    'post-upgrade': 'post_upgrade_steps_playbook.yaml '
-                    '--skip-tags validation',
-    'online-upgrade': 'external_upgrade_steps_playbook.yaml '
-                      '--tags online_upgrade',
+    'deploy': {
+        'playbook': 'deploy_steps_playbook.yaml'
+    },
+    'upgrade': {
+        'playbook': 'upgrade_steps_playbook.yaml',
+        'skip_tags': 'validation'
+    },
+    'post-upgrade': {
+        'playbook': 'post_upgrade_steps_playbook.yaml',
+        'skip_tags': 'validation'
+    },
+    'online-upgrade': {
+        'playbook': 'external_upgrade_steps_playbook.yaml',
+        'tags': 'online_upgrade'
+    },
+    'preflight-deploy': {
+        'playbook': 'undercloud-disk-space.yaml'
+    },
+    'preflight-upgrade': {
+        'playbook': 'undercloud-disk-space-pre-upgrade.yaml'
+    },
 }
 
 # Key-value pair of deprecated service and its warning message
