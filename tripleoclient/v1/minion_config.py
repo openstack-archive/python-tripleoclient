@@ -60,7 +60,7 @@ PARAMETER_MAPPING = {
     'minion_debug': 'Debug',
     'minion_local_mtu': 'UndercloudMinionLocalMtu',
     'container_healthcheck_disabled': 'ContainerHealthcheckDisabled',
-    'local_interface': 'NeutronPublicInterface',
+    'minion_local_interface': 'NeutronPublicInterface',
 }
 
 SUBNET_PARAMETER_MAPPING = {

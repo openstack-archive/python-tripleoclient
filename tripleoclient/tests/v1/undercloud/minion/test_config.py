@@ -13,6 +13,7 @@
 #   under the License.
 #
 import mock
+import sys
 import tempfile
 import yaml
 
@@ -75,6 +76,26 @@ class TestMinionDeploy(base.TestCase):
                         '-e', '/usr/share/openstack-tripleo-heat-templates/'
                         'minion-stack-vstate-dropin.yaml']
         self.assertEqual(expected_cmd, cmd)
+        env_data = {
+            'PythonInterpreter': sys.executable,
+            'ContainerImagePrepareDebug': True,
+            'Debug': True,
+            'UndercloudMinionLocalMtu': 1500,
+            'ContainerHealthcheckDisabled': False,
+            'NeutronPublicInterface': 'eth1',
+            'SELinuxMode': 'enforcing',
+            'NtpServer': ['0.pool.ntp.org',
+                          '1.pool.ntp.org',
+                          '2.pool.ntp.org',
+                          '3.pool.ntp.org'],
+            'TimeZone': 'UTC',
+            'DockerInsecureRegistryAddress': ['192.168.24.50:8787'],
+            'ContainerCli': 'podman',
+            'LocalContainerRegistry': '192.168.24.50',
+            'DeploymentUser': 'foo'}
+        mock_write_env.assert_called_once_with(
+           env_data, '/home/stack/tripleo-config-generated-env-files/'
+           'minion_parameters.yaml', {})
 
     @mock.patch('tripleoclient.utils.ansible_symlink')
     @mock.patch('os.path.exists', return_value=True)
@@ -92,7 +113,12 @@ class TestMinionDeploy(base.TestCase):
         self.conf.set_default('enable_heat_engine', False)
         self.conf.set_default('enable_ironic_conductor', True)
         self.conf.set_default('hieradata_override', '/data.yaml')
+        self.conf.set_default('minion_debug', False)
+        self.conf.set_default('minion_enable_selinux', False)
+        self.conf.set_default('minion_local_interface', 'enp0s4')
         self.conf.set_default('minion_local_ip', '1.1.1.1/24')
+        self.conf.set_default('minion_local_mtu', '1350')
+        self.conf.set_default('minion_ntp_servers', ['pool.ntp.org'])
         self.conf.set_default('networks_file', 'network.yaml')
         self.conf.set_default('output_dir', '/bar')
         self.conf.set_default('templates', '/foo')
@@ -121,6 +147,23 @@ class TestMinionDeploy(base.TestCase):
                         '--log-file=install-minion.log',
                         '-e', '/foo/minion-stack-vstate-dropin.yaml']
         self.assertEqual(expected_cmd, cmd)
+        env_data = {
+            'PythonInterpreter': sys.executable,
+            'ContainerImagePrepareDebug': False,
+            'Debug': False,
+            'UndercloudMinionLocalMtu': 1350,
+            'ContainerHealthcheckDisabled': False,
+            'NeutronPublicInterface': 'enp0s4',
+            'SELinuxMode': 'permissive',
+            'NtpServer': ['pool.ntp.org'],
+            'TimeZone': 'UTC',
+            'DockerInsecureRegistryAddress': ['1.1.1.1:8787'],
+            'ContainerCli': 'podman',
+            'LocalContainerRegistry': '1.1.1.1',
+            'DeploymentUser': 'bar'}
+        mock_write_env.assert_called_once_with(
+           env_data, '/bar/tripleo-config-generated-env-files/'
+           'minion_parameters.yaml', {})
 
 
 class TestMinionContainerImageConfig(base.TestCase):
