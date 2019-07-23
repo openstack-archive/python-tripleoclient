@@ -356,7 +356,8 @@ class TripleOValidatorRun(command.Command):
                     retries=False,
                     output_callback='validation_output',
                     extra_vars=extra_vars_input,
-                    python_interpreter=python_interpreter)
+                    python_interpreter=python_interpreter,
+                    gathering_policy='explicit')
                 print('[SUCCESS] - {}\n{}'.format(playbook,
                                                   oooutils.indent(output)))
             except Exception as e:
