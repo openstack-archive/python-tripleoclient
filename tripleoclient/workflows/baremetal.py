@@ -146,7 +146,9 @@ def introspect(clients, **workflow_input):
             'tripleo.baremetal.v1.introspect',
             workflow_input={
                 'node_uuids': workflow_input['node_uuids'],
-                'run_validations': workflow_input['run_validations']}
+                'run_validations': workflow_input['run_validations'],
+                'concurrency': workflow_input.get('concurrency', 20)
+            }
         )
 
         for payload in base.wait_for_messages(workflow_client, ws, execution):
@@ -177,7 +179,9 @@ def introspect_manageable_nodes(clients, **workflow_input):
             workflow_client,
             'tripleo.baremetal.v1.introspect_manageable_nodes',
             workflow_input={
-                'run_validations': workflow_input['run_validations']}
+                'run_validations': workflow_input['run_validations'],
+                'concurrency': workflow_input.get('concurrency', 20)
+            }
         )
 
         for payload in base.wait_for_messages(workflow_client, ws, execution):

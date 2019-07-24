@@ -209,6 +209,10 @@ class IntrospectNode(command.Command):
                             help=_('Run the pre-deployment validations. These '
                                    'external validations are from the TripleO '
                                    'Validations project.'))
+        parser.add_argument('--concurrency', type=int,
+                            default=20,
+                            help=_('Maximum number of nodes to introspect at '
+                                   'once.'))
         return parser
 
     def take_action(self, parsed_args):
@@ -219,12 +223,14 @@ class IntrospectNode(command.Command):
         if nodes:
             baremetal.introspect(self.app.client_manager,
                                  node_uuids=nodes,
-                                 run_validations=parsed_args.run_validations
+                                 run_validations=parsed_args.run_validations,
+                                 concurrency=parsed_args.concurrency
                                  )
         else:
             baremetal.introspect_manageable_nodes(
                 self.app.client_manager,
-                run_validations=parsed_args.run_validations
+                run_validations=parsed_args.run_validations,
+                concurrency=parsed_args.concurrency
             )
 
         if parsed_args.provide:
@@ -275,6 +281,10 @@ class ImportNode(command.Command):
                                 constants.IRONIC_HTTP_BOOT_BIND_MOUNT),
                             help=_("Root directory for the ironic-python-agent"
                                    " image"))
+        parser.add_argument('--concurrency', type=int,
+                            default=20,
+                            help=_('Maximum number of nodes to introspect at '
+                                   'once.'))
         parser.add_argument('env_file', type=argparse.FileType('r'))
         return parser
 
@@ -303,7 +313,8 @@ class ImportNode(command.Command):
         if parsed_args.introspect:
             baremetal.introspect(self.app.client_manager,
                                  node_uuids=nodes_uuids,
-                                 run_validations=parsed_args.run_validations
+                                 run_validations=parsed_args.run_validations,
+                                 concurrency=parsed_args.concurrency
                                  )
 
         if parsed_args.provide:
@@ -425,6 +436,10 @@ class DiscoverNode(command.Command):
                             help=_('Whether to set instances for booting from '
                                    'local hard drive (local) or network '
                                    '(netboot).'))
+        parser.add_argument('--concurrency', type=int,
+                            default=20,
+                            help=_('Maximum number of nodes to introspect at '
+                                   'once.'))
         return parser
 
     # FIXME(tonyb): This is not multi-arch safe :(
@@ -459,7 +474,8 @@ class DiscoverNode(command.Command):
         if parsed_args.introspect:
             baremetal.introspect(self.app.client_manager,
                                  node_uuids=nodes_uuids,
-                                 run_validations=parsed_args.run_validations
+                                 run_validations=parsed_args.run_validations,
+                                 concurrency=parsed_args.concurrency
                                  )
         if parsed_args.provide:
             baremetal.provide(self.app.client_manager,

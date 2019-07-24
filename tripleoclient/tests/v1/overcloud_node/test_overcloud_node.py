@@ -269,7 +269,7 @@ class TestIntrospectNode(fakes.TestOvercloudNode):
 
         call_list = [mock.call(
             'tripleo.baremetal.v1.introspect_manageable_nodes',
-            workflow_input={'run_validations': False}
+            workflow_input={'run_validations': False, 'concurrency': 20}
         )]
 
         if provide:
@@ -294,7 +294,8 @@ class TestIntrospectNode(fakes.TestOvercloudNode):
         call_list = [mock.call(
             'tripleo.baremetal.v1.introspect', workflow_input={
                 'node_uuids': nodes,
-                'run_validations': False}
+                'run_validations': False,
+                'concurrency': 20}
         )]
 
         if provide:
@@ -533,7 +534,8 @@ class TestImportNode(fakes.TestOvercloudNode):
             call_list.append(mock.call(
                 'tripleo.baremetal.v1.introspect', workflow_input={
                     'node_uuids': ['MOCK_NODE_UUID'],
-                    'run_validations': False}
+                    'run_validations': False,
+                    'concurrency': 20}
             ))
 
         if provide:
@@ -704,7 +706,8 @@ class TestImportNodeMultiArch(fakes.TestOvercloudNode):
             call_list.append(mock.call(
                 'tripleo.baremetal.v1.introspect', workflow_input={
                     'node_uuids': ['MOCK_NODE_UUID'],
-                    'run_validations': False}
+                    'run_validations': False,
+                    'concurrency': 20}
             ))
 
         if provide:
@@ -1011,12 +1014,14 @@ class TestDiscoverNode(fakes.TestOvercloudNode):
                     '--credentials', 'admin2:password2',
                     '--port', '623', '--port', '6230',
                     '--introspect', '--provide', '--run-validations',
-                    '--no-deploy-image', '--instance-boot-option', 'netboot']
+                    '--no-deploy-image', '--instance-boot-option', 'netboot',
+                    '--concurrency', '10']
         verifylist = [('ip_addresses', '10.0.0.0/24'),
                       ('credentials', ['admin:password', 'admin2:password2']),
                       ('port', [623, 6230]),
                       ('introspect', True),
                       ('run_validations', True),
+                      ('concurrency', 10),
                       ('provide', True),
                       ('no_deploy_image', True),
                       ('instance_boot_option', 'netboot')]
@@ -1035,7 +1040,8 @@ class TestDiscoverNode(fakes.TestOvercloudNode):
                                       'instance_boot_option': 'netboot'}),
             mock.call('tripleo.baremetal.v1.introspect',
                       workflow_input={'node_uuids': ['MOCK_NODE_UUID'],
-                                      'run_validations': True}),
+                                      'run_validations': True,
+                                      'concurrency': 10}),
             mock.call('tripleo.baremetal.v1.provide',
                       workflow_input={'node_uuids': ['MOCK_NODE_UUID']}
                       )
