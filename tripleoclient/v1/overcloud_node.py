@@ -485,9 +485,9 @@ class DiscoverNode(command.Command):
 
 
 class ProvisionNode(command.Command):
-    """Provision a new node using Ironic."""
+    """Provision new nodes using Ironic."""
 
-    log = logging.getLogger(__name__ + ".DiscoverNode")
+    log = logging.getLogger(__name__ + ".ProvisionNode")
 
     def get_parser(self, prog_name):
         parser = super(ProvisionNode, self).get_parser(prog_name)
@@ -534,3 +534,31 @@ class ProvisionNode(command.Command):
 
         print('Nodes deployed successfully, add %s to your deployment '
               'environment' % parsed_args.output)
+
+
+class UnprovisionNode(command.Command):
+    """Unprovisions nodes using Ironic."""
+
+    log = logging.getLogger(__name__ + ".UnprovisionNode")
+
+    def get_parser(self, prog_name):
+        parser = super(UnprovisionNode, self).get_parser(prog_name)
+        parser.add_argument('input',
+                            metavar='<baremetal_deployment.yaml>',
+                            help=_('Configuration file describing the '
+                                   'baremetal deployment'))
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)" % parsed_args)
+
+        with open(parsed_args.input, 'r') as fp:
+            roles = yaml.safe_load(fp)
+
+        # TODO(sbaker) call ExpandRolesAction to get a list of
+        # instances being unprovisioned to prompt for confirmation
+        baremetal.undeploy_roles(
+            self.app.client_manager,
+            roles=roles)
+
+        print('Unprovision complete')

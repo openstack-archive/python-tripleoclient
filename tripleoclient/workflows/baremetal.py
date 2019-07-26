@@ -541,3 +541,30 @@ def deploy_roles(clients, **workflow_input):
             'Error deploying nodes: {}'.format(payload['message']))
 
     return payload
+
+
+def undeploy_roles(clients, **workflow_input):
+    """Undeploy provided roles using Ironic.
+
+    Run the tripleo.baremetal_deploy.v1.undeploy_roles Mistral workflow.
+    """
+
+    workflow_client = clients.workflow_engine
+    tripleoclients = clients.tripleoclient
+
+    with tripleoclients.messaging_websocket() as ws:
+        execution = base.start_workflow(
+            workflow_client,
+            'tripleo.baremetal_deploy.v1.undeploy_roles',
+            workflow_input=workflow_input
+        )
+
+        for payload in base.wait_for_messages(workflow_client, ws, execution):
+            if payload.get('message'):
+                print(payload['message'])
+
+    if payload['status'] != 'SUCCESS':
+        raise exceptions.NodeConfigurationError(
+            'Error undeploying nodes: {}'.format(payload['message']))
+
+    return payload
