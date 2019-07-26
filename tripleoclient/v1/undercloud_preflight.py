@@ -274,12 +274,13 @@ def _validate_inspection_range(subnet_props):
         raise FailedValidation(message)
 
 
-def _validate_interface_exists():
+def _validate_interface_exists(config_var='local_interface'):
     """Validate the provided local interface exists"""
     if (not CONF.net_config_override
-            and CONF.local_interface not in netifaces.interfaces()):
-        message = (_('Invalid local_interface specified. '
-                     '%s is not available.') % CONF.local_interface)
+            and CONF.get(config_var) not in netifaces.interfaces()):
+        message = (_('Invalid {0} specified. '
+                     '{1} is not available.').format(config_var,
+                                                     CONF.get(config_var)))
         LOG.error(message)
         raise FailedValidation(message)
 
@@ -522,6 +523,41 @@ def check(verbose_level, upgrade=False):
         _validate_no_ip_change()
         _checking_status('Architecture')
         _validate_architecure_options()
+    except KeyError as e:
+        LOG.error(_('Key error in configuration: {error}\n'
+                    'Value is missing in configuration.').format(error=e))
+        sys.exit(1)
+    except FailedValidation as e:
+        LOG.error(_('An error occurred during configuration '
+                    'validation, please check your host '
+                    'configuration and try again.\nError '
+                    'message: {error}').format(error=e))
+        sys.exit(1)
+    except RuntimeError as e:
+        LOG.error(_('An error occurred during configuration '
+                    'validation, please check your host '
+                    'configuration and try again. Error '
+                    'message: {error}').format(error=e))
+        sys.exit(1)
+
+
+def minion_check(verbose_level, upgrade=False):
+    utils.load_config(CONF, constants.MINION_CONF_PATH)
+    utils.configure_logging(LOG, verbose_level, CONF['minion_log_file'])
+
+    try:
+        _checking_status('Hostname')
+        utils.check_hostname()
+        _checking_status('Sysctl')
+        _check_sysctl()
+        _checking_status('Network interfaces')
+        _validate_interface_exists('minion_local_interface')
+        _checking_status('Password file')
+        _validate_passwords_file()
+        # Heat templates validations
+        if CONF.get('custom_env_files'):
+            _checking_status('Custom env file')
+            _validate_env_files_paths()
     except KeyError as e:
         LOG.error(_('Key error in configuration: {error}\n'
                     'Value is missing in configuration.').format(error=e))

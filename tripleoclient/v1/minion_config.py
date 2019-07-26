@@ -38,6 +38,7 @@ from tripleoclient.config.minion import MinionConfig
 from tripleoclient import constants
 from tripleoclient import exceptions
 from tripleoclient import utils
+from tripleoclient.v1 import undercloud_preflight
 
 
 # Provides mappings for some of the instack_env tags to minion heat
@@ -330,8 +331,7 @@ def prepare_minion_deploy(upgrade=False, no_validations=False,
 
     if CONF.get('minion_enable_validations') and not no_validations:
         utils.ansible_symlink()
-        # TODO(aschultz): write this
-        # minion_preflight.check(verbose_level, upgrade)
+        undercloud_preflight.minion_check(verbose_level, upgrade)
 
     if CONF.get('custom_env_files'):
         for custom_file in CONF['custom_env_files']:
