@@ -14,6 +14,13 @@
 #
 
 from __future__ import print_function
+import collections
+
+try:
+    collectionsAbc = collections.abc
+except AttributeError:
+    collectionsAbc = collections
+
 import csv
 import datetime
 import getpass
@@ -75,7 +82,8 @@ def run_ansible_playbook(logger,
                          limit_hosts=None,
                          tags='',
                          skip_tags='',
-                         verbosity=1):
+                         verbosity=1,
+                         extra_vars=None):
     """Simple wrapper for ansible-playbook
 
     :param logger: logger instance
@@ -130,7 +138,11 @@ def run_ansible_playbook(logger,
     :type skip_tags: String
 
     :param verbosity: verbosity level for Ansible execution
-    :type verbosity: Interger
+    :type verbosity: Integer
+
+    :param extra_vars: set additional variables as a Dict
+    or the absolute path of a JSON or YAML file type
+    :type extra_vars: Either a Dict or the absolute path of JSON or YAML
     """
     env = os.environ.copy()
 
@@ -158,6 +170,9 @@ def run_ansible_playbook(logger,
         env['ANSIBLE_LOG_PATH'] = os.path.join(log_path_dir, 'ansible.log')
 
     env['ANSIBLE_HOST_KEY_CHECKING'] = 'False'
+
+    if extra_vars is None:
+        extra_vars = {}
 
     cleanup = False
     if ansible_config is None:
@@ -206,8 +221,21 @@ def run_ansible_playbook(logger,
             cmd.extend(['--skip_tags %s' % skip_tags])
 
         if python_interpreter is not None:
-            cmd.extend(['-e', 'ansible_python_interpreter=%s' %
-                              python_interpreter])
+            cmd.extend([
+                '--extra-vars',
+                'ansible_python_interpreter=%s' % python_interpreter
+            ])
+
+        if extra_vars:
+            if isinstance(extra_vars, dict) and extra_vars:
+                cmd.extend(['--extra-vars', '%s' % convert(extra_vars)])
+            elif os.path.exists(extra_vars) and os.path.isfile(extra_vars):
+                # We don't need to check if the content of the file is
+                # a valid YAML or JSON, the ansible-playbook command
+                # will do it better
+                cmd.extend(['--extra-vars', '@{}'.format(extra_vars)])
+            else:
+                raise RuntimeError('No such extra vars file: %s' % extra_vars)
 
         cmd.extend(['-c', connection, play])
 
@@ -220,6 +248,18 @@ def run_ansible_playbook(logger,
     else:
         cleanup and os.unlink(tmp_config)
         raise RuntimeError('No such playbook: %s' % play)
+
+
+def convert(data):
+    """Recursively converts dictionary keys,values to strings."""
+    if isinstance(data, six.string_types):
+        return str(data)
+    elif isinstance(data, collectionsAbc.Mapping):
+        return dict(map(convert, six.iteritems(data)))
+    elif isinstance(data, collectionsAbc.Iterable):
+        return type(data)(map(convert, data))
+    else:
+        return data
 
 
 def download_ansible_playbooks(client, stack_name, output_dir='/tmp'):
