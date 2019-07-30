@@ -144,13 +144,14 @@ class TestBaremetalWorkflows(utils.TestCommand):
         self.websocket.wait_for_messages.return_value = self.message_success
 
         baremetal.introspect(self.app.client_manager, node_uuids=[],
-                             run_validations=True)
+                             run_validations=True, concurrency=20)
 
         self.workflow.executions.create.assert_called_once_with(
             'tripleo.baremetal.v1.introspect',
             workflow_input={
                 'node_uuids': [],
                 'run_validations': True,
+                'concurrency': 20
             })
 
     def test_introspect_error(self):
@@ -162,7 +163,8 @@ class TestBaremetalWorkflows(utils.TestCommand):
             baremetal.introspect,
             self.app.client_manager,
             node_uuids=[],
-            run_validations=False
+            run_validations=False,
+            concurrency=20
         )
 
         self.workflow.executions.create.assert_called_once_with(
@@ -170,6 +172,7 @@ class TestBaremetalWorkflows(utils.TestCommand):
             workflow_input={
                 'node_uuids': [],
                 'run_validations': False,
+                'concurrency': 20
             })
 
     def test_introspect_manageable_nodes_success(self):
@@ -181,12 +184,13 @@ class TestBaremetalWorkflows(utils.TestCommand):
         }])
 
         baremetal.introspect_manageable_nodes(
-            self.app.client_manager, run_validations=False
+            self.app.client_manager, run_validations=False, concurrency=20
         )
         self.workflow.executions.create.assert_called_once_with(
             'tripleo.baremetal.v1.introspect_manageable_nodes',
             workflow_input={
                 'run_validations': False,
+                'concurrency': 20
             })
 
     def test_introspect_manageable_nodes_error(self):
@@ -197,13 +201,15 @@ class TestBaremetalWorkflows(utils.TestCommand):
             exceptions.IntrospectionError,
             baremetal.introspect_manageable_nodes,
             self.app.client_manager,
-            run_validations=False
+            run_validations=False,
+            concurrency=20
         )
 
         self.workflow.executions.create.assert_called_once_with(
             'tripleo.baremetal.v1.introspect_manageable_nodes',
             workflow_input={
                 'run_validations': False,
+                'concurrency': 20
             })
 
     def test_introspect_manageable_nodes_mixed_status(self):
@@ -219,13 +225,15 @@ class TestBaremetalWorkflows(utils.TestCommand):
             exceptions.IntrospectionError,
             baremetal.introspect_manageable_nodes,
             self.app.client_manager,
-            run_validations=False
+            run_validations=False,
+            concurrency=20
         )
 
         self.workflow.executions.create.assert_called_once_with(
             'tripleo.baremetal.v1.introspect_manageable_nodes',
             workflow_input={
                 'run_validations': False,
+                'concurrency': 20
             })
 
     def test_provide_manageable_nodes_success(self):
