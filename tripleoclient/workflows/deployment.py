@@ -312,6 +312,7 @@ def enable_ssh_admin(log, clients, plan_name, hosts, ssh_user, ssh_key):
 def config_download(log, clients, stack, templates,
                     ssh_user, ssh_key, ssh_network,
                     output_dir, override_ansible_cfg, timeout, verbosity=1,
+                    deployment_options={},
                     in_flight_validations=True):
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
@@ -326,6 +327,7 @@ def config_download(log, clients, stack, templates,
         'plan_name': stack.stack_name,
         'ssh_network': ssh_network,
         'config_download_timeout': timeout,
+        'deployment_options': deployment_options,
         'skip_tags': skip_tags
     }
     if output_dir:

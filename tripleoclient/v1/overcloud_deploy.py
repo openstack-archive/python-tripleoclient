@@ -969,6 +969,11 @@ class DeployOvercloud(command.Command):
                     used = int(time.time() - start)
                     timeout = (parsed_args.timeout * 60) - used
 
+                deployment_options = {}
+                if parsed_args.deployment_python_interpreter:
+                    deployment_options['ansible_python_interpreter'] = \
+                        parsed_args.deployment_python_interpreter
+
                 disabled_val = parsed_args.disable_validations
                 enable_val = parsed_args.run_validations
 
@@ -981,6 +986,7 @@ class DeployOvercloud(command.Command):
                     parsed_args.override_ansible_cfg,
                     timeout,
                     verbosity=self.app_args.verbose_level,
+                    deployment_options=deployment_options,
                     in_flight_validations=(enable_val or not disabled_val))
             except Exception:
                 deployment.set_deployment_status(
