@@ -37,6 +37,8 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
         self.mock_uuid4 = uuid4_patcher.start()
         self.addCleanup(self.mock_uuid4.stop)
 
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                'take_action')
     @mock.patch('tripleoclient.workflows.deployment.'
                 'get_hosts_and_enable_ssh_admin', autospec=True)
     @mock.patch('tripleoclient.workflows.deployment.create_overcloudrc',
@@ -67,7 +69,8 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
                          add_env,
                          mock_write_overcloudrc,
                          mock_overcloudrc,
-                         mock_enable_ssh_admin):
+                         mock_enable_ssh_admin,
+                         mock_overcloud_deploy):
 
         mock_stack = mock.Mock(parameters={'DeployIdentifier': ''})
         mock_stack.stack_name = 'overcloud'
@@ -92,11 +95,14 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
                                                  container="overcloud")
         mock_write_overcloudrc.assert_called_once_with("overcloud",
                                                        mock.ANY)
+        mock_overcloud_deploy.assert_called_once_with(parsed_args)
         mock_enable_ssh_admin.assert_called_once_with(
             self.cmd.log, self.app.client_manager, mock_stack,
             parsed_args.overcloud_ssh_network,
             parsed_args.overcloud_ssh_user, parsed_args.overcloud_ssh_key)
 
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                'take_action')
     @mock.patch('tripleoclient.utils.get_stack',
                 autospec=True)
     @mock.patch('tripleoclient.utils.prepend_environment', autospec=True)
@@ -110,7 +116,7 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
                 '_deploy_tripleo_heat_templates', autospec=True)
     def test_upgrade_failed(self, mock_deploy, mock_copy, mock_yaml,
                             mock_abspath, mock_open, mock_upgrade,
-                            add_env, mock_get_stack):
+                            add_env, mock_get_stack, mock_overcloud_deploy):
         mock_upgrade.side_effect = exceptions.DeploymentError()
         mock_yaml.return_value = {'fake_container': 'fake_value'}
         mock_stack = mock.Mock(parameters={'DeployIdentifier': ''})
@@ -127,6 +133,7 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
 
         self.assertRaises(exceptions.DeploymentError,
                           self.cmd.take_action, parsed_args)
+        mock_overcloud_deploy.assert_called_once_with(parsed_args)
 
     @mock.patch('tripleo_common.update.check_neutron_mechanism_drivers')
     def test_upgrade_failed_wrong_driver(self, check_mech):
