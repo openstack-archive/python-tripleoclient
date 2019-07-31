@@ -94,6 +94,7 @@ class TestRunAnsiblePlaybook(TestCase):
         env['ANSIBLE_CONFIG'] = '/tmp/fooBar.cfg'
         env['ANSIBLE_HOST_KEY_CHECKING'] = 'False'
         env['ANSIBLE_LOG_PATH'] = '/tmp/ansible.log'
+        env['TRIPLEO_PLAN_NAME'] = 'overcloud'
 
         self.assertRaises(RuntimeError,
                           utils.run_ansible_playbook,
@@ -157,6 +158,7 @@ class TestRunAnsiblePlaybook(TestCase):
         env['ANSIBLE_CONFIG'] = '/tmp/fooBar.cfg'
         env['ANSIBLE_HOST_KEY_CHECKING'] = 'False'
         env['ANSIBLE_LOG_PATH'] = '/tmp/ansible.log'
+        env['TRIPLEO_PLAN_NAME'] = 'overcloud'
 
         mock_run.assert_called_once_with(self.mock_log,
                                          [self.ansible_playbook_cmd,
@@ -209,6 +211,7 @@ class TestRunAnsiblePlaybook(TestCase):
         env['ANSIBLE_CONFIG'] = '/tmp/foo.cfg'
         env['ANSIBLE_HOST_KEY_CHECKING'] = 'False'
         env['ANSIBLE_LOG_PATH'] = '/tmp/ansible.log'
+        env['TRIPLEO_PLAN_NAME'] = 'overcloud'
 
         mock_run.assert_called_once_with(self.mock_log,
                                          [self.ansible_playbook_cmd,
@@ -256,6 +259,7 @@ class TestRunAnsiblePlaybook(TestCase):
         env['ANSIBLE_CONFIG'] = '/tmp/fooBar.cfg'
         env['ANSIBLE_HOST_KEY_CHECKING'] = 'False'
         env['ANSIBLE_LOG_PATH'] = '/tmp/ansible.log'
+        env['TRIPLEO_PLAN_NAME'] = 'overcloud'
 
         mock_run.assert_called_once_with(self.mock_log,
                                          [self.ansible_playbook_cmd,
@@ -307,6 +311,7 @@ class TestRunAnsiblePlaybook(TestCase):
         env['ANSIBLE_CONFIG'] = '/tmp/fooBar.cfg'
         env['ANSIBLE_HOST_KEY_CHECKING'] = 'False'
         env['ANSIBLE_LOG_PATH'] = '/tmp/ansible.log'
+        env['TRIPLEO_PLAN_NAME'] = 'overcloud'
 
         mock_run.assert_called_once_with(
             self.mock_log, [
