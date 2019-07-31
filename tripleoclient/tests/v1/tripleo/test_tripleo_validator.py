@@ -111,7 +111,8 @@ class TestValidatorRun(utils.TestCommand):
             retries=False,
             output_callback='validation_output',
             extra_vars={},
-            python_interpreter='/usr/bin/python{}'.format(sys.version_info[0])
+            python_interpreter='/usr/bin/python{}'.format(sys.version_info[0]),
+            gathering_policy='explicit'
         )
 
         assert mock_sysexit.called

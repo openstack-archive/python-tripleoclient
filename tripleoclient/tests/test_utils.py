@@ -272,6 +272,55 @@ class TestRunAnsiblePlaybook(TestCase):
     @mock.patch('tempfile.mkstemp', return_value=('foo', '/tmp/fooBar.cfg'))
     @mock.patch('os.path.exists', return_value=True)
     @mock.patch('tripleoclient.utils.run_command_and_log')
+    def test_run_success_gathering_policy(self, mock_run, mock_exists,
+                                          mok_mkstemp):
+        mock_process = mock.Mock()
+        mock_process.returncode = 0
+        mock_run.return_value = mock_process
+
+        retcode, output = utils.run_ansible_playbook(
+            self.mock_log,
+            '/tmp',
+            'existing.yaml',
+            'localhost,',
+            gathering_policy='explicit')
+        self.assertEqual(retcode, 0)
+        mock_exists.assert_called_once_with('/tmp/existing.yaml')
+        env = os.environ.copy()
+        env['ANSIBLE_LIBRARY'] = \
+            ('/root/.ansible/plugins/modules:'
+             '/usr/share/ansible/plugins/modules:'
+             '/usr/share/openstack-tripleo-validations/library')
+        env['ANSIBLE_LOOKUP_PLUGINS'] = \
+            ('root/.ansible/plugins/lookup:'
+             '/usr/share/ansible/plugins/lookup:'
+             '/usr/share/openstack-tripleo-validations/lookup_plugins')
+        env['ANSIBLE_CALLBACK_PLUGINS'] = \
+            ('~/.ansible/plugins/callback:'
+             '/usr/share/ansible/plugins/callback:'
+             '/usr/share/openstack-tripleo-validations/callback_plugins')
+        env['ANSIBLE_ROLES_PATH'] = \
+            ('/root/.ansible/roles:'
+             '/usr/share/ansible/roles:'
+             '/etc/ansible/roles:'
+             '/usr/share/openstack-tripleo-validations/roles')
+        env['ANSIBLE_CONFIG'] = '/tmp/fooBar.cfg'
+        env['ANSIBLE_HOST_KEY_CHECKING'] = 'False'
+        env['ANSIBLE_LOG_PATH'] = '/tmp/ansible.log'
+        env['TRIPLEO_PLAN_NAME'] = 'overcloud'
+        env['ANSIBLE_GATHERING'] = 'explicit'
+
+        mock_run.assert_called_once_with(self.mock_log,
+                                         [self.ansible_playbook_cmd,
+                                          '-u', 'root',
+                                          '-i', 'localhost,', '-v',
+                                          '-c', 'smart',
+                                          '/tmp/existing.yaml'],
+                                         env=env, retcode_only=False)
+
+    @mock.patch('tempfile.mkstemp', return_value=('foo', '/tmp/fooBar.cfg'))
+    @mock.patch('os.path.exists', return_value=True)
+    @mock.patch('tripleoclient.utils.run_command_and_log')
     def test_run_success_extra_vars(self, mock_run, mock_exists, mock_mkstemp):
         mock_process = mock.Mock()
         mock_process.returncode = 0

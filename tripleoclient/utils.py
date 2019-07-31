@@ -84,7 +84,8 @@ def run_ansible_playbook(logger,
                          skip_tags=None,
                          verbosity=1,
                          extra_vars=None,
-                         plan='overcloud'):
+                         plan='overcloud',
+                         gathering_policy=None):
     """Simple wrapper for ansible-playbook
 
     :param logger: logger instance
@@ -147,6 +148,12 @@ def run_ansible_playbook(logger,
     :param extra_vars: set additional variables as a Dict
     or the absolute path of a JSON or YAML file type
     :type extra_vars: Either a Dict or the absolute path of JSON or YAML
+
+    :param gathering_policy: This setting controls the default policy of
+    fact gathering ('smart', 'implicit', 'explicit'). Defaults to None.
+    When not specified, the policy will be the default Ansible one, ie.
+    'implicit'.
+    :type gathering_facts: String
     """
     env = os.environ.copy()
 
@@ -176,6 +183,9 @@ def run_ansible_playbook(logger,
         env['ANSIBLE_LOG_PATH'] = os.path.join(log_path_dir, 'ansible.log')
 
     env['ANSIBLE_HOST_KEY_CHECKING'] = 'False'
+
+    if gathering_policy in ['smart', 'explicit', 'implicit']:
+        env['ANSIBLE_GATHERING'] = gathering_policy
 
     if extra_vars is None:
         extra_vars = {}
