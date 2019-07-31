@@ -38,7 +38,7 @@ class TestOvercloudCredentials(test_plugin.TestPluginV1):
         self.app.client_manager.tripleoclient = self.tripleoclient
 
         self.websocket.wait_for_messages.return_value = iter([{
-            "execution": {"id": "IDID"},
+            "execution_id": "IDID",
             "status": "SUCCESS",
             "message": {
                 "overcloudrc": "OVERCLOUDRC CONTENTS",

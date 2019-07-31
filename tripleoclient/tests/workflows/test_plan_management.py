@@ -35,7 +35,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
         self.app.client_manager.tripleoclient = self.tripleoclient
 
         self.message_success = iter([{
-            "execution": {"id": "IDID"},
+            "execution_id": "IDID",
             "status": "SUCCESS",
         }])
 
@@ -256,7 +256,7 @@ class TestPlanUpdateWorkflows(base.TestCommand):
         self.workflow.action_executions.create.return_value = output
         self.workflow.executions.create.return_value = output
         self.message_success = iter([{
-            "execution": {"id": "IDID"},
+            "execution_id": "IDID",
             "status": "SUCCESS",
         }])
         self.websocket.wait_for_messages.return_value = self.message_success

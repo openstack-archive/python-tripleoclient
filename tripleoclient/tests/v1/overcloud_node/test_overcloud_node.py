@@ -63,7 +63,7 @@ class TestDeleteNode(fakes.TestDeleteNode):
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
 
         self.websocket.wait_for_messages.return_value = iter([{
-            "execution": {"id": "IDID"},
+            "execution_id": "IDID",
             "status": "SUCCESS"
         }])
 
@@ -109,7 +109,7 @@ class TestDeleteNode(fakes.TestDeleteNode):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.websocket.wait_for_messages.return_value = iter([{
-            "execution": {"id": "IDID"},
+            "execution_id": "IDID",
             "status": "SUCCESS"
         }])
 
@@ -136,7 +136,7 @@ class TestDeleteNode(fakes.TestDeleteNode):
 
         self.websocket.wait_for_messages.return_value = iter([{
             "status": "FAILED",
-            "execution": {"id": "IDID"},
+            "execution_id": "IDID",
             "message": """Failed to run action ERROR: Couldn't find \
                 following instances in stack overcloud: wrong_instance"""
         }])
@@ -172,7 +172,7 @@ class TestProvideNode(fakes.TestOvercloudNode):
         self.websocket.wait_for_messages.return_value = iter([{
             "status": "SUCCESS",
             "message": "Success",
-            "execution": {"id": "IDID"}
+            "execution_id": "IDID"
         }])
 
     def test_provide_all_manageable_nodes(self):
@@ -250,7 +250,7 @@ class TestIntrospectNode(fakes.TestOvercloudNode):
             "status": "SUCCESS",
             "message": "Success",
             "introspected_nodes": {},
-            "execution": {"id": "IDID"}
+            "execution_id": "IDID"
         }] * 2)
 
         self.cmd.take_action(parsed_args)
@@ -274,7 +274,7 @@ class TestIntrospectNode(fakes.TestOvercloudNode):
         self.websocket.wait_for_messages.return_value = [{
             "status": "SUCCESS",
             "message": "Success",
-            "execution": {"id": "IDID"},
+            "execution_id": "IDID",
         }]
 
         self.cmd.take_action(parsed_args)
@@ -339,6 +339,84 @@ class TestIntrospectNode(fakes.TestOvercloudNode):
                           self.cmd, argslist, verifylist)
 
 
+class TestCleanNode(fakes.TestOvercloudNode):
+
+    def setUp(self):
+        super(TestCleanNode, self).setUp()
+
+        self.workflow = self.app.client_manager.workflow_engine
+        execution = mock.Mock()
+        execution.id = "IDID"
+        self.workflow.executions.create.return_value = execution
+        client = self.app.client_manager.tripleoclient
+        self.websocket = client.messaging_websocket()
+
+        # Get the command object to test
+        self.cmd = overcloud_node.CleanNode(self.app, None)
+
+    def _check_clean_all_manageable(self, parsed_args, provide=False):
+        self.websocket.wait_for_messages.return_value = iter([{
+            "status": "SUCCESS",
+            "message": "Success",
+            "cleaned_nodes": {},
+            "execution_id": "IDID"
+        }] * 2)
+
+        self.cmd.take_action(parsed_args)
+
+        call_list = [mock.call(
+            'tripleo.baremetal.v1.clean_manageable_nodes',
+            workflow_input={}
+        )]
+
+        if provide:
+            call_list.append(mock.call(
+                'tripleo.baremetal.v1.provide_manageable_nodes',
+                workflow_input={}
+            ))
+
+        self.workflow.executions.create.assert_has_calls(call_list)
+        self.assertEqual(self.workflow.executions.create.call_count,
+                         2 if provide else 1)
+
+    def _check_clean_nodes(self, parsed_args, nodes, provide=False):
+        self.websocket.wait_for_messages.return_value = [{
+            "status": "SUCCESS",
+            "message": "Success",
+            "execution_id": "IDID"
+        }]
+
+        self.cmd.take_action(parsed_args)
+
+        call_list = [mock.call(
+            'tripleo.baremetal.v1.clean_nodes', workflow_input={
+                'node_uuids': nodes}
+        )]
+
+        if provide:
+            call_list.append(mock.call(
+                'tripleo.baremetal.v1.provide', workflow_input={
+                    'node_uuids': nodes}
+            ))
+
+        self.workflow.executions.create.assert_has_calls(call_list)
+        self.assertEqual(self.workflow.executions.create.call_count,
+                         2 if provide else 1)
+
+    def test_clean_all_manageable_nodes_without_provide(self):
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--all-manageable'],
+                                        [('all_manageable', True)])
+        self._check_clean_all_manageable(parsed_args, provide=False)
+
+    def test_clean_nodes_without_provide(self):
+        nodes = ['node_uuid1', 'node_uuid2']
+        parsed_args = self.check_parser(self.cmd,
+                                        nodes,
+                                        [('node_uuids', nodes)])
+        self._check_clean_nodes(parsed_args, nodes, provide=False)
+
+
 class TestImportNode(fakes.TestOvercloudNode):
 
     def setUp(self):
@@ -393,7 +471,7 @@ class TestImportNode(fakes.TestOvercloudNode):
             "registered_nodes": [{
                 "uuid": "MOCK_NODE_UUID"
             }],
-            "execution": {"id": "IDID"}
+            "execution_id": "IDID"
         }]
 
         self.cmd.take_action(parsed_args)
@@ -549,7 +627,7 @@ class TestImportNodeMultiArch(fakes.TestOvercloudNode):
             "registered_nodes": [{
                 "uuid": "MOCK_NODE_UUID"
             }],
-            "execution": {"id": "IDID"}
+            "execution_id": "IDID"
         }]
 
         self.cmd.take_action(parsed_args)
@@ -654,7 +732,7 @@ class TestConfigureNode(fakes.TestOvercloudNode):
         self.websocket.wait_for_messages.return_value = iter([{
             "status": "SUCCESS",
             "message": "",
-            "execution": {"id": "IDID"}
+            "execution_id": "IDID"
         }])
 
         # Get the command object to test
@@ -682,7 +760,7 @@ class TestConfigureNode(fakes.TestOvercloudNode):
         self.websocket.wait_for_messages.return_value = iter([{
             "status": "FAILED",
             "message": "Test failure.",
-            "execution": {"id": "IDID"}
+            "execution_id": "IDID"
         }])
 
         parsed_args = self.check_parser(self.cmd, ['--all-manageable'], [])
@@ -711,7 +789,7 @@ class TestConfigureNode(fakes.TestOvercloudNode):
         self.websocket.wait_for_messages.return_value = iter([{
             "status": "FAILED",
             "message": "Test failure.",
-            "execution": {"id": "IDID"}
+            "execution_id": "IDID"
         }])
 
         parsed_args = self.check_parser(self.cmd, ['node_uuid1'], [])
@@ -838,7 +916,7 @@ class TestDiscoverNode(fakes.TestOvercloudNode):
             "registered_nodes": [{
                 "uuid": "MOCK_NODE_UUID"
             }],
-            "execution": {"id": "IDID"}
+            "execution_id": "IDID"
         }]
 
     def test_with_ip_range(self):

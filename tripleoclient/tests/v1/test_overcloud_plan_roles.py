@@ -151,7 +151,7 @@ class TestOvercloudListRole(utils.TestCommand):
 
     def test_list_empty(self):
         self.websocket.wait_for_messages.return_value = [{
-            'execution': {'id': 'IDID'},
+            'execution_id': 'IDID',
             'status': 'SUCCESS',
             'available_roles': []
         }]
@@ -169,7 +169,7 @@ class TestOvercloudListRole(utils.TestCommand):
 
     def test_list(self):
         self.websocket.wait_for_messages.return_value = [{
-            'execution': {'id': 'IDID'},
+            'execution_id': 'IDID',
             'status': 'SUCCESS',
             'available_roles': [{'name': 'ObjectStorage'},
                                 {'name': 'Compute'}]
@@ -188,7 +188,7 @@ class TestOvercloudListRole(utils.TestCommand):
 
     def test_list_with_details(self):
         self.websocket.wait_for_messages.return_value = [{
-            'execution': {'id': 'IDID'},
+            'execution_id': 'IDID',
             'status': 'SUCCESS',
             'available_roles': [
                 {'name': 'Controller', 'description': 'Test description',
@@ -233,7 +233,7 @@ class TestOvercloudShowRole(utils.TestCommand):
 
     def test_role_not_found(self):
         self.websocket.wait_for_messages.return_value = [{
-            'execution': {'id': 'IDID'},
+            'execution_id': 'IDID',
             'status': 'SUCCESS',
             'available_roles': []
         }]
@@ -248,7 +248,7 @@ class TestOvercloudShowRole(utils.TestCommand):
 
     def test_role(self):
         self.websocket.wait_for_messages.return_value = [{
-            'execution': {'id': 'IDID'},
+            'execution_id': 'IDID',
             'status': 'SUCCESS',
             'available_roles': [
                 {"name": "Test", "a": "b"},
