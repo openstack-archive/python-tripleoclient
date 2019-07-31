@@ -25,7 +25,11 @@ class TestOvercloudCredentials(test_plugin.TestPluginV1):
         super(TestOvercloudCredentials, self).setUp()
 
         self.cmd = overcloud_credentials.OvercloudCredentials(self.app, None)
-        self.app.client_manager.workflow_engine = self.workflow = mock.Mock()
+        workflow = execution = mock.Mock()
+        execution.id = "IDID"
+        workflow.executions.create.return_value = execution
+        self.app.client_manager.workflow_engine = workflow
+        self.app.client_manager.workflow_engine = self.workflow = workflow
         self.tripleoclient = mock.Mock()
         self.websocket = mock.Mock()
         self.websocket.__enter__ = lambda s: self.websocket
