@@ -127,25 +127,6 @@ class DeployOvercloud(command.Command):
             container_name)
         return bp_env
 
-    def _create_registration_env(self, args, tht_root):
-        user_tht_root = args.templates
-        registry = os.path.join(
-            user_tht_root,
-            constants.RHEL_REGISTRATION_EXTRACONFIG_NAME,
-            'rhel-registration-resource-registry.yaml')
-        user_env = {'rhel_reg_method': args.reg_method,
-                    'rhel_reg_org': args.reg_org,
-                    'rhel_reg_force': args.reg_force,
-                    'rhel_reg_sat_url': args.reg_sat_url,
-                    'rhel_reg_activation_key': args.reg_activation_key}
-        parameter_defaults = {"parameter_defaults": user_env}
-        env_path, swift_path = self._write_user_environment(
-            parameter_defaults,
-            'tripleoclient-registration-parameters.yaml',
-            tht_root,
-            args.stack)
-        return [registry], {"parameter_defaults": user_env}
-
     def _create_parameters_env(self, parameters, tht_root, container_name):
         parameter_defaults = {"parameter_defaults": parameters}
         env_path, swift_path = self._write_user_environment(
@@ -429,11 +410,6 @@ class DeployOvercloud(command.Command):
         template_utils.deep_update(env, self._create_parameters_env(
             parameters, tht_root, parsed_args.stack))
 
-        if parsed_args.rhel_reg:
-            reg_env_files, reg_env = self._create_registration_env(
-                parsed_args, tht_root)
-            created_env_files.extend(reg_env_files)
-            template_utils.deep_update(env, reg_env)
         if parsed_args.environment_files:
             created_env_files.extend(parsed_args.environment_files)
 
@@ -782,39 +758,6 @@ class DeployOvercloud(command.Command):
                    'that the software configuration does not need to be '
                    'run, such as when scaling out certain roles.')
         )
-        reg_group = parser.add_argument_group('Registration Parameters')
-        reg_group.add_argument(
-            '--rhel-reg',
-            action='store_true',
-            help=_('Register overcloud nodes to the customer portal or a '
-                   'satellite.')
-        )
-        reg_group.add_argument(
-            '--reg-method',
-            choices=['satellite', 'portal'],
-            default='satellite',
-            help=_('RHEL registration method to use for the overcloud nodes.')
-        )
-        reg_group.add_argument(
-            '--reg-org',
-            default='',
-            help=_('Organization key to use for registration.')
-        )
-        reg_group.add_argument(
-            '--reg-force',
-            action='store_true',
-            help=_('Register the system even if it is already registered.')
-        )
-        reg_group.add_argument(
-            '--reg-sat-url',
-            default='',
-            help=_('Satellite server to register overcloud nodes.')
-        )
-        reg_group.add_argument(
-            '--reg-activation-key',
-            default='',
-            help=_('Activation key to use for registration.')
-        )
         parser.add_argument(
             '--answers-file',
             help=_('Path to a YAML file with arguments and parameters.')
@@ -927,25 +870,6 @@ class DeployOvercloud(command.Command):
             self.log.info("No stack found, will be doing a stack create")
         else:
             self.log.info("Stack found, will be doing a stack update")
-
-        if parsed_args.rhel_reg:
-            if parsed_args.reg_method == 'satellite':
-                sat_required_args = (parsed_args.reg_org and
-                                     parsed_args.reg_sat_url and
-                                     parsed_args.reg_activation_key)
-                if not sat_required_args:
-                    raise exceptions.DeploymentError(
-                        "ERROR: In order to use satellite registration, "
-                        "you must specify --reg-org, --reg-sat-url, and "
-                        "--reg-activation-key.")
-            else:
-                portal_required_args = (parsed_args.reg_org and
-                                        parsed_args.reg_activation_key)
-                if not portal_required_args:
-                    raise exceptions.DeploymentError(
-                        "ERROR: In order to use portal registration, you "
-                        "must specify --reg-org, and "
-                        "--reg-activation-key.")
 
         if parsed_args.dry_run:
             print("Validation Finished")
