@@ -100,7 +100,6 @@ class TestValidatorRun(utils.TestCommand):
         plan_mock.assert_called_once_with(
             logger=mock_log,
             plan='overcloud',
-            connection='local',
             inventory='/usr/bin/tripleo-ansible-inventory',
             workdir=playbooks_dir,
             log_path_dir='/home/stack',

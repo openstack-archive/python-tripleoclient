@@ -348,7 +348,6 @@ class TripleOValidatorRun(command.Command):
                     playbook=playbook,
                     inventory='/usr/bin/tripleo-ansible-inventory',
                     retries=False,
-                    connection='local',
                     output_callback='validation_output',
                     extra_vars=extra_vars_input,
                     python_interpreter=python_interpreter)
