@@ -68,6 +68,39 @@ class TripleOValidatorList(command.Command):
         )
 
         parser.add_argument(
+            '--parameters',
+            action='store_true',
+            default=False,
+            help=_("List available validations parameters")
+        )
+
+        parser.add_argument(
+            '--create-vars-file',
+            metavar=('[json|yaml]', '/tmp/myvars'),
+            action='store',
+            default=[],
+            nargs=2,
+            help=_("Create a json or a yaml file "
+                   "containing all the variables "
+                   "available for the validations: "
+                   "[yaml|json] /tmp/myvars")
+        )
+
+        ex_group = parser.add_mutually_exclusive_group(required=False)
+
+        ex_group.add_argument(
+            '--validation-name',
+            metavar='<validation_id>[,<validation_id>,...]',
+            action=_CommaListAction,
+            default=[],
+            help=_("List specific validations, "
+                   "if more than one validation is required "
+                   "separate the names with commas: "
+                   "--validation-name check-ftype,512e | "
+                   "--validation-name 512e")
+        )
+
+        ex_group.add_argument(
             '--group',
             metavar='<group>[,<group>,...]',
             action=_CommaListGroupAction,
@@ -81,6 +114,38 @@ class TripleOValidatorList(command.Command):
 
         return parser
 
+    def _create_variables_file(self, data, varsfile):
+        msg = (_("The file %s already exists on the filesystem, "
+                 "do you still want to continue [y/N] "))
+
+        if varsfile[0] not in ['json', 'yaml']:
+            raise RuntimeError(_('Wrong file type: %s') % varsfile[0])
+        else:
+            LOG.debug(_('Launch variables file creation'))
+            try:
+                if os.path.exists(varsfile[-1]):
+                    confirm = oooutils.prompt_user_for_confirmation(
+                        message=msg % varsfile[-1], logger=LOG)
+                    if not confirm:
+                        raise RuntimeError(_("Action not confirmed, exiting"))
+
+                with open(varsfile[-1], 'w') as f:
+                    params = {}
+                    for val_name in data.keys():
+                        for k, v in data[val_name].get('parameters').items():
+                            params[k] = v
+
+                    if varsfile[0] == 'json':
+                        f.write(oooutils.get_validations_json(params))
+                    elif varsfile[0] == 'yaml':
+                        f.write(oooutils.get_validations_yaml(params))
+                print(
+                    _('The file %s has been created successfully') %
+                    varsfile[-1])
+            except Exception as e:
+                print(_("Creating variables file finished with errors"))
+                print('Output: {}'.format(e))
+
     def _run_validator_list(self, parsed_args):
         clients = self.app.client_manager
 
@@ -91,13 +156,29 @@ class TripleOValidatorList(command.Command):
         LOG.debug(_('Launch listing the validations'))
         try:
             output = validations.list_validations(clients, workflow_input)
-            if parsed_args.output == 'json':
-                out = oooutils.get_validations_json({'validations': output})
-            elif parsed_args.output == 'yaml':
-                out = oooutils.get_validations_yaml({'validations': output})
+            if parsed_args.parameters:
+                out = oooutils.get_validations_parameters(
+                    {'validations': output},
+                    parsed_args.validation_name,
+                    parsed_args.group
+                )
+
+                if parsed_args.create_vars_file:
+                    self._create_variables_file(out,
+                                                parsed_args.create_vars_file)
+                else:
+                    print(oooutils.get_validations_json(out))
             else:
-                out = oooutils.get_validations_table({'validations': output})
-            print(out)
+                if parsed_args.output == 'json':
+                    out = oooutils.get_validations_json(
+                        {'validations': output})
+                elif parsed_args.output == 'yaml':
+                    out = oooutils.get_validations_yaml(
+                        {'validations': output})
+                else:
+                    out = oooutils.get_validations_table(
+                        {'validations': output})
+                print(out)
         except Exception as e:
             print(_("Validations listing finished with errors"))
             print('Output: {}'.format(e))
