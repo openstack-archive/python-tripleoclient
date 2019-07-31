@@ -73,13 +73,17 @@ class TestValidatorRun(utils.TestCommand):
                 'validation_inputs': {}
             })
 
+    @mock.patch('sys.exit')
     @mock.patch('logging.getLogger')
     @mock.patch('pwd.getpwuid')
     @mock.patch('os.getuid')
+    @mock.patch('tripleoclient.utils.get_tripleo_ansible_inventory',
+                return_value='/home/stack/inventory.yaml')
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
-    def test_validation_run_with_ansible(self, plan_mock, mock_getuid,
-                                         mock_getpwuid, mock_logger):
+    def test_validation_run_with_ansible(self, plan_mock, mock_inventory,
+                                         mock_getuid, mock_getpwuid,
+                                         mock_logger, mock_sysexit):
         mock_pwuid = mock.Mock()
         mock_pwuid.pw_dir = '/home/stack'
         mock_getpwuid.return_value = mock_pwuid
@@ -100,7 +104,7 @@ class TestValidatorRun(utils.TestCommand):
         plan_mock.assert_called_once_with(
             logger=mock_log,
             plan='overcloud',
-            inventory='/usr/bin/tripleo-ansible-inventory',
+            inventory='/home/stack/inventory.yaml',
             workdir=playbooks_dir,
             log_path_dir='/home/stack',
             playbook='check-ftype.yaml',
@@ -109,3 +113,5 @@ class TestValidatorRun(utils.TestCommand):
             extra_vars={},
             python_interpreter='/usr/bin/python{}'.format(sys.version_info[0])
         )
+
+        assert mock_sysexit.called
