@@ -980,40 +980,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         utils_fixture.mock_deploy_tht.assert_called_with()
 
-    def test_get_default_role_counts_defaults(self):
-        parsed_args = self.check_parser(self.cmd, [], [])
-        defaults = {
-            'ControllerCount': 1,
-            'ComputeCount': 1,
-            'ObjectStorageCount': 0,
-            'BlockStorageCount': 0,
-            'CephStorageCount': 0
-        }
-        self.assertEqual(
-            defaults,
-            self.cmd._get_default_role_counts(parsed_args))
-
-    @mock.patch("tripleoclient.utils.fetch_roles_file")
-    def test_get_default_role_counts_custom_roles(self, mock_roles):
-        roles_data = [
-            {'name': 'ControllerApi', 'CountDefault': 3},
-            {'name': 'ControllerPcmk', 'CountDefault': 3},
-            {'name': 'Compute', 'CountDefault': 3},
-            {'name': 'ObjectStorage', 'CountDefault': 0},
-            {'name': 'BlockStorage'}
-        ]
-        mock_roles.return_value = roles_data
-        role_counts = {
-            'ControllerApiCount': 3,
-            'ControllerPcmkCount': 3,
-            'ComputeCount': 3,
-            'ObjectStorageCount': 0,
-            'BlockStorageCount': 0,
-        }
-        self.assertEqual(
-            role_counts,
-            self.cmd._get_default_role_counts(mock.Mock()))
-
     @mock.patch('tripleoclient.utils.check_stack_network_matches_env_files')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_create_parameters_env', autospec=True)
