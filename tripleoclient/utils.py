@@ -646,11 +646,6 @@ def run_shell(cmd):
     return subprocess.call([cmd], shell=True)
 
 
-def all_unique(x):
-    """Return True if the collection has no duplications."""
-    return len(set(x)) == len(x)
-
-
 def file_checksum(filepath):
     """Calculate md5 checksum on file
 
