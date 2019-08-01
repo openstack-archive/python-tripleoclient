@@ -565,46 +565,6 @@ class TestWaitForStackUtil(TestCase):
         result = utils.wait_for_stack_ready(self.mock_orchestration, 'stack')
         self.assertEqual(False, result)
 
-    def test_wait_for_provision_state(self):
-
-        baremetal_client = mock.Mock()
-
-        baremetal_client.node.get.return_value = mock.Mock(
-            provision_state="available", last_error=None)
-
-        utils.wait_for_provision_state(baremetal_client, 'UUID', "available")
-
-    def test_wait_for_provision_state_not_found(self):
-
-        baremetal_client = mock.Mock()
-
-        baremetal_client.node.get.return_value = None
-
-        utils.wait_for_provision_state(baremetal_client, 'UUID', "available")
-
-    def test_wait_for_provision_state_timeout(self):
-
-        baremetal_client = mock.Mock()
-
-        baremetal_client.node.get.return_value = mock.Mock(
-            provision_state="not what we want", last_error=None)
-
-        with self.assertRaises(exceptions.Timeout):
-            utils.wait_for_provision_state(baremetal_client, 'UUID',
-                                           "available", loops=1, sleep=0.01)
-
-    def test_wait_for_provision_state_fail(self):
-
-        baremetal_client = mock.Mock()
-
-        baremetal_client.node.get.return_value = mock.Mock(
-            provision_state="enroll",
-            last_error="node on fire; returning to previous state.")
-
-        with self.assertRaises(exceptions.StateTransitionFailed):
-            utils.wait_for_provision_state(baremetal_client, 'UUID',
-                                           "available", loops=1, sleep=0.01)
-
     def test_check_stack_network_matches_env_files(self):
         stack_reg = {
             'OS::TripleO::Hosts::SoftwareConfig': 'val',
