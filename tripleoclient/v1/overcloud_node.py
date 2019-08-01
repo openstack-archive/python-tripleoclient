@@ -262,6 +262,7 @@ class ImportNode(command.Command):
         self.log.debug("take_action(%s)" % parsed_args)
 
         nodes_config = oooutils.parse_env_file(parsed_args.env_file)
+        parsed_args.env_file.close()
 
         if parsed_args.validate_only:
             return baremetal.validate_nodes(self.app.client_manager,

@@ -372,17 +372,18 @@ class UploadOvercloudImage(command.Command):
                 oc_vmlinuz_file = os.path.join(parsed_args.image_path,
                                                image_name +
                                                oc_vmlinuz_extension)
-                kernel = (self._image_try_update(oc_vmlinuz_name,
-                                                 oc_vmlinuz_file,
-                                                 parsed_args) or
-                          glance_client_adaptor.upload_image(
-                              name=oc_vmlinuz_name,
-                              is_public=True,
-                              disk_format='aki',
-                              properties=properties,
-                              data=self._read_image_file_pointer(
-                                  parsed_args.image_path, oc_vmlinuz_file)
-                ))
+                with self._read_image_file_pointer(
+                        parsed_args.image_path, oc_vmlinuz_file) as data:
+                    kernel = (self._image_try_update(oc_vmlinuz_name,
+                                                     oc_vmlinuz_file,
+                                                     parsed_args) or
+                              glance_client_adaptor.upload_image(
+                                  name=oc_vmlinuz_name,
+                                  is_public=True,
+                                  disk_format='aki',
+                                  properties=properties,
+                                  data=data
+                    ))
 
                 (oc_initrd_name,
                  oc_initrd_extension) = plugin_utils.overcloud_ramdisk(
@@ -390,17 +391,18 @@ class UploadOvercloudImage(command.Command):
                 oc_initrd_file = os.path.join(parsed_args.image_path,
                                               image_name +
                                               oc_initrd_extension)
-                ramdisk = (self._image_try_update(oc_initrd_name,
-                                                  oc_initrd_file,
-                                                  parsed_args) or
-                           glance_client_adaptor.upload_image(
-                               name=oc_initrd_name,
-                               is_public=True,
-                               disk_format='ari',
-                               properties=properties,
-                               data=self._read_image_file_pointer(
-                                   parsed_args.image_path, oc_initrd_file)
-                ))
+                with self._read_image_file_pointer(
+                        parsed_args.image_path, oc_initrd_file) as data:
+                    ramdisk = (self._image_try_update(oc_initrd_name,
+                                                      oc_initrd_file,
+                                                      parsed_args) or
+                               glance_client_adaptor.upload_image(
+                                   name=oc_initrd_name,
+                                   is_public=True,
+                                   disk_format='ari',
+                                   properties=properties,
+                                   data=data
+                    ))
 
                 (oc_name,
                  oc_extension) = plugin_utils.overcloud_image(
@@ -408,20 +410,21 @@ class UploadOvercloudImage(command.Command):
                 oc_file = os.path.join(parsed_args.image_path,
                                        image_name +
                                        oc_extension)
-                overcloud_image = (self._image_try_update(oc_name, oc_file,
-                                                          parsed_args) or
-                                   glance_client_adaptor.upload_image(
-                                       name=oc_name,
-                                       is_public=True,
-                                       disk_format='qcow2',
-                                       container_format='bare',
-                                       properties=dict(
-                                           {'kernel_id': kernel.id,
-                                            'ramdisk_id': ramdisk.id},
-                                           **properties),
-                                       data=self._read_image_file_pointer(
-                                           parsed_args.image_path, oc_file)
-                ))
+                with self._read_image_file_pointer(
+                        parsed_args.image_path, oc_file) as data:
+                    overcloud_image = (self._image_try_update(oc_name, oc_file,
+                                                              parsed_args) or
+                                       glance_client_adaptor.upload_image(
+                                           name=oc_name,
+                                           is_public=True,
+                                           disk_format='qcow2',
+                                           container_format='bare',
+                                           properties=dict(
+                                               {'kernel_id': kernel.id,
+                                                'ramdisk_id': ramdisk.id},
+                                               **properties),
+                                           data=data
+                    ))
 
                 img_kernel_id = glance_client_adaptor.get_image_property(
                     overcloud_image, 'kernel_id')
@@ -442,17 +445,18 @@ class UploadOvercloudImage(command.Command):
                 oc_file = os.path.join(parsed_args.image_path,
                                        image_name +
                                        oc_extension)
-                overcloud_image = (self._image_try_update(oc_name, oc_file,
-                                                          parsed_args) or
-                                   glance_client_adaptor.upload_image(
-                                       name=oc_name,
-                                       is_public=True,
-                                       disk_format='qcow2',
-                                       container_format='bare',
-                                       properties=properties,
-                                       data=self._read_image_file_pointer(
-                                           parsed_args.image_path, oc_file)
-                ))
+                with self._read_image_file_pointer(
+                        parsed_args.image_path, oc_file) as data:
+                    overcloud_image = (self._image_try_update(oc_name, oc_file,
+                                                              parsed_args) or
+                                       glance_client_adaptor.upload_image(
+                                           name=oc_name,
+                                           is_public=True,
+                                           disk_format='qcow2',
+                                           container_format='bare',
+                                           properties=properties,
+                                           data=data
+                    ))
 
             self.log.debug("uploading bm images to glance")
 

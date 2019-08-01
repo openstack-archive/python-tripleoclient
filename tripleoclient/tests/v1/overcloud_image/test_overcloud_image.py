@@ -18,6 +18,7 @@ import os
 
 from osc_lib import exceptions
 import tripleo_common.arch
+from tripleoclient.tests.fakes import FakeHandle
 from tripleoclient.tests.v1.test_plugin import TestPluginV1
 from tripleoclient.v1 import overcloud_image
 
@@ -127,7 +128,9 @@ class TestUploadOvercloudImage(TestPluginV1):
                       properties={'kernel_id': 10, 'ramdisk_id': 10,
                                   'hw_architecture': self._arch},
                       created_at='2015-07-31T14:37:22.000000'))
-        self.cmd._read_image_file_pointer = mock.Mock(return_value=b'IMGDATA')
+        self._file_handle = FakeHandle()
+        self.cmd._read_image_file_pointer = mock.Mock(
+                return_value=self._file_handle)
         self.cmd._check_file_exists = mock.Mock(return_value=True)
 
     @mock.patch('osc_lib.utils.find_resource')
@@ -290,29 +293,29 @@ class TestUploadOvercloudImage(TestPluginV1):
         )
         self.app.client_manager.image.images.create.assert_has_calls([
             mock.call(properties={'hw_architecture': self._arch},
-                      data=b'IMGDATA',
+                      data=self._file_handle,
                       name='overcloud-full-vmlinuz',
                       disk_format='aki',
                       is_public=True),
             mock.call(properties={'hw_architecture': self._arch},
-                      data=b'IMGDATA',
+                      data=self._file_handle,
                       name='overcloud-full-initrd',
                       disk_format='ari',
                       is_public=True),
             mock.call(properties={'kernel_id': 10, 'ramdisk_id': 10,
                                   'hw_architecture': self._arch},
                       name='overcloud-full',
-                      data=b'IMGDATA',
+                      data=self._file_handle,
                       container_format='bare',
                       disk_format='qcow2',
                       is_public=True),
             mock.call(properties={'hw_architecture': self._arch},
-                      data=b'IMGDATA',
+                      data=self._file_handle,
                       name='bm-deploy-kernel',
                       disk_format='aki',
                       is_public=True),
             mock.call(properties={'hw_architecture': self._arch},
-                      data=b'IMGDATA',
+                      data=self._file_handle,
                       name='bm-deploy-ramdisk',
                       disk_format='ari',
                       is_public=True)
@@ -340,29 +343,29 @@ class TestUploadOvercloudImage(TestPluginV1):
         )
         self.app.client_manager.image.images.create.assert_has_calls([
             mock.call(properties={'hw_architecture': 'x86_64'},
-                      data=b'IMGDATA',
+                      data=self._file_handle,
                       name='x86_64-overcloud-full-vmlinuz',
                       disk_format='aki',
                       is_public=True),
             mock.call(properties={'hw_architecture': 'x86_64'},
-                      data=b'IMGDATA',
+                      data=self._file_handle,
                       name='x86_64-overcloud-full-initrd',
                       disk_format='ari',
                       is_public=True),
             mock.call(properties={'hw_architecture': 'x86_64',
                                   'kernel_id': 10, 'ramdisk_id': 10},
                       name='x86_64-overcloud-full',
-                      data=b'IMGDATA',
+                      data=self._file_handle,
                       container_format='bare',
                       disk_format='qcow2',
                       is_public=True),
             mock.call(properties={'hw_architecture': 'x86_64'},
-                      data=b'IMGDATA',
+                      data=self._file_handle,
                       name='x86_64-bm-deploy-kernel',
                       disk_format='aki',
                       is_public=True),
             mock.call(properties={'hw_architecture': 'x86_64'},
-                      data=b'IMGDATA',
+                      data=self._file_handle,
                       name='x86_64-bm-deploy-ramdisk',
                       disk_format='ari',
                       is_public=True)
@@ -479,7 +482,9 @@ class TestUploadOvercloudImageFull(TestPluginV1):
             mock.Mock(id=10, name='imgname',
                       properties={'hw_architecture': self._arch},
                       created_at='2015-07-31T14:37:22.000000'))
-        self.cmd._read_image_file_pointer = mock.Mock(return_value=b'IMGDATA')
+        self._file_handle = FakeHandle()
+        self.cmd._read_image_file_pointer = mock.Mock(
+                return_value=self._file_handle)
         self.cmd._check_file_exists = mock.Mock(return_value=True)
 
     @mock.patch('os.path.isfile', autospec=True)
@@ -670,7 +675,9 @@ class TestUploadOvercloudImageFullMultiArch(TestPluginV1):
         # call so this way we always create() and get() the same mocked "image"
         self.app.client_manager.image.images.create.side_effect = self.images
         self.app.client_manager.image.images.get.side_effect = self.images
-        self.cmd._read_image_file_pointer = mock.Mock(return_value=b'IMGDATA')
+        self._file_handle = FakeHandle()
+        self.cmd._read_image_file_pointer = mock.Mock(
+                return_value=self._file_handle)
         self.cmd._check_file_exists = mock.Mock(return_value=True)
 
     @mock.patch('os.path.isfile', autospec=True)
@@ -859,7 +866,9 @@ class TestUploadOnlyExisting(TestPluginV1):
             mock.Mock(id=10, name='imgname', properties={},
                       created_at='2015-07-31T14:37:22.000000'))
         self.cmd._check_file_exists = mock.Mock()
-        self.cmd._read_image_file_pointer = mock.Mock(return_value=b'IMGDATA')
+        self._file_handle = FakeHandle()
+        self.cmd._read_image_file_pointer = mock.Mock(
+                return_value=self._file_handle)
 
     @mock.patch('subprocess.check_call', autospec=True)
     @mock.patch('os.path.isfile', autospec=True)
@@ -867,7 +876,6 @@ class TestUploadOnlyExisting(TestPluginV1):
             self, mock_isfile_call, mock_subprocess_call):
         self.cmd._image_changed = mock.Mock(return_value=True)
         self.cmd._image_try_update = mock.Mock(return_value=None)
-        self.cmd._read_image_file_pointer = mock.Mock(return_value=b'IMGDATA')
 
         parsed_args = self.check_parser(
             self.cmd, ['--whole-disk', '--image-type=ironic-python-agent'], [])
@@ -893,7 +901,6 @@ class TestUploadOnlyExisting(TestPluginV1):
             self, mock_isfile_call, mock_subprocess_call):
         self.cmd._image_changed = mock.Mock(return_value=True)
         self.cmd._image_try_update = mock.Mock(return_value=None)
-        self.cmd._read_image_file_pointer = mock.Mock(return_value=b'IMGDATA')
 
         parsed_args = self.check_parser(
             self.cmd, ['--whole-disk', '--image-type=os'], [])
@@ -917,7 +924,6 @@ class TestUploadOnlyExisting(TestPluginV1):
             self, mock_isfile_call, mock_subprocess_call):
         self.cmd._image_changed = mock.Mock(return_value=True)
         self.cmd._image_try_update = mock.Mock(return_value=None)
-        self.cmd._read_image_file_pointer = mock.Mock(return_value=b'IMGDATA')
 
         parsed_args = self.check_parser(
             self.cmd, ['--image-type=ironic-python-agent'], [])
@@ -943,7 +949,6 @@ class TestUploadOnlyExisting(TestPluginV1):
             self, mock_isfile_call, mock_subprocess_call):
         self.cmd._image_changed = mock.Mock(return_value=True)
         self.cmd._image_try_update = mock.Mock(return_value=None)
-        self.cmd._read_image_file_pointer = mock.Mock(return_value=b'IMGDATA')
 
         parsed_args = self.check_parser(
             self.cmd, ['--image-type=os'], [])

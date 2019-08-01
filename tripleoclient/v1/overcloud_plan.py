@@ -202,6 +202,7 @@ class ExportPlan(command.Command):
         )
         f = request.urlopen(tempurl)
         tarball_contents = f.read()
+        f.close()
 
         with open(outfile, 'wb') as f:
             f.write(tarball_contents)
