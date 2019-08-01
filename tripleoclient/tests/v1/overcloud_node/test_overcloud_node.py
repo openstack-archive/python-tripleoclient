@@ -749,3 +749,123 @@ class TestDiscoverNode(fakes.TestOvercloudNode):
 
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
         self.cmd.take_action(parsed_args)
+
+
+class TestExtractProvisionedNode(test_utils.TestCommand):
+
+    def setUp(self):
+        super(TestExtractProvisionedNode, self).setUp()
+
+        self.orchestration = mock.Mock()
+        self.app.client_manager.orchestration = self.orchestration
+
+        self.baremetal = mock.Mock()
+        self.app.client_manager.baremetal = self.baremetal
+
+        self.cmd = overcloud_node.ExtractProvisionedNode(self.app, None)
+
+        self.extract_file = tempfile.NamedTemporaryFile(
+            mode='w', delete=False, suffix='.yaml')
+        self.extract_file.close()
+        self.addCleanup(os.unlink, self.extract_file.name)
+
+    def test_extract(self):
+        stack_dict = {
+            'parameters': {
+                'ComputeHostnameFormat': '%stackname%-novacompute-%index%',
+                'ControllerHostnameFormat': '%stackname%-controller-%index%'
+            },
+            'outputs': [{
+                'output_key': 'AnsibleHostVarsMap',
+                'output_value': {
+                    'Compute': [
+                        'overcloud-novacompute-0'
+                    ],
+                    'Controller': [
+                        'overcloud-controller-0',
+                        'overcloud-controller-1',
+                        'overcloud-controller-2'
+                    ],
+                }
+            }]
+        }
+        stack = mock.Mock()
+        stack.to_dict.return_value = stack_dict
+        self.orchestration.stacks.get.return_value = stack
+
+        nodes = [
+            mock.Mock(),
+            mock.Mock(),
+            mock.Mock(),
+            mock.Mock()
+        ]
+        nodes[0].name = 'bm-0'
+        nodes[1].name = 'bm-1'
+        nodes[2].name = 'bm-2'
+        nodes[3].name = 'bm-3'
+
+        nodes[0].instance_info = {'display_name': 'overcloud-controller-0'}
+        nodes[1].instance_info = {'display_name': 'overcloud-controller-1'}
+        nodes[2].instance_info = {'display_name': 'overcloud-controller-2'}
+        nodes[3].instance_info = {'display_name': 'overcloud-novacompute-0'}
+
+        self.baremetal.node.list.return_value = nodes
+
+        argslist = ['--output', self.extract_file.name, '--yes']
+        self.app.command_options = argslist
+        verifylist = [('output', self.extract_file.name), ('yes', True)]
+
+        parsed_args = self.check_parser(self.cmd,
+                                        argslist, verifylist)
+        self.cmd.take_action(parsed_args)
+
+        result = self.cmd.app.stdout.make_string()
+        self.assertEqual([{
+            'name': 'Compute',
+            'count': 1,
+            'hostname_format': '%stackname%-novacompute-%index%',
+            'instances': [{
+                'hostname': 'overcloud-novacompute-0',
+                'name': 'bm-3'
+            }],
+        }, {
+            'name': 'Controller',
+            'count': 3,
+            'hostname_format': '%stackname%-controller-%index%',
+            'instances': [{
+                'hostname': 'overcloud-controller-0',
+                'name': 'bm-0'
+            }, {
+                'hostname': 'overcloud-controller-1',
+                'name': 'bm-1'
+            }, {
+                'hostname': 'overcloud-controller-2',
+                'name': 'bm-2'
+            }],
+        }], yaml.safe_load(result))
+
+        with open(self.extract_file.name) as f:
+            self.assertEqual(yaml.safe_load(result), yaml.safe_load(f))
+
+    def test_extract_empty(self):
+        stack_dict = {
+            'parameters': {},
+            'outputs': []
+        }
+        stack = mock.Mock()
+        stack.to_dict.return_value = stack_dict
+        self.orchestration.stacks.get.return_value = stack
+
+        nodes = []
+
+        self.baremetal.node.list.return_value = nodes
+
+        argslist = []
+        self.app.command_options = argslist
+        verifylist = []
+
+        parsed_args = self.check_parser(self.cmd,
+                                        argslist, verifylist)
+        self.cmd.take_action(parsed_args)
+        result = self.cmd.app.stdout.make_string()
+        self.assertIsNone(yaml.safe_load(result))
