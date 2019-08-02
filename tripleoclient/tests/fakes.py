@@ -51,6 +51,19 @@ class FakeHandle(object):
         return
 
 
+class FakeFile(FakeHandle):
+    def __init__(self, contents):
+        self.contents = contents
+
+    def read(self):
+        if not self.contents:
+            raise ValueError('I/O operation on closed file')
+        return self.contents
+
+    def close(self):
+        self.contents = None
+
+
 class FakeWebSocket(FakeHandle):
 
     def wait_for_messages(self, timeout=None):

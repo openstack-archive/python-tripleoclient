@@ -17,6 +17,7 @@ import mock
 from osc_lib.tests import utils
 
 from tripleoclient import exceptions
+from tripleoclient.tests.fakes import FakeFile
 from tripleoclient.workflows import deployment
 
 
@@ -60,9 +61,7 @@ class TestDeploymentWorkflows(utils.TestCommand):
         ssh_key = 'test-key'
 
         mock_tempfile.mkdtemp.return_value = '/foo'
-        mock_read = mock.Mock()
-        mock_read.read.return_value = 'key'
-        mock_open.return_value = mock_read
+        mock_open.return_value = FakeFile('key')
         mock_state = mock.Mock()
         mock_state.state = 'SUCCESS'
         self.workflow.executions.get.return_value = mock_state
@@ -102,9 +101,7 @@ class TestDeploymentWorkflows(utils.TestCommand):
         ssh_key = 'test-key'
 
         mock_tempfile.mkdtemp.return_value = '/foo'
-        mock_read = mock.Mock()
-        mock_read.read.return_value = 'key'
-        mock_open.return_value = mock_read
+        mock_open.side_effect = [FakeFile('pubkey'), FakeFile('privkey')]
         mock_state = mock.Mock()
         mock_state.state = 'ERROR'
         mock_state.to_dict.return_value = dict(state_info='an error')
