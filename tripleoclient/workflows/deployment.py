@@ -167,11 +167,15 @@ def wait_for_ssh_port(host):
                 "Timed out waiting for port 22 from %s" % host)
         # first check ipv4 then check ipv6
         try:
-            socket.socket().connect((host, 22))
+            sock = socket.socket()
+            sock.connect((host, 22))
+            sock.close()
             return
         except socket.error:
             try:
-                socket.socket(socket.AF_INET6).connect((host, 22))
+                sock = socket.socket(socket.AF_INET6)
+                sock.connect((host, 22))
+                sock.close()
                 return
             except socket.error:
                 pass
@@ -222,7 +226,10 @@ def enable_ssh_admin(log, clients, plan_name, hosts, ssh_user, ssh_key):
         tmp_key_command = ["ssh-keygen", "-N", "", "-t", "rsa", "-b", "4096",
                            "-f", tmp_key_private, "-C", tmp_key_comment]
         subprocess.check_call(tmp_key_command, stderr=subprocess.STDOUT)
-        tmp_key_public_contents = open(tmp_key_public).read()
+        with open(tmp_key_public) as pubkey:
+            tmp_key_public_contents = pubkey.read()
+        with open(tmp_key_private) as privkey:
+            tmp_key_private_contents = privkey.read()
 
         for host in hosts:
             wait_for_ssh_port(host)
@@ -243,7 +250,7 @@ def enable_ssh_admin(log, clients, plan_name, hosts, ssh_user, ssh_key):
         workflow_input = {
             "ssh_user": ssh_user,
             "ssh_servers": hosts,
-            "ssh_private_key": open(tmp_key_private).read(),
+            "ssh_private_key": tmp_key_private_contents,
             "plan_name": plan_name
         }
 
@@ -307,7 +314,8 @@ def config_download(log, clients, stack, templates,
     if output_dir:
         workflow_input.update(dict(work_dir=output_dir))
     if override_ansible_cfg:
-        override_ansible_cfg_contents = open(override_ansible_cfg).read()
+        with open(override_ansible_cfg) as cfg:
+            override_ansible_cfg_contents = cfg.read()
         workflow_input.update(
             dict(override_ansible_cfg=override_ansible_cfg_contents))
 

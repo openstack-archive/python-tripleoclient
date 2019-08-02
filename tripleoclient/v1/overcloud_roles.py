@@ -64,6 +64,11 @@ class RolesGenerate(RolesBaseCommand):
         if filename is not None:
             sys.stdout = open(filename, 'w')
 
+    def _stop_capture_output(self, filename=None):
+        """Stop capturing stdout to a file if provided"""
+        if filename is not None:
+            sys.stdout.close()
+
     def take_action(self, parsed_args):
         """Generate roles_data.yaml from imputed roles
 
@@ -83,6 +88,7 @@ class RolesGenerate(RolesBaseCommand):
             roles_path, list(requested_roles.keys()),
             parsed_args.skip_validate)
         sys.stdout.write(roles_data)
+        self._stop_capture_output(parsed_args.output_file)
 
 
 class RoleList(RolesBaseCommand):

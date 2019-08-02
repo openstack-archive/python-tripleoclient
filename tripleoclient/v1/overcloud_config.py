@@ -99,6 +99,7 @@ class DownloadConfig(command.Command):
         self.log.debug("config-download tempurl: %s" % tempurl)
         f = request.urlopen(tempurl)
         tarball_contents = f.read()
+        f.close()
         tarball_name = "%s-config.tar.gz" % name
         tarball_path = os.path.join(config_dir, tarball_name)
 
