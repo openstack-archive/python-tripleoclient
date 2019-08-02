@@ -464,7 +464,8 @@ class PrepareImageFiles(command.Command):
         if parsed_args.output_env_file:
             params = prepare_data[parsed_args.output_env_file]
             if os.path.exists(parsed_args.output_env_file):
-                self.log.warn("Output env file exists, moving it to backup.")
+                self.log.warning("Output env file exists, \
+                                 moving it to backup.")
                 shutil.move(parsed_args.output_env_file,
                             parsed_args.output_env_file + ".backup")
             with os.fdopen(os.open(parsed_args.output_env_file,
@@ -559,7 +560,8 @@ class TripleOImagePrepareDefault(command.Command):
         self.app.stdout.write(env_data)
         if parsed_args.output_env_file:
             if os.path.exists(parsed_args.output_env_file):
-                self.log.warn("Output env file exists, moving it to backup.")
+                self.log.warning("Output env file exists, \
+                                 moving it to backup.")
                 shutil.move(parsed_args.output_env_file,
                             parsed_args.output_env_file + ".backup")
             with os.fdopen(os.open(parsed_args.output_env_file,
@@ -658,7 +660,8 @@ class TripleOImagePrepare(command.Command):
         env_data = build_env_file(params, self.app.command_options)
         if parsed_args.output_env_file:
             if os.path.exists(parsed_args.output_env_file):
-                self.log.warn("Output env file exists, moving it to backup.")
+                self.log.warning("Output env file exists, \
+                                 moving it to backup.")
                 shutil.move(parsed_args.output_env_file,
                             parsed_args.output_env_file + ".backup")
             with os.fdopen(os.open(parsed_args.output_env_file,

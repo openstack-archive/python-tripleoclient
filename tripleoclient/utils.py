@@ -2019,9 +2019,9 @@ def check_file_for_enabled_service(env_file):
             if ("resource_registry" in content and
                     service in content["resource_registry"]):
                 if content["resource_registry"][service] != "OS::Heat::None":
-                    LOG.warn("service " + service + " is enabled in "
-                             + str(env_file) + ". " +
-                             constants.DEPRECATED_SERVICES[service])
+                    LOG.warning("service " + service + " is enabled in "
+                                + str(env_file) + ". " +
+                                constants.DEPRECATED_SERVICES[service])
                     deprecated_services_enabled.append(service)
 
         if deprecated_services_enabled:
