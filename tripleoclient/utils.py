@@ -80,14 +80,18 @@ def run_ansible_playbook(logger,
                          key=None,
                          module_path=None,
                          limit_hosts=None,
-                         tags='',
-                         skip_tags='',
+                         tags=None,
+                         skip_tags=None,
                          verbosity=1,
-                         extra_vars=None):
+                         extra_vars=None,
+                         plan='overcloud'):
     """Simple wrapper for ansible-playbook
 
     :param logger: logger instance
     :type logger: Logger
+
+    :param plan: plan name (Defaults to "overcloud")
+    :type plan: String
 
     :param workdir: location of the playbook
     :type workdir: String
@@ -164,6 +168,8 @@ def run_ansible_playbook(logger,
          '/etc/ansible/roles:'
          '%s/roles' % constants.DEFAULT_VALIDATIONS_BASEDIR)
 
+    env['TRIPLEO_PLAN_NAME'] = plan
+
     if not log_path_dir or not os.path.exists(log_path_dir):
         env['ANSIBLE_LOG_PATH'] = os.path.join(workdir, 'ansible.log')
     else:
@@ -205,22 +211,22 @@ def run_ansible_playbook(logger,
         if 0 < verbosity < 6:
             cmd.extend(['-' + ('v' * verbosity)])
 
-        if key is not None:
+        if key:
             cmd.extend(['--private-key=%s' % key])
 
-        if module_path is not None:
+        if module_path:
             cmd.extend(['--module-path=%s' % module_path])
 
-        if limit_hosts is not None:
+        if limit_hosts:
             cmd.extend(['-l %s' % limit_hosts])
 
-        if tags is not '':
+        if tags:
             cmd.extend(['-t %s' % tags])
 
-        if skip_tags is not '':
+        if skip_tags:
             cmd.extend(['--skip_tags %s' % skip_tags])
 
-        if python_interpreter is not None:
+        if python_interpreter:
             cmd.extend([
                 '--extra-vars',
                 'ansible_python_interpreter=%s' % python_interpreter
