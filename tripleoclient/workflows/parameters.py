@@ -9,10 +9,14 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+import logging
 import yaml
 
 from tripleoclient import exceptions
 from tripleoclient.workflows import base
+
+
+LOG = logging.getLogger(__name__)
 
 
 def update_parameters(workflow_client, **input_):
@@ -121,23 +125,31 @@ def check_deprecated_parameters(clients, container):
                     'invalid_role_specific', [])
 
         if deprecated_params:
-            print('WARNING: Following parameter(s) are deprecated and still '
-                  'defined. Deprecated parameters will be removed soon!')
-            print('\n'.join(['  {}'.format(param)
-                            for param in deprecated_params]))
+            deprecated_join = ', '.join(
+                ['{param}'.format(param=param) for param in deprecated_params])
+            LOG.warning(
+                  'WARNING: Following parameter(s) are deprecated and still '
+                  'defined. Deprecated parameters will be removed soon!'
+                  ' {deprecated_join}'.format(
+                      deprecated_join=deprecated_join))
 
         if unused_params:
-            print('WARNING: Following parameter(s) are defined but not used '
+            unused_join = ', '.join(
+                ['{param}'.format(param=param) for param in unused_params])
+            LOG.warning(
+                  'WARNING: Following parameter(s) are defined but not used '
                   'in plan. Could be possible that parameter is valid but '
-                  'currently not used.')
-            print('\n'.join(['  {}'.format(param)
-                            for param in unused_params]))
+                  'currently not used.'
+                  ' {unused_join}'.format(unused_join=unused_join))
 
         if invalid_role_specific_params:
-            print('WARNING: Following parameter(s) are not supported as '
-                  'role-specific inputs.')
-            print('\n'.join(['  {}'.format(param)
-                            for param in invalid_role_specific_params]))
+            invalid_join = ', '.join(
+                ['{param}'.format(
+                    param=param) for param in invalid_role_specific_params])
+            LOG.warning(
+                  'WARNING: Following parameter(s) are not supported as '
+                  'role-specific inputs. {invalid_join}'.format(
+                      invalid_join=invalid_join))
 
 
 def generate_fencing_parameters(clients, **workflow_input):
