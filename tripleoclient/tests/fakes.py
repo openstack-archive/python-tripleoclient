@@ -43,19 +43,21 @@ class FakeClientManager(object):
         self.workflow_engine = mock.Mock()
 
 
-class FakeWebSocket(object):
+class FakeHandle(object):
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return
+
+
+class FakeWebSocket(FakeHandle):
 
     def wait_for_messages(self, timeout=None):
         yield {
             'execution_id': 'IDID',
             'status': 'SUCCESS',
         }
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *args):
-        return
 
 
 class FakeClientWrapper(object):
