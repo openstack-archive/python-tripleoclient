@@ -2046,9 +2046,9 @@ def check_file_for_enabled_service(env_file):
         for service in constants.DEPRECATED_SERVICES.keys():
             try:
                 if content["resource_registry"][service] != "OS::Heat::None":
-                    LOG.warn("service " + service + " is enabled in "
-                             + str(env_file) + ". " +
-                             constants.DEPRECATED_SERVICES[service])
+                    LOG.warning("service " + service + " is enabled in "
+                                + str(env_file) + ". " +
+                                constants.DEPRECATED_SERVICES[service])
                     deprecated_services_enabled.append(service)
             except (KeyError, TypeError) as e:
                 # ignore if content["resource_registry"] is empty

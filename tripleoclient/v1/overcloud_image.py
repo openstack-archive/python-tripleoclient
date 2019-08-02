@@ -238,9 +238,9 @@ class UploadOvercloudImage(command.Command):
     def _get_environment_var(self, envvar, default, deprecated=[]):
         for env_key in deprecated:
             if env_key in os.environ:
-                self.log.warn(('Found deprecated environment var \'%s\', '
-                               'please use \'%s\' instead' % (env_key,
-                                                              envvar)))
+                self.log.warning(('Found deprecated environment var \'%s\', '
+                                 'please use \'%s\' instead' % (env_key,
+                                                                envvar)))
                 return os.environ.get(env_key)
         return os.environ.get(envvar, default)
 
