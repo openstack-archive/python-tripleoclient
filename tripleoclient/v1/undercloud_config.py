@@ -413,6 +413,9 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
     if CONF.get('enable_telemetry'):
         for env_file in TELEMETRY_DOCKER_ENV_YAML:
             deploy_args += ['-e', os.path.join(tht_templates, env_file)]
+    else:
+        deploy_args += ['-e', os.path.join(
+            tht_templates, "environments/disable-telemetry.yaml")]
 
     if CONF.get('enable_ui'):
         deploy_args += ['-e', os.path.join(
