@@ -52,16 +52,16 @@ class TestDeploymentWorkflows(utils.TestCommand):
     @mock.patch('tripleoclient.workflows.deployment.open')
     @mock.patch('tripleoclient.workflows.deployment.tempfile')
     @mock.patch('tripleoclient.workflows.deployment.subprocess.check_call')
-    def test_enable_ssh_admin(self, mock_check_call, mock_tempfile,
-                              mock_open, mock_rmtree, mock_sleep,
-                              mock_wait_for_ssh_port):
+    def test_enable_ssh_admin(self, mock_check_call, mock_tempfile, mock_open,
+                              mock_rmtree, mock_sleep, mock_wait_for_ssh_port):
         log = mock.Mock()
         hosts = 'a', 'b', 'c'
         ssh_user = 'test-user'
         ssh_key = 'test-key'
 
         mock_tempfile.mkdtemp.return_value = '/foo'
-        mock_open.return_value = FakeFile('key')
+        mock_open.side_effect = [FakeFile('DEVNULL'), FakeFile('pubkey'),
+                                 FakeFile('key')]
         mock_state = mock.Mock()
         mock_state.state = 'SUCCESS'
         self.workflow.executions.get.return_value = mock_state
@@ -101,7 +101,8 @@ class TestDeploymentWorkflows(utils.TestCommand):
         ssh_key = 'test-key'
 
         mock_tempfile.mkdtemp.return_value = '/foo'
-        mock_open.side_effect = [FakeFile('pubkey'), FakeFile('privkey')]
+        mock_open.side_effect = [FakeFile('DEVNULL'), FakeFile('pubkey'),
+                                 FakeFile('privkey')]
         mock_state = mock.Mock()
         mock_state.state = 'ERROR'
         mock_state.to_dict.return_value = dict(state_info='an error')
