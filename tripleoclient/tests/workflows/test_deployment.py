@@ -51,9 +51,8 @@ class TestDeploymentWorkflows(utils.TestCommand):
     @mock.patch('tripleoclient.workflows.deployment.open')
     @mock.patch('tripleoclient.workflows.deployment.tempfile')
     @mock.patch('tripleoclient.workflows.deployment.subprocess.check_call')
-    def test_enable_ssh_admin(self, mock_check_call, mock_tempfile,
-                              mock_open, mock_rmtree, mock_sleep,
-                              mock_wait_for_ssh_port):
+    def test_enable_ssh_admin(self, mock_check_call, mock_tempfile, mock_open,
+                              mock_rmtree, mock_sleep, mock_wait_for_ssh_port):
         log = mock.Mock()
         hosts = 'a', 'b', 'c'
         ssh_user = 'test-user'
@@ -62,6 +61,8 @@ class TestDeploymentWorkflows(utils.TestCommand):
         mock_tempfile.mkdtemp.return_value = '/foo'
         mock_read = mock.Mock()
         mock_read.read.return_value = 'key'
+        mock_read.__enter__ = mock.Mock()
+        mock_read.__exit__ = mock.Mock()
         mock_open.return_value = mock_read
         mock_state = mock.Mock()
         mock_state.state = 'SUCCESS'
@@ -104,6 +105,8 @@ class TestDeploymentWorkflows(utils.TestCommand):
         mock_tempfile.mkdtemp.return_value = '/foo'
         mock_read = mock.Mock()
         mock_read.read.return_value = 'key'
+        mock_read.__enter__ = mock.Mock()
+        mock_read.__exit__ = mock.Mock()
         mock_open.return_value = mock_read
         mock_state = mock.Mock()
         mock_state.state = 'ERROR'
