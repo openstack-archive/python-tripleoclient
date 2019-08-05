@@ -247,7 +247,17 @@ def enable_ssh_admin(log, clients, plan_name, hosts, ssh_user, ssh_key):
     try:
         tmp_key_command = ["ssh-keygen", "-N", "", "-t", "rsa", "-b", "4096",
                            "-f", tmp_key_private, "-C", tmp_key_comment]
-        subprocess.check_call(tmp_key_command, stderr=subprocess.STDOUT)
+        DEVNULL = open(os.devnull, 'w')
+        try:
+            subprocess.check_call(tmp_key_command, stdout=DEVNULL,
+                                  stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as exc:
+            log.error("ssh-keygen has failed with return code {0}".
+                      format(exc.returncode))
+        else:
+            log.info("ssh-keygen has been run successfully")
+        DEVNULL.close()
+
         with open(tmp_key_public) as pubkey:
             tmp_key_public_contents = pubkey.read()
         with open(tmp_key_private) as privkey:
