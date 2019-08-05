@@ -86,18 +86,23 @@ def check_deprecated_parameters(clients, container):
         )
 
         messages = base.wait_for_messages(workflow_client, ws, execution, 120)
+        has_messages = False
 
-        deprecated_params = []
-        unused_params = []
-        invalid_role_specific_params = []
         for message in messages:
-            if message['status'] == 'SUCCESS':
-                for param in message.get('deprecated', []):
-                    if param.get('user_defined'):
-                        deprecated_params.append(param['parameter'])
-                unused_params = message.get('unused', [])
-                invalid_role_specific_params = message.get(
-                    'invalid_role_specific', [])
+            if message['status'] != 'SUCCESS':
+                return
+
+            has_messages = True
+            deprecated_params = [
+                param['parameter'] for param in message.get('deprecated', [])
+                if param.get('user_defined')
+            ]
+            unused_params = message.get('unused', [])
+            invalid_role_specific_params = message.get(
+                'invalid_role_specific', [])
+
+        if not has_messages:
+            return
 
         if deprecated_params:
             deprecated_join = ', '.join(
