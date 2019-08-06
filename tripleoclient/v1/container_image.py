@@ -513,6 +513,123 @@ class DiscoverImageTag(command.Command):
         ))
 
 
+class TripleOContainerImagePush(command.Command):
+    """Push specified image to registry."""
+
+    auth_required = False
+    log = logging.getLogger(__name__ + ".TripleoContainerImagePush")
+
+    def get_parser(self, prog_name):
+        parser = super(TripleOContainerImagePush, self).get_parser(prog_name)
+        parser.add_argument(
+            "--local",
+            dest="local",
+            default=False,
+            action="store_true",
+            help=_("Use this flag if the container image is already on the "
+                   "current system and does not need to be pulled from a "
+                   "remote registry.")
+        )
+        parser.add_argument(
+            "--registry-url",
+            dest="registry_url",
+            metavar='<registry url>',
+            default=image_uploader.get_undercloud_registry(),
+            help=_("URL of the destination registry in the form "
+                   "<fqdn>:<port>.")
+        )
+        parser.add_argument(
+            "--append-tag",
+            dest="append_tag",
+            default='',
+            help=_("Tag to append to the existing tag when pushing the "
+                   "container. ")
+        )
+        parser.add_argument(
+            "--username",
+            dest="username",
+            metavar='<username>',
+            help=_("Username for the destination image registry.")
+        )
+        parser.add_argument(
+            "--password",
+            dest="password",
+            metavar='<password>',
+            help=_("Password for the destination image registry.")
+        )
+        parser.add_argument(
+            "--dry-run",
+            dest="dry_run",
+            action="store_true",
+            help=_("Perform a dry run upload. The upload action is not "
+                   "performed, but the authentication process is attempted.")
+        )
+        parser.add_argument(
+            "--multi-arch",
+            dest="multi_arch",
+            action="store_true",
+            help=_("Enable multi arch support for the upload.")
+        )
+        parser.add_argument(
+            "--cleanup",
+            dest="cleanup",
+            action="store_true",
+            default=False,
+            help=_("Remove local copy of the image after uploading")
+        )
+        parser.add_argument(
+            dest="image_to_push",
+            metavar='<image to push>',
+            help=_("Container image to upload. Should be in the form of "
+                   "<registry>/<namespace>/<name>:<tag>. If tag is "
+                   "not provided, then latest will be used.")
+        )
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)" % parsed_args)
+
+        # TODO(aschultz): need to fix upload to be able to handle local source
+        if parsed_args.local:
+            raise exceptions.NotFound('--local is currently not implemented')
+
+        manager = image_uploader.ImageUploadManager()
+        uploader = manager.uploader('python')
+
+        source_url = uploader._image_to_url(parsed_args.image_to_push)
+        image_name = source_url.path[1:]
+        if len(image_name.split('/')) != 2:
+            raise exceptions.DownloadError('Invalid container. Provided '
+                                           'container image should be '
+                                           '<registry>/<namespace>/<name>:'
+                                           '<tag>')
+        image_source = source_url.netloc
+
+        reg_url = uploader._image_to_url(parsed_args.registry_url)
+
+        uploader.authenticate(reg_url,
+                              parsed_args.username,
+                              parsed_args.password)
+
+        task = image_uploader.UploadTask(
+                image_name=image_name,
+                pull_source=image_source,
+                push_destination=parsed_args.registry_url,
+                append_tag=parsed_args.append_tag,
+                modify_role=None,
+                modify_vars=None,
+                dry_run=parsed_args.dry_run,
+                cleanup=parsed_args.cleanup,
+                multi_arch=parsed_args.multi_arch)
+        try:
+            uploader.add_upload_task(task)
+            uploader.run_tasks()
+        except OSError as e:
+            self.log.error("Unable to upload due to permissions. "
+                           "Please prefix command with sudo.")
+            raise oscexc.CommandError(e)
+
+
 class TripleOContainerImageDelete(command.Command):
     """Delete specified image from registry."""
 
