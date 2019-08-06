@@ -77,6 +77,8 @@ class TestOvercloudRolesGenerateData(fakes.TestDeployOvercloud):
         generate_roles_mock.return_value = 'foo'
         capture_mock = mock.MagicMock()
         self.cmd._capture_output = capture_mock
+        stop_capture_mock = mock.MagicMock()
+        self.cmd._stop_capture_output = stop_capture_mock
 
         arglist = ['--roles-path', '/tmp', 'Controller', 'Compute']
         verifylist = [
@@ -93,6 +95,7 @@ class TestOvercloudRolesGenerateData(fakes.TestDeployOvercloud):
         generate_roles_mock.assert_called_once_with('/tmp',
                                                     ['Controller', 'Compute'],
                                                     True)
+        stop_capture_mock.assert_called_once_with(None)
 
     @mock.patch(
         'tripleo_common.utils.roles.generate_roles_data_from_directory')
@@ -106,6 +109,8 @@ class TestOvercloudRolesGenerateData(fakes.TestDeployOvercloud):
         generate_roles_mock.return_value = 'foo'
         capture_mock = mock.MagicMock()
         self.cmd._capture_output = capture_mock
+        stop_capture_mock = mock.MagicMock()
+        self.cmd._stop_capture_output = stop_capture_mock
 
         arglist = ['--roles-path', '/tmp', '-o', 'foo.yaml',
                    'Controller', 'Compute']
@@ -124,6 +129,7 @@ class TestOvercloudRolesGenerateData(fakes.TestDeployOvercloud):
         generate_roles_mock.assert_called_once_with('/tmp',
                                                     ['Controller', 'Compute'],
                                                     True)
+        stop_capture_mock.assert_called_once_with('foo.yaml')
 
     @mock.patch('tripleo_common.utils.roles.get_roles_list_from_directory')
     @mock.patch('os.path.realpath')

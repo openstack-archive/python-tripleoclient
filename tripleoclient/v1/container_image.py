@@ -436,7 +436,8 @@ class PrepareImageFiles(command.Command):
             modify_role = parsed_args.modify_role
             append_tag = time.strftime('-modified-%Y%m%d%H%M%S')
         if parsed_args.modify_vars:
-            modify_vars = yaml.safe_load(open(parsed_args.modify_vars).read())
+            with open(parsed_args.modify_vars) as m:
+                modify_vars = yaml.safe_load(m.read())
 
         prepare_data = kolla_builder.container_images_prepare(
             excludes=parsed_args.excludes,
