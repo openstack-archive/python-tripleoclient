@@ -78,8 +78,8 @@ def wait_for_messages(mistral, websocket, execution, timeout=None):
             if payload_exec_id != execution.id and \
                     payload_root_exec_id != execution.id:
 
-                    LOG.debug("Ignoring message from execution %s"
-                              % payload_exec_id)
+                LOG.debug("Ignoring message from execution %s"
+                          % payload_exec_id)
             else:
                 yield payload
             # If the message is from a sub-workflow, we just need to pass it
