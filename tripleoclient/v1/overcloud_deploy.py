@@ -969,6 +969,9 @@ class DeployOvercloud(command.Command):
                     used = int(time.time() - start)
                     timeout = (parsed_args.timeout * 60) - used
 
+                disabled_val = parsed_args.disable_validations
+                enable_val = parsed_args.run_validations
+
                 deployment.config_download(
                     self.log, self.clients, stack,
                     parsed_args.templates, parsed_args.overcloud_ssh_user,
@@ -977,7 +980,8 @@ class DeployOvercloud(command.Command):
                     parsed_args.output_dir,
                     parsed_args.override_ansible_cfg,
                     timeout,
-                    verbosity=self.app_args.verbose_level)
+                    verbosity=self.app_args.verbose_level,
+                    in_flight_validations=(enable_val or not disabled_val))
             except Exception:
                 deployment.set_deployment_status(
                     self.clients, 'failed',
