@@ -95,6 +95,8 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/zaqar-swift-backend.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'disable-telemetry.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/tempest.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'public-tls-undercloud.yaml',
@@ -157,6 +159,8 @@ class TestUndercloudInstall(TestPluginV1):
              '/usertht/environments/services/ironic-inspector.yaml', '-e',
              '/usertht/environments/services/mistral.yaml', '-e',
              '/usertht/environments/services/zaqar-swift-backend.yaml', '-e',
+             '/usertht/environments/'
+             'disable-telemetry.yaml', '-e',
              '/usertht/environments/services/tempest.yaml', '-e',
              '/usertht/environments/public-tls-undercloud.yaml',
              '--public-virtual-ip', '192.168.24.2',
@@ -320,6 +324,8 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/zaqar-swift-backend.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'disable-telemetry.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/tempest.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'public-tls-undercloud.yaml',
@@ -387,6 +393,8 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/zaqar-swift-backend.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'disable-telemetry.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/tempest.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'public-tls-undercloud.yaml',
@@ -450,6 +458,8 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/zaqar-swift-backend.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'disable-telemetry.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/tempest.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'public-tls-undercloud.yaml',
@@ -509,6 +519,8 @@ class TestUndercloudInstall(TestPluginV1):
              'services/mistral.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/zaqar-swift-backend.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'disable-telemetry.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/tempest.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -594,6 +606,8 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/zaqar-swift-backend.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'disable-telemetry.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/tempest.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'public-tls-undercloud.yaml',
@@ -657,6 +671,8 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/zaqar-swift-backend.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'disable-telemetry.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/tempest.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'public-tls-undercloud.yaml',
@@ -719,6 +735,8 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/zaqar-swift-backend.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'disable-telemetry.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/tempest.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'public-tls-undercloud.yaml',
@@ -780,6 +798,8 @@ class TestUndercloudUpgrade(TestPluginV1):
              'services/mistral.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/zaqar-swift-backend.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'disable-telemetry.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/tempest.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -846,6 +866,8 @@ class TestUndercloudUpgrade(TestPluginV1):
              'services/mistral.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/zaqar-swift-backend.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'disable-telemetry.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/tempest.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
