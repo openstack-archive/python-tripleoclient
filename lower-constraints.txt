@@ -25,6 +25,7 @@ extras==1.0.0
 fasteners==0.7.0
 fixtures==3.0.0
 flake8==2.5.5
+futures==3.0.0
 futurist==1.2.0
 gitdb==0.6.4
 GitPython==1.0.1
