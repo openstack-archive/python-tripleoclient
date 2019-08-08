@@ -180,8 +180,8 @@ class TripleOValidatorList(command.Command):
                         {'validations': output})
                 print(out)
         except Exception as e:
-            print(_("Validations listing finished with errors"))
-            print('Output: {}'.format(e))
+            raise RuntimeError(_("Validations listing finished with errors\n"
+                                 "Output: {}").format(e))
 
     def take_action(self, parsed_args):
         self._run_validator_list(parsed_args)
