@@ -1,5 +1,4 @@
 ---
----
 features:
   - Enable new preflight check on the undercloud, using ansible playbooks from
     openstack-tripleo-validations.
