@@ -151,10 +151,6 @@ def _process_drivers_and_hardware_types(conf, env):
                     'xclarity'):
         if hw_type in enabled_hardware_types:
             mgmt_interfaces.add(hw_type)
-    for (hw_type, iface) in [('cisco-ucs-managed', 'ucsm'),
-                             ('cisco-ucs-standalone', 'cimc')]:
-        if hw_type in enabled_hardware_types:
-            mgmt_interfaces.add(iface)
 
     bios_interfaces = {'no-bios'}
     for hw_type in ['ilo', 'irmc', 'redfish']:

@@ -88,16 +88,12 @@ class TestProcessDriversAndHardwareTypes(base.TestCase):
         env = {}
         self.conf.enabled_hardware_types = (
             self.conf.enabled_hardware_types + ['staging-ovirt', 'snmp',
-                                                'irmc', 'cisco-ucs-managed',
-                                                'cisco-ucs-standalone',
-                                                'xclarity']
+                                                'irmc', 'xclarity']
         )
 
         undercloud_config._process_drivers_and_hardware_types(self.conf, env)
         self.assertEqual({
-            'IronicEnabledHardwareTypes': ['cisco-ucs-managed',
-                                           'cisco-ucs-standalone',
-                                           'idrac', 'ilo', 'ipmi', 'irmc',
+            'IronicEnabledHardwareTypes': ['idrac', 'ilo', 'ipmi', 'irmc',
                                            'redfish', 'snmp', 'staging-ovirt',
                                            'xclarity'],
             'IronicEnabledBootInterfaces': ['ilo-pxe', 'ipxe', 'irmc-pxe',
@@ -107,16 +103,14 @@ class TestProcessDriversAndHardwareTypes(base.TestCase):
             'IronicEnabledInspectInterfaces': ['idrac', 'ilo', 'inspector',
                                                'irmc', 'no-inspect',
                                                'redfish'],
-            'IronicEnabledManagementInterfaces': ['cimc', 'fake', 'idrac',
+            'IronicEnabledManagementInterfaces': ['fake', 'idrac',
                                                   'ilo', 'ipmitool', 'irmc',
                                                   'noop', 'redfish',
-                                                  'staging-ovirt',
-                                                  'ucsm', 'xclarity'],
-            'IronicEnabledPowerInterfaces': ['cimc', 'fake', 'idrac',
+                                                  'staging-ovirt', 'xclarity'],
+            'IronicEnabledPowerInterfaces': ['fake', 'idrac',
                                              'ilo', 'ipmitool', 'irmc',
                                              'redfish', 'snmp',
-                                             'staging-ovirt', 'ucsm',
-                                             'xclarity'],
+                                             'staging-ovirt', 'xclarity'],
             'IronicEnabledRaidInterfaces': ['idrac', 'no-raid'],
             'IronicEnabledVendorInterfaces': ['idrac', 'ipmitool', 'no-vendor']
         }, env)
