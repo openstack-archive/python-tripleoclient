@@ -565,29 +565,6 @@ class TestWaitForStackUtil(TestCase):
         result = utils.wait_for_stack_ready(self.mock_orchestration, 'stack')
         self.assertEqual(False, result)
 
-    @mock.patch('tripleoclient.utils.wait_for_provision_state')
-    def test_set_nodes_state(self, wait_for_state_mock):
-
-        wait_for_state_mock.return_value = True
-        bm_client = mock.Mock()
-
-        # One node already deployed, one in the manageable state after
-        # introspection.
-        nodes = [
-            mock.Mock(uuid="ABCDEFGH", provision_state="active"),
-            mock.Mock(uuid="IJKLMNOP", provision_state="manageable")
-        ]
-
-        skipped_states = ('active', 'available')
-        uuids = list(utils.set_nodes_state(bm_client, nodes, 'provide',
-                                           'available', skipped_states))
-
-        bm_client.node.set_provision_state.assert_has_calls([
-            mock.call('IJKLMNOP', 'provide'),
-        ])
-
-        self.assertEqual(uuids, ['IJKLMNOP', ])
-
     def test_wait_for_provision_state(self):
 
         baremetal_client = mock.Mock()

@@ -612,68 +612,6 @@ def wait_for_provision_state(baremetal_client, node_uuid, provision_state,
     )
 
 
-def set_nodes_state(baremetal_client, nodes, transition, target_state,
-                    skipped_states=()):
-    """Make all nodes available in the baremetal service for a deployment
-
-    For each node, make it available unless it is already available or active.
-    Available nodes can be used for a deployment and an active node is already
-    in use.
-
-    :param baremetal_client: Instance of Ironic client
-    :type  baremetal_client: ironicclient.v1.client.Client
-
-    :param nodes: List of Baremetal Nodes
-    :type  nodes: [ironicclient.v1.node.Node]
-
-    :param transition: The state to set for a node. The full list of states
-                       can be found in ironic.common.states.
-    :type  transition: string
-
-    :param target_state: The expected result state for a node. For example when
-                         transitioning to 'manage' the result is 'manageable'
-    :type  target_state: string
-
-    :param skipped_states: A set of states to skip, for example 'active' nodes
-                           are already deployed and the state can't always be
-                           changed.
-    :type  skipped_states: iterable of strings
-
-    :param error_states: Node states treated as error for this transition
-    :type error_states: collection of strings
-
-    :param error_message: Optional message to append to an error message
-    :param error_message: str
-
-    :raises exceptions.StateTransitionFailed: if a node enters any of the
-                                              states in error_states
-
-    :raises exceptions.Timeout: if a node takes too long to reach target state
-    """
-
-    log = logging.getLogger(__name__ + ".set_nodes_state")
-
-    for node in nodes:
-
-        if node.provision_state in skipped_states:
-            continue
-
-        log.debug(_(
-            "Setting provision state from '{0}' to '{1}' for Node {2}")
-            .format(node.provision_state, transition, node.uuid))
-
-        baremetal_client.node.set_provision_state(node.uuid, transition)
-        try:
-            wait_for_provision_state(baremetal_client, node.uuid, target_state)
-        except exceptions.StateTransitionFailed as e:
-            log.error(_("FAIL: State transition failed for Node {0}. {1}")
-                      .format(node.uuid, e))
-        except exceptions.Timeout as e:
-            log.error(_("FAIL: Timeout waiting for Node {0}. {1}")
-                      .format(node.uuid, e))
-        yield node.uuid
-
-
 def get_stack_output_item(stack, item):
     if not stack:
         return None
