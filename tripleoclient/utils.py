@@ -57,7 +57,6 @@ from heatclient import exc as hc_exc
 from six.moves.urllib import error as url_error
 from six.moves.urllib import request
 
-from tripleo_common.utils import config
 from tripleoclient import constants
 from tripleoclient import exceptions
 
@@ -276,20 +275,6 @@ def convert(data):
         return type(data)(map(convert, data))
     else:
         return data
-
-
-def download_ansible_playbooks(client, stack_name, output_dir='/tmp'):
-
-    log = logging.getLogger(__name__ + ".download_ansible_playbooks")
-    stack_config = config.Config(client)
-    tmp_ansible_dir = tempfile.mkdtemp(prefix='tripleo-ansible-',
-                                       dir=output_dir)
-
-    log.warning(_('Downloading {0} ansible playbooks...').format(stack_name))
-    stack_config.write_config(stack_config.fetch_config(stack_name),
-                              stack_name,
-                              tmp_ansible_dir)
-    return tmp_ansible_dir
 
 
 def bracket_ipv6(address):
