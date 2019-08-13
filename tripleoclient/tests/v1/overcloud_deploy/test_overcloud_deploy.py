@@ -1238,13 +1238,11 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertRaises(exceptions.StackInProgress,
                           self.cmd.take_action, parsed_args)
 
-    @mock.patch('tripleoclient.utils.wait_for_provision_state')
     @mock.patch('tripleoclient.workflows.deployment.create_overcloudrc',
                 autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_tripleo_heat_templates_tmpdir', autospec=True)
-    def test_deployed_server(self, mock_deploy_tmpdir, mock_overcloudrc,
-                             mock_provision):
+    def test_deployed_server(self, mock_deploy_tmpdir, mock_overcloudrc):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         utils_fixture = deployment.UtilsOvercloudFixture()
@@ -1264,7 +1262,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         self.cmd.take_action(parsed_args)
         self.assertTrue(mock_deploy_tmpdir.called)
-        self.assertNotCalled(mock_provision)
         self.assertNotCalled(clients.baremetal)
         self.assertNotCalled(clients.compute)
         self.assertTrue(utils_fixture.mock_deploy_tht.called)

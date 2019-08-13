@@ -552,66 +552,6 @@ def wait_for_stack_ready(orchestration_client, stack_name, marker=None,
         "wait_for_stack_ready: Max retries {} reached".format(max_retries))
 
 
-def wait_for_provision_state(baremetal_client, node_uuid, provision_state,
-                             loops=10, sleep=1):
-    """Wait for a given Provisioning state in Ironic
-
-    Updating the provisioning state is an async operation, we
-    need to wait for it to be completed.
-
-    :param baremetal_client: Instance of Ironic client
-    :type  baremetal_client: ironicclient.v1.client.Client
-
-    :param node_uuid: The Ironic node UUID
-    :type  node_uuid: str
-
-    :param provision_state: The provisioning state name to wait for
-    :type  provision_state: str
-
-    :param loops: How many times to loop
-    :type loops: int
-
-    :param sleep: How long to sleep between loops
-    :type sleep: int
-
-    :raises exceptions.StateTransitionFailed: if node.last_error is set
-    """
-
-    for _l in range(0, loops):
-
-        node = baremetal_client.node.get(node_uuid)
-
-        if node is None:
-            # The node can't be found in ironic, so we don't need to wait for
-            # the provision state
-            return
-        if node.provision_state == provision_state:
-            return
-
-        # node.last_error should be None after any successful operation
-        if node.last_error:
-            raise exceptions.StateTransitionFailed(_(
-                "Error transitioning node %(uuid)s to provision state "
-                "%(state)s: %(error)s. Now in state %(actual)s.") % {
-                    'uuid': node_uuid,
-                    'state': provision_state,
-                    'error': node.last_error,
-                    'actual': node.provision_state
-                }
-            )
-
-        time.sleep(sleep)
-
-    raise exceptions.Timeout(_(
-        "Node %(uuid)s did not reach provision state %(state)s. "
-        "Now in state %(actual)s.") % {
-            'uuid': node_uuid,
-            'state': provision_state,
-            'actual': node.provision_state
-        }
-    )
-
-
 def get_stack_output_item(stack, item):
     if not stack:
         return None
