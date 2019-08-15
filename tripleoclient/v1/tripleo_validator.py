@@ -18,8 +18,10 @@ import json
 import logging
 import os
 import pwd
+import six
 import sys
 
+from concurrent.futures import ThreadPoolExecutor
 from osc_lib.command import command
 from osc_lib.i18n import _
 
@@ -212,6 +214,16 @@ class TripleOValidatorRun(command.Command):
             help=_("Execute the validations using Mistral")
         )
 
+        parser.add_argument(
+            '--workers', '-w',
+            metavar='N',
+            dest='workers',
+            default=1,
+            type=int,
+            help=_("The maximum number of threads that can "
+                   "be used to execute the given validations")
+        )
+
         extra_vars_group = parser.add_mutually_exclusive_group(required=False)
 
         extra_vars_group.add_argument(
@@ -302,6 +314,23 @@ class TripleOValidatorRun(command.Command):
                 out.get('validation_name'),
                 oooutils.indent(out.get('stdout'))))
 
+    def _run_ansible(self, logger, plan, workdir, log_path_dir, playbook,
+                     inventory, retries, output_callback, extra_vars,
+                     python_interpreter, gathering_policy):
+        rc, output = oooutils.run_ansible_playbook(
+            logger=logger,
+            plan=plan,
+            workdir=workdir,
+            log_path_dir=log_path_dir,
+            playbook=playbook,
+            inventory=inventory,
+            retries=retries,
+            output_callback=output_callback,
+            extra_vars=extra_vars,
+            python_interpreter=python_interpreter,
+            gathering_policy=gathering_policy)
+        return rc, output
+
     def _run_validator_run(self, parsed_args):
         clients = self.app.client_manager
         LOG = logging.getLogger(__name__ + ".ValidationsRunAnsible")
@@ -343,10 +372,11 @@ class TripleOValidatorRun(command.Command):
 
         failed_val = False
 
-        for playbook in playbooks:
-            try:
-                LOG.debug(_('Running the validations with Ansible'))
-                rc, output = oooutils.run_ansible_playbook(
+        with ThreadPoolExecutor(max_workers=parsed_args.workers) as executor:
+            LOG.debug(_('Running the validations with Ansible'))
+            tasks_exec = {
+                executor.submit(
+                    self._run_ansible,
                     logger=LOG,
                     plan=parsed_args.plan,
                     workdir=constants.ANSIBLE_VALIDATION_DIR,
@@ -357,13 +387,18 @@ class TripleOValidatorRun(command.Command):
                     output_callback='validation_output',
                     extra_vars=extra_vars_input,
                     python_interpreter=python_interpreter,
-                    gathering_policy='explicit')
-                print('[SUCCESS] - {}\n{}'.format(playbook,
-                                                  oooutils.indent(output)))
+                    gathering_policy='explicit'): playbook
+                for playbook in playbooks
+            }
+
+        for tk, pl in six.iteritems(tasks_exec):
+            try:
+                rc, output = tk.result()
+                print('[SUCCESS] - {}\n{}'.format(pl, oooutils.indent(output)))
             except Exception as e:
                 failed_val = True
                 LOG.error('[FAILED] - {}\n{}'.format(
-                    playbook, oooutils.indent(e.args[0])))
+                    pl, oooutils.indent(e.args[0])))
 
         LOG.debug(_('Removing static tripleo ansible inventory file'))
         oooutils.cleanup_tripleo_ansible_inventory_file(
