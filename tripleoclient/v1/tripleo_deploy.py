@@ -859,14 +859,17 @@ class Deploy(command.Command):
         return self.tmp_ansible_dir
 
     # Never returns, calls exec()
-    def _launch_ansible(self, ansible_dir, list_args=None, operation="deploy"):
+    def _launch_ansible(self, ansible_dir, extra_args=None,
+                        operation="deploy"):
 
-        if list_args is None:
-            if operation not in constants.DEPLOY_ANSIBLE_ACTIONS.keys():
-                self.log.error(_('Operation %s is not allowed') % operation)
-                raise exceptions.DeploymentError('Invalid operation to run in '
-                                                 'ansible.')
-            list_args = constants.DEPLOY_ANSIBLE_ACTIONS[operation].split()
+        if operation not in constants.DEPLOY_ANSIBLE_ACTIONS.keys():
+            self.log.error(_('Operation %s is not allowed') % operation)
+            raise exceptions.DeploymentError('Invalid operation to run in '
+                                             'ansible.')
+        list_args = constants.DEPLOY_ANSIBLE_ACTIONS[operation].split()
+
+        if extra_args:
+            list_args.extend(extra_args)
 
         self.log.warning(_('** Running ansible %s tasks **') % operation)
         os.chdir(ansible_dir)
@@ -1048,6 +1051,16 @@ class Deploy(command.Command):
                    'OS_ENDPOINT=http://127.0.0.1:8006/v1/admin '
                    'openstack stack list\n '
                    'where 8006 is the port specified by --heat-api-port.')
+        )
+        parser.add_argument(
+            '--inflight-validations',
+            action='store_true',
+            default=False,
+            dest='inflight',
+            help=_('Activate in-flight validations during the deploy. '
+                   'In-flight validations provide a robust way to ensure '
+                   'deployed services are running right after their '
+                   'activation. Defaults to False.')
         )
 
         stack_action_group = parser.add_mutually_exclusive_group()
@@ -1241,6 +1254,9 @@ class Deploy(command.Command):
                     _('Using the existing %s for deployment') % ansible_config)
                 shutil.copy(ansible_config, self.ansible_dir)
 
+            extra_args = []
+            if not parsed_args.inflight:
+                extra_args = ['--skip-tags', 'opendev-validation']
             # Kill heat, we're done with it now.
             if not parsed_args.keep_running:
                 self._kill_heat(parsed_args)
@@ -1248,7 +1264,8 @@ class Deploy(command.Command):
                 if parsed_args.upgrade:
                     # Run Upgrade tasks before the deployment
                     rc = self._launch_ansible(self.ansible_dir,
-                                              operation='upgrade')
+                                              operation='upgrade',
+                                              extra_args=extra_args)
                     if rc != 0:
                         raise exceptions.DeploymentError('Upgrade failed')
                 rc = self._launch_ansible(self.ansible_dir)
@@ -1257,12 +1274,14 @@ class Deploy(command.Command):
                 if parsed_args.upgrade:
                     # Run Post Upgrade tasks after the deployment
                     rc = self._launch_ansible(self.ansible_dir,
-                                              operation='post-upgrade')
+                                              operation='post-upgrade',
+                                              extra_args=extra_args)
                     if rc != 0:
                         raise exceptions.DeploymentError('Post Upgrade failed')
                     # Run Online Upgrade tasks after the deployment
                     rc = self._launch_ansible(self.ansible_dir,
-                                              operation='online-upgrade')
+                                              operation='online-upgrade',
+                                              extra_args=extra_args)
                     if rc != 0:
                         raise exceptions.DeploymentError(
                             'Online Upgrade failed')
