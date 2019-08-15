@@ -23,7 +23,11 @@ extensions = [
     'sphinx.ext.autodoc',
     'openstackdocstheme',
     'cliff.sphinxext',
+    'sphinxcontrib.rsvgconverter',
 ]
+
+# Disable usage of xindy https://bugzilla.redhat.com/show_bug.cgi?id=1643664
+latex_use_xindy = False
 
 # autodoc generation is a bit aggressive and a nuisance when doing heavy
 # text edit cycles.
@@ -66,13 +70,13 @@ htmlhelp_basename = 'tripleoclientdoc'
 # [howto/manual]).
 latex_documents = [
     ('index',
-     'tripleoclient.tex',
-     u'tripleoclient Documentation',
+     'doc-python-tripleoclient.tex',
+     u'Tripleoclient Documentation',
      u'OpenStack Foundation', 'manual'),
 ]
 
 # Allow deeper levels of nesting for \begin...\end stanzas
-latex_elements = {'maxlistdepth': 10}
+latex_elements = {'maxlistdepth': 10, 'extraclassoptions': ',openany,oneside'}
 
 # openstackdocstheme options
 repository_name = 'openstack/python-tripleoclient'
