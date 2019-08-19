@@ -1929,8 +1929,10 @@ def check_deprecated_service_is_enabled(environment_files):
         check_file_for_enabled_service(env_file)
 
 
-def send_cmdline_erase_sequence():
-    # Send's an erase in line sequence to the output
-    # https://www.vt100.net/docs/vt100-ug/chapter3.html#EL
-    sys.stdout.write(u'\u001b[0K')
+def reset_cmdline():
+    """Run reset to cleanup cmdline"""
+    # only try to reset if stdout is a terminal, skip if not (e.g. CI)
+    if not sys.stdout.isatty():
+        return
+    sys.stdout.write(run_command(['reset', '-I']))
     sys.stdout.flush()

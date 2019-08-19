@@ -887,7 +887,7 @@ class TestDeployUndercloud(TestPluginV1):
             env
         )
 
-    @mock.patch('tripleoclient.utils.send_cmdline_erase_sequence')
+    @mock.patch('tripleoclient.utils.reset_cmdline')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_download_stack_outputs')
     @mock.patch('tripleo_common.actions.ansible.'
@@ -974,7 +974,7 @@ class TestDeployUndercloud(TestPluginV1):
         self.assertEqual(mock_killheat.call_count, 2)
         mock_cmdline.assert_called_once()
 
-    @mock.patch('tripleoclient.utils.send_cmdline_erase_sequence')
+    @mock.patch('tripleoclient.utils.reset_cmdline')
     @mock.patch('tripleoclient.utils.ansible_symlink')
     def test_take_action(self, mock_slink, mock_cmdline):
         mock_slink.side_effect = 'fake-cmd'
@@ -987,7 +987,7 @@ class TestDeployUndercloud(TestPluginV1):
                           self.cmd.take_action, parsed_args)
         mock_cmdline.assert_called_once()
 
-    @mock.patch('tripleoclient.utils.send_cmdline_erase_sequence')
+    @mock.patch('tripleoclient.utils.reset_cmdline')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy._standalone_deploy',
                 return_value=1)
     @mock.patch('tripleoclient.utils.ansible_symlink')
