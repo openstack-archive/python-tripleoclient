@@ -1382,4 +1382,4 @@ class Deploy(command.Command):
         finally:
             # send erase sequence to reset the cmdline if paunch/ansible
             # mangled some escape sequences
-            utils.send_cmdline_erase_sequence()
+            utils.reset_cmdline()
