@@ -1814,7 +1814,7 @@ def get_validations_parameters(validations_data,
 
 
 def get_validations_table(validations_data):
-    """Return the validations information as a pretty printed table """
+    """Return the validations information as a pretty printed table"""
     param_field_name = get_param_field_name(validations_data)
 
     t = PrettyTable(border=True, header=True, padding_width=1)
@@ -1892,16 +1892,22 @@ def ansible_symlink():
 
 
 def check_file_for_enabled_service(env_file):
-    # This function checks environment file for the said service.
-    # If stack to be deployed/updated/upgraded has any deprecated service
-    # enabled, throw a warning about its deprecation and ask the user
-    # whether to proceed with deployment despite deprecation.
-    # For ODL as an example:
-    # If "OS::TripleO::Services::OpenDaylightApi" service is included
-    # in any of the parsed env_files, then check its value.
-    # OS::TripleO::Services::OpenDaylightApi NOT OS::Heat::None
-    # ODL is enabled.
+    """Checks environment file for the said service.
 
+    If stack to be to be deployed/updated/upgraded has any deprecated service
+    enabled, throw a warning about its deprecation and ask the user
+    whether to proceed with deployment despite deprecation.
+    For ODL as an example:
+    If "OS::TripleO::Services::OpenDaylightApi" service is included
+    in any of the parsed env_files, then check its value.
+    OS::TripleO::Services::OpenDaylightApi NOT OS::Heat::None
+    ODL is enabled.
+
+    :param env_file: The path of the environment file
+    :type env_file: String
+
+    :raises CommandError: If the action is not confirmed
+    """
     if os.path.exists(env_file):
         with open(env_file, "r") as f:
             content = yaml.load(f)
@@ -1913,7 +1919,7 @@ def check_file_for_enabled_service(env_file):
                                 + str(env_file) + ". " +
                                 constants.DEPRECATED_SERVICES[service])
                     deprecated_services_enabled.append(service)
-            except (KeyError, TypeError) as e:
+            except (KeyError, TypeError):
                 # ignore if content["resource_registry"] is empty
                 pass
         if deprecated_services_enabled:
