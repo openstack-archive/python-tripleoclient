@@ -506,12 +506,6 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
         '-e', os.path.join(tht_templates, 'environments/use-dns-for-vips.yaml')
         ]
 
-    if not CONF.get('enable_nova', True):
-        deploy_args += [
-            '-e', os.path.join(
-                tht_templates, 'environments/undercloud-disable-nova.yaml')
-            ]
-
     # we want to load this environment after undercloud.yaml for precedence.
     if CONF.get('container_cli', 'podman') == 'podman':
         deploy_args += [
@@ -538,6 +532,12 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
 
         _process_drivers_and_hardware_types(CONF, env_data)
         _process_ipa_args(CONF, env_data)
+
+    if not CONF.get('enable_nova', True):
+        deploy_args += [
+            '-e', os.path.join(
+                tht_templates, 'environments/undercloud-disable-nova.yaml')
+            ]
 
     if CONF.get('enable_mistral'):
         deploy_args += ['-e', os.path.join(
