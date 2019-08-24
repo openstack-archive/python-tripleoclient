@@ -62,6 +62,7 @@ class TestOvercloudUpdateRun(utils.TestCommand):
         self.app.client_manager.auth_ref = mock.Mock(auth_token="TOKEN")
         self.app.client_manager.tripleoclient = FakeClientWrapper()
         self.app.client_manager.workflow_engine = mock.Mock()
+        self.app.client_manager.orchestration = mock.Mock()
 
 
 class TestOvercloudUpdateConverge(utils.TestCommand):

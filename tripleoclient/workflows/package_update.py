@@ -85,6 +85,28 @@ def get_config(clients, **workflow_input):
         raise RuntimeError('Minor update failed with: {}'.format(payload))
 
 
+def get_key(clients, **workflow_input):
+    workflow_client = clients.workflow_engine
+    tripleoclients = clients.tripleoclient
+
+    with tripleoclients.messaging_websocket() as ws:
+        execution = base.start_workflow(
+            workflow_client,
+            'tripleo.package_update.v1.get_key',
+            workflow_input=workflow_input
+        )
+
+        for payload in base.wait_for_messages(workflow_client, ws, execution,
+                                              _WORKFLOW_TIMEOUT):
+            assert payload['status'] == "SUCCESS", pprint.pformat(payload)
+
+    if payload['status'] == 'SUCCESS':
+        print('Success')
+        return payload['message']
+    else:
+        raise RuntimeError('Get_key action failed with: {}'.format(payload))
+
+
 def update_ansible(clients, **workflow_input):
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient

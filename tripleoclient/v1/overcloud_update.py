@@ -129,14 +129,30 @@ class UpdateRun(command.Command):
                             default=utils.env('OVERCLOUD_STACK_NAME',
                                               default='overcloud')
                             )
+        parser.add_argument('--no-workflow', dest='no_workflow',
+                            action='store_true',
+                            default=False,
+                            help=_('Run ansible-playbook directly via '
+                                   'system command instead of running Ansible'
+                                   'via the TripleO mistral workflows.')
+                            )
 
         return parser
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
         clients = self.app.client_manager
+        orchestration = clients.orchestration
         verbosity = self.app_args.verbose_level
         stack = parsed_args.stack
+
+        ansible_dir = None
+        key = None
+        # Disable mistral
+        if parsed_args.no_workflow:
+            ansible_dir = oooutils.download_ansible_playbooks(orchestration,
+                                                              stack)
+            key = package_update.get_key(clients)
 
         # Run ansible:
         limit_hosts = parsed_args.limit
@@ -148,8 +164,11 @@ class UpdateRun(command.Command):
                                            inventory, playbook,
                                            constants.MINOR_UPDATE_PLAYBOOKS,
                                            parsed_args.ssh_user,
-                                           package_update,
-                                           verbosity=verbosity)
+                                           (None if parsed_args.no_workflow
+                                            else package_update),
+                                           verbosity=verbosity,
+                                           workdir=ansible_dir,
+                                           priv_key=key)
 
 
 class UpdateConverge(DeployOvercloud):
