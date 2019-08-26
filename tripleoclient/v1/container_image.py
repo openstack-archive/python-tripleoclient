@@ -26,6 +26,7 @@ import time
 from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
 import six
+from six.moves.urllib import parse
 import yaml
 
 from tripleo_common.image.builder import buildah
@@ -589,23 +590,39 @@ class TripleOContainerImagePush(command.Command):
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
 
-        # TODO(aschultz): need to fix upload to be able to handle local source
-        if parsed_args.local:
-            raise exceptions.NotFound('--local is currently not implemented')
-
         manager = image_uploader.ImageUploadManager()
         uploader = manager.uploader('python')
 
-        source_url = uploader._image_to_url(parsed_args.image_to_push)
-        image_name = source_url.path[1:]
-        if len(image_name.split('/')) != 2:
-            raise exceptions.DownloadError('Invalid container. Provided '
-                                           'container image should be '
-                                           '<registry>/<namespace>/<name>:'
-                                           '<tag>')
-        image_source = source_url.netloc
+        source_image = parsed_args.image_to_push
 
-        reg_url = uploader._image_to_url(parsed_args.registry_url)
+        if parsed_args.local or source_image.startswith('containers-storage:'):
+            storage = 'containers-storage:'
+            if not source_image.startswith(storage):
+                source_image = storage + source_image.replace('docker://', '')
+            elif not parsed_args.local:
+                self.log.warning('Assuming local container based on provided '
+                                 'container path. (e.g. starts with '
+                                 'containers-storage:)')
+            source_url = parse.urlparse(source_image)
+            image_name = source_url.geturl()
+            image_source = None
+        else:
+            storage = 'docker://'
+            if not source_image.startswith(storage):
+                source_image = storage + source_image
+            source_url = parse.urlparse(source_image)
+            image_source = source_url.netloc
+            image_name = source_url.path[1:]
+            if len(image_name.split('/')) != 2:
+                raise exceptions.DownloadError('Invalid container. Provided '
+                                               'container image should be '
+                                               '<registry>/<namespace>/<name>:'
+                                               '<tag>')
+
+        registry_url = parsed_args.registry_url
+        if not registry_url.startswith('docker://'):
+            registry_url = 'docker://%s' % registry_url
+        reg_url = parse.urlparse(registry_url)
 
         uploader.authenticate(reg_url,
                               parsed_args.username,
