@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Introduce new "--no-inflight-validations" option in order to deactivate
+    those validations. It defaults to "False", since we want them by default.

@@ -756,6 +756,16 @@ class DeployOvercloud(command.Command):
                    'now run via the external validations in '
                    'tripleo-validations.'))
         parser.add_argument(
+            '--no-inflight-validations',
+            action='store_true',
+            default=False,
+            dest='no_inflight',
+            help=_('Deactivate in-flight validations during the deploy. '
+                   'In-flight validations provide a robust way to ensure '
+                   'deployed services are running right after their '
+                   'activation. Defaults to False.')
+        )
+        parser.add_argument(
             '--dry-run',
             action='store_true',
             default=False,
@@ -952,9 +962,6 @@ class DeployOvercloud(command.Command):
                     deployment_options['ansible_python_interpreter'] = \
                         parsed_args.deployment_python_interpreter
 
-                disabled_val = parsed_args.disable_validations
-                enable_val = parsed_args.run_validations
-
                 deployment.config_download(
                     self.log, self.clients, stack,
                     parsed_args.templates, parsed_args.overcloud_ssh_user,
@@ -965,7 +972,7 @@ class DeployOvercloud(command.Command):
                     timeout,
                     verbosity=self.app_args.verbose_level,
                     deployment_options=deployment_options,
-                    in_flight_validations=(enable_val or not disabled_val))
+                    in_flight_validations=(not parsed_args.no_inflight))
             except Exception:
                 deployment.set_deployment_status(
                     self.clients, 'failed',
