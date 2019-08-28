@@ -593,30 +593,6 @@ class DeployOvercloud(command.Command):
                 "Error: The following environment directories were not found"
                 ": {0}".format(", ".join(nonexisting_dirs)))
 
-    def _get_default_role_counts(self, parsed_args):
-
-        if parsed_args.roles_file:
-            roles_data = utils.fetch_roles_file(parsed_args.roles_file,
-                                                parsed_args.templates)
-        else:
-            # Assume default role counts
-            return {
-                'ControllerCount': 1,
-                'ComputeCount': 1,
-                'ObjectStorageCount': 0,
-                'BlockStorageCount': 0,
-                'CephStorageCount': 0
-            }
-
-        default_role_counts = {}
-        for r in roles_data:
-            count_default = r.get('CountDefault', 0)
-            default_role_counts.setdefault(
-                "%sCount" % r['name'],
-                count_default)
-
-        return default_role_counts
-
     def _provision_baremetal(self, parsed_args, tht_root):
 
         if not parsed_args.baremetal_deployment:
