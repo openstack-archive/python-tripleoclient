@@ -46,22 +46,6 @@ class TestParameterWorkflows(utils.TestCommand):
         execution.id = "IDID"
         self.workflow.executions.create.return_value = execution
 
-    def test_get_overcloud_passwords(self):
-        self.websocket.wait_for_messages.return_value = iter([{
-            "execution_id": "IDID",
-            "status": "SUCCESS",
-            "message": "passwords",
-        }])
-
-        parameters.get_overcloud_passwords(
-            self.app.client_manager,
-            container='container-name'
-        )
-
-        self.workflow.executions.create.assert_called_once_with(
-            'tripleo.plan_management.v1.get_passwords',
-            workflow_input={'container': 'container-name'})
-
     @mock.patch('yaml.safe_load')
     @mock.patch("six.moves.builtins.open")
     def test_invoke_plan_env_workflows(self, mock_open,
