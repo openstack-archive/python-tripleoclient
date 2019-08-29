@@ -1080,6 +1080,7 @@ class GetDeploymentStatus(command.Command):
         )
 
         if not status:
+            print('No deployment was found for %s' % plan)
             return
 
         payload = status['workflow_status']['payload']
