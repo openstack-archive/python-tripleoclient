@@ -643,10 +643,6 @@ def remove_known_hosts(overcloud_ip):
         subprocess.check_call(command)
 
 
-def run_shell(cmd):
-    return subprocess.call([cmd], shell=True)
-
-
 def file_checksum(filepath):
     """Calculate md5 checksum on file
 
