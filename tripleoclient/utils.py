@@ -1058,6 +1058,7 @@ def load_environment_directories(directories):
 def get_tripleo_ansible_inventory(inventory_file=None,
                                   ssh_user='tripleo-admin',
                                   stack='overcloud',
+                                  undercloud_connection='ssh',
                                   return_inventory_file_path=False):
     if not inventory_file:
         inventory_file = '%s/%s' % (os.path.expanduser('~'),
@@ -1067,7 +1068,7 @@ def get_tripleo_ansible_inventory(inventory_file=None,
                 '/usr/bin/tripleo-ansible-inventory',
                 '--stack', stack,
                 '--ansible_ssh_user', ssh_user,
-                '--undercloud-connection', 'ssh',
+                '--undercloud-connection', undercloud_connection,
                 '--undercloud-key-file',
                 '/var/lib/mistral/.ssh/tripleo-admin-rsa',
                 '--static-yaml-inventory', inventory_file)
