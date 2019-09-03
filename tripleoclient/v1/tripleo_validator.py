@@ -367,7 +367,9 @@ class TripleOValidatorRun(command.Command):
             "/usr/bin/python{}".format(sys.version_info[0])
 
         static_inventory = oooutils.get_tripleo_ansible_inventory(
-            ssh_user='heat-admin', stack=parsed_args.plan,
+            ssh_user='heat-admin',
+            stack=parsed_args.plan,
+            undercloud_connection='local',
             return_inventory_file_path=True)
 
         failed_val = False
