@@ -1,0 +1,4 @@
+---
+fixes:
+  - The verbosity of the config-download ansible tasks for deployment are now
+    controlled by the verbosity level specified on the command line.
