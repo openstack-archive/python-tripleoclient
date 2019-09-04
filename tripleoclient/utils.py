@@ -2041,5 +2041,11 @@ def reset_cmdline():
     # only try to reset if stdout is a terminal, skip if not (e.g. CI)
     if not sys.stdout.isatty():
         return
-    sys.stdout.write(run_command(['reset', '-I']))
+    output = ''
+    try:
+        output = run_command(['reset', '-I'])
+    except RuntimeError as e:
+        LOG.warning('Unable to reset command line. Try manually running '
+                    '"reset" if the command line is broken.')
+    sys.stdout.write(output)
     sys.stdout.flush()
