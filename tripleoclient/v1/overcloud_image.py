@@ -270,7 +270,10 @@ class UploadOvercloudImage(command.Command):
             default=self._get_environment_var(
                 'HTTP_BOOT',
                 constants.IRONIC_HTTP_BOOT_BIND_MOUNT),
-            help=_("Root directory for the ironic-python-agent image")
+            help=_("Root directory for the ironic-python-agent image. If "
+                   "uploading images for multiple architectures/platforms, "
+                   "vary this argument such that a distinct folder is "
+                   "created for each architecture/platform.")
         )
         parser.add_argument(
             "--update-existing",
