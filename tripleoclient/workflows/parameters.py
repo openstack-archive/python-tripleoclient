@@ -10,8 +10,10 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import logging
+import re
 import yaml
 
+from tripleoclient.constants import UNUSED_PARAMETER_EXCLUDES_RE
 from tripleoclient import exceptions
 from tripleoclient.workflows import base
 
@@ -106,13 +108,18 @@ def check_deprecated_parameters(clients, container):
                   ' {deprecated_join}'.format(
                       deprecated_join=deprecated_join))
 
+        # exclude our known params that may not be used
+        ignore_re = re.compile('|'.join(UNUSED_PARAMETER_EXCLUDES_RE))
+        unused_params = [p for p in unused_params if not ignore_re.search(p)]
+
         if unused_params:
             unused_join = ', '.join(
                 ['{param}'.format(param=param) for param in unused_params])
             LOG.warning(
-                  'WARNING: Following parameter(s) are defined but not used '
-                  'in plan. Could be possible that parameter is valid but '
-                  'currently not used.'
+                  'WARNING: Following parameter(s) are defined but not '
+                  'currently used in the deployment plan. These parameters '
+                  'may be valid but not in use due to the service or '
+                  'deployment configuration.'
                   ' {unused_join}'.format(unused_join=unused_join))
 
         if invalid_role_specific_params:
