@@ -27,7 +27,6 @@ from osc_lib import exceptions as oscexc
 from six.moves.urllib import parse
 from tripleo_common.image import image_uploader
 from tripleo_common.image import kolla_builder
-from tripleoclient import exceptions as tcexc
 from tripleoclient.tests.v1.test_plugin import TestPluginV1
 from tripleoclient.v1 import container_image
 
@@ -103,13 +102,6 @@ class TestContainerImagePush(TestPluginV1):
         mock_uploader = mock.Mock()
         mock_mgr.uploader.return_value = mock_uploader
 
-        # mock return url object from uploader._image_to_url
-        mock_url = mock.Mock()
-        container_url = parse.urlparse("docker://docker.io/namespace/foo")
-        registry_url = parse.urlparse("docker://127.0.0.1:8787")
-        mock_url.side_effect = [container_url, registry_url]
-        mock_uploader._image_to_url = mock_url
-
         # mock return session object from uploader.authenticate
         mock_session = mock.Mock()
         mock_uploader.authenticate.return_value = mock_session
@@ -144,13 +136,105 @@ class TestContainerImagePush(TestPluginV1):
         mock_add_upload.assert_called_once_with(mock_uploadtask)
         mock_run_tasks.assert_called_once()
 
-    def test_take_action_local(self):
+    @mock.patch('tripleo_common.image.image_uploader.UploadTask')
+    @mock.patch('tripleo_common.image.image_uploader.ImageUploadManager')
+    def test_take_action_local(self, mock_manager, mock_task):
         arglist = ['docker.io/namespace/foo', '--local']
         verifylist = [('image_to_push', 'docker.io/namespace/foo'),
                       ('local', True)]
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
-        self.assertRaises(tcexc.NotFound, self.cmd.take_action, parsed_args)
+        # mock manager object
+        mock_mgr = mock.Mock()
+        mock_manager.return_value = mock_mgr
+
+        # mock uploader object
+        mock_uploader = mock.Mock()
+        mock_mgr.uploader.return_value = mock_uploader
+
+        # mock return session object from uploader.authenticate
+        mock_session = mock.Mock()
+        mock_uploader.authenticate.return_value = mock_session
+
+        # mock upload task
+        mock_uploadtask = mock.Mock()
+        mock_task.return_value = mock_uploadtask
+
+        # mock add upload task action
+        mock_add_upload = mock.Mock()
+        data = []
+        mock_add_upload.return_value = data
+        mock_uploader.add_upload_task = mock_add_upload
+
+        # mock run tasks action
+        mock_run_tasks = mock.Mock()
+        mock_uploader.run_tasks = mock_run_tasks
+
+        self.cmd.take_action(parsed_args)
+
+        mock_task.assert_called_once_with(
+                image_name='containers-storage:docker.io/namespace/foo',
+                pull_source=None,
+                push_destination=parsed_args.registry_url,
+                append_tag=parsed_args.append_tag,
+                modify_role=None,
+                modify_vars=None,
+                dry_run=parsed_args.dry_run,
+                cleanup=False,
+                multi_arch=parsed_args.multi_arch)
+
+        mock_add_upload.assert_called_once_with(mock_uploadtask)
+        mock_run_tasks.assert_called_once()
+
+    @mock.patch('tripleo_common.image.image_uploader.UploadTask')
+    @mock.patch('tripleo_common.image.image_uploader.ImageUploadManager')
+    def test_take_action_local_path(self, mock_manager, mock_task):
+        arglist = ['containers-storage:docker.io/namespace/foo']
+        verifylist = [('image_to_push',
+                       'containers-storage:docker.io/namespace/foo')]
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        # mock manager object
+        mock_mgr = mock.Mock()
+        mock_manager.return_value = mock_mgr
+
+        # mock uploader object
+        mock_uploader = mock.Mock()
+        mock_mgr.uploader.return_value = mock_uploader
+
+        # mock return session object from uploader.authenticate
+        mock_session = mock.Mock()
+        mock_uploader.authenticate.return_value = mock_session
+
+        # mock upload task
+        mock_uploadtask = mock.Mock()
+        mock_task.return_value = mock_uploadtask
+
+        # mock add upload task action
+        mock_add_upload = mock.Mock()
+        data = []
+        mock_add_upload.return_value = data
+        mock_uploader.add_upload_task = mock_add_upload
+
+        # mock run tasks action
+        mock_run_tasks = mock.Mock()
+        mock_uploader.run_tasks = mock_run_tasks
+
+        self.cmd.take_action(parsed_args)
+
+        mock_task.assert_called_once_with(
+                image_name='containers-storage:docker.io/namespace/foo',
+                pull_source=None,
+                push_destination=parsed_args.registry_url,
+                append_tag=parsed_args.append_tag,
+                modify_role=None,
+                modify_vars=None,
+                dry_run=parsed_args.dry_run,
+                cleanup=False,
+                multi_arch=parsed_args.multi_arch)
+
+        mock_add_upload.assert_called_once_with(mock_uploadtask)
+        mock_run_tasks.assert_called_once()
 
     @mock.patch('tripleo_common.image.image_uploader.UploadTask')
     @mock.patch('tripleo_common.image.image_uploader.ImageUploadManager')
@@ -166,13 +250,6 @@ class TestContainerImagePush(TestPluginV1):
         # mock uploader object
         mock_uploader = mock.Mock()
         mock_mgr.uploader.return_value = mock_uploader
-
-        # mock return url object from uploader._image_to_url
-        mock_url = mock.Mock()
-        container_url = parse.urlparse("docker://docker.io/namespace/foo")
-        registry_url = parse.urlparse("docker://127.0.0.1:8787")
-        mock_url.side_effect = [container_url, registry_url]
-        mock_uploader._image_to_url = mock_url
 
         # mock return session object from uploader.authenticate
         mock_session = mock.Mock()
@@ -226,13 +303,6 @@ class TestContainerImagePush(TestPluginV1):
         mock_uploader = mock.Mock()
         mock_mgr.uploader.return_value = mock_uploader
 
-        # mock return url object from uploader._image_to_url
-        mock_url = mock.Mock()
-        container_url = parse.urlparse("docker://docker.io/namespace/foo:tag")
-        registry_url = parse.urlparse("docker://127.0.0.1:8787")
-        mock_url.side_effect = [container_url, registry_url]
-        mock_uploader._image_to_url = mock_url
-
         # mock return session object from uploader.authenticate
         mock_session = mock.Mock()
         mock_uploader.authenticate.return_value = mock_session
@@ -253,6 +323,7 @@ class TestContainerImagePush(TestPluginV1):
 
         self.cmd.take_action(parsed_args)
 
+        registry_url = parse.urlparse("docker://127.0.0.1:8787")
         mock_uploader.authenticate.assert_called_once_with(
             registry_url, parsed_args.username, parsed_args.password)
 
