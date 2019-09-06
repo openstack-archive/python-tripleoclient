@@ -1099,3 +1099,41 @@ class TestProvisionNode(fakes.TestOvercloudNode):
                             'ssh_keys': ['I am a key'],
                             'ssh_user_name': 'heat-admin'}
         )
+
+
+class TestUnprovisionNode(fakes.TestOvercloudNode):
+
+    def setUp(self):
+        super(TestUnprovisionNode, self).setUp()
+
+        self.workflow = self.app.client_manager.workflow_engine
+        execution = mock.Mock()
+        execution.id = "IDID"
+        self.workflow.executions.create.return_value = execution
+        client = self.app.client_manager.tripleoclient
+        self.websocket = client.messaging_websocket()
+        self.websocket.wait_for_messages.return_value = [{
+            "status": "SUCCESS",
+            "message": "Success",
+            "environment": {"cat": "meow"},
+            "execution": {"id": "IDID"}
+        }]
+
+        self.cmd = overcloud_node.UnprovisionNode(self.app, None)
+
+    def test_ok(self):
+        with tempfile.NamedTemporaryFile() as inp:
+            inp.write(b'- name: Compute\n- name: Controller\n')
+            inp.flush()
+            argslist = [inp.name]
+            verifylist = [('input', inp.name)]
+
+            parsed_args = self.check_parser(self.cmd,
+                                            argslist, verifylist)
+            self.cmd.take_action(parsed_args)
+
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.baremetal_deploy.v1.undeploy_roles',
+            workflow_input={'roles': [{'name': 'Compute'},
+                                      {'name': 'Controller'}]}
+        )

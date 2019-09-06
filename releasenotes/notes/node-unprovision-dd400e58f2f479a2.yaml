@@ -1,0 +1,10 @@
+features:
+  - |
+    New command "openstack overcloud node unprovision"
+
+    This is a companion command to "openstack overcloud node provision"
+    which is required for scale-down and should be run after "openstack
+    overcloud deploy".
+
+    It will undeploy any instance which has provisioned=False in the
+    supplied roles yaml.
