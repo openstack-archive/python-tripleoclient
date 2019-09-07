@@ -14,6 +14,7 @@
 #
 
 import mock
+import os
 
 from osc_lib import exceptions
 from tripleoclient.tests.v1.test_plugin import TestPluginV1
@@ -168,6 +169,23 @@ class TestUploadOvercloudImage(TestPluginV1):
             1,
             update_mock.call_count
         )
+
+    @mock.patch.dict(os.environ, {'KEY': 'VALUE', 'OLD_KEY': 'OLD_VALUE'})
+    def test_get_environment_var(self):
+        self.assertEqual('default-value',
+                         self.cmd._get_environment_var('MISSING',
+                                                       'default-value'))
+        self.assertEqual('VALUE',
+                         self.cmd._get_environment_var('KEY',
+                                                       'default-value'))
+        self.assertEqual('VALUE',
+                         self.cmd._get_environment_var('KEY',
+                                                       'default-value',
+                                                       deprecated=['MISSING']))
+        self.assertEqual('OLD_VALUE',
+                         self.cmd._get_environment_var('KEY',
+                                                       'default-value',
+                                                       deprecated=['OLD_KEY']))
 
     @mock.patch('os.path.isfile', autospec=True)
     def test_file_try_update_need_update(self, mock_isfile):
