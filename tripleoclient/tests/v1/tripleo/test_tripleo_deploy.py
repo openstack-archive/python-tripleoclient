@@ -513,7 +513,7 @@ class TestDeployUndercloud(TestPluginV1):
             {'name': 'Foo', 'tags': ['primary']}
         ]
 
-        def set_tht(templates):
+        def set_tht(templates, stack_name):
             self.cmd.tht_render = "tht_from"
 
         mock_populate.side_effect = set_tht
