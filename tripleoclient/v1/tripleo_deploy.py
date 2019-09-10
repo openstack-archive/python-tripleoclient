@@ -197,13 +197,13 @@ class Deploy(command.Command):
                          'first defined role')
         return roles_data[0]['name']
 
-    def _get_tar_filename(self):
+    def _get_tar_filename(self, stack_name='undercloud'):
         """Return tarball name for the install artifacts"""
-        return '%s/undercloud-install-%s.tar.bzip2' % \
-               (self.output_dir,
+        return '%s/%s-install-%s.tar.bzip2' % \
+               (self.output_dir, stack_name,
                 datetime.utcnow().strftime('%Y%m%d%H%M%S'))
 
-    def _create_install_artifact(self, user):
+    def _create_install_artifact(self, user, stack_name='undercloud'):
         """Create a tarball of the temporary folders used"""
         self.log.debug(_("Preserving deployment artifacts"))
 
@@ -216,7 +216,8 @@ class Deploy(command.Command):
 
         # tar up working data and put in
         # output_dir/undercloud-install-TS.tar.bzip2
-        tar_filename = self._get_tar_filename()
+        # if the stack name is "undercloud".
+        tar_filename = self._get_tar_filename(stack_name)
         try:
             tf = tarfile.open(tar_filename, 'w:bz2')
             tf.add(self.tht_render, recursive=True, filter=remove_output_dir)
@@ -236,7 +237,7 @@ class Deploy(command.Command):
         if not os.path.exists(constants.STANDALONE_EPHEMERAL_STACK_VSTATE):
             os.mkdir(constants.STANDALONE_EPHEMERAL_STACK_VSTATE)
 
-    def _create_working_dirs(self):
+    def _create_working_dirs(self, stack_name='undercloud'):
         """Creates temporary working directories"""
         if self.output_dir and not os.path.exists(self.output_dir):
             os.mkdir(self.output_dir)
@@ -250,9 +251,10 @@ class Deploy(command.Command):
             shutil.rmtree(self.tht_render, ignore_errors=True)
         if not self.tmp_ansible_dir:
             self.tmp_ansible_dir = tempfile.mkdtemp(
-                prefix='undercloud-ansible-', dir=self.output_dir)
+                prefix=stack_name + '-ansible-', dir=self.output_dir)
 
-    def _populate_templates_dir(self, source_templates_dir):
+    def _populate_templates_dir(self, source_templates_dir,
+                                stack_name='undercloud'):
         """Creates template dir with templates
 
         * Copy --templates content into a working dir
@@ -261,7 +263,7 @@ class Deploy(command.Command):
         :param source_templates_dir: string to a directory containing our
                                      source templates
         """
-        self._create_working_dirs()
+        self._create_working_dirs(stack_name)
         if not os.path.exists(source_templates_dir):
             raise exceptions.NotFound("%s template director does not exists" %
                                       source_templates_dir)
@@ -309,10 +311,14 @@ class Deploy(command.Command):
                            constants.PUPPET_MODULES,
                            constants.PUPPET_BASE)
 
-    def _update_passwords_env(self, output_dir, user, passwords=None):
-        pw_file = os.path.join(output_dir, 'tripleo-undercloud-passwords.yaml')
+    def _update_passwords_env(self, output_dir, user, passwords=None,
+                              stack_name='undercloud'):
+        pw_file = os.path.join(output_dir,
+                               'tripleo-' + stack_name + '-passwords.yaml')
         undercloud_pw_file = os.path.join(output_dir,
                                           'undercloud-passwords.conf')
+        undercloud_pw_file = os.path.join(output_dir,
+                                          stack_name + '-passwords.conf')
         stack_env = {'parameter_defaults': {}}
 
         # Getting passwords that were managed by instack-undercloud so
@@ -633,8 +639,10 @@ class Deploy(command.Command):
                         for e in plan_env_data.get('environments', {})]
 
         # this will allow the user to overwrite passwords with custom envs
-        pw_file = self._update_passwords_env(self.output_dir,
-                                             parsed_args.deployment_user)
+        pw_file = self._update_passwords_env(
+            self.output_dir,
+            parsed_args.deployment_user,
+            stack_name=parsed_args.stack.lower())
         environments.append(pw_file)
 
         # use deployed-server because we run os-collect-config locally
@@ -684,7 +692,8 @@ class Deploy(command.Command):
         if parsed_args.hieradata_override:
             environments.append(self._process_hieradata_overrides(
                 parsed_args.hieradata_override,
-                parsed_args.standalone_role))
+                parsed_args.standalone_role,
+                parsed_args.stack.lower()))
 
         # Create a persistent drop-in file to indicate the stack
         # virtual state changes
@@ -744,7 +753,8 @@ class Deploy(command.Command):
             self.log.info('Removing unused services, updating roles')
             # This will clean up the directory and set it up again
             self.tht_render = None
-            self._populate_templates_dir(parsed_args.templates)
+            self._populate_templates_dir(parsed_args.templates,
+                                         parsed_args.stack.lower())
             roles_file_path = os.path.join(
                 self.tht_render, 'roles-data-override.yaml')
             with open(roles_file_path, "w") as f:
@@ -791,7 +801,7 @@ class Deploy(command.Command):
     def _download_ansible_playbooks(self, client, stack_name,
                                     tripleo_role_name='Standalone'):
         stack_config = config.Config(client)
-        self._create_working_dirs()
+        self._create_working_dirs(stack_name.lower())
 
         self.log.warning(_('** Downloading {0} ansible.. **').format(
             stack_name))
@@ -1028,7 +1038,8 @@ class Deploy(command.Command):
         return parser
 
     def _process_hieradata_overrides(self, override_file=None,
-                                     tripleo_role_name='Standalone'):
+                                     tripleo_role_name='Standalone',
+                                     stack_name='undercloud'):
         """Count in hiera data overrides including legacy formats
 
         Return a file name that points to processed hiera data overrides file
@@ -1055,7 +1066,7 @@ class Deploy(command.Command):
                    target)
             self.log.error(msg)
             raise exceptions.DeploymentError(msg)
-        self._create_working_dirs()
+        self._create_working_dirs(stack_name)
 
         # NOTE(bogdando): In t-h-t, hiera data should come in wrapped as
         # {parameter_defaults: {UndercloudExtraConfig: ... }}
@@ -1123,7 +1134,7 @@ class Deploy(command.Command):
 
         # prepare working spaces
         self.output_dir = os.path.abspath(parsed_args.output_dir)
-        self._create_working_dirs()
+        self._create_working_dirs(parsed_args.stack.lower())
         # The state that needs to be persisted between serial deployments
         # and cannot be contained in ephemeral heat stacks or working dirs
         self._create_persistent_dirs()
@@ -1132,7 +1143,8 @@ class Deploy(command.Command):
         self._configure_puppet()
 
         # copy the templates dir in place
-        self._populate_templates_dir(parsed_args.templates)
+        self._populate_templates_dir(parsed_args.templates,
+                                     parsed_args.stack.lower())
 
         # Set default plan if not specified by user
         self._set_default_plan()
@@ -1217,7 +1229,8 @@ class Deploy(command.Command):
             if not parsed_args.keep_running:
                 self._kill_heat(parsed_args)
             tar_filename = \
-                self._create_install_artifact(parsed_args.deployment_user)
+                self._create_install_artifact(parsed_args.deployment_user,
+                                              parsed_args.stack.lower())
             if self.ansible_dir:
                 self._dump_ansible_errors(
                     os.path.join(self.ansible_dir,
