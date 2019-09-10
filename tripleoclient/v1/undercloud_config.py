@@ -574,11 +574,6 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
         env_data.update(
             _get_public_tls_parameters(
                 CONF.get('undercloud_service_certificate')))
-        deploy_args += [
-            '-e', os.path.join(tht_templates, 'environments/services/'
-                               'undercloud-haproxy.yaml'),
-            '-e', os.path.join(tht_templates, 'environments/services/'
-                               'undercloud-keepalived.yaml')]
     elif CONF.get('generate_service_certificate'):
         deploy_args += ['-e', os.path.join(
             tht_templates,
@@ -594,7 +589,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
             CONF.get('undercloud_public_host'), tht_templates)
 
         public_host = utils.get_single_ip(CONF.get('undercloud_public_host'))
-        netaddr.IPAddress(public_host)
+        public_ip = netaddr.IPAddress(public_host)
         deploy_args += ['--public-virtual-ip', public_host]
 
         # To make sure the resolved host is set to the right IP in /etc/hosts
@@ -603,8 +598,36 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
             env_data['ExtraHostFileEntries'] = extra_host
 
         admin_host = utils.get_single_ip(CONF.get('undercloud_admin_host'))
-        netaddr.IPAddress(admin_host)
+        admin_ip = netaddr.IPAddress(admin_host)
         deploy_args += ['--control-virtual-ip', admin_host]
+
+        local_net = netaddr.IPNetwork(CONF.get('local_ip'))
+        if CONF.get('net_config_override', None):
+            if (admin_ip not in local_net.cidr):
+                LOG.warning('You may need to specify a custom '
+                            'ControlVirtualInterface in a custom env file to '
+                            'correctly assign the ip address to an interface '
+                            'for undercloud_admin_host. By default it will be '
+                            'set to br-ctlplane.')
+            if (public_ip not in local_net.cidr):
+                LOG.warning('You may need to specify a custom '
+                            'PublicVirtualInterface in a custom env file to '
+                            'correctly assign the ip address to an interface '
+                            'for undercloud_public_host. By default it will be'
+                            ' set to br-ctlplane.')
+        else:
+            if (admin_ip not in local_net.cidr or
+                    public_ip not in local_net.cidr):
+                LOG.warning('undercloud_admin_host or undercloud_public_host '
+                            'is not in the same cidr as local_ip.')
+
+        # Define the *VirtualInterfaces for keepalived. These are used when
+        # configuring the undercloud_*_host addresses. If these adddesses are
+        # not in the default cidr for the ctlplane, it will not be defined
+        # and leads to general sadness during the deployment. Our default
+        # net_config uses br-ctlplane. See rhbz#1737150
+        env_data['ControlVirtualInterface'] = 'br-ctlplane'
+        env_data['PublicVirtualInterface'] = 'br-ctlplane'
 
         deploy_args += [
             '-e', endpoint_environment,
