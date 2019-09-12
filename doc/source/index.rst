@@ -1,22 +1,20 @@
 =============
-tripleoclient
+Tripleoclient
 =============
-
-tripleoclient is an OpenStackClient plugin.
-
-Contents:
 
 .. toctree::
    :maxdepth: 2
 
    readme
+   contributing
    installation
    usage
    commands
-   contributing
 
-Indices and tables
-==================
+.. only:: html
 
-* :ref:`genindex`
-* :ref:`search`
+  Indices and tables
+  ==================
+
+  * :ref:`genindex`
+  * :ref:`search`
