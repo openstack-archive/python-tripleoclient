@@ -1,0 +1,8 @@
+---
+deprecations:
+  - |
+    `openstack overcloud container image prepare` has been
+    deprecated and replaced by `openstack tripleo container image prepare`
+  - |
+    `openstack overcloud container image tag discover` has been
+    deprecated and replaced by `openstack tripleo container image prepare`
