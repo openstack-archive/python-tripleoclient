@@ -89,7 +89,6 @@ USER_HOME = os.environ.get('HOME', '')
 TELEMETRY_DOCKER_ENV_YAML = [
     'environments/services/undercloud-gnocchi.yaml',
     'environments/services/undercloud-aodh.yaml',
-    'environments/services/undercloud-panko.yaml',
     'environments/services/undercloud-ceilometer.yaml']
 
 CONF = cfg.CONF

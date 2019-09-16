@@ -1,0 +1,6 @@
+---
+deprecations:
+  - |
+    Panko which is part of the telemetry services has been deprecated in
+    Train. From now on, it is not deployed anymore in the Undercloud if the
+    telemetry has been enabled during the installation.
