@@ -851,8 +851,7 @@ class TestDeployUndercloud(TestPluginV1):
     @mock.patch('os.execvp')
     def test_launch_ansible_with_args(self, mock_execvp, mock_chdir, mock_run):
 
-        args = ['deploy_steps_playbook.yaml', '--skip-tags',
-                'validation']
+        args = ['--skip-tags', 'validation']
         self.cmd._launch_ansible('/tmp', args, operation='deploy')
         mock_chdir.assert_called_once()
         mock_run.assert_called_once_with(self.cmd.log, [
