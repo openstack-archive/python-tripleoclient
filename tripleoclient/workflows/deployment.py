@@ -335,7 +335,7 @@ def config_download(log, clients, stack, templates,
                     ssh_user, ssh_key, ssh_network,
                     output_dir, override_ansible_cfg, timeout, verbosity=1,
                     deployment_options={},
-                    in_flight_validations=True):
+                    in_flight_validations=False):
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
 

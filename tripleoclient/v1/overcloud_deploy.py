@@ -732,11 +732,11 @@ class DeployOvercloud(command.Command):
                    'now run via the external validations in '
                    'tripleo-validations.'))
         parser.add_argument(
-            '--no-inflight-validations',
+            '--inflight-validations',
             action='store_true',
             default=False,
-            dest='no_inflight',
-            help=_('Deactivate in-flight validations during the deploy. '
+            dest='inflight',
+            help=_('Activate in-flight validations during the deploy. '
                    'In-flight validations provide a robust way to ensure '
                    'deployed services are running right after their '
                    'activation. Defaults to False.')
@@ -948,7 +948,7 @@ class DeployOvercloud(command.Command):
                     timeout,
                     verbosity=self.app_args.verbose_level,
                     deployment_options=deployment_options,
-                    in_flight_validations=(not parsed_args.no_inflight))
+                    in_flight_validations=parsed_args.inflight)
             except Exception:
                 deployment.set_deployment_status(
                     self.clients, 'failed',
