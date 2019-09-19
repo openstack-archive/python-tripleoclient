@@ -405,6 +405,9 @@ class PrepareImageFiles(command.Command):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+        self.log.warning("[DEPRECATED] This command has been deprecated and "
+                         "replaced by the 'openstack tripleo container image "
+                         "prepare' command.")
 
         roles_data = utils.fetch_roles_file(parsed_args.roles_file) or set()
 
@@ -501,6 +504,9 @@ class DiscoverImageTag(command.Command):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+        self.log.warning("[DEPRECATED] This command has been deprecated and "
+                         "replaced by the 'openstack tripleo container image "
+                         "prepare' command.")
 
         uploader = image_uploader.ImageUploadManager([])
         print(uploader.discover_image_tag(
