@@ -106,6 +106,7 @@ class ExportCell(command.Command):
                            "oslo_messaging_notify_node_names",
                            "oslo_messaging_rpc_node_names",
                            "memcached_node_ips",
+                           "ovn_dbs_vip",
                            "redis_vip"]},
         }
 
