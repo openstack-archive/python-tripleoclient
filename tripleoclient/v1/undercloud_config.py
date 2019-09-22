@@ -742,7 +742,8 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
         utils.ansible_symlink()
         undercloud_preflight.check(verbose_level, upgrade)
         deploy_args += ['-e', os.path.join(
-            tht_templates, "environments/tripleo-validations.yaml")]
+            tht_templates, "environments/tripleo-validations.yaml"),
+            '--inflight-validations']
 
     if CONF.get('custom_env_files'):
         for custom_file in CONF['custom_env_files']:

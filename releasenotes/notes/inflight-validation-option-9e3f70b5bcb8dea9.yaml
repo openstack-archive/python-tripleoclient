@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Introduce new "--inflight-validations" option in order to activate
+    those validations. It defaults to "False", since we don't want them by
+    default.
