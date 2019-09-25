@@ -765,16 +765,12 @@ class TripleOContainerImageShow(command.ShowOne):
     auth_required = False
     log = logging.getLogger(__name__ + ".TripleoContainerImageShow")
 
+    @property
+    def formatter_default(self):
+        return 'json'
+
     def get_parser(self, prog_name):
         parser = super(TripleOContainerImageShow, self).get_parser(prog_name)
-        parser.add_argument(
-            "--registry-url",
-            dest="registry_url",
-            metavar='<registry url>',
-            default=image_uploader.get_undercloud_registry(),
-            help=_("URL of registry images are to be listed from in the "
-                   "form <fqdn>:<port>.")
-        )
         parser.add_argument(
             "--username",
             dest="username",
@@ -790,7 +786,10 @@ class TripleOContainerImageShow(command.ShowOne):
         parser.add_argument(
             dest="image_to_inspect",
             metavar='<image to inspect>',
-            help=_("Image to be inspected.")
+            help=_(
+                "Image to be inspected, for example: "
+                "docker.io/library/centos:7 or "
+                "docker://docker.io/library/centos:7")
         )
         return parser
 
@@ -799,7 +798,7 @@ class TripleOContainerImageShow(command.ShowOne):
 
         manager = image_uploader.ImageUploadManager()
         uploader = manager.uploader('python')
-        url = uploader._image_to_url(parsed_args.registry_url)
+        url = uploader._image_to_url(parsed_args.image_to_inspect)
         session = uploader.authenticate(url, parsed_args.username,
                                         parsed_args.password)
 
