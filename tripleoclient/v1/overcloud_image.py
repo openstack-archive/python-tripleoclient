@@ -468,16 +468,17 @@ class UploadOvercloudImage(command.Command):
             deploy_kernel_file = os.path.join(parsed_args.image_path,
                                               parsed_args.ipa_name +
                                               deploy_kernel_extension)
-            self._image_try_update(deploy_kernel_name, deploy_kernel_file,
-                                   parsed_args) or \
-                glance_client_adaptor.upload_image(
-                    name=deploy_kernel_name,
-                    is_public=True,
-                    disk_format='aki',
-                    properties=properties,
-                    data=self._read_image_file_pointer(
-                        parsed_args.image_path,
-                        deploy_kernel_file))
+            with self._read_image_file_pointer(
+                    parsed_args.image_path, deploy_kernel_file) as data:
+                self._image_try_update(deploy_kernel_name,
+                                       deploy_kernel_file,
+                                       parsed_args) or \
+                    glance_client_adaptor.upload_image(
+                        name=deploy_kernel_name,
+                        is_public=True,
+                        disk_format='aki',
+                        properties=properties,
+                        data=data)
 
             (deploy_ramdisk_name,
              deploy_ramdisk_extension) = plugin_utils.deploy_ramdisk(
@@ -485,15 +486,17 @@ class UploadOvercloudImage(command.Command):
             deploy_ramdisk_file = os.path.join(parsed_args.image_path,
                                                parsed_args.ipa_name +
                                                deploy_ramdisk_extension)
-            self._image_try_update(deploy_ramdisk_name, deploy_ramdisk_file,
-                                   parsed_args) or \
-                glance_client_adaptor.upload_image(
-                    name=deploy_ramdisk_name,
-                    is_public=True,
-                    disk_format='ari',
-                    properties=properties,
-                    data=self._read_image_file_pointer(parsed_args.image_path,
-                                                       deploy_ramdisk_file))
+            with self._read_image_file_pointer(
+                    parsed_args.image_path, deploy_ramdisk_file) as data:
+                self._image_try_update(deploy_ramdisk_name,
+                                       deploy_ramdisk_file,
+                                       parsed_args) or \
+                    glance_client_adaptor.upload_image(
+                        name=deploy_ramdisk_name,
+                        is_public=True,
+                        disk_format='ari',
+                        properties=properties,
+                        data=data)
 
             self.log.debug("copy agent images to HTTP BOOT dir")
 
