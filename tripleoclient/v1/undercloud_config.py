@@ -374,9 +374,10 @@ def _process_network_args(env):
             raise exceptions.InvalidConfiguration(msg)
 
 
-def prepare_undercloud_deploy(upgrade=False, no_validations=False,
+def prepare_undercloud_deploy(upgrade=False, no_validations=True,
                               verbose_level=1, yes=False,
-                              force_stack_update=False, dry_run=False):
+                              force_stack_update=False, dry_run=False,
+                              inflight=False):
     """Prepare Undercloud deploy command based on undercloud.conf"""
 
     env_data = {}
@@ -753,8 +754,10 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=False,
         utils.ansible_symlink()
         undercloud_preflight.check(verbose_level, upgrade)
         deploy_args += ['-e', os.path.join(
-            tht_templates, "environments/tripleo-validations.yaml"),
-            '--inflight-validations']
+            tht_templates, "environments/tripleo-validations.yaml")]
+
+    if inflight:
+        deploy_args.append('--inflight-validations')
 
     if CONF.get('custom_env_files'):
         for custom_file in CONF['custom_env_files']:

@@ -101,6 +101,16 @@ class InstallUndercloud(command.Command):
             help=_("Do not perform undercloud configuration validations"),
         )
         parser.add_argument(
+            '--inflight-validations',
+            dest='inflight',
+            action='store_true',
+            default=False,
+            help=_('Activate in-flight validations during the deploy. '
+                   'In-flight validations provide a robust way to ensure '
+                   'deployed services are running right after their '
+                   'activation. Defaults to False.')
+        )
+        parser.add_argument(
             '--dry-run',
             dest='dry_run',
             action='store_true',
@@ -121,11 +131,14 @@ class InstallUndercloud(command.Command):
 
         utils.ensure_run_as_normal_user()
         no_validations = parsed_args.dry_run or parsed_args.no_validations
+        inflight = not parsed_args.dry_run and parsed_args.inflight
+
         cmd = undercloud_config.prepare_undercloud_deploy(
             no_validations=no_validations,
             verbose_level=self.app_args.verbose_level,
             force_stack_update=parsed_args.force_stack_update,
-            dry_run=parsed_args.dry_run)
+            dry_run=parsed_args.dry_run,
+            inflight=inflight)
 
         self.log.warning("Running: %s" % ' '.join(cmd))
         if not parsed_args.dry_run:
