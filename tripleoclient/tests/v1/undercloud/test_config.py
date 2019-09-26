@@ -165,7 +165,8 @@ class TestNetworkSettings(base.TestCase):
                  'host_routes': [],
                  'ip_range': '192.168.24.100,192.168.24.120',
                  'netmask': '255.255.255.0',
-                 'tag': 'ctlplane-subnet'}],
+                 'tag': 'ctlplane-subnet',
+                 'mtu': 1500}],
             'MasqueradeNetworks': {},
             'UndercloudCtlplaneSubnets': {
                 'ctlplane-subnet': {
@@ -207,7 +208,8 @@ class TestNetworkSettings(base.TestCase):
                  'host_routes': [],
                  'ip_range': 'fd12:3456:789a:1::30,fd12:3456:789a:1::40',
                  'netmask': 'ffff:ffff:ffff:ffff::',
-                 'tag': 'ctlplane-subnet'}],
+                 'tag': 'ctlplane-subnet',
+                 'mtu': 1500}],
             'MasqueradeNetworks': {},
             'UndercloudCtlplaneSubnets': {
                 'ctlplane-subnet': {
@@ -281,7 +283,8 @@ class TestNetworkSettings(base.TestCase):
                  'host_routes': [],
                  'ip_range': '192.168.24.100,192.168.24.120',
                  'netmask': '255.255.255.0',
-                 'tag': 'ctlplane-subnet'}],
+                 'tag': 'ctlplane-subnet',
+                 'mtu': 1500}],
             'MasqueradeNetworks': {},
             'UndercloudCtlplaneSubnets': {
                 'ctlplane-subnet': {
@@ -308,7 +311,8 @@ class TestNetworkSettings(base.TestCase):
                  'host_routes': [],
                  'ip_range': '192.168.10.100,192.168.10.120',
                  'netmask': '255.255.255.0',
-                 'tag': 'ctlplane-subnet'}],
+                 'tag': 'ctlplane-subnet',
+                 'mtu': 1500}],
             'MasqueradeNetworks': {},
             'UndercloudCtlplaneSubnets': {
                 'ctlplane-subnet': {
@@ -337,7 +341,8 @@ class TestNetworkSettings(base.TestCase):
                  'host_routes': [],
                  'ip_range': '192.168.10.100,192.168.10.120',
                  'netmask': '255.255.255.0',
-                 'tag': 'ctlplane-subnet'}],
+                 'tag': 'ctlplane-subnet',
+                 'mtu': 1500}],
             'MasqueradeNetworks': {},
             'UndercloudCtlplaneSubnets': {
                 'ctlplane-subnet': {
@@ -365,7 +370,8 @@ class TestNetworkSettings(base.TestCase):
                  'host_routes': [],
                  'ip_range': '192.168.24.100,192.168.24.120',
                  'netmask': '255.255.255.0',
-                 'tag': 'ctlplane-subnet'}],
+                 'tag': 'ctlplane-subnet',
+                 'mtu': 1500}],
             'MasqueradeNetworks': {},
             'UndercloudCtlplaneSubnets': {
                 'ctlplane-subnet': {
@@ -391,7 +397,8 @@ class TestNetworkSettings(base.TestCase):
                  'host_routes': [],
                  'ip_range': '192.168.24.100,192.168.24.120',
                  'netmask': '255.255.255.0',
-                 'tag': 'ctlplane-subnet'}],
+                 'tag': 'ctlplane-subnet',
+                 'mtu': 1500}],
             'MasqueradeNetworks': {},
             'UndercloudCtlplaneSubnets': {
                 'ctlplane-subnet': {
@@ -418,7 +425,8 @@ class TestNetworkSettings(base.TestCase):
                  'host_routes': [],
                  'ip_range': '192.168.24.100,192.168.24.120',
                  'netmask': '255.255.255.0',
-                 'tag': 'ctlplane-subnet'}],
+                 'tag': 'ctlplane-subnet',
+                 'mtu': 1500}],
             'MasqueradeNetworks': {},
             'UndercloudCtlplaneSubnets': {
                 'ctlplane-subnet': {
@@ -470,17 +478,20 @@ class TestNetworkSettings(base.TestCase):
                  'host_routes': [],
                  'ip_range': '192.168.24.100,192.168.24.120',
                  'netmask': '255.255.255.0',
-                 'tag': 'ctlplane-subnet'},
+                 'tag': 'ctlplane-subnet',
+                 'mtu': 1500},
                 {'gateway': '192.168.10.254',
                  'host_routes': [],
                  'ip_range': '192.168.10.100,192.168.10.189',
                  'netmask': '255.255.255.0',
-                 'tag': 'subnet1'},
+                 'tag': 'subnet1',
+                 'mtu': 1500},
                 {'gateway': '192.168.20.254',
                  'host_routes': [],
                  'ip_range': '192.168.20.100,192.168.20.189',
                  'netmask': '255.255.255.0',
-                 'tag': 'subnet2'}
+                 'tag': 'subnet2',
+                 'mtu': 1500}
             ],
             'MasqueradeNetworks': {
                 '192.168.10.0/24': ['192.168.24.0/24',
@@ -552,17 +563,20 @@ class TestNetworkSettings(base.TestCase):
                  'host_routes': [],
                  'ip_range': '192.168.24.100,192.168.24.120',
                  'netmask': '255.255.255.0',
-                 'tag': 'ctlplane-subnet'},
+                 'tag': 'ctlplane-subnet',
+                 'mtu': 1500},
                 {'gateway': '192.168.10.254',
                  'host_routes': [],
                  'ip_range': '192.168.10.100,192.168.10.189',
                  'netmask': '255.255.255.0',
-                 'tag': 'subnet1'},
+                 'tag': 'subnet1',
+                 'mtu': 1500},
                 {'gateway': '192.168.20.254',
                  'host_routes': [],
                  'ip_range': '192.168.20.100,192.168.20.189',
                  'netmask': '255.255.255.0',
-                 'tag': 'subnet2'}
+                 'tag': 'subnet2',
+                 'mtu': 1500}
             ],
             'MasqueradeNetworks': {},
             'UndercloudCtlplaneSubnets': {
@@ -613,12 +627,14 @@ class TestNetworkSettings(base.TestCase):
                  'host_routes': [],
                  'ip_range': '192.168.24.100,192.168.24.120',
                  'netmask': '255.255.255.0',
-                 'tag': 'ctlplane-subnet'},
+                 'tag': 'ctlplane-subnet',
+                 'mtu': 1500},
                 {'gateway': '192.168.10.254',
                  'host_routes': [],
                  'ip_range': '192.168.10.200,192.168.10.254',
                  'netmask': '255.255.255.0',
-                 'tag': 'subnet1'},
+                 'tag': 'subnet1',
+                 'mtu': 1500},
             ],
             'MasqueradeNetworks': {},
             'UndercloudCtlplaneSubnets': {
@@ -662,12 +678,14 @@ class TestNetworkSettings(base.TestCase):
                  'host_routes': [],
                  'ip_range': '192.168.24.100,192.168.24.120',
                  'netmask': '255.255.255.0',
-                 'tag': 'ctlplane-subnet'},
+                 'tag': 'ctlplane-subnet',
+                 'mtu': 1500},
                 {'gateway': '192.168.10.222',
                  'host_routes': [],
                  'ip_range': '192.168.10.100,192.168.10.199',
                  'netmask': '255.255.255.0',
-                 'tag': 'subnet1'},
+                 'tag': 'subnet1',
+                 'mtu': 1500},
             ],
             'MasqueradeNetworks': {},
             'UndercloudCtlplaneSubnets': {
@@ -732,19 +750,22 @@ class TestNetworkSettings(base.TestCase):
                                   'nexthop': '192.168.24.1'}],
                  'ip_range': '192.168.24.100,192.168.24.120',
                  'netmask': '255.255.255.0',
-                 'tag': 'ctlplane-subnet'},
+                 'tag': 'ctlplane-subnet',
+                 'mtu': 1500},
                 {'gateway': '192.168.10.254',
                  'host_routes': [{'destination': '10.10.10.254/32',
                                   'nexthop': '192.168.10.254'}],
                  'ip_range': '192.168.10.100,192.168.10.189',
                  'netmask': '255.255.255.0',
-                 'tag': 'subnet1'},
+                 'tag': 'subnet1',
+                 'mtu': 1500},
                 {'gateway': '192.168.20.254',
                  'host_routes': [{'destination': '10.10.10.254/32',
                                   'nexthop': '192.168.20.254'}],
                  'ip_range': '192.168.20.100,192.168.20.189',
                  'netmask': '255.255.255.0',
-                 'tag': 'subnet2'}
+                 'tag': 'subnet2',
+                 'mtu': 1500}
             ],
             'MasqueradeNetworks': {},
             'UndercloudCtlplaneSubnets': {
