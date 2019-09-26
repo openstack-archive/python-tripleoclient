@@ -227,6 +227,7 @@ def _generate_inspection_subnets():
         env_dict['netmask'] = str(netaddr.IPNetwork(s.cidr).netmask)
         env_dict['gateway'] = s.gateway
         env_dict['host_routes'] = s.host_routes
+        env_dict['mtu'] = CONF.local_mtu
         env_list.append(env_dict)
     return env_list
 
