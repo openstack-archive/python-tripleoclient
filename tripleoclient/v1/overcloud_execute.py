@@ -41,6 +41,7 @@ class RemoteExecute(command.Command):
 
         self.log.debug("take_action(%s)" % parsed_args)
         config = parsed_args.file_in.read()
+        parsed_args.file_in.close()
         workflow_client = self.app.client_manager.workflow_engine
         tripleoclients = self.app.client_manager.tripleoclient
         messaging_websocket = tripleoclients.messaging_websocket()
