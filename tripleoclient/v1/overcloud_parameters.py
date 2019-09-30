@@ -100,6 +100,7 @@ class GenerateFencingParameters(command.Command):
 
     def take_action(self, parsed_args):
         nodes_config = utils.parse_env_file(parsed_args.instackenv)
+        parsed_args.instackenv.close()
 
         workflow_input = {
             'nodes_json': nodes_config,
@@ -115,5 +116,6 @@ class GenerateFencingParameters(command.Command):
         fencing_parameters = yaml.safe_dump(result, default_flow_style=False)
         if parsed_args.output:
             parsed_args.output.write(fencing_parameters)
+            parsed_args.output.close()
         else:
             print(fencing_parameters)
