@@ -789,9 +789,11 @@ class TestConfigureNode(fakes.TestOvercloudNode):
         # Get the command object to test
         self.cmd = overcloud_node.ConfigureNode(self.app, None)
 
+        self.http_boot = '/var/lib/ironic/httpboot'
+
         self.workflow_input = {
-            'kernel_name': 'file:///var/lib/ironic/httpboot/agent.kernel',
-            'ramdisk_name': 'file:///var/lib/ironic/httpboot/agent.ramdisk',
+            'kernel_name': 'file://%s/agent.kernel' % self.http_boot,
+            'ramdisk_name': 'file://%s/agent.ramdisk' % self.http_boot,
             'instance_boot_option': None,
             'root_device': None,
             'root_device_minimum_size': 4,
@@ -972,6 +974,8 @@ class TestDiscoverNode(fakes.TestOvercloudNode):
             "execution_id": "IDID"
         }]
 
+        self.http_boot = '/var/lib/ironic/httpboot'
+
     def test_with_ip_range(self):
         argslist = ['--range', '10.0.0.0/24',
                     '--credentials', 'admin:password']
@@ -983,11 +987,13 @@ class TestDiscoverNode(fakes.TestOvercloudNode):
 
         self.workflow.executions.create.assert_called_once_with(
             'tripleo.baremetal.v1.discover_and_enroll_nodes',
-            workflow_input={'ip_addresses': '10.0.0.0/24',
-                            'credentials': [['admin', 'password']],
-                            'kernel_name': 'bm-deploy-kernel',
-                            'ramdisk_name': 'bm-deploy-ramdisk',
-                            'instance_boot_option': 'local'}
+            workflow_input={
+                'ip_addresses': '10.0.0.0/24',
+                'credentials': [['admin', 'password']],
+                'kernel_name': 'file://%s/agent.kernel' % self.http_boot,
+                'ramdisk_name': 'file://%s/agent.ramdisk' % self.http_boot,
+                'instance_boot_option': 'local'
+            }
         )
 
     def test_with_address_list(self):
@@ -1001,11 +1007,13 @@ class TestDiscoverNode(fakes.TestOvercloudNode):
 
         self.workflow.executions.create.assert_called_once_with(
             'tripleo.baremetal.v1.discover_and_enroll_nodes',
-            workflow_input={'ip_addresses': ['10.0.0.1', '10.0.0.2'],
-                            'credentials': [['admin', 'password']],
-                            'kernel_name': 'bm-deploy-kernel',
-                            'ramdisk_name': 'bm-deploy-ramdisk',
-                            'instance_boot_option': 'local'}
+            workflow_input={
+                'ip_addresses': ['10.0.0.1', '10.0.0.2'],
+                'credentials': [['admin', 'password']],
+                'kernel_name': 'file://%s/agent.kernel' % self.http_boot,
+                'ramdisk_name': 'file://%s/agent.ramdisk' % self.http_boot,
+                'instance_boot_option': 'local'
+            }
         )
 
     def test_with_all_options(self):

@@ -451,8 +451,12 @@ class DiscoverNode(command.Command):
             deploy_kernel = None
             deploy_ramdisk = None
         else:
-            deploy_kernel = 'bm-deploy-kernel'
-            deploy_ramdisk = 'bm-deploy-ramdisk'
+            deploy_kernel = 'file://{}/agent.kernel'.format(
+                    constants.IRONIC_HTTP_BOOT_BIND_MOUNT
+            )
+            deploy_ramdisk = 'file://{}/agent.ramdisk'.format(
+                    constants.IRONIC_HTTP_BOOT_BIND_MOUNT
+            )
 
         credentials = [list(x.split(':', 1)) for x in parsed_args.credentials]
         kwargs = {}
