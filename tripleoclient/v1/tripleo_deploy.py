@@ -1314,7 +1314,8 @@ class Deploy(command.Command):
                                               extra_args=extra_args)
                     if rc != 0:
                         raise exceptions.DeploymentError('Upgrade failed')
-                rc = self._launch_ansible(self.ansible_dir)
+                rc = self._launch_ansible(self.ansible_dir,
+                                          extra_args=extra_args)
                 if rc != 0:
                     raise exceptions.DeploymentError('Deployment failed')
                 if parsed_args.upgrade:
