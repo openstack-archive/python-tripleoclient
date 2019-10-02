@@ -356,6 +356,29 @@ class TestPlanUpdateWorkflows(base.TestCommand):
                             'generate_passwords': True, 'source_url': None,
                             'validate_stack': False})
 
+    @mock.patch('tripleoclient.workflows.plan_management._update_passwords',
+                autospec=True)
+    @mock.patch('yaml.safe_load',
+                autospec=True)
+    @mock.patch('tripleoclient.workflows.plan_management.tarball',
+                autospec=True)
+    @mock.patch('tripleo_common.utils.swift.empty_container',
+                autospec=True)
+    def test_update_plan_from_templates_recreate_env_missing_passwords(
+            self, mock_empty_container, mock_tarball, mock_yaml_safe_load,
+            mock_update_passwords):
+        plan_management.update_plan_from_templates(
+            self.app.client_manager,
+            'test-overcloud',
+            '/tht-root/',
+            validate_stack=False)
+        # A dictionary without the "passwords" key is provided in
+        # the _load_passwords method.
+        mock_yaml_safe_load.return_value = {}
+        # Ensure that the passwords variable is passed with a value of None.
+        mock_update_passwords.assert_called_with(
+            mock.ANY, 'test-overcloud', None)
+
 
 class TestUpdatePasswords(base.TestCase):
 
