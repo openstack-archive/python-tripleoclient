@@ -290,7 +290,12 @@ def _upload_file_content(swift_client, container, filename, content):
 def _load_passwords(swift_client, name):
     plan_env = yaml.safe_load(swift_client.get_object(
         name, constants.PLAN_ENVIRONMENT)[1])
-    return plan_env['passwords']
+
+    if "passwords" in plan_env:
+        return plan_env['passwords']
+    else:
+        LOG.warn("No passwords found in existing plan {}. "
+                 "Updating plan with passwords.".format(name))
 
 
 def _update_passwords(swift_client, name, passwords):
