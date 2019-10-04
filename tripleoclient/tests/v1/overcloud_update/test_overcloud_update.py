@@ -36,6 +36,9 @@ class TestOvercloudUpdatePrepare(fakes.TestOvercloudUpdatePrepare):
         self.mock_uuid4 = uuid4_patcher.start()
         self.addCleanup(self.mock_uuid4.stop)
 
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_get_undercloud_host_entry', autospec=True,
+                return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
     @mock.patch('tripleoclient.utils.get_stack',
                 autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_update.UpdatePrepare.log',
@@ -50,7 +53,7 @@ class TestOvercloudUpdatePrepare(fakes.TestOvercloudUpdatePrepare):
                 '_deploy_tripleo_heat_templates_tmpdir', autospec=True)
     def test_update_out(self, mock_deploy, mock_open, mock_copy, mock_yaml,
                         mock_abspath, mock_update, mock_logger,
-                        mock_get_stack):
+                        mock_get_stack, mock_get_undercloud_host_entry):
         mock_stack = mock.Mock(parameters={'DeployIdentifier': ''})
         mock_stack.stack_name = 'overcloud'
         mock_get_stack.return_value = mock_stack
