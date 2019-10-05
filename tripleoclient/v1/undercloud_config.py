@@ -357,6 +357,7 @@ def _process_network_args(env):
         env['MemcachedIPv6'] = True
         env['RedisIPv6'] = True
         env['MysqlIPv6'] = True
+        env['IronicIpVersion'] = '6'
 
     # We do not use undercloud ips for env, but just validate the configured
     # value here.

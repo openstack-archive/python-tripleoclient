@@ -201,6 +201,7 @@ class TestNetworkSettings(base.TestCase):
             'MemcachedIPv6': True,
             'RedisIPv6': True,
             'MysqlIPv6': True,
+            'IronicIpVersion': '6',
             'ControlPlaneStaticRoutes': [],
             'IronicInspectorSubnets': [
                 {'gateway': 'fd12:3456:789a:1::1',
