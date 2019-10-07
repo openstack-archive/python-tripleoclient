@@ -605,14 +605,8 @@ class TestUploadOvercloudImageFullMultiArch(TestPluginV1):
     # reading logfiles a little nicer
     images = [
         mock.Mock(id=10, name='overcloud-full'),
-        mock.Mock(id=11, name='bm-deploy-kernel'),
-        mock.Mock(id=12, name='bm-deploy-initrd'),
-        mock.Mock(id=13, name='ppc64le-overcloud-full'),
-        mock.Mock(id=14, name='ppc64le-bm-deploy-kernel'),
-        mock.Mock(id=15, name='ppc64le-bm-deploy-initrd'),
-        mock.Mock(id=16, name='p9-ppc64le-overcloud-full'),
-        mock.Mock(id=17, name='p9-ppc64le-bm-deploy-kernel'),
-        mock.Mock(id=18, name='p9-ppc64le-bm-deploy-initrd'),
+        mock.Mock(id=11, name='ppc64le-overcloud-full'),
+        mock.Mock(id=12, name='p9-ppc64le-overcloud-full'),
     ]
 
     def setUp(self):
