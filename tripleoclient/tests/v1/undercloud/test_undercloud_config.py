@@ -45,6 +45,7 @@ class TestProcessDriversAndHardwareTypes(base.TestCase):
         self.assertEqual({
             'IronicEnabledHardwareTypes': ['idrac', 'ilo', 'ipmi', 'redfish'],
             'IronicEnabledBootInterfaces': ['ilo-pxe', 'pxe'],
+            'IronicEnabledDeployInterfaces': ['ansible', 'direct', 'iscsi'],
             'IronicEnabledManagementInterfaces': ['fake', 'idrac', 'ilo',
                                                   'ipmitool', 'noop',
                                                   'redfish'],
@@ -64,6 +65,7 @@ class TestProcessDriversAndHardwareTypes(base.TestCase):
             # ipmi added because it's the default discovery driver
             'IronicEnabledHardwareTypes': ['ipmi', 'redfish'],
             'IronicEnabledBootInterfaces': ['pxe'],
+            'IronicEnabledDeployInterfaces': ['ansible', 'direct', 'iscsi'],
             'IronicEnabledManagementInterfaces': ['fake', 'ipmitool',
                                                   'noop', 'redfish'],
             'IronicEnabledPowerInterfaces': ['fake', 'ipmitool', 'redfish'],
@@ -79,17 +81,21 @@ class TestProcessDriversAndHardwareTypes(base.TestCase):
             self.conf.enabled_hardware_types + ['staging-ovirt', 'snmp',
                                                 'irmc', 'cisco-ucs-managed',
                                                 'cisco-ucs-standalone',
-                                                'xclarity']
+                                                'xclarity', 'fake-hardware']
         )
 
         undercloud_config._process_drivers_and_hardware_types(self.conf, env)
         self.assertEqual({
             'IronicEnabledHardwareTypes': ['cisco-ucs-managed',
                                            'cisco-ucs-standalone',
+                                           'fake-hardware',
                                            'idrac', 'ilo', 'ipmi', 'irmc',
                                            'redfish', 'snmp', 'staging-ovirt',
                                            'xclarity'],
-            'IronicEnabledBootInterfaces': ['ilo-pxe', 'irmc-pxe', 'pxe'],
+            'IronicEnabledBootInterfaces': ['fake', 'ilo-pxe', 'irmc-pxe',
+                                            'pxe'],
+            'IronicEnabledDeployInterfaces': ['ansible', 'direct', 'fake',
+                                              'iscsi'],
             'IronicEnabledManagementInterfaces': ['cimc', 'fake', 'idrac',
                                                   'ilo', 'ipmitool', 'irmc',
                                                   'noop', 'redfish',

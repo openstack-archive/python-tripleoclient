@@ -176,6 +176,11 @@ def _process_drivers_and_hardware_types(conf, env):
     if 'snmp' in enabled_hardware_types:
         power_interfaces.add('snmp')
 
+    deploy_interfaces = {'iscsi', 'direct', 'ansible'}
+    if 'fake-hardware' in enabled_hardware_types:
+        deploy_interfaces.add('fake')
+        boot_interfaces.add('fake')
+
     env['IronicEnabledHardwareTypes'] = sorted(enabled_hardware_types)
 
     env['IronicEnabledBootInterfaces'] = sorted(boot_interfaces)
@@ -183,6 +188,7 @@ def _process_drivers_and_hardware_types(conf, env):
     env['IronicEnabledPowerInterfaces'] = sorted(power_interfaces)
     env['IronicEnabledRaidInterfaces'] = sorted(raid_interfaces)
     env['IronicEnabledVendorInterfaces'] = sorted(vendor_interfaces)
+    env['IronicEnabledDeployInterfaces'] = sorted(deploy_interfaces)
 
 
 def _process_ipa_args(conf, env):
