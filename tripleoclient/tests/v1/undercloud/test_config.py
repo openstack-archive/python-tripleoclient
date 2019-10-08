@@ -51,6 +51,7 @@ class TestProcessDriversAndHardwareTypes(base.TestCase):
             'IronicEnabledHardwareTypes': ['idrac', 'ilo', 'ipmi', 'redfish'],
             'IronicEnabledBootInterfaces': ['ilo-pxe', 'ipxe', 'pxe'],
             'IronicEnabledBiosInterfaces': ['ilo', 'no-bios', 'redfish'],
+            'IronicEnabledDeployInterfaces': ['ansible', 'direct', 'iscsi'],
             'IronicEnabledInspectInterfaces': ['idrac', 'ilo', 'inspector',
                                                'no-inspect', 'redfish'],
             'IronicEnabledManagementInterfaces': ['fake', 'idrac', 'ilo',
@@ -73,6 +74,7 @@ class TestProcessDriversAndHardwareTypes(base.TestCase):
             'IronicEnabledHardwareTypes': ['ipmi', 'redfish'],
             'IronicEnabledBootInterfaces': ['ipxe', 'pxe'],
             'IronicEnabledBiosInterfaces': ['no-bios', 'redfish'],
+            'IronicEnabledDeployInterfaces': ['ansible', 'direct', 'iscsi'],
             'IronicEnabledInspectInterfaces': ['inspector', 'no-inspect',
                                                'redfish'],
             'IronicEnabledManagementInterfaces': ['fake', 'ipmitool',
@@ -88,18 +90,21 @@ class TestProcessDriversAndHardwareTypes(base.TestCase):
         env = {}
         self.conf.enabled_hardware_types = (
             self.conf.enabled_hardware_types + ['staging-ovirt', 'snmp',
-                                                'irmc', 'xclarity']
+                                                'irmc', 'xclarity',
+                                                'fake-hardware']
         )
 
         undercloud_config._process_drivers_and_hardware_types(self.conf, env)
         self.assertEqual({
-            'IronicEnabledHardwareTypes': ['idrac', 'ilo', 'ipmi', 'irmc',
-                                           'redfish', 'snmp', 'staging-ovirt',
-                                           'xclarity'],
-            'IronicEnabledBootInterfaces': ['ilo-pxe', 'ipxe', 'irmc-pxe',
-                                            'pxe'],
+            'IronicEnabledHardwareTypes': ['fake-hardware', 'idrac', 'ilo',
+                                           'ipmi', 'irmc', 'redfish', 'snmp',
+                                           'staging-ovirt', 'xclarity'],
+            'IronicEnabledBootInterfaces': ['fake', 'ilo-pxe', 'ipxe',
+                                            'irmc-pxe', 'pxe'],
             'IronicEnabledBiosInterfaces': ['ilo', 'irmc',
                                             'no-bios', 'redfish'],
+            'IronicEnabledDeployInterfaces': ['ansible', 'direct', 'fake',
+                                              'iscsi'],
             'IronicEnabledInspectInterfaces': ['idrac', 'ilo', 'inspector',
                                                'irmc', 'no-inspect',
                                                'redfish'],
