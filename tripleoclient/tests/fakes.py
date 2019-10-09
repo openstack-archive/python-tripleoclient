@@ -27,6 +27,11 @@ WS_URL = "ws://0.0.0.0"
 WSS_URL = "wss://0.0.0.0"
 
 
+class FakeOptions(object):
+    def __init__(self):
+        self.debug = True
+
+
 class FakeApp(object):
     def __init__(self):
         _stdout = None
@@ -36,6 +41,7 @@ class FakeApp(object):
         self.stderr = sys.stderr
         self.restapi = None
         self.command_options = None
+        self.options = FakeOptions()
 
 
 class FakeStackObject(object):
