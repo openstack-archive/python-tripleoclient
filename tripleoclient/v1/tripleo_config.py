@@ -28,7 +28,7 @@ from tripleo_common.actions import ansible
 
 
 class GenerateAnsibleConfig(command.Command):
-    """Generate the default ansible.cfg for UC/AIO-standalone deployments."""
+    """Generate the default ansible.cfg for deployments."""
 
     log = logging.getLogger(__name__ + ".GenerateAnsibleConfig")
 
@@ -64,8 +64,6 @@ class GenerateAnsibleConfig(command.Command):
                   'match the user name executing this command!') %
                 parsed_args.deployment_user)
 
-        # FIXME(bogdando): unhardcode key/transport for future multi-node
         ansible.write_default_ansible_cfg(parsed_args.output_dir,
                                           parsed_args.deployment_user,
-                                          ssh_private_key=None,
-                                          transport='local')
+                                          ssh_private_key=None)
