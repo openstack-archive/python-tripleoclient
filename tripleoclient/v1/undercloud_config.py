@@ -331,6 +331,7 @@ def _process_network_args(env):
     env['IronicInspectorSubnets'] = _generate_inspection_subnets()
     env['ControlPlaneStaticRoutes'] = _generate_subnets_static_routes()
     env['UndercloudCtlplaneSubnets'] = {}
+    env['UndercloudCtlplaneIPv6AddressMode'] = CONF['ipv6_address_mode']
     for subnet in CONF.subnets:
         s = CONF.get(subnet)
         env['UndercloudCtlplaneSubnets'][subnet] = {

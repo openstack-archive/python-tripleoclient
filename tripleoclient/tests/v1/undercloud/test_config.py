@@ -175,7 +175,9 @@ class TestNetworkSettings(base.TestCase):
                     'DnsNameServers': ['10.10.10.10', '10.10.10.11'],
                     'HostRoutes': [],
                     'NetworkCidr': '192.168.24.0/24',
-                    'NetworkGateway': '192.168.24.1'}}}
+                    'NetworkGateway': '192.168.24.1'}},
+            'UndercloudCtlplaneIPv6AddressMode': 'dhcpv6-stateless',
+        }
         self.assertEqual(expected, env)
 
     def test_ipv6_control_plane(self):
@@ -221,7 +223,9 @@ class TestNetworkSettings(base.TestCase):
                                        'fd12:3456:789a:1::6'],
                     'HostRoutes': [],
                     'NetworkCidr': 'fd12:3456:789a:1::/64',
-                    'NetworkGateway': 'fd12:3456:789a:1::1'}}}
+                    'NetworkGateway': 'fd12:3456:789a:1::1'}},
+            'UndercloudCtlplaneIPv6AddressMode': 'dhcpv6-stateless',
+        }
         self.assertEqual(expected, env)
 
     def test_nameserver_toomany_fail(self):
@@ -295,7 +299,9 @@ class TestNetworkSettings(base.TestCase):
                     'DnsNameServers': ['10.10.10.10', '10.10.10.11'],
                     'HostRoutes': [],
                     'NetworkCidr': '192.168.24.0/24',
-                    'NetworkGateway': '192.168.24.1'}}}
+                    'NetworkGateway': '192.168.24.1'}},
+            'UndercloudCtlplaneIPv6AddressMode': 'dhcpv6-stateless',
+        }
         self.assertEqual(expected, env)
 
     def test_ignore_dhcp_start_end_if_default_but_cidr_not_default(self):
@@ -323,7 +329,9 @@ class TestNetworkSettings(base.TestCase):
                     'DnsNameServers': ['10.10.10.10', '10.10.10.11'],
                     'HostRoutes': [],
                     'NetworkCidr': '192.168.10.0/24',
-                    'NetworkGateway': '192.168.10.1'}}}
+                    'NetworkGateway': '192.168.10.1'}},
+            'UndercloudCtlplaneIPv6AddressMode': 'dhcpv6-stateless',
+        }
         self.assertEqual(expected, env)
 
     def test_dhcp_exclude(self):
@@ -355,7 +363,9 @@ class TestNetworkSettings(base.TestCase):
                     'DnsNameServers': ['10.10.10.10', '10.10.10.11'],
                     'HostRoutes': [],
                     'NetworkCidr': '192.168.10.0/24',
-                    'NetworkGateway': '192.168.10.1'}}}
+                    'NetworkGateway': '192.168.10.1'}},
+            'UndercloudCtlplaneIPv6AddressMode': 'dhcpv6-stateless',
+        }
         self.assertEqual(expected, env)
 
     def test_no_dhcp_start_no_dhcp_end(self):
@@ -382,7 +392,9 @@ class TestNetworkSettings(base.TestCase):
                     'DnsNameServers': ['10.10.10.10', '10.10.10.11'],
                     'HostRoutes': [],
                     'NetworkCidr': '192.168.24.0/24',
-                    'NetworkGateway': '192.168.24.1'}}}
+                    'NetworkGateway': '192.168.24.1'}},
+            'UndercloudCtlplaneIPv6AddressMode': 'dhcpv6-stateless',
+        }
         self.assertEqual(expected, env)
 
     def test_dhcp_start_no_dhcp_end(self):
@@ -409,7 +421,9 @@ class TestNetworkSettings(base.TestCase):
                     'DnsNameServers': ['10.10.10.10', '10.10.10.11'],
                     'HostRoutes': [],
                     'NetworkCidr': '192.168.24.0/24',
-                    'NetworkGateway': '192.168.24.1'}}
+                    'NetworkGateway': '192.168.24.1'},
+            },
+            'UndercloudCtlplaneIPv6AddressMode': 'dhcpv6-stateless',
         }
         self.assertEqual(expected, env)
 
@@ -437,7 +451,9 @@ class TestNetworkSettings(base.TestCase):
                     'DnsNameServers': ['10.10.10.10', '10.10.10.11'],
                     'HostRoutes': [],
                     'NetworkCidr': '192.168.24.0/24',
-                    'NetworkGateway': '192.168.24.1'}}
+                    'NetworkGateway': '192.168.24.1'},
+            },
+            'UndercloudCtlplaneIPv6AddressMode': 'dhcpv6-stateless',
         }
         self.assertEqual(expected, env)
 
@@ -527,7 +543,8 @@ class TestNetworkSettings(base.TestCase):
                     'HostRoutes': [],
                     'NetworkCidr': '192.168.20.0/24',
                     'NetworkGateway': '192.168.20.254'}
-            }
+            },
+            'UndercloudCtlplaneIPv6AddressMode': 'dhcpv6-stateless',
         }
         self.assertEqual(expected, env)
 
@@ -603,7 +620,8 @@ class TestNetworkSettings(base.TestCase):
                     'HostRoutes': [],
                     'NetworkCidr': '192.168.20.0/24',
                     'NetworkGateway': '192.168.20.254'}
-            }
+            },
+            'UndercloudCtlplaneIPv6AddressMode': 'dhcpv6-stateless',
         }
         self.assertEqual(expected, env)
 
@@ -654,7 +672,8 @@ class TestNetworkSettings(base.TestCase):
                     'HostRoutes': [],
                     'NetworkCidr': '192.168.10.0/24',
                     'NetworkGateway': '192.168.10.254'}
-            }
+            },
+            'UndercloudCtlplaneIPv6AddressMode': 'dhcpv6-stateless',
         }
         self.assertEqual(expected, env)
 
@@ -707,7 +726,8 @@ class TestNetworkSettings(base.TestCase):
                     'HostRoutes': [],
                     'NetworkCidr': '192.168.10.0/24',
                     'NetworkGateway': '192.168.10.222'}
-            }
+            },
+            'UndercloudCtlplaneIPv6AddressMode': 'dhcpv6-stateless',
         }
         self.assertEqual(expected, env)
 
@@ -795,7 +815,8 @@ class TestNetworkSettings(base.TestCase):
                                     'nexthop': '192.168.20.254'}],
                     'NetworkCidr': '192.168.20.0/24',
                     'NetworkGateway': '192.168.20.254'}
-            }
+            },
+            'UndercloudCtlplaneIPv6AddressMode': 'dhcpv6-stateless'
         }
         self.assertEqual(expected, env)
 

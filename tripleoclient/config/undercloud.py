@@ -346,6 +346,19 @@ class UndercloudConfig(StandaloneConfig):
                               'values is: %s') %
                               ' '.join(constants.ADDITIONAL_ARCHITECTURES))
                         ),
+            cfg.StrOpt('ipv6_address_mode',
+                       default='dhcpv6-stateless',
+                       choices=[
+                           ('dhcpv6-stateless', 'Address configuration using '
+                                                'RA and optional information '
+                                                'using DHCPv6.'),
+                           ('dhcpv6-stateful', 'Address configuration and '
+                                               'optional information using '
+                                               'DHCPv6.')
+                       ],
+                       help=(_('IPv6 address configuration mode for the '
+                               'undercloud provisioning network.'))
+                       ),
         ]
         return self.sort_opts(_base_opts + _opts)
 

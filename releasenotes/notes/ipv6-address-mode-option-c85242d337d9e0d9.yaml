@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    The IPv6 addressing mode is now configurable for the undercloud
+    provisioning network. The option ``ipv6_address_mode`` (default:
+    ``dhpcv6-stateless``) in undercloud.conf is used to control the addressing
+    mode. Possible values:
+
+    - **dhpcv6-stateless**: Address configuration using RA and optional
+      information using DHCPv6.
+    - **dhcpv6-stateful**:  Address configuration and optional information
+      using DHCPv6.
