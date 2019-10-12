@@ -459,12 +459,14 @@ class PrepareImageFiles(command.Command):
         )
         if parsed_args.output_env_file:
             params = prepare_data[parsed_args.output_env_file]
-            if os.path.exists(parsed_args.output_env_file):
+            output_env_file_expanded = os.path.expanduser(
+                parsed_args.output_env_file)
+            if os.path.exists(output_env_file_expanded):
                 self.log.warning("Output env file exists, "
                                  "moving it to backup.")
-                shutil.move(parsed_args.output_env_file,
-                            parsed_args.output_env_file + ".backup")
-            utils.safe_write(parsed_args.output_env_file,
+                shutil.move(output_env_file_expanded,
+                            output_env_file_expanded + ".backup")
+            utils.safe_write(output_env_file_expanded,
                              build_env_file(params, self.app.command_options))
 
         result = prepare_data[output_images_file]
