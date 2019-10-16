@@ -87,9 +87,11 @@ class TestContainerImagePush(TestPluginV1):
         super(TestContainerImagePush, self).setUp()
         self.cmd = container_image.TripleOContainerImagePush(self.app, None)
 
+    @mock.patch('tripleo_common.image.image_uploader.get_undercloud_registry',
+                return_value='uc.ctlplane.somedomain')
     @mock.patch('tripleo_common.image.image_uploader.UploadTask')
     @mock.patch('tripleo_common.image.image_uploader.ImageUploadManager')
-    def test_take_action(self, mock_manager, mock_task):
+    def test_take_action(self, mock_manager, mock_task, mock_get_uc_registry):
         arglist = ['docker.io/namespace/foo']
         verifylist = [('image_to_push', 'docker.io/namespace/foo')]
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
@@ -136,9 +138,12 @@ class TestContainerImagePush(TestPluginV1):
         mock_add_upload.assert_called_once_with(mock_uploadtask)
         mock_run_tasks.assert_called_once()
 
+    @mock.patch('tripleo_common.image.image_uploader.get_undercloud_registry',
+                return_value='uc.ctlplane.somedomain')
     @mock.patch('tripleo_common.image.image_uploader.UploadTask')
     @mock.patch('tripleo_common.image.image_uploader.ImageUploadManager')
-    def test_take_action_local(self, mock_manager, mock_task):
+    def test_take_action_local(self, mock_manager, mock_task,
+                               mock_get_uc_registry):
         arglist = ['docker.io/namespace/foo', '--local']
         verifylist = [('image_to_push', 'docker.io/namespace/foo'),
                       ('local', True)]
@@ -186,9 +191,12 @@ class TestContainerImagePush(TestPluginV1):
         mock_add_upload.assert_called_once_with(mock_uploadtask)
         mock_run_tasks.assert_called_once()
 
+    @mock.patch('tripleo_common.image.image_uploader.get_undercloud_registry',
+                return_value='uc.ctlplane.somedomain')
     @mock.patch('tripleo_common.image.image_uploader.UploadTask')
     @mock.patch('tripleo_common.image.image_uploader.ImageUploadManager')
-    def test_take_action_local_path(self, mock_manager, mock_task):
+    def test_take_action_local_path(self, mock_manager, mock_task,
+                                    mock_get_uc_registry):
         arglist = ['containers-storage:docker.io/namespace/foo']
         verifylist = [('image_to_push',
                        'containers-storage:docker.io/namespace/foo')]
@@ -236,9 +244,12 @@ class TestContainerImagePush(TestPluginV1):
         mock_add_upload.assert_called_once_with(mock_uploadtask)
         mock_run_tasks.assert_called_once()
 
+    @mock.patch('tripleo_common.image.image_uploader.get_undercloud_registry',
+                return_value='uc.ctlplane.somedomain')
     @mock.patch('tripleo_common.image.image_uploader.UploadTask')
     @mock.patch('tripleo_common.image.image_uploader.ImageUploadManager')
-    def test_take_action_oserror(self, mock_manager, mock_task):
+    def test_take_action_oserror(self, mock_manager, mock_task,
+                                 mock_get_uc_registry):
         arglist = ['docker.io/namespace/foo']
         verifylist = [('image_to_push', 'docker.io/namespace/foo')]
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
@@ -274,9 +285,12 @@ class TestContainerImagePush(TestPluginV1):
                           self.cmd.take_action,
                           parsed_args)
 
+    @mock.patch('tripleo_common.image.image_uploader.get_undercloud_registry',
+                return_value='uc.ctlplane.somedomain')
     @mock.patch('tripleo_common.image.image_uploader.UploadTask')
     @mock.patch('tripleo_common.image.image_uploader.ImageUploadManager')
-    def test_take_action_all_options(self, mock_manager, mock_task):
+    def test_take_action_all_options(self, mock_manager, mock_task,
+                                     mock_get_uc_registry):
         arglist = ['--registry-url', '127.0.0.1:8787',
                    '--append-tag', 'test',
                    '--username', 'user',
@@ -348,8 +362,10 @@ class TestContainerImageDelete(TestPluginV1):
         super(TestContainerImageDelete, self).setUp()
         self.cmd = container_image.TripleOContainerImageDelete(self.app, None)
 
+    @mock.patch('tripleo_common.image.image_uploader.get_undercloud_registry',
+                return_value='uc.ctlplane.somedomain')
     @mock.patch('tripleo_common.image.image_uploader.ImageUploadManager')
-    def test_oserror(self, mock_manager):
+    def test_oserror(self, mock_manager, mock_get_uc_registry):
 
         arglist = ['-y', 'foo']
         verifylist = [('yes', True),
@@ -388,8 +404,10 @@ class TestContainerImageList(TestPluginV1):
         super(TestContainerImageList, self).setUp()
         self.cmd = container_image.TripleOContainerImageList(self.app, None)
 
+    @mock.patch('tripleo_common.image.image_uploader.get_undercloud_registry',
+                return_value='uc.ctlplane.somedomain')
     @mock.patch('tripleo_common.image.image_uploader.ImageUploadManager')
-    def test_take_action(self, mock_manager):
+    def test_take_action(self, mock_manager, mock_get_uc_registry):
         arglist = []
         verifylist = []
 
@@ -401,8 +419,10 @@ class TestContainerImageList(TestPluginV1):
         actual = (('Image Name',), [('a',), ('b',)])
         self.assertEqual(actual, rv)
 
+    @mock.patch('tripleo_common.image.image_uploader.get_undercloud_registry',
+                return_value='uc.ctlplane.somedomain')
     @mock.patch('tripleo_common.image.image_uploader.ImageUploadManager')
-    def test_take_action_auth(self, mock_manager):
+    def test_take_action_auth(self, mock_manager, mock_get_uc_registry):
         # check arg parsing items
         arglist = ['--registry-url', 'reg-url',
                    '--username', 'foo',
