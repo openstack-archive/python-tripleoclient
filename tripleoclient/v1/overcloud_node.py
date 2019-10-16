@@ -14,9 +14,12 @@
 #
 
 import argparse
+import collections
 import logging
 import os
+import sys
 
+from cliff.formatters import table
 from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
 from osc_lib import utils
@@ -530,6 +533,7 @@ class ProvisionNode(command.Command):
 
         output = baremetal.deploy_roles(
             self.app.client_manager,
+            plan=parsed_args.stack,
             roles=roles, ssh_keys=[ssh_key],
             ssh_user_name=parsed_args.overcloud_ssh_user)
 
@@ -547,6 +551,20 @@ class UnprovisionNode(command.Command):
 
     def get_parser(self, prog_name):
         parser = super(UnprovisionNode, self).get_parser(prog_name)
+        parser.add_argument('--stack', dest='stack',
+                            help=_('Name or ID of heat stack '
+                                   '(default=Env: OVERCLOUD_STACK_NAME)'),
+                            default=utils.env('OVERCLOUD_STACK_NAME',
+                                              default='overcloud'))
+        parser.add_argument('--all',
+                            help=_('Unprovision every instance in the '
+                                   'deployment'),
+                            default=False,
+                            action="store_true")
+        parser.add_argument('-y', '--yes',
+                            help=_('Skip yes/no prompt (assume yes)'),
+                            default=False,
+                            action="store_true")
         parser.add_argument('input',
                             metavar='<baremetal_deployment.yaml>',
                             help=_('Configuration file describing the '
@@ -559,10 +577,66 @@ class UnprovisionNode(command.Command):
         with open(parsed_args.input, 'r') as fp:
             roles = yaml.safe_load(fp)
 
-        # TODO(sbaker) call ExpandRolesAction to get a list of
-        # instances being unprovisioned to prompt for confirmation
+        nodes = []
+        expanded = baremetal.expand_roles(
+            self.app.client_manager,
+            roles=roles,
+            stackname=parsed_args.stack,
+            provisioned=False)
+        nodes.extend(expanded.get('instances', []))
+
+        if parsed_args.all:
+            expanded = baremetal.expand_roles(
+                self.app.client_manager,
+                roles=roles,
+                stackname=parsed_args.stack,
+                provisioned=True)
+            nodes.extend(expanded.get('instances', []))
+
+        if not nodes:
+            print('No nodes to unprovision')
+            return
+
+        self._print_nodes(nodes)
+
+        if not parsed_args.yes:
+            confirm = oooutils.prompt_user_for_confirmation(
+                message=_("Are you sure you want to unprovision these %s "
+                          "nodes [y/N]? ") % parsed_args.stack,
+                logger=self.log)
+            if not confirm:
+                raise oscexc.CommandError("Action not confirmed, exiting.")
+        unprovision_role = self._build_unprovision_role(nodes)
+        print('Unprovisioning %d nodes' % len(nodes))
         baremetal.undeploy_roles(
             self.app.client_manager,
-            roles=roles)
+            roles=unprovision_role,
+            plan=parsed_args.stack)
 
         print('Unprovision complete')
+
+    def _build_unprovision_role(self, nodes):
+        # build a fake role called Unprovisioned which has an instance
+        # entry for every node to be unprovisioned
+        instances = [{'hostname': n['hostname'], 'provisioned': False}
+                     for n in nodes if 'hostname' in n]
+        return [{
+            'name': 'Unprovisioned',
+            'count': 0,
+            'instances': instances
+        }]
+
+    def _print_nodes(self, nodes):
+        TableArgs = collections.namedtuple(
+            'TableArgs', 'print_empty max_width fit_width')
+        args = TableArgs(print_empty=True, max_width=80, fit_width=True)
+        nodes_data = [(i.get('hostname', ''),
+                       i.get('name', '')) for i in nodes]
+
+        formatter = table.TableFormatter()
+        formatter.emit_list(
+            column_names=['hostname', 'name'],
+            data=nodes_data,
+            stdout=sys.stdout,
+            parsed_args=args
+        )
