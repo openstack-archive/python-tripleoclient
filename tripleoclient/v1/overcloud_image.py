@@ -25,6 +25,7 @@ from osc_lib import exceptions
 from osc_lib.i18n import _
 from osc_lib import utils
 from prettytable import PrettyTable
+import tripleo_common.arch
 from tripleo_common.image import build
 
 from tripleoclient import command
@@ -330,6 +331,8 @@ class UploadOvercloudImage(command.Command):
         arch = parsed_args.architecture
         if arch:
             properties['hw_architecture'] = arch
+        else:
+            properties['hw_architecture'] = tripleo_common.arch.kernel_arch()
         platform = parsed_args.platform
         if platform:
             properties['tripleo_platform'] = platform

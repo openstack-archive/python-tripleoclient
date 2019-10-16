@@ -17,6 +17,7 @@ import mock
 import os
 
 from osc_lib import exceptions
+import tripleo_common.arch
 from tripleoclient.tests.v1.test_plugin import TestPluginV1
 from tripleoclient.v1 import overcloud_image
 
@@ -120,9 +121,11 @@ class TestUploadOvercloudImage(TestPluginV1):
         self.cmd = overcloud_image.UploadOvercloudImage(self.app, None)
         self.app.client_manager.image = mock.Mock()
         self.app.client_manager.image.version = 2.0
+        self._arch = tripleo_common.arch.kernel_arch()
         self.app.client_manager.image.images.create.return_value = (
-            mock.Mock(id=10, name='imgname', properties={'kernel_id': 10,
-                                                         'ramdisk_id': 10},
+            mock.Mock(id=10, name='imgname',
+                      properties={'kernel_id': 10, 'ramdisk_id': 10,
+                                  'hw_architecture': self._arch},
                       created_at='2015-07-31T14:37:22.000000'))
         self.cmd._read_image_file_pointer = mock.Mock(return_value=b'IMGDATA')
         self.cmd._check_file_exists = mock.Mock(return_value=True)
@@ -286,28 +289,29 @@ class TestUploadOvercloudImage(TestPluginV1):
             self.app.client_manager.image.images.create.call_count
         )
         self.app.client_manager.image.images.create.assert_has_calls([
-            mock.call(properties={},
+            mock.call(properties={'hw_architecture': self._arch},
                       data=b'IMGDATA',
                       name='overcloud-full-vmlinuz',
                       disk_format='aki',
                       is_public=True),
-            mock.call(properties={},
+            mock.call(properties={'hw_architecture': self._arch},
                       data=b'IMGDATA',
                       name='overcloud-full-initrd',
                       disk_format='ari',
                       is_public=True),
-            mock.call(properties={'kernel_id': 10, 'ramdisk_id': 10},
+            mock.call(properties={'kernel_id': 10, 'ramdisk_id': 10,
+                                  'hw_architecture': self._arch},
                       name='overcloud-full',
                       data=b'IMGDATA',
                       container_format='bare',
                       disk_format='qcow2',
                       is_public=True),
-            mock.call(properties={},
+            mock.call(properties={'hw_architecture': self._arch},
                       data=b'IMGDATA',
                       name='bm-deploy-kernel',
                       disk_format='aki',
                       is_public=True),
-            mock.call(properties={},
+            mock.call(properties={'hw_architecture': self._arch},
                       data=b'IMGDATA',
                       name='bm-deploy-ramdisk',
                       disk_format='ari',
@@ -455,7 +459,7 @@ class TestUploadOvercloudImage(TestPluginV1):
             self.app.client_manager.image.images.create.call_count
         )
         self.assertEqual(
-            6,
+            10,  # 5 for new uploads, 5 updating the existsing
             self.app.client_manager.image.images.update.call_count
         )
         self.assertEqual(mock_subprocess_call.call_count, 2)
@@ -470,8 +474,10 @@ class TestUploadOvercloudImageFull(TestPluginV1):
         self.cmd = overcloud_image.UploadOvercloudImage(self.app, None)
         self.app.client_manager.image = mock.Mock()
         self.app.client_manager.image.version = 2.0
+        self._arch = tripleo_common.arch.kernel_arch()
         self.app.client_manager.image.images.create.return_value = (
-            mock.Mock(id=10, name='imgname', properties={},
+            mock.Mock(id=10, name='imgname',
+                      properties={'hw_architecture': self._arch},
                       created_at='2015-07-31T14:37:22.000000'))
         self.cmd._read_image_file_pointer = mock.Mock(return_value=b'IMGDATA')
         self.cmd._check_file_exists = mock.Mock(return_value=True)
@@ -509,6 +515,12 @@ class TestUploadOvercloudImageFull(TestPluginV1):
                       disk_format='ari',
                       container_format='bare',
                       visibility='public')
+        ])
+        # properties are set by updating the image
+        self.app.client_manager.image.images.update.assert_has_calls([
+            mock.call(mock.ANY, hw_architecture='x86_64'),
+            mock.call(mock.ANY, hw_architecture='x86_64'),
+            mock.call(mock.ANY, hw_architecture='x86_64'),
         ])
 
         self.assertEqual(mock_subprocess_call.call_count, 2)
@@ -578,7 +590,7 @@ class TestUploadOvercloudImageFull(TestPluginV1):
         self.cmd._files_changed = mock.Mock(return_value=True)
 
         existing_image = mock.Mock(id=10, name='imgname',
-                                   properties={})
+                                   properties={'hw_architecture': self._arch})
         self.cmd._get_image = mock.Mock(return_value=existing_image)
         self.cmd._image_changed = mock.Mock(return_value=True)
 
@@ -606,7 +618,7 @@ class TestUploadOvercloudImageFull(TestPluginV1):
         self.cmd._files_changed = mock.Mock(return_value=True)
 
         existing_image = mock.Mock(id=10, name='imgname',
-                                   properties={},
+                                   properties={'hw_architecture': self._arch},
                                    created_at='2015-07-31T14:37:22.000000')
         self.cmd._get_image = mock.Mock(return_value=existing_image)
         self.cmd._image_changed = mock.Mock(return_value=True)
@@ -624,7 +636,7 @@ class TestUploadOvercloudImageFull(TestPluginV1):
             self.app.client_manager.image.images.create.call_count
         )
         self.assertEqual(
-            3,
+            6,  # update 3 images *and* add properties to 3 images
             self.app.client_manager.image.images.update.call_count
         )
         self.assertEqual(mock_subprocess_call.call_count, 2)
