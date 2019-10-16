@@ -518,9 +518,9 @@ class TestUploadOvercloudImageFull(TestPluginV1):
         ])
         # properties are set by updating the image
         self.app.client_manager.image.images.update.assert_has_calls([
-            mock.call(mock.ANY, hw_architecture='x86_64'),
-            mock.call(mock.ANY, hw_architecture='x86_64'),
-            mock.call(mock.ANY, hw_architecture='x86_64'),
+            mock.call(mock.ANY, hw_architecture=self._arch),
+            mock.call(mock.ANY, hw_architecture=self._arch),
+            mock.call(mock.ANY, hw_architecture=self._arch),
         ])
 
         self.assertEqual(mock_subprocess_call.call_count, 2)
