@@ -23,6 +23,7 @@ from prettytable import PrettyTable
 import re
 import shutil
 import six
+import subprocess
 import tempfile
 import time
 import yaml
@@ -116,7 +117,25 @@ class DeployOvercloud(command.Command):
             if getattr(args, arg, None) is not None:
                 parameters[param] = getattr(args, arg)
 
+        parameters[
+            'UndercloudHostsEntries'] = [self._get_undercloud_host_entry()]
+
         return parameters
+
+    def _get_undercloud_host_entry(self):
+        """Get hosts entry for undercloud ctlplane network
+
+        The host entry will be added on overcloud nodes
+        """
+        ctlplane_hostname = '.'.join([utils.get_short_hostname(), 'ctlplane'])
+        cmd = ['getent', 'hosts', ctlplane_hostname]
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+        out, err = process.communicate()
+        if process.returncode != 0:
+            raise exceptions.DeploymentError('No entry for %s in /etc/hosts'
+                                             % ctlplane_hostname)
+
+        return out.rstrip()
 
     def _create_breakpoint_cleanup_env(self, tht_root, container_name):
         bp_env = {}
