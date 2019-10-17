@@ -105,8 +105,7 @@ def check_deprecated_parameters(clients, container):
             return
 
         if deprecated_params:
-            deprecated_join = ', '.join(
-                ['{param}'.format(param=param) for param in deprecated_params])
+            deprecated_join = ', '.join(deprecated_params)
             LOG.warning(
                   'WARNING: Following parameter(s) are deprecated and still '
                   'defined. Deprecated parameters will be removed soon!'
@@ -118,8 +117,7 @@ def check_deprecated_parameters(clients, container):
         unused_params = [p for p in unused_params if not ignore_re.search(p)]
 
         if unused_params:
-            unused_join = ', '.join(
-                ['{param}'.format(param=param) for param in unused_params])
+            unused_join = ', '.join(unused_params)
             LOG.warning(
                   'WARNING: Following parameter(s) are defined but not '
                   'currently used in the deployment plan. These parameters '
@@ -128,9 +126,7 @@ def check_deprecated_parameters(clients, container):
                   ' {unused_join}'.format(unused_join=unused_join))
 
         if invalid_role_specific_params:
-            invalid_join = ', '.join(
-                ['{param}'.format(
-                    param=param) for param in invalid_role_specific_params])
+            invalid_join = ', '.join(invalid_role_specific_params)
             LOG.warning(
                   'WARNING: Following parameter(s) are not supported as '
                   'role-specific inputs. {invalid_join}'.format(
