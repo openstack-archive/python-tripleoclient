@@ -383,6 +383,9 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
                               inflight=False):
     """Prepare Undercloud deploy command based on undercloud.conf"""
 
+    if CONF.get('undercloud_hostname'):
+        utils.set_hostname(CONF.get('undercloud_hostname'))
+
     env_data = {}
     registry_overwrites = {}
     deploy_args = []
@@ -446,14 +449,20 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
         env_data['NeutronDnsDomain'] = CONF['overcloud_domain_name']
         deploy_args.append('--local-domain=%s' % CONF['overcloud_domain_name'])
 
+    local_registry_name = '.'.join([utils.get_short_hostname(),
+                                    'ctlplane',
+                                    CONF['overcloud_domain_name']])
     if CONF.get('container_cli', 'podman') == 'podman':
-        env_data['DockerInsecureRegistryAddress'] = [
-            CONF['local_ip'].split('/')[0]]
+        env_data['DockerInsecureRegistryAddress'] = [local_registry_name]
+        env_data['DockerInsecureRegistryAddress'].append(
+            CONF['local_ip'].split('/')[0])
         env_data['DockerInsecureRegistryAddress'].append(
             CONF['undercloud_admin_host'])
     else:
         env_data['DockerInsecureRegistryAddress'] = [
-            '%s:8787' % CONF['local_ip'].split('/')[0]]
+            '%s:8787' % local_registry_name]
+        env_data['DockerInsecureRegistryAddress'].append(
+            '%s:8787' % CONF['local_ip'].split('/')[0])
         env_data['DockerInsecureRegistryAddress'].append(
             '%s:8787' % CONF['undercloud_admin_host'])
     env_data['DockerInsecureRegistryAddress'].extend(
@@ -469,7 +478,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
         env_data['DockerRegistryMirror'] = CONF['container_registry_mirror']
 
     # This parameter the IP address used to bind the local container registry
-    env_data['LocalContainerRegistry'] = CONF['local_ip'].split('/')[0]
+    env_data['LocalContainerRegistry'] = local_registry_name
 
     if CONF['additional_architectures']:
         # In queens (instack-undercloud) we used this to setup additional
@@ -749,9 +758,6 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
             raise RuntimeError(msg)
 
         deploy_args += ['--hieradata-override=%s' % data_file]
-
-    if CONF.get('undercloud_hostname'):
-        utils.set_hostname(CONF.get('undercloud_hostname'))
 
     if CONF.get('enable_validations') and not no_validations:
         utils.ansible_symlink()
