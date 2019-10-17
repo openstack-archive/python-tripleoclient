@@ -194,6 +194,92 @@ class TestParameterWorkflows(utils.TestCommand):
                 workflow_input={'container': 'container-name'})
             self.assertFalse(mock_log.log.warning.called)
 
+    def test_check_deprecated_multiple_parameters(self):
+        msg = ("WARNING: Following parameter(s) are deprecated and still "
+               "defined. Deprecated parameters will be removed soon!"
+               " TestParameter1, TestParameter2")
+        deprecated_params = [{'parameter': 'TestParameter1',
+                              'deprecated': True,
+                              'user_defined': True},
+                             {'parameter': 'TestParameter2',
+                              'deprecated': True,
+                              'user_defined': True}]
+        self.websocket.wait_for_messages.return_value = iter([{
+            "execution_id": "IDID",
+            "status": "SUCCESS",
+            "deprecated": deprecated_params
+        }])
+
+        with mock.patch('tripleoclient.workflows.parameters.LOG') as mock_log:
+            parameters.check_deprecated_parameters(
+                self.app.client_manager,
+                container='container-name')
+            self.workflow.executions.create.assert_called_once_with(
+                'tripleo.plan_management.v1.get_deprecated_parameters',
+                workflow_input={'container': 'container-name'})
+            mock_log.warning.assert_called_once_with(msg)
+
+    def test_check_unused_parameters(self):
+        msg = ("WARNING: Following parameter(s) are defined but not currently"
+               " used in the deployment plan. These parameters may be valid"
+               " but not in use due to the service or deployment"
+               " configuration. TestParameter1")
+        unused_params = ['TestParameter1']
+        self.websocket.wait_for_messages.return_value = iter([{
+            "execution_id": "IDID",
+            "status": "SUCCESS",
+            "unused": unused_params
+        }])
+
+        with mock.patch('tripleoclient.workflows.parameters.LOG') as mock_log:
+            parameters.check_deprecated_parameters(
+                self.app.client_manager,
+                container='container-name')
+            self.workflow.executions.create.assert_called_once_with(
+                'tripleo.plan_management.v1.get_deprecated_parameters',
+                workflow_input={'container': 'container-name'})
+            mock_log.warning.assert_called_once_with(msg)
+
+    def test_check_unused_multiple_parameters(self):
+        msg = ("WARNING: Following parameter(s) are defined but not currently"
+               " used in the deployment plan. These parameters may be valid"
+               " but not in use due to the service or deployment"
+               " configuration. TestParameter1, TestParameter2")
+        unused_params = ['TestParameter1', 'TestParameter2']
+        self.websocket.wait_for_messages.return_value = iter([{
+            "execution_id": "IDID",
+            "status": "SUCCESS",
+            "unused": unused_params
+        }])
+
+        with mock.patch('tripleoclient.workflows.parameters.LOG') as mock_log:
+            parameters.check_deprecated_parameters(
+                self.app.client_manager,
+                container='container-name')
+            self.workflow.executions.create.assert_called_once_with(
+                'tripleo.plan_management.v1.get_deprecated_parameters',
+                workflow_input={'container': 'container-name'})
+            mock_log.warning.assert_called_once_with(msg)
+
+    def test_check_invalid_role_specific_parameters(self):
+        msg = ("WARNING: Following parameter(s) are not supported as"
+               " role-specific inputs. TestParameter1")
+        invalid_role_specific_params = ['TestParameter1']
+        self.websocket.wait_for_messages.return_value = iter([{
+            "execution_id": "IDID",
+            "status": "SUCCESS",
+            "invalid_role_specific": invalid_role_specific_params
+        }])
+
+        with mock.patch('tripleoclient.workflows.parameters.LOG') as mock_log:
+            parameters.check_deprecated_parameters(
+                self.app.client_manager,
+                container='container-name')
+            self.workflow.executions.create.assert_called_once_with(
+                'tripleo.plan_management.v1.get_deprecated_parameters',
+                workflow_input={'container': 'container-name'})
+            mock_log.warning.assert_called_once_with(msg)
+
     def test_generate_fencing_parameters(self):
         self.websocket.wait_for_messages.return_value = iter([{
             "execution_id": "IDID",
