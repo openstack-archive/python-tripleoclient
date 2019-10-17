@@ -471,6 +471,8 @@ class DeployOvercloud(command.Command):
             parsed_args.plan_environment_file,
             deployment_options=deployment_options)
 
+        self._unprovision_baremetal(parsed_args)
+
     def _try_overcloud_deploy_with_compat_yaml(self, tht_root, stack,
                                                stack_name, parameters,
                                                env_files, timeout,
@@ -625,6 +627,7 @@ class DeployOvercloud(command.Command):
 
         parameter_defaults = baremetal.deploy_roles(
             self.app.client_manager,
+            plan=parsed_args.stack,
             roles=roles, ssh_keys=[ssh_key],
             ssh_user_name=parsed_args.overcloud_ssh_user)
 
@@ -634,6 +637,20 @@ class DeployOvercloud(command.Command):
             tht_root,
             parsed_args.stack)
         return [env_path]
+
+    def _unprovision_baremetal(self, parsed_args):
+
+        if not parsed_args.baremetal_deployment:
+            return
+
+        with open(parsed_args.baremetal_deployment, 'r') as fp:
+            roles = yaml.safe_load(fp)
+
+        baremetal.undeploy_roles(
+            self.app.client_manager,
+            plan=parsed_args.stack,
+            roles=roles
+        )
 
     def get_parser(self, prog_name):
         # add_help doesn't work properly, set it to False:
