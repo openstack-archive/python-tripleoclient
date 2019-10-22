@@ -31,6 +31,7 @@ import yaml
 from tripleo_common.image.builder import buildah
 from tripleo_common.image import image_uploader
 from tripleo_common.image import kolla_builder
+from tripleo_common.utils.locks import processlock
 
 from tripleoclient import command
 from tripleoclient import constants
@@ -654,9 +655,10 @@ class TripleOImagePrepare(command.Command):
             parsed_args.environment_directories
         )
 
+        lock = processlock.ProcessLock()
         params = kolla_builder.container_images_prepare_multi(
             env, roles_data, dry_run=parsed_args.dry_run,
-            cleanup=parsed_args.cleanup)
+            cleanup=parsed_args.cleanup, lock=lock)
         env_data = build_env_file(params, self.app.command_options)
         if parsed_args.output_env_file:
             if os.path.exists(parsed_args.output_env_file):

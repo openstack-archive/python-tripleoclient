@@ -345,10 +345,14 @@ class TestTripleoImagePrepare(TestPluginV1):
         with open(self.roles_data_file, 'w') as f:
             f.write(self.roles_yaml)
 
+    @mock.patch('tripleo_common.utils.locks.processlock.'
+                'ProcessLock')
     @mock.patch('tripleo_common.image.kolla_builder.'
                 'container_images_prepare_multi')
-    def test_tripleo_container_image_prepare(self, prepare_multi):
+    def test_tripleo_container_image_prepare(self, prepare_multi, mock_lock):
 
+        mock_lockobj = mock.MagicMock()
+        mock_lock.return_value = mock_lockobj
         env_file = os.path.join(self.temp_dir, 'containers_env.yaml')
 
         arglist = [
@@ -376,7 +380,8 @@ class TestTripleoImagePrepare(TestPluginV1):
             self.default_env,
             yaml.safe_load(self.roles_yaml),
             dry_run=False,
-            cleanup='full')
+            cleanup='full',
+            lock=mock_lockobj)
 
         with open(env_file) as f:
             result = yaml.safe_load(f)
