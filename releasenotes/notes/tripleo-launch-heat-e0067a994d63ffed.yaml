@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    A new command "openstack tripleo launch heat" is added. The command starts
+    up the heat-all process in the foreground, and can be used for stack
+    creation to generate the config-download ansible content.
