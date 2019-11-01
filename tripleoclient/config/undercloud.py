@@ -284,6 +284,10 @@ class UndercloudConfig(StandaloneConfig):
                         default=True,
                         help=_('Enable or disable SELinux during the '
                                'deployment.')),
+            cfg.BoolOpt('undercloud_enable_paunch',
+                        default=True,
+                        help=_('Enable or disable Paunch to manage '
+                               'containers.')),
             cfg.BoolOpt('undercloud_update_packages',
                         default=False,
                         help=_(
