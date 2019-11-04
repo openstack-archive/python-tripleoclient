@@ -19,33 +19,6 @@ from osc_lib.tests import utils
 from tripleoclient.workflows import validations
 
 
-class TestValidationsList(utils.TestCommand):
-
-    def setUp(self):
-        super(TestValidationsList, self).setUp()
-        self.app.client_manager = mock.Mock()
-        self.app.client_manager.workflow_engine = self.workflow = mock.Mock()
-        self.tripleoclient = mock.Mock()
-        self.websocket = mock.Mock()
-        self.websocket.__enter__ = lambda s: self.websocket
-        self.websocket.__exit__ = lambda s, *exc: None
-        self.tripleoclient.messaging_websocket.return_value = self.websocket
-        self.app.client_manager.tripleoclient = self.tripleoclient
-
-    @mock.patch('tripleoclient.workflows.base.wait_for_messages')
-    @mock.patch('tripleoclient.workflows.base.start_workflow')
-    def test_list_validations(self, start_wf_mock, messages_mock):
-        messages_mock.return_value = []
-        fetch_name = 'tripleo.validations.v1.list'
-        fetch_input = {
-            'group_names': ['pre-deployment']
-        }
-        validations.list_validations(self.app.client_manager, fetch_input)
-        start_wf_mock.assert_called_once_with(self.workflow,
-                                              fetch_name,
-                                              workflow_input=fetch_input)
-
-
 class TestValidationsRun(utils.TestCommand):
 
     def setUp(self):
