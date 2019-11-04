@@ -13,10 +13,8 @@
 from __future__ import print_function
 
 from datetime import datetime
-import json
 import logging
 import os.path
-import sys
 import yaml
 
 from osc_lib.i18n import _
@@ -24,7 +22,8 @@ from osc_lib import utils
 
 from tripleoclient import command
 from tripleoclient import exceptions
-from tripleoclient import utils as oooutils
+from tripleoclient import export
+
 
 MISTRAL_VAR = os.environ.get('MISTRAL_VAR',
                              "/var/lib/mistral/")
@@ -83,95 +82,22 @@ class ExportCell(command.Command):
         clients = self.app.client_manager
         swift_client = clients.tripleoclient.object_store
 
-        # data to export
-        # parameter: Parameter to be exported
-        # file:   IF file specified it is taken as source instead of heat
-        #         output.File is relative to MISTRAL_VAR/stack_to_export.
-        # filter: in case only specific settings should be
-        #         exported from parameter data.
-        export_data = {
-            "EndpointMap": {
-                "parameter": "EndpointMapOverride",
-            },
-            "HostsEntry": {
-                "parameter": "ExtraHostFileEntries",
-            },
-            "GlobalConfig": {
-                "parameter": "GlobalConfigExtraMapData",
-            },
-            "AllNodesConfig": {
-                "file": "/group_vars/overcloud.json",
-                "parameter": "GlobalConfigExtraMapData",
-                "filter": ["oslo_messaging_notify_short_bootstrap_node_name",
-                           "oslo_messaging_notify_node_names",
-                           "oslo_messaging_rpc_node_names",
-                           "memcached_node_ips",
-                           "ovn_dbs_vip",
-                           "redis_vip"]},
-        }
-
-        # export the data from swift and heat
-        data_real = {}
-
-        # Export the passwords from swift
-        obj = 'plan-environment.yaml'
-        container = control_plane_stack
-        try:
-            resp_headers, content = swift_client.get_object(container, obj)
-        except Exception as e:
-            self.log.error("An error happened while exporting the password "
-                           "file from swift: %s", str(e))
-            sys.exit(1)
-
-        data_real = {'parameter_defaults': yaml.load(content)["passwords"]}
+        data = export.export_passwords(swift_client, control_plane_stack)
 
         stack_to_export = control_plane_stack
+        should_filter = True
         if cell_stack:
             stack_to_export = cell_stack
+            should_filter = False
 
-        stack = oooutils.get_stack(clients.orchestration, stack_to_export)
-
-        for export_key, export_param in export_data.items():
-            data = None
-            if "file" in export_param:
-                # get stack data
-                file = MISTRAL_VAR + stack_to_export + export_param["file"]
-                with open(file, 'r') as ff:
-                    try:
-                        data = json.load(ff)
-                    except Exception:
-                        self.log.error(
-                            _('Could not read file %s') % file)
-            else:
-                # get stack data
-                data = oooutils.get_stack_output_item(stack,
-                                                      export_key)
-
-            param = export_param["parameter"]
-            if data:
-                # do we just want a subset of entries?
-                # When we export information from a cell controller stack
-                # we don't want to filter.
-                if "filter" in export_param and not cell_stack:
-                    for x in export_param["filter"]:
-                        element = {x: data[x]}
-                        if param not in data_real["parameter_defaults"]:
-                            data_real["parameter_defaults"][param] = element
-                        else:
-                            data_real["parameter_defaults"][param].update(
-                                element)
-                else:
-                    if param not in data_real["parameter_defaults"]:
-                        data_real["parameter_defaults"][param] = data
-                    else:
-                        data_real["parameter_defaults"][param].update(data)
-            else:
-                raise exceptions.CellExportError(
-                    "No data returned to export %s from." % param)
+        config_download_dir = os.path.join(MISTRAL_VAR, stack_to_export)
+        data['parameter_defaults'].update(export.export_stack(
+            clients.orchestration, stack_to_export, should_filter,
+            config_download_dir))
 
         # write the exported data
         with open(output_file, 'w') as f:
-            yaml.safe_dump(data_real, f, default_flow_style=False)
+            yaml.safe_dump(data, f, default_flow_style=False)
 
         print("Cell input information exported to %s." % output_file)
 

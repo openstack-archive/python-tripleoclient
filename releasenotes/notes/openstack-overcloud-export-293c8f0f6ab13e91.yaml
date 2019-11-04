@@ -1,0 +1,5 @@
+---
+features:
+  - A new command "openstack overcloud export" is added. The command is used to
+    export the data from a control stack for use in a compute stack for the
+    multi-stack feature.
