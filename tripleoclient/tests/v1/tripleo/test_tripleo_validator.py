@@ -19,6 +19,20 @@ import sys
 from osc_lib.tests import utils
 from tripleoclient.v1 import tripleo_validator
 
+VALIDATIONS_LIST = [{
+    'description': 'My Validation One Description',
+    'groups': ['prep', 'pre-deployment'],
+    'id': 'my_val1',
+    'name': 'My Validition One Name',
+    'parameters': {}
+}, {
+    'description': 'My Validation Two Description',
+    'groups': ['prep', 'pre-introspection'],
+    'id': 'my_val2',
+    'name': 'My Validition Two Name',
+    'parameters': {}
+}]
+
 
 class TestValidatorList(utils.TestCommand):
 
@@ -27,20 +41,16 @@ class TestValidatorList(utils.TestCommand):
 
         # Get the command object to test
         self.cmd = tripleo_validator.TripleOValidatorList(self.app, None)
-        self.app.client_manager.workflow_engine = mock.Mock()
-        self.workflow = self.app.client_manager.workflow_engine
 
-    @mock.patch('tripleoclient.workflows.validations.list_validations',
-                autospec=True)
-    def test_validation_list_noargs(self, plan_mock):
+    @mock.patch('tripleoclient.utils.parse_all_validations_on_disk',
+                return_value=VALIDATIONS_LIST)
+    def test_validation_list_noargs(self, mock_validations):
         arglist = []
         verifylist = []
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.cmd.take_action(parsed_args)
-        plan_mock.assert_called_once_with(
-            mock.ANY, {'group_names': []})
 
 
 class TestValidatorRun(utils.TestCommand):

@@ -1762,6 +1762,60 @@ def _get_from_cfg(cfg, accessor, param, section):
     return val
 
 
+def get_validation_metadata(validation, key):
+    default_metadata = {
+        'name': 'Unnamed',
+        'description': 'No description',
+        'stage': 'No stage',
+        'groups': [],
+    }
+
+    try:
+        return validation[0]['vars']['metadata'].get(key,
+                                                     default_metadata[key])
+    except KeyError:
+        LOG.exception(_("Key '{key}' not even found in "
+                        "default metadata").format(key=key))
+    except TypeError:
+        LOG.exception(_("Failed to get validation metadata."))
+
+
+def get_validation_parameters(validation):
+    try:
+        return {
+            k: v
+            for k, v in validation[0]['vars'].items()
+            if k != 'metadata'
+        }
+    except KeyError:
+        LOG.debug(_("No parameters found for this validation"))
+        return dict()
+
+
+def parse_all_validations_on_disk(path, groups=None):
+    results = []
+    validations_abspath = glob.glob("{path}/*.yaml".format(path=path))
+
+    for pl in validations_abspath:
+        validation_id, ext = os.path.splitext(os.path.basename(pl))
+
+        with open(pl, 'r') as val_playbook:
+            contents = yaml.safe_load(val_playbook)
+
+        validation_groups = get_validation_metadata(contents, 'groups') or []
+        if not groups or set.intersection(set(groups), set(validation_groups)):
+            results.append({
+                'id': validation_id,
+                'name': get_validation_metadata(contents, 'name'),
+                'groups': get_validation_metadata(contents, 'groups'),
+                'description': get_validation_metadata(contents,
+                                                       'description'),
+                'parameters': get_validation_parameters(contents)
+            })
+
+    return results
+
+
 def get_param_field_name(validations_data=None):
     """Get the current parameters field name in a Dict
 
