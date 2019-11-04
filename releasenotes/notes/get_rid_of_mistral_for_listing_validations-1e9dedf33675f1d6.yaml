@@ -1,0 +1,6 @@
+---
+deprecations:
+  - |
+    The TripleO Validator was using Mistral to get all the Validations available
+    on the Undercloud. From now, The CLI is parsing the Validations directly
+    from the filesystem and the Mistral support has been removed.

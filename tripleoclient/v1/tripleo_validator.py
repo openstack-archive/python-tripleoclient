@@ -149,18 +149,14 @@ class TripleOValidatorList(command.Command):
                 print('Output: {}'.format(e))
 
     def _run_validator_list(self, parsed_args):
-        clients = self.app.client_manager
-
-        workflow_input = {
-            "group_names": parsed_args.group
-        }
-
         LOG.debug(_('Launch listing the validations'))
         try:
-            output = validations.list_validations(clients, workflow_input)
+            validations = oooutils.parse_all_validations_on_disk(
+                constants.ANSIBLE_VALIDATION_DIR, parsed_args.group)
+
             if parsed_args.parameters:
                 out = oooutils.get_validations_parameters(
-                    {'validations': output},
+                    {'validations': validations},
                     parsed_args.validation_name,
                     parsed_args.group
                 )
@@ -173,13 +169,13 @@ class TripleOValidatorList(command.Command):
             else:
                 if parsed_args.output == 'json':
                     out = oooutils.get_validations_json(
-                        {'validations': output})
+                        {'validations': validations})
                 elif parsed_args.output == 'yaml':
                     out = oooutils.get_validations_yaml(
-                        {'validations': output})
+                        {'validations': validations})
                 else:
                     out = oooutils.get_validations_table(
-                        {'validations': output})
+                        {'validations': validations})
                 print(out)
         except Exception as e:
             raise RuntimeError(_("Validations listing finished with errors\n"

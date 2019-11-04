@@ -12,27 +12,7 @@
 #   License for the specific language governing permissions and limitations
 #   under the License.
 #
-import pprint
-
 from tripleoclient.workflows import base
-
-
-def list_validations(clients, workflow_input):
-
-    workflow_client = clients.workflow_engine
-    tripleoclients = clients.tripleoclient
-
-    with tripleoclients.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client,
-            'tripleo.validations.v1.list',
-            workflow_input=workflow_input
-        )
-
-        for payload in base.wait_for_messages(workflow_client, ws, execution):
-            if 'message' in payload:
-                assert payload['status'] == "SUCCESS", pprint.pformat(payload)
-                return payload['validations']
 
 
 def run_validations(clients, workflow_input):
