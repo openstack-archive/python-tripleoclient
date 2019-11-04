@@ -135,3 +135,7 @@ CLOUDS_YAML_DIR = os.path.join('.config', 'openstack')
 UNUSED_PARAMETER_EXCLUDES_RE = ['^(Docker|Container).*Image$',
                                 '^SwiftFetchDir(Get|Put)Tempurl$',
                                 '^PythonInterpreter$']
+
+EXPORT_PASSWORD_EXCLUDE_PATTERNS = [
+    'ceph.*'
+]
