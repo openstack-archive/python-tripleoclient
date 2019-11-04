@@ -568,3 +568,14 @@ def undeploy_roles(clients, **workflow_input):
             'Error undeploying nodes: {}'.format(payload['message']))
 
     return payload
+
+
+def expand_roles(clients, roles, stackname, provisioned):
+    workflow_client = clients.workflow_engine
+    return base.call_action(
+        workflow_client,
+        'tripleo.baremetal_deploy.expand_roles',
+        roles=roles,
+        stackname=stackname,
+        provisioned=provisioned
+    )
