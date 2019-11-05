@@ -328,7 +328,6 @@ class TripleOValidatorRun(command.Command):
         return rc, output
 
     def _run_validator_run(self, parsed_args):
-        clients = self.app.client_manager
         LOG = logging.getLogger(__name__ + ".ValidationsRunAnsible")
         playbooks = []
         extra_vars_input = {}
@@ -340,14 +339,10 @@ class TripleOValidatorRun(command.Command):
             extra_vars_input = parsed_args.extra_vars_file
 
         if parsed_args.group:
-            workflow_input = {
-                "group_names": parsed_args.group
-            }
-
             LOG.debug(_('Getting the validations list by group'))
             try:
-                output = validations.list_validations(
-                    clients, workflow_input)
+                output = oooutils.parse_all_validations_on_disk(
+                    constants.ANSIBLE_VALIDATION_DIR, parsed_args.group)
                 for val in output:
                     playbooks.append(val.get('id') + '.yaml')
             except Exception as e:
