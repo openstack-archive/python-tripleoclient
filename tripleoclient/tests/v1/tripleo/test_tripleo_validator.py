@@ -60,28 +60,6 @@ class TestValidatorRun(utils.TestCommand):
 
         # Get the command object to test
         self.cmd = tripleo_validator.TripleOValidatorRun(self.app, None)
-        self.app.client_manager.workflow_engine = mock.Mock()
-        self.workflow = self.app.client_manager.workflow_engine
-
-    @mock.patch('tripleoclient.workflows.validations.run_validations',
-                autospec=True)
-    def test_validation_run_with_mistral(self, plan_mock):
-        arglist = [
-            '--use-mistral',
-            '--validation-name',
-            'check-ftype'
-        ]
-        verifylist = []
-
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-
-        self.cmd.take_action(parsed_args)
-        plan_mock.assert_called_once_with(
-            mock.ANY, {
-                'plan': 'overcloud',
-                'validation_names': ['check-ftype'],
-                'validation_inputs': {}
-            })
 
     @mock.patch('sys.exit')
     @mock.patch('logging.getLogger')
