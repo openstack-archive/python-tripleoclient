@@ -27,7 +27,6 @@ from osc_lib.i18n import _
 
 from tripleoclient import constants
 from tripleoclient import utils as oooutils
-from tripleoclient.workflows import validations
 
 LOG = logging.getLogger(__name__ + ".TripleoValidator")
 
@@ -204,13 +203,6 @@ class TripleOValidatorRun(command.Command):
         )
 
         parser.add_argument(
-            '--use-mistral',
-            action='store_true',
-            default=False,
-            help=_("Execute the validations using Mistral")
-        )
-
-        parser.add_argument(
             '--workers', '-w',
             metavar='N',
             dest='workers',
@@ -272,43 +264,6 @@ class TripleOValidatorRun(command.Command):
         )
 
         return parser
-
-    def _run_validation_run_with_mistral(self, parsed_args):
-        clients = self.app.client_manager
-        LOG = logging.getLogger(__name__ + ".ValidationsRunWithMistral")
-        extra_vars_input = {}
-
-        if parsed_args.extra_vars:
-            extra_vars_input = parsed_args.extra_vars
-
-        if parsed_args.extra_vars_file:
-            try:
-                with open(parsed_args.extra_vars_file, 'r') as vars_file:
-                    extra_vars_input = json.load(vars_file)
-            except ValueError as e:
-                raise RuntimeError(
-                    'Error occured while decoding extra vars JSON file: %s' %
-                    e)
-
-        if not parsed_args.validation_name:
-            workflow_input = {
-                "plan": parsed_args.plan,
-                "group_names": parsed_args.group
-            }
-        else:
-            workflow_input = {
-                "plan": parsed_args.plan,
-                "validation_names": parsed_args.validation_name,
-                "validation_inputs": extra_vars_input
-            }
-
-        LOG.debug(_('Running the validations with Mistral'))
-        output = validations.run_validations(clients, workflow_input)
-        for out in output:
-            print('[{}] - {}\n{}'.format(
-                out.get('status'),
-                out.get('validation_name'),
-                oooutils.indent(out.get('stdout'))))
 
     def _run_ansible(self, logger, plan, workdir, log_path_dir, playbook,
                      inventory, retries, output_callback, extra_vars,
@@ -403,7 +358,4 @@ class TripleOValidatorRun(command.Command):
         sys.exit(0)
 
     def take_action(self, parsed_args):
-        if parsed_args.use_mistral:
-            self._run_validation_run_with_mistral(parsed_args)
-        else:
-            self._run_validator_run(parsed_args)
+        self._run_validator_run(parsed_args)
