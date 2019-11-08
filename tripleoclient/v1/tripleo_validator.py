@@ -20,11 +20,13 @@ import os
 import pwd
 import six
 import sys
+import textwrap
 
 from concurrent.futures import ThreadPoolExecutor
-from osc_lib.command import command
+from osc_lib import exceptions
 from osc_lib.i18n import _
 
+from tripleoclient import command
 from tripleoclient import constants
 from tripleoclient import utils as oooutils
 
@@ -48,35 +50,116 @@ class _CommaListAction(argparse.Action):
         setattr(namespace, self.dest, values.split(','))
 
 
-class TripleOValidatorList(command.Command):
-    """List the available validations"""
+class TripleOValidatorGroupInfo(command.Lister):
+    """Display Information about Validation Groups"""
+
+    def get_parser(self, prog_name):
+        parser = super(TripleOValidatorGroupInfo, self).get_parser(prog_name)
+        return parser
+
+    def take_action(self, parsed_args):
+        group_file = constants.VALIDATION_GROUPS_INFO
+        group = oooutils.parse_all_validation_groups_on_disk(group_file)
+
+        if not group:
+            raise exceptions.CommandError(
+                "Could not find groups information file %s" % group_file)
+
+        column_name = ("Groups", "Description")
+        return (column_name, group)
+
+
+class TripleOValidatorShow(command.ShowOne):
+    """Display detailed information about a Validation"""
+
+    def get_parser(self, prog_name):
+        parser = super(TripleOValidatorShow, self).get_parser(prog_name)
+
+        parser.add_argument('validation_id',
+                            metavar="<validation>",
+                            type=str,
+                            help='Validation ID')
+
+        return parser
+
+    def take_action(self, parsed_args):
+        validation = self.get_validations_details(parsed_args.validation_id)
+        if not validation:
+            raise exceptions.CommandError(
+                "Could not find validation %s" % parsed_args.validation_id)
+
+        return self.format_validation(validation)
+
+    def get_validations_details(self, validation):
+        results = oooutils.parse_all_validations_on_disk(
+            constants.ANSIBLE_VALIDATION_DIR)
+
+        for r in results:
+            if r['id'] == validation:
+                return r
+        return []
+
+    def format_validation(self, validation):
+        column_names = ["ID"]
+        data = [validation.pop('id')]
+
+        if 'name' in validation:
+            column_names.append("Name")
+            data.append(validation.pop('name'))
+
+        if 'description' in validation:
+            column_names.append("Description")
+            data.append(textwrap.fill(validation.pop('description')))
+
+        other_fields = list(validation.keys())
+        other_fields.sort()
+        for field in other_fields:
+            column_names.append(field.capitalize())
+            data.append(validation[field])
+
+        return column_names, data
+
+
+class TripleOValidatorShowParameter(command.Command):
+    """Display Validations Parameters"""
 
     def get_parser(self, prog_name):
         parser = argparse.ArgumentParser(
             description=self.get_description(),
             prog=prog_name,
             formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-            add_help=False
+            add_help=True
+        )
+
+        ex_group = parser.add_mutually_exclusive_group(required=False)
+
+        ex_group.add_argument(
+            '--validation',
+            metavar='<validation_id>[,<validation_id>,...]',
+            dest='validation_name',
+            action=_CommaListAction,
+            default=[],
+            help=_("List specific validations, "
+                   "if more than one validation is required "
+                   "separate the names with commas: "
+                   "--validation check-ftype,512e | "
+                   "--validation 512e")
+        )
+
+        ex_group.add_argument(
+            '--group',
+            metavar='<group_id>[,<group_id>,...]',
+            action=_CommaListGroupAction,
+            default=[],
+            help=_("List specific group validations, "
+                   "if more than one group is required "
+                   "separate the group names with commas: "
+                   "pre-upgrade,prep | "
+                   "openshift-on-openstack")
         )
 
         parser.add_argument(
-            '--output',
-            action='store',
-            default='table',
-            choices=['table', 'json', 'yaml'],
-            help=_("Change the default output: "
-                   "--output json|yaml")
-        )
-
-        parser.add_argument(
-            '--parameters',
-            action='store_true',
-            default=False,
-            help=_("List available validations parameters")
-        )
-
-        parser.add_argument(
-            '--create-vars-file',
+            '--download',
             metavar=('[json|yaml]', '/tmp/myvars'),
             action='store',
             default=[],
@@ -87,30 +170,14 @@ class TripleOValidatorList(command.Command):
                    "[yaml|json] /tmp/myvars")
         )
 
-        ex_group = parser.add_mutually_exclusive_group(required=False)
-
-        ex_group.add_argument(
-            '--validation-name',
-            metavar='<validation_id>[,<validation_id>,...]',
-            action=_CommaListAction,
-            default=[],
-            help=_("List specific validations, "
-                   "if more than one validation is required "
-                   "separate the names with commas: "
-                   "--validation-name check-ftype,512e | "
-                   "--validation-name 512e")
-        )
-
-        ex_group.add_argument(
-            '--group',
-            metavar='<group>[,<group>,...]',
-            action=_CommaListGroupAction,
-            default=[],
-            help=_("List specific group validations, "
-                   "if more than one group is required "
-                   "separate the group names with commas: "
-                   "--group pre-upgrade,prep | "
-                   "--group openshift-on-openstack")
+        parser.add_argument(
+            '-f', '--format',
+            action='store',
+            metavar='<format>',
+            default='json',
+            choices=['json', 'yaml'],
+            help=_("Print representation of the validation. "
+                   "The choices of the output format is json,yaml. ")
         )
 
         return parser
@@ -147,41 +214,71 @@ class TripleOValidatorList(command.Command):
                 print(_("Creating variables file finished with errors"))
                 print('Output: {}'.format(e))
 
-    def _run_validator_list(self, parsed_args):
+    def _run_validator_show_parameter(self, parsed_args):
+        LOG.debug(_('Launch showing parameters for the validations'))
+        try:
+            validations = oooutils.parse_all_validations_on_disk(
+                constants.ANSIBLE_VALIDATION_DIR)
+
+            out = oooutils.get_validations_parameters(
+                {'validations': validations},
+                parsed_args.validation_name,
+                parsed_args.group
+            )
+
+            if parsed_args.download:
+                self._create_variables_file(out,
+                                            parsed_args.download)
+            else:
+                if parsed_args.format == 'yaml':
+                    print(oooutils.get_validations_yaml(out))
+                else:
+                    print(oooutils.get_validations_json(out))
+        except Exception as e:
+            raise RuntimeError(_("Validations Show Parameters "
+                                 "finished with errors\n"
+                                 "Output: {}").format(e))
+
+    def take_action(self, parsed_args):
+        self._run_validator_show_parameter(parsed_args)
+
+
+class TripleOValidatorList(command.Lister):
+    """List the available validations"""
+
+    def get_parser(self, prog_name):
+        parser = super(TripleOValidatorList, self).get_parser(prog_name)
+
+        parser.add_argument(
+            '--group',
+            metavar='<group>[,<group>,...]',
+            action=_CommaListGroupAction,
+            default=[],
+            help=_("List specific group validations, "
+                   "if more than one group is required "
+                   "separate the group names with commas: "
+                   "--group pre-upgrade,prep | "
+                   "--group openshift-on-openstack")
+        )
+
+        return parser
+
+    def take_action(self, parsed_args):
         LOG.debug(_('Launch listing the validations'))
         try:
             validations = oooutils.parse_all_validations_on_disk(
                 constants.ANSIBLE_VALIDATION_DIR, parsed_args.group)
 
-            if parsed_args.parameters:
-                out = oooutils.get_validations_parameters(
-                    {'validations': validations},
-                    parsed_args.validation_name,
-                    parsed_args.group
-                )
+            return_values = []
+            column_name = ('ID', 'Name', 'Groups')
 
-                if parsed_args.create_vars_file:
-                    self._create_variables_file(out,
-                                                parsed_args.create_vars_file)
-                else:
-                    print(oooutils.get_validations_json(out))
-            else:
-                if parsed_args.output == 'json':
-                    out = oooutils.get_validations_json(
-                        {'validations': validations})
-                elif parsed_args.output == 'yaml':
-                    out = oooutils.get_validations_yaml(
-                        {'validations': validations})
-                else:
-                    out = oooutils.get_validations_table(
-                        {'validations': validations})
-                print(out)
+            for val in validations:
+                return_values.append((val.get('id'), val.get('name'),
+                                      val.get('groups')))
+            return (column_name, return_values)
         except Exception as e:
             raise RuntimeError(_("Validations listing finished with errors\n"
                                  "Output: {}").format(e))
-
-    def take_action(self, parsed_args):
-        self._run_validator_list(parsed_args)
 
 
 class TripleOValidatorRun(command.Command):
@@ -240,15 +337,16 @@ class TripleOValidatorRun(command.Command):
         ex_group = parser.add_mutually_exclusive_group(required=True)
 
         ex_group.add_argument(
-            '--validation-name',
+            '--validation',
             metavar='<validation_id>[,<validation_id>,...]',
+            dest="validation_name",
             action=_CommaListAction,
             default=[],
             help=_("Run specific validations, "
                    "if more than one validation is required "
                    "separate the names with commas: "
-                   "--validation-name check-ftype,512e | "
-                   "--validation-name 512e")
+                   "--validation check-ftype,512e | "
+                   "--validation 512e")
         )
 
         ex_group.add_argument(

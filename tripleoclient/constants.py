@@ -80,7 +80,10 @@ DEFAULT_VALIDATIONS_BASEDIR = '/usr/share/openstack-tripleo-validations'
 ANSIBLE_VALIDATION_DIR = \
     '/usr/share/openstack-tripleo-validations/playbooks'
 
-VALIDATION_GROUPS = ['openshift-on-openstack',
+VALIDATION_GROUPS_INFO = '%s/groups.yaml' % DEFAULT_VALIDATIONS_BASEDIR
+
+VALIDATION_GROUPS = ['no-op',
+                     'openshift-on-openstack',
                      'prep',
                      'pre-introspection',
                      'pre-deployment',

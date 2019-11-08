@@ -30,8 +30,33 @@ VALIDATIONS_LIST = [{
     'groups': ['prep', 'pre-introspection'],
     'id': 'my_val2',
     'name': 'My Validition Two Name',
-    'parameters': {}
+    'parameters': {'min_value': 8}
 }]
+
+GROUPS_LIST = [
+    ('group1', 'Group1 description'),
+    ('group2', 'Group2 description'),
+    ('group3', 'Group3 description'),
+]
+
+
+class TestValidatorGroupInfo(utils.TestCommand):
+
+    def setUp(self):
+        super(TestValidatorGroupInfo, self).setUp()
+
+        # Get the command object to test
+        self.cmd = tripleo_validator.TripleOValidatorGroupInfo(self.app, None)
+
+    @mock.patch('tripleoclient.utils.parse_all_validation_groups_on_disk',
+                return_value=GROUPS_LIST)
+    def test_show_group_info(self, mock_validations):
+        arglist = []
+        verifylist = []
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
 
 
 class TestValidatorList(utils.TestCommand):
@@ -47,6 +72,45 @@ class TestValidatorList(utils.TestCommand):
     def test_validation_list_noargs(self, mock_validations):
         arglist = []
         verifylist = []
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
+
+
+class TestValidatorShow(utils.TestCommand):
+
+    def setUp(self):
+        super(TestValidatorShow, self).setUp()
+
+        # Get the command object to test
+        self.cmd = tripleo_validator.TripleOValidatorShow(self.app, None)
+
+    @mock.patch('tripleoclient.utils.parse_all_validations_on_disk',
+                return_value=VALIDATIONS_LIST)
+    def test_validation_show(self, mock_validations):
+        arglist = ['my_val1']
+        verifylist = [('validation_id', 'my_val1')]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
+
+
+class TestValidatorShowParameter(utils.TestCommand):
+
+    def setUp(self):
+        super(TestValidatorShowParameter, self).setUp()
+
+        # Get the command object to test
+        self.cmd = tripleo_validator.TripleOValidatorShowParameter(self.app,
+                                                                   None)
+
+    @mock.patch('tripleoclient.utils.parse_all_validations_on_disk',
+                return_value=VALIDATIONS_LIST)
+    def test_validation_show_parameter(self, mock_validations):
+        arglist = ['--validation', 'my_val2']
+        verifylist = [('validation_name', ['my_val2'])]
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
@@ -81,10 +145,10 @@ class TestValidatorRun(utils.TestCommand):
 
         playbooks_dir = '/usr/share/openstack-tripleo-validations/playbooks'
         arglist = [
-            '--validation-name',
+            '--validation',
             'check-ftype'
         ]
-        verifylist = []
+        verifylist = [('validation_name', ['check-ftype'])]
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         self.cmd.take_action(parsed_args)
