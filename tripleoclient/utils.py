@@ -41,7 +41,6 @@ import socket
 import subprocess
 import sys
 import tempfile
-import textwrap
 import time
 import yaml
 
@@ -60,8 +59,6 @@ from six.moves.urllib import request
 
 from tripleoclient import constants
 from tripleoclient import exceptions
-
-from prettytable import PrettyTable
 
 LOG = logging.getLogger(__name__ + ".utils")
 
@@ -1792,6 +1789,24 @@ def get_validation_parameters(validation):
         return dict()
 
 
+def parse_all_validation_groups_on_disk(groups_file_path=None):
+    results = []
+
+    if not groups_file_path:
+        groups_file_path = constants.VALIDATION_GROUPS_INFO
+
+    if not os.path.exists(groups_file_path):
+        return results
+
+    with open(groups_file_path, 'r') as grps:
+        contents = yaml.safe_load(grps)
+
+    for grp_name, grp_desc in sorted(contents.items()):
+        results.append((grp_name, grp_desc[0].get('description')))
+
+    return results
+
+
 def parse_all_validations_on_disk(path, groups=None):
     results = []
     validations_abspath = glob.glob("{path}/*.yaml".format(path=path))
@@ -1860,34 +1875,6 @@ def get_validations_parameters(validations_data,
             }
 
     return params
-
-
-def get_validations_table(validations_data):
-    """Return the validations information as a pretty printed table"""
-    param_field_name = get_param_field_name(validations_data)
-
-    t = PrettyTable(border=True, header=True, padding_width=1)
-    t.title = "TripleO validations"
-    t.field_names = [
-        "ID", "Name",
-        "Description", "Groups",
-        param_field_name.capitalize()
-    ]
-
-    for validation in validations_data['validations']:
-        t.add_row([validation['id'],
-                   validation['name'],
-                   "\n".join(textwrap.wrap(validation['description'])),
-                   "\n".join(textwrap.wrap(' '.join(validation['groups']))),
-                   validation[param_field_name]])
-
-    t.sortby = "ID"
-    t.align["ID"] = "l"
-    t.align["Name"] = "l"
-    t.align["Description"] = "l"
-    t.align["Groups"] = "l"
-    t.align[param_field_name.capitalize()] = "l"
-    return t
 
 
 def get_validations_json(validations_data):

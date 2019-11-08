@@ -1,0 +1,17 @@
+---
+Features:
+  - |
+    The TripleO Validator CLI has been revamped and new subcommands have been
+    created. Moreover, the latter has been fully integrated with native
+    openstack client library.
+
+    To list all the available validations:
+      - openstack tripleo validator list
+    To show detailed information about a validation:
+      - openstack tripleo validator show
+    To display validations parameters:
+      - openstack tripleo validator show parameter
+    To display information about the validations groups:
+      - openstack tripleo validator group info
+    To run the validations, by name or by group(s):
+      - openstack tripleo validator run
