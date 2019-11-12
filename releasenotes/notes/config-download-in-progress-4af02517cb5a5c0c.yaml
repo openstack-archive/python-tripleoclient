@@ -1,0 +1,6 @@
+---
+fixes:
+  - The client (tripleoclient) now raises a new exception,
+    ConfigDownloadInProgress, if there is already an instance of the
+    tripleo.deployment.v1.config_download_deploy workflow in progress for the
+    current stack.
