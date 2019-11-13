@@ -118,26 +118,9 @@ def deploy_and_wait(log, clients, stack, plan_name, verbose_level,
             raise exceptions.DeploymentError("Heat Stack update failed.")
 
 
-def create_overcloudrc(clients, **workflow_input):
-    workflow_client = clients.workflow_engine
-    tripleoclients = clients.tripleoclient
-
-    with tripleoclients.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client,
-            'tripleo.deployment.v1.create_overcloudrc',
-            workflow_input=workflow_input
-        )
-
-        for payload in base.wait_for_messages(workflow_client, ws, execution):
-            # the workflow will return the overcloudrc data, an error message
-            # or blank.
-            if payload.get('status') == 'SUCCESS':
-                return payload.get('message')
-            else:
-                raise exceptions.WorkflowServiceError(
-                    'Exception creating overcloudrc: {}'.format(
-                        payload.get('message')))
+def create_overcloudrc(clients, container="overcloud", no_proxy=''):
+    context = clients.tripleoclient.create_mistral_context()
+    return deployment.OvercloudRcAction(container, no_proxy).run(context)
 
 
 def get_overcloud_hosts(stack, ssh_network):
