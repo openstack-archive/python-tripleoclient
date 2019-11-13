@@ -21,6 +21,7 @@ import tripleo_common.arch
 from tripleoclient.tests import base
 from tripleoclient.tests.fakes import FakeHandle
 from tripleoclient.tests.v1.test_plugin import TestPluginV1
+from tripleoclient import utils as plugin_utils
 from tripleoclient.v1 import overcloud_image
 
 
@@ -149,6 +150,245 @@ class TestBaseClientAdapter(base.TestCommand):
         self.adapter.file_create_or_update('discimg', 'discimgprod')
         mock_copy_file.assert_called_once_with(
             self.adapter, 'discimg', 'discimgprod')
+
+    @mock.patch('subprocess.check_call', autospec=True)
+    def test_copy_file(self, mock_subprocess_call):
+        self.adapter._copy_file('/foo.qcow2', 'bar.qcow2')
+        mock_subprocess_call.assert_called_once_with(
+            'sudo cp -f "/foo.qcow2" "bar.qcow2"', shell=True)
+
+    @mock.patch('subprocess.check_call', autospec=True)
+    def test_move_file(self, mock_subprocess_call):
+        self.adapter._move_file('/foo.qcow2', 'bar.qcow2')
+        mock_subprocess_call.assert_called_once_with(
+            'sudo mv "/foo.qcow2" "bar.qcow2"', shell=True)
+
+    @mock.patch('subprocess.check_call', autospec=True)
+    def test_make_dirs(self, mock_subprocess_call):
+        self.adapter._make_dirs('/foo/bar/baz')
+        mock_subprocess_call.assert_called_once_with(
+            'sudo mkdir -m 0775 -p "/foo/bar/baz"', shell=True)
+
+
+class TestFileImageClientAdapter(TestPluginV1):
+
+    def setUp(self):
+        super(TestFileImageClientAdapter, self).setUp()
+        self.updated = []
+        self.adapter = overcloud_image.FileImageClientAdapter(
+            image_path='/home/foo',
+            local_path='/my/images',
+            updated=self.updated
+        )
+        self.image = mock.Mock()
+        self.image.id = 'file:///my/images/x86_64/overcloud-full.qcow2'
+        self.image.name = 'overcloud-full'
+        self.image.checksum = 'asdf'
+        self.image.created_at = '2019-11-14T01:33:39'
+        self.image.size = 982802432
+
+    @mock.patch('os.path.exists')
+    def test_get_image_property(self, mock_exists):
+        mock_exists.side_effect = [
+            True, True, False, False
+        ]
+        image = mock.Mock()
+        image.id = 'file:///my/images/x86_64/overcloud-full.qcow2'
+        # file exists
+        self.assertEqual(
+            'file:///my/images/x86_64/overcloud-full.vmlinuz',
+            self.adapter.get_image_property(image, 'kernel_id')
+        )
+        self.assertEqual(
+            'file:///my/images/x86_64/overcloud-full.initrd',
+            self.adapter.get_image_property(image, 'ramdisk_id')
+        )
+        # file doesn't exist
+        self.assertIsNone(
+            self.adapter.get_image_property(image, 'kernel_id')
+        )
+        self.assertIsNone(
+            self.adapter.get_image_property(image, 'ramdisk_id')
+        )
+        self.assertRaises(ValueError, self.adapter.get_image_property,
+                          image, 'foo')
+
+    def test_paths(self):
+        self.assertEqual(
+            ('/my/images/x86_64',
+             'overcloud-full.vmlinuz'),
+            self.adapter._paths(
+                'overcloud-full',
+                plugin_utils.overcloud_kernel,
+                'x86_64',
+                None
+            )
+        )
+        self.assertEqual(
+            ('/my/images',
+             'overcloud-full.qcow2'),
+            self.adapter._paths(
+                'overcloud-full',
+                plugin_utils.overcloud_image,
+                None,
+                None
+            )
+        )
+        self.assertEqual(
+            ('/my/images/power9-ppc64le',
+             'overcloud-full.initrd'),
+            self.adapter._paths(
+                'overcloud-full',
+                plugin_utils.overcloud_ramdisk,
+                'ppc64le',
+                'power9'
+            )
+        )
+
+    @mock.patch('os.path.exists')
+    @mock.patch('os.stat')
+    @mock.patch('tripleoclient.utils.file_checksum')
+    def test_get_image(self, mock_checksum, mock_stat, mock_exists):
+        mock_exists.return_value = True
+        mock_stat.return_value.st_size = 982802432
+        mock_stat.return_value.st_mtime = 1573695219
+        mock_checksum.return_value = 'asdf'
+
+        image = self.adapter._get_image(
+            '/my/images/x86_64/overcloud-full.qcow2')
+        self.assertEqual(
+            'file:///my/images/x86_64/overcloud-full.qcow2',
+            image.id
+        )
+        self.assertEqual('overcloud-full', image.name)
+        self.assertEqual('asdf', image.checksum)
+        self.assertEqual('2019-11-14T01:33:39', image.created_at)
+        self.assertEqual(982802432, image.size)
+
+    @mock.patch('tripleoclient.utils.file_checksum')
+    @mock.patch('tripleoclient.v1.overcloud_image.'
+                'FileImageClientAdapter._get_image', autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_image.'
+                'BaseClientAdapter._move_file', autospec=True)
+    def test_image_try_update(self, mock_move, mock_get_image, mock_checksum):
+
+        # existing image with identical checksum
+        mock_checksum.return_value = 'asdf'
+        mock_get_image.return_value = self.image
+        self.assertEqual(
+            self.image,
+            self.adapter._image_try_update(
+                '/home/foo/overcloud-full.qcow2',
+                '/my/images/x86_64/overcloud-full.qcow2'
+            )
+        )
+        self.assertEqual([], self.updated)
+
+        # no image to update
+        mock_get_image.return_value = None
+        self.assertIsNone(
+            self.adapter._image_try_update(
+                '/home/foo/overcloud-full.qcow2',
+                '/my/images/x86_64/overcloud-full.qcow2'
+            )
+        )
+        self.assertEqual([], self.updated)
+
+        # existing image with different checksum, but update_existing=False
+        mock_checksum.return_value = 'fdsa'
+        mock_get_image.return_value = self.image
+        self.assertEqual(
+            self.image,
+            self.adapter._image_try_update(
+                '/home/foo/overcloud-full.qcow2',
+                '/my/images/x86_64/overcloud-full.qcow2'
+            )
+        )
+        self.assertEqual([], self.updated)
+
+        # existing image with different checksum, update_existing=True
+        self.adapter.update_existing = True
+        self.assertIsNone(
+            self.adapter._image_try_update(
+                '/home/foo/overcloud-full.qcow2',
+                '/my/images/x86_64/overcloud-full.qcow2'
+            )
+        )
+        self.assertEqual(
+            ['/my/images/x86_64/overcloud-full.qcow2'],
+            self.updated
+        )
+        mock_move.assert_called_once_with(
+            self.adapter,
+            '/my/images/x86_64/overcloud-full.qcow2',
+            '/my/images/x86_64/overcloud-full_20191114T013339.qcow2'
+        )
+
+    @mock.patch('subprocess.check_call', autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_image.'
+                'FileImageClientAdapter._get_image', autospec=True)
+    @mock.patch('os.path.isdir')
+    def test_upload_image(self, mock_isdir, mock_get_image,
+                          mock_subprocess_call):
+        mock_isdir.return_value = False
+
+        mock_get_image.return_value = self.image
+
+        result = self.adapter._upload_image(
+            '/home/foo/overcloud-full.qcow2',
+            '/my/images/x86_64/overcloud-full.qcow2'
+        )
+        self.assertEqual(self.image, result)
+        mock_subprocess_call.assert_has_calls([
+            mock.call('sudo mkdir -m 0775 -p "/my/images/x86_64"', shell=True),
+            mock.call('sudo cp -f "/home/foo/overcloud-full.qcow2" '
+                      '"/my/images/x86_64/overcloud-full.qcow2"', shell=True)
+        ])
+
+    @mock.patch('tripleoclient.v1.overcloud_image.'
+                'FileImageClientAdapter._upload_image', autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_image.'
+                'FileImageClientAdapter._image_try_update', autospec=True)
+    def test_update_or_upload(self, mock_image_try_update, mock_upload_image):
+
+        # image exists
+        mock_image_try_update.return_value = self.image
+        self.assertEqual(
+            self.image,
+            self.adapter.update_or_upload(
+                image_name='overcloud-full',
+                properties={},
+                names_func=plugin_utils.overcloud_image,
+                arch='x86_64'
+            )
+        )
+        mock_upload_image.assert_not_called()
+
+        # image needs uploading
+        mock_image_try_update.return_value = None
+        mock_upload_image.return_value = self.image
+        self.assertEqual(
+            self.image,
+            self.adapter.update_or_upload(
+                image_name='overcloud-full',
+                properties={},
+                names_func=plugin_utils.overcloud_image,
+                arch='x86_64'
+            )
+        )
+        mock_upload_image.assert_called_once_with(
+            self.adapter,
+            '/home/foo/overcloud-full.qcow2',
+            '/my/images/x86_64/overcloud-full.qcow2'
+        )
+        mock_image_try_update.assert_has_calls([
+            mock.call(self.adapter,
+                      '/home/foo/overcloud-full.qcow2',
+                      '/my/images/x86_64/overcloud-full.qcow2'),
+            mock.call(self.adapter,
+                      '/home/foo/overcloud-full.qcow2',
+                      '/my/images/x86_64/overcloud-full.qcow2')
+        ])
 
 
 class TestGlanceClientAdapter(TestPluginV1):
