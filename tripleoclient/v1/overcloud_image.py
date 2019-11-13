@@ -16,6 +16,8 @@
 from __future__ import print_function
 
 import abc
+import collections
+from datetime import datetime
 import logging
 import os
 import re
@@ -118,8 +120,19 @@ class BaseClientAdapter(object):
         pass
 
     def _copy_file(self, src, dest):
-        subprocess.check_call('sudo cp -f "{0}" "{1}"'.format(src, dest),
-                              shell=True)
+        cmd = 'sudo cp -f "{0}" "{1}"'.format(src, dest)
+        self.log.debug(cmd)
+        subprocess.check_call(cmd, shell=True)
+
+    def _move_file(self, src, dest):
+        cmd = 'sudo mv "{0}" "{1}"'.format(src, dest)
+        self.log.debug(cmd)
+        subprocess.check_call(cmd, shell=True)
+
+    def _make_dirs(self, path):
+        cmd = 'sudo mkdir -m 0775 -p "{0}"'.format(path)
+        self.log.debug(cmd)
+        subprocess.check_call(cmd, shell=True)
 
     def _files_changed(self, filepath1, filepath2):
         return (plugin_utils.file_checksum(filepath1) !=
@@ -152,6 +165,115 @@ class BaseClientAdapter(object):
             file_descriptor = VerboseFileWrapper(file_descriptor)
 
         return file_descriptor
+
+
+class FileImageClientAdapter(BaseClientAdapter):
+
+    def __init__(self, local_path, **kwargs):
+        super(FileImageClientAdapter, self).__init__(**kwargs)
+        self.local_path = local_path
+
+    def get_image_property(self, image, prop):
+        if prop == 'kernel_id':
+            path = os.path.splitext(image.id)[0] + '.vmlinuz'
+            if os.path.exists(path):
+                return path
+            return None
+        elif prop == 'ramdisk_id':
+            path = os.path.splitext(image.id)[0] + '.initrd'
+            if os.path.exists(path):
+                return path
+            return None
+        raise ValueError('Unsupported property %s' % prop)
+
+    def _print_image_info(self, image):
+        table = PrettyTable(['Path', 'Name', 'Size'])
+        table.add_row([image.id, image.name, image.size])
+        print(table, file=sys.stdout)
+
+    def _paths(self, image_name, names_func, arch, platform):
+        (arch_path, extension) = names_func(
+            image_name, arch=arch, platform=platform, use_subdir=True)
+        image_file = image_name + extension
+
+        dest_dir = os.path.split(
+            os.path.join(self.local_path, arch_path))[0]
+        return (dest_dir, image_file)
+
+    def _get_image(self, path):
+        if not os.path.exists(path):
+            return
+        stat = os.stat(path)
+        created_at = datetime.fromtimestamp(
+            stat.st_mtime).isoformat()
+
+        Image = collections.namedtuple(
+            'Image',
+            'id, name, checksum, created_at, size'
+        )
+        (dir_path, filename) = os.path.split(path)
+        (name, extension) = os.path.splitext(filename)
+        checksum = plugin_utils.file_checksum(path)
+
+        return Image(
+            id='file://%s' % path,
+            name=name,
+            checksum=checksum,
+            created_at=created_at,
+            size=stat.st_size
+        )
+
+    def _image_changed(self, image, filename):
+        return image.checksum != plugin_utils.file_checksum(filename)
+
+    def _image_try_update(self, src_path, dest_path):
+        image = self._get_image(dest_path)
+        if image:
+            if self._image_changed(image, src_path):
+                if self.update_existing:
+                    dest_base, dest_ext = os.path.splitext(dest_path)
+                    dest_datestamp = re.sub(
+                        r'[\-:\.]|(0+$)', '', image.created_at)
+                    dest_mv = dest_base + '_' + dest_datestamp + dest_ext
+                    self._move_file(dest_path, dest_mv)
+
+                    if self.updated is not None:
+                        self.updated.append(dest_path)
+                    return None
+                else:
+                    print('Image "%s" already exists and can be updated'
+                          ' with --update-existing.' % dest_path)
+                    return image
+            else:
+                print('Image "%s" is up-to-date, skipping.' % dest_path)
+                return image
+        else:
+            return None
+
+    def _upload_image(self, src_path, dest_path):
+        dest_dir = os.path.split(dest_path)[0]
+        if not os.path.isdir(dest_dir):
+            self._make_dirs(dest_dir)
+
+        self._copy_file(src_path, dest_path)
+        image = self._get_image(dest_path)
+        print('Image "%s" was copied.' % image.id, file=sys.stdout)
+        self._print_image_info(image)
+        return image
+
+    def update_or_upload(self, image_name, properties, names_func,
+                         arch, platform=None,
+                         disk_format='qcow2', container_format='bare'):
+        (dest_dir, image_file) = self._paths(
+            image_name, names_func, arch, platform)
+
+        src_path = os.path.join(self.image_path, image_file)
+        dest_path = os.path.join(dest_dir, image_file)
+        existing_image = self._image_try_update(src_path, dest_path)
+        if existing_image:
+            return existing_image
+
+        return self._upload_image(src_path, dest_path)
 
 
 class GlanceClientAdapter(BaseClientAdapter):
@@ -263,13 +385,15 @@ class UploadOvercloudImage(command.Command):
     log = logging.getLogger(__name__ + ".UploadOvercloudImage")
 
     def _get_client_adapter(self, parsed_args):
-        return GlanceClientAdapter(
-            self.app.client_manager.image,
-            progress=parsed_args.progress,
-            image_path=parsed_args.image_path,
-            update_existing=parsed_args.update_existing,
-            updated=self.updated
-        )
+        kwargs = {
+            'progress': parsed_args.progress,
+            'image_path': parsed_args.image_path,
+            'update_existing': parsed_args.update_existing,
+            'updated': self.updated
+        }
+        if parsed_args.local:
+            return FileImageClientAdapter(parsed_args.local_path, **kwargs)
+        return GlanceClientAdapter(self.app.client_manager.image, **kwargs)
 
     def _get_environment_var(self, envvar, default, deprecated=[]):
         for env_key in deprecated:
@@ -353,6 +477,21 @@ class UploadOvercloudImage(command.Command):
             action="store_true",
             default=False,
             help=_('Show progress bar for upload files action'))
+        parser.add_argument(
+            "--local",
+            dest="local",
+            action="store_true",
+            default=False,
+            help=_('Copy files locally, even if there is an image service '
+                   'endpoint'))
+        parser.add_argument(
+            "--local-path",
+            default=self._get_environment_var(
+                'LOCAL_IMAGE_PATH',
+                constants.IRONIC_LOCAL_IMAGE_PATH),
+            help=_("Root directory for image file copy destination when there "
+                   "is no image endpoint, or when --local is specified")
+        )
 
         return parser
 
