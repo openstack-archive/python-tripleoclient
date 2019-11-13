@@ -91,9 +91,10 @@ class ExportCell(command.Command):
             should_filter = False
 
         config_download_dir = os.path.join(MISTRAL_VAR, stack_to_export)
-        data['parameter_defaults'].update(export.export_stack(
+        data.update(export.export_stack(
             clients.orchestration, stack_to_export, should_filter,
             config_download_dir))
+        data = dict(parameter_defaults=data)
 
         # write the exported data
         with open(output_file, 'w') as f:
@@ -118,8 +119,8 @@ class ExportCell(command.Command):
             - cell role file created
             - the exported cell input information file {output_file}
             - other specific parameter files for the cell\n
-          For more details check https://docs.openstack.org/tripleo-docs/
-          latest/install/advanced_deployment/deploy_cellv2.html#
-          deploy-the-cell""".format(output_file=output_file)
+          For more details check https://docs.openstack.org/
+          project-deploy-guide/tripleo-docs/latest/features/deploy_cellv2.html
+          """.format(output_file=output_file)
 
         print(msg)
