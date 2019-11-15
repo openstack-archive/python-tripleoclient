@@ -1234,22 +1234,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         self.assertFalse(mock_deploy_and_wait.called)
 
-    def test_heat_stack_busy(self):
-
-        clients = self.app.client_manager
-        orchestration_client = clients.orchestration
-        mock_stack = fakes.create_tht_stack(stack_status="IN_PROGRESS")
-        orchestration_client.stacks.get.return_value = mock_stack
-
-        arglist = ['--templates', ]
-        verifylist = [
-            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
-        ]
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-
-        self.assertRaises(exceptions.StackInProgress,
-                          self.cmd.take_action, parsed_args)
-
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_get_undercloud_host_entry', autospec=True,
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')

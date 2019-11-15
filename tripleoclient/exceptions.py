@@ -53,10 +53,6 @@ class PlanEnvWorkflowError(Base):
     """Plan Environment workflow has failed"""
 
 
-class StackInProgress(Base):
-    """Unable to deploy as the stack is busy"""
-
-
 class RootUserExecution(Base):
     """Command was executed by a root user"""
 
