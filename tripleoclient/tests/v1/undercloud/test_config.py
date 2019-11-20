@@ -185,11 +185,60 @@ class TestNetworkSettings(base.TestCase):
         }
         self.assertEqual(expected, env)
 
-    def test_ipv6_control_plane(self):
+    def test_ipv6_control_plane_stateless_default(self):
         env = {}
         self.conf.config(local_ip='fd12:3456:789a:1::2/64',
                          undercloud_admin_host='fd12:3456:789a:1::3',
                          undercloud_public_host='fd12:3456:789a:1::4')
+        self.conf.config(cidr='fd12:3456:789a:1::/64',
+                         dhcp_start='fd12:3456:789a:1::10',
+                         dhcp_end='fd12:3456:789a:1::20',
+                         dhcp_exclude=[],
+                         dns_nameservers=['fd12:3456:789a:1::5',
+                                          'fd12:3456:789a:1::6'],
+                         inspection_iprange=('fd12:3456:789a:1::30,'
+                                             'fd12:3456:789a:1::40'),
+                         gateway='fd12:3456:789a:1::1',
+                         masquerade=False,
+                         host_routes=[],
+                         group='ctlplane-subnet')
+        undercloud_config._process_network_args(env)
+        expected = {
+            'NovaIPv6': True,
+            'RabbitIPv6': True,
+            'MemcachedIPv6': True,
+            'RedisIPv6': True,
+            'MysqlIPv6': True,
+            'IronicIpVersion': '6',
+            'ControlPlaneStaticRoutes': [],
+            'IronicInspectorSubnets': [
+                {'gateway': 'fd12:3456:789a:1::1',
+                 'host_routes': [],
+                 'ip_range': 'fd12:3456:789a:1::,static',
+                 'netmask': 'ffff:ffff:ffff:ffff::',
+                 'tag': 'ctlplane-subnet',
+                 'mtu': 1500}],
+            'MasqueradeNetworks': {},
+            'UndercloudCtlplaneSubnets': {
+                'ctlplane-subnet': {
+                    'AllocationPools': [
+                        {'start': 'fd12:3456:789a:1::10',
+                         'end': 'fd12:3456:789a:1::20'}],
+                    'DnsNameServers': ['fd12:3456:789a:1::5',
+                                       'fd12:3456:789a:1::6'],
+                    'HostRoutes': [],
+                    'NetworkCidr': 'fd12:3456:789a:1::/64',
+                    'NetworkGateway': 'fd12:3456:789a:1::1'}},
+            'UndercloudCtlplaneIPv6AddressMode': 'dhcpv6-stateless',
+        }
+        self.assertEqual(expected, env)
+
+    def test_ipv6_control_plane_stateful(self):
+        env = {}
+        self.conf.config(local_ip='fd12:3456:789a:1::2/64',
+                         undercloud_admin_host='fd12:3456:789a:1::3',
+                         undercloud_public_host='fd12:3456:789a:1::4',
+                         ipv6_address_mode='dhcpv6-stateful')
         self.conf.config(cidr='fd12:3456:789a:1::/64',
                          dhcp_start='fd12:3456:789a:1::10',
                          dhcp_end='fd12:3456:789a:1::20',
@@ -229,7 +278,7 @@ class TestNetworkSettings(base.TestCase):
                     'HostRoutes': [],
                     'NetworkCidr': 'fd12:3456:789a:1::/64',
                     'NetworkGateway': 'fd12:3456:789a:1::1'}},
-            'UndercloudCtlplaneIPv6AddressMode': 'dhcpv6-stateless',
+            'UndercloudCtlplaneIPv6AddressMode': 'dhcpv6-stateful',
         }
         self.assertEqual(expected, env)
 
