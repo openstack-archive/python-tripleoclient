@@ -14,7 +14,6 @@
 #
 
 import mock
-import sys
 
 from osc_lib.tests import utils
 from tripleoclient.v1 import tripleo_validator
@@ -38,6 +37,110 @@ GROUPS_LIST = [
     ('group2', 'Group2 description'),
     ('group3', 'Group3 description'),
 ]
+
+VALIDATIONS_LOGS_CONTENTS_LIST = [{
+    'plays': [{
+        'play': {
+            'duration': {
+                'end': '2019-11-25T13:40:17.538611Z',
+                'start': '2019-11-25T13:40:14.404623Z',
+                'time_elapsed': '0:00:03.753'
+            },
+            'host': 'undercloud',
+            'id': '008886df-d297-1eaa-2a74-000000000008',
+            'validation_id': '512e',
+            'validation_path':
+            '/usr/share/openstack-tripleo-validations/playbooks'
+        },
+        'tasks': [
+            {
+                'hosts': {
+                    'undercloud': {
+                        '_ansible_no_log': False,
+                        'action': 'command',
+                        'changed': False,
+                        'cmd': [u'ls', '/sys/class/block/'],
+                        'delta': '0:00:00.018913',
+                        'end': '2019-11-25 13:40:17.120368',
+                        'invocation': {
+                            'module_args': {
+                                '_raw_params': 'ls /sys/class/block/',
+                                '_uses_shell': False,
+                                'argv': None,
+                                'chdir': None,
+                                'creates': None,
+                                'executable': None,
+                                'removes': None,
+                                'stdin': None,
+                                'stdin_add_newline': True,
+                                'strip_empty_ends': True,
+                                'warn': True
+                            }
+                        },
+                        'rc': 0,
+                        'start': '2019-11-25 13:40:17.101455',
+                        'stderr': '',
+                        'stderr_lines': [],
+                        'stdout': 'vda',
+                        'stdout_lines': [u'vda']
+                    }
+                },
+                'task': {
+                    'duration': {
+                        'end': '2019-11-25T13:40:17.336687Z',
+                        'start': '2019-11-25T13:40:14.529880Z'
+                    },
+                    'id':
+                    '008886df-d297-1eaa-2a74-00000000000d',
+                    'name':
+                    'advanced-format-512e-support : List the available drives'
+                }
+            },
+            {
+                'hosts': {
+                    'undercloud': {
+                        'action':
+                        'advanced_format',
+                        'changed': False,
+                        'msg':
+                        'All items completed',
+                        'results': [{
+                            '_ansible_item_label': 'vda',
+                            '_ansible_no_log': False,
+                            'ansible_loop_var': 'item',
+                            'changed': False,
+                            'item': 'vda',
+                            'skip_reason': 'Conditional result was False',
+                            'skipped': True
+                        }],
+                        'skipped': True
+                    }
+                },
+                'task': {
+                    'duration': {
+                        'end': '2019-11-25T13:40:17.538611Z',
+                        'start': '2019-11-25T13:40:17.341704Z'
+                    },
+                    'id': '008886df-d297-1eaa-2a74-00000000000e',
+                    'name':
+                    'advanced-format-512e-support: Detect the drive'
+                }
+            }
+        ]
+    }],
+    'stats': {
+        'undercloud': {
+            'changed': 0,
+            'failures': 0,
+            'ignored': 0,
+            'ok': 1,
+            'rescued': 0,
+            'skipped': 1,
+            'unreachable': 0
+        }
+    },
+    'validation_output': []
+}]
 
 
 class TestValidatorGroupInfo(utils.TestCommand):
@@ -117,54 +220,54 @@ class TestValidatorShowParameter(utils.TestCommand):
         self.cmd.take_action(parsed_args)
 
 
-class TestValidatorRun(utils.TestCommand):
+class TestValidatorShowRun(utils.TestCommand):
 
     def setUp(self):
-        super(TestValidatorRun, self).setUp()
+        super(TestValidatorShowRun, self).setUp()
 
         # Get the command object to test
-        self.cmd = tripleo_validator.TripleOValidatorRun(self.app, None)
+        self.cmd = tripleo_validator.TripleOValidatorShowRun(self.app,
+                                                             None)
 
-    @mock.patch('sys.exit')
-    @mock.patch('logging.getLogger')
-    @mock.patch('pwd.getpwuid')
-    @mock.patch('os.getuid')
-    @mock.patch('tripleoclient.utils.get_tripleo_ansible_inventory',
-                return_value='/home/stack/inventory.yaml')
-    @mock.patch('tripleoclient.utils.run_ansible_playbook',
-                autospec=True)
-    def test_validation_run_with_ansible(self, plan_mock, mock_inventory,
-                                         mock_getuid, mock_getpwuid,
-                                         mock_logger, mock_sysexit):
-        mock_pwuid = mock.Mock()
-        mock_pwuid.pw_dir = '/home/stack'
-        mock_getpwuid.return_value = mock_pwuid
-
-        mock_log = mock.Mock()
-        mock_logger.return_value = mock_log
-
-        playbooks_dir = '/usr/share/openstack-tripleo-validations/playbooks'
-        arglist = [
-            '--validation',
-            'check-ftype'
-        ]
-        verifylist = [('validation_name', ['check-ftype'])]
+    @mock.patch('tripleoclient.utils.parse_all_validations_logs_on_disk',
+                return_value=VALIDATIONS_LOGS_CONTENTS_LIST)
+    def test_validation_show_run(self, mock_validations):
+        arglist = ['008886df-d297-1eaa-2a74-000000000008']
+        verifylist = [('uuid', '008886df-d297-1eaa-2a74-000000000008')]
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
         self.cmd.take_action(parsed_args)
 
-        plan_mock.assert_called_once_with(
-            logger=mock_log,
-            plan='overcloud',
-            inventory='/home/stack/inventory.yaml',
-            workdir=playbooks_dir,
-            log_path_dir='/home/stack',
-            playbook='check-ftype.yaml',
-            retries=False,
-            output_callback='validation_output',
-            extra_vars={},
-            python_interpreter='/usr/bin/python{}'.format(sys.version_info[0]),
-            gathering_policy='explicit'
-        )
 
-        assert mock_sysexit.called
+class TestValidatorShowHistory(utils.TestCommand):
+
+    def setUp(self):
+        super(TestValidatorShowHistory, self).setUp()
+
+        # Get the command object to test
+        self.cmd = tripleo_validator.TripleOValidatorShowHistory(self.app,
+                                                                 None)
+
+    @mock.patch('tripleoclient.utils.parse_all_validations_logs_on_disk',
+                return_value=VALIDATIONS_LOGS_CONTENTS_LIST)
+    def test_validation_show_history(self, mock_validations):
+        arglist = []
+        verifylist = []
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
+
+    @mock.patch('tripleoclient.utils.parse_all_validations_logs_on_disk',
+                return_value=VALIDATIONS_LOGS_CONTENTS_LIST)
+    def test_validation_show_history_for_a_validation(self, mock_validations):
+        arglist = [
+            '--validation',
+            '512e'
+        ]
+        verifylist = [('validation', '512e')]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
