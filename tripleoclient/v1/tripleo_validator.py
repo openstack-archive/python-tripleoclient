@@ -18,18 +18,26 @@ import json
 import logging
 import os
 import six
-import sys
 import textwrap
+import time
 
 from concurrent.futures import ThreadPoolExecutor
 from osc_lib import exceptions
 from osc_lib.i18n import _
+from prettytable import PrettyTable
 
 from tripleoclient import command
 from tripleoclient import constants
 from tripleoclient import utils as oooutils
 
 LOG = logging.getLogger(__name__ + ".TripleoValidator")
+
+RED = "\033[1;31m"
+GREEN = "\033[0;32m"
+RESET = "\033[0;0m"
+
+FAILED_VALIDATION = "{}FAILED{}".format(RED, RESET)
+PASSED_VALIDATION = "{}PASSED{}".format(GREEN, RESET)
 
 
 class _CommaListGroupAction(argparse.Action):
@@ -64,8 +72,14 @@ class TripleOValidatorGroupInfo(command.Lister):
             raise exceptions.CommandError(
                 "Could not find groups information file %s" % group_file)
 
-        column_name = ("Groups", "Description")
-        return (column_name, group)
+        group_info = []
+        for gp in group:
+            validations = oooutils.parse_all_validations_on_disk(
+                constants.ANSIBLE_VALIDATION_DIR, gp[0])
+            group_info.append((gp[0], gp[1], len(validations)))
+
+        column_name = ("Groups", "Description", "Number of Validations")
+        return (column_name, group_info)
 
 
 class TripleOValidatorShow(command.ShowOne):
@@ -83,11 +97,14 @@ class TripleOValidatorShow(command.ShowOne):
 
     def take_action(self, parsed_args):
         validation = self.get_validations_details(parsed_args.validation_id)
+        logfile_contents = oooutils.parse_all_validations_logs_on_disk(
+            validation_id=parsed_args.validation_id)
+
         if not validation:
             raise exceptions.CommandError(
                 "Could not find validation %s" % parsed_args.validation_id)
 
-        return self.format_validation(validation)
+        return self.format_validation(validation, logfile_contents)
 
     def get_validations_details(self, validation):
         results = oooutils.parse_all_validations_on_disk(
@@ -98,7 +115,7 @@ class TripleOValidatorShow(command.ShowOne):
                 return r
         return []
 
-    def format_validation(self, validation):
+    def format_validation(self, validation, logfile):
         column_names = ["ID"]
         data = [validation.pop('id')]
 
@@ -110,11 +127,50 @@ class TripleOValidatorShow(command.ShowOne):
             column_names.append("Description")
             data.append(textwrap.fill(validation.pop('description')))
 
+        if 'groups' in validation:
+            column_names.append("Groups")
+            data.append(", ".join(validation.pop('groups')))
+
         other_fields = list(validation.keys())
         other_fields.sort()
         for field in other_fields:
             column_names.append(field.capitalize())
             data.append(validation[field])
+
+        # history, stats ...
+        total_number = 0
+        failed_number = 0
+        passed_number = 0
+        last_execution = None
+        dates = []
+
+        if logfile:
+            total_number = len(logfile)
+
+        for run in logfile:
+            if 'validation_output' in run and run.get('validation_output'):
+                failed_number += 1
+            else:
+                passed_number += 1
+
+            date_time = \
+                run['plays'][0]['play']['duration'].get('start').split('T')
+            date_start = date_time[0]
+            time_start = date_time[1].split('Z')[0]
+            newdate = \
+                time.strptime(date_start + time_start, '%Y-%m-%d%H:%M:%S.%f')
+            dates.append(newdate)
+
+        if dates:
+            last_execution = time.strftime('%Y-%m-%d %H:%M:%S', max(dates))
+
+        column_names.append("Number of execution")
+        data.append("Total: {}, Passed: {}, Failed: {}".format(total_number,
+                                                               passed_number,
+                                                               failed_number))
+
+        column_names.append("Last execution date")
+        data.append(last_execution)
 
         return column_names, data
 
@@ -198,7 +254,7 @@ class TripleOValidatorShowParameter(command.Command):
 
                 with open(varsfile[-1], 'w') as f:
                     params = {}
-                    for val_name in data.keys():
+                    for val_name in list(data.keys()):
                         for k, v in data[val_name].get('parameters').items():
                             params[k] = v
 
@@ -273,7 +329,7 @@ class TripleOValidatorList(command.Lister):
 
             for val in validations:
                 return_values.append((val.get('id'), val.get('name'),
-                                      val.get('groups')))
+                                      ", ".join(val.get('groups'))))
             return (column_name, return_values)
         except Exception as e:
             raise RuntimeError(_("Validations listing finished with errors\n"
@@ -382,12 +438,19 @@ class TripleOValidatorRun(command.Command):
                     playbooks.append(val.get('id') + '.yaml')
             except Exception as e:
                 print(
-                    _("Validations listing by group finished with errors"))
+                    _("Getting Validations list by group name"
+                      "finished with errors"))
                 print('Output: {}'.format(e))
 
         else:
             for pb in parsed_args.validation_name:
-                playbooks.append(pb + '.yaml')
+                if pb not in constants.VALIDATION_GROUPS:
+                    playbooks.append(pb + '.yaml')
+                else:
+                    raise exceptions.CommandError(
+                        "Please, use '--group' argument instead of "
+                        "'--validation' to run validation(s) by their name(s)."
+                    )
 
         static_inventory = oooutils.get_tripleo_ansible_inventory(
             ssh_user='heat-admin',
@@ -409,30 +472,217 @@ class TripleOValidatorRun(command.Command):
                         playbook_dir=constants.ANSIBLE_VALIDATION_DIR,
                         parallel_run=True,
                         inventory=static_inventory,
-                        output_callback='validation_output',
+                        output_callback='validation_json',
                         quiet=True,
                         extra_vars=extra_vars_input,
                         gathering_policy='explicit'): playbook
                     for playbook in playbooks
                 }
 
+        results = []
+
         for tk, pl in six.iteritems(tasks_exec):
             try:
                 _rc, output = tk.result()
-                print('[SUCCESS] - {}\n{}'.format(pl, oooutils.indent(output)))
+                results.append({
+                    'validation': {
+                        'validation_id': pl,
+                        'logfile': None,
+                        'status': 'PASSED',
+                        'output': output
+                    }})
             except Exception as e:
                 failed_val = True
-                LOG.error('[FAILED] - {}\n{}'.format(
-                    pl, oooutils.indent(e.args[0])))
+                results.append({
+                    'validation': {
+                        'validation_id': pl,
+                        'logfile': None,
+                        'status': 'FAILED',
+                        'output': str(e)
+                    }})
+
+        if results:
+            new_log_files = oooutils.get_new_validations_logs_on_disk()
+
+            for i in new_log_files:
+                val_id = "{}.yaml".format(i.split('_')[1])
+                for res in results:
+                    if res['validation'].get('validation_id') == val_id:
+                        res['validation']['logfile'] = \
+                            os.path.join(constants.VALIDATIONS_LOG_BASEDIR, i)
+
+            t = PrettyTable(border=True, header=True, padding_width=1)
+            t.field_names = [
+                "UUID", "Validations", "Status", "Host Group(s)",
+                "Status by Host", "Unreachable Host(s)", "Duration"]
+
+            for validation in results:
+                r = []
+                logfile = validation['validation'].get('logfile', None)
+                if logfile and os.path.exists(logfile):
+                    with open(logfile, 'r') as val:
+                        contents = json.load(val)
+
+                    for i in contents['plays']:
+                        host = [
+                            x.encode('utf-8')
+                            for x in i['play'].get('host').split(', ')
+                        ]
+                        val_id = i['play'].get('validation_id')
+                        time_elapsed = \
+                            i['play']['duration'].get('time_elapsed', None)
+
+                    r.append(contents['plays'][0]['play'].get('id'))
+                    r.append(val_id)
+                    if validation['validation'].get('status') == "PASSED":
+                        r.append(PASSED_VALIDATION)
+                    else:
+                        r.append(FAILED_VALIDATION)
+
+                    unreachable_hosts = []
+                    hosts_result = []
+                    for h in list(contents['stats'].keys()):
+                        ht = h.encode('utf-8')
+                        if contents['stats'][ht]['unreachable'] != 0:
+                            unreachable_hosts.append(ht)
+                        elif contents['stats'][ht]['failures'] != 0:
+                            hosts_result.append("{}{}{}".format(
+                                RED, ht, RESET))
+                        else:
+                            hosts_result.append("{}{}{}".format(
+                                GREEN, ht, RESET))
+
+                    r.append(", ".join(host))
+                    r.append(", ".join(hosts_result))
+                    r.append("{}{}{}".format(RED,
+                                             ", ".join(unreachable_hosts),
+                                             RESET))
+                    r.append(time_elapsed)
+                    t.add_row(r)
+
+            t.sortby = "UUID"
+            for field in t.field_names:
+                if field == "Status":
+                    t.align['Status'] = "l"
+                else:
+                    t.align[field] = "l"
+
+            print(t)
+
+            if len(new_log_files) > len(results):
+                LOG.warn(_('Looks like we have more log files than '
+                           'executed validations'))
+
+            for i in new_log_files:
+                os.rename(
+                    "{}/{}".format(constants.VALIDATIONS_LOG_BASEDIR,
+                                   i), "{}/processed_{}".format(
+                                       constants.VALIDATIONS_LOG_BASEDIR, i))
 
         LOG.debug(_('Removing static tripleo ansible inventory file'))
         oooutils.cleanup_tripleo_ansible_inventory_file(
             static_inventory)
 
         if failed_val:
-            LOG.error(_('One or more validations have failed!'))
-            sys.exit(1)
-        sys.exit(0)
+            raise exceptions.CommandError(
+                _('One or more validations have failed!'))
 
     def take_action(self, parsed_args):
         self._run_validator_run(parsed_args)
+
+
+class TripleOValidatorShowRun(command.Command):
+    """Display details about a Validation execution"""
+
+    def get_parser(self, prog_name):
+        parser = argparse.ArgumentParser(
+            description=self.get_description(),
+            prog=prog_name,
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+            add_help=False
+        )
+
+        parser.add_argument('uuid',
+                            metavar="<uuid>",
+                            type=str,
+                            help='Validation UUID Run')
+
+        parser.add_argument('--full',
+                            action='store_true',
+                            help='Show Full Details for the run')
+
+        return parser
+
+    def take_action(self, parsed_args):
+        logfile_contents = oooutils.parse_all_validations_logs_on_disk(
+            uuid_run=parsed_args.uuid)
+
+        if len(logfile_contents) > 1:
+            raise exceptions.CommandError(
+                "Multiple log files found for UUID: %s" % parsed_args.uuid)
+
+        if logfile_contents:
+            if parsed_args.full:
+                print(oooutils.get_validations_json(logfile_contents[0]))
+            else:
+                for data in logfile_contents:
+                    for tasks in data['validation_output']:
+                        print(oooutils.get_validations_json(tasks))
+        else:
+            raise exceptions.CommandError(
+                "Could not find the log file linked to this UUID: %s" %
+                parsed_args.uuid)
+
+
+class TripleOValidatorShowHistory(command.Lister):
+    """Display Validations execution history"""
+
+    def get_parser(self, prog_name):
+        parser = super(TripleOValidatorShowHistory, self).get_parser(prog_name)
+
+        parser.add_argument('--validation',
+                            metavar="<validation>",
+                            type=str,
+                            help='Display execution history for a validation')
+
+        return parser
+
+    def take_action(self, parsed_args):
+        logfile_contents = oooutils.parse_all_validations_logs_on_disk(
+            validation_id=parsed_args.validation)
+
+        if not logfile_contents:
+            msg = "No History Found"
+            if parsed_args.validation:
+                raise exceptions.CommandError(
+                    "{} for {}.".format(
+                        msg, parsed_args.validation))
+            else:
+                raise exceptions.CommandError(
+                    "{}.".format(msg, parsed_args.validation))
+
+        return_values = []
+        column_name = ('UUID', 'Validations',
+                       'Status', 'Execution at',
+                       'Duration')
+
+        for run in logfile_contents:
+            status = PASSED_VALIDATION
+            if 'plays' in run and run.get('plays'):
+                date_time = \
+                    run['plays'][0]['play']['duration'].get('start').split('T')
+                time_elapsed = \
+                    run['plays'][0]['play']['duration'].get('time_elapsed')
+                date_start = date_time[0]
+                time_start = date_time[1].split('Z')[0]
+
+                for k, v in six.iteritems(run['stats']):
+                    if v.get('failures') != 0:
+                        status = FAILED_VALIDATION
+
+                return_values.append(
+                    (run['plays'][0]['play'].get('id'),
+                     run['plays'][0]['play'].get('validation_id'), status,
+                     "{} {}".format(date_start, time_start), time_elapsed))
+
+        return (column_name, return_values)

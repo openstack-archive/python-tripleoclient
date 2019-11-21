@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    The TripleO Validator CLI has now a new logging feature which keep every
+    validation execution log in the Undercloud (/var/log/validations/). The CLI
+    is able to display the history and allow the user to get the full execution
+    details.

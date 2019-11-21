@@ -2162,6 +2162,11 @@ def parse_all_validations_on_disk(path, groups=None):
     results = []
     validations_abspath = glob.glob("{path}/*.yaml".format(path=path))
 
+    if isinstance(groups, six.string_types):
+        group_list = []
+        group_list.append(groups)
+        groups = group_list
+
     for pl in validations_abspath:
         validation_id, _ext = os.path.splitext(os.path.basename(pl))
 
@@ -2239,6 +2244,40 @@ def get_validations_yaml(validations_data):
                           allow_unicode=True,
                           default_flow_style=False,
                           indent=2)
+
+
+def get_new_validations_logs_on_disk():
+    """Return a list of new log execution filenames """
+    files = []
+
+    for root, dirs, filenames in os.walk(constants.VALIDATIONS_LOG_BASEDIR):
+        files = [
+            f for f in filenames if not f.startswith('processed')
+            and os.path.splitext(f)[1] == '.json'
+        ]
+
+    return files
+
+
+def parse_all_validations_logs_on_disk(uuid_run=None, validation_id=None):
+    results = []
+    path = constants.VALIDATIONS_LOG_BASEDIR
+    logfile = "{}/*.json".format(path)
+
+    if validation_id:
+        logfile = "{}/*_{}_*.json".format(path, validation_id)
+
+    if uuid_run:
+        logfile = "{}/*_{}_*.json".format(path, uuid_run)
+
+    logfiles_path = glob.glob(logfile)
+
+    for logfile_path in logfiles_path:
+        with open(logfile_path, 'r') as log:
+            contents = json.load(log)
+        results.append(contents)
+
+    return results
 
 
 def indent(text):
