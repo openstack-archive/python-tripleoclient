@@ -23,6 +23,7 @@ from cliff.formatters import table
 from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
 from osc_lib import utils
+import six
 import yaml
 
 from tripleoclient import command
@@ -40,8 +41,16 @@ class DeleteNode(command.Command):
 
     def get_parser(self, prog_name):
         parser = super(DeleteNode, self).get_parser(prog_name)
-        parser.add_argument('nodes', metavar='<node>', nargs="+",
-                            help=_('Node ID(s) to delete'))
+        group = parser.add_mutually_exclusive_group(required=True)
+        group.add_argument('nodes', metavar='<node>', nargs="*",
+                           default=[],
+                           help=_('Node ID(s) to delete (otherwise specified '
+                                  'in the --baremetal-deployment file)'))
+        group.add_argument('-b', '--baremetal-deployment',
+                           metavar='<BAREMETAL DEPLOYMENT FILE>',
+                           help=_('Configuration file describing the '
+                                  'baremetal deployment'))
+
         parser.add_argument('--stack', dest='stack',
                             help=_('Name or ID of heat stack to scale '
                                    '(default=Env: OVERCLOUD_STACK_NAME)'),
@@ -79,10 +88,96 @@ class DeleteNode(command.Command):
                             action="store_true")
         return parser
 
+    def _nodes_to_delete(self, parsed_args, roles):
+        # expand for provisioned:False to get a list of nodes
+        # to delete
+        expanded = baremetal.expand_roles(
+            self.app.client_manager,
+            roles=roles,
+            stackname=parsed_args.stack,
+            provisioned=False)
+        nodes = expanded.get('instances', [])
+        if not nodes:
+            print('No nodes to unprovision')
+            return
+        TableArgs = collections.namedtuple(
+            'TableArgs', 'print_empty max_width fit_width')
+        args = TableArgs(print_empty=True, max_width=80, fit_width=True)
+        nodes_data = [(i.get('hostname', ''),
+                       i.get('name', '')) for i in nodes]
+
+        formatter = table.TableFormatter()
+        output = six.StringIO()
+        formatter.emit_list(
+            column_names=['hostname', 'name'],
+            data=nodes_data,
+            stdout=output,
+            parsed_args=args
+        )
+        return output.getvalue()
+
+    def _translate_nodes_to_resources(self, parsed_args, roles):
+        # build a dict of resource type names to role name
+        role_types = dict(
+            ('OS::TripleO::%sServer' % r['name'], r['name'])
+            for r in roles
+        )
+        expanded = baremetal.expand_roles(
+            self.app.client_manager,
+            roles=roles,
+            stackname=parsed_args.stack,
+            provisioned=True)
+
+        parameters = expanded.get(
+            'environment', {}).get('parameter_defaults', {})
+
+        # build a dict with the role and
+        # a list of indexes of nodes to delete for that role
+        removal_indexes = {}
+        for role in role_types.values():
+            removal_indexes.setdefault(role, [])
+            param = '%sRemovalPolicies' % role
+            policies = parameters.get(param, [])
+            if policies:
+                removal_indexes[role] = policies[0].get('resource_list', [])
+
+        nodes = []
+        clients = self.app.client_manager
+
+        # iterate every server resource and compare its index with
+        # the list of indexes to be deleted
+        resources = clients.orchestration.resources.list(
+            parsed_args.stack, nested_depth=5)
+        for res in resources:
+            if res.resource_type not in role_types:
+                continue
+            role = role_types[res.resource_type]
+            removal_list = removal_indexes.get(role, [])
+
+            index = int(res.parent_resource)
+            if index in removal_list:
+                node = res.physical_resource_id
+                nodes.append(node)
+        return nodes
+
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
         clients = self.app.client_manager
 
+        if parsed_args.baremetal_deployment:
+            with open(parsed_args.baremetal_deployment, 'r') as fp:
+                roles = yaml.safe_load(fp)
+
+            nodes_text = self._nodes_to_delete(parsed_args, roles)
+            if nodes_text:
+                nodes = self._translate_nodes_to_resources(
+                    parsed_args, roles)
+                print(nodes_text)
+            else:
+                return
+        else:
+            nodes = parsed_args.nodes
+            nodes_text = '\n'.join('- %s' % node for node in nodes)
         if not parsed_args.yes:
             confirm = oooutils.prompt_user_for_confirmation(
                 message=_("Are you sure you want to delete these overcloud "
@@ -99,16 +194,21 @@ class DeleteNode(command.Command):
             raise InvalidConfiguration("stack {} not found".format(
                 parsed_args.stack))
 
-        nodes = '\n'.join('- %s' % node for node in parsed_args.nodes)
         print("Deleting the following nodes from stack {stack}:\n{nodes}"
-              .format(stack=stack.stack_name, nodes=nodes))
+              .format(stack=stack.stack_name, nodes=nodes_text))
 
         scale.scale_down(
             clients,
             stack.stack_name,
-            parsed_args.nodes,
+            nodes,
             parsed_args.timeout
         )
+
+        if parsed_args.baremetal_deployment:
+            baremetal.undeploy_roles(
+                self.app.client_manager,
+                roles=roles,
+                plan=parsed_args.stack)
 
 
 class ProvideNode(command.Command):
