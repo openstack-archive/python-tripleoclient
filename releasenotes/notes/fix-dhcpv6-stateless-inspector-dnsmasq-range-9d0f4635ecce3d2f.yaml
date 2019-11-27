@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed an issue where the DHCP server for ironic-inspector was configured to
+    operate in DHCPv6-stateful mode when the undercloud configuration specified
+    DHCPv6-stateless mode. (See bug: `1853334
+    <https://bugs.launchpad.net/tripleo/+bug/1853334>`_)
+
