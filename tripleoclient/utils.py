@@ -1175,7 +1175,7 @@ def process_multiple_environments(created_env_files, tht_root,
     return env_files, localenv
 
 
-def run_update_ansible_action(log, clients, nodes, inventory,
+def run_update_ansible_action(log, clients, stack, nodes, inventory,
                               playbook, all_playbooks, ssh_user,
                               action=None, tags='', skip_tags='',
                               verbosity='1', extra_vars=None,
@@ -1187,7 +1187,7 @@ def run_update_ansible_action(log, clients, nodes, inventory,
     for book in playbooks:
         log.debug("Running ansible playbook %s " % book)
         if action:
-            action.update_ansible(clients, nodes=nodes,
+            action.update_ansible(clients, container=stack, nodes=nodes,
                                   inventory_file=inventory,
                                   playbook=book, node_user=ssh_user,
                                   tags=tags, skip_tags=skip_tags,

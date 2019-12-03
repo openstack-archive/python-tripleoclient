@@ -148,6 +148,7 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
             self.cmd.take_action(parsed_args)
             update_ansible.assert_called_once_with(
                 self.app.client_manager,
+                container='overcloud',
                 nodes='Compute',
                 inventory_file=mock_open().__enter__().read(),
                 playbook='fake-playbook.yaml',
@@ -180,6 +181,7 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
             for book in constants.MINOR_UPDATE_PLAYBOOKS:
                 update_ansible.assert_any_call(
                     self.app.client_manager,
+                    container='overcloud',
                     nodes='Compute',
                     inventory_file=mock_open().__enter__().read(),
                     playbook=book,
