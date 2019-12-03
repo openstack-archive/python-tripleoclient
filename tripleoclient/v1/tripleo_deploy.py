@@ -884,12 +884,14 @@ class Deploy(command.Command):
         if globalcfg:
             # unfortunately oslo messaging doesn't use the standard endpoint
             # configurations so we need to build out the node name vars and
-            # we want to grab it for the undercloud for use by a minion
+            # we want to grab it for the undercloud for use by a minion.
+            # The same is true for memcached as well.
             rolenet = utils.get_stack_output_item(stack, 'RoleNetIpMap')
             if 'Undercloud' in rolenet:
                 name = rolenet['Undercloud']['ctlplane']
                 globalcfg['oslo_messaging_rpc_node_names'] = [name]
                 globalcfg['oslo_messaging_notify_node_names'] = [name]
+                globalcfg['memcached_node_ips'] = [name]
             outputs['GlobalConfigExtraMapData'] = globalcfg
 
         self._create_working_dirs(stack_name.lower())
