@@ -163,6 +163,7 @@ class TestFFWDUpgradeRun(fakes.TestFFWDUpgradeRun):
             self.cmd.take_action(parsed_args)
             upgrade_ansible.assert_called_once_with(
                 self.app.client_manager,
+                container='overcloud',
                 inventory_file=mock_open().__enter__().read(),
                 nodes='',
                 playbook=constants.FFWD_UPGRADE_PLAYBOOK,
@@ -190,6 +191,7 @@ class TestFFWDUpgradeRun(fakes.TestFFWDUpgradeRun):
             self.cmd.take_action(parsed_args)
             upgrade_ansible.assert_called_once_with(
                 self.app.client_manager,
+                container='overcloud',
                 inventory_file=mock_open().__enter__().read(),
                 nodes='',
                 playbook=constants.FFWD_UPGRADE_PLAYBOOK,

@@ -183,6 +183,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
             self.cmd.take_action(parsed_args)
             upgrade_ansible.assert_called_once_with(
                 self.app.client_manager,
+                container='overcloud',
                 nodes='Compute, Controller',
                 inventory_file=mock_open().__enter__().read(),
                 playbook='fake-playbook.yaml',
@@ -217,6 +218,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
             for book in constants.MAJOR_UPGRADE_PLAYBOOKS:
                 upgrade_ansible.assert_any_call(
                     self.app.client_manager,
+                    container='overcloud',
                     nodes='Compute',
                     inventory_file=mock_open().__enter__().read(),
                     playbook=book,
@@ -251,6 +253,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
             for book in constants.MAJOR_UPGRADE_PLAYBOOKS:
                 upgrade_ansible.assert_any_call(
                     self.app.client_manager,
+                    container='overcloud',
                     nodes='Compute',
                     inventory_file=mock_open().__enter__().read(),
                     playbook=book,
@@ -283,6 +286,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
             self.cmd.take_action(parsed_args)
             upgrade_ansible.assert_called_once_with(
                 self.app.client_manager,
+                container='overcloud',
                 nodes='compute-0, compute-1',
                 inventory_file=mock_open().__enter__().read(),
                 playbook='fake-playbook.yaml',
@@ -315,6 +319,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
             for book in constants.MAJOR_UPGRADE_PLAYBOOKS:
                 upgrade_ansible.assert_any_call(
                     self.app.client_manager,
+                    container='overcloud',
                     nodes='swift-1',
                     inventory_file=mock_open().__enter__().read(),
                     playbook=book,
@@ -349,6 +354,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
             for book in constants.MAJOR_UPGRADE_PLAYBOOKS:
                 upgrade_ansible.assert_any_call(
                     self.app.client_manager,
+                    container='overcloud',
                     nodes='swift-1',
                     inventory_file=mock_open().__enter__().read(),
                     playbook=book,

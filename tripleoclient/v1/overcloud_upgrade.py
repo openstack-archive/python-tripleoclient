@@ -215,8 +215,8 @@ class UpgradeRun(command.Command):
         inventory = oooutils.get_tripleo_ansible_inventory(
             parsed_args.static_inventory, parsed_args.ssh_user, stack)
         skip_tags = self._validate_skip_tags(parsed_args.skip_tags)
-        oooutils.run_update_ansible_action(self.log, clients, limit_hosts,
-                                           inventory, playbook,
+        oooutils.run_update_ansible_action(self.log, clients, stack,
+                                           limit_hosts, inventory, playbook,
                                            constants.MAJOR_UPGRADE_PLAYBOOKS,
                                            parsed_args.ssh_user,
                                            (None if parsed_args.no_workflow

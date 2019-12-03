@@ -117,7 +117,7 @@ class ExternalUpdateRun(command.Command):
         extra_vars = oooutils.parse_extra_vars(parsed_args.extra_vars)
 
         oooutils.run_update_ansible_action(
-            self.log, clients, limit_hosts, inventory, playbook,
+            self.log, clients, stack, limit_hosts, inventory, playbook,
             constants.EXTERNAL_UPDATE_PLAYBOOKS, parsed_args.ssh_user,
             (None if parsed_args.no_workflow else package_update),
             tags=parsed_args.tags, skip_tags=parsed_args.skip_tags,
