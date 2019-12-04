@@ -34,6 +34,7 @@ class TestMinionDeploy(base.TestCase):
         # set timezone so we don't have to mock it everywhere
         self.conf.set_default('minion_timezone', 'UTC')
 
+    @mock.patch('tripleoclient.v1.minion_config._process_undercloud_passwords')
     @mock.patch('tripleoclient.v1.undercloud_preflight.minion_check')
     @mock.patch('tripleoclient.utils.ansible_symlink')
     @mock.patch('os.path.isdir', return_value=True)
@@ -46,7 +47,7 @@ class TestMinionDeploy(base.TestCase):
     def test_basic_deploy(self, mock_load_config, mock_get_user,
                           mock_write_env, mock_undercloud_output,
                           mock_images_config, mock_isdir, mock_ans_symlink,
-                          mock_check):
+                          mock_check, mock_pass):
         mock_get_user.return_value = 'foo'
         cmd = minion_config.prepare_minion_deploy()
         expected_cmd = ['sudo', '--preserve-env',
@@ -99,6 +100,7 @@ class TestMinionDeploy(base.TestCase):
            env_data, '/home/stack/tripleo-config-generated-env-files/'
            'minion_parameters.yaml', {})
 
+    @mock.patch('tripleoclient.v1.minion_config._process_undercloud_passwords')
     @mock.patch('tripleoclient.v1.undercloud_preflight.minion_check')
     @mock.patch('tripleoclient.utils.ansible_symlink')
     @mock.patch('os.path.exists', return_value=True)
@@ -111,7 +113,7 @@ class TestMinionDeploy(base.TestCase):
     def test_configured_deploy(self, mock_load_config,
                                mock_write_env, mock_undercloud_output,
                                mock_images_config, mock_isdir, mock_exists,
-                               mock_ans_symlink, mock_check):
+                               mock_ans_symlink, mock_check, mock_pass):
         self.conf.set_default('deployment_user', 'bar')
         self.conf.set_default('enable_heat_engine', False)
         self.conf.set_default('enable_ironic_conductor', True)
