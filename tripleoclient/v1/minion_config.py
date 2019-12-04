@@ -120,6 +120,16 @@ def _process_undercloud_output(templates_dir, output_file_path):
     return env_file
 
 
+def _process_undercloud_passwords(src_file, dest_file):
+    try:
+        shutil.copy(os.path.abspath(src_file), dest_file)
+    except Exception:
+        msg = _('Cannot copy undercloud password file %(src)s to '
+                '%(dest)s') % {'src': src_file, 'dest': dest_file}
+        LOG.error(msg)
+        raise exceptions.DeploymentError(msg)
+
+
 def prepare_minion_deploy(upgrade=False, no_validations=False,
                           verbose_level=1, yes=False,
                           force_stack_update=False, dry_run=False):
@@ -206,6 +216,11 @@ def prepare_minion_deploy(upgrade=False, no_validations=False,
             tempdir, CONF['minion_undercloud_output_file'])
     deploy_args += ['-e', output_file]
 
+    # copy undercloud password file (the configuration is minion_password_file
+    # to the place that triple deploy looks for it
+    # tripleo-<stack name>-passwords.yaml)
+    _process_undercloud_passwords(CONF['minion_password_file'],
+                                  'tripleo-minion-passwords.yaml')
     if upgrade:
         # TODO(aschultz): validate minion upgrade, should be the same as the
         # undercloud one.
