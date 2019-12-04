@@ -90,8 +90,9 @@ class UploadImage(command.Command):
         if parsed_args.cleanup not in image_uploader.CLEANUP:
             raise oscexc.CommandError('--cleanup must be one of: %s' %
                                       ', '.join(image_uploader.CLEANUP))
+        lock = processlock.ProcessLock()
         uploader = image_uploader.ImageUploadManager(
-            parsed_args.config_files, cleanup=parsed_args.cleanup)
+            parsed_args.config_files, cleanup=parsed_args.cleanup, lock=lock)
         try:
             uploader.upload()
         except KeyboardInterrupt:  # ctrl-c
@@ -515,7 +516,8 @@ class DiscoverImageTag(command.Command):
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
 
-        uploader = image_uploader.ImageUploadManager([])
+        lock = processlock.ProcessLock()
+        uploader = image_uploader.ImageUploadManager([], lock=lock)
         print(uploader.discover_image_tag(
             image=parsed_args.image,
             tag_from_label=parsed_args.tag_from_label

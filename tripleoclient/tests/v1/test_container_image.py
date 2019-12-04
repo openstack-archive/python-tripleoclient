@@ -49,11 +49,17 @@ class TestContainerImageUpload(TestPluginV1):
         # Get the command object to test
         self.cmd = container_image.UploadImage(self.app, None)
 
+    @mock.patch('tripleo_common.utils.locks.processlock.'
+                'ProcessLock')
     @mock.patch('sys.exit')
     @mock.patch('tripleo_common.image.image_uploader.ImageUploadManager')
-    def test_container_image_upload_noargs(self, mock_manager, exit_mock):
+    def test_container_image_upload_noargs(self, mock_manager, exit_mock,
+                                           mock_lock):
         arglist = []
         verifylist = []
+
+        mock_lockobj = mock.MagicMock()
+        mock_lock.return_value = mock_lockobj
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
@@ -61,8 +67,10 @@ class TestContainerImageUpload(TestPluginV1):
         # argparse will complain that --config-file is missing and exit with 2
         exit_mock.assert_called_with(2)
 
+    @mock.patch('tripleo_common.utils.locks.processlock.'
+                'ProcessLock')
     @mock.patch('tripleo_common.image.image_uploader.ImageUploadManager')
-    def test_container_image_upload_conf_files(self, mock_manager):
+    def test_container_image_upload_conf_files(self, mock_manager, mock_lock):
         arglist = [
             '--config-file',
             '/tmp/foo.yaml',
@@ -71,12 +79,16 @@ class TestContainerImageUpload(TestPluginV1):
         ]
         verifylist = []
 
+        mock_lockobj = mock.MagicMock()
+        mock_lock.return_value = mock_lockobj
+
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.cmd.take_action(parsed_args)
 
         mock_manager.assert_called_once_with(
-            ['/tmp/foo.yaml', '/tmp/bar.yaml'], cleanup='full')
+            ['/tmp/foo.yaml', '/tmp/bar.yaml'], cleanup='full',
+            lock=mock_lockobj)
         mock_manager.return_value.upload.assert_called_once_with()
 
 
