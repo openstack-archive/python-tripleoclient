@@ -112,9 +112,10 @@ class HeatBaseLauncher(object):
 
     # The init function will need permission to touch these files
     # and chown them accordingly for the heat user
-    def __init__(self, api_port, container_image, user='heat'):
+    def __init__(self, api_port, container_image, user='heat',
+                 heat_dir='/var/log/heat-launcher'):
         self.api_port = api_port
-        heatdir = '/var/log/heat-launcher'
+        heatdir = heat_dir
 
         if os.path.isdir(heatdir):
             # This one may fail but it's just cleanup.
@@ -234,9 +235,10 @@ limit_iterators=9000
 
 class HeatContainerLauncher(HeatBaseLauncher):
 
-    def __init__(self, api_port, container_image, user='heat'):
+    def __init__(self, api_port, container_image, user='heat',
+                 heat_dir='/var/log/heat-launcher'):
         super(HeatContainerLauncher, self).__init__(api_port, container_image,
-                                                    user)
+                                                    user, heat_dir)
 
     def launch_heat(self):
         cmd = [
@@ -313,9 +315,10 @@ class HeatContainerLauncher(HeatBaseLauncher):
 
 class HeatNativeLauncher(HeatBaseLauncher):
 
-    def __init__(self, api_port, container_image, user='heat'):
+    def __init__(self, api_port, container_image, user='heat',
+                 heat_dir='/var/log/heat-launcher'):
         super(HeatNativeLauncher, self).__init__(api_port, container_image,
-                                                 user)
+                                                 user, heat_dir)
 
     def launch_heat(self):
         os.execvp('heat-all', ['heat-all', '--config-file', self.config_file])
