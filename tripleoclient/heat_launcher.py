@@ -212,7 +212,7 @@ connection = sqlite:///%(sqlite_db)s.db
 
 [paste_deploy]
 flavor = noauth
-api_paste_config = /usr/share/heat/api-paste-dist.ini
+api_paste_config = api-paste.ini
 
 [oslo_policy]
 policy_file = %(policy_file)s
@@ -225,6 +225,25 @@ limit_iterators=9000
                'token_file': token_file}
         with open(config_file, 'w') as temp_file:
             temp_file.write(heat_config)
+
+        heat_api_paste_config = '''
+[pipeline:heat-api-noauth]
+pipeline = noauth context versionnegotiation apiv1app
+[app:apiv1app]
+paste.app_factory = heat.common.wsgi:app_factory
+heat.app_factory = heat.api.openstack.v1:API
+[filter:noauth]
+paste.filter_factory = heat.common.noauth:filter_factory
+[filter:context]
+paste.filter_factory = heat.common.context:ContextMiddleware_filter_factory
+[filter:versionnegotiation]
+paste.filter_factory = heat.common.wsgi:filter_factory
+heat.filter_factory = heat.api.openstack:version_negotiation_filter
+'''
+        paste_file = os.path.join(
+                        os.path.dirname(config_file), 'api-paste.ini')
+        with open(paste_file, 'w') as temp_file:
+            temp_file.write(heat_api_paste_config)
 
     def _write_fake_keystone_token(self, heat_api_port, config_file):
         ks_token = json.dumps(FAKE_TOKEN_RESPONSE) % {'heat_port':
