@@ -347,10 +347,10 @@ class HeatNativeLauncher(HeatBaseLauncher):
                                self.config_file, 'db_sync'])
 
     def get_heat_uid(self):
-        return pwd.getpwnam('heat').pw_uid
+        return pwd.getpwnam(self.user).pw_uid
 
     def get_heat_gid(self):
-        return grp.getgrnam('heat').gr_gid
+        return grp.getgrnam(self.user).gr_gid
 
     def kill_heat(self, pid):
         os.kill(pid, signal.SIGKILL)
