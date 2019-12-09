@@ -374,7 +374,7 @@ def wait_for_stack_ready(orchestration_client, stack_name, marker=None,
             print(msg)
             return stack_status == '%s_COMPLETE' % action
         except hc_exc.HTTPException as e:
-            if e.code in [503, 504]:
+            if e.code in [500, 503, 504]:
                 retries += 1
                 log.warning("Server issue while waiting for stack to be ready."
                             " Attempting retry {} of {}".format(retries,

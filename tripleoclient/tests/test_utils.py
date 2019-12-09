@@ -324,7 +324,7 @@ class TestWaitForStackUtil(TestCase):
         mock_get_stack.return_value = stack
         mock_poll.side_effect = hc_exc.HTTPException(code=500)
 
-        self.assertRaises(hc_exc.HTTPException,
+        self.assertRaises(RuntimeError,
                           utils.wait_for_stack_ready,
                           self.mock_orchestration, 'stack')
 
