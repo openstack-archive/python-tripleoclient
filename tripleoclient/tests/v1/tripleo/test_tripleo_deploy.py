@@ -860,9 +860,9 @@ class TestDeployUndercloud(TestPluginV1):
         )
 
     @mock.patch.object(
-        ansible_runner.runner_config.RunnerConfig,
-        'prepare',
-        return_value=fakes.fake_ansible_runner_run_return()
+        ansible_runner.runner_config,
+        'RunnerConfig',
+        return_value=fakes.FakeRunnerConfig()
     )
     @mock.patch.object(
         ansible_runner.Runner,
