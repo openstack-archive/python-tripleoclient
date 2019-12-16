@@ -46,6 +46,7 @@
         - tripleo-ci-centos-7-scenario012-standalone:
             dependencies: *deps_unit_lint
         - tripleo-ci-centos-7-containerized-undercloud-upgrades:
+            voting: true
             dependencies: *deps_unit_lint
         - tripleo-ci-centos-7-containers-undercloud-minion:
             dependencies: *deps_unit_lint
@@ -58,3 +59,5 @@
       queue: tripleo
       jobs:
         - openstack-tox-pep8
+        - tripleo-ci-centos-7-containerized-undercloud-upgrades:
+            voting: true
