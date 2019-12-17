@@ -20,6 +20,7 @@ import logging
 import os
 import os.path
 from prettytable import PrettyTable
+from pwd import getpwuid
 import re
 import shutil
 import six
@@ -33,14 +34,6 @@ from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
 from swiftclient.exceptions import ClientException
 from tripleo_common import update
-
-# FIXME(chkumar246): Once https://review.opendev.org/664568 gets merged
-# and new version of tripleo-common gots released, It requires a version
-# bump in requirements.txt.
-try:
-    from tripleo_common.utils import clouds_yaml
-except ImportError:
-    from tripleoclient.v1 import mock_clouds_yaml as clouds_yaml
 
 from tripleoclient import command
 from tripleoclient import constants
@@ -1012,18 +1005,9 @@ class DeployOvercloud(command.Command):
             self.clients, container=stack.stack_name,
             no_proxy=parsed_args.no_proxy)
 
-        # Create overcloud clouds.yaml
-        cloud_data = deployment.create_cloudsyaml(
-            self.clients, container=stack.stack_name)
-        cloud_yaml_dir = os.path.join(constants.CLOUD_HOME_DIR,
-                                      constants.CLOUDS_YAML_DIR)
-        cloud_user_id = os.stat(constants.CLOUD_HOME_DIR).st_uid
-        cloud_group_id = os.stat(constants.CLOUD_HOME_DIR).st_gid
-        clouds_yaml.create_clouds_yaml(
-            cloud=cloud_data,
-            cloud_yaml_dir=cloud_yaml_dir,
-            user_id=cloud_user_id,
-            group_id=cloud_group_id)
+        # Copy clouds.yaml to the cloud user directory
+        user = getpwuid(os.stat(constants.CLOUD_HOME_DIR).st_uid).pw_name
+        utils.copy_clouds_yaml(user)
         rcpath = utils.write_overcloudrc(stack.stack_name, overcloudrcs)
         utils.create_tempest_deployer_input()
 
