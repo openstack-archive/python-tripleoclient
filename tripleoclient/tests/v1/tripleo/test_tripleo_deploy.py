@@ -872,6 +872,7 @@ class TestDeployUndercloud(TestPluginV1):
     @mock.patch('os.path.exists')
     @mock.patch('os.chdir')
     @mock.patch('tripleoclient.utils.reset_cmdline')
+    @mock.patch('tripleoclient.utils.copy_clouds_yaml')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_download_stack_outputs')
     @mock.patch('tripleo_common.actions.ansible.'
@@ -919,8 +920,8 @@ class TestDeployUndercloud(TestPluginV1):
                                     mock_cleanupdirs, mock_tarball,
                                     mock_templates_dir, mock_open, mock_os,
                                     mock_user, mock_cc, mock_chmod, mock_ac,
-                                    mock_outputs, mock_cmdline, mock_chdir,
-                                    mock_file_exists, mock_run,
+                                    mock_outputs, mock_copy, mock_cmdline,
+                                    mock_chdir, mock_file_exists, mock_run,
                                     mock_run_prepare):
         parsed_args = self.check_parser(self.cmd,
                                         ['--local-ip', '127.0.0.1',
@@ -955,7 +956,8 @@ class TestDeployUndercloud(TestPluginV1):
         self.assertEqual(mock_killheat.call_count, 2)
 
     @mock.patch('tripleoclient.utils.reset_cmdline')
-    def test_take_action(self, mock_cmdline):
+    @mock.patch('tripleoclient.utils.copy_clouds_yaml')
+    def test_take_action(self, mock_copy, mock_cmdline):
         parsed_args = self.check_parser(self.cmd,
                                         ['--local-ip', '127.0.0.1',
                                          '--templates', '/tmp/thtroot',
@@ -963,11 +965,13 @@ class TestDeployUndercloud(TestPluginV1):
                                          '--output-dir', '/my'], [])
         self.assertRaises(exceptions.DeploymentError,
                           self.cmd.take_action, parsed_args)
+        mock_copy.assert_called_once()
 
     @mock.patch('tripleoclient.utils.reset_cmdline')
+    @mock.patch('tripleoclient.utils.copy_clouds_yaml')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy._standalone_deploy',
                 return_value=1)
-    def test_take_action_failure(self, mock_deploy, mock_cmdline):
+    def test_take_action_failure(self, mock_deploy, mock_copy, mock_cmdline):
         parsed_args = self.check_parser(self.cmd,
                                         ['--local-ip', '127.0.0.1',
                                          '--templates', '/tmp/thtroot',
@@ -976,6 +980,7 @@ class TestDeployUndercloud(TestPluginV1):
                                          '--standalone'], [])
         self.assertRaises(exceptions.DeploymentError,
                           self.cmd.take_action, parsed_args)
+        mock_copy.assert_called_once()
 
     @mock.patch('os.path.isfile', return_value=False)
     def test_set_stack_action_default_create(self, mock_isfile):

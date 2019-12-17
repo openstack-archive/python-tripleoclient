@@ -2224,3 +2224,53 @@ def safe_write(path, data):
                 'The output file {file} can not be created. Error: {msg}'
             ).format(file=path, msg=str(error))
             raise oscexc.CommandError(msg)
+
+
+def copy_clouds_yaml(user):
+    """Copy clouds.yaml file from /etc/openstack to deployment user's home
+
+    :param user: deployment user
+    """
+    clouds_etc_file = '/etc/openstack/clouds.yaml'
+    clouds_home_dir = os.path.join('/home', user)
+    clouds_config_dir = os.path.join(clouds_home_dir, '.config/openstack')
+    clouds_config_file = os.path.join(clouds_config_dir, 'clouds.yaml')
+    clouds_user_id = os.stat(clouds_home_dir).st_uid
+    clouds_group_id = os.stat(clouds_home_dir).st_gid
+
+    # If the file doesn't exist (e.g. on a minion node), we don't need to copy
+    # /etc/openstack/clouds.yaml to the user directory.
+    if not os.path.isfile(clouds_etc_file):
+        return
+
+    if not os.path.exists(clouds_config_dir):
+        try:
+            os.makedirs(clouds_config_dir)
+        except OSError as e:
+            messages = _("Unable to create credentials directory: "
+                         "{0}, {1}").format(clouds_config_dir, e)
+            raise OSError(messages)
+
+    # Using 'sudo' here as for the overcloud the deployment command is run
+    # from regular deployment user.
+    cp_args = ['sudo', 'cp', clouds_etc_file, clouds_config_dir]
+    if run_command_and_log(LOG, cp_args) != 0:
+        msg = _('Error when user %(user)s tried to copy %(src)s to %(dest)s'
+                ' with sudo') % {'user': user, 'src': clouds_etc_file,
+                                 'dest': clouds_config_dir}
+        LOG.error(msg)
+        raise exceptions.DeploymentError(msg)
+    chmod_args = ['sudo', 'chmod', '0600', clouds_config_file]
+    if run_command_and_log(LOG, chmod_args) != 0:
+        msg = _('Error when user %(user)s tried to chmod %(file)s file'
+                ' with sudo') % {'user': user, 'file': clouds_config_file}
+        LOG.error(msg)
+        raise exceptions.DeploymentError(msg)
+    chown_args = ['sudo', 'chown', '-R',
+                  str(clouds_user_id) + ':' + str(clouds_group_id),
+                  clouds_config_dir]
+    if run_command_and_log(LOG, chown_args) != 0:
+        msg = _('Error when user %(user)s tried to chown %(dir)s directory'
+                ' with sudo') % {'user': user, 'dir': clouds_config_dir}
+        LOG.error(msg)
+        raise exceptions.DeploymentError(msg)
