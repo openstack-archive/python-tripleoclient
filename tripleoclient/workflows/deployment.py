@@ -135,28 +135,6 @@ def create_overcloudrc(clients, **workflow_input):
                         payload.get('message')))
 
 
-def create_cloudsyaml(clients, **workflow_input):
-    workflow_client = clients.workflow_engine
-    tripleoclients = clients.tripleoclient
-
-    with tripleoclients.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client,
-            'tripleo.deployment.v1.createcloudsyaml',
-            workflow_input=workflow_input
-        )
-
-        for payload in base.wait_for_messages(workflow_client, ws, execution):
-            # the workflow will return the overcloud cloud yaml data, an error
-            # message or blank.
-            if payload.get('status') == 'SUCCESS':
-                return payload.get('message')
-            else:
-                raise exceptions.WorkflowServiceError(
-                    'Exception creating overcloud clouds.yaml file: {}'.format(
-                        payload.get('message')))
-
-
 def get_overcloud_hosts(stack, ssh_network):
     ips = []
     role_net_ip_map = utils.get_role_net_ip_map(stack)
