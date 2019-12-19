@@ -49,6 +49,26 @@ class TestPlugin(base.TestCase):
         self.assertEqual(clientmgr.get_endpoint_for_service_type.call_count, 2)
         ws_create_connection.assert_called_with("ws://0.0.0.0")
 
+    @mock.patch("websocket.create_connection")
+    def test_invalid_json(self, ws_create_connection):
+        clientmgr = mock.MagicMock()
+        clientmgr.get_endpoint_for_service_type.return_value = fakes.WS_URL
+
+        clientmgr.auth.get_token.return_value = "TOKEN"
+        clientmgr.auth_ref.project_id = "ID"
+        clientmgr.cacert = None
+        ws_create_connection.return_value.recv.return_value = "BAD JSON"
+        client = plugin.make_client(clientmgr)
+
+        # NOTE(d0ugal): Manually catching errors rather than using assertRaises
+        #               so we can assert the message.
+        try:
+            client.messaging_websocket()
+            self.assertFail()
+        except ValueError as e:
+            self.assertEqual(
+                str(e), "No JSON object could be decoded; 'BAD JSON'")
+
     @mock.patch.object(plugin.WebsocketClient, "recv")
     @mock.patch("websocket.create_connection")
     def test_handle_websocket_multiple(self, ws_create_connection, recv_mock):
