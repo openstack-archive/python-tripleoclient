@@ -171,7 +171,7 @@ class FFWDUpgradeRun(command.Command):
         # Don't expost limit_hosts. We need this on the whole overcloud.
         limit_hosts = ''
         oooutils.run_update_ansible_action(
-            self.log, clients, limit_hosts, inventory,
+            self.log, clients, parsed_args.stack, limit_hosts, inventory,
             constants.FFWD_UPGRADE_PLAYBOOK, [], parsed_args.ssh_user,
             (None if parsed_args.no_workflow else package_update),
             verbosity=verbosity, workdir=ansible_dir, priv_key=key)

@@ -55,6 +55,7 @@ class TestOvercloudExternalUpgradeRun(fakes.TestOvercloudExternalUpgradeRun):
             self.cmd.take_action(parsed_args)
             update_ansible.assert_called_once_with(
                 self.app.client_manager,
+                container='overcloud',
                 nodes='all',
                 inventory_file=mock_open().__enter__().read(),
                 playbook='external_upgrade_steps_playbook.yaml',
@@ -87,6 +88,7 @@ class TestOvercloudExternalUpgradeRun(fakes.TestOvercloudExternalUpgradeRun):
             self.cmd.take_action(parsed_args)
             update_ansible.assert_called_once_with(
                 self.app.client_manager,
+                container='overcloud',
                 nodes='all',
                 inventory_file=mock_open().__enter__().read(),
                 playbook='external_upgrade_steps_playbook.yaml',

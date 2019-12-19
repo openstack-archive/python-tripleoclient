@@ -160,8 +160,8 @@ class UpdateRun(command.Command):
         playbook = parsed_args.playbook
         inventory = oooutils.get_tripleo_ansible_inventory(
             parsed_args.static_inventory, parsed_args.ssh_user, stack)
-        oooutils.run_update_ansible_action(self.log, clients, limit_hosts,
-                                           inventory, playbook,
+        oooutils.run_update_ansible_action(self.log, clients, stack,
+                                           limit_hosts, inventory, playbook,
                                            constants.MINOR_UPDATE_PLAYBOOKS,
                                            parsed_args.ssh_user,
                                            (None if parsed_args.no_workflow
