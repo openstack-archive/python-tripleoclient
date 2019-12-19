@@ -128,7 +128,12 @@ class WebsocketClient(object):
         return data
 
     def recv(self):
-        return json.loads(self._ws.recv())
+        content = self._ws.recv()
+        try:
+            return json.loads(content)
+        except ValueError:
+            raise ValueError(
+                "No JSON object could be decoded; {0!r}".format(content))
 
     def wait_for_messages(self, timeout=None):
         """Wait for messages on a Zaqar queue
