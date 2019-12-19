@@ -194,45 +194,49 @@ class BuildImage(command.Command):
                 tmp.write('list_dependencies=true')
         kolla_config_files = list(parsed_args.kolla_config_files)
         kolla_config_files.append(path)
-        kolla_tmp_dir = None
-        if parsed_args.use_buildah:
-            # A temporary directory is needed to let Kolla generates the
-            # Dockerfiles that will be used by Buildah to build the images.
-            kolla_tmp_dir = tempfile.mkdtemp(prefix='kolla-')
+        with utils.TempDirs(dir_prefix='kolla-') as kolla_tmp_dir:
+            try:
+                builder = kolla_builder.KollaImageBuilder(
+                    parsed_args.config_files
+                )
+                result = builder.build_images(kolla_config_files,
+                                              parsed_args.excludes,
+                                              parsed_args.use_buildah,
+                                              kolla_tmp_dir)
 
-        try:
-            builder = kolla_builder.KollaImageBuilder(parsed_args.config_files)
-            result = builder.build_images(kolla_config_files,
-                                          parsed_args.excludes,
-                                          parsed_args.use_buildah,
-                                          kolla_tmp_dir)
-
-            if parsed_args.use_buildah:
-                deps = json.loads(result)
-                kolla_cfg = utils.get_read_config(kolla_config_files)
-                bb = buildah.BuildahBuilder(
-                    kolla_tmp_dir, deps,
-                    utils.get_from_cfg(kolla_cfg, "base"),
-                    utils.get_from_cfg(kolla_cfg, "type"),
-                    utils.get_from_cfg(kolla_cfg, "tag"),
-                    utils.get_from_cfg(kolla_cfg, "namespace"),
-                    utils.get_from_cfg(kolla_cfg, "registry"),
-                    utils.getboolean_from_cfg(kolla_cfg, "push"))
-                bb.build_all()
-            elif parsed_args.list_dependencies:
-                deps = json.loads(result)
-                yaml.safe_dump(deps, self.app.stdout, indent=2,
-                               default_flow_style=False)
-            elif parsed_args.list_images:
-                deps = json.loads(result)
-                images = []
-                BuildImage.images_from_deps(images, deps)
-                yaml.safe_dump(images, self.app.stdout,
-                               default_flow_style=False)
-            elif result:
-                self.app.stdout.write(result)
-        finally:
-            os.remove(path)
+                if parsed_args.use_buildah:
+                    deps = json.loads(result)
+                    kolla_cfg = utils.get_read_config(kolla_config_files)
+                    bb = buildah.BuildahBuilder(
+                        kolla_tmp_dir, deps,
+                        utils.get_from_cfg(kolla_cfg, "base"),
+                        utils.get_from_cfg(kolla_cfg, "type"),
+                        utils.get_from_cfg(kolla_cfg, "tag"),
+                        utils.get_from_cfg(kolla_cfg, "namespace"),
+                        utils.get_from_cfg(kolla_cfg, "registry"),
+                        utils.getboolean_from_cfg(kolla_cfg, "push"))
+                    bb.build_all()
+                elif parsed_args.list_dependencies:
+                    deps = json.loads(result)
+                    yaml.safe_dump(
+                        deps,
+                        self.app.stdout,
+                        indent=2,
+                        default_flow_style=False
+                    )
+                elif parsed_args.list_images:
+                    deps = json.loads(result)
+                    images = []
+                    BuildImage.images_from_deps(images, deps)
+                    yaml.safe_dump(
+                        images,
+                        self.app.stdout,
+                        default_flow_style=False
+                    )
+                elif result:
+                    self.app.stdout.write(result)
+            finally:
+                os.remove(path)
 
 
 class PrepareImageFiles(command.Command):

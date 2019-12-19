@@ -14,10 +14,8 @@ from __future__ import print_function
 import copy
 import os
 import pprint
-import shutil
 import socket
 import subprocess
-import tempfile
 import time
 
 from heatclient.common import event_utils
@@ -219,7 +217,7 @@ def get_hosts_and_enable_ssh_admin(log, clients, stack, overcloud_ssh_network,
                           "Check if the user/ip are corrects.\n".format(hosts))
             else:
                 log.error("Unknown error. "
-                          "Original message is:\n{}".format(hosts, e.message))
+                          "Original message is:\n{} {}".format(hosts, e))
 
     else:
         raise exceptions.DeploymentError("Cannot find any hosts on '{}'"
@@ -239,12 +237,11 @@ def enable_ssh_admin(log, clients, plan_name, hosts, ssh_user, ssh_key):
                    "-o StrictHostKeyChecking=no "
                    "-o PasswordAuthentication=no "
                    "-o UserKnownHostsFile=/dev/null")
-    tmp_key_dir = tempfile.mkdtemp()
-    tmp_key_private = os.path.join(tmp_key_dir, 'id_rsa')
-    tmp_key_public = os.path.join(tmp_key_dir, 'id_rsa.pub')
-    tmp_key_comment = "TripleO split stack short term key"
 
-    try:
+    with utils.TempDirs() as tmp_key_dir:
+        tmp_key_private = os.path.join(tmp_key_dir, 'id_rsa')
+        tmp_key_public = os.path.join(tmp_key_dir, 'id_rsa.pub')
+        tmp_key_comment = "TripleO split stack short term key"
         tmp_key_command = ["ssh-keygen", "-N", "", "-t", "rsa", "-b", "4096",
                            "-f", tmp_key_private, "-C", tmp_key_comment]
         DEVNULL = open(os.devnull, 'w')
@@ -324,9 +321,6 @@ def enable_ssh_admin(log, clients, plan_name, hosts, ssh_user, ssh_key):
                  tmp_key_comment]
             print("Removing TripleO short term key from %s" % host)
             subprocess.check_call(rm_tmp_key_command, stderr=subprocess.STDOUT)
-    finally:
-        print("Removing short term keys locally")
-        shutil.rmtree(tmp_key_dir)
 
     print("Enabling ssh admin - COMPLETE.")
 

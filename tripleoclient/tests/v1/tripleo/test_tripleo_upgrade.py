@@ -14,7 +14,6 @@
 #
 
 import mock
-import sys
 
 from osc_lib.tests import utils
 import six
@@ -31,48 +30,8 @@ class TestUpgrade(utils.TestCommand):
 
         # Get the command object to test
         self.cmd = tripleo_upgrade.Upgrade(self.app, None)
-
-        python_version = sys.version_info[0]
-        self.ansible_playbook_cmd = "ansible-playbook-%s" % (python_version)
-
-    @mock.patch('tripleoclient.utils.'
-                'run_command_and_log', autospec=True)
-    @mock.patch('os.chdir')
-    @mock.patch('os.execvp')
-    def test_launch_ansible_upgrade(self, mock_execvp, mock_chdir, mock_run):
-
-        self.cmd._launch_ansible('/tmp', operation='upgrade')
-        mock_chdir.assert_called_once()
-        mock_run.assert_called_once_with(self.cmd.log, [
-            self.ansible_playbook_cmd, '-i', '/tmp/inventory.yaml',
-            'upgrade_steps_playbook.yaml',
-            '--skip-tags', 'validation'])
-
-    @mock.patch('tripleoclient.utils.'
-                'run_command_and_log', autospec=True)
-    @mock.patch('os.chdir')
-    @mock.patch('os.execvp')
-    def test_launch_ansible_post_upgrade(self, mock_execvp, mock_chdir,
-                                         mock_run):
-        self.cmd._launch_ansible('/tmp', operation='post-upgrade')
-        mock_chdir.assert_called_once()
-        mock_run.assert_called_once_with(self.cmd.log, [
-            self.ansible_playbook_cmd, '-i', '/tmp/inventory.yaml',
-            'post_upgrade_steps_playbook.yaml',
-            '--skip-tags', 'validation'])
-
-    @mock.patch('tripleoclient.utils.'
-                'run_command_and_log', autospec=True)
-    @mock.patch('os.chdir')
-    @mock.patch('os.execvp')
-    def test_launch_ansible_online_upgrade(self, mock_execvp, mock_chdir,
-                                           mock_run):
-        self.cmd._launch_ansible('/tmp', operation='online-upgrade')
-        mock_chdir.assert_called_once()
-        mock_run.assert_called_once_with(self.cmd.log, [
-            self.ansible_playbook_cmd, '-i', '/tmp/inventory.yaml',
-            'external_upgrade_steps_playbook.yaml',
-            '--tags', 'online_upgrade'])
+        self.cmd.ansible_dir = '/tmp'
+        self.ansible_playbook_cmd = "ansible-playbook"
 
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.take_action',
                 autospec=True)
@@ -127,9 +86,7 @@ class TestUpgrade(utils.TestCommand):
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy',
                 autospec=True)
     @mock.patch('sys.stdin', spec=six.StringIO)
-    @mock.patch('tripleoclient.utils.ansible_symlink')
-    def test_take_action_prompt_no(self, mock_slink, mock_stdin, mock_deploy):
-        mock_slink.side_effect = 'fake-cmd'
+    def test_take_action_prompt_no(self, mock_stdin, mock_deploy):
         mock_stdin.isatty.return_value = True
         mock_stdin.readline.return_value = 'n'
         parsed_args = self.check_parser(self.cmd,
@@ -153,10 +110,7 @@ class TestUpgrade(utils.TestCommand):
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy',
                 autospec=True)
     @mock.patch('sys.stdin', spec=six.StringIO)
-    @mock.patch('tripleoclient.utils.ansible_symlink')
-    def test_take_action_prompt_invalid_option(self, mock_slink, mock_stdin,
-                                               mock_deploy):
-        mock_slink.side_effect = 'fake-cmd'
+    def test_take_action_prompt_invalid_option(self, mock_stdin, mock_deploy):
         mock_stdin.isatty.return_value = True
         mock_stdin.readline.return_value = 'Dontwant'
         parsed_args = self.check_parser(self.cmd,

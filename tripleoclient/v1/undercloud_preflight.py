@@ -84,19 +84,19 @@ def _check_diskspace(upgrade=False):
     Second one checks minimal disk space for an upgrade.
     """
     if upgrade:
-        playbook = 'undercloud-disk-space-pre-upgrade.yaml'
+        playbook_args = constants.DEPLOY_ANSIBLE_ACTIONS['preflight-upgrade']
     else:
-        playbook = 'undercloud-disk-space.yaml'
+        playbook_args = constants.DEPLOY_ANSIBLE_ACTIONS['preflight-deploy']
 
-    python_interpreter = "/usr/bin/python{}".format(sys.version_info[0])
-    utils.run_ansible_playbook(logger=LOG,
-                               workdir=constants.ANSIBLE_VALIDATION_DIR,
-                               playbook=playbook,
-                               inventory='undercloud,',
-                               retries=False,
-                               connection='local',
-                               output_callback='validation_output',
-                               python_interpreter=python_interpreter)
+    with utils.TempDirs() as tmp:
+        utils.run_ansible_playbook(
+            workdir=tmp,
+            inventory='undercloud,',
+            connection='local',
+            output_callback='validation_output',
+            playbook_dir=constants.ANSIBLE_VALIDATION_DIR,
+            **playbook_args
+        )
 
 
 def _check_memory():

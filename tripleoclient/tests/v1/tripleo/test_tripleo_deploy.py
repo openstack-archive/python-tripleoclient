@@ -24,10 +24,14 @@ from heatclient import exc as hc_exc
 from tripleo_common.image import kolla_builder
 
 from tripleoclient import exceptions
+from tripleoclient.tests import fakes
 from tripleoclient.tests.v1.test_plugin import TestPluginV1
 
 # Load the plugin init module for the plugin list and show commands
 from tripleoclient.v1 import tripleo_deploy
+
+import ansible_runner
+
 
 # TODO(sbaker) Remove after a tripleo-common release contains this new function
 if not hasattr(kolla_builder, 'container_images_prepare_multi'):
@@ -47,6 +51,7 @@ class TestDeployUndercloud(TestPluginV1):
 
         # Get the command object to test
         self.cmd = tripleo_deploy.Deploy(self.app, None)
+        self.cmd.ansible_dir = '/tmp'
 
         tripleo_deploy.Deploy.heat_pid = mock.MagicMock(
             return_value=False)
@@ -59,8 +64,7 @@ class TestDeployUndercloud(TestPluginV1):
         self.orc.stacks.create = mock.MagicMock(
             return_value={'stack': {'id': 'foo'}})
 
-        python_version = sys.version_info[0]
-        self.ansible_playbook_cmd = "ansible-playbook-%s" % (python_version)
+        self.ansible_playbook_cmd = "ansible-playbook"
 
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy._is_undercloud_deploy')
     @mock.patch('tripleoclient.utils.check_hostname')
@@ -833,37 +837,6 @@ class TestDeployUndercloud(TestPluginV1):
         mock_inventory.write_static_inventory.assert_called_once_with(
             fake_output_dir + '/inventory.yaml', extra_vars)
 
-    @mock.patch('tripleoclient.utils.'
-                'run_command_and_log', autospec=True)
-    @mock.patch('os.chdir')
-    @mock.patch('os.execvp')
-    def test_launch_ansible_deploy(self, mock_execvp, mock_chdir, mock_run):
-
-        self.cmd._launch_ansible('/tmp')
-        mock_chdir.assert_called_once()
-        mock_run.assert_called_once_with(self.cmd.log, [
-            self.ansible_playbook_cmd, '-i', '/tmp/inventory.yaml',
-            'deploy_steps_playbook.yaml'])
-
-    @mock.patch('tripleoclient.utils.'
-                'run_command_and_log', autospec=True)
-    @mock.patch('os.chdir')
-    @mock.patch('os.execvp')
-    def test_launch_ansible_with_args(self, mock_execvp, mock_chdir, mock_run):
-
-        args = ['--skip-tags', 'validation']
-        self.cmd._launch_ansible('/tmp', args, operation='deploy')
-        mock_chdir.assert_called_once()
-        mock_run.assert_called_once_with(self.cmd.log, [
-            self.ansible_playbook_cmd, '-i', '/tmp/inventory.yaml',
-            'deploy_steps_playbook.yaml', '--skip-tags', 'validation'])
-
-    @mock.patch('os.execvp')
-    def test_launch_ansible_invalid_op(self, mock_execvp):
-
-        self.assertRaises(exceptions.DeploymentError, self.cmd._launch_ansible,
-                          '/tmp', operation='unploy')
-
     @mock.patch('tripleo_common.image.kolla_builder.'
                 'container_images_prepare_multi')
     def test_prepare_container_images(self, mock_cipm):
@@ -886,6 +859,18 @@ class TestDeployUndercloud(TestPluginV1):
             env
         )
 
+    @mock.patch.object(
+        ansible_runner.runner_config.RunnerConfig,
+        'prepare',
+        return_value=fakes.fake_ansible_runner_run_return()
+    )
+    @mock.patch.object(
+        ansible_runner.Runner,
+        'run',
+        return_value=fakes.fake_ansible_runner_run_return()
+    )
+    @mock.patch('os.path.exists')
+    @mock.patch('os.chdir')
     @mock.patch('tripleoclient.utils.reset_cmdline')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_download_stack_outputs')
@@ -903,8 +888,6 @@ class TestDeployUndercloud(TestPluginV1):
                 '_populate_templates_dir')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_create_install_artifact', return_value='/tmp/foo.tar.bzip2')
-    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
-                '_launch_ansible', return_value=0)
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_cleanup_working_dirs')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
@@ -928,18 +911,17 @@ class TestDeployUndercloud(TestPluginV1):
     @mock.patch('tripleoclient.utils.wait_for_stack_ready', return_value=True)
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_set_default_plan')
-    @mock.patch('tripleoclient.utils.ansible_symlink')
-    def test_take_action_standalone(self, mock_slink, mock_def_plan, mock_poll,
+    def test_take_action_standalone(self, mock_def_plan, mock_poll,
                                     mock_environ, mock_geteuid, mock_puppet,
                                     mock_killheat, mock_launchheat,
                                     mock_download, mock_tht,
                                     mock_wait_for_port, mock_createdirs,
-                                    mock_cleanupdirs, mock_launchansible,
-                                    mock_tarball, mock_templates_dir,
-                                    mock_open, mock_os, mock_user, mock_cc,
-                                    mock_chmod, mock_ac, mock_outputs,
-                                    mock_cmdline):
-        mock_slink.side_effect = 'fake-cmd'
+                                    mock_cleanupdirs, mock_tarball,
+                                    mock_templates_dir, mock_open, mock_os,
+                                    mock_user, mock_cc, mock_chmod, mock_ac,
+                                    mock_outputs, mock_cmdline, mock_chdir,
+                                    mock_file_exists, mock_run,
+                                    mock_run_prepare):
         parsed_args = self.check_parser(self.cmd,
                                         ['--local-ip', '127.0.0.1',
                                          '--templates', '/tmp/thtroot',
@@ -957,6 +939,7 @@ class TestDeployUndercloud(TestPluginV1):
                                          '-e', '../../../outside.yaml',
                                          '--standalone'], [])
 
+        mock_file_exists.return_value = True
         fake_orchestration = mock_launchheat(parsed_args)
         self.cmd.take_action(parsed_args)
         mock_createdirs.assert_called_once()
@@ -967,16 +950,12 @@ class TestDeployUndercloud(TestPluginV1):
         mock_download.assert_called_with(self.cmd, fake_orchestration,
                                          'undercloud', 'Undercloud',
                                          sys.executable)
-        mock_launchansible.assert_called_once()
         mock_tarball.assert_called_once()
         mock_cleanupdirs.assert_called_once()
         self.assertEqual(mock_killheat.call_count, 2)
-        mock_cmdline.assert_called_once()
 
     @mock.patch('tripleoclient.utils.reset_cmdline')
-    @mock.patch('tripleoclient.utils.ansible_symlink')
-    def test_take_action(self, mock_slink, mock_cmdline):
-        mock_slink.side_effect = 'fake-cmd'
+    def test_take_action(self, mock_cmdline):
         parsed_args = self.check_parser(self.cmd,
                                         ['--local-ip', '127.0.0.1',
                                          '--templates', '/tmp/thtroot',
@@ -984,14 +963,11 @@ class TestDeployUndercloud(TestPluginV1):
                                          '--output-dir', '/my'], [])
         self.assertRaises(exceptions.DeploymentError,
                           self.cmd.take_action, parsed_args)
-        mock_cmdline.assert_called_once()
 
     @mock.patch('tripleoclient.utils.reset_cmdline')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy._standalone_deploy',
                 return_value=1)
-    @mock.patch('tripleoclient.utils.ansible_symlink')
-    def test_take_action_failure(self, mock_slink, mock_deploy, mock_cmdline):
-        mock_slink.side_effect = 'fake-cmd'
+    def test_take_action_failure(self, mock_deploy, mock_cmdline):
         parsed_args = self.check_parser(self.cmd,
                                         ['--local-ip', '127.0.0.1',
                                          '--templates', '/tmp/thtroot',
@@ -1000,7 +976,6 @@ class TestDeployUndercloud(TestPluginV1):
                                          '--standalone'], [])
         self.assertRaises(exceptions.DeploymentError,
                           self.cmd.take_action, parsed_args)
-        mock_cmdline.assert_called_once()
 
     @mock.patch('os.path.isfile', return_value=False)
     def test_set_stack_action_default_create(self, mock_isfile):

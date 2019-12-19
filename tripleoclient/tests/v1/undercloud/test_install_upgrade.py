@@ -54,6 +54,7 @@ class TestUndercloudInstall(TestPluginV1):
         self.cmd = undercloud.InstallUndercloud(self.app, app_args)
 
     # TODO(cjeanner) drop once we have proper oslo.privsep
+    @mock.patch('os.geteuid', return_value=1001)
     @mock.patch('getpass.getuser', return_value='stack')
     @mock.patch('six.moves.builtins.open')
     @mock.patch('shutil.copy')
@@ -63,7 +64,7 @@ class TestUndercloudInstall(TestPluginV1):
     def test_undercloud_install_default(self, mock_subprocess,
                                         mock_wr,
                                         mock_os, mock_copy,
-                                        mock_open, mock_user):
+                                        mock_open, mock_user, mock_getuid):
         arglist = ['--no-validations']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
@@ -118,14 +119,16 @@ class TestUndercloudInstall(TestPluginV1):
              'undercloud-stack-vstate-dropin.yaml'])
 
     # TODO(cjeanner) drop once we have proper oslo.privsep
+    @mock.patch('os.geteuid', return_value=1001)
     @mock.patch('getpass.getuser', return_value='stack')
     @mock.patch('shutil.copy')
-    @mock.patch('os.mkdir')
+    @mock.patch('os.makedirs', return_value=None)
     @mock.patch('tripleoclient.utils.write_env_file', autospec=True)
     @mock.patch('subprocess.check_call', autospec=True)
     def test_undercloud_install_with_heat_customized(self, mock_subprocess,
                                                      mock_wr, mock_os,
-                                                     mock_copy, mock_user):
+                                                     mock_copy, mock_user,
+                                                     mock_getuid):
         self.conf.config(output_dir='/foo')
         self.conf.config(templates='/usertht')
         self.conf.config(heat_native='false')
@@ -178,6 +181,7 @@ class TestUndercloudInstall(TestPluginV1):
              '--force-stack-update'])
 
     # TODO(cjeanner) drop once we have proper oslo.privsep
+    @mock.patch('os.geteuid', return_value=1001)
     @mock.patch('getpass.getuser', return_value='stack')
     @mock.patch('shutil.copy')
     @mock.patch('os.mkdir')
@@ -200,7 +204,8 @@ class TestUndercloudInstall(TestPluginV1):
                                                         mock_sroutes,
                                                         mock_masq,
                                                         mock_wr, mock_os,
-                                                        mock_copy, mock_user):
+                                                        mock_copy, mock_user,
+                                                        mock_getuid):
         self.conf.config(net_config_override='/foo/net-config.json')
         self.conf.config(local_interface='ethX')
         self.conf.config(undercloud_public_host='4.3.2.1')
@@ -348,6 +353,7 @@ class TestUndercloudInstall(TestPluginV1):
              'undercloud-stack-vstate-dropin.yaml'])
 
     # TODO(cjeanner) drop once we have proper oslo.privsep
+    @mock.patch('os.geteuid', return_value=1001)
     @mock.patch('getpass.getuser', return_value='stack')
     @mock.patch('six.moves.builtins.open')
     @mock.patch('shutil.copy')
@@ -357,7 +363,8 @@ class TestUndercloudInstall(TestPluginV1):
     def test_undercloud_install_with_heat_and_debug(self, mock_subprocess,
                                                     mock_wr,
                                                     mock_os, mock_copy,
-                                                    mock_open, mock_user):
+                                                    mock_open, mock_user,
+                                                    mock_getuid):
         self.conf.config(undercloud_log_file='/foo/bar')
         arglist = ['--no-validations']
         verifylist = []
@@ -416,6 +423,7 @@ class TestUndercloudInstall(TestPluginV1):
              'undercloud-stack-vstate-dropin.yaml'])
 
     # TODO(cjeanner) drop once we have proper oslo.privsep
+    @mock.patch('os.geteuid', return_value=1001)
     @mock.patch('getpass.getuser', return_value='stack')
     @mock.patch('six.moves.builtins.open')
     @mock.patch('shutil.copy')
@@ -425,7 +433,8 @@ class TestUndercloudInstall(TestPluginV1):
     def test_undercloud_install_with_heat_true(self, mock_subprocess,
                                                mock_wr,
                                                mock_os, mock_copy,
-                                               mock_open, mock_user):
+                                               mock_open, mock_user,
+                                               mock_getuid):
         self.conf.config(undercloud_log_file='/foo/bar')
         arglist = ['--no-validations']
         verifylist = []
@@ -480,6 +489,7 @@ class TestUndercloudInstall(TestPluginV1):
              'undercloud-stack-vstate-dropin.yaml'])
 
     # TODO(cjeanner) drop once we have proper oslo.privsep
+    @mock.patch('os.geteuid', return_value=1001)
     @mock.patch('getpass.getuser', return_value='stack')
     @mock.patch('shutil.copy')
     @mock.patch('os.mkdir')
@@ -487,7 +497,8 @@ class TestUndercloudInstall(TestPluginV1):
     @mock.patch('subprocess.check_call', autospec=True)
     def test_undercloud_install_with_swift_encryption(self, mock_subprocess,
                                                       mock_wr, mock_os,
-                                                      mock_copy, mock_user):
+                                                      mock_copy, mock_user,
+                                                      mock_getuid):
         arglist = ['--no-validations']
         verifylist = []
         self.conf.set_default('enable_swift_encryption', True)
@@ -564,6 +575,7 @@ class TestUndercloudUpgrade(TestPluginV1):
         self.cmd = undercloud.UpgradeUndercloud(self.app, app_args)
 
     # TODO(cjeanner) drop once we have proper oslo.privsep
+    @mock.patch('os.geteuid', return_value=1001)
     @mock.patch('getpass.getuser', return_value='stack')
     @mock.patch('shutil.copy')
     @mock.patch('os.mkdir')
@@ -571,7 +583,8 @@ class TestUndercloudUpgrade(TestPluginV1):
     @mock.patch('subprocess.check_call', autospec=True)
     def test_undercloud_upgrade_default(self, mock_subprocess,
                                         mock_wr,
-                                        mock_os, mock_copy, mock_user):
+                                        mock_os, mock_copy, mock_user,
+                                        mock_getuid):
         arglist = ['--no-validations']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
@@ -629,6 +642,7 @@ class TestUndercloudUpgrade(TestPluginV1):
              'undercloud-stack-vstate-dropin.yaml'])
 
     # TODO(cjeanner) drop once we have proper oslo.privsep
+    @mock.patch('os.geteuid', return_value=1001)
     @mock.patch('getpass.getuser', return_value='stack')
     @mock.patch('shutil.copy')
     @mock.patch('os.mkdir')
@@ -636,7 +650,8 @@ class TestUndercloudUpgrade(TestPluginV1):
     @mock.patch('subprocess.check_call', autospec=True)
     def test_undercloud_upgrade_with_heat_enabled(self, mock_subprocess,
                                                   mock_wr, mock_os,
-                                                  mock_copy, mock_user):
+                                                  mock_copy, mock_user,
+                                                  mock_getuid):
         arglist = ['--no-validations']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
@@ -693,6 +708,7 @@ class TestUndercloudUpgrade(TestPluginV1):
              'undercloud-stack-vstate-dropin.yaml'])
 
     # TODO(cjeanner) drop once we have proper oslo.privsep
+    @mock.patch('os.geteuid', return_value=1001)
     @mock.patch('getpass.getuser', return_value='stack')
     @mock.patch('shutil.copy')
     @mock.patch('os.mkdir')
@@ -700,7 +716,8 @@ class TestUndercloudUpgrade(TestPluginV1):
     @mock.patch('subprocess.check_call', autospec=True)
     def test_undercloud_upgrade_with_heat_true(self, mock_subprocess,
                                                mock_wr, mock_os,
-                                               mock_copy, mock_user):
+                                               mock_copy, mock_user,
+                                               mock_getuid):
         arglist = ['--no-validations']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
@@ -757,6 +774,7 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/'
              'undercloud-stack-vstate-dropin.yaml'])
 
+    @mock.patch('os.geteuid', return_value=1001)
     @mock.patch('getpass.getuser', return_value='stack')
     @mock.patch('shutil.copy')
     @mock.patch('os.mkdir')
@@ -764,7 +782,8 @@ class TestUndercloudUpgrade(TestPluginV1):
     @mock.patch('subprocess.check_call', autospec=True)
     def test_undercloud_upgrade_with_heat_and_yes(self, mock_subprocess,
                                                   mock_wr, mock_os,
-                                                  mock_user, mock_copy):
+                                                  mock_copy, mock_user,
+                                                  mock_getuid):
         arglist = ['--no-validations', '-y']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
@@ -822,6 +841,7 @@ class TestUndercloudUpgrade(TestPluginV1):
              'undercloud-stack-vstate-dropin.yaml'])
 
     # TODO(cjeanner) drop once we have proper oslo.privsep
+    @mock.patch('os.geteuid', return_value=1001)
     @mock.patch('getpass.getuser', return_value='stack')
     @mock.patch('shutil.copy')
     @mock.patch('os.mkdir')
@@ -829,7 +849,8 @@ class TestUndercloudUpgrade(TestPluginV1):
     @mock.patch('subprocess.check_call', autospec=True)
     def test_undercloud_upgrade_with_heat_and_debug(self, mock_subprocess,
                                                     mock_wr, mock_os,
-                                                    mock_copy, mock_user):
+                                                    mock_copy, mock_user,
+                                                    mock_getuid):
         arglist = ['--no-validations']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)

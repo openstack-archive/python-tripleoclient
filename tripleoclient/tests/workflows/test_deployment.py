@@ -46,14 +46,16 @@ class TestDeploymentWorkflows(utils.TestCommand):
             "message": "Fail.",
         }])
 
+    @mock.patch('os.chdir')
     @mock.patch('tripleoclient.workflows.deployment.wait_for_ssh_port')
     @mock.patch('tripleoclient.workflows.deployment.time.sleep')
-    @mock.patch('tripleoclient.workflows.deployment.shutil.rmtree')
+    @mock.patch('tripleoclient.utils.shutil.rmtree')
     @mock.patch('tripleoclient.workflows.deployment.open')
-    @mock.patch('tripleoclient.workflows.deployment.tempfile')
+    @mock.patch('tripleoclient.utils.tempfile')
     @mock.patch('tripleoclient.workflows.deployment.subprocess.check_call')
     def test_enable_ssh_admin(self, mock_check_call, mock_tempfile, mock_open,
-                              mock_rmtree, mock_sleep, mock_wait_for_ssh_port):
+                              mock_rmtree, mock_sleep, mock_wait_for_ssh_port,
+                              mock_chdir):
         log = mock.Mock()
         hosts = 'a', 'b', 'c'
         ssh_user = 'test-user'
@@ -86,15 +88,16 @@ class TestDeploymentWorkflows(utils.TestCommand):
         self.assertEqual(1, mock_rmtree.call_count)
         self.assertEqual('/foo', mock_rmtree.call_args[0][0])
 
+    @mock.patch('os.chdir')
     @mock.patch('tripleoclient.workflows.deployment.wait_for_ssh_port')
     @mock.patch('tripleoclient.workflows.deployment.time.sleep')
-    @mock.patch('tripleoclient.workflows.deployment.shutil.rmtree')
+    @mock.patch('tripleoclient.utils.shutil.rmtree')
     @mock.patch('tripleoclient.workflows.deployment.open')
-    @mock.patch('tripleoclient.workflows.deployment.tempfile')
+    @mock.patch('tripleoclient.utils.tempfile')
     @mock.patch('tripleoclient.workflows.deployment.subprocess.check_call')
     def test_enable_ssh_admin_error(self, mock_check_call, mock_tempfile,
                                     mock_open, mock_rmtree, mock_sleep,
-                                    mock_wait_for_ssh_port):
+                                    mock_wait_for_ssh_port, mock_chdir):
         log = mock.Mock()
         hosts = 'a', 'b', 'c'
         ssh_user = 'test-user'

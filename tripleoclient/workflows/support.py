@@ -20,6 +20,7 @@ from osc_lib.i18n import _
 from tripleoclient.exceptions import ContainerDeleteFailed
 from tripleoclient.exceptions import DownloadError
 from tripleoclient.exceptions import LogFetchError
+from tripleoclient import utils
 from tripleoclient.workflows import base
 
 
@@ -44,9 +45,10 @@ def download_files(clients, container_name, destination):
     if not os.path.dirname(destination):
         destination = os.path.join(os.sep, os.getcwd(), destination)
 
-    if not os.path.exists(destination):
-        print('Creating destination path: {}'.format(destination))
-        os.makedirs(destination)
+    if utils.makedirs(destination):
+        print('Created destination path: {}'.format(destination))
+    else:
+        print('Destination path exists: {}'.format(destination))
 
     if not check_local_space(destination, object_list):
         raise DownloadError(_('Not enough local space to download files.'))

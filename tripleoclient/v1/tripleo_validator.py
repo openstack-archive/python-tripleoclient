@@ -17,7 +17,6 @@ import argparse
 import json
 import logging
 import os
-import pwd
 import six
 import sys
 import textwrap
@@ -363,23 +362,6 @@ class TripleOValidatorRun(command.Command):
 
         return parser
 
-    def _run_ansible(self, logger, plan, workdir, log_path_dir, playbook,
-                     inventory, retries, output_callback, extra_vars,
-                     python_interpreter, gathering_policy):
-        rc, output = oooutils.run_ansible_playbook(
-            logger=logger,
-            plan=plan,
-            workdir=workdir,
-            log_path_dir=log_path_dir,
-            playbook=playbook,
-            inventory=inventory,
-            retries=retries,
-            output_callback=output_callback,
-            extra_vars=extra_vars,
-            python_interpreter=python_interpreter,
-            gathering_policy=gathering_policy)
-        return rc, output
-
     def _run_validator_run(self, parsed_args):
         LOG = logging.getLogger(__name__ + ".ValidationsRunAnsible")
         playbooks = []
@@ -407,9 +389,6 @@ class TripleOValidatorRun(command.Command):
             for pb in parsed_args.validation_name:
                 playbooks.append(pb + '.yaml')
 
-        python_interpreter = \
-            "/usr/bin/python{}".format(sys.version_info[0])
-
         static_inventory = oooutils.get_tripleo_ansible_inventory(
             ssh_user='heat-admin',
             stack=parsed_args.plan,
@@ -418,28 +397,27 @@ class TripleOValidatorRun(command.Command):
 
         failed_val = False
 
-        with ThreadPoolExecutor(max_workers=parsed_args.workers) as executor:
-            LOG.debug(_('Running the validations with Ansible'))
-            tasks_exec = {
-                executor.submit(
-                    self._run_ansible,
-                    logger=LOG,
-                    plan=parsed_args.plan,
-                    workdir=constants.ANSIBLE_VALIDATION_DIR,
-                    log_path_dir=pwd.getpwuid(os.getuid()).pw_dir,
-                    playbook=playbook,
-                    inventory=static_inventory,
-                    retries=False,
-                    output_callback='validation_output',
-                    extra_vars=extra_vars_input,
-                    python_interpreter=python_interpreter,
-                    gathering_policy='explicit'): playbook
-                for playbook in playbooks
-            }
+        with oooutils.TempDirs() as tmp:
+            with ThreadPoolExecutor(max_workers=parsed_args.workers) as exe:
+                LOG.debug(_('Running the validations with Ansible'))
+                tasks_exec = {
+                    exe.submit(
+                        oooutils.run_ansible_playbook,
+                        plan=parsed_args.plan,
+                        workdir=tmp,
+                        playbook=playbook,
+                        playbook_dir=constants.ANSIBLE_VALIDATION_DIR,
+                        inventory=static_inventory,
+                        output_callback='validation_output',
+                        quiet=True,
+                        extra_vars=extra_vars_input,
+                        gathering_policy='explicit'): playbook
+                    for playbook in playbooks
+                }
 
         for tk, pl in six.iteritems(tasks_exec):
             try:
-                rc, output = tk.result()
+                _rc, output = tk.result()
                 print('[SUCCESS] - {}\n{}'.format(pl, oooutils.indent(output)))
             except Exception as e:
                 failed_val = True

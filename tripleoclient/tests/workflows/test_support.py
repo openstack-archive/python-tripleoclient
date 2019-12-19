@@ -155,11 +155,11 @@ class TestDownloadContainer(fakes.TestDeployOvercloud):
                           'test',
                           'test')
 
-    @mock.patch('os.path.exists')
-    def test_download_files(self, exists_mock):
+    @mock.patch('os.makedirs')
+    def test_download_files(self, makedirs_mock):
         support.check_local_space = mock.MagicMock()
         support.check_local_space.return_value = True
-        exists_mock.return_value = True
+        makedirs_mock.return_value = None
         oc = self.app.client_manager.object_store
         oc.object_list.return_value = [
             {'name': 'test1'}

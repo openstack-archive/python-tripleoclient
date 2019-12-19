@@ -38,8 +38,12 @@ import yaml
 from tripleoclient import exceptions
 from tripleoclient import utils
 
+from tripleoclient.tests import fakes
+
 from six.moves.configparser import ConfigParser
 from six.moves.urllib import error as url_error
+
+from ansible_runner import Runner
 
 
 class TestRunAnsiblePlaybook(TestCase):
@@ -48,329 +52,130 @@ class TestRunAnsiblePlaybook(TestCase):
         self.addCleanup(self.unlink_patch.stop)
         self.unlink_patch.start()
         self.mock_log = mock.Mock('logging.getLogger')
-        python_version = sys.version_info[0]
-        self.ansible_playbook_cmd = "ansible-playbook-%s" % (python_version)
+        self.ansible_playbook_cmd = "ansible-playbook"
 
     @mock.patch('os.path.exists', return_value=False)
     @mock.patch('tripleoclient.utils.run_command_and_log')
     def test_no_playbook(self, mock_run, mock_exists):
-        self.assertRaises(RuntimeError,
-                          utils.run_ansible_playbook,
-                          self.mock_log,
-                          '/tmp',
-                          'non-existing.yaml',
-                          'localhost,'
-                          )
-        mock_exists.assert_called_once_with('/tmp/non-existing.yaml')
+        self.assertRaises(
+            RuntimeError,
+            utils.run_ansible_playbook,
+            'non-existing.yaml',
+            'localhost,',
+            '/tmp'
+        )
+        mock_exists.assert_called_with('/tmp/non-existing.yaml')
         mock_run.assert_not_called()
 
     @mock.patch('tempfile.mkstemp', return_value=('foo', '/tmp/fooBar.cfg'))
     @mock.patch('os.path.exists', return_value=True)
-    @mock.patch('tripleoclient.utils.run_command_and_log')
-    def test_subprocess_error(self, mock_run, mock_exists, mock_mkstemp):
-        mock_process = mock.Mock()
-        mock_process.returncode = 1
-        mock_process.stdout.read.side_effect = ["Error\n"]
-        mock_run.return_value = mock_process
-
-        env = os.environ.copy()
-        env['ANSIBLE_LIBRARY'] = \
-            ('/root/.ansible/plugins/modules:'
-             '/usr/share/ansible/plugins/modules:'
-             '/usr/share/openstack-tripleo-validations/library')
-        env['ANSIBLE_LOOKUP_PLUGINS'] = \
-            ('root/.ansible/plugins/lookup:'
-             '/usr/share/ansible/plugins/lookup:'
-             '/usr/share/openstack-tripleo-validations/lookup_plugins')
-        env['ANSIBLE_CALLBACK_PLUGINS'] = \
-            ('~/.ansible/plugins/callback:'
-             '/usr/share/ansible/plugins/callback:'
-             '/usr/share/openstack-tripleo-validations/callback_plugins')
-        env['ANSIBLE_ROLES_PATH'] = \
-            ('/root/.ansible/roles:'
-             '/usr/share/ansible/roles:'
-             '/etc/ansible/roles:'
-             '/usr/share/openstack-tripleo-validations/roles')
-        env['ANSIBLE_CONFIG'] = '/tmp/fooBar.cfg'
-        env['ANSIBLE_HOST_KEY_CHECKING'] = 'False'
-        env['ANSIBLE_LOG_PATH'] = '/tmp/ansible.log'
-        env['TRIPLEO_PLAN_NAME'] = 'overcloud'
-
-        self.assertRaises(RuntimeError,
-                          utils.run_ansible_playbook,
-                          self.mock_log,
-                          '/tmp',
-                          'existing.yaml',
-                          'localhost,'
-                          )
-        mock_run.assert_called_once_with(self.mock_log,
-                                         [self.ansible_playbook_cmd,
-                                          '-u', 'root',
-                                          '-i', 'localhost,', '-v',
-                                          '-c', 'smart',
-                                          '/tmp/existing.yaml'],
-                                         env=env, retcode_only=False)
-
-    @mock.patch('os.path.isabs')
-    @mock.patch('os.path.exists', return_value=False)
-    @mock.patch('tripleoclient.utils.run_command_and_log')
-    def test_non_existing_config(self, mock_run, mock_exists, mock_isabs):
-        self.assertRaises(RuntimeError,
-                          utils.run_ansible_playbook, self.mock_log,
-                          '/tmp', 'existing.yaml', 'localhost,',
-                          '/home/foo', '/tmp/foo.cfg'
-                          )
-        mock_exists.assert_called_with('/tmp/foo.cfg')
-        mock_isabs.assert_called_with('/tmp/foo.cfg')
-        mock_run.assert_not_called()
-
-    @mock.patch('tempfile.mkstemp', return_value=('foo', '/tmp/fooBar.cfg'))
-    @mock.patch('os.path.exists', return_value=True)
-    @mock.patch('tripleoclient.utils.run_command_and_log')
-    def test_run_success_default(self, mock_run, mock_exists, mock_mkstemp):
-        mock_process = mock.Mock()
-        mock_process.returncode = 0
-        mock_run.return_value = mock_process
-
-        retcode, output = utils.run_ansible_playbook(
-            self.mock_log, '/tmp', 'existing.yaml', 'localhost,')
-        self.assertEqual(retcode, 0)
-        mock_exists.assert_called_once_with('/tmp/existing.yaml')
-
-        env = os.environ.copy()
-        env['ANSIBLE_LIBRARY'] = \
-            ('/root/.ansible/plugins/modules:'
-             '/usr/share/ansible/plugins/modules:'
-             '/usr/share/openstack-tripleo-validations/library')
-        env['ANSIBLE_LOOKUP_PLUGINS'] = \
-            ('root/.ansible/plugins/lookup:'
-             '/usr/share/ansible/plugins/lookup:'
-             '/usr/share/openstack-tripleo-validations/lookup_plugins')
-        env['ANSIBLE_CALLBACK_PLUGINS'] = \
-            ('~/.ansible/plugins/callback:'
-             '/usr/share/ansible/plugins/callback:'
-             '/usr/share/openstack-tripleo-validations/callback_plugins')
-        env['ANSIBLE_ROLES_PATH'] = \
-            ('/root/.ansible/roles:'
-             '/usr/share/ansible/roles:'
-             '/etc/ansible/roles:'
-             '/usr/share/openstack-tripleo-validations/roles')
-        env['ANSIBLE_CONFIG'] = '/tmp/fooBar.cfg'
-        env['ANSIBLE_HOST_KEY_CHECKING'] = 'False'
-        env['ANSIBLE_LOG_PATH'] = '/tmp/ansible.log'
-        env['TRIPLEO_PLAN_NAME'] = 'overcloud'
-
-        mock_run.assert_called_once_with(self.mock_log,
-                                         [self.ansible_playbook_cmd,
-                                          '-u', 'root',
-                                          '-i', 'localhost,', '-v',
-                                          '-c', 'smart',
-                                          '/tmp/existing.yaml'],
-                                         env=env, retcode_only=False)
-
-    @mock.patch('os.path.isabs')
-    @mock.patch('os.path.exists', return_value=True)
-    @mock.patch('tripleoclient.utils.run_command_and_log')
-    def test_run_success_ansible_cfg(self, mock_run, mock_exists, mock_isabs):
-        mock_process = mock.Mock()
-        mock_process.returncode = 0
-        mock_run.return_value = mock_process
-
-        retcode, output = utils.run_ansible_playbook(
-            self.mock_log,
-            '/tmp',
+    @mock.patch('os.makedirs')
+    @mock.patch.object(
+        Runner,
+        'run',
+        return_value=fakes.fake_ansible_runner_run_return(rc=1)
+    )
+    def test_subprocess_error(self, mock_run, mock_mkdirs, mock_exists,
+                              mock_mkstemp):
+        self.assertRaises(
+            RuntimeError,
+            utils.run_ansible_playbook,
             'existing.yaml',
             'localhost,',
-            ansible_config='/tmp/foo.cfg')
-        self.assertEqual(retcode, 0)
-
-        mock_isabs.assert_called_once_with('/tmp/foo.cfg')
-
-        exist_calls = [mock.call('/tmp/foo.cfg'),
-                       mock.call('/tmp/existing.yaml')]
-        mock_exists.assert_has_calls(exist_calls, any_order=False)
-
-        env = os.environ.copy()
-        env['ANSIBLE_LIBRARY'] = \
-            ('/root/.ansible/plugins/modules:'
-             '/usr/share/ansible/plugins/modules:'
-             '/usr/share/openstack-tripleo-validations/library')
-        env['ANSIBLE_LOOKUP_PLUGINS'] = \
-            ('root/.ansible/plugins/lookup:'
-             '/usr/share/ansible/plugins/lookup:'
-             '/usr/share/openstack-tripleo-validations/lookup_plugins')
-        env['ANSIBLE_CALLBACK_PLUGINS'] = \
-            ('~/.ansible/plugins/callback:'
-             '/usr/share/ansible/plugins/callback:'
-             '/usr/share/openstack-tripleo-validations/callback_plugins')
-        env['ANSIBLE_ROLES_PATH'] = \
-            ('/root/.ansible/roles:'
-             '/usr/share/ansible/roles:'
-             '/etc/ansible/roles:'
-             '/usr/share/openstack-tripleo-validations/roles')
-        env['ANSIBLE_CONFIG'] = '/tmp/foo.cfg'
-        env['ANSIBLE_HOST_KEY_CHECKING'] = 'False'
-        env['ANSIBLE_LOG_PATH'] = '/tmp/ansible.log'
-        env['TRIPLEO_PLAN_NAME'] = 'overcloud'
-
-        mock_run.assert_called_once_with(self.mock_log,
-                                         [self.ansible_playbook_cmd,
-                                          '-u', 'root',
-                                          '-i', 'localhost,', '-v',
-                                          '-c', 'smart',
-                                          '/tmp/existing.yaml'],
-                                         env=env, retcode_only=False)
+            '/tmp'
+        )
 
     @mock.patch('tempfile.mkstemp', return_value=('foo', '/tmp/fooBar.cfg'))
     @mock.patch('os.path.exists', return_value=True)
-    @mock.patch('tripleoclient.utils.run_command_and_log')
-    def test_run_success_connection_local(self, mock_run, mock_exists,
-                                          mok_mkstemp):
-        mock_process = mock.Mock()
-        mock_process.returncode = 0
-        mock_run.return_value = mock_process
-
+    @mock.patch('os.makedirs')
+    @mock.patch.object(
+        Runner,
+        'run',
+        return_value=fakes.fake_ansible_runner_run_return()
+    )
+    def test_run_success_default(self, mock_run, mock_mkdirs, mock_exists,
+                                 mock_mkstemp):
         retcode, output = utils.run_ansible_playbook(
-            self.mock_log,
-            '/tmp',
-            'existing.yaml',
-            'localhost,',
-            connection='local')
+            playbook='existing.yaml',
+            inventory='localhost,',
+            workdir='/tmp'
+        )
         self.assertEqual(retcode, 0)
-        mock_exists.assert_called_once_with('/tmp/existing.yaml')
-        env = os.environ.copy()
-        env['ANSIBLE_LIBRARY'] = \
-            ('/root/.ansible/plugins/modules:'
-             '/usr/share/ansible/plugins/modules:'
-             '/usr/share/openstack-tripleo-validations/library')
-        env['ANSIBLE_LOOKUP_PLUGINS'] = \
-            ('root/.ansible/plugins/lookup:'
-             '/usr/share/ansible/plugins/lookup:'
-             '/usr/share/openstack-tripleo-validations/lookup_plugins')
-        env['ANSIBLE_CALLBACK_PLUGINS'] = \
-            ('~/.ansible/plugins/callback:'
-             '/usr/share/ansible/plugins/callback:'
-             '/usr/share/openstack-tripleo-validations/callback_plugins')
-        env['ANSIBLE_ROLES_PATH'] = \
-            ('/root/.ansible/roles:'
-             '/usr/share/ansible/roles:'
-             '/etc/ansible/roles:'
-             '/usr/share/openstack-tripleo-validations/roles')
-        env['ANSIBLE_CONFIG'] = '/tmp/fooBar.cfg'
-        env['ANSIBLE_HOST_KEY_CHECKING'] = 'False'
-        env['ANSIBLE_LOG_PATH'] = '/tmp/ansible.log'
-        env['TRIPLEO_PLAN_NAME'] = 'overcloud'
 
-        mock_run.assert_called_once_with(self.mock_log,
-                                         [self.ansible_playbook_cmd,
-                                          '-u', 'root',
-                                          '-i', 'localhost,', '-v',
-                                          '-c', 'local',
-                                          '/tmp/existing.yaml'],
-                                         env=env, retcode_only=False)
+    @mock.patch('os.path.exists', return_value=True)
+    @mock.patch('os.makedirs')
+    @mock.patch.object(
+        Runner,
+        'run',
+        return_value=fakes.fake_ansible_runner_run_return()
+    )
+    def test_run_success_ansible_cfg(self, mock_run, mock_mkdirs, mock_exists):
+        retcode, output = utils.run_ansible_playbook(
+            playbook='existing.yaml',
+            inventory='localhost,',
+            workdir='/tmp'
+        )
+        self.assertEqual(retcode, 0)
 
     @mock.patch('tempfile.mkstemp', return_value=('foo', '/tmp/fooBar.cfg'))
     @mock.patch('os.path.exists', return_value=True)
-    @mock.patch('tripleoclient.utils.run_command_and_log')
+    @mock.patch('os.makedirs')
+    @mock.patch.object(
+        Runner,
+        'run',
+        return_value=fakes.fake_ansible_runner_run_return()
+    )
+    def test_run_success_connection_local(self, mock_run, mock_mkdirs,
+                                          mock_exists, mock_mkstemp):
+        retcode, output = utils.run_ansible_playbook(
+            playbook='existing.yaml',
+            inventory='localhost,',
+            workdir='/tmp',
+            connection='local'
+        )
+        self.assertEqual(retcode, 0)
+
+    @mock.patch('os.makedirs', return_value=None)
+    @mock.patch('tempfile.mkstemp', return_value=('foo', '/tmp/fooBar.cfg'))
+    @mock.patch('os.path.exists', return_value=True)
+    @mock.patch.object(
+        Runner,
+        'run',
+        return_value=fakes.fake_ansible_runner_run_return()
+    )
     def test_run_success_gathering_policy(self, mock_run, mock_exists,
-                                          mok_mkstemp):
-        mock_process = mock.Mock()
-        mock_process.returncode = 0
-        mock_run.return_value = mock_process
-
+                                          mock_mkstemp, mock_makedirs):
         retcode, output = utils.run_ansible_playbook(
-            self.mock_log,
-            '/tmp',
-            'existing.yaml',
-            'localhost,',
-            gathering_policy='explicit')
+            playbook='existing.yaml',
+            inventory='localhost,',
+            workdir='/tmp',
+            connection='local',
+            gathering_policy='smart'
+        )
         self.assertEqual(retcode, 0)
-        mock_exists.assert_called_once_with('/tmp/existing.yaml')
-        env = os.environ.copy()
-        env['ANSIBLE_LIBRARY'] = \
-            ('/root/.ansible/plugins/modules:'
-             '/usr/share/ansible/plugins/modules:'
-             '/usr/share/openstack-tripleo-validations/library')
-        env['ANSIBLE_LOOKUP_PLUGINS'] = \
-            ('root/.ansible/plugins/lookup:'
-             '/usr/share/ansible/plugins/lookup:'
-             '/usr/share/openstack-tripleo-validations/lookup_plugins')
-        env['ANSIBLE_CALLBACK_PLUGINS'] = \
-            ('~/.ansible/plugins/callback:'
-             '/usr/share/ansible/plugins/callback:'
-             '/usr/share/openstack-tripleo-validations/callback_plugins')
-        env['ANSIBLE_ROLES_PATH'] = \
-            ('/root/.ansible/roles:'
-             '/usr/share/ansible/roles:'
-             '/etc/ansible/roles:'
-             '/usr/share/openstack-tripleo-validations/roles')
-        env['ANSIBLE_CONFIG'] = '/tmp/fooBar.cfg'
-        env['ANSIBLE_HOST_KEY_CHECKING'] = 'False'
-        env['ANSIBLE_LOG_PATH'] = '/tmp/ansible.log'
-        env['TRIPLEO_PLAN_NAME'] = 'overcloud'
-        env['ANSIBLE_GATHERING'] = 'explicit'
 
-        mock_run.assert_called_once_with(self.mock_log,
-                                         [self.ansible_playbook_cmd,
-                                          '-u', 'root',
-                                          '-i', 'localhost,', '-v',
-                                          '-c', 'smart',
-                                          '/tmp/existing.yaml'],
-                                         env=env, retcode_only=False)
-
+    @mock.patch('os.makedirs', return_value=None)
     @mock.patch('tempfile.mkstemp', return_value=('foo', '/tmp/fooBar.cfg'))
     @mock.patch('os.path.exists', return_value=True)
-    @mock.patch('tripleoclient.utils.run_command_and_log')
-    def test_run_success_extra_vars(self, mock_run, mock_exists, mock_mkstemp):
-        mock_process = mock.Mock()
-        mock_process.returncode = 0
-        mock_run.return_value = mock_process
-
+    @mock.patch.object(
+        Runner,
+        'run',
+        return_value=fakes.fake_ansible_runner_run_return()
+    )
+    def test_run_success_extra_vars(self, mock_run, mock_exists, mock_mkstemp,
+                                    mock_makedirs):
         arglist = {
             'var_one': 'val_one',
         }
-
         retcode, output = utils.run_ansible_playbook(
-            self.mock_log,
-            '/tmp',
-            'existing.yaml',
-            'localhost,',
-            extra_vars=arglist)
-
+            playbook='existing.yaml',
+            inventory='localhost,',
+            workdir='/tmp',
+            connection='local',
+            gathering_policy='smart',
+            extra_vars=arglist
+        )
         self.assertEqual(retcode, 0)
-        mock_exists.assert_called_once_with('/tmp/existing.yaml')
-        env = os.environ.copy()
-        env['ANSIBLE_LIBRARY'] = \
-            ('/root/.ansible/plugins/modules:'
-             '/usr/share/ansible/plugins/modules:'
-             '/usr/share/openstack-tripleo-validations/library')
-        env['ANSIBLE_LOOKUP_PLUGINS'] = \
-            ('root/.ansible/plugins/lookup:'
-             '/usr/share/ansible/plugins/lookup:'
-             '/usr/share/openstack-tripleo-validations/lookup_plugins')
-        env['ANSIBLE_CALLBACK_PLUGINS'] = \
-            ('~/.ansible/plugins/callback:'
-             '/usr/share/ansible/plugins/callback:'
-             '/usr/share/openstack-tripleo-validations/callback_plugins')
-        env['ANSIBLE_ROLES_PATH'] = \
-            ('/root/.ansible/roles:'
-             '/usr/share/ansible/roles:'
-             '/etc/ansible/roles:'
-             '/usr/share/openstack-tripleo-validations/roles')
-        env['ANSIBLE_CONFIG'] = '/tmp/fooBar.cfg'
-        env['ANSIBLE_HOST_KEY_CHECKING'] = 'False'
-        env['ANSIBLE_LOG_PATH'] = '/tmp/ansible.log'
-        env['TRIPLEO_PLAN_NAME'] = 'overcloud'
-
-        mock_run.assert_called_once_with(
-            self.mock_log, [
-                self.ansible_playbook_cmd, '-u', 'root',
-                '-i', 'localhost,', '-v',
-                '--extra-vars', '%s' % arglist,
-                '-c', 'smart', '/tmp/existing.yaml'
-            ],
-            env=env,
-            retcode_only=False)
 
 
 class TestRunCommandAndLog(TestCase):
@@ -1170,14 +975,6 @@ class TestStoreCliParam(TestCase):
     def setUp(self):
         self.args = argparse.ArgumentParser()
 
-    @mock.patch('os.mkdir')
-    @mock.patch('os.path.exists')
-    def test_fail_to_create_file(self, mock_exists, mock_mkdir):
-        mock_exists.return_value = False
-        mock_mkdir.side_effect = OSError()
-        command = "undercloud install"
-        self.assertRaises(OSError, utils.store_cli_param, command, self.args)
-
     @mock.patch('os.path.isdir')
     @mock.patch('os.path.exists')
     def test_exists_but_not_dir(self, mock_exists, mock_isdir):
@@ -1739,36 +1536,6 @@ class TestGetLocalTimezone(TestCase):
         run_mock.return_value = "" \
             "                Time zone: "
         self.assertEqual('UTC', utils.get_local_timezone())
-
-
-class TestAnsibleSymlink(TestCase):
-    @mock.patch('tripleoclient.utils.run_command')
-    @mock.patch('os.path.exists', side_effect=[False, True])
-    def test_ansible_symlink_needed(self, mock_path, mock_cmd):
-        utils.ansible_symlink()
-        python_version = sys.version_info[0]
-        ansible_playbook_cmd = "ansible-playbook-{}".format(python_version)
-        mock_cmd.assert_called_once_with(['sudo', 'ln', '-s',
-                                          '/usr/bin/' + ansible_playbook_cmd,
-                                          '/usr/bin/ansible-playbook'],
-                                         name='ansible-playbook-symlink')
-
-    @mock.patch('tripleoclient.utils.run_command')
-    @mock.patch('os.path.exists', side_effect=[True, False])
-    def test_ansible3_symlink_needed(self, mock_path, mock_cmd):
-        utils.ansible_symlink()
-        python_version = sys.version_info[0]
-        ansible_playbook_cmd = "ansible-playbook-{}".format(python_version)
-        mock_cmd.assert_called_once_with(['sudo', 'ln', '-s',
-                                          '/usr/bin/ansible-playbook',
-                                          '/usr/bin/' + ansible_playbook_cmd],
-                                         name='ansible-playbook-3-symlink')
-
-    @mock.patch('tripleoclient.utils.run_command')
-    @mock.patch('os.path.exists', side_effect=[False, False])
-    def test_ansible_symlink_not_needed(self, mock_path, mock_cmd):
-        utils.ansible_symlink()
-        mock_cmd.assert_not_called()
 
 
 class TestGetParamFieldName(TestCase):
