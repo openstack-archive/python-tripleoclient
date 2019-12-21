@@ -17,6 +17,7 @@ import pprint
 import socket
 import subprocess
 import time
+import yaml
 
 from heatclient.common import event_utils
 from openstackclient import shell
@@ -354,10 +355,31 @@ def config_download(log, clients, stack, templates,
         workflow_input.update(
             dict(override_ansible_cfg=override_ansible_cfg_contents))
 
+    workflow_name = 'tripleo.deployment.v1.config_download_deploy'
+
+    # Check to see if any existing executions for the same stack are already in
+    # progress.
+    log.info("Checking for existing executions of config_download for "
+             "%s" % stack.stack_name)
+    for execution in workflow_client.executions.find(
+            workflow_name=workflow_name,
+            state='RUNNING'):
+
+        try:
+            exec_input = yaml.safe_load(execution.input)
+        except yaml.YAMLError as ye:
+            log.error("YAML error loading input for execution %s: %s" %
+                      (execution.id, str(ye)))
+            raise
+
+        if exec_input.get('plan_name', 'overcloud') == stack.stack_name:
+            raise exceptions.ConfigDownloadInProgress(execution.id,
+                                                      stack.stack_name)
+
     with tripleoclients.messaging_websocket() as ws:
         execution = base.start_workflow(
             workflow_client,
-            'tripleo.deployment.v1.config_download_deploy',
+            workflow_name,
             workflow_input=workflow_input
         )
 

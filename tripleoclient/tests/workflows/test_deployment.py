@@ -172,3 +172,44 @@ class TestDeploymentWorkflows(utils.TestCommand):
         ips = deployment.get_overcloud_hosts(stack, 'external')
         expected = ['4.4.4.4', '6.6.6.6', '11.11.11.11']
         self.assertEqual(sorted(expected), sorted(ips))
+
+    def test_config_download_already_in_progress(
+            self):
+        log = mock.Mock()
+        stack = mock.Mock()
+        stack.stack_name = 'stacktest'
+        clients = mock.Mock()
+        mock_execution = mock.Mock()
+        mock_execution.input = '{"plan_name": "stacktest"}'
+        mock_return = mock.Mock(return_value=[mock_execution])
+        clients.workflow_engine.executions.find = mock_return
+
+        self.assertRaises(exceptions.ConfigDownloadInProgress,
+                          deployment.config_download,
+                          log, clients, stack, 'templates', 'ssh_user',
+                          'ssh_key', 'ssh_networks', 'output_dir', False,
+                          'timeout')
+
+    @mock.patch('tripleoclient.workflows.deployment.base')
+    def test_config_download_already_in_progress_for_diff_stack(
+            self, mock_base):
+        log = mock.Mock()
+        stack = mock.Mock()
+        stack.stack_name = 'stacktest'
+        clients = mock.Mock()
+        mock_execution = mock.Mock()
+        mock_execution.input = '{"plan_name": "someotherstack"}'
+        mock_return = mock.Mock(return_value=[mock_execution])
+        clients.workflow_engine.executions.find = mock_return
+        mock_exit = mock.Mock()
+        mock_exit.__exit__ = mock.Mock()
+        mock_exit.__enter__ = mock.Mock()
+        clients.tripleoclient.messaging_websocket = mock.Mock(
+            return_value=mock_exit)
+        mock_base.wait_for_messages = mock.Mock(
+            return_value=[dict(status='SUCCESS')])
+
+        deployment.config_download(
+            log, clients, stack, 'templates', 'ssh_user',
+            'ssh_key', 'ssh_networks', 'output_dir', False,
+            'timeout')
