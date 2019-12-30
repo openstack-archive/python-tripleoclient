@@ -82,13 +82,6 @@ class FakeClientWrapper(object):
         return self.ws
 
 
-class FakeRunnerConfig(object):
-    env = dict()  # noqa
-
-    def prepare(self):
-        pass
-
-
 def fake_ansible_runner_run_return(rc=0):
 
     return 'Test Status', rc
