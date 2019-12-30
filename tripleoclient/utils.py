@@ -348,8 +348,7 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
     else:
         callback_whitelist = output_callback
 
-    if verbosity > 0:
-        callback_whitelist = ','.join([callback_whitelist, 'profile_tasks'])
+    callback_whitelist = ','.join([callback_whitelist, 'profile_tasks'])
 
     env = os.environ.copy()
     env['ANSIBLE_DISPLAY_FAILED_STDERR'] = True
