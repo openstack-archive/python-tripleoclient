@@ -401,6 +401,15 @@ def _process_network_args(env):
             raise exceptions.InvalidConfiguration(msg)
 
 
+def _process_chrony_acls(env):
+    """Populate ACL rules for chrony to allow ctlplane subnets"""
+    acl_rules = []
+    for subnet in CONF.subnets:
+        s = CONF.get(subnet)
+        acl_rules.append('allow ' + s.get('cidr'))
+    env['ChronyAclRules'] = acl_rules
+
+
 def prepare_undercloud_deploy(upgrade=False, no_validations=True,
                               verbose_level=1, yes=False,
                               force_stack_update=False, dry_run=False,
@@ -447,6 +456,9 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
 
     # Set up parameters for undercloud networking
     _process_network_args(env_data)
+
+    # Setup parameter for Chrony ACL rules
+    _process_chrony_acls(env_data)
 
     # Parse the undercloud.conf options to include necessary args and
     # yaml files for undercloud deploy command

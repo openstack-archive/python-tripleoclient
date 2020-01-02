@@ -121,9 +121,9 @@ class TestProcessDriversAndHardwareTypes(base.TestCase):
         }, env)
 
 
-class TestNetworkSettings(base.TestCase):
+class TestBaseNetworkSettings(base.TestCase):
     def setUp(self):
-        super(TestNetworkSettings, self).setUp()
+        super(TestBaseNetworkSettings, self).setUp()
         self.conf = self.useFixture(oslo_fixture.Config(cfg.CONF))
         # don't actually load config from ~/undercloud.conf
         self.mock_config_load = self.useFixture(
@@ -160,6 +160,8 @@ class TestNetworkSettings(base.TestCase):
                          dns_nameservers=[],
                          group='ctlplane-subnet')
 
+
+class TestNetworkSettings(TestBaseNetworkSettings):
     def test_default(self):
         env = {}
         undercloud_config._process_network_args(env)
@@ -893,6 +895,16 @@ class TestNetworkSettings(base.TestCase):
         self.conf.config(group='subnet1')
         self.assertRaises(exceptions.DeploymentError,
                           undercloud_config._generate_inspection_subnets)
+
+
+class TestChronySettings(TestBaseNetworkSettings):
+    def test_default(self):
+        env = {}
+        undercloud_config._process_chrony_acls(env)
+        expected = {
+            'ChronyAclRules': ['allow 192.168.24.0/24'],
+        }
+        self.assertEqual(expected, env)
 
 
 class TestTLSSettings(base.TestCase):
