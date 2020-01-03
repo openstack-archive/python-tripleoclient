@@ -224,23 +224,30 @@ def _generate_inspection_subnets():
         env_dict = {}
         s = CONF.get(subnet)
         env_dict['tag'] = subnet
-        if netaddr.IPNetwork(s.cidr).version == 4:
-            env_dict['ip_range'] = s.inspection_iprange
-        if netaddr.IPNetwork(s.cidr).version == 6:
-            if CONF['ipv6_address_mode'] == 'dhcpv6-stateful':
+        try:
+            if netaddr.IPNetwork(s.cidr).version == 4:
                 env_dict['ip_range'] = s.inspection_iprange
-            if CONF['ipv6_address_mode'] == 'dhcpv6-stateless':
-                # dnsmasq(8): A static-only subnet with address all zeros may
-                # be used as a "catch-all" address to enable replies to all
-                # Information-request packets on a subnet which is provided
-                # with stateless DHCPv6, ie --dhcp-range=::,static
-                env_dict['ip_range'] = ','.join(
-                    [str(netaddr.IPNetwork(s.cidr).ip), 'static'])
-        env_dict['netmask'] = str(netaddr.IPNetwork(s.cidr).netmask)
-        env_dict['gateway'] = s.gateway
-        env_dict['host_routes'] = s.host_routes
-        env_dict['mtu'] = CONF.local_mtu
-        env_list.append(env_dict)
+            if netaddr.IPNetwork(s.cidr).version == 6:
+                if CONF['ipv6_address_mode'] == 'dhcpv6-stateful':
+                    env_dict['ip_range'] = s.inspection_iprange
+                if CONF['ipv6_address_mode'] == 'dhcpv6-stateless':
+                    # dnsmasq(8): A static-only subnet with address all zeros
+                    # may be used as a "catch-all" address to enable replies to
+                    # all Information-request packets on a subnet which is
+                    # provided with stateless DHCPv6, ie --dhcp-range=::,static
+                    env_dict['ip_range'] = ','.join(
+                        [str(netaddr.IPNetwork(s.cidr).ip), 'static'])
+            env_dict['netmask'] = str(netaddr.IPNetwork(s.cidr).netmask)
+            env_dict['gateway'] = s.gateway
+            env_dict['host_routes'] = s.host_routes
+            env_dict['mtu'] = CONF.local_mtu
+            env_list.append(env_dict)
+        except Exception as e:
+            msg = _('Invalid configuration data in subnet "{}". Double check '
+                    'the settings for this subnet. Error: {}').format(subnet,
+                                                                      e)
+            LOG.error(msg)
+            raise exceptions.DeploymentError(msg)
     return env_list
 
 

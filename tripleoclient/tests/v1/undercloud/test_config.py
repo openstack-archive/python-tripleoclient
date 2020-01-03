@@ -874,6 +874,26 @@ class TestNetworkSettings(base.TestCase):
         }
         self.assertEqual(expected, env)
 
+    def test_generate_inspection_subnets(self):
+        result = undercloud_config._generate_inspection_subnets()
+        expected = [{'gateway': '192.168.24.1',
+                     'host_routes': [],
+                     'ip_range': '192.168.24.100,192.168.24.120',
+                     'mtu': 1500,
+                     'netmask': '255.255.255.0',
+                     'tag': 'ctlplane-subnet'}]
+        self.assertEqual(expected, result)
+
+    def test_generate_inspection_subnets_invalid(self):
+        self.conf.config(subnets=['ctlplane-subnet', 'subnet1'])
+        self.conf.config(host_routes=[{'destination': '10.10.10.254/32',
+                                       'nexthop': '192.168.24.1'}],
+                         group='ctlplane-subnet')
+        self.conf.register_opts(self.opts, group=self.grp1)
+        self.conf.config(group='subnet1')
+        self.assertRaises(exceptions.DeploymentError,
+                          undercloud_config._generate_inspection_subnets)
+
 
 class TestTLSSettings(base.TestCase):
     def test_public_host_with_ip_should_give_ip_endpoint_environment(self):
