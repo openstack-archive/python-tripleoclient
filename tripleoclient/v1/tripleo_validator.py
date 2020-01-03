@@ -407,7 +407,6 @@ class TripleOValidatorRun(command.Command):
                         workdir=tmp,
                         playbook=playbook,
                         playbook_dir=constants.ANSIBLE_VALIDATION_DIR,
-                        parallel_run=True,
                         inventory=static_inventory,
                         output_callback='validation_output',
                         quiet=True,
