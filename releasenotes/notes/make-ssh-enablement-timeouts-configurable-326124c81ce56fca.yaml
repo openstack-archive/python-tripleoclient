@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    Added `--overcloud-ssh-enable-timeout` to allow end users to increase the
+    wait time during the deploy, ffu, upgrade and admin actions. By default
+    this is 600 seconds.
+  - |
+    Added `--overcloud-ssh-port-timeout` to allow end users to increase the
+    time we wait for ssh to become ready on the hosts during the deploy, ffu,
+    upgrade and admin actions. On older hardware or slow booting hardware, the
+    300 seconds we wait by default for the port to come up may not be sufficient.

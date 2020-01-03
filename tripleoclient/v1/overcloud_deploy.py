@@ -681,6 +681,18 @@ class DeployOvercloud(command.Command):
             default='ctlplane'
         )
         parser.add_argument(
+            '--overcloud-ssh-enable-timeout',
+            help=_('Timeout for the ssh enable process to finish.'),
+            type=int,
+            default=constants.ENABLE_SSH_ADMIN_TIMEOUT
+        )
+        parser.add_argument(
+            '--overcloud-ssh-port-timeout',
+            help=_('Timeout for to wait for the ssh port to become active.'),
+            type=int,
+            default=constants.ENABLE_SSH_ADMIN_SSH_PORT_TIMEOUT
+        )
+        parser.add_argument(
             '--environment-file', '-e', metavar='<HEAT ENVIRONMENT FILE>',
             action='append', dest='environment_files',
             help=_('Environment files to be passed to the heat stack-create '
@@ -944,7 +956,9 @@ class DeployOvercloud(command.Command):
                         self.log, self.clients, stack,
                         parsed_args.overcloud_ssh_network,
                         parsed_args.overcloud_ssh_user,
-                        parsed_args.overcloud_ssh_key)
+                        parsed_args.overcloud_ssh_key,
+                        parsed_args.overcloud_ssh_enable_timeout,
+                        parsed_args.overcloud_ssh_port_timeout)
 
                 if parsed_args.config_download_timeout:
                     timeout = parsed_args.config_download_timeout * 60

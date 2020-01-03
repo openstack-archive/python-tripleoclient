@@ -78,10 +78,14 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
         mock_yaml.return_value = {'fake_container': 'fake_value'}
         add_env = mock.Mock()
         add_env.return_value = True
-        argslist = ['--stack', 'overcloud', '--templates', ]
+        argslist = ['--stack', 'overcloud', '--templates',
+                    '--overcloud-ssh-enable-timeout', '10',
+                    '--overcloud-ssh-port-timeout', '10']
         verifylist = [
             ('stack', 'overcloud'),
             ('templates', constants.TRIPLEO_HEAT_TEMPLATES),
+            ('overcloud_ssh_enable_timeout', 10),
+            ('overcloud_ssh_port_timeout', 10),
         ]
 
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
@@ -99,7 +103,8 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
         mock_enable_ssh_admin.assert_called_once_with(
             self.cmd.log, self.app.client_manager, mock_stack,
             parsed_args.overcloud_ssh_network,
-            parsed_args.overcloud_ssh_user, parsed_args.overcloud_ssh_key)
+            parsed_args.overcloud_ssh_user, parsed_args.overcloud_ssh_key,
+            10, 10)
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 'take_action')
