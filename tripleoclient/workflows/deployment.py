@@ -22,7 +22,9 @@ import yaml
 from heatclient.common import event_utils
 from openstackclient import shell
 
-from tripleoclient import constants
+from tripleoclient.constants import ENABLE_SSH_ADMIN_SSH_PORT_TIMEOUT
+from tripleoclient.constants import ENABLE_SSH_ADMIN_STATUS_INTERVAL
+from tripleoclient.constants import ENABLE_SSH_ADMIN_TIMEOUT
 from tripleoclient import exceptions
 from tripleoclient import utils
 
@@ -157,11 +159,11 @@ def get_overcloud_hosts(stack, ssh_network):
     return ips
 
 
-def wait_for_ssh_port(host):
+def wait_for_ssh_port(host, timeout=ENABLE_SSH_ADMIN_SSH_PORT_TIMEOUT):
     start = int(time.time())
     while True:
         now = int(time.time())
-        if (now - start) > constants.ENABLE_SSH_ADMIN_SSH_PORT_TIMEOUT:
+        if (now - start) > timeout:
             raise exceptions.DeploymentError(
                 "Timed out waiting for port 22 from %s" % host)
         # first check ipv4 then check ipv6
@@ -182,14 +184,17 @@ def wait_for_ssh_port(host):
         time.sleep(1)
 
 
-def get_hosts_and_enable_ssh_admin(log, clients, stack, overcloud_ssh_network,
-                                   overcloud_ssh_user, overcloud_ssh_key):
+def get_hosts_and_enable_ssh_admin(
+        log, clients, stack, overcloud_ssh_network, overcloud_ssh_user,
+        overcloud_ssh_key, enable_ssh_timeout=ENABLE_SSH_ADMIN_TIMEOUT,
+        enable_ssh_port_timeout=ENABLE_SSH_ADMIN_SSH_PORT_TIMEOUT):
     hosts = get_overcloud_hosts(stack, overcloud_ssh_network)
     if [host for host in hosts if host]:
 
         try:
             enable_ssh_admin(log, clients, stack.stack_name, hosts,
-                             overcloud_ssh_user, overcloud_ssh_key)
+                             overcloud_ssh_user, overcloud_ssh_key,
+                             enable_ssh_timeout, enable_ssh_port_timeout)
         except subprocess.CalledProcessError as e:
             if e.returncode == 255:
                 log.error("Couldn't not import keys to one of {}. "
@@ -205,7 +210,10 @@ def get_hosts_and_enable_ssh_admin(log, clients, stack, overcloud_ssh_network,
                                                  overcloud_ssh_network))
 
 
-def enable_ssh_admin(log, clients, plan_name, hosts, ssh_user, ssh_key):
+def enable_ssh_admin(log, clients, plan_name, hosts, ssh_user, ssh_key,
+                     enable_ssh_timeout=ENABLE_SSH_ADMIN_TIMEOUT,
+                     enable_ssh_port_timeout=ENABLE_SSH_ADMIN_SSH_PORT_TIMEOUT
+                     ):
     print("Enabling ssh admin (tripleo-admin) for hosts:")
     print(" ".join(hosts))
     print("Using ssh user %s for initial connection." % ssh_user)
@@ -240,7 +248,7 @@ def enable_ssh_admin(log, clients, plan_name, hosts, ssh_user, ssh_key):
             tmp_key_private_contents = privkey.read()
 
         for host in hosts:
-            wait_for_ssh_port(host)
+            wait_for_ssh_port(host, enable_ssh_port_timeout)
             copy_tmp_key_command = ["ssh"] + ssh_options.split()
             copy_tmp_key_command += \
                 ["-o", "StrictHostKeyChecking=no",
@@ -271,7 +279,7 @@ def enable_ssh_admin(log, clients, plan_name, hosts, ssh_user, ssh_key):
         start = int(time.time())
         while True:
             now = int(time.time())
-            if (now - start) > constants.ENABLE_SSH_ADMIN_TIMEOUT:
+            if (now - start) > enable_ssh_timeout:
                 raise exceptions.DeploymentError(
                     "ssh admin enablement workflow - TIMED OUT.")
 
@@ -280,7 +288,7 @@ def enable_ssh_admin(log, clients, plan_name, hosts, ssh_user, ssh_key):
             state = execution.state
 
             if state == 'RUNNING':
-                if (now - start) % constants.ENABLE_SSH_ADMIN_STATUS_INTERVAL\
+                if (now - start) % ENABLE_SSH_ADMIN_STATUS_INTERVAL\
                         == 0:
                     print("ssh admin enablement workflow - RUNNING.")
                 continue
