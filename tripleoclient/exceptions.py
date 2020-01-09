@@ -57,6 +57,17 @@ class StackInProgress(Base):
     """Unable to deploy as the stack is busy"""
 
 
+class ConfigDownloadInProgress(Base):
+    """Unable to deploy as config download already in progress"""
+
+    msg_format = ("Config download already in progress with "
+                  "execution id {} for stack {}")
+
+    def __init__(self, execution_id='', stack=''):
+        message = self.msg_format.format(execution_id, stack)
+        super(ConfigDownloadInProgress, self).__init__(message)
+
+
 class RootUserExecution(Base):
     """Command was executed by a root user"""
 
