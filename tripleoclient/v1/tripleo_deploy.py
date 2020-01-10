@@ -1179,12 +1179,16 @@ class Deploy(command.Command):
         self.log.error(json.dumps(failures.get(name, {}), indent=1))
 
     def _standalone_deploy(self, parsed_args):
+        extra_env_var = dict()
         # NOTE(aschultz): the tripleo deploy interface is experimental but only
         # when not being invoked via undercloud install. Print a warning...
         if not self._is_undercloud_deploy(parsed_args):
             self.log.warning('[EXPERIMENTAL] The tripleo deploy interface is '
                              'an experimental interface. It may change in the '
                              'next release.')
+        else:
+            extra_env_var['ANSIBLE_LOG_PATH'] = os.path.join(
+                    parsed_args.output_dir, constants.UNDERCLOUD_LOG_FILE)
         if not parsed_args.local_ip:
             msg = _('Please set --local-ip to the correct '
                     'ipaddress/cidr for this machine.')
@@ -1319,6 +1323,7 @@ class Deploy(command.Command):
                                 'inventory.yaml'
                             ),
                             workdir=self.ansible_dir,
+                            extra_env_variables=extra_env_var,
                             **operation
                         )[0]
         except Exception as e:
