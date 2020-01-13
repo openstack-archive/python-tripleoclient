@@ -1451,6 +1451,7 @@ def ssh_private_key(workdir, key):
         return None
     if (isinstance(key, six.string_types) and
             os.path.exists(key)):
+        os.chmod(key, 0o600)
         return key
 
     path = os.path.join(workdir, 'ssh_private_key')
