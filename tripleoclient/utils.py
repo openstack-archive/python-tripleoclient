@@ -498,7 +498,6 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
                 playbook
             )
         )
-        return rc, status
     else:
         err_msg = (
             'Ansible execution failed. playbook: {},'
@@ -511,7 +510,7 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
         )
         if not quiet:
             LOG.error(err_msg)
-        raise RuntimeError(err_msg)
+    return rc, status
 
 
 def convert(data):

@@ -77,13 +77,12 @@ class TestRunAnsiblePlaybook(TestCase):
     )
     def test_subprocess_error(self, mock_run, mock_mkdirs, mock_exists,
                               mock_mkstemp):
-        self.assertRaises(
-            RuntimeError,
-            utils.run_ansible_playbook,
+        retcode, output = utils.run_ansible_playbook(
             'existing.yaml',
             'localhost,',
             '/tmp'
         )
+        self.assertEqual(retcode, 1)
 
     @mock.patch('tempfile.mkstemp', return_value=('foo', '/tmp/fooBar.cfg'))
     @mock.patch('os.path.exists', return_value=True)
