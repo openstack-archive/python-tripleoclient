@@ -41,6 +41,10 @@ class Lister(Command, command.Lister):
     pass
 
 
+class ShowOne(Command, command.ShowOne):
+    pass
+
+
 class DeprecatedActionStore(_StoreAction):
     """To deprecated an option an store the value"""
     log = logging.getLogger(__name__)
