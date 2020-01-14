@@ -711,8 +711,8 @@ def create_tempest_deployer_input(config_name='tempest-deployer-input.conf'):
 
 
 def wait_for_stack_ready(orchestration_client, stack_name, marker=None,
-                         action='CREATE', verbose=False, poll_period=5,
-                         nested_depth=2, max_retries=10):
+                         action='CREATE', verbose=False, nested_depth=2,
+                         max_retries=10):
     """Check the status of an orchestration stack
 
     Get the status of an orchestration stack and check whether it is complete
@@ -735,9 +735,6 @@ def wait_for_stack_ready(orchestration_client, stack_name, marker=None,
 
     :param nested_depth: Max depth to look for events
     :type nested_depth: int
-
-    :param poll_period: How often to poll for events
-    :type poll_period: int
 
     :param max_retries: Number of retries in the case of server problems
     :type max_retries: int
