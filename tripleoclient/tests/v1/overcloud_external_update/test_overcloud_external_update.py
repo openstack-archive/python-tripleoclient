@@ -62,7 +62,7 @@ class TestOvercloudExternalUpdateRun(fakes.TestOvercloudExternalUpdateRun):
                 node_user='tripleo-admin',
                 tags='ceph',
                 skip_tags='',
-                verbosity=1,
+                verbosity=0,
                 extra_vars={}
             )
 
@@ -95,6 +95,6 @@ class TestOvercloudExternalUpdateRun(fakes.TestOvercloudExternalUpdateRun):
                 node_user='tripleo-admin',
                 tags='',
                 skip_tags='',
-                verbosity=1,
+                verbosity=0,
                 extra_vars={'key1': 'val1', 'key2': 'val2'}
             )

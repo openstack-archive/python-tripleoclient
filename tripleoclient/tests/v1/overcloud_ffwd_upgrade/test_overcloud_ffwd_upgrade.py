@@ -171,7 +171,7 @@ class TestFFWDUpgradeRun(fakes.TestFFWDUpgradeRun):
                 node_user='heat-admin',
                 tags='',
                 skip_tags='',
-                verbosity=1,
+                verbosity=0,
                 extra_vars=None
             )
 
@@ -199,7 +199,7 @@ class TestFFWDUpgradeRun(fakes.TestFFWDUpgradeRun):
                 node_user='my-user',
                 tags='',
                 skip_tags='',
-                verbosity=1,
+                verbosity=0,
                 extra_vars=None
             )
 

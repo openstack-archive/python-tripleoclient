@@ -155,7 +155,7 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
                 node_user='tripleo-admin',
                 tags='',
                 skip_tags='',
-                verbosity=1,
+                verbosity=0,
                 extra_vars=None
             )
 
@@ -188,7 +188,7 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
                     node_user='tripleo-admin',
                     tags='',
                     skip_tags='',
-                    verbosity=1,
+                    verbosity=0,
                     extra_vars=None
                 )
 
@@ -216,7 +216,7 @@ class TestOvercloudUpdateConverge(fakes.TestOvercloudUpdateConverge):
 
         # Get the command object to test
         app_args = mock.Mock()
-        app_args.verbose_level = 1
+        app_args.verbose_level = 0
         self.cmd = overcloud_update.UpdateConverge(self.app, app_args)
 
     @mock.patch(

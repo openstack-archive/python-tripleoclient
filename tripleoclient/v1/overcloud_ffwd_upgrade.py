@@ -153,7 +153,7 @@ class FFWDUpgradeRun(command.Command):
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
         oooutils.ffwd_upgrade_operator_confirm(parsed_args.yes, self.log)
-        verbosity = self.app_args.verbose_level
+        verbosity = self.app_args.verbose_level - 1
         clients = self.app.client_manager
         orchestration = clients.orchestration
         stack = parsed_args.stack
