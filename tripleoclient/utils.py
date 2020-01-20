@@ -1420,7 +1420,7 @@ def process_multiple_environments(created_env_files, tht_root,
 def run_update_ansible_action(log, clients, stack, nodes, inventory,
                               playbook, all_playbooks, ssh_user,
                               action=None, tags='', skip_tags='',
-                              verbosity='1', extra_vars=None,
+                              verbosity='0', extra_vars=None,
                               workdir='', priv_key=''):
 
     playbooks = [playbook]
