@@ -197,7 +197,7 @@ class UpgradeRun(command.Command):
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
         clients = self.app.client_manager
-        verbosity = self.app_args.verbose_level
+        verbosity = self.app_args.verbose_level - 1
         stack = parsed_args.stack
 
         # Run ansible:
