@@ -28,13 +28,13 @@ from tripleoclient import exceptions
 
 LOG = logging.getLogger(__name__)
 
-DEFAULT_TRIPLEOCLIENT_API_VERSION = '1'
+DEFAULT_TRIPLEOCLIENT_API_VERSION = '2'
 
 # Required by the OSC plugin interface
 API_NAME = 'tripleoclient'
 API_VERSION_OPTION = 'os_tripleoclient_api_version'
 API_VERSIONS = {
-    '1': 'tripleoclient.plugin'
+    '2': 'tripleoclient.plugin'
 }
 
 
