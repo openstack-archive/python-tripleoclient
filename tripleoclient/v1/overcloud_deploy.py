@@ -685,13 +685,13 @@ class DeployOvercloud(command.Command):
         )
         parser.add_argument(
             '--overcloud-ssh-enable-timeout',
-            help=_('Timeout for the ssh enable process to finish.'),
+            help=_('This option no longer has any effect.'),
             type=int,
             default=constants.ENABLE_SSH_ADMIN_TIMEOUT
         )
         parser.add_argument(
             '--overcloud-ssh-port-timeout',
-            help=_('Timeout for to wait for the ssh port to become active.'),
+            help=_('Timeout for the ssh port to become active.'),
             type=int,
             default=constants.ENABLE_SSH_ADMIN_SSH_PORT_TIMEOUT
         )
@@ -951,12 +951,12 @@ class DeployOvercloud(command.Command):
             try:
                 if not parsed_args.config_download_only:
                     deployment.get_hosts_and_enable_ssh_admin(
-                        self.log, self.clients, stack,
+                        stack,
                         parsed_args.overcloud_ssh_network,
                         parsed_args.overcloud_ssh_user,
                         parsed_args.overcloud_ssh_key,
-                        parsed_args.overcloud_ssh_enable_timeout,
-                        parsed_args.overcloud_ssh_port_timeout)
+                        parsed_args.overcloud_ssh_port_timeout
+                    )
 
                 if parsed_args.config_download_timeout:
                     timeout = parsed_args.config_download_timeout * 60

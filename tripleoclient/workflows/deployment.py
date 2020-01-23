@@ -12,19 +12,14 @@
 from __future__ import print_function
 
 import copy
-import os
 import pprint
-import socket
-import subprocess
 import time
 import yaml
 
 from heatclient.common import event_utils
 from openstackclient import shell
 
-from tripleoclient.constants import ENABLE_SSH_ADMIN_SSH_PORT_TIMEOUT
-from tripleoclient.constants import ENABLE_SSH_ADMIN_STATUS_INTERVAL
-from tripleoclient.constants import ENABLE_SSH_ADMIN_TIMEOUT
+from tripleoclient.constants import ANSIBLE_TRIPLEO_PLAYBOOKS
 from tripleoclient import exceptions
 from tripleoclient import utils
 
@@ -159,156 +154,92 @@ def get_overcloud_hosts(stack, ssh_network):
     return ips
 
 
-def wait_for_ssh_port(host, timeout=ENABLE_SSH_ADMIN_SSH_PORT_TIMEOUT):
-    start = int(time.time())
-    while True:
-        now = int(time.time())
-        if (now - start) > timeout:
-            raise exceptions.DeploymentError(
-                "Timed out waiting for port 22 from %s" % host)
-        # first check ipv4 then check ipv6
-        try:
-            sock = socket.socket()
-            sock.connect((host, 22))
-            sock.close()
-            return
-        except socket.error:
-            try:
-                sock = socket.socket(socket.AF_INET6)
-                sock.connect((host, 22))
-                sock.close()
-                return
-            except socket.error:
-                pass
+def get_hosts_and_enable_ssh_admin(stack, overcloud_ssh_network,
+                                   overcloud_ssh_user, overcloud_ssh_key,
+                                   overcloud_ssh_port_timeout):
+    """Enable ssh admin access.
 
-        time.sleep(1)
+    Get a list of hosts from a given stack and enable admin ssh across all of
+    them.
 
+    :param stack: Stack data.
+    :type stack: Object
 
-def get_hosts_and_enable_ssh_admin(
-        log, clients, stack, overcloud_ssh_network, overcloud_ssh_user,
-        overcloud_ssh_key, enable_ssh_timeout=ENABLE_SSH_ADMIN_TIMEOUT,
-        enable_ssh_port_timeout=ENABLE_SSH_ADMIN_SSH_PORT_TIMEOUT):
+    :param overcloud_ssh_network: Network id.
+    :type overcloud_ssh_network: String
+
+    :param overcloud_ssh_user: SSH access username.
+    :type overcloud_ssh_user: String
+
+    :param overcloud_ssh_key: SSH access key.
+    :type overcloud_ssh_key: String
+
+    :param overcloud_ssh_port_timeout: Ansible connection timeout
+    :type overcloud_ssh_port_timeout: Int
+    """
+
     hosts = get_overcloud_hosts(stack, overcloud_ssh_network)
     if [host for host in hosts if host]:
-
-        try:
-            enable_ssh_admin(log, clients, stack.stack_name, hosts,
-                             overcloud_ssh_user, overcloud_ssh_key,
-                             enable_ssh_timeout, enable_ssh_port_timeout)
-        except subprocess.CalledProcessError as e:
-            if e.returncode == 255:
-                log.error("Couldn't not import keys to one of {}. "
-                          "Check if the user/ip are corrects.\n".format(hosts))
-            else:
-                log.error("Unknown error. "
-                          "Original message is:\n{} {}".format(hosts, e))
-
+        enable_ssh_admin(
+            stack,
+            hosts,
+            overcloud_ssh_user,
+            overcloud_ssh_key,
+            overcloud_ssh_port_timeout
+        )
     else:
-        raise exceptions.DeploymentError("Cannot find any hosts on '{}'"
-                                         " in network '{}'"
-                                         .format(stack.stack_name,
-                                                 overcloud_ssh_network))
-
-
-def enable_ssh_admin(log, clients, plan_name, hosts, ssh_user, ssh_key,
-                     enable_ssh_timeout=ENABLE_SSH_ADMIN_TIMEOUT,
-                     enable_ssh_port_timeout=ENABLE_SSH_ADMIN_SSH_PORT_TIMEOUT
-                     ):
-    print("Enabling ssh admin (tripleo-admin) for hosts:")
-    print(" ".join(hosts))
-    print("Using ssh user %s for initial connection." % ssh_user)
-    print("Using ssh key at %s for initial connection." % ssh_key)
-
-    ssh_options = ("-o ConnectionAttempts=6 "
-                   "-o ConnectTimeout=30 "
-                   "-o StrictHostKeyChecking=no "
-                   "-o PasswordAuthentication=no "
-                   "-o UserKnownHostsFile=/dev/null")
-
-    with utils.TempDirs() as tmp_key_dir:
-        tmp_key_private = os.path.join(tmp_key_dir, 'id_rsa')
-        tmp_key_public = os.path.join(tmp_key_dir, 'id_rsa.pub')
-        tmp_key_comment = "TripleO split stack short term key"
-        tmp_key_command = ["ssh-keygen", "-N", "", "-t", "rsa", "-b", "4096",
-                           "-f", tmp_key_private, "-C", tmp_key_comment]
-        DEVNULL = open(os.devnull, 'w')
-        try:
-            subprocess.check_call(tmp_key_command, stdout=DEVNULL,
-                                  stderr=subprocess.STDOUT)
-        except subprocess.CalledProcessError as exc:
-            log.error("ssh-keygen has failed with return code {0}".
-                      format(exc.returncode))
-        else:
-            log.info("ssh-keygen has been run successfully")
-        DEVNULL.close()
-
-        with open(tmp_key_public) as pubkey:
-            tmp_key_public_contents = pubkey.read()
-        with open(tmp_key_private) as privkey:
-            tmp_key_private_contents = privkey.read()
-
-        for host in hosts:
-            wait_for_ssh_port(host, enable_ssh_port_timeout)
-            copy_tmp_key_command = ["ssh"] + ssh_options.split()
-            copy_tmp_key_command += \
-                ["-o", "StrictHostKeyChecking=no",
-                 "-i", ssh_key, "-l", ssh_user, host,
-                 "echo -e '\n%s' >> $HOME/.ssh/authorized_keys" %
-                 tmp_key_public_contents]
-            print("Inserting TripleO short term key for %s" % host)
-            subprocess.check_call(copy_tmp_key_command,
-                                  stderr=subprocess.STDOUT)
-
-        print("Starting ssh admin enablement workflow")
-
-        workflow_client = clients.workflow_engine
-
-        workflow_input = {
-            "ssh_user": ssh_user,
-            "ssh_servers": hosts,
-            "ssh_private_key": tmp_key_private_contents,
-            "plan_name": plan_name
-        }
-
-        execution = base.start_workflow(
-            workflow_client,
-            'tripleo.access.v1.enable_ssh_admin',
-            workflow_input=workflow_input
+        raise exceptions.DeploymentError(
+            'Cannot find any hosts on "{}" in network "{}"'.format(
+                stack.stack_name,
+                overcloud_ssh_network
+            )
         )
 
-        start = int(time.time())
-        while True:
-            now = int(time.time())
-            if (now - start) > enable_ssh_timeout:
-                raise exceptions.DeploymentError(
-                    "ssh admin enablement workflow - TIMED OUT.")
 
-            time.sleep(1)
-            execution = workflow_client.executions.get(execution.id)
-            state = execution.state
+def enable_ssh_admin(stack, hosts, ssh_user, ssh_key, timeout):
+    """Run enable ssh admin access playbook.
 
-            if state == 'RUNNING':
-                if (now - start) % ENABLE_SSH_ADMIN_STATUS_INTERVAL\
-                        == 0:
-                    print("ssh admin enablement workflow - RUNNING.")
-                continue
-            elif state == 'SUCCESS':
-                print("ssh admin enablement workflow - COMPLETE.")
-                break
-            elif state in ('FAILED', 'ERROR'):
-                error = "ssh admin enablement workflow - FAILED.\n"
-                error += execution.to_dict()['state_info']
-                raise exceptions.DeploymentError(error)
+    :param stack: Stack data.
+    :type stack: Object
 
-        for host in hosts:
-            rm_tmp_key_command = ["ssh"] + ssh_options.split()
-            rm_tmp_key_command += \
-                ["-i", ssh_key, "-l", ssh_user, host,
-                 "sed -i -e '/%s/d' $HOME/.ssh/authorized_keys" %
-                 tmp_key_comment]
-            print("Removing TripleO short term key from %s" % host)
-            subprocess.check_call(rm_tmp_key_command, stderr=subprocess.STDOUT)
+    :param hosts: Machines to connect to.
+    :type hosts: List
 
+    :param ssh_user: SSH access username.
+    :type ssh_user: String
+
+    :param ssh_key: SSH access key.
+    :type ssh_key: String
+
+    :param timeout: Ansible connection timeout
+    :type timeout: int
+    """
+
+    print(
+        'Enabling ssh admin (tripleo-admin) for hosts: {}.'
+        '\nUsing ssh user "{}" for initial connection.'
+        '\nUsing ssh key at "{}" for initial connection.'
+        '\n\nStarting ssh admin enablement playbook'.format(
+            hosts,
+            ssh_user,
+            ssh_key
+        )
+    )
+    with utils.TempDirs() as tmp:
+        utils.run_ansible_playbook(
+            playbook='cli-enable-ssh-admin.yaml',
+            inventory=','.join(hosts),
+            workdir=tmp,
+            playbook_dir=ANSIBLE_TRIPLEO_PLAYBOOKS,
+            key=ssh_key,
+            ssh_user=ssh_user,
+            extra_vars={
+                "ssh_user": ssh_user,
+                "ssh_servers": hosts,
+                'tripleo_cloud_name': stack.stack_name
+            },
+            ansible_timeout=timeout
+        )
     print("Enabling ssh admin - COMPLETE.")
 
 
