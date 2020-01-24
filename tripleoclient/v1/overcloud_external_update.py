@@ -98,7 +98,7 @@ class ExternalUpdateRun(command.Command):
         self.log.debug("take_action(%s)" % parsed_args)
         clients = self.app.client_manager
         orchestration = clients.orchestration
-        verbosity = self.app_args.verbose_level
+        verbosity = self.app_args.verbose_level - 1
         stack = parsed_args.stack
 
         ansible_dir = None
