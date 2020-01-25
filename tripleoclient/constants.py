@@ -80,6 +80,8 @@ ADDITIONAL_ARCHITECTURES = ['ppc64le']
 DEFAULT_VALIDATIONS_BASEDIR = '/usr/share/openstack-tripleo-validations'
 DEFAULT_WORK_DIR = '/var/lib/mistral'
 
+ANSIBLE_INVENTORY = \
+    '/var/lib/mistral/overcloud/tripleo-ansible-inventory.yaml'
 ANSIBLE_VALIDATION_DIR = \
     '/usr/share/openstack-tripleo-validations/playbooks'
 ANSIBLE_TRIPLEO_PLAYBOOKS = \
