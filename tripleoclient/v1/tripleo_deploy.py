@@ -1419,15 +1419,14 @@ class Deploy(command.Command):
                 ).lower()
                 if not prompt_response.startswith('y'):
                     raise exceptions.UndercloudUpgradeNotConfirmed(unconf_msg)
-        except (KeyboardInterrupt, EOFError) as e:
-            if e.__class__ == KeyboardInterrupt:
-                # ctrl-c
-                raise exceptions.UndercloudUpgradeNotConfirmed("(ctrl-c) %s" %
-                                                               unconf_msg)
-            else:
-                # ctrl-d
-                raise exceptions.UndercloudUpgradeNotConfirmed("(ctrl-d) %s" %
-                                                               unconf_msg)
+        except KeyboardInterrupt:
+            # ctrl-c
+            raise exceptions.UndercloudUpgradeNotConfirmed("(ctrl-c) %s" %
+                                                           unconf_msg)
+        except EOFError:
+            # ctrl-d
+            raise exceptions.UndercloudUpgradeNotConfirmed("(ctrl-d) %s" %
+                                                           unconf_msg)
 
         try:
             if parsed_args.standalone:
