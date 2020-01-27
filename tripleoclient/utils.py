@@ -489,13 +489,7 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
         runner = ansible_runner.Runner(config=runner_config)
         status, rc = runner.run()
 
-    if rc == 0:
-        LOG.info(
-            'Ansible execution success. playbook: {}'.format(
-                playbook
-            )
-        )
-    else:
+    if rc != 0:
         err_msg = (
             'Ansible execution failed. playbook: {},'
             ' Run Status: {},'
@@ -507,6 +501,13 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
         )
         if not quiet:
             LOG.error(err_msg)
+        raise ansible_runner.AnsibleRunnerException(err_msg)
+
+    LOG.info(
+        'Ansible execution success. playbook: {}'.format(
+            playbook
+        )
+    )
     return rc, status
 
 
