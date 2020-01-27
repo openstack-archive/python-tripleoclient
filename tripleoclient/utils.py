@@ -124,7 +124,7 @@ class TempDirs(object):
         :type dir_path: `string`
         :param dir_prefix: prefix to add to a temp directory
         :type dir_prefix: `string`
-        :paramm cleanup: when enabled the temp directory will be
+        :param cleanup: when enabled the temp directory will be
                          removed on exit.
         :type cleanup: `boolean`
         :param chdir: Change to/from the created temporary dir on enter/exit.
@@ -207,7 +207,8 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
                          limit_hosts=None, tags=None, skip_tags=None,
                          verbosity=0, quiet=False, extra_vars=None,
                          plan='overcloud', gathering_policy='smart',
-                         extra_env_variables=None, ansible_cfg=None):
+                         extra_env_variables=None, parallel_run=False,
+                         callback_whitelist=None, ansible_cfg=None):
     """Simple wrapper for ansible-playbook.
 
     :param playbook: Playbook filename.
@@ -228,6 +229,12 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
 
     :param output_callback: Callback for output format. Defaults to "json".
     :type output_callback: String
+
+    :param callback_whitelist: Comma separated list of callback plugins.
+                               Defaults to the value of `output_callback`.
+                               When the verbosity is > 0 "profile_tasks"
+                               will also be whitelisted.
+    :type callback_whitelist: String
 
     :param ssh_user: User for the ssh connection.
     :type ssh_user: String
@@ -267,6 +274,10 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
     :param extra_env_variables: Dict option to extend or override any of the
                                 default environment variables.
     :type extra_env_variables: Dict
+
+    :param parallel_run: Isolate playbook execution when playbooks are to be
+                         executed with multi-processing.
+    :type parallel_run: Boolean
 
     :param ansible_cfg: Path to an ansible configuration file. One will be
                         generated in the artifact path if this option is None.
@@ -340,7 +351,12 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
             with open(extra_vars) as f:
                 extravars.update(yaml.safe_load(f.read()))
 
-    callback_whitelist = ','.join([output_callback, 'profile_tasks'])
+    if callback_whitelist:
+        callback_whitelist = ','.join([callback_whitelist, output_callback])
+    else:
+        callback_whitelist = output_callback
+
+    callback_whitelist = ','.join([callback_whitelist, 'profile_tasks'])
 
     env = os.environ.copy()
     env['ANSIBLE_DISPLAY_FAILED_STDERR'] = True
@@ -499,8 +515,19 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
         if limit_hosts:
             r_opts['limit'] = limit_hosts
 
+        if parallel_run:
+            r_opts['directory_isolation_base_path'] = ansible_artifact_path
+
         runner_config = ansible_runner.runner_config.RunnerConfig(**r_opts)
         runner_config.prepare()
+        # NOTE(cloudnull): overload the output callback after prepare
+        #                  to define the specific format we want.
+        #                  This is only required until PR
+        #                  https://github.com/ansible/ansible-runner/pull/387
+        #                  is merged and released. After this PR has been
+        #                  made available to us, this line should be removed.
+        runner_config.env['ANSIBLE_STDOUT_CALLBACK'] = \
+            r_opts['envvars']['ANSIBLE_STDOUT_CALLBACK']
         runner = ansible_runner.Runner(config=runner_config)
         status, rc = runner.run()
 
