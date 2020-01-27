@@ -489,9 +489,6 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
         runner = ansible_runner.Runner(config=runner_config)
         status, rc = runner.run()
 
-    if verbosity > 1:
-        status = runner.stdout
-
     if rc == 0:
         LOG.info(
             'Ansible execution success. playbook: {}'.format(
