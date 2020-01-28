@@ -109,6 +109,23 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         get_container = client.object_store.get_container = mock.MagicMock()
         get_container.return_value = ('container', [{'name': 'f1'}])
 
+        # Mock playbook runner
+        playbook_runner = mock.patch(
+            'tripleoclient.utils.run_ansible_playbook',
+            autospec=True
+        )
+        playbook_runner.start()
+        self.addCleanup(playbook_runner.stop)
+
+        # Mock horizon url return
+        horizon_url = mock.patch(
+            'tripleoclient.workflows.deployment.get_horizon_url',
+            autospec=True
+        )
+        horizon_url.start()
+        horizon_url.return_value = 'fake://url:12345'
+        self.addCleanup(horizon_url.stop)
+
     def tearDown(self):
         super(TestDeployOvercloud, self).tearDown()
         os.unlink(self.parameter_defaults_env_file)

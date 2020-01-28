@@ -27,9 +27,6 @@ class DeploymentWorkflowFixture(fixtures.Fixture):
         self.mock_config_download = self.useFixture(fixtures.MockPatch(
             'tripleoclient.workflows.deployment.config_download')
         ).mock
-        self.mock_get_horizon_url = self.useFixture(fixtures.MockPatch(
-            'tripleoclient.workflows.deployment.get_horizon_url')
-        ).mock
         self.mock_set_deployment_status = self.useFixture(fixtures.MockPatch(
             'tripleoclient.workflows.deployment.set_deployment_status')
         ).mock
