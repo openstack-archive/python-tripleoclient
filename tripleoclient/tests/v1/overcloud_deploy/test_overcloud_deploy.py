@@ -1504,11 +1504,14 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                           self.cmd.take_action,
                           parsed_args)
 
+    @mock.patch('tripleoclient.workflows.baremetal.undeploy_roles',
+                autospec=True)
     @mock.patch('tripleoclient.workflows.baremetal.deploy_roles',
                 autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_write_user_environment', autospec=True)
-    def test_provision_baremetal(self, mock_write, mock_deploy_roles):
+    def test_provision_baremetal(self, mock_write, mock_deploy_roles,
+                                 mock_undeploy_roles):
         mock_write.return_value = (
             '/tmp/tht/user-environments/baremetal-deployed.yaml',
             'overcloud/user-environments/baremetal-deployed.yaml'
@@ -1542,15 +1545,22 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         tht_root = '/tmp/tht'
         result = self.cmd._provision_baremetal(parsed_args, tht_root)
+        self.cmd._unprovision_baremetal(parsed_args)
         self.assertEqual(
             ['/tmp/tht/user-environments/baremetal-deployed.yaml'],
             result
         )
         mock_deploy_roles.assert_called_once_with(
             self.app.client_manager,
+            plan='overcloud',
             roles=deploy_data,
             ssh_keys=['sekrit'],
             ssh_user_name='heat-admin'
+        )
+        mock_undeploy_roles.assert_called_once_with(
+            self.app.client_manager,
+            plan='overcloud',
+            roles=deploy_data
         )
         mock_write.assert_called_once_with(
             self.cmd,
