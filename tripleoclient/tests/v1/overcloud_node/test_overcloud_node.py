@@ -1104,6 +1104,7 @@ class TestProvisionNode(fakes.TestOvercloudNode):
             'tripleo.baremetal_deploy.v1.deploy_roles',
             workflow_input={'roles': [{'name': 'Compute'},
                                       {'name': 'Controller'}],
+                            'plan': 'overcloud',
                             'ssh_keys': ['I am a key'],
                             'ssh_user_name': 'heat-admin'}
         )
@@ -1130,11 +1131,22 @@ class TestUnprovisionNode(fakes.TestOvercloudNode):
         self.cmd = overcloud_node.UnprovisionNode(self.app, None)
 
     def test_ok(self):
+        rv = mock.Mock()
+        rv.output = json.dumps({
+            'result': {
+                'instances': [
+                    {'hostname': 'compute-0', 'name': 'baremetal-1'},
+                    {'hostname': 'controller-0', 'name': 'baremetal-2'}
+                ]
+            }
+        })
+
+        self.workflow.action_executions.create.return_value = rv
         with tempfile.NamedTemporaryFile() as inp:
             inp.write(b'- name: Compute\n- name: Controller\n')
             inp.flush()
-            argslist = [inp.name]
-            verifylist = [('input', inp.name)]
+            argslist = ['--yes', inp.name]
+            verifylist = [('input', inp.name), ('yes', True)]
 
             parsed_args = self.check_parser(self.cmd,
                                             argslist, verifylist)
@@ -1142,6 +1154,66 @@ class TestUnprovisionNode(fakes.TestOvercloudNode):
 
         self.workflow.executions.create.assert_called_once_with(
             'tripleo.baremetal_deploy.v1.undeploy_roles',
-            workflow_input={'roles': [{'name': 'Compute'},
-                                      {'name': 'Controller'}]}
+            workflow_input={
+                'plan': 'overcloud',
+                'roles': [{
+                    'name': 'Unprovisioned',
+                    'count': 0,
+                    'instances': [
+                        {'hostname': u'compute-0', 'provisioned': False},
+                        {'hostname': u'controller-0', 'provisioned': False}
+                    ]
+                }]
+            }
+        )
+
+    def test_ok_all(self):
+        rv = mock.Mock()
+        rv.output = json.dumps({
+            'result': {
+                'instances': [
+                    {'hostname': 'compute-0', 'name': 'baremetal-1'},
+                    {'hostname': 'controller-0', 'name': 'baremetal-2'}
+                ]
+            }
+        })
+
+        rv_provisioned = mock.Mock()
+        rv_provisioned.output = json.dumps({
+            'result': {
+                'instances': [
+                    {'hostname': 'compute-1', 'name': 'baremetal-3'},
+                    {'hostname': 'controller-1', 'name': 'baremetal-4'}
+                ]
+            }
+        })
+
+        self.workflow.action_executions.create.side_effect = [
+            rv, rv_provisioned
+        ]
+        with tempfile.NamedTemporaryFile() as inp:
+            inp.write(b'- name: Compute\n- name: Controller\n')
+            inp.flush()
+            argslist = ['--all', '--yes', inp.name]
+            verifylist = [('input', inp.name), ('yes', True), ('all', True)]
+
+            parsed_args = self.check_parser(self.cmd,
+                                            argslist, verifylist)
+            self.cmd.take_action(parsed_args)
+
+        self.workflow.executions.create.assert_called_once_with(
+            'tripleo.baremetal_deploy.v1.undeploy_roles',
+            workflow_input={
+                'plan': 'overcloud',
+                'roles': [{
+                    'name': 'Unprovisioned',
+                    'count': 0,
+                    'instances': [
+                        {'hostname': u'compute-0', 'provisioned': False},
+                        {'hostname': u'controller-0', 'provisioned': False},
+                        {'hostname': u'compute-1', 'provisioned': False},
+                        {'hostname': u'controller-1', 'provisioned': False}
+                    ]
+                }]
+            }
         )
