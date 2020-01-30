@@ -89,7 +89,7 @@ class StandaloneConfig(BaseConfig):
             cfg.BoolOpt('enable_telemetry',
                         default=telemetry,
                         help=_('Whether to install Telemetry services '
-                               '(ceilometer, gnocchi, aodh) in the '
+                               '(ceilometer, gnocchi, aodh, panko ) in the '
                                'Undercloud.')
                         ),
             cfg.BoolOpt('enable_validations',
