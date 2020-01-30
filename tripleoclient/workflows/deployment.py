@@ -342,7 +342,7 @@ def enable_ssh_admin(log, clients, plan_name, hosts, ssh_user, ssh_key,
 
 def config_download(log, clients, stack, templates,
                     ssh_user, ssh_key, ssh_network,
-                    output_dir, override_ansible_cfg, timeout, verbosity=1,
+                    output_dir, override_ansible_cfg, timeout, verbosity=0,
                     deployment_options={},
                     in_flight_validations=False):
     workflow_client = clients.workflow_engine
