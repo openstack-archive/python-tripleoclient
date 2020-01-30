@@ -207,7 +207,7 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
                          limit_hosts=None, tags=None, skip_tags=None,
                          verbosity=0, quiet=False, extra_vars=None,
                          plan='overcloud', gathering_policy='smart',
-                         extra_env_variables=None):
+                         extra_env_variables=None, ansible_cfg=None):
     """Simple wrapper for ansible-playbook.
 
     :param playbook: Playbook filename.
@@ -267,6 +267,10 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
     :param extra_env_variables: Dict option to extend or override any of the
                                 default environment variables.
     :type extra_env_variables: Dict
+
+    :param ansible_cfg: Path to an ansible configuration file. One will be
+                        generated in the artifact path if this option is None.
+    :type ansible_cfg: String
     """
 
     def _playbook_check(play):
@@ -460,6 +464,17 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
             env.update(extra_env_variables)
 
     with TempDirs(chdir=False) as ansible_artifact_path:
+        if 'ANSIBLE_CONFIG' not in env and not ansible_cfg:
+            ansible_cfg = os.path.join(ansible_artifact_path, 'ansible.cfg')
+            config = configparser.ConfigParser()
+            config.add_section('defaults')
+            config.set('defaults', 'internal_poll_interval', '0.05')
+            with open(ansible_cfg, 'w') as f:
+                config.write(f)
+            env['ANSIBLE_CONFIG'] = ansible_cfg
+        elif 'ANSIBLE_CONFIG' not in env and ansible_cfg:
+            env['ANSIBLE_CONFIG'] = ansible_cfg
+
         r_opts = {
             'private_data_dir': workdir,
             'project_dir': playbook_dir,
