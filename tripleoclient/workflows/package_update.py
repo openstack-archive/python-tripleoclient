@@ -18,10 +18,11 @@ import time
 
 from heatclient.common import event_utils
 from openstackclient import shell
-from tripleoclient import exceptions
-from tripleoclient import utils
+from tripleo_common.actions import config
 
 from tripleoclient import constants
+from tripleoclient import exceptions
+from tripleoclient import utils
 from tripleoclient.workflows import base
 
 _WORKFLOW_TIMEOUT = 120 * 60  # 2h
@@ -66,25 +67,19 @@ def update(clients, **workflow_input):
         raise exceptions.DeploymentError("Heat Stack update failed.")
 
 
-def get_config(clients, **workflow_input):
-    workflow_client = clients.workflow_engine
-    tripleoclients = clients.tripleoclient
+def get_config(clients, container):
+    """Get cloud config.
 
-    with tripleoclients.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client,
-            'tripleo.package_update.v1.get_config',
-            workflow_input=workflow_input
-        )
+    :param clients: Application client object.
+    :type clients: Object
 
-        for payload in base.wait_for_messages(workflow_client, ws, execution,
-                                              _WORKFLOW_TIMEOUT):
-            assert payload['status'] == "SUCCESS", pprint.pformat(payload)
+    :param container: Container name to pull from.
+    :type container: String.
+    """
 
-    if payload['status'] == 'SUCCESS':
-        print('Success')
-    else:
-        raise RuntimeError('Minor update failed with: {}'.format(payload))
+    context = clients.tripleoclient.create_mistral_context()
+    config_action = config.GetOvercloudConfig(container=container)
+    config_action.run(context=context)
 
 
 def get_key(stack):

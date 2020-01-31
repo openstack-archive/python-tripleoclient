@@ -16,6 +16,7 @@
 import mock
 from osc_lib.tests import utils
 
+from tripleoclient import plugin
 from tripleoclient.tests import fakes
 
 
@@ -47,11 +48,14 @@ class TestOvercloudUpdatePrepare(utils.TestCommand):
         self.app.client_manager.auth_ref = mock.Mock(auth_token="TOKEN")
         self.app.client_manager.baremetal = mock.Mock()
         self.app.client_manager.orchestration = mock.Mock()
-        self.app.client_manager.tripleoclient = FakeClientWrapper()
         workflow = execution = mock.Mock()
         execution.id = "IDID"
         workflow.executions.create.return_value = execution
         self.app.client_manager.workflow_engine = workflow
+        tc = self.app.client_manager.tripleoclient = FakeClientWrapper()
+        tc.create_mistral_context = plugin.ClientWrapper(
+            instance=fakes.FakeInstanceData
+        ).create_mistral_context
 
 
 class TestOvercloudUpdateRun(utils.TestCommand):
@@ -60,9 +64,12 @@ class TestOvercloudUpdateRun(utils.TestCommand):
         super(TestOvercloudUpdateRun, self).setUp()
 
         self.app.client_manager.auth_ref = mock.Mock(auth_token="TOKEN")
-        self.app.client_manager.tripleoclient = FakeClientWrapper()
         self.app.client_manager.workflow_engine = mock.Mock()
         self.app.client_manager.orchestration = mock.Mock()
+        tc = self.app.client_manager.tripleoclient = FakeClientWrapper()
+        tc.create_mistral_context = plugin.ClientWrapper(
+            instance=fakes.FakeInstanceData
+        ).create_mistral_context
 
 
 class TestOvercloudUpdateConverge(utils.TestCommand):
@@ -73,5 +80,8 @@ class TestOvercloudUpdateConverge(utils.TestCommand):
         self.app.client_manager.auth_ref = mock.Mock(auth_token="TOKEN")
         self.app.client_manager.baremetal = mock.Mock()
         self.app.client_manager.orchestration = mock.Mock()
-        self.app.client_manager.tripleoclient = FakeClientWrapper()
         self.app.client_manager.workflow_engine = mock.Mock()
+        tc = self.app.client_manager.tripleoclient = FakeClientWrapper()
+        tc.create_mistral_context = plugin.ClientWrapper(
+            instance=fakes.FakeInstanceData
+        ).create_mistral_context
