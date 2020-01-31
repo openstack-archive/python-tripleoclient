@@ -15,6 +15,7 @@ import tempfile
 import yaml
 
 from swiftclient import exceptions as swift_exc
+from tripleo_common.actions import plan
 from tripleo_common.utils import swift as swiftutils
 from tripleo_common.utils import tarball
 
@@ -122,26 +123,9 @@ def update_deployment_plan(clients, **workflow_input):
             'Exception updating plan: {}'.format(payload['message']))
 
 
-def list_deployment_plans(clients, **workflow_input):
-    workflow_client = clients.workflow_engine
-    tripleoclients = clients.tripleoclient
-
-    with tripleoclients.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client,
-            'tripleo.plan_management.v1.list_plans',
-            workflow_input=workflow_input
-        )
-
-        for payload in base.wait_for_messages(workflow_client, ws, execution,
-                                              _WORKFLOW_TIMEOUT):
-            if payload['status'] != 'SUCCESS':
-                raise exceptions.WorkflowServiceError(
-                    'Exception listing plans: {}'.format(payload['message']))
-
-            # return plans if the message contains plans
-            if 'plans' in payload:
-                return payload['plans']
+def list_deployment_plans(clients):
+    mistral_context = clients.tripleoclient.create_mistral_context()
+    return plan.ListPlansAction().run(mistral_context)
 
 
 def create_container(workflow_client, **input_):

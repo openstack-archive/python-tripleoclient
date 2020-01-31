@@ -28,6 +28,8 @@ from swiftclient.exceptions import ClientException as ObjectClientException
 
 from tripleoclient import constants
 from tripleoclient import exceptions
+from tripleoclient import plugin
+from tripleoclient.tests import fakes as ooofakes
 from tripleoclient.tests.fixture_data import deployment
 from tripleoclient.tests.v1.overcloud_deploy import fakes
 from tripleoclient.v1 import overcloud_deploy
@@ -86,6 +88,26 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_sleep = mock.patch('time.sleep', autospec=True)
         mock_sleep.start()
         self.addCleanup(mock_sleep.stop)
+        plan_list = mock.patch(
+            "tripleoclient.workflows.plan_management.list_deployment_plans",
+            autospec=True
+        )
+        plan_list.start()
+        plan_list.return_value = ([
+            "test-plan-1",
+            "test-plan-2",
+        ])
+        self.addCleanup(plan_list.stop)
+        client = self.app.client_manager.tripleoclient = plugin.ClientWrapper(
+            instance=ooofakes.FakeInstanceData
+        )
+        client.messaging_websocket = \
+            ooofakes.FakeClientWrapper().messaging_websocket
+        get_object = client.object_store.get_object = mock.Mock()
+        get_object.return_value = ('f1', 'content')
+        client.object_store.put_object = mock.Mock()
+        get_container = client.object_store.get_container = mock.MagicMock()
+        get_container.return_value = ('container', [{'name': 'f1'}])
 
     def tearDown(self):
         super(TestDeployOvercloud, self).tearDown()
@@ -1056,8 +1078,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         verifylist = [
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
         ]
-
-        clients = self.app.client_manager
         workflow_client = clients.workflow_engine
         workflow_client.action_executions.create.return_value = mock.MagicMock(
             output='{"result":[]}')
