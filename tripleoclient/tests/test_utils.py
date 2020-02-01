@@ -43,6 +43,7 @@ from tripleoclient.tests import fakes
 from six.moves.configparser import ConfigParser
 from six.moves.urllib import error as url_error
 
+from ansible_runner import AnsibleRunnerException
 from ansible_runner import Runner
 
 
@@ -77,12 +78,12 @@ class TestRunAnsiblePlaybook(TestCase):
     )
     def test_subprocess_error(self, mock_run, mock_mkdirs, mock_exists,
                               mock_mkstemp):
-        retcode, output = utils.run_ansible_playbook(
-            'existing.yaml',
-            'localhost,',
-            '/tmp'
-        )
-        self.assertEqual(retcode, 1)
+        with self.assertRaises(AnsibleRunnerException):
+            utils.run_ansible_playbook(
+                'existing.yaml',
+                'localhost,',
+                '/tmp'
+            )
 
     @mock.patch('tempfile.mkstemp', return_value=('foo', '/tmp/fooBar.cfg'))
     @mock.patch('os.path.exists', return_value=True)
