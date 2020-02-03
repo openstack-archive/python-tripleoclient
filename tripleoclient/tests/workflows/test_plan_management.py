@@ -195,21 +195,6 @@ class TestPlanCreationWorkflows(utils.TestCommand):
         self.tripleoclient.object_store.put_object.assert_called_once_with(
             'test-overcloud', 'network_data.yaml', mock_open_context())
 
-    def test_delete_plan(self):
-        output = mock.Mock(output='{"result": ""}')
-        output.id = "IDID"
-        self.workflow.action_executions.create.return_value = output
-        self.workflow.executions.create.return_value = output
-        self.websocket.wait_for_messages.return_value = self.message_success
-
-        plan_management.delete_deployment_plan(
-            self.app.client_manager,
-            container='test-overcloud')
-
-        self.workflow.executions.create.assert_called_once_with(
-            'tripleo.plan_management.v1.delete_deployment_plan',
-            workflow_input={'container': 'test-overcloud'})
-
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
                 autospec=True)
     def test_create_plan_with_password_gen_disabled(self, mock_tarball):

@@ -45,6 +45,7 @@ class FakeClientManager(object):
         self.auth_ref = None
         self.tripleoclient = FakeClientWrapper()
         self.workflow_engine = mock.Mock()
+        self.create_mistral_context = mock.Mock()
 
 
 class FakeHandle(object):
