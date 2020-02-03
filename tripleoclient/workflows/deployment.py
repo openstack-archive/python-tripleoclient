@@ -19,7 +19,9 @@ import yaml
 
 from heatclient.common import event_utils
 from openstackclient import shell
+from tripleo_common.actions import config
 from tripleo_common.actions import deployment
+from tripleo_common.actions import swifthelper
 
 from tripleoclient.constants import ANSIBLE_TRIPLEO_PLAYBOOKS
 from tripleoclient import exceptions
@@ -315,29 +317,37 @@ def config_download(log, clients, stack, templates,
         raise exceptions.DeploymentError("Overcloud configuration failed.")
 
 
-def config_download_export(clients, **workflow_input):
-    workflow_client = clients.workflow_engine
-    tripleoclients = clients.tripleoclient
+def config_download_export(clients, plan, config_type):
+    """Export a given config.
 
-    with tripleoclients.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client,
-            'tripleo.deployment.v1.config_download_export',
-            workflow_input=workflow_input
+    :param clients: application client object.
+    :type clients: Object
+
+    :param plan: Plan name.
+    :type plan: String
+
+    :param config_type: List of config type options.
+    :type config_type: List
+
+    :returns: string
+    """
+
+    context = clients.tripleoclient.create_mistral_context()
+    container_config = '{}-config'.format(plan)
+    config.GetOvercloudConfig(
+        container=plan,
+        config_type=config_type,
+        container_config=container_config
+    ).run(context=context)
+    print(
+        'Config Download export complete for {}. Creating temp URL.'.format(
+            plan
         )
-
-        for payload in base.wait_for_messages(workflow_client, ws, execution,
-                                              _WORKFLOW_TIMEOUT):
-            message = payload.get('message')
-            if message:
-                print(message)
-
-    if payload['status'] == 'SUCCESS':
-        return payload['tempurl']
-    else:
-        raise exceptions.WorkflowServiceError(
-            'Exception exporting config-download: {}'.format(
-                payload['message']))
+    )
+    return swifthelper.SwiftTempUrlAction(
+        container=container_config,
+        obj='{}.tar.gz'.format(container_config)
+    ).run(context=context)
 
 
 def get_horizon_url(stack):
