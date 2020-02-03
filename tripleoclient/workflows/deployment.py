@@ -19,6 +19,7 @@ import yaml
 
 from heatclient.common import event_utils
 from openstackclient import shell
+from tripleo_common.actions import deployment
 
 from tripleoclient.constants import ANSIBLE_TRIPLEO_PLAYBOOKS
 from tripleoclient import exceptions
@@ -360,29 +361,32 @@ def get_horizon_url(stack):
             return f.read().strip()
 
 
-def get_deployment_status(clients, **workflow_input):
-    workflow_client = clients.workflow_engine
-    tripleoclients = clients.tripleoclient
+def get_deployment_status(clients, plan):
+    """Return current deployment status.
 
-    with tripleoclients.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client,
-            'tripleo.deployment.v1.get_deployment_status',
-            workflow_input=workflow_input
+    :param clients: application client object.
+    :type clients: Object
+
+    :param plan: Plan name.
+    :type plan: String
+
+    :returns: string
+    """
+
+    context = clients.tripleoclient.create_mistral_context()
+    get_deployment_status = deployment.DeploymentStatusAction(plan=plan)
+    status = get_deployment_status.run(context=context)
+    status_update = status.get('status_update')
+    deployment_status = status.get('deployment_status')
+    if status_update:
+        utils.update_deployment_status(
+            clients=clients,
+            plan=plan,
+            status=status
         )
-
-        for payload in base.wait_for_messages(workflow_client, ws, execution,
-                                              _WORKFLOW_TIMEOUT):
-            message = payload.get('message')
-            if message:
-                print(message)
-
-    if payload['status'] == 'SUCCESS':
-        return payload['deployment_status']
+        return status_update, plan
     else:
-        raise exceptions.WorkflowServiceError(
-            'Exception getting deployment status: {}'.format(
-                payload.get('message', '')))
+        return deployment_status, plan
 
 
 def set_deployment_status(clients, status='success', **workflow_input):

@@ -1670,24 +1670,28 @@ class TestGetDeploymentStatus(utils.TestCommand):
         super(TestGetDeploymentStatus, self).setUp()
         self.cmd = overcloud_deploy.GetDeploymentStatus(self.app, None)
         self.app.client_manager = mock.Mock()
-        self.clients = self.app.client_manager
+        clients = self.clients = self.app.client_manager
+        tc = clients.tripleoclient = ooofakes.FakeClientWrapper()
+        tc.create_mistral_context = plugin.ClientWrapper(
+            instance=ooofakes.FakeInstanceData
+        ).create_mistral_context
+        obj = tc.object_store = mock.Mock()
+        obj.put_object = mock.Mock()
 
     @mock.patch(
-        'tripleoclient.workflows.deployment.get_deployment_status',
-        autospec=True)
+        'tripleo_common.actions.deployment.DeploymentStatusAction.run',
+        autospec=True
+    )
     def test_get_deployment_status(self, mock_get_deployment_status):
         parsed_args = self.check_parser(self.cmd, [], [])
         self.cmd.app.stdout = six.StringIO()
-
-        status = {
-            'workflow_status': {
-                'payload': {
-                    'plan_name': 'testplan',
-                    'deployment_status': 'SUCCESS'
-                }
-            }
-        }
-
+        status = dict(
+            cd_status='SUCCESS',
+            stack_status='SUCCESS',
+            deployment_status='SUCCESS',
+            ansible_status='SUCCESS',
+            status_update='SUCCESS'
+        )
         mock_get_deployment_status.return_value = status
 
         self.cmd.take_action(parsed_args)
@@ -1696,7 +1700,7 @@ class TestGetDeploymentStatus(utils.TestCommand):
             '+-----------+-------------------+\n'
             '| Plan Name | Deployment Status |\n'
             '+-----------+-------------------+\n'
-            '|  testplan |      SUCCESS      |\n'
+            '| overcloud |      SUCCESS      |\n'
             '+-----------+-------------------+\n')
 
         self.assertEqual(expected, self.cmd.app.stdout.getvalue())
