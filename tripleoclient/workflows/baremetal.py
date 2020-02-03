@@ -16,6 +16,8 @@ from __future__ import print_function
 
 import six
 
+from tripleo_common.actions import baremetal
+
 from tripleoclient import exceptions
 from tripleoclient.workflows import base
 
@@ -313,34 +315,74 @@ def create_raid_configuration(clients, **workflow_input):
             'Failed to create RAID: {}'.format(payload['message']))
 
 
-def discover_and_enroll(clients, **workflow_input):
-    """Discover nodes.
+def discover_and_enroll(clients, ip_addresses, credentials, kernel_name,
+                        ramdisk_name, instance_boot_option,
+                        existing_nodes=None, ports=None):
+    """Discover nodes and enroll baremetal nodes.
 
-    Run the tripleo.baremetal.v1.discover_and_enroll_nodes Mistral workflow.
+    :param clients: application client object.
+    :type clients: Object
+
+    :param ip_addresses: List of IP addresses.
+    :type ip_addresses: List || String
+
+    :param credentials: Credential information object
+    :type credentials: Tuple
+
+    :param kernel_name: Kernel to use
+    :type kernel_name: String
+
+    :param ramdisk_name: RAMDISK to use
+    :type ramdisk_name: String
+
+    :param instance_boot_option: Boot options to use
+    :type instance_boot_option: String
+
+    :param existing_nodes: List of nodes already discovered. If this is
+                           undefined this object will be set to an empty
+                           array.
+    :type existing_nodes: List
+
+    :param ports: List of ports, if no ports are provided the list of ports
+                  will be limted to [623].
+    :type ports: List
+
+    :returns: List
     """
 
-    workflow_client = clients.workflow_engine
-    tripleoclients = clients.tripleoclient
+    if not ports:
+        ports = [623]
 
-    with tripleoclients.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client,
-            'tripleo.baremetal.v1.discover_and_enroll_nodes',
-            workflow_input=workflow_input
+    if not existing_nodes:
+        existing_nodes = list()
+
+    context = clients.tripleoclient.create_mistral_context()
+
+    get_candiate_nodes = baremetal.GetCandidateNodes(
+        ip_addresses,
+        ports,
+        credentials,
+        existing_nodes
+    )
+    probed_nodes = list()
+    for node in get_candiate_nodes.run(context=context):
+        probed_nodes.append(
+            baremetal.ProbeNode(**node).run(context=context)
         )
+        print('Successfully probed node IP {}'.format(node['ip']))
 
-        for payload in base.wait_for_messages(workflow_client, ws, execution):
-            if payload.get('message'):
-                print(payload['message'])
-
-    if payload['status'] == 'SUCCESS':
-        registered_nodes = payload['registered_nodes']
-        for nd in registered_nodes:
-            print('Successfully registered node UUID %s' % nd['uuid'])
-        return registered_nodes
+    register_or_update = baremetal.RegisterOrUpdateNodes(
+        nodes_json=probed_nodes,
+        instance_boot_option=instance_boot_option,
+        kernel_name=kernel_name,
+        ramdisk_name=ramdisk_name
+    )
+    registered_nodes = list()
+    for node in register_or_update.run(context=context):
+        print('Successfully registered node UUID {}'.format(node['uuid']))
+        registered_nodes.append(node)
     else:
-        raise exceptions.RegisterOrUpdateError(
-            'Exception discovering nodes: {}'.format(payload['message']))
+        return registered_nodes
 
 
 def clean_nodes(clients, **workflow_input):

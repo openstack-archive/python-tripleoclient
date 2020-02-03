@@ -26,6 +26,8 @@ from osc_lib.tests import utils as test_utils
 import yaml
 
 from tripleoclient import exceptions
+from tripleoclient import plugin
+from tripleoclient.tests import fakes as ooofakes
 from tripleoclient.tests.v1.overcloud_node import fakes
 from tripleoclient.v1 import overcloud_node
 
@@ -1205,9 +1207,25 @@ class TestDiscoverNode(fakes.TestOvercloudNode):
         execution.id = "IDID"
         self.workflow.executions.create.return_value = execution
         client = self.app.client_manager.tripleoclient
+        client.create_mistral_context = plugin.ClientWrapper(
+            instance=ooofakes.FakeInstanceData
+        ).create_mistral_context
         self.websocket = client.messaging_websocket()
 
         self.cmd = overcloud_node.DiscoverNode(self.app, None)
+
+        self.gcn = mock.patch(
+            'tripleo_common.actions.baremetal.GetCandidateNodes',
+            autospec=True
+        )
+        self.gcn.start()
+        self.addCleanup(self.gcn.stop)
+        self.roun = mock.patch(
+            'tripleo_common.actions.baremetal.RegisterOrUpdateNodes',
+            autospec=True
+        )
+        self.roun.start()
+        self.addCleanup(self.roun.stop)
 
         self.websocket.wait_for_messages.return_value = [{
             "status": "SUCCESS",
@@ -1229,17 +1247,6 @@ class TestDiscoverNode(fakes.TestOvercloudNode):
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
         self.cmd.take_action(parsed_args)
 
-        self.workflow.executions.create.assert_called_once_with(
-            'tripleo.baremetal.v1.discover_and_enroll_nodes',
-            workflow_input={
-                'ip_addresses': '10.0.0.0/24',
-                'credentials': [['admin', 'password']],
-                'kernel_name': 'file://%s/agent.kernel' % self.http_boot,
-                'ramdisk_name': 'file://%s/agent.ramdisk' % self.http_boot,
-                'instance_boot_option': 'local'
-            }
-        )
-
     def test_with_address_list(self):
         argslist = ['--ip', '10.0.0.1', '--ip', '10.0.0.2',
                     '--credentials', 'admin:password']
@@ -1248,17 +1255,6 @@ class TestDiscoverNode(fakes.TestOvercloudNode):
 
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
         self.cmd.take_action(parsed_args)
-
-        self.workflow.executions.create.assert_called_once_with(
-            'tripleo.baremetal.v1.discover_and_enroll_nodes',
-            workflow_input={
-                'ip_addresses': ['10.0.0.1', '10.0.0.2'],
-                'credentials': [['admin', 'password']],
-                'kernel_name': 'file://%s/agent.kernel' % self.http_boot,
-                'ramdisk_name': 'file://%s/agent.ramdisk' % self.http_boot,
-                'instance_boot_option': 'local'
-            }
-        )
 
     def test_with_all_options(self):
         argslist = ['--range', '10.0.0.0/24',
@@ -1282,20 +1278,12 @@ class TestDiscoverNode(fakes.TestOvercloudNode):
         self.cmd.take_action(parsed_args)
 
         workflows_calls = [
-            mock.call('tripleo.baremetal.v1.discover_and_enroll_nodes',
-                      workflow_input={'ip_addresses': '10.0.0.0/24',
-                                      'credentials': [['admin', 'password'],
-                                                      ['admin2', 'password2']],
-                                      'ports': [623, 6230],
-                                      'kernel_name': None,
-                                      'ramdisk_name': None,
-                                      'instance_boot_option': 'netboot'}),
             mock.call('tripleo.baremetal.v1.introspect',
-                      workflow_input={'node_uuids': ['MOCK_NODE_UUID'],
+                      workflow_input={'node_uuids': [],
                                       'run_validations': True,
                                       'concurrency': 10}),
             mock.call('tripleo.baremetal.v1.provide',
-                      workflow_input={'node_uuids': ['MOCK_NODE_UUID']}
+                      workflow_input={'node_uuids': []}
                       )
         ]
         self.workflow.executions.create.assert_has_calls(workflows_calls)
