@@ -47,7 +47,10 @@ class TestDeleteNode(fakes.TestDeleteNode):
         self.websocket.__exit__ = lambda s, *exc: None
         self.tripleoclient = mock.Mock()
         self.tripleoclient.messaging_websocket.return_value = self.websocket
-        self.app.client_manager.tripleoclient = self.tripleoclient
+        tc = self.app.client_manager.tripleoclient = self.tripleoclient
+        tc.create_mistral_context = plugin.ClientWrapper(
+            instance=ooofakes.FakeInstanceData
+        ).create_mistral_context
 
         self.workflow = self.app.client_manager.workflow_engine
         self.stack_name = self.app.client_manager.orchestration.stacks.get
@@ -55,6 +58,14 @@ class TestDeleteNode(fakes.TestDeleteNode):
         execution = mock.Mock()
         execution.id = "IDID"
         self.workflow.executions.create.return_value = execution
+
+        delete_node = mock.patch(
+            'tripleo_common.actions.scale.ScaleDownAction.run',
+            autospec=True
+        )
+        delete_node.start()
+        delete_node.return_value = None
+        self.addCleanup(delete_node.stop)
 
     # TODO(someone): This test does not pass with autospec=True, it should
     # probably be fixed so that it can pass with that.
@@ -76,15 +87,6 @@ class TestDeleteNode(fakes.TestDeleteNode):
         self.stack_name.return_value = mock.Mock(stack_name="overcast")
 
         self.cmd.take_action(parsed_args)
-
-        # Verify
-        self.workflow.executions.create.assert_called_with(
-            'tripleo.scale.v1.delete_node',
-            workflow_input={
-                'plan_name': 'overcast',
-                'nodes': ['instance1', 'instance2'],
-                'timeout': 90
-            })
 
     @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
                 return_value=False)
@@ -136,15 +138,6 @@ class TestDeleteNode(fakes.TestDeleteNode):
         }])
 
         self.cmd.take_action(parsed_args)
-
-        # Verify
-        self.workflow.executions.create.assert_called_with(
-            'tripleo.scale.v1.delete_node',
-            workflow_input={
-                'plan_name': 'overcloud',
-                'nodes': ['instance1', ],
-                'timeout': 240
-            })
 
     def test_node_delete_wrong_instance(self):
 
@@ -282,18 +275,6 @@ class TestDeleteNode(fakes.TestDeleteNode):
                 stackname='overcast'
             )
         ])
-        self.workflow.executions.create.assert_called_with(
-            'tripleo.scale.v1.delete_node',
-            workflow_input={
-                'plan_name': 'overcast',
-                'nodes': ['aaaa', 'dddd'],
-                'timeout': 90
-            })
-        mock_undeploy_roles.assert_called_once_with(
-            self.app.client_manager,
-            roles=bm_yaml,
-            plan='overcast'
-        )
 
     @mock.patch('tripleoclient.workflows.baremetal.expand_roles',
                 autospec=True)

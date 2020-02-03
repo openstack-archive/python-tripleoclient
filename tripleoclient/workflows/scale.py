@@ -14,6 +14,8 @@
 # under the License.
 from __future__ import print_function
 
+from tripleo_common.actions import scale
+
 from tripleoclient import exceptions
 from tripleoclient.workflows import base
 
@@ -40,35 +42,21 @@ def ansible_tear_down(clients, **workflow_input):
         raise exceptions.DeploymentError("Scale-down configuration failed.")
 
 
-def delete_node(clients, timeout, **workflow_input):
-
-    workflow_client = clients.workflow_engine
-    tripleoclients = clients.tripleoclient
-    if timeout is not None:
-        workflow_input['timeout'] = timeout
-
-    with tripleoclients.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client,
-            'tripleo.scale.v1.delete_node',
-            workflow_input=workflow_input
-        )
-
-        for payload in base.wait_for_messages(workflow_client, ws, execution):
-            status = payload['status']
-            if status == 'RUNNING':
-                continue
-            if status != 'SUCCESS':
-                raise exceptions.InvalidConfiguration(payload['message'])
-
-
 def scale_down(clients, plan_name, nodes, timeout=None):
     """Unprovision and deletes overcloud nodes from a heat stack.
 
-    :param clients: openstack clients
-    :param plan_name: name of the container holding the plan data
-    :param nodes: list of node id's to remove from the stack
-    :param timeout: timeout for stack update operation
+    :param clients: Application client object.
+    :type clients: Object
+
+    :param timeout: Timeout to use when deleting nodes. If timeout is None
+                    it will be set to 240.
+    :type timeout: Integer
+
+    :param plan: Plan name.
+    :type plan: String
+
+    :param nodes: List of nodes to delete.
+    :type nodes: List
     """
 
     workflow_input = {
@@ -77,4 +65,10 @@ def scale_down(clients, plan_name, nodes, timeout=None):
     }
 
     ansible_tear_down(clients, **workflow_input)
-    delete_node(clients, timeout, **workflow_input)
+
+    if not timeout:
+        timeout = 240
+
+    context = clients.tripleoclient.create_mistral_context()
+    scale_down_action = scale.ScaleDownAction(nodes=nodes, timeout=timeout)
+    scale_down_action.run(context=context)
