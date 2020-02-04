@@ -187,6 +187,17 @@ class MistralContext(object):
     def __init__(self, security_ctx=None):
         self.security = security_ctx
 
+    def __getattribute__(self, name):
+        deprecated = [
+            "auth_cacert", "auth_token", "auth_uri", "expires_at", "insecure",
+            "is_target", "is_trust_scoped", "project_id", "project_name",
+            "redelivered", "region_name", "service_catalog", "trust_id",
+            "user_name"
+        ]
+        if name in deprecated:
+            return getattr(self.security, name)
+        return super(MistralContext, self).__getattribute__(name)
+
 
 class MistralSecurityContext(object):
     def __init__(self, auth_uri=None, auth_cacert=None, insecure=None,
