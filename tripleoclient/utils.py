@@ -1448,26 +1448,11 @@ def run_update_ansible_action(log, clients, stack, nodes, inventory,
                                  inventory=inventory,
                                  workdir=workdir,
                                  ssh_user=ssh_user,
-                                 key=ssh_private_key(workdir, priv_key),
+                                 key=priv_key,
                                  module_path='/usr/share/ansible-modules',
                                  limit_hosts=nodes,
                                  tags=tags,
                                  skip_tags=skip_tags)
-
-
-def ssh_private_key(workdir, key):
-    if not key:
-        return None
-    if (isinstance(key, six.string_types) and
-            os.path.exists(key)):
-        os.chmod(key, 0o600)
-        return key
-
-    path = os.path.join(workdir, 'ssh_private_key')
-    with open(path, 'w') as ssh_key:
-        ssh_key.write(key)
-    os.chmod(path, 0o600)
-    return path
 
 
 def parse_extra_vars(extra_var_strings):

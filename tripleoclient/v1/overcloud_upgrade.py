@@ -203,12 +203,11 @@ class UpgradeRun(command.Command):
         stack = parsed_args.stack
 
         ansible_dir = None
-        key = None
+        key = package_update.get_key(stack=stack)
         # Disable mistral
         if parsed_args.no_workflow:
             ansible_dir = oooutils.download_ansible_playbooks(orchestration,
                                                               stack)
-            key = package_update.get_key(clients)
 
         # Run ansible:
         limit_hosts = parsed_args.limit

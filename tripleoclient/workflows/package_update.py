@@ -11,6 +11,7 @@
 # under the License.
 from __future__ import print_function
 
+import os
 import pprint
 import time
 
@@ -20,6 +21,7 @@ from openstackclient import shell
 from tripleoclient import exceptions
 from tripleoclient import utils
 
+from tripleoclient import constants
 from tripleoclient.workflows import base
 
 _WORKFLOW_TIMEOUT = 120 * 60  # 2h
@@ -85,26 +87,32 @@ def get_config(clients, **workflow_input):
         raise RuntimeError('Minor update failed with: {}'.format(payload))
 
 
-def get_key(clients, **workflow_input):
-    workflow_client = clients.workflow_engine
-    tripleoclients = clients.tripleoclient
+def get_key(stack):
+    """Returns the private key from the local file system.
 
-    with tripleoclients.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client,
-            'tripleo.package_update.v1.get_key',
-            workflow_input=workflow_input
-        )
+    Searches for and returns the stack private key. If the key is inaccessible
+    for any reason, the process will fall back to using the users key. If no
+    key is found, this method will return None.
 
-        for payload in base.wait_for_messages(workflow_client, ws, execution,
-                                              _WORKFLOW_TIMEOUT):
-            assert payload['status'] == "SUCCESS", pprint.pformat(payload)
+    :params stack: name of the stack to use
+    :type stack: String
 
-    if payload['status'] == 'SUCCESS':
-        print('Success')
-        return payload['message']
+    :returns: String || None
+    """
+
+    stack_dir = os.path.join(constants.DEFAULT_WORK_DIR, stack)
+    stack_key_file = os.path.join(stack_dir, 'ssh_private_key')
+    user_dir = os.path.join(os.path.expanduser("~"), '.ssh')
+    user_key_file = os.path.join(user_dir, 'id_rsa_tripleo')
+    for key_file in [stack_key_file, user_key_file]:
+        try:
+            if os.path.exists(key_file):
+                with open(key_file):
+                    return key_file
+        except IOError:
+            pass
     else:
-        raise RuntimeError('Get_key action failed with: {}'.format(payload))
+        return
 
 
 def update_ansible(clients, **workflow_input):

@@ -78,6 +78,7 @@ ENABLE_SSH_ADMIN_SSH_PORT_TIMEOUT = 300
 ADDITIONAL_ARCHITECTURES = ['ppc64le']
 
 DEFAULT_VALIDATIONS_BASEDIR = '/usr/share/openstack-tripleo-validations'
+DEFAULT_WORK_DIR = '/var/lib/mistral'
 
 ANSIBLE_VALIDATION_DIR = \
     '/usr/share/openstack-tripleo-validations/playbooks'
