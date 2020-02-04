@@ -16,8 +16,6 @@
     check:
       jobs:
         - openstack-tox-pep8
-        - openstack-tox-py27:
-            voting: true
         - openstack-tox-py36
         - openstack-tox-py37
         - tripleo-ci-centos-7-containers-multinode:
