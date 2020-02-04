@@ -16,7 +16,8 @@ import mock
 
 from osc_lib.tests import utils
 
-from tripleoclient import exceptions
+from tripleoclient import plugin
+from tripleoclient.tests.fakes import FakeInstanceData
 from tripleoclient.tests.fakes import FakeStackObject
 from tripleoclient.workflows import deployment
 
@@ -32,8 +33,28 @@ class TestDeploymentWorkflows(utils.TestCommand):
         self.websocket.__enter__ = lambda s: self.websocket
         self.websocket.__exit__ = lambda s, *exc: None
         self.tripleoclient.messaging_websocket.return_value = self.websocket
-        self.app.client_manager.tripleoclient = self.tripleoclient
-
+        tc = self.app.client_manager.tripleoclient = self.tripleoclient
+        tc.create_mistral_context = plugin.ClientWrapper(
+            instance=FakeInstanceData
+        ).create_mistral_context
+        self.gcn = mock.patch(
+            'tripleo_common.actions.config.DownloadConfigAction',
+            autospec=True
+        )
+        self.gcn.start()
+        self.addCleanup(self.gcn.stop)
+        self.ansible = mock.patch(
+            'tripleo_common.actions.ansible.AnsibleGenerateInventoryAction',
+            autospec=True
+        )
+        self.ansible.start()
+        self.addCleanup(self.ansible.stop)
+        config_mock = mock.patch(
+            'tripleo_common.actions.config.GetOvercloudConfig',
+            autospec=True
+        )
+        config_mock.start()
+        self.addCleanup(config_mock.stop)
         self.message_success = iter([{
             "execution": {"id": "IDID"},
             "status": "SUCCESS",
@@ -100,6 +121,7 @@ class TestDeploymentWorkflows(utils.TestCommand):
             self, mock_role_net_ip_map,
             mock_blacklisted_ip_addresses):
         stack = mock.Mock()
+        stack.output_show.return_value = []
         mock_role_net_ip_map.return_value = {
             'Controller': {
                 'ctlplane': ['1.1.1.1', '2.2.2.2', '3.3.3.3'],
@@ -126,29 +148,15 @@ class TestDeploymentWorkflows(utils.TestCommand):
         expected = ['4.4.4.4', '6.6.6.6', '11.11.11.11']
         self.assertEqual(sorted(expected), sorted(ips))
 
-    def test_config_download_already_in_progress(
-            self):
-        log = mock.Mock()
-        stack = mock.Mock()
-        stack.stack_name = 'stacktest'
-        clients = mock.Mock()
-        mock_execution = mock.Mock()
-        mock_execution.input = '{"plan_name": "stacktest"}'
-        mock_return = mock.Mock(return_value=[mock_execution])
-        clients.workflow_engine.executions.find = mock_return
-
-        self.assertRaises(exceptions.ConfigDownloadInProgress,
-                          deployment.config_download,
-                          log, clients, stack, 'templates', 'ssh_user',
-                          'ssh_key', 'ssh_networks', 'output_dir', False,
-                          'timeout')
-
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
+                autospec=True)
     @mock.patch('tripleoclient.workflows.deployment.base')
     def test_config_download_already_in_progress_for_diff_stack(
-            self, mock_base):
+            self, mock_base, mock_playbook):
         log = mock.Mock()
         stack = mock.Mock()
         stack.stack_name = 'stacktest'
+        stack.output_show.return_value = {'output': {'output_value': []}}
         clients = mock.Mock()
         mock_execution = mock.Mock()
         mock_execution.input = '{"plan_name": "someotherstack"}'

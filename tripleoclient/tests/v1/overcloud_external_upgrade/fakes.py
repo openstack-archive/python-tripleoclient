@@ -13,38 +13,10 @@
 #   under the License.
 #
 
-import mock
-from osc_lib.tests import utils
-
 from tripleoclient.tests import fakes
 
 
-class FakeClientWrapper(object):
-
-    def __init__(self):
-        self._instance = mock.Mock()
-        self.object_store = FakeObjectClient()
-
-    def messaging_websocket(self):
-        return fakes.FakeWebSocket()
-
-
-class FakeObjectClient(object):
-
-    def __init__(self):
-        self._instance = mock.Mock()
-        self.put_object = mock.Mock()
-
-    def get_object(self, *args):
-        return
-
-
-class TestOvercloudExternalUpgradeRun(utils.TestCommand):
+class TestOvercloudExternalUpgradeRun(fakes.FakePlaybookExecution):
 
     def setUp(self):
         super(TestOvercloudExternalUpgradeRun, self).setUp()
-
-        self.app.client_manager.auth_ref = mock.Mock(auth_token="TOKEN")
-        self.app.client_manager.tripleoclient = FakeClientWrapper()
-        self.app.client_manager.workflow_engine = mock.Mock()
-        self.app.client_manager.orchestration = mock.Mock()

@@ -83,7 +83,7 @@ class FFWDUpgradePrepare(DeployOvercloud):
 
         super(FFWDUpgradePrepare, self).take_action(parsed_args)
         package_update.update(clients, container=stack_name)
-        package_update.get_config(clients, container=stack_name)
+        oooutils.get_config(clients, container=stack_name)
 
         overcloudrcs = deployment.create_overcloudrc(
             clients, container=stack_name)
@@ -145,10 +145,8 @@ class FFWDUpgradeRun(command.Command):
                             )
         parser.add_argument('--no-workflow', dest='no_workflow',
                             action='store_true',
-                            default=False,
-                            help=_('Run ansible-playbook directly via '
-                                   'system command instead of running Ansible'
-                                   'via the TripleO mistral workflows.')
+                            default=True,
+                            help=_('This option no longer has any effect.')
                             )
         return parser
 
@@ -160,24 +158,26 @@ class FFWDUpgradeRun(command.Command):
         orchestration = clients.orchestration
         stack = parsed_args.stack
 
-        ansible_dir = None
-        key = package_update.get_key(stack=stack)
-        # Disable mistral
-        if parsed_args.no_workflow:
-            ansible_dir = oooutils.download_ansible_playbooks(orchestration,
-                                                              stack)
+        key, ansible_dir = self.get_ansible_key_and_dir(
+            no_workflow=parsed_args.no_workflow,
+            stack=stack,
+            orchestration=orchestration
+        )
 
         # Run ansible:
         inventory = oooutils.get_tripleo_ansible_inventory(
             inventory_file=parsed_args.static_inventory,
-            ssh_user=parsed_args.ssh_user, stack=parsed_args.stack)
+            ssh_user=parsed_args.ssh_user, stack=parsed_args.stack,
+            return_inventory_file_path=True)
         # Don't expost limit_hosts. We need this on the whole overcloud.
         limit_hosts = ''
+        extra_vars = {'ansible_become': True}
         oooutils.run_update_ansible_action(
             self.log, clients, parsed_args.stack, limit_hosts, inventory,
             constants.FFWD_UPGRADE_PLAYBOOK, [], parsed_args.ssh_user,
             (None if parsed_args.no_workflow else package_update),
-            verbosity=verbosity, workdir=ansible_dir, priv_key=key)
+            verbosity=verbosity, workdir=ansible_dir, priv_key=key,
+            extra_vars=extra_vars)
 
 
 class FFWDUpgradeConverge(DeployOvercloud):

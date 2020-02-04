@@ -675,7 +675,7 @@ class DeployOvercloud(command.Command):
         parser.add_argument(
             '--overcloud-ssh-key',
             default=os.path.join(
-                os.path.expanduser('~'), '.ssh', 'id_rsa'),
+                os.path.expanduser('~'), '.ssh', 'id_rsa_tripleo'),
             help=_('Key path for ssh access to overcloud nodes.')
         )
         parser.add_argument(
@@ -972,16 +972,17 @@ class DeployOvercloud(command.Command):
                         parsed_args.deployment_python_interpreter
 
                 deployment.config_download(
-                    self.log, self.clients, stack,
-                    parsed_args.templates, parsed_args.overcloud_ssh_user,
-                    parsed_args.overcloud_ssh_key,
+                    self.log,
+                    self.clients,
+                    stack,
                     parsed_args.overcloud_ssh_network,
                     parsed_args.output_dir,
                     parsed_args.override_ansible_cfg,
                     timeout,
                     verbosity=(self.app_args.verbose_level - 1),
                     deployment_options=deployment_options,
-                    in_flight_validations=parsed_args.inflight)
+                    in_flight_validations=parsed_args.inflight
+                )
             except Exception:
                 deployment.set_deployment_status(
                     clients=self.clients,

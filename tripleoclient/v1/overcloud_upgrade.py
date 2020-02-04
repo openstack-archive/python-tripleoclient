@@ -73,7 +73,7 @@ class UpgradePrepare(DeployOvercloud):
             constants.UPGRADE_PREPARE_ENV)
         super(UpgradePrepare, self).take_action(parsed_args)
         package_update.update(clients, container=stack_name)
-        package_update.get_config(clients, container=stack_name)
+        oooutils.get_config(clients, container=stack_name)
 
         overcloudrcs = deployment.create_overcloudrc(
             clients, container=stack_name)
@@ -179,10 +179,8 @@ class UpgradeRun(command.Command):
                                               default='overcloud'))
         parser.add_argument('--no-workflow', dest='no_workflow',
                             action='store_true',
-                            default=False,
-                            help=_('Run ansible-playbook directly via '
-                                   'system command instead of running Ansible'
-                                   'via the TripleO mistral workflows.')
+                            default=True,
+                            help=_('This option no longer has any effect.')
                             )
 
         return parser
@@ -204,20 +202,21 @@ class UpgradeRun(command.Command):
         orchestration = clients.orchestration
         stack = parsed_args.stack
 
-        ansible_dir = None
-        key = package_update.get_key(stack=stack)
-        # Disable mistral
-        if parsed_args.no_workflow:
-            ansible_dir = oooutils.download_ansible_playbooks(orchestration,
-                                                              stack)
+        key, ansible_dir = self.get_ansible_key_and_dir(
+            no_workflow=parsed_args.no_workflow,
+            stack=stack,
+            orchestration=orchestration
+        )
 
         # Run ansible:
         limit_hosts = parsed_args.limit
 
         playbook = parsed_args.playbook
         inventory = oooutils.get_tripleo_ansible_inventory(
-            parsed_args.static_inventory, parsed_args.ssh_user, stack)
+            parsed_args.static_inventory, parsed_args.ssh_user, stack,
+            return_inventory_file_path=True)
         skip_tags = self._validate_skip_tags(parsed_args.skip_tags)
+        extra_vars = {'ansible_become': True}
         oooutils.run_update_ansible_action(self.log, clients, stack,
                                            limit_hosts, inventory, playbook,
                                            constants.MAJOR_UPGRADE_PLAYBOOKS,
@@ -228,7 +227,8 @@ class UpgradeRun(command.Command):
                                            skip_tags,
                                            verbosity,
                                            workdir=ansible_dir,
-                                           priv_key=key)
+                                           priv_key=key,
+                                           extra_vars=extra_vars)
 
         playbooks = (constants.MAJOR_UPGRADE_PLAYBOOKS
                      if playbook == 'all' else playbook)

@@ -60,8 +60,11 @@ from heatclient import exc as hc_exc
 from six.moves.urllib import error as url_error
 from six.moves.urllib import request
 
+from tripleo_common.actions import config
+
 from tripleoclient import constants
 from tripleoclient import exceptions
+
 
 LOG = logging.getLogger(__name__ + ".utils")
 
@@ -209,7 +212,7 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
                          plan='overcloud', gathering_policy='smart',
                          extra_env_variables=None, parallel_run=False,
                          callback_whitelist=None, ansible_cfg=None,
-                         ansible_timeout=30):
+                         ansible_timeout=30, reproduce_command=False):
     """Simple wrapper for ansible-playbook.
 
     :param playbook: Playbook filename.
@@ -286,6 +289,13 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
 
     :param ansible_timeout: Timeout for ansible connections.
     :type ansible_timeout: int
+
+    :param reproduce_command: Enable or disable option to reproduce ansible
+                              commands upon failure. This option will produce
+                              a bash script that can reproduce a failing
+                              playbook command which is helpful for debugging
+                              and retry purposes.
+    :type reproduce_command: Boolean
     """
 
     def _playbook_check(play):
@@ -331,23 +341,7 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
         'fact_cache'
     )
     makedirs(ansible_fact_path)
-    extravars = {
-        'ansible_ssh_extra_args': (
-            '-o UserKnownHostsFile={} '
-            '-o StrictHostKeyChecking=no '
-            '-o ControlMaster=auto '
-            '-o ControlPersist=30m '
-            '-o ServerAliveInterval=64 '
-            '-o ServerAliveCountMax=1024 '
-            '-o Compression=no '
-            '-o TCPKeepAlive=yes '
-            '-o VerifyHostKeyDNS=no '
-            '-o ForwardX11=no '
-            '-o ForwardAgent=yes '
-            '-o PreferredAuthentications=publickey '
-            '-T'
-        ).format(os.devnull)
-    }
+    extravars = dict()
     if extra_vars:
         if isinstance(extra_vars, dict):
             extravars.update(extra_vars)
@@ -363,6 +357,21 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
     callback_whitelist = ','.join([callback_whitelist, 'profile_tasks'])
 
     env = os.environ.copy()
+    env['ANSIBLE_SSH_ARGS'] = (
+        '-o UserKnownHostsFile={} '
+        '-o StrictHostKeyChecking=no '
+        '-o ControlMaster=auto '
+        '-o ControlPersist=30m '
+        '-o ServerAliveInterval=64 '
+        '-o ServerAliveCountMax=1024 '
+        '-o Compression=no '
+        '-o TCPKeepAlive=yes '
+        '-o VerifyHostKeyDNS=no '
+        '-o ForwardX11=no '
+        '-o ForwardAgent=yes '
+        '-o PreferredAuthentications=publickey '
+        '-T'
+    ).format(os.devnull)
     env['ANSIBLE_DISPLAY_FAILED_STDERR'] = True
     env['ANSIBLE_FORKS'] = 36
     env['ANSIBLE_TIMEOUT'] = ansible_timeout
@@ -483,6 +492,8 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
         else:
             env.update(extra_env_variables)
 
+    command_path = None
+
     with TempDirs(chdir=False) as ansible_artifact_path:
         if 'ANSIBLE_CONFIG' not in env and not ansible_cfg:
             ansible_cfg = os.path.join(ansible_artifact_path, 'ansible.cfg')
@@ -533,6 +544,21 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
         runner_config.env['ANSIBLE_STDOUT_CALLBACK'] = \
             r_opts['envvars']['ANSIBLE_STDOUT_CALLBACK']
         runner = ansible_runner.Runner(config=runner_config)
+
+        if reproduce_command:
+            command_path = os.path.join(
+                playbook_dir,
+                "ansible-playbook-command.sh"
+            )
+            with open(command_path, 'w') as f:
+                f.write('#!/usr/bin/env bash\n')
+                f.write('echo -e "Exporting environment variables"\n')
+                for key, value in r_opts['envvars'].items():
+                    f.write('export {}="{}"\n'.format(key, value))
+                f.write('echo -e "Running Ansible command"\n')
+                f.write('{} $@\n'.format(' '.join(runner_config.command)))
+            os.chmod(command_path, 0o750)
+
         status, rc = runner.run()
 
     if rc != 0:
@@ -545,6 +571,14 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
                 rc
             )
         )
+        if command_path:
+            err_msg += (
+                ', To rerun the failed command manually execute the'
+                ' following script: {}'.format(
+                    command_path
+                )
+            )
+
         if not quiet:
             LOG.error(err_msg)
         raise ansible_runner.AnsibleRunnerException(err_msg)
@@ -1337,6 +1371,51 @@ def load_environment_directories(directories):
     return environments
 
 
+def get_config(clients, container):
+    """Get cloud config.
+
+    :param clients: Application client object.
+    :type clients: Object
+
+    :param container: Container name to pull from.
+    :type container: String.
+    """
+
+    context = clients.tripleoclient.create_mistral_context()
+    config_action = config.GetOvercloudConfig(container=container)
+    config_action.run(context=context)
+
+
+def get_key(stack):
+    """Returns the private key from the local file system.
+
+    Searches for and returns the stack private key. If the key is inaccessible
+    for any reason, the process will fall back to using the users key. If no
+    key is found, this method will return None.
+
+    :params stack: name of the stack to use
+    :type stack: String
+
+    :returns: String || None
+    """
+
+    stack_dir = os.path.join(constants.DEFAULT_WORK_DIR, stack)
+    stack_key_file = os.path.join(stack_dir, 'ssh_private_key')
+    user_dir = os.path.join(os.path.expanduser("~"), '.ssh')
+    user_key_file = os.path.join(user_dir, 'id_rsa_tripleo')
+    legacy_dir = os.path.join(constants.DEFAULT_WORK_DIR, '.ssh')
+    legacy_key_file = os.path.join(legacy_dir, 'tripleo-admin-rsa')
+    for key_file in [stack_key_file, user_key_file, legacy_key_file]:
+        try:
+            if os.path.exists(key_file):
+                with open(key_file):
+                    return key_file
+        except IOError:
+            pass
+    else:
+        return
+
+
 def get_tripleo_ansible_inventory(inventory_file=None,
                                   ssh_user='tripleo-admin',
                                   stack='overcloud',
@@ -1352,7 +1431,7 @@ def get_tripleo_ansible_inventory(inventory_file=None,
                 '--ansible_ssh_user', ssh_user,
                 '--undercloud-connection', undercloud_connection,
                 '--undercloud-key-file',
-                '/var/lib/mistral/.ssh/tripleo-admin-rsa',
+                get_key(stack=stack),
                 '--static-yaml-inventory', inventory_file)
         except processutils.ProcessExecutionError as e:
             message = _("Failed to generate inventory: %s") % str(e)
@@ -1483,7 +1562,8 @@ def run_update_ansible_action(log, clients, stack, nodes, inventory,
                                  module_path='/usr/share/ansible-modules',
                                  limit_hosts=nodes,
                                  tags=tags,
-                                 skip_tags=skip_tags)
+                                 skip_tags=skip_tags,
+                                 extra_vars=extra_vars)
 
 
 def parse_extra_vars(extra_var_strings):

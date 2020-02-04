@@ -16,65 +16,58 @@ from __future__ import print_function
 
 from tripleo_common.actions import scale
 
-from tripleoclient import exceptions
 from tripleoclient import utils
-from tripleoclient.workflows import base
+from tripleoclient.workflows import deployment
 
 
-def ansible_tear_down(clients, **workflow_input):
-
-    workflow_client = clients.workflow_engine
-    tripleoclients = clients.tripleoclient
-    workflow_input['playbook_name'] = 'scale_playbook.yaml'
-
-    with tripleoclients.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client,
-            'tripleo.deployment.v1.config_download_deploy',
-            workflow_input=workflow_input
-        )
-
-        for payload in base.wait_for_messages(workflow_client, ws, execution):
-            print(payload['message'])
-
-    if payload['status'] == 'SUCCESS':
-        print("Scale-down configuration completed.")
-    else:
-        raise exceptions.DeploymentError("Scale-down configuration failed.")
-
-
-def scale_down(clients, plan_name, nodes, timeout=None):
+def scale_down(log, clients, stack, nodes, timeout=None):
     """Unprovision and deletes overcloud nodes from a heat stack.
+
+    :param log: Logging object
+    :type log: Object
 
     :param clients: Application client object.
     :type clients: Object
 
+    :param stack: Heat Stack object
+    :type stack: Object
+
+    :param nodes: List of nodes to delete. If the node UUID is used the
+                  UUID will be used to lookup the node name before being
+                  passed through to the cleanup playbook.
+    :type nodes: List
+
     :param timeout: Timeout to use when deleting nodes. If timeout is None
                     it will be set to 240.
     :type timeout: Integer
-
-    :param plan: Plan name.
-    :type plan: String
-
-    :param nodes: List of nodes to delete.
-    :type nodes: List
     """
-
-    workflow_input = {
-        "plan_name": plan_name,
-        "nodes": nodes,
-    }
-
-    ansible_tear_down(clients, **workflow_input)
 
     if not timeout:
         timeout = 240
 
+    limit_list = list()
+    for node in nodes:
+        try:
+            _node = clients.compute.servers.get(node)
+            limit_list.append(_node.name)
+        except Exception:
+            limit_list.append(node)
+
+    deployment.config_download(
+        log=log,
+        clients=clients,
+        stack=stack,
+        timeout=timeout,
+        ansible_playbook_name='scale_playbook.yaml',
+        limit_list=limit_list
+    )
+
+    print('Running scale down')
     context = clients.tripleoclient.create_mistral_context()
     scale_down_action = scale.ScaleDownAction(nodes=nodes, timeout=timeout)
     scale_down_action.run(context=context)
     utils.wait_for_stack_ready(
         orchestration_client=clients.orchestration,
-        stack_name=plan_name,
+        stack_name=stack.stack_name,
         action='UPDATE'
     )

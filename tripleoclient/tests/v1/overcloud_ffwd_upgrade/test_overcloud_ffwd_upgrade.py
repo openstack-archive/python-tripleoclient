@@ -155,7 +155,7 @@ class TestFFWDUpgradeRun(fakes.TestFFWDUpgradeRun):
         self.mock_uuid4 = uuid4_patcher.start()
         self.addCleanup(self.mock_uuid4.stop)
 
-    @mock.patch('tripleoclient.workflows.package_update.update_ansible',
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
@@ -171,19 +171,19 @@ class TestFFWDUpgradeRun(fakes.TestFFWDUpgradeRun):
             mock_exists.return_value = True
             self.cmd.take_action(parsed_args)
             upgrade_ansible.assert_called_once_with(
-                self.app.client_manager,
-                container='overcloud',
-                inventory_file=mock_open().__enter__().read(),
-                nodes='',
-                playbook=constants.FFWD_UPGRADE_PLAYBOOK,
-                node_user='heat-admin',
+                playbook='fast_forward_upgrade_playbook.yaml',
+                inventory=mock.ANY,
+                workdir=mock.ANY,
+                ssh_user='heat-admin',
+                key='/var/lib/mistral/overcloud/ssh_private_key',
+                module_path='/usr/share/ansible-modules',
+                limit_hosts='',
                 tags='',
                 skip_tags='',
-                verbosity=0,
-                extra_vars=None
+                extra_vars={'ansible_become': True}
             )
 
-    @mock.patch('tripleoclient.workflows.package_update.update_ansible',
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
@@ -199,19 +199,19 @@ class TestFFWDUpgradeRun(fakes.TestFFWDUpgradeRun):
             mock_exists.return_value = True
             self.cmd.take_action(parsed_args)
             upgrade_ansible.assert_called_once_with(
-                self.app.client_manager,
-                container='overcloud',
-                inventory_file=mock_open().__enter__().read(),
-                nodes='',
-                playbook=constants.FFWD_UPGRADE_PLAYBOOK,
-                node_user='my-user',
+                playbook='fast_forward_upgrade_playbook.yaml',
+                inventory=mock.ANY,
+                workdir=mock.ANY,
+                ssh_user='my-user',
+                key='/var/lib/mistral/overcloud/ssh_private_key',
+                module_path='/usr/share/ansible-modules',
+                limit_hosts='',
                 tags='',
                 skip_tags='',
-                verbosity=0,
-                extra_vars=None
+                extra_vars={'ansible_become': True}
             )
 
-    @mock.patch('tripleoclient.workflows.package_update.update_ansible',
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')

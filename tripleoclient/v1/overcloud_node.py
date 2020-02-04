@@ -198,10 +198,11 @@ class DeleteNode(command.Command):
               .format(stack=stack.stack_name, nodes=nodes_text))
 
         scale.scale_down(
-            clients,
-            stack.stack_name,
-            nodes,
-            parsed_args.timeout
+            log=self.log,
+            clients=clients,
+            stack=stack,
+            nodes=nodes,
+            timeout=parsed_args.timeout
         )
 
         if parsed_args.baremetal_deployment:

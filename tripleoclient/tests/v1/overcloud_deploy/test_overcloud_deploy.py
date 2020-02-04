@@ -877,9 +877,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                   parsed_args)
         self.assertIn('/tmp/notthere', str(error))
 
-    @mock.patch('tripleoclient.tests.v1.overcloud_deploy.fakes.'
-                'FakeObjectClient.get_object', autospec=True)
-    def test_validate_args_missing_environment_files(self, mock_obj):
+    def test_validate_args_missing_environment_files(self):
         arglist = ['--templates',
                    '-e', 'nonexistent.yaml']
         verifylist = [
@@ -887,8 +885,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             ('environment_files', ['nonexistent.yaml']),
         ]
 
-        mock_obj.side_effect = ObjectClientException(mock.Mock(
-                                                     '/fake/path not found'))
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.assertRaises(oscexc.CommandError,
@@ -1482,8 +1478,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.cmd.take_action(parsed_args)
         self.assertTrue(fixture.mock_get_hosts_and_enable_ssh_admin.called)
         self.assertTrue(fixture.mock_config_download.called)
-        self.assertEqual('ansible.cfg',
-                         fixture.mock_config_download.call_args[0][8])
         mock_copy.assert_called_once()
 
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
@@ -1514,7 +1508,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         self.cmd.take_action(parsed_args)
         fixture.mock_config_download.assert_called()
-        self.assertEqual(240*60, fixture.mock_config_download.call_args[0][9])
         mock_copy.assert_called_once()
 
     def test_download_missing_files_from_plan(self):

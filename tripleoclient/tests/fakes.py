@@ -16,6 +16,10 @@
 import mock
 import sys
 
+from osc_lib.tests import utils
+
+from tripleoclient import plugin
+
 
 AUTH_TOKEN = "foobar"
 AUTH_URL = "http://0.0.0.0"
@@ -36,6 +40,11 @@ class FakeApp(object):
 
 class FakeStackObject(object):
     stack_name = 'undercloud'
+    outputs = []
+
+    @staticmethod
+    def get(*args, **kwargs):
+        pass
 
 
 class FakeClientManager(object):
@@ -81,6 +90,8 @@ class FakeClientWrapper(object):
 
     def __init__(self):
         self.ws = FakeWebSocket()
+        self.object_store = FakeObjectClient()
+        self._instance = mock.Mock()
 
     def messaging_websocket(self):
         return self.ws
@@ -123,6 +134,60 @@ class FakeInstanceData(object):
         class auth(object):
             class auth_ref(object):
                 _data = {'token': {}}
+
+
+class FakeObjectClient(object):
+
+    def __init__(self):
+        self._instance = mock.Mock()
+        self.put_object = mock.Mock()
+
+    def get_object(self, *args):
+        return [None, "fake"]
+
+    def get_container(self, *args):
+        return [None, [{"name": "fake"}]]
+
+
+class FakePlaybookExecution(utils.TestCommand):
+
+    def setUp(self, ansible_mock=True):
+        super(FakePlaybookExecution, self).setUp()
+
+        self.app.client_manager.auth_ref = mock.Mock(auth_token="TOKEN")
+        self.app.client_manager.baremetal = mock.Mock()
+        self.app.client_manager.compute = mock.Mock()
+        self.app.client_manager.identity = mock.Mock()
+        self.app.client_manager.image = mock.Mock()
+        self.app.client_manager.network = mock.Mock()
+        tc = self.app.client_manager.tripleoclient = FakeClientWrapper()
+        self.app.client_manager.workflow_engine = mock.Mock()
+        stack = self.app.client_manager.orchestration = mock.Mock()
+        stack.stacks.get.return_value = FakeStackObject
+        tc.create_mistral_context = plugin.ClientWrapper(
+            instance=FakeInstanceData
+        ).create_mistral_context
+
+        # NOTE(cloudnull): When mistral is gone this should be removed.
+        workflow = execution = mock.Mock()
+        execution.id = "IDID"
+        workflow.executions.create.return_value = execution
+        self.app.client_manager.workflow_engine = workflow
+
+        if ansible_mock:
+            self.gcn = mock.patch(
+                'tripleo_common.utils.config.Config',
+                autospec=True
+            )
+            self.gcn.start()
+            self.addCleanup(self.gcn.stop)
+
+            self.mkdirs = mock.patch(
+                'os.makedirs',
+                autospec=True
+            )
+            self.mkdirs.start()
+            self.addCleanup(self.mkdirs.stop)
 
 
 def fake_ansible_runner_run_return(rc=0):

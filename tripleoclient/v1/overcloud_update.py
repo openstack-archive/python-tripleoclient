@@ -72,7 +72,7 @@ class UpdatePrepare(DeployOvercloud):
 
         super(UpdatePrepare, self).take_action(parsed_args)
         package_update.update(clients, container=stack_name)
-        package_update.get_config(clients, container=stack_name)
+        oooutils.get_config(clients, container=stack_name)
         self.log.info("Update init on stack {0} complete.".format(
                       parsed_args.stack))
 
@@ -131,10 +131,8 @@ class UpdateRun(command.Command):
                             )
         parser.add_argument('--no-workflow', dest='no_workflow',
                             action='store_true',
-                            default=False,
-                            help=_('Run ansible-playbook directly via '
-                                   'system command instead of running Ansible'
-                                   'via the TripleO mistral workflows.')
+                            default=True,
+                            help=_('This option no longer has any effect.')
                             )
 
         return parser
@@ -146,19 +144,20 @@ class UpdateRun(command.Command):
         verbosity = self.app_args.verbose_level - 1
         stack = parsed_args.stack
 
-        ansible_dir = None
-        key = package_update.get_key(stack=stack)
-        # Disable mistral
-        if parsed_args.no_workflow:
-            ansible_dir = oooutils.download_ansible_playbooks(orchestration,
-                                                              stack)
+        key, ansible_dir = self.get_ansible_key_and_dir(
+            no_workflow=parsed_args.no_workflow,
+            stack=stack,
+            orchestration=orchestration
+        )
 
         # Run ansible:
         limit_hosts = parsed_args.limit
 
         playbook = parsed_args.playbook
         inventory = oooutils.get_tripleo_ansible_inventory(
-            parsed_args.static_inventory, parsed_args.ssh_user, stack)
+            parsed_args.static_inventory, parsed_args.ssh_user, stack,
+            return_inventory_file_path=True)
+        extra_vars = {'ansible_become': True}
         oooutils.run_update_ansible_action(self.log, clients, stack,
                                            limit_hosts, inventory, playbook,
                                            constants.MINOR_UPDATE_PLAYBOOKS,
@@ -167,7 +166,8 @@ class UpdateRun(command.Command):
                                             else package_update),
                                            verbosity=verbosity,
                                            workdir=ansible_dir,
-                                           priv_key=key)
+                                           priv_key=key,
+                                           extra_vars=extra_vars)
 
 
 class UpdateConverge(DeployOvercloud):

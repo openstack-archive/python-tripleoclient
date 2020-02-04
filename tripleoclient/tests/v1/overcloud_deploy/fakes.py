@@ -14,7 +14,6 @@
 #
 
 import mock
-from osc_lib.tests import utils
 
 from tripleoclient.tests import fakes
 
@@ -105,43 +104,7 @@ def create_env(**kwargs):
     return env
 
 
-class FakeClientWrapper(object):
-
-    def __init__(self):
-        self._instance = mock.Mock()
-        self.object_store = FakeObjectClient()
-
-    def messaging_websocket(self):
-        return fakes.FakeWebSocket()
-
-
-class FakeObjectClient(object):
-
-    def __init__(self):
-        self._instance = mock.Mock()
-        self.put_object = mock.Mock()
-
-    def get_object(self, *args):
-        return [None, "fake"]
-
-    def get_container(self, *args):
-        return [None, [{"name": "fake"}]]
-
-
-class TestDeployOvercloud(utils.TestCommand):
+class TestDeployOvercloud(fakes.FakePlaybookExecution):
 
     def setUp(self):
-        super(TestDeployOvercloud, self).setUp()
-
-        self.app.client_manager.auth_ref = mock.Mock(auth_token="TOKEN")
-        self.app.client_manager.baremetal = mock.Mock()
-        self.app.client_manager.compute = mock.Mock()
-        self.app.client_manager.identity = mock.Mock()
-        self.app.client_manager.image = mock.Mock()
-        self.app.client_manager.network = mock.Mock()
-        self.app.client_manager.orchestration = mock.Mock()
-        workflow = execution = mock.Mock()
-        execution.id = "IDID"
-        workflow.executions.create.return_value = execution
-        self.app.client_manager.workflow_engine = workflow
-        self.app.client_manager.tripleoclient = FakeClientWrapper()
+        super(TestDeployOvercloud, self).setUp(ansible_mock=False)

@@ -12,18 +12,20 @@
 from __future__ import print_function
 
 import copy
+import getpass
 import os
 import pprint
 import time
-import yaml
 
 from heatclient.common import event_utils
 from openstackclient import shell
+from tripleo_common.actions import ansible
 from tripleo_common.actions import config
 from tripleo_common.actions import deployment
 from tripleo_common.actions import swifthelper
 
 from tripleoclient.constants import ANSIBLE_TRIPLEO_PLAYBOOKS
+from tripleoclient.constants import DEFAULT_WORK_DIR
 from tripleoclient import exceptions
 from tripleoclient import utils
 
@@ -251,70 +253,209 @@ def enable_ssh_admin(stack, hosts, ssh_user, ssh_key, timeout):
     print("Enabling ssh admin - COMPLETE.")
 
 
-def config_download(log, clients, stack, templates,
-                    ssh_user, ssh_key, ssh_network,
-                    output_dir, override_ansible_cfg, timeout, verbosity=0,
-                    deployment_options={},
-                    in_flight_validations=False):
-    workflow_client = clients.workflow_engine
-    tripleoclients = clients.tripleoclient
+def config_download(log, clients, stack, ssh_network=None,
+                    output_dir=None, override_ansible_cfg=None,
+                    timeout=None, verbosity=0, deployment_options=None,
+                    in_flight_validations=False,
+                    ansible_playbook_name='deploy_steps_playbook.yaml',
+                    limit_list=None):
+    """Run config download.
 
-    if in_flight_validations:
-        skip_tags = ''
-    else:
+    :param log: Logging object
+    :type log: Object
+
+    :param clients: openstack clients
+    :type clients: Object
+
+    :param stack: Heat Stack object
+    :type stack: Object
+
+    :param ssh_network: Network named used to access the overcloud.
+    :type ssh_network: String
+
+    :param override_ansible_cfg: Ansible configuration file location.
+    :type override_ansible_cfg: String
+
+    :param timeout: Ansible connection timeout. If None, the effective
+                    default will be set to 30 at playbook runtime.
+    :type timeout: Integer
+
+    :param verbosity: Ansible verbosity level.
+    :type verbosity: Integer
+
+    :param deployment_options: Additional deployment options.
+    :type deployment_options: Dictionary
+
+    :param in_flight_validations: Enable or Disable inflight validations.
+    :type in_flight_validations: Boolean
+
+    :param ansible_playbook_name: Name of the playbook to execute.
+    :type ansible_playbook_name: String
+
+    :param limit_list: List of hosts to limit the current playbook to.
+    :type limit_list: List
+    """
+
+    def _log_and_print(message, logger, level='info', print_msg=True):
+        """Print and log a given message.
+
+        :param message: Message to print and log.
+        :type message: String
+
+        :param log: Logging object
+        :type log: Object
+
+        :param level: Log level.
+        :type level: String
+
+        :param print_msg: Print messages to stdout.
+        :type print_msg: Boolean
+        """
+
+        if print_msg:
+            print(message)
+
+        log = getattr(logger, level)
+        log(message)
+
+    if not output_dir:
+        output_dir = DEFAULT_WORK_DIR
+
+    if not deployment_options:
+        deployment_options = dict()
+
+    if not in_flight_validations:
         skip_tags = 'opendev-validation'
+    else:
+        skip_tags = None
 
-    workflow_input = {
-        'verbosity': verbosity,
-        'plan_name': stack.stack_name,
-        'ssh_network': ssh_network,
-        'config_download_timeout': timeout,
-        'deployment_options': deployment_options,
-        'skip_tags': skip_tags
-    }
-    if output_dir:
-        workflow_input.update(dict(work_dir=output_dir))
-    if override_ansible_cfg:
-        with open(override_ansible_cfg) as cfg:
-            override_ansible_cfg_contents = cfg.read()
-        workflow_input.update(
-            dict(override_ansible_cfg=override_ansible_cfg_contents))
+    if not timeout:
+        timeout = 30
 
-    workflow_name = 'tripleo.deployment.v1.config_download_deploy'
+    # NOTE(cloudnull): List of hosts to limit the current playbook execution
+    #                  The list is later converted into an ansible compatible
+    #                  string. Storing hosts in list format will ensure all
+    #                  entries are consistent.
+    if not limit_list:
+        limit_list = list()
 
-    # Check to see if any existing executions for the same stack are already in
-    # progress.
-    log.info("Checking for existing executions of config_download for "
-             "%s" % stack.stack_name)
-    for execution in workflow_client.executions.find(
-            workflow_name=workflow_name,
-            state='RUNNING'):
-
-        try:
-            exec_input = yaml.safe_load(execution.input)
-        except yaml.YAMLError as ye:
-            log.error("YAML error loading input for execution %s: %s" %
-                      (execution.id, str(ye)))
-            raise
-
-        if exec_input.get('plan_name', 'overcloud') == stack.stack_name:
-            raise exceptions.ConfigDownloadInProgress(execution.id,
-                                                      stack.stack_name)
-
-    with tripleoclients.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client,
-            workflow_name,
-            workflow_input=workflow_input
+    with utils.TempDirs() as tmp:
+        utils.run_ansible_playbook(
+            playbook='cli-grant-local-access.yaml',
+            inventory='localhost,',
+            workdir=tmp,
+            playbook_dir=ANSIBLE_TRIPLEO_PLAYBOOKS,
+            extra_vars={
+                'access_path': output_dir,
+                'execution_user': getpass.getuser()
+            }
         )
 
-        for payload in base.wait_for_messages(workflow_client, ws, execution):
-            print(payload['message'])
+    stack_work_dir = os.path.join(output_dir, stack.stack_name)
+    context = clients.tripleoclient.create_mistral_context()
+    _log_and_print(
+        message='Checking for blacklisted hosts from stack: {}'.format(
+            stack.stack_name
+        ),
+        logger=log,
+        print_msg=(verbosity == 0)
+    )
+    blacklist_show = stack.output_show('BlacklistedHostnames')
+    blacklist_stack_output = blacklist_show.get('output', dict())
+    blacklist_stack_output_value = blacklist_stack_output.get('output_value')
+    if blacklist_stack_output_value:
+        limit_list.extend(
+            ['!{}'.format(i) for i in blacklist_stack_output_value if i]
+        )
+    _log_and_print(
+        message='Retrieving configuration for stack: {}'.format(
+            stack.stack_name
+        ),
+        logger=log,
+        print_msg=(verbosity == 0)
+    )
+    utils.get_config(clients, container=stack.stack_name)
+    _log_and_print(
+        message='Downloading configuration for stack: {}'.format(
+            stack.stack_name
+        ),
+        logger=log,
+        print_msg=(verbosity == 0)
+    )
+    download = config.DownloadConfigAction(
+        work_dir=stack_work_dir,
+        container_config='{}-config'.format(stack.stack_name)
+    )
+    work_dir = download.run(context=context)
+    _log_and_print(
+        message='Retrieving keyfile for stack: {}'.format(
+            stack.stack_name
+        ),
+        logger=log,
+        print_msg=(verbosity == 0)
+    )
+    key_file = utils.get_key(stack=stack.stack_name)
+    _log_and_print(
+        message='Generating information for stack: {}'.format(
+            stack.stack_name
+        ),
+        logger=log,
+        print_msg=(verbosity == 0)
+    )
+    inventory_kwargs = {
+        'ansible_ssh_user': 'tripleo-admin',
+        'work_dir': work_dir,
+        'plan_name': stack.stack_name,
+        'undercloud_key_file': key_file
+    }
+    if ssh_network:
+        inventory_kwargs['ssh_network'] = ssh_network
+    python_interpreter = deployment_options.get('ansible_python_interpreter')
+    if python_interpreter:
+        inventory_kwargs['ansible_python_interpreter'] = python_interpreter
+    inventory = ansible.AnsibleGenerateInventoryAction(**inventory_kwargs)
+    inventory_path = inventory.run(context=context)
+    _log_and_print(
+        message='Executing deployment playbook for stack: {}'.format(
+            stack.stack_name
+        ),
+        logger=log,
+        print_msg=(verbosity == 0)
+    )
 
-    if payload['status'] == 'SUCCESS':
-        print("Overcloud configuration completed.")
-    else:
-        raise exceptions.DeploymentError("Overcloud configuration failed.")
+    # NOTE(cloudnull): Join the limit_list into an ansible compatible string.
+    #                  If it is an empty, the object will be reset to None.
+    limit_hosts = ':'.join(limit_list)
+
+    with utils.TempDirs() as tmp:
+        utils.run_ansible_playbook(
+            playbook=os.path.join(
+                stack_work_dir,
+                ansible_playbook_name
+            ),
+            inventory=inventory_path,
+            workdir=tmp,
+            playbook_dir=work_dir,
+            skip_tags=skip_tags,
+            ansible_cfg=override_ansible_cfg,
+            verbosity=verbosity,
+            ssh_user='tripleo-admin',
+            key=key_file,
+            limit_hosts=limit_hosts,
+            ansible_timeout=timeout,
+            reproduce_command=True,
+            extra_env_variables={
+                'ANSIBLE_BECOME': True,
+            }
+        )
+
+    _log_and_print(
+        message='Overcloud configuration completed for stack: {}'.format(
+            stack.stack_name
+        ),
+        logger=log,
+        print_msg=(verbosity == 0)
+    )
 
 
 def config_download_export(clients, plan, config_type):

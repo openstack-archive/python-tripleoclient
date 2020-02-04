@@ -11,19 +11,16 @@
 # under the License.
 from __future__ import print_function
 
-import os
 import pprint
 import time
 
-
 from heatclient.common import event_utils
 from openstackclient import shell
-from tripleo_common.actions import config
 
-from tripleoclient import constants
 from tripleoclient import exceptions
 from tripleoclient import utils
 from tripleoclient.workflows import base
+
 
 _WORKFLOW_TIMEOUT = 120 * 60  # 2h
 
@@ -65,49 +62,6 @@ def update(clients, **workflow_input):
     if not create_result:
         shell.OpenStackShell().run(["stack", "failures", "list", plan_name])
         raise exceptions.DeploymentError("Heat Stack update failed.")
-
-
-def get_config(clients, container):
-    """Get cloud config.
-
-    :param clients: Application client object.
-    :type clients: Object
-
-    :param container: Container name to pull from.
-    :type container: String.
-    """
-
-    context = clients.tripleoclient.create_mistral_context()
-    config_action = config.GetOvercloudConfig(container=container)
-    config_action.run(context=context)
-
-
-def get_key(stack):
-    """Returns the private key from the local file system.
-
-    Searches for and returns the stack private key. If the key is inaccessible
-    for any reason, the process will fall back to using the users key. If no
-    key is found, this method will return None.
-
-    :params stack: name of the stack to use
-    :type stack: String
-
-    :returns: String || None
-    """
-
-    stack_dir = os.path.join(constants.DEFAULT_WORK_DIR, stack)
-    stack_key_file = os.path.join(stack_dir, 'ssh_private_key')
-    user_dir = os.path.join(os.path.expanduser("~"), '.ssh')
-    user_key_file = os.path.join(user_dir, 'id_rsa_tripleo')
-    for key_file in [stack_key_file, user_key_file]:
-        try:
-            if os.path.exists(key_file):
-                with open(key_file):
-                    return key_file
-        except IOError:
-            pass
-    else:
-        return
 
 
 def update_ansible(clients, **workflow_input):

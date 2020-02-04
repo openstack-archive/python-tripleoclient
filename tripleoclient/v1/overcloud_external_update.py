@@ -12,6 +12,7 @@
 #   License for the specific language governing permissions and limitations
 #   under the License.
 #
+
 from oslo_config import cfg
 from oslo_log import log as logging
 
@@ -86,10 +87,8 @@ class ExternalUpdateRun(command.Command):
                             default=[])
         parser.add_argument('--no-workflow', dest='no_workflow',
                             action='store_true',
-                            default=False,
-                            help=_('Run ansible-playbook directly via '
-                                   'system command instead of running Ansible'
-                                   'via the TripleO mistral workflows.')
+                            default=True,
+                            help=_('This option no longer has any effect.')
                             )
 
         return parser
@@ -101,19 +100,20 @@ class ExternalUpdateRun(command.Command):
         verbosity = self.app_args.verbose_level - 1
         stack = parsed_args.stack
 
-        ansible_dir = None
-        key = package_update.get_key(stack=stack)
-        # Disable mistral
-        if parsed_args.no_workflow:
-            ansible_dir = oooutils.download_ansible_playbooks(orchestration,
-                                                              stack)
+        key, ansible_dir = self.get_ansible_key_and_dir(
+            no_workflow=parsed_args.no_workflow,
+            stack=stack,
+            orchestration=orchestration
+        )
 
         # Run ansible:
         inventory = oooutils.get_tripleo_ansible_inventory(
-            parsed_args.static_inventory, parsed_args.ssh_user, stack)
+            parsed_args.static_inventory, parsed_args.ssh_user, stack,
+            return_inventory_file_path=True)
         limit_hosts = 'all'
         playbook = 'all'
         extra_vars = oooutils.parse_extra_vars(parsed_args.extra_vars)
+        extra_vars['ansible_become'] = True
 
         oooutils.run_update_ansible_action(
             self.log, clients, stack, limit_hosts, inventory, playbook,

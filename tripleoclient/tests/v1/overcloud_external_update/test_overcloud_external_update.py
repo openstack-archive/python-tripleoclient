@@ -15,6 +15,7 @@
 
 import mock
 
+from tripleoclient.tests import fakes as ooofakes
 from tripleoclient.tests.v1.overcloud_external_update import fakes
 from tripleoclient.v1 import overcloud_external_update
 
@@ -34,13 +35,23 @@ class TestOvercloudExternalUpdateRun(fakes.TestOvercloudExternalUpdateRun):
         self.mock_uuid4 = uuid4_patcher.start()
         self.addCleanup(self.mock_uuid4.stop)
 
-    @mock.patch('tripleoclient.workflows.package_update.update_ansible',
+    @mock.patch(
+        'ansible_runner.runner_config.RunnerConfig',
+        autospec=True,
+        return_value=ooofakes.FakeRunnerConfig()
+    )
+    @mock.patch(
+        'ansible_runner.Runner.run',
+        return_value=ooofakes.fake_ansible_runner_run_return()
+    )
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
     @mock.patch('six.moves.builtins.open')
     def test_update_with_user_and_tags(self, mock_open, mock_execute,
-                                       mock_expanduser, update_ansible):
+                                       mock_expanduser, update_ansible,
+                                       mock_run, mock_run_prepare):
         mock_expanduser.return_value = '/home/fake/'
         argslist = ['--ssh-user', 'tripleo-admin',
                     '--tags', 'ceph']
@@ -54,25 +65,35 @@ class TestOvercloudExternalUpdateRun(fakes.TestOvercloudExternalUpdateRun):
             mock_exists.return_value = True
             self.cmd.take_action(parsed_args)
             update_ansible.assert_called_once_with(
-                self.app.client_manager,
-                container='overcloud',
-                nodes='all',
-                inventory_file=mock_open().__enter__().read(),
                 playbook='external_update_steps_playbook.yaml',
-                node_user='tripleo-admin',
+                inventory=mock.ANY,
+                workdir=mock.ANY,
+                ssh_user='tripleo-admin',
+                key='/var/lib/mistral/overcloud/ssh_private_key',
+                module_path='/usr/share/ansible-modules',
+                limit_hosts='all',
                 tags='ceph',
                 skip_tags='',
-                verbosity=0,
-                extra_vars={}
+                extra_vars={'ansible_become': True}
             )
 
-    @mock.patch('tripleoclient.workflows.package_update.update_ansible',
+    @mock.patch(
+        'ansible_runner.runner_config.RunnerConfig',
+        autospec=True,
+        return_value=ooofakes.FakeRunnerConfig()
+    )
+    @mock.patch(
+        'ansible_runner.Runner.run',
+        return_value=ooofakes.fake_ansible_runner_run_return()
+    )
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
     @mock.patch('six.moves.builtins.open')
     def test_update_with_user_and_extra_vars(self, mock_open, mock_execute,
-                                             mock_expanduser, update_ansible):
+                                             mock_expanduser, update_ansible,
+                                             mock_run, mock_run_prepare):
         mock_expanduser.return_value = '/home/fake/'
         argslist = ['--ssh-user', 'tripleo-admin',
                     '--extra-vars', 'key1=val1',
@@ -87,14 +108,18 @@ class TestOvercloudExternalUpdateRun(fakes.TestOvercloudExternalUpdateRun):
             mock_exists.return_value = True
             self.cmd.take_action(parsed_args)
             update_ansible.assert_called_once_with(
-                self.app.client_manager,
-                container='overcloud',
-                nodes='all',
-                inventory_file=mock_open().__enter__().read(),
                 playbook='external_update_steps_playbook.yaml',
-                node_user='tripleo-admin',
+                inventory=mock.ANY,
+                workdir=mock.ANY,
+                ssh_user='tripleo-admin',
+                key='/var/lib/mistral/overcloud/ssh_private_key',
+                module_path='/usr/share/ansible-modules',
+                limit_hosts='all',
                 tags='',
                 skip_tags='',
-                verbosity=0,
-                extra_vars={'key1': 'val1', 'key2': 'val2'}
+                extra_vars={
+                    'key1': 'val1',
+                    'key2': 'val2',
+                    'ansible_become': True
+                }
             )

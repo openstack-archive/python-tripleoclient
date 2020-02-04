@@ -13,57 +13,16 @@
 #   under the License.
 #
 
-import mock
-from osc_lib.tests import utils
-
-from tripleoclient import plugin
 from tripleoclient.tests import fakes
 
 
-class FakeClientWrapper(object):
-
-    def __init__(self):
-        self._instance = mock.Mock()
-        self.object_store = FakeObjectClient()
-
-    def messaging_websocket(self):
-        return fakes.FakeWebSocket()
-
-
-class FakeObjectClient(object):
-
-    def __init__(self):
-        self._instance = mock.Mock()
-        self.put_object = mock.Mock()
-
-    def get_object(self, *args):
-        return
-
-
-class TestOvercloudUpgradePrepare(utils.TestCommand):
+class TestOvercloudUpgradePrepare(fakes.FakePlaybookExecution):
 
     def setUp(self):
         super(TestOvercloudUpgradePrepare, self).setUp()
 
-        self.app.client_manager.auth_ref = mock.Mock(auth_token="TOKEN")
-        self.app.client_manager.baremetal = mock.Mock()
-        self.app.client_manager.orchestration = mock.Mock()
-        tc = self.app.client_manager.tripleoclient = FakeClientWrapper()
-        tc.create_mistral_context = plugin.ClientWrapper(
-            instance=fakes.FakeInstanceData
-        ).create_mistral_context
-        workflow = execution = mock.Mock()
-        execution.id = "IDID"
-        workflow.executions.create.return_value = execution
-        self.app.client_manager.workflow_engine = workflow
 
-
-class TestOvercloudUpgradeRun(utils.TestCommand):
+class TestOvercloudUpgradeRun(fakes.FakePlaybookExecution):
 
     def setUp(self):
         super(TestOvercloudUpgradeRun, self).setUp()
-
-        self.app.client_manager.auth_ref = mock.Mock(auth_token="TOKEN")
-        self.app.client_manager.tripleoclient = FakeClientWrapper()
-        self.app.client_manager.workflow_engine = mock.Mock()
-        self.app.client_manager.orchestration = mock.Mock()
