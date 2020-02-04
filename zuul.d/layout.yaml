@@ -3,9 +3,7 @@
       - check-requirements
       - openstack-lower-constraints-jobs
       - openstackclient-plugin-jobs
-      - openstack-python36-jobs
-      - openstack-python37-jobs
-      - openstack-python3-train-jobs
+      - openstack-python3-ussuri-jobs
       - publish-openstack-docs-pti
       - release-notes-jobs-python3
       - tripleo-buildimage-jobs
@@ -15,9 +13,6 @@
       - tripleo-standalone-scenarios-full
     check:
       jobs:
-        - openstack-tox-pep8
-        - openstack-tox-py36
-        - openstack-tox-py37
         - tripleo-ci-centos-7-containers-multinode:
             dependencies: &deps_unit_lint
               - openstack-tox-pep8
@@ -52,7 +47,3 @@
               - ^tripleoclient/config/.*minion.*$
               - ^tripleoclient/v1/.*minion.*$
               - ^tripleoclient/v1/tripleo_deploy.py$
-    gate:
-      queue: tripleo
-      jobs:
-        - openstack-tox-pep8
