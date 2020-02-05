@@ -1369,7 +1369,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertTrue(fixture.mock_set_deployment_status.called)
         self.assertEqual(
             'deploying',
-            fixture.mock_set_deployment_status.call_args[0][1])
+            fixture.mock_set_deployment_status.call_args[-1]['status']
+        )
         mock_copy.assert_called_once()
 
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
@@ -1405,7 +1406,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertTrue(fixture.mock_set_deployment_status.called)
         self.assertEqual(
             'deploying',
-            fixture.mock_set_deployment_status.call_args[0][1])
+            fixture.mock_set_deployment_status.call_args[-1]['status'])
         mock_copy.assert_called_once()
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
@@ -1449,7 +1450,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertTrue(fixture.mock_set_deployment_status.called)
         self.assertEqual(
             'failed',
-            fixture.mock_set_deployment_status.call_args[0][1])
+            fixture.mock_set_deployment_status.call_args[-1]['status'])
 
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'

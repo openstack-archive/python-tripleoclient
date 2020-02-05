@@ -945,8 +945,10 @@ class DeployOvercloud(command.Command):
         if parsed_args.config_download:
             print("Deploying overcloud configuration")
             deployment.set_deployment_status(
-                self.clients, 'deploying',
-                plan=stack.stack_name)
+                clients=self.clients,
+                plan=stack.stack_name,
+                status='deploying'
+            )
 
             try:
                 if not parsed_args.config_download_only:
@@ -982,8 +984,10 @@ class DeployOvercloud(command.Command):
                     in_flight_validations=parsed_args.inflight)
             except Exception:
                 deployment.set_deployment_status(
-                    self.clients, 'failed',
-                    plan=stack.stack_name)
+                    clients=self.clients,
+                    plan=stack.stack_name,
+                    status='failed'
+                )
                 raise
 
         # Force fetching of attributes
