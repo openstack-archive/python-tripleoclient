@@ -912,7 +912,10 @@ class TestDeployUndercloud(TestPluginV1):
     @mock.patch('tripleoclient.utils.wait_for_stack_ready', return_value=True)
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_set_default_plan')
-    def test_take_action_standalone(self, mock_def_plan, mock_poll,
+    @mock.patch('ansible_runner.utils.dump_artifact', autospec=True,
+                return_value="/foo/inventory.yaml")
+    def test_take_action_standalone(self, mock_dump_artifact,
+                                    mock_def_plan, mock_poll,
                                     mock_environ, mock_geteuid, mock_puppet,
                                     mock_killheat, mock_launchheat,
                                     mock_download, mock_tht,

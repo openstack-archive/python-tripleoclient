@@ -58,7 +58,9 @@ class TestRunAnsiblePlaybook(TestCase):
 
     @mock.patch('os.path.exists', return_value=False)
     @mock.patch('tripleoclient.utils.run_command_and_log')
-    def test_no_playbook(self, mock_run, mock_exists):
+    @mock.patch('ansible_runner.utils.dump_artifact', autospec=True,
+                return_value="/foo/inventory.yaml")
+    def test_no_playbook(self, mock_dump_artifact, mock_run, mock_exists):
         self.assertRaises(
             RuntimeError,
             utils.run_ansible_playbook,
@@ -77,7 +79,10 @@ class TestRunAnsiblePlaybook(TestCase):
         'run',
         return_value=fakes.fake_ansible_runner_run_return(rc=1)
     )
-    def test_subprocess_error(self, mock_run, mock_mkdirs, mock_exists,
+    @mock.patch('ansible_runner.utils.dump_artifact', autospec=True,
+                return_value="/foo/inventory.yaml")
+    def test_subprocess_error(self, mock_dump_artifact,
+                              mock_run, mock_mkdirs, mock_exists,
                               mock_mkstemp):
         with self.assertRaises(AnsibleRunnerException):
             utils.run_ansible_playbook(
@@ -94,8 +99,10 @@ class TestRunAnsiblePlaybook(TestCase):
         'run',
         return_value=fakes.fake_ansible_runner_run_return()
     )
-    def test_run_success_default(self, mock_run, mock_mkdirs, mock_exists,
-                                 mock_mkstemp):
+    @mock.patch('ansible_runner.utils.dump_artifact', autospec=True,
+                return_value="/foo/inventory.yaml")
+    def test_run_success_default(self, mock_dump_artifact, mock_run,
+                                 mock_mkdirs, mock_exists, mock_mkstemp):
         retcode, output = utils.run_ansible_playbook(
             playbook='existing.yaml',
             inventory='localhost,',
@@ -110,7 +117,10 @@ class TestRunAnsiblePlaybook(TestCase):
         'run',
         return_value=fakes.fake_ansible_runner_run_return()
     )
-    def test_run_success_ansible_cfg(self, mock_run, mock_mkdirs, mock_exists):
+    @mock.patch('ansible_runner.utils.dump_artifact', autospec=True,
+                return_value="/foo/inventory.yaml")
+    def test_run_success_ansible_cfg(self, mock_dump_artifact, mock_run,
+                                     mock_mkdirs, mock_exists):
         retcode, output = utils.run_ansible_playbook(
             playbook='existing.yaml',
             inventory='localhost,',
@@ -126,8 +136,11 @@ class TestRunAnsiblePlaybook(TestCase):
         'run',
         return_value=fakes.fake_ansible_runner_run_return()
     )
-    def test_run_success_connection_local(self, mock_run, mock_mkdirs,
-                                          mock_exists, mock_mkstemp):
+    @mock.patch('ansible_runner.utils.dump_artifact', autospec=True,
+                return_value="/foo/inventory.yaml")
+    def test_run_success_connection_local(self, mock_dump_artifact, mock_run,
+                                          mock_mkdirs, mock_exists,
+                                          mock_mkstemp):
         retcode, output = utils.run_ansible_playbook(
             playbook='existing.yaml',
             inventory='localhost,',
@@ -144,8 +157,11 @@ class TestRunAnsiblePlaybook(TestCase):
         'run',
         return_value=fakes.fake_ansible_runner_run_return()
     )
-    def test_run_success_gathering_policy(self, mock_run, mock_exists,
-                                          mock_mkstemp, mock_makedirs):
+    @mock.patch('ansible_runner.utils.dump_artifact', autospec=True,
+                return_value="/foo/inventory.yaml")
+    def test_run_success_gathering_policy(self, mock_dump_artifact, mock_run,
+                                          mock_exists, mock_mkstemp,
+                                          mock_makedirs):
         retcode, output = utils.run_ansible_playbook(
             playbook='existing.yaml',
             inventory='localhost,',
@@ -163,8 +179,10 @@ class TestRunAnsiblePlaybook(TestCase):
         'run',
         return_value=fakes.fake_ansible_runner_run_return()
     )
-    def test_run_success_extra_vars(self, mock_run, mock_exists, mock_mkstemp,
-                                    mock_makedirs):
+    @mock.patch('ansible_runner.utils.dump_artifact', autospec=True,
+                return_value="/foo/inventory.yaml")
+    def test_run_success_extra_vars(self, mock_dump_artifact, mock_run,
+                                    mock_exists, mock_mkstemp, mock_makedirs):
         arglist = {
             'var_one': 'val_one',
         }
