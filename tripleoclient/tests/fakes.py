@@ -34,6 +34,10 @@ class FakeApp(object):
         self.command_options = None
 
 
+class FakeStackObject(object):
+    stack_name = 'undercloud'
+
+
 class FakeClientManager(object):
     def __init__(self):
         self.identity = None

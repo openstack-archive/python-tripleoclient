@@ -82,10 +82,12 @@ class UpgradePrepare(DeployOvercloud):
         # refresh stack info and enable ssh admin for Ansible-via-Mistral
         stack = oooutils.get_stack(clients.orchestration, parsed_args.stack)
         deployment.get_hosts_and_enable_ssh_admin(
-            self.log, clients, stack, parsed_args.overcloud_ssh_network,
-            parsed_args.overcloud_ssh_user, parsed_args.overcloud_ssh_key,
-            parsed_args.overcloud_ssh_enable_timeout,
-            parsed_args.overcloud_ssh_port_timeout)
+            stack,
+            parsed_args.overcloud_ssh_network,
+            parsed_args.overcloud_ssh_user,
+            parsed_args.overcloud_ssh_key,
+            parsed_args.overcloud_ssh_port_timeout
+        )
 
         self.log.info("Completed Overcloud Upgrade Prepare for stack "
                       "{0}".format(stack_name))

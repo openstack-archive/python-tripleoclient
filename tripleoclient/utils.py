@@ -208,7 +208,8 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
                          verbosity=0, quiet=False, extra_vars=None,
                          plan='overcloud', gathering_policy='smart',
                          extra_env_variables=None, parallel_run=False,
-                         callback_whitelist=None, ansible_cfg=None):
+                         callback_whitelist=None, ansible_cfg=None,
+                         ansible_timeout=30):
     """Simple wrapper for ansible-playbook.
 
     :param playbook: Playbook filename.
@@ -282,6 +283,9 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
     :param ansible_cfg: Path to an ansible configuration file. One will be
                         generated in the artifact path if this option is None.
     :type ansible_cfg: String
+
+    :param ansible_timeout: Timeout for ansible connections.
+    :type ansible_timeout: int
     """
 
     def _playbook_check(play):
@@ -361,7 +365,7 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
     env = os.environ.copy()
     env['ANSIBLE_DISPLAY_FAILED_STDERR'] = True
     env['ANSIBLE_FORKS'] = 36
-    env['ANSIBLE_TIMEOUT'] = 30
+    env['ANSIBLE_TIMEOUT'] = ansible_timeout
     env['ANSIBLE_GATHER_TIMEOUT'] = 45
     env['ANSIBLE_SSH_RETRIES'] = 3
     env['ANSIBLE_PIPELINING'] = True

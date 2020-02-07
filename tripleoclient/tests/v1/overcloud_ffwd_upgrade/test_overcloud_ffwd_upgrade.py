@@ -97,10 +97,12 @@ class TestFFWDUpgradePrepare(fakes.TestFFWDUpgradePrepare):
         mock_write_overcloudrc.assert_called_once_with("mystack",
                                                        mock.ANY)
         mock_enable_ssh_admin.assert_called_once_with(
-            self.cmd.log, self.app.client_manager, mock_stack,
+            mock_stack,
             parsed_args.overcloud_ssh_network,
-            parsed_args.overcloud_ssh_user, parsed_args.overcloud_ssh_key,
-            600, 300)
+            parsed_args.overcloud_ssh_user,
+            parsed_args.overcloud_ssh_key,
+            parsed_args.overcloud_ssh_port_timeout
+        )
         mock_overcloud_deploy.assert_called_once_with(parsed_args)
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'

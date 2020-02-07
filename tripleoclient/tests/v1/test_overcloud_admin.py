@@ -34,11 +34,9 @@ class TestAdminAuthorize(test_plugin.TestPluginV1):
 
         self.cmd.take_action(parsed_args)
         mock_get_host_and_enable_ssh_admin.assert_called_once_with(
-            self.cmd.log,
-            self.app.client_manager,
             mock_stack,
             parsed_args.overcloud_ssh_network,
             parsed_args.overcloud_ssh_user,
             parsed_args.overcloud_ssh_key,
-            600,
-            300)
+            parsed_args.overcloud_ssh_port_timeout
+        )
