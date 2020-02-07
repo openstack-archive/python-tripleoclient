@@ -17,6 +17,7 @@ from __future__ import print_function
 from tripleo_common.actions import scale
 
 from tripleoclient import exceptions
+from tripleoclient import utils
 from tripleoclient.workflows import base
 
 
@@ -72,3 +73,8 @@ def scale_down(clients, plan_name, nodes, timeout=None):
     context = clients.tripleoclient.create_mistral_context()
     scale_down_action = scale.ScaleDownAction(nodes=nodes, timeout=timeout)
     scale_down_action.run(context=context)
+    utils.wait_for_stack_ready(
+        orchestration_client=clients.orchestration,
+        stack_name=plan_name,
+        action='UPDATE'
+    )
