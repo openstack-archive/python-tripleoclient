@@ -35,6 +35,12 @@ class TestOvercloudUpdatePrepare(fakes.TestOvercloudUpdatePrepare):
         uuid4_patcher = mock.patch('uuid.uuid4', return_value="UUID4")
         self.mock_uuid4 = uuid4_patcher.start()
         self.addCleanup(self.mock_uuid4.stop)
+        config_mock = mock.patch(
+            'tripleo_common.actions.config.GetOvercloudConfig',
+            autospec=True
+        )
+        config_mock.start()
+        self.addCleanup(config_mock.stop)
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_get_undercloud_host_entry', autospec=True,
