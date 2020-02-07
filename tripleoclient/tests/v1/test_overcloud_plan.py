@@ -15,6 +15,8 @@ import mock
 from osc_lib.tests import utils
 
 from tripleoclient import exceptions
+from tripleoclient import plugin
+from tripleoclient.tests import fakes
 from tripleoclient.v1 import overcloud_plan
 
 
@@ -36,30 +38,29 @@ class TestOvercloudPlanList(utils.TestCommand):
 
     def setUp(self):
         super(TestOvercloudPlanList, self).setUp()
-
+        self.app.client_manager.tripleoclient = plugin.ClientWrapper(
+            instance=fakes.FakeInstanceData
+        )
         self.cmd = overcloud_plan.ListPlans(self.app, None)
-        self.app.client_manager.workflow_engine = mock.Mock()
 
-    @mock.patch(
-        'tripleoclient.workflows.plan_management.list_deployment_plans',
-        autospec=True)
+    @mock.patch("tripleoclient.workflows.plan_management."
+                "list_deployment_plans",
+                autospec=True)
     def test_list_empty(self, mock_list_plans):
         mock_list_plans.return_value = []
 
         result = self.cmd.take_action(None)
-        mock_list_plans.assert_called_once_with(self.app.client_manager)
 
         self.assertEqual(0, len(result[1]))
 
-    @mock.patch(
-        'tripleoclient.workflows.plan_management.list_deployment_plans',
-        autospec=True)
+    @mock.patch("tripleoclient.workflows.plan_management."
+                "list_deployment_plans",
+                autospec=True)
     def test_list(self, mock_list_plans):
         mock_list_plans.return_value = (
             ['test-plan-1', 'test-plan-2'])
 
         result = self.cmd.take_action(None)
-        mock_list_plans.assert_called_once_with(self.app.client_manager)
 
         self.assertEqual(1, len(result[0]))
         self.assertEqual([('test-plan-1',), ('test-plan-2',)], result[1])

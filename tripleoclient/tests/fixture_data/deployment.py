@@ -42,10 +42,6 @@ class PlanManagementFixture(fixtures.Fixture):
         self.mock_tarball = self.useFixture(fixtures.MockPatch(
             'tripleoclient.workflows.plan_management.tarball')
         ).mock
-        self.mock_list_plans = self.useFixture(fixtures.MockPatch(
-            'tripleoclient.workflows.plan_management.list_deployment_plans',
-            return_value=[])
-        ).mock
 
 
 class UtilsOvercloudFixture(fixtures.Fixture):
