@@ -101,7 +101,11 @@ def deploy_and_wait(log, clients, stack, plan_name, verbose_level,
         orchestration_client, plan_name, marker, action, verbose_events)
     if not create_result:
         shell.OpenStackShell().run(["stack", "failures", "list", plan_name])
-        set_deployment_status(clients, 'failed', plan=plan_name)
+        set_deployment_status(
+            clients=clients,
+            plan=plan_name,
+            status='failed'
+        )
         if stack is None:
             raise exceptions.DeploymentError("Heat Stack create failed.")
         else:
@@ -389,35 +393,28 @@ def get_deployment_status(clients, plan):
         return deployment_status, plan
 
 
-def set_deployment_status(clients, status='success', **workflow_input):
-    workflow_client = clients.workflow_engine
-    tripleoclients = clients.tripleoclient
+def set_deployment_status(clients, plan, status):
+    """Update a given deployment status.
 
-    if status == 'success':
-        workflow = 'tripleo.deployment.v1.set_deployment_status_success'
-    elif status == 'failed':
-        workflow = 'tripleo.deployment.v1.set_deployment_status_failed'
-    elif status == 'deploying':
-        workflow = 'tripleo.deployment.v1.set_deployment_status_deploying'
-    else:
-        raise Exception("Can't set unknown deployment status: %s" % status)
+    :param clients: application client object.
+    :type clients: Object
 
-    with tripleoclients.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client,
-            workflow,
-            workflow_input=workflow_input
-        )
+    :param plan: Plan name.
+    :type plan: String
 
-        for payload in base.wait_for_messages(workflow_client, ws, execution,
-                                              _WORKFLOW_TIMEOUT):
-            # Just continue until workflow is done
-            continue
+    :param status: Current status of the deployment.
+    :type status: String
+    """
 
-    if payload['status'] != 'SUCCESS':
-        raise exceptions.WorkflowServiceError(
-            'Exception setting deployment status: {}'.format(
-                payload.get('message', '')))
+    deploy_status = 'DEPLOY_{}'.format(status.upper())
+    utils.update_deployment_status(
+        clients=clients,
+        plan=plan,
+        status={
+            'deployment_status': deploy_status,
+            'status_update': deploy_status
+        }
+    )
 
 
 def get_deployment_failures(clients, **workflow_input):
