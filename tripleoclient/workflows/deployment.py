@@ -12,6 +12,7 @@
 from __future__ import print_function
 
 import copy
+import os
 import pprint
 import time
 import yaml
@@ -334,22 +335,29 @@ def config_download_export(clients, **workflow_input):
                 payload['message']))
 
 
-def get_horizon_url(clients, **workflow_input):
-    workflow_client = clients.workflow_engine
-    tripleoclients = clients.tripleoclient
+def get_horizon_url(stack):
+    """Return horizon URL string.
 
-    with tripleoclients.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client,
-            'tripleo.deployment.v1.get_horizon_url',
-            workflow_input=workflow_input
+    :params stack: Stack name
+    :type stack: string
+    :returns: string
+    """
+
+    with utils.TempDirs() as tmp:
+        horizon_tmp_file = os.path.join(tmp, 'horizon_url')
+        utils.run_ansible_playbook(
+            playbook='cli-undercloud-get-horizon-url.yaml',
+            inventory='localhost,',
+            workdir=tmp,
+            playbook_dir=ANSIBLE_TRIPLEO_PLAYBOOKS,
+            extra_vars={
+                'stack_name': stack,
+                'horizon_url_output_file': horizon_tmp_file
+            }
         )
 
-        for payload in base.wait_for_messages(workflow_client, ws, execution,
-                                              360):
-            assert payload['status'] == "SUCCESS"
-
-            return payload['horizon_url']
+        with open(horizon_tmp_file) as f:
+            return f.read().strip()
 
 
 def get_deployment_status(clients, **workflow_input):
