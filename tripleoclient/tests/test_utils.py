@@ -38,6 +38,7 @@ import yaml
 from tripleoclient import exceptions
 from tripleoclient import utils
 
+from tripleoclient.tests import base
 from tripleoclient.tests import fakes
 
 from six.moves.configparser import ConfigParser
@@ -1651,3 +1652,24 @@ class TestParseExtraVars(TestCase):
         input_parameter = ['key1 val1']
         self.assertRaises(
             ValueError, utils.parse_extra_vars, input_parameter)
+
+
+class TestGeneralUtils(base.TestCommand):
+
+    def setUp(self):
+        super(TestGeneralUtils, self).setUp()
+        self.tc = self.app.client_manager.tripleoclient = mock.Mock()
+        obj = self.tc.object_store = mock.Mock()
+        obj.put_object = mock.Mock()
+
+    def test_update_deployment_status(self):
+        mock_status = {
+            'status_update': 'TESTING',
+            'deployment_status': 'TESTING'
+        }
+        utils.update_deployment_status(
+            self.app.client_manager,
+            'overcloud',
+            mock_status
+        )
+        self.tc.object_store.put_object.assert_called()

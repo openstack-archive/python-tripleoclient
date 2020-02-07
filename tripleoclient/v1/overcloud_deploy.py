@@ -1032,7 +1032,7 @@ class GetDeploymentStatus(command.Command):
         self.log.debug("take_action(%s)" % parsed_args)
         plan = parsed_args.plan
 
-        status = deployment.get_deployment_status(
+        status, plan = deployment.get_deployment_status(
             self.app.client_manager,
             plan=plan
         )
@@ -1041,11 +1041,9 @@ class GetDeploymentStatus(command.Command):
             print('No deployment was found for %s' % plan)
             return
 
-        payload = status['workflow_status']['payload']
         table = PrettyTable(
             ['Plan Name', 'Deployment Status'])
-        table.add_row([payload['plan_name'],
-                       payload['deployment_status']])
+        table.add_row([plan, status])
         print(table, file=self.app.stdout)
 
 
