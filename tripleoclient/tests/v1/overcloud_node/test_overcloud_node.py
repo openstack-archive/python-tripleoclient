@@ -69,7 +69,9 @@ class TestDeleteNode(fakes.TestDeleteNode):
 
     # TODO(someone): This test does not pass with autospec=True, it should
     # probably be fixed so that it can pass with that.
-    def test_node_delete(self):
+    @mock.patch("heatclient.common.event_utils.poll_for_events")
+    def test_node_delete(self, mock_poll):
+        mock_poll.return_value = ("CREATE_IN_PROGRESS", "MESSAGE")
         argslist = ['instance1', 'instance2', '--templates',
                     '--stack', 'overcast', '--timeout', '90', '--yes']
         verifylist = [
@@ -77,7 +79,6 @@ class TestDeleteNode(fakes.TestDeleteNode):
             ('nodes', ['instance1', 'instance2'])
         ]
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
-
         self.websocket.wait_for_messages.return_value = iter([{
             "execution_id": "IDID",
             "status": "SUCCESS",
@@ -121,8 +122,9 @@ class TestDeleteNode(fakes.TestDeleteNode):
         # Verify
         self.workflow.executions.create.assert_not_called()
 
-    def test_node_delete_without_stack(self):
-
+    @mock.patch("heatclient.common.event_utils.poll_for_events")
+    def test_node_delete_without_stack(self, mock_poll):
+        mock_poll.return_value = ("CREATE_IN_PROGRESS", "MESSAGE")
         arglist = ['instance1', '--yes']
 
         verifylist = [
@@ -160,12 +162,14 @@ class TestDeleteNode(fakes.TestDeleteNode):
         self.assertRaises(exceptions.DeploymentError,
                           self.cmd.take_action, parsed_args)
 
+    @mock.patch("heatclient.common.event_utils.poll_for_events")
     @mock.patch('tripleoclient.workflows.baremetal.expand_roles',
                 autospec=True)
     @mock.patch('tripleoclient.workflows.baremetal.undeploy_roles',
                 autospec=True)
     def test_node_delete_baremetal_deployment(self, mock_undeploy_roles,
-                                              mock_expand_roles):
+                                              mock_expand_roles, mock_poll):
+        mock_poll.return_value = ("CREATE_IN_PROGRESS", "MESSAGE")
         self.websocket.wait_for_messages.return_value = iter([{
             "execution_id": "IDID",
             "status": "SUCCESS",
