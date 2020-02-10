@@ -813,11 +813,10 @@ class TestDeployUndercloud(TestPluginV1):
                 '_launch_heat', autospec=True)
     @mock.patch('tripleo_common.utils.config.Config',
                 autospec=True)
-    @mock.patch('tripleoclient.v1.tripleo_deploy.sys.stdout.flush')
     @mock.patch('os.path.join', return_value='/twd/inventory.yaml')
-    def test_download_ansible_playbooks(self, mock_join, mock_flush,
-                                        mock_stack_config, mock_launch_heat,
-                                        mock_importInv, createdir_mock):
+    def test_download_ansible_playbooks(self, mock_join, mock_stack_config,
+                                        mock_launch_heat, mock_importInv,
+                                        createdir_mock):
 
         fake_output_dir = '/twd'
         extra_vars = {'Undercloud': {
@@ -825,11 +824,12 @@ class TestDeployUndercloud(TestPluginV1):
             'ansible_python_interpreter': sys.executable}}
         mock_inventory = mock.Mock()
         mock_importInv.return_value = mock_inventory
-        self.cmd.output_dir = fake_output_dir
-        self.cmd._download_ansible_playbooks(mock_launch_heat,
-                                             'undercloud',
-                                             'Undercloud')
-        self.assertEqual(mock_flush.call_count, 2)
+        with mock.patch('sys.stdout', autospec=True) as mock_stdout:
+            self.cmd.output_dir = fake_output_dir
+            self.cmd._download_ansible_playbooks(mock_launch_heat,
+                                                 'undercloud',
+                                                 'Undercloud')
+            self.assertEqual(mock_stdout.flush.call_count, 2)
         mock_inventory.write_static_inventory.assert_called_once_with(
             fake_output_dir + '/inventory.yaml', extra_vars)
 
