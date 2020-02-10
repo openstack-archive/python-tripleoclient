@@ -1574,8 +1574,7 @@ def update_nodes_deploy_data(nodes,
     """Add specific kernel and ramdisk IDs to a node.
 
     Look at all images and update node data with the most specific
-    deploy_kernel and deploy_ramdisk for the architecture/platform comination
-    platform.
+    deploy_kernel and deploy_ramdisk for the architecture/platform combination.
     """
     for node in nodes:
 
@@ -1587,10 +1586,8 @@ def update_nodes_deploy_data(nodes,
             for kernel in kernel_locations:
                 path = os.path.join(http_boot, kernel)
                 if os.path.exists(path):
-                    # NOTE(dtantsur): we don't use http_boot here since we
-                    # assume that the path in containers is fixed
                     node['kernel_id'] = 'file://%s/%s' % (
-                        constants.IRONIC_HTTP_BOOT_BIND_MOUNT,
+                        http_boot,
                         kernel)
                     break
             else:
@@ -1606,7 +1603,7 @@ def update_nodes_deploy_data(nodes,
                 path = os.path.join(http_boot, ramdisk)
                 if os.path.exists(path):
                     node['ramdisk_id'] = 'file://%s/%s' % (
-                        constants.IRONIC_HTTP_BOOT_BIND_MOUNT,
+                        http_boot,
                         ramdisk)
                     break
             else:
