@@ -14,14 +14,13 @@ from __future__ import print_function
 import time
 
 from heatclient.common import event_utils
-from tripleo_common.actions import container_images
-from tripleo_common.actions import package_update
+from tripleo_common.utils import plan
+from tripleo_common.utils import stack
 
 from tripleoclient import exceptions
 from tripleoclient import utils
 
-
-_WORKFLOW_TIMEOUT = 120 * 60  # 2h
+_STACK_TIMEOUT = 120  # 2h
 
 
 def update(clients, container):
@@ -39,57 +38,19 @@ def update(clients, container):
     :type container: String.
     """
 
-    def _check_response(response):
-        """This test checks if a response is mistral based.
+    tripleoclients = clients.tripleoclient
 
-        Some responses are constructed using the mistral Result class, but
-        because the returns from methods within tripleo-common are not
-        type safe, this static method will check for success using the
-        mistral attribute, but if it does not exist the raw response will
-        be returned.
+    orchestration_client = clients.orchestration
+    object_client = tripleoclients.object_store
+    plan.update_plan_environment_with_image_parameters(
+       object_client, container)
+    stack.stack_update(object_client, orchestration_client,
+                       _STACK_TIMEOUT, container)
 
-        :param response: Object
-        :Type response: Object
-
-        :returns: Boolean || Object
-        """
-        try:
-            return response.is_success()
-        except AttributeError:
-            return response
-
-    context = clients.tripleoclient.create_mistral_context()
-    container_action = container_images.PrepareContainerImageParameters(
-        container=container
-    )
-    success = _check_response(container_action.run(context=context))
-    if success is False:
-        raise RuntimeError(
-            'Prepare container image parameters failed: {}'.format(
-                success.to_dict()
-            )
-        )
-
-    update_action = package_update.UpdateStackAction(
-        timeout=240,
-        container=container
-    )
-    success = _check_response(update_action.run(context=context))
-    if success is False:
-        raise RuntimeError(
-            'Upgrade failed: {}'.format(
-                success.to_dict()
-            )
-        )
-
-    events = event_utils.get_events(
-        clients.orchestration,
-        stack_id=container,
-        event_args={
-            'sort_dir': 'desc',
-            'limit': 1
-        }
-    )
+    events = event_utils.get_events(orchestration_client,
+                                    stack_id=container,
+                                    event_args={'sort_dir': 'desc',
+                                                'limit': 1})
     marker = events[0].id if events else None
     time.sleep(10)
     create_result = utils.wait_for_stack_ready(

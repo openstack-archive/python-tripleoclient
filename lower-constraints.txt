@@ -149,7 +149,7 @@ testscenarios===0.4
 testtools==2.2.0
 tooz==1.58.0
 traceback2==1.4.0
-tripleo-common==11.3.1
+tripleo-common==12.2.0
 ujson==1.35
 unittest2==1.1.0
 vine==1.1.4
