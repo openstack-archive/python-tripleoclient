@@ -13,6 +13,8 @@ import logging
 import re
 import yaml
 
+from tripleo_common.actions import parameters
+
 from tripleoclient.constants import UNUSED_PARAMETER_EXCLUDES_RE
 from tripleoclient import exceptions
 from tripleoclient.workflows import base
@@ -133,22 +135,36 @@ def check_deprecated_parameters(clients, container):
                       invalid_join=invalid_join))
 
 
-def generate_fencing_parameters(clients, **workflow_input):
-    workflow_client = clients.workflow_engine
-    tripleoclients = clients.tripleoclient
+def generate_fencing_parameters(clients, nodes_json, delay, ipmi_level,
+                                ipmi_cipher, ipmi_lanplus):
+    """Generate and return fencing parameters.
 
-    with tripleoclients.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client,
-            'tripleo.parameters.v1.generate_fencing_parameters',
-            workflow_input=workflow_input)
+    :param clients: application client object.
+    :type clients: Object
 
-        for payload in base.wait_for_messages(workflow_client,
-                                              ws, execution, 600):
-            if payload['status'] != 'SUCCESS':
-                raise exceptions.WorkflowServiceError(
-                    'Exception generating fencing parameters: {}'.format(
-                        payload['message']))
-            if ('fencing_parameters' in payload and
-                    (payload.get('status', 'FAILED') == "SUCCESS")):
-                return payload['fencing_parameters']
+    :param nodes_json: list of nodes & attributes in json format
+    :type nodes_json: List
+
+    :param delay: time to wait before taking fencing action
+    :type delay: Integer
+
+    :param ipmi_level: IPMI user level to use
+    :type ipmi_level: String
+
+    :param ipmi_cipher: IPMI cipher suite to use
+    :type ipmi_cipher: String
+
+    :param ipmi_lanplus: whether to use IPMIv2.0
+    :type ipmi_lanplus: Boolean
+
+    :returns: Dictionary
+    """
+    context = clients.tripleoclient.create_mistral_context()
+    fencing_params = parameters.GenerateFencingParametersAction(
+        nodes_json=nodes_json,
+        delay=delay,
+        ipmi_level=ipmi_level,
+        ipmi_cipher=ipmi_cipher,
+        ipmi_lanplus=ipmi_lanplus
+    )
+    return fencing_params.run(context=context)

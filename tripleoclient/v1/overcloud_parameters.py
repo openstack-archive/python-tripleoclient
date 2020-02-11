@@ -101,17 +101,14 @@ class GenerateFencingParameters(command.Command):
     def take_action(self, parsed_args):
         nodes_config = utils.parse_env_file(parsed_args.instackenv)
         parsed_args.instackenv.close()
-
-        workflow_input = {
-            'nodes_json': nodes_config,
-            'delay': parsed_args.delay,
-            'ipmi_level': parsed_args.ipmi_level,
-            'ipmi_cipher': parsed_args.ipmi_cipher,
-            'ipmi_lanplus': parsed_args.ipmi_lanplus,
-        }
-
         result = parameters.generate_fencing_parameters(
-            self.app.client_manager, **workflow_input)
+            clients=self.app.client_manager,
+            nodes_json=nodes_config,
+            delay=parsed_args.delay,
+            ipmi_level=parsed_args.ipmi_level,
+            ipmi_cipher=parsed_args.ipmi_cipher,
+            ipmi_lanplus=parsed_args.ipmi_lanplus,
+        )
 
         fencing_parameters = yaml.safe_dump(result, default_flow_style=False)
         if parsed_args.output:
