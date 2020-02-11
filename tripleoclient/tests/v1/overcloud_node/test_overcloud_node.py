@@ -466,10 +466,7 @@ class TestCleanNode(fakes.TestOvercloudNode):
 
         self.cmd.take_action(parsed_args)
 
-        call_list = [mock.call(
-            'tripleo.baremetal.v1.clean_manageable_nodes',
-            workflow_input={}
-        )]
+        call_list = []
 
         if provide:
             call_list.append(mock.call(
@@ -478,8 +475,6 @@ class TestCleanNode(fakes.TestOvercloudNode):
             ))
 
         self.workflow.executions.create.assert_has_calls(call_list)
-        self.assertEqual(self.workflow.executions.create.call_count,
-                         2 if provide else 1)
 
     def _check_clean_nodes(self, parsed_args, nodes, provide=False):
         self.websocket.wait_for_messages.return_value = [{
@@ -490,10 +485,7 @@ class TestCleanNode(fakes.TestOvercloudNode):
 
         self.cmd.take_action(parsed_args)
 
-        call_list = [mock.call(
-            'tripleo.baremetal.v1.clean_nodes', workflow_input={
-                'node_uuids': nodes}
-        )]
+        call_list = []
 
         if provide:
             call_list.append(mock.call(
@@ -502,8 +494,6 @@ class TestCleanNode(fakes.TestOvercloudNode):
             ))
 
         self.workflow.executions.create.assert_has_calls(call_list)
-        self.assertEqual(self.workflow.executions.create.call_count,
-                         2 if provide else 1)
 
     def test_clean_all_manageable_nodes_without_provide(self):
         parsed_args = self.check_parser(self.cmd,
@@ -595,6 +585,11 @@ class TestImportNodeMultiArch(fakes.TestOvercloudNode):
 
         self.http_boot = '/var/lib/ironic/httpboot'
 
+        self.mock_playbook = mock.patch(
+            "tripleoclient.utils.run_ansible_playbook", spec=True)
+        self.mock_run_ansible_playbook = self.mock_playbook.start()
+        self.addCleanup(self.mock_playbook.stop)
+
         existing = ['agent', 'x86_64/agent', 'SNB-x86_64/agent']
         existing = {os.path.join(self.http_boot, name + ext)
                     for name in existing for ext in ('.kernel', '.ramdisk')}
@@ -614,21 +609,19 @@ class TestImportNodeMultiArch(fakes.TestOvercloudNode):
             "execution_id": "IDID"
         }]
 
-        with mock.patch('tripleoclient.utils.run_ansible_playbook',
-                        autospec=True):
-            file_return_nodes = [
-                {
-                    'uuid': 'MOCK_NODE_UUID'
-                }
-            ]
-            mock_open = mock.mock_open(read_data=json.dumps(file_return_nodes))
-            # TODO(cloudnull): Remove this when py27 is dropped
-            if sys.version_info >= (3, 0):
-                mock_open_path = 'builtins.open'
-            else:
-                mock_open_path = 'tripleoclient.v1.overcloud_node.open'
-            with mock.patch(mock_open_path, mock_open):
-                self.cmd.take_action(parsed_args)
+        file_return_nodes = [
+            {
+                'uuid': 'MOCK_NODE_UUID'
+            }
+        ]
+        mock_open = mock.mock_open(read_data=json.dumps(file_return_nodes))
+        # TODO(cloudnull): Remove this when py27 is dropped
+        if sys.version_info >= (3, 0):
+            mock_open_path = 'builtins.open'
+        else:
+            mock_open_path = 'tripleoclient.v1.overcloud_node.open'
+        with mock.patch(mock_open_path, mock_open):
+            self.cmd.take_action(parsed_args)
 
         nodes_list = copy.deepcopy(self.nodes_list)
         if not no_deploy_image:
@@ -649,13 +642,15 @@ class TestImportNodeMultiArch(fakes.TestOvercloudNode):
         call_list = []
 
         if introspect:
-            call_count += 1
-            call_list.append(mock.call(
-                'tripleo.baremetal.v1.introspect', workflow_input={
+            self.mock_run_ansible_playbook.assert_called_with(
+                extra_vars={
                     'node_uuids': ['MOCK_NODE_UUID'],
-                    'run_validations': False,
-                    'concurrency': 20}
-            ))
+                    'run_validations': False, 'concurrency': 20},
+                inventory='localhost,',
+                playbook='cli-baremetal-introspect.yaml',
+                playbook_dir='/usr/share/ansible/tripleo-playbooks',
+                workdir=mock.ANY,
+            )
 
         if provide:
             call_count += 1
@@ -677,16 +672,14 @@ class TestImportNodeMultiArch(fakes.TestOvercloudNode):
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
         self._check_workflow_call(parsed_args)
 
-    @mock.patch('tripleoclient.utils.run_ansible_playbook',
-                autospec=True)
-    def test_import_and_introspect(self, mock_playbook):
+    def test_import_and_introspect(self):
         parsed_args = self.check_parser(self.cmd,
                                         [self.json_file.name,
                                          '--introspect'],
                                         [('introspect', True),
                                          ('provide', False)])
         self.cmd.take_action(parsed_args)
-        mock_playbook.assert_called_once_with(
+        self.mock_run_ansible_playbook.assert_called_once_with(
             workdir=mock.ANY,
             playbook=mock.ANY,
             inventory=mock.ANY,
@@ -706,9 +699,7 @@ class TestImportNodeMultiArch(fakes.TestOvercloudNode):
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
         self._check_workflow_call(parsed_args, provide=True)
 
-    @mock.patch('tripleoclient.utils.run_ansible_playbook',
-                autospec=True)
-    def test_import_and_introspect_and_provide(self, mock_playbook):
+    def test_import_and_introspect_and_provide(self):
         parsed_args = self.check_parser(self.cmd,
                                         [self.json_file.name,
                                          '--introspect',
@@ -716,7 +707,7 @@ class TestImportNodeMultiArch(fakes.TestOvercloudNode):
                                         [('introspect', True),
                                          ('provide', True)])
         self.cmd.take_action(parsed_args)
-        mock_playbook.assert_called_once_with(
+        self.mock_run_ansible_playbook.assert_called_once_with(
             workdir=mock.ANY,
             playbook=mock.ANY,
             inventory=mock.ANY,
@@ -883,6 +874,13 @@ class TestDiscoverNode(fakes.TestOvercloudNode):
 
         self.http_boot = '/var/lib/ironic/httpboot'
 
+        self.mock_playbook = mock.patch(
+            'tripleoclient.utils.run_ansible_playbook',
+            autospec=True
+        )
+        self.mock_playbook.start()
+        self.addCleanup(self.mock_playbook.stop)
+
     def test_with_ip_range(self):
         argslist = ['--range', '10.0.0.0/24',
                     '--credentials', 'admin:password']
@@ -921,17 +919,6 @@ class TestDiscoverNode(fakes.TestOvercloudNode):
 
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
         self.cmd.take_action(parsed_args)
-
-        workflows_calls = [
-            mock.call('tripleo.baremetal.v1.introspect',
-                      workflow_input={'node_uuids': ['MOCK_NODE_UUID'],
-                                      'run_validations': True,
-                                      'concurrency': 10}),
-            mock.call('tripleo.baremetal.v1.provide',
-                      workflow_input={'node_uuids': ['MOCK_NODE_UUID']}
-                      )
-        ]
-        self.workflow.executions.create.assert_has_calls(workflows_calls)
 
 
 class TestProvisionNode(fakes.TestOvercloudNode):

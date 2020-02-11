@@ -144,80 +144,43 @@ def provide(clients, **workflow_input):
             'Failed to set nodes to available state: {}'.format(message))
 
 
-def introspect(clients, **workflow_input):
+def introspect(clients, node_uuids, run_validations, concurrency):
     """Introspect Baremetal Nodes
 
     Run the tripleo.baremetal.v1.introspect Mistral workflow.
     """
 
-    workflow_client = clients.workflow_engine
-    tripleoclients = clients.tripleoclient
-
-    print("Waiting for introspection to finish...")
-
-    with tripleoclients.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client,
-            'tripleo.baremetal.v1.introspect',
-            workflow_input={
-                'node_uuids': workflow_input['node_uuids'],
-                'run_validations': workflow_input['run_validations'],
-                'concurrency': workflow_input.get('concurrency', 20)
+    with utils.TempDirs() as tmp:
+        utils.run_ansible_playbook(
+            playbook='cli-baremetal-introspect.yaml',
+            inventory='localhost,',
+            workdir=tmp,
+            playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            extra_vars={
+                "node_uuids": node_uuids,
+                "run_validations": run_validations,
+                "concurrency": concurrency,
             }
         )
 
-        for payload in base.wait_for_messages(workflow_client, ws, execution):
-            if 'message' in payload:
-                print(payload['message'])
-
-        if payload['status'] != 'SUCCESS':
-            raise exceptions.IntrospectionError(
-                "Introspection completed with errors: {}"
-                .format(payload['message']))
+    print('Successfully introspected nodes: {}'.format(node_uuids))
 
 
-def introspect_manageable_nodes(clients, **workflow_input):
+def introspect_manageable_nodes(clients, run_validations, concurrency):
     """Introspect all manageable nodes
 
     Run the tripleo.baremetal.v1.introspect_manageable_nodes Mistral workflow.
     """
 
-    workflow_client = clients.workflow_engine
-    tripleoclients = clients.tripleoclient
-
-    print("Waiting for introspection to finish...")
-
-    errors = []
-
-    with tripleoclients.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client,
-            'tripleo.baremetal.v1.introspect_manageable_nodes',
-            workflow_input={
-                'run_validations': workflow_input['run_validations'],
-                'concurrency': workflow_input.get('concurrency', 20)
-            }
-        )
-
-        for payload in base.wait_for_messages(workflow_client, ws, execution):
-            if 'message' in payload:
-                print(payload['message'])
-
-    if payload['status'] == 'SUCCESS':
-        introspected_nodes = payload['introspected_nodes'] or {}
-        for node_uuid, status in introspected_nodes.items():
-            if status['error'] is not None:
-                errors.append("%s: %s" % (node_uuid, status['error']))
-    else:
-        raise exceptions.IntrospectionError(
-            'Exception introspecting nodes: {}'.format(payload['message']))
-
-    if errors:
-        raise exceptions.IntrospectionError(
-            "Introspection completed with errors:\n%s" % '\n'
-            .join(errors))
-
-    print("Introspection completed.")
+    introspect(
+        clients=clients,
+        node_uuids=[
+            i.uuid for i in clients.baremetal.node.list()
+            if i.provision_state == "manageable" and not i.maintenance
+        ],
+        run_validations=run_validations,
+        concurrency=concurrency
+    )
 
 
 def provide_manageable_nodes(clients, **workflow_input):

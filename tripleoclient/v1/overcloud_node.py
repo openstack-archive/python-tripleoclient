@@ -437,11 +437,13 @@ class DiscoverNode(command.Command):
         nodes_uuids = [node.uuid for node in nodes]
 
         if parsed_args.introspect:
-            baremetal.introspect(self.app.client_manager,
-                                 node_uuids=nodes_uuids,
-                                 run_validations=parsed_args.run_validations,
-                                 concurrency=parsed_args.concurrency
-                                 )
+            baremetal.introspect(
+                self.app.client_manager,
+                node_uuids=nodes_uuids,
+                run_validations=parsed_args.run_validations,
+                concurrency=parsed_args.concurrency
+            )
+
         if parsed_args.provide:
             baremetal.provide(self.app.client_manager,
                               node_uuids=nodes_uuids

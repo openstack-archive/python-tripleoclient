@@ -163,20 +163,18 @@ class IntrospectNode(command.Command):
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
 
-        extra_vars = {
-            "node_uuids": parsed_args.node_uuids,
-            "run_validations": parsed_args.run_validations,
-            "concurrency": parsed_args.concurrency,
-            "all_manageable": parsed_args.all_manageable,
-        }
-
-        with oooutils.TempDirs() as tmp:
-            oooutils.run_ansible_playbook(
-                playbook='cli-baremetal-introspect.yaml',
-                inventory='localhost,',
-                workdir=tmp,
-                playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
-                extra_vars=extra_vars
+        if parsed_args.all_manageable:
+            baremetal.introspect_manageable_nodes(
+                self.app.client_manager,
+                run_validations=parsed_args.run_validations,
+                concurrency=parsed_args.concurrency
+            )
+        else:
+            baremetal.introspect(
+                self.app.client_manager,
+                node_uuids=parsed_args.node_uuids,
+                run_validations=parsed_args.run_validations,
+                concurrency=parsed_args.concurrency
             )
 
         # NOTE(cloudnull): This is using the old provide function, in a future

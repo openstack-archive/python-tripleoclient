@@ -210,8 +210,7 @@ class TestIntrospectNode(fakes.TestOvercloudNode):
             extra_vars={
                 'node_uuids': [],
                 'run_validations': False,
-                'concurrency': 20,
-                'all_manageable': True
+                'concurrency': 20
             }
         )
 
@@ -232,8 +231,7 @@ class TestIntrospectNode(fakes.TestOvercloudNode):
             extra_vars={
                 'node_uuids': [],
                 'run_validations': False,
-                'concurrency': 20,
-                'all_manageable': True
+                'concurrency': 20
             }
         )
 
@@ -253,8 +251,7 @@ class TestIntrospectNode(fakes.TestOvercloudNode):
             extra_vars={
                 'node_uuids': nodes,
                 'run_validations': False,
-                'concurrency': 20,
-                'all_manageable': False
+                'concurrency': 20
             }
         )
 
@@ -276,8 +273,7 @@ class TestIntrospectNode(fakes.TestOvercloudNode):
             extra_vars={
                 'node_uuids': nodes,
                 'run_validations': False,
-                'concurrency': 20,
-                'all_manageable': False
+                'concurrency': 20
             }
         )
 
