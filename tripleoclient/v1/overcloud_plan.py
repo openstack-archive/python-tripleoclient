@@ -197,8 +197,7 @@ class ExportPlan(command.Command):
         print("Exporting plan %s..." % plan)
 
         tempurl = plan_management.export_deployment_plan(
-            self.app.client_manager,
-            plan=plan
+            self.app.client_manager, plan
         )
         f = request.urlopen(tempurl)
         tarball_contents = f.read()

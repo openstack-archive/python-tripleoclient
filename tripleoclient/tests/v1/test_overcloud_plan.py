@@ -427,7 +427,7 @@ class TestOvercloudExportPlan(utils.TestCommand):
             self.cmd.take_action(parsed_args)
 
         export_deployment_plan_mock.assert_called_once_with(
-            self.clients, plan='test-plan')
+            self.clients, 'test-plan')
 
     @mock.patch('os.path.exists')
     def test_export_plan_outfile_exists(self, exists_mock):
@@ -459,4 +459,4 @@ class TestOvercloudExportPlan(utils.TestCommand):
             self.cmd.take_action(parsed_args)
 
         export_deployment_plan_mock.assert_called_once_with(
-            self.clients, plan='test-plan')
+            self.clients, 'test-plan')

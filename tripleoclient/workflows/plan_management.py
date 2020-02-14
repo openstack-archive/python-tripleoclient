@@ -16,6 +16,7 @@ import yaml
 
 from swiftclient import exceptions as swift_exc
 from tripleo_common.actions import plan
+from tripleo_common.actions import swifthelper
 from tripleo_common.utils import swift as swiftutils
 from tripleo_common.utils import tarball
 
@@ -301,24 +302,21 @@ def _update_passwords(swift_client, name, passwords):
                       constants.PLAN_ENVIRONMENT, name)
 
 
-def export_deployment_plan(clients, **workflow_input):
-    workflow_client = clients.workflow_engine
-    tripleoclients = clients.tripleoclient
+def export_deployment_plan(clients, plan_name):
 
-    with tripleoclients.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client,
-            'tripleo.plan_management.v1.export_deployment_plan',
-            workflow_input=workflow_input
-        )
+    export_container = "plan-exports"
+    delete_after = 3600
 
-        for payload in base.wait_for_messages(workflow_client, ws, execution,
-                                              _WORKFLOW_TIMEOUT):
-            if 'message' in payload:
-                print(payload['message'])
-
-    if payload['status'] == 'SUCCESS':
-        return payload['tempurl']
-    else:
+    mistral_context = clients.tripleoclient.create_mistral_context()
+    action = plan.ExportPlanAction(plan_name, delete_after=delete_after,
+                                   exports_container=export_container)
+    result = action.run(mistral_context)
+    if result:
         raise exceptions.WorkflowServiceError(
-            'Exception exporting plan: {}'.format(payload['message']))
+            'Exception exporting plan: {}'.format(result.error))
+
+    action = swifthelper.SwiftTempUrlAction(
+        export_container, "{}.tar.gz".format(plan_name), valid=delete_after)
+    url = action.run(mistral_context)
+    print(url)
+    return url
