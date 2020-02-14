@@ -731,6 +731,7 @@ class Deploy(command.Command):
         with open(stack_vstate_dropin, 'w') as dropin_file:
             yaml.safe_dump(
                 {'parameter_defaults': {
+                    'RootStackName': parsed_args.stack.lower(),
                     'StackAction': self.stack_action,
                     'DeployIdentifier': int(time.time())}},
                 dropin_file, default_flow_style=False)
