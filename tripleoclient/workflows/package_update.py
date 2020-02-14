@@ -64,26 +64,6 @@ def update(clients, **workflow_input):
         raise exceptions.DeploymentError("Heat Stack update failed.")
 
 
-def update_ansible(clients, **workflow_input):
-    workflow_client = clients.workflow_engine
-    tripleoclients = clients.tripleoclient
-
-    with tripleoclients.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client,
-            'tripleo.package_update.v1.update_nodes',
-            workflow_input=workflow_input
-        )
-
-        for payload in base.wait_for_messages(workflow_client, ws, execution):
-            print(payload['message'])
-
-    if payload['status'] == 'SUCCESS':
-        print("Success")
-    else:
-        raise RuntimeError('Update failed with: {}'.format(payload['message']))
-
-
 def run_on_nodes(clients, **workflow_input):
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient

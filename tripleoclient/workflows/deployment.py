@@ -17,6 +17,8 @@ import os
 import pprint
 import time
 
+import six
+
 from heatclient.common import event_utils
 from openstackclient import shell
 from tripleo_common.actions import ansible
@@ -258,7 +260,8 @@ def config_download(log, clients, stack, ssh_network=None,
                     timeout=None, verbosity=0, deployment_options=None,
                     in_flight_validations=False,
                     ansible_playbook_name='deploy_steps_playbook.yaml',
-                    limit_list=None):
+                    limit_list=None, extra_vars=None, inventory_path=None,
+                    ssh_user='tripleo-admin', tags=None, skip_tags=None):
     """Run config download.
 
     :param log: Logging object
@@ -272,6 +275,9 @@ def config_download(log, clients, stack, ssh_network=None,
 
     :param ssh_network: Network named used to access the overcloud.
     :type ssh_network: String
+
+    :param output_dir: Path to the output directory.
+    :type output_dir: String
 
     :param override_ansible_cfg: Ansible configuration file location.
     :type override_ansible_cfg: String
@@ -294,6 +300,23 @@ def config_download(log, clients, stack, ssh_network=None,
 
     :param limit_list: List of hosts to limit the current playbook to.
     :type limit_list: List
+
+    :param extra_vars: Set additional variables as a Dict or the absolute
+                       path of a JSON or YAML file type.
+    :type extra_vars: Either a Dict or the absolute path of JSON or YAML
+
+    :param inventory_path: Inventory file or path, if None is provided this
+                           function will perform a lookup
+    :type inventory_path: String
+
+    :param ssh_user: SSH user, defaults to tripleo-admin.
+    :type ssh_user: String
+
+    :param tags: Ansible inclusion tags.
+    :type tags: String
+
+    :param skip_tags: Ansible exclusion tags.
+    :type skip_tags: String
     """
 
     def _log_and_print(message, logger, level='info', print_msg=True):
@@ -325,9 +348,10 @@ def config_download(log, clients, stack, ssh_network=None,
         deployment_options = dict()
 
     if not in_flight_validations:
-        skip_tags = 'opendev-validation'
-    else:
-        skip_tags = None
+        if skip_tags:
+            skip_tags = 'opendev-validation,{}'.format(skip_tags)
+        else:
+            skip_tags = 'opendev-validation'
 
     if not timeout:
         timeout = 30
@@ -338,6 +362,8 @@ def config_download(log, clients, stack, ssh_network=None,
     #                  entries are consistent.
     if not limit_list:
         limit_list = list()
+    elif isinstance(limit_list, six.string_types):
+        limit_list = [i.strip() for i in limit_list.split(',')]
 
     with utils.TempDirs() as tmp:
         utils.run_ansible_playbook(
@@ -403,7 +429,7 @@ def config_download(log, clients, stack, ssh_network=None,
         print_msg=(verbosity == 0)
     )
     inventory_kwargs = {
-        'ansible_ssh_user': 'tripleo-admin',
+        'ansible_ssh_user': ssh_user,
         'work_dir': work_dir,
         'plan_name': stack.stack_name,
         'undercloud_key_file': key_file
@@ -413,8 +439,9 @@ def config_download(log, clients, stack, ssh_network=None,
     python_interpreter = deployment_options.get('ansible_python_interpreter')
     if python_interpreter:
         inventory_kwargs['ansible_python_interpreter'] = python_interpreter
-    inventory = ansible.AnsibleGenerateInventoryAction(**inventory_kwargs)
-    inventory_path = inventory.run(context=context)
+    if not inventory_path:
+        inventory = ansible.AnsibleGenerateInventoryAction(**inventory_kwargs)
+        inventory_path = inventory.run(context=context)
     _log_and_print(
         message='Executing deployment playbook for stack: {}'.format(
             stack.stack_name
@@ -426,27 +453,36 @@ def config_download(log, clients, stack, ssh_network=None,
     # NOTE(cloudnull): Join the limit_list into an ansible compatible string.
     #                  If it is an empty, the object will be reset to None.
     limit_hosts = ':'.join(limit_list)
+    if not limit_hosts:
+        limit_hosts = None
+    else:
+        limit_hosts = '{}'.format(limit_hosts)
+
+    if isinstance(ansible_playbook_name, list):
+        playbooks = [os.path.join(stack_work_dir, p)
+                     for p in ansible_playbook_name]
+    else:
+        playbooks = os.path.join(stack_work_dir, ansible_playbook_name)
 
     with utils.TempDirs() as tmp:
         utils.run_ansible_playbook(
-            playbook=os.path.join(
-                stack_work_dir,
-                ansible_playbook_name
-            ),
+            playbook=playbooks,
             inventory=inventory_path,
             workdir=tmp,
             playbook_dir=work_dir,
             skip_tags=skip_tags,
             ansible_cfg=override_ansible_cfg,
             verbosity=verbosity,
-            ssh_user='tripleo-admin',
+            ssh_user=ssh_user,
             key=key_file,
             limit_hosts=limit_hosts,
             ansible_timeout=timeout,
             reproduce_command=True,
             extra_env_variables={
                 'ANSIBLE_BECOME': True,
-            }
+            },
+            extra_vars=extra_vars,
+            tags=tags
         )
 
     _log_and_print(

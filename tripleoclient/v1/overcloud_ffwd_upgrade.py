@@ -152,32 +152,29 @@ class FFWDUpgradeRun(command.Command):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
-        oooutils.ffwd_upgrade_operator_confirm(parsed_args.yes, self.log)
-        verbosity = self.app_args.verbose_level - 1
-        clients = self.app.client_manager
-        orchestration = clients.orchestration
-        stack = parsed_args.stack
-
-        key, ansible_dir = self.get_ansible_key_and_dir(
-            no_workflow=parsed_args.no_workflow,
-            stack=stack,
-            orchestration=orchestration
+        _, ansible_dir = self.get_ansible_key_and_dir(
+            no_workflow=True,
+            stack=parsed_args.stack,
+            orchestration=self.app.client_manager.orchestration
         )
-
-        # Run ansible:
-        inventory = oooutils.get_tripleo_ansible_inventory(
-            inventory_file=parsed_args.static_inventory,
-            ssh_user=parsed_args.ssh_user, stack=parsed_args.stack,
-            return_inventory_file_path=True)
-        # Don't expost limit_hosts. We need this on the whole overcloud.
-        limit_hosts = ''
-        extra_vars = {'ansible_become': True}
-        oooutils.run_update_ansible_action(
-            self.log, clients, parsed_args.stack, limit_hosts, inventory,
-            constants.FFWD_UPGRADE_PLAYBOOK, [], parsed_args.ssh_user,
-            (None if parsed_args.no_workflow else package_update),
-            verbosity=verbosity, workdir=ansible_dir, priv_key=key,
-            extra_vars=extra_vars)
+        deployment.config_download(
+            log=self.log,
+            clients=self.app.client_manager,
+            stack=oooutils.get_stack(
+                self.app.client_manager.orchestration,
+                parsed_args.stack
+            ),
+            output_dir=ansible_dir,
+            verbosity=self.app_args.verbose_level - 1,
+            ansible_playbook_name=constants.FFWD_UPGRADE_PLAYBOOK,
+            inventory_path=oooutils.get_tripleo_ansible_inventory(
+                parsed_args.static_inventory,
+                parsed_args.ssh_user,
+                parsed_args.stack,
+                return_inventory_file_path=True
+            )
+        )
+        self.log.info("Completed Overcloud FFWD Upgrade Run.")
 
 
 class FFWDUpgradeConverge(DeployOvercloud):

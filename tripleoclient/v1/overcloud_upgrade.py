@@ -117,22 +117,16 @@ class UpgradeRun(command.Command):
                 " compute-1, compute-5\".")
         )
         parser.add_argument('--playbook',
-                            action="store",
-                            default="all",
-                            help=_("Ansible playbook to use for the major "
-                                   "upgrade. Defaults to the special value "
-                                   "\'all\' which causes all the upgrade "
-                                   "playbooks to run. That is the "
-                                   "upgrade_steps_playbook.yaml "
-                                   "then deploy_steps_playbook.yaml and then "
-                                   "post_upgrade_steps_playbook.yaml. Set "
-                                   "this to each of those playbooks in "
-                                   "consecutive invocations of this command "
-                                   "if you prefer to run them manually. Note: "
-                                   "you will have to run all of those "
-                                   "playbooks so that all services are "
-                                   "upgraded and running with the target "
-                                   "version configuration.")
+                            nargs="*",
+                            default=None,
+                            help=_("Ansible playbook to use for the minor"
+                                   " update. Can be used multiple times."
+                                   " Set this to each of those playbooks in"
+                                   " consecutive invocations of this command"
+                                   " if you prefer to run them manually."
+                                   " Note: make sure to run all playbooks so"
+                                   " that all services are updated and running"
+                                   " with the target version configuration.")
                             )
         parser.add_argument('--static-inventory',
                             dest='static_inventory',
@@ -197,43 +191,42 @@ class UpgradeRun(command.Command):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
-        clients = self.app.client_manager
-        verbosity = self.app_args.verbose_level - 1
-        orchestration = clients.orchestration
-        stack = parsed_args.stack
+        # NOTE(cloudnull): The string option "all" was a special default
+        #                  that is no longer relevant. To retain compatibility
+        #                  this condition has been put in place.
+        if not parsed_args.playbook or parsed_args.playbook == ['all']:
+            playbook = constants.MAJOR_UPGRADE_PLAYBOOKS
+        else:
+            playbook = parsed_args.playbook
 
-        key, ansible_dir = self.get_ansible_key_and_dir(
+        _, ansible_dir = self.get_ansible_key_and_dir(
             no_workflow=parsed_args.no_workflow,
-            stack=stack,
-            orchestration=orchestration
+            stack=parsed_args.stack,
+            orchestration=self.app.client_manager.orchestration
         )
-
-        # Run ansible:
-        limit_hosts = parsed_args.limit
-
-        playbook = parsed_args.playbook
-        inventory = oooutils.get_tripleo_ansible_inventory(
-            parsed_args.static_inventory, parsed_args.ssh_user, stack,
-            return_inventory_file_path=True)
-        skip_tags = self._validate_skip_tags(parsed_args.skip_tags)
-        extra_vars = {'ansible_become': True}
-        oooutils.run_update_ansible_action(self.log, clients, stack,
-                                           limit_hosts, inventory, playbook,
-                                           constants.MAJOR_UPGRADE_PLAYBOOKS,
-                                           parsed_args.ssh_user,
-                                           (None if parsed_args.no_workflow
-                                            else package_update),
-                                           parsed_args.tags,
-                                           skip_tags,
-                                           verbosity,
-                                           workdir=ansible_dir,
-                                           priv_key=key,
-                                           extra_vars=extra_vars)
-
-        playbooks = (constants.MAJOR_UPGRADE_PLAYBOOKS
-                     if playbook == 'all' else playbook)
-        self.log.info(("Completed Overcloud Upgrade Run for {0} with "
-                       "playbooks {1} ").format(limit_hosts, playbooks))
+        deployment.config_download(
+            log=self.log,
+            clients=self.app.client_manager,
+            stack=oooutils.get_stack(
+                self.app.client_manager.orchestration,
+                parsed_args.stack
+            ),
+            output_dir=ansible_dir,
+            verbosity=self.app_args.verbose_level - 1,
+            ansible_playbook_name=playbook,
+            inventory_path=oooutils.get_tripleo_ansible_inventory(
+                parsed_args.static_inventory,
+                parsed_args.ssh_user,
+                parsed_args.stack,
+                return_inventory_file_path=True
+            ),
+            tags=parsed_args.tags,
+            skip_tags=parsed_args.skip_tags,
+            limit_list=[
+                i.strip() for i in parsed_args.limit.split(',') if i
+            ]
+        )
+        self.log.info("Completed Overcloud Major Upgrade Run.")
 
 
 class UpgradeConvergeOvercloud(DeployOvercloud):

@@ -60,22 +60,7 @@ class TestOvercloudExternalUpgradeRun(fakes.TestOvercloudExternalUpgradeRun):
             ('tags', 'ceph'),
         ]
 
-        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
-        with mock.patch('os.path.exists') as mock_exists:
-            mock_exists.return_value = True
-            self.cmd.take_action(parsed_args)
-            update_ansible.assert_called_once_with(
-                playbook='external_upgrade_steps_playbook.yaml',
-                inventory=mock.ANY,
-                workdir=mock.ANY,
-                ssh_user='tripleo-admin',
-                key='/var/lib/mistral/overcloud/ssh_private_key',
-                module_path='/usr/share/ansible-modules',
-                limit_hosts='all',
-                tags='ceph',
-                skip_tags='',
-                extra_vars={'ansible_become': True}
-            )
+        self.check_parser(self.cmd, argslist, verifylist)
 
     @mock.patch(
         'ansible_runner.runner_config.RunnerConfig',
@@ -103,23 +88,4 @@ class TestOvercloudExternalUpgradeRun(fakes.TestOvercloudExternalUpgradeRun):
             ('extra_vars', ['key1=val1', 'key2=val2'])
         ]
 
-        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
-        with mock.patch('os.path.exists') as mock_exists:
-            mock_exists.return_value = True
-            self.cmd.take_action(parsed_args)
-            update_ansible.assert_called_once_with(
-                playbook='external_upgrade_steps_playbook.yaml',
-                inventory=mock.ANY,
-                workdir=mock.ANY,
-                ssh_user='tripleo-admin',
-                key='/var/lib/mistral/overcloud/ssh_private_key',
-                module_path='/usr/share/ansible-modules',
-                limit_hosts='all',
-                tags='',
-                skip_tags='',
-                extra_vars={
-                    'key1': 'val1',
-                    'key2': 'val2',
-                    'ansible_become': True
-                }
-            )
+        self.check_parser(self.cmd, argslist, verifylist)

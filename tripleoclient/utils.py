@@ -310,12 +310,23 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
         playbook_dir = workdir
 
     if isinstance(playbook, (list, set)):
-        playbook = [_playbook_check(play=i) for i in playbook]
+        verified_playbooks = [_playbook_check(play=i) for i in playbook]
+        playbook = os.path.join(workdir, 'tripleo-multi-playbook.yaml')
+        with open(playbook, 'w') as f:
+            f.write(
+                yaml.safe_dump(
+                    [{'import_playbook': i} for i in verified_playbooks],
+                    default_flow_style=False
+                )
+            )
+
         LOG.info(
-            'Running Ansible playbooks: {},'
+            'Running Ansible playbook: {},'
+            ' multi-playbook execution: {}'
             ' Working directory: {},'
             ' Playbook directory: {}'.format(
                 playbook,
+                verified_playbooks,
                 workdir,
                 playbook_dir
             )
@@ -1534,36 +1545,6 @@ def process_multiple_environments(created_env_files, tht_root,
         # not enough
         localenv = template_utils.deep_update(localenv, env)
     return env_files, localenv
-
-
-def run_update_ansible_action(log, clients, stack, nodes, inventory,
-                              playbook, all_playbooks, ssh_user,
-                              action=None, tags='', skip_tags='',
-                              verbosity='0', extra_vars=None,
-                              workdir='', priv_key=''):
-
-    playbooks = [playbook]
-    if playbook == "all":
-        playbooks = all_playbooks
-    for book in playbooks:
-        log.debug("Running ansible playbook %s " % book)
-        if action:
-            action.update_ansible(clients, container=stack, nodes=nodes,
-                                  inventory_file=inventory,
-                                  playbook=book, node_user=ssh_user,
-                                  tags=tags, skip_tags=skip_tags,
-                                  verbosity=verbosity, extra_vars=extra_vars)
-        else:
-            run_ansible_playbook(playbook=book,
-                                 inventory=inventory,
-                                 workdir=workdir,
-                                 ssh_user=ssh_user,
-                                 key=priv_key,
-                                 module_path='/usr/share/ansible-modules',
-                                 limit_hosts=nodes,
-                                 tags=tags,
-                                 skip_tags=skip_tags,
-                                 extra_vars=extra_vars)
 
 
 def parse_extra_vars(extra_var_strings):
