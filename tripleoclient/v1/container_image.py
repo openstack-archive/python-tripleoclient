@@ -545,7 +545,7 @@ class TripleOContainerImagePush(command.Command):
             "--registry-url",
             dest="registry_url",
             metavar='<registry url>',
-            default=image_uploader.get_undercloud_registry(),
+            default=None,
             help=_("URL of the destination registry in the form "
                    "<fqdn>:<port>.")
         )
@@ -630,9 +630,13 @@ class TripleOContainerImagePush(command.Command):
                                                '<registry>/<namespace>/<name>:'
                                                '<tag>')
 
-        registry_url = parsed_args.registry_url
-        if not registry_url.startswith('docker://'):
-            registry_url = 'docker://%s' % registry_url
+        registry_url_arg = parsed_args.registry_url
+        if registry_url_arg is None:
+            registry_url_arg = image_uploader.get_undercloud_registry()
+        if not registry_url_arg.startswith('docker://'):
+            registry_url = 'docker://%s' % registry_url_arg
+        else:
+            registry_url = registry_url_arg
         reg_url = parse.urlparse(registry_url)
 
         uploader.authenticate(reg_url,
@@ -642,7 +646,7 @@ class TripleOContainerImagePush(command.Command):
         task = image_uploader.UploadTask(
                 image_name=image_name,
                 pull_source=image_source,
-                push_destination=parsed_args.registry_url,
+                push_destination=registry_url_arg,
                 append_tag=parsed_args.append_tag,
                 modify_role=None,
                 modify_vars=None,
@@ -670,7 +674,7 @@ class TripleOContainerImageDelete(command.Command):
             "--registry-url",
             dest="registry_url",
             metavar='<registry url>',
-            default=image_uploader.get_undercloud_registry(),
+            default=None,
             help=_("URL of registry images are to be listed from in the "
                    "form <fqdn>:<port>.")
         )
@@ -713,7 +717,10 @@ class TripleOContainerImageDelete(command.Command):
         lock = processlock.ProcessLock()
         manager = image_uploader.ImageUploadManager(lock=lock)
         uploader = manager.uploader('python')
-        url = uploader._image_to_url(parsed_args.registry_url)
+        registry_url_arg = parsed_args.registry_url
+        if registry_url_arg is None:
+            registry_url_arg = image_uploader.get_undercloud_registry()
+        url = uploader._image_to_url(registry_url_arg)
         session = uploader.authenticate(url, parsed_args.username,
                                         parsed_args.password)
 
@@ -737,7 +744,7 @@ class TripleOContainerImageList(command.Lister):
             "--registry-url",
             dest="registry_url",
             metavar='<registry url>',
-            default=image_uploader.get_undercloud_registry(),
+            default=None,
             help=_("URL of registry images are to be listed from in the "
                    "form <fqdn>:<port>.")
         )
@@ -761,7 +768,10 @@ class TripleOContainerImageList(command.Lister):
         lock = processlock.ProcessLock()
         manager = image_uploader.ImageUploadManager(lock=lock)
         uploader = manager.uploader('python')
-        url = uploader._image_to_url(parsed_args.registry_url)
+        registry_url_arg = parsed_args.registry_url
+        if registry_url_arg is None:
+            registry_url_arg = image_uploader.get_undercloud_registry()
+        url = uploader._image_to_url(registry_url_arg)
         session = uploader.authenticate(url, parsed_args.username,
                                         parsed_args.password)
         results = uploader.list(url.geturl(), session=session)
