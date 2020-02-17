@@ -1067,7 +1067,7 @@ def get_tripleo_ansible_inventory(inventory_file='',
 def run_update_ansible_action(log, clients, nodes, inventory,
                               playbook, all_playbooks, ssh_user,
                               action=None, skip_tags='',
-                              verbosity='0', workdir='', priv_key=''):
+                              verbosity='1', workdir='', priv_key=''):
 
     playbooks = [playbook]
     if playbook == "all":

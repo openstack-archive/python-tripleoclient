@@ -246,7 +246,7 @@ def enable_ssh_admin(log, clients, hosts, ssh_user, ssh_key):
 
 
 def config_download(log, clients, stack, templates,
-                    ssh_user, ssh_key, output_dir, verbosity=0):
+                    ssh_user, ssh_key, output_dir, verbosity=1):
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
 

@@ -304,7 +304,7 @@ class DeployOvercloud(command.Command):
                 os.path.abspath(tht_root)))
             deployment.deploy_and_wait(
                 self.log, self.clients, stack,
-                stack_name, self.app_args.verbose_level - 1,
+                stack_name, self.app_args.verbose_level,
                 timeout=timeout,
                 run_validations=run_validations,
                 skip_deploy_identifier=skip_deploy_identifier)
@@ -1028,8 +1028,7 @@ class DeployOvercloud(command.Command):
                                        parsed_args.overcloud_ssh_user,
                                        parsed_args.overcloud_ssh_key,
                                        parsed_args.output_dir,
-                                       verbosity=(
-                                           self.app_args.verbose_level - 1))
+                                       verbosity=self.app_args.verbose_level)
 
         # Force fetching of attributes
         stack.get()
