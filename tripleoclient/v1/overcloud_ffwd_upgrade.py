@@ -165,7 +165,7 @@ class FFWDUpgradeRun(command.Command):
                 parsed_args.stack
             ),
             output_dir=ansible_dir,
-            verbosity=self.app_args.verbose_level - 1,
+            verbosity=self.app_args.verbose_level,
             ansible_playbook_name=constants.FFWD_UPGRADE_PLAYBOOK,
             inventory_path=oooutils.get_tripleo_ansible_inventory(
                 parsed_args.static_inventory,
