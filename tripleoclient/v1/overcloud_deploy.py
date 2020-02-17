@@ -903,6 +903,29 @@ class DeployOvercloud(command.Command):
                             metavar='<baremetal_deployment.yaml>',
                             help=_('Configuration file describing the '
                                    'baremetal deployment'))
+        parser.add_argument(
+            '--limit',
+            action='store',
+            default=None,
+            help=_("A string that identifies a single node or comma-separated"
+                   "list of nodes the config-download Ansible playbook "
+                   "execution will be limited to. For example: --limit"
+                   " \"compute-0,compute-1,compute-5\".")
+        )
+        parser.add_argument(
+            '--tags',
+            action='store',
+            default=None,
+            help=_('A list of tags to use when running the config-download'
+                   ' ansible-playbook command.')
+        )
+        parser.add_argument(
+            '--skip-tags',
+            action='store',
+            default=None,
+            help=_('A list of tags to skip when running the'
+                   ' config-download ansible-playbook command.')
+        )
         return parser
 
     def take_action(self, parsed_args):
@@ -997,7 +1020,12 @@ class DeployOvercloud(command.Command):
                     verbosity=self.app_args.verbose_level,
                     deployment_options=deployment_options,
                     in_flight_validations=parsed_args.inflight,
-                    deployment_timeout=timeout
+                    deployment_timeout=timeout,
+                    tags=parsed_args.tags,
+                    skip_tags=parsed_args.skip_tags,
+                    limit_hosts=utils.playbook_limit_parse(
+                        limit_nodes=parsed_args.limit
+                    )
                 )
             except Exception:
                 deployment.set_deployment_status(

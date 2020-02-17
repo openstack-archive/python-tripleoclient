@@ -85,11 +85,13 @@ class UpdateRun(command.Command):
     def get_parser(self, prog_name):
         parser = super(UpdateRun, self).get_parser(prog_name)
         parser.add_argument(
-            '--limit', action='store', required=True, help=_(
-                "A string that identifies a single node or comma-separated"
-                " list of nodes to be upgraded in parallel in this upgrade"
-                " run invocation. For example: --limit \"compute-0,"
-                " compute-1, compute-5\".")
+            '--limit',
+            action='store',
+            required=True,
+            help=_("A string that identifies a single node or comma-separated"
+                   "list of nodes the config-download Ansible playbook "
+                   "execution will be limited to. For example: --limit"
+                   " \"compute-0,compute-1,compute-5\".")
         )
         parser.add_argument('--playbook',
                             action="store",
@@ -136,7 +138,20 @@ class UpdateRun(command.Command):
                                    'system command instead of running Ansible'
                                    'via the TripleO mistral workflows.')
                             )
-
+        parser.add_argument(
+            '--tags',
+            action='store',
+            default=None,
+            help=_('A list of tags to use when running the config-download'
+                   ' ansible-playbook command.')
+        )
+        parser.add_argument(
+            '--skip-tags',
+            action='store',
+            default=None,
+            help=_('A list of tags to skip when running the'
+                   ' config-download ansible-playbook command.')
+        )
         return parser
 
     def take_action(self, parsed_args):
@@ -155,20 +170,26 @@ class UpdateRun(command.Command):
             key = package_update.get_key(clients)
 
         # Run ansible:
-        limit_hosts = parsed_args.limit
-
         playbook = parsed_args.playbook
         inventory = oooutils.get_tripleo_ansible_inventory(
             parsed_args.static_inventory, parsed_args.ssh_user, stack)
-        oooutils.run_update_ansible_action(self.log, clients, stack,
-                                           limit_hosts, inventory, playbook,
-                                           constants.MINOR_UPDATE_PLAYBOOKS,
-                                           parsed_args.ssh_user,
-                                           (None if parsed_args.no_workflow
-                                            else package_update),
-                                           verbosity=verbosity,
-                                           workdir=ansible_dir,
-                                           priv_key=key)
+        limit_hosts = oooutils.playbook_limit_parse(
+            limit_nodes=parsed_args.limit)
+        oooutils.run_update_ansible_action(
+            self.log,
+            clients,
+            stack,
+            limit_hosts,
+            inventory,
+            playbook,
+            constants.MINOR_UPDATE_PLAYBOOKS,
+            parsed_args.ssh_user,
+            (None if parsed_args.no_workflow else package_update),
+            skip_tags=parsed_args.skip_tags,
+            tags=parsed_args.tags,
+            verbosity=verbosity,
+            workdir=ansible_dir,
+            priv_key=key)
 
 
 class UpdateConverge(DeployOvercloud):

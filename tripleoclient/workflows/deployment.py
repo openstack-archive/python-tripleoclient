@@ -318,17 +318,23 @@ def enable_ssh_admin(log, clients, plan_name, hosts, ssh_user, ssh_key,
     print("Enabling ssh admin - COMPLETE.")
 
 
-def config_download(log, clients, stack, templates, ssh_user, ssh_key,
-                    ssh_network, output_dir, override_ansible_cfg, timeout=600,
-                    verbosity=1, deployment_options={},
-                    in_flight_validations=False, deployment_timeout=None):
+def config_download(log, clients, stack, templates,
+                    ssh_user, ssh_key, ssh_network,
+                    output_dir, override_ansible_cfg, timeout, verbosity=1,
+                    deployment_options={},
+                    in_flight_validations=False,
+                    deployment_timeout=None,
+                    skip_tags=None,
+                    tags=None,
+                    limit_hosts=None):
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
 
-    if in_flight_validations:
-        skip_tags = ''
-    else:
-        skip_tags = 'opendev-validation'
+    if not in_flight_validations:
+        if skip_tags:
+            skip_tags = 'opendev-validation,{}'.format(skip_tags)
+        else:
+            skip_tags = 'opendev-validation'
 
     workflow_input = {
         'verbosity': verbosity,
@@ -337,7 +343,9 @@ def config_download(log, clients, stack, templates, ssh_user, ssh_key,
         'connection_timeout': timeout,
         'config_download_timeout': deployment_timeout,
         'deployment_options': deployment_options,
-        'skip_tags': skip_tags
+        'skip_tags': skip_tags,
+        'tags': tags,
+        'limit_hosts': utils.playbook_limit_parse(limit_hosts)
     }
     if output_dir:
         workflow_input.update(dict(work_dir=output_dir))

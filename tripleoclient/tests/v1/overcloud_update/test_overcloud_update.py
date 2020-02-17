@@ -153,8 +153,8 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
                 inventory_file=mock_open().__enter__().read(),
                 playbook='fake-playbook.yaml',
                 node_user='tripleo-admin',
-                tags='',
-                skip_tags='',
+                tags=None,
+                skip_tags=None,
                 verbosity=1,
                 extra_vars=None
             )
@@ -186,8 +186,8 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
                     inventory_file=mock_open().__enter__().read(),
                     playbook=book,
                     node_user='tripleo-admin',
-                    tags='',
-                    skip_tags='',
+                    tags=None,
+                    skip_tags=None,
                     verbosity=1,
                     extra_vars=None
                 )

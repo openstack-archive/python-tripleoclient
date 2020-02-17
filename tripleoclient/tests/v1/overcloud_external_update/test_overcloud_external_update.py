@@ -56,7 +56,7 @@ class TestOvercloudExternalUpdateRun(fakes.TestOvercloudExternalUpdateRun):
             update_ansible.assert_called_once_with(
                 self.app.client_manager,
                 container='overcloud',
-                nodes='all',
+                nodes=None,
                 inventory_file=mock_open().__enter__().read(),
                 playbook='external_update_steps_playbook.yaml',
                 node_user='tripleo-admin',
@@ -89,7 +89,7 @@ class TestOvercloudExternalUpdateRun(fakes.TestOvercloudExternalUpdateRun):
             update_ansible.assert_called_once_with(
                 self.app.client_manager,
                 container='overcloud',
-                nodes='all',
+                nodes=None,
                 inventory_file=mock_open().__enter__().read(),
                 playbook='external_update_steps_playbook.yaml',
                 node_user='tripleo-admin',

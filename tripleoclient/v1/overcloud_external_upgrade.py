@@ -91,6 +91,15 @@ class ExternalUpgradeRun(command.Command):
                                    'system command instead of running Ansible'
                                    'via the TripleO mistral workflows.')
                             )
+        parser.add_argument(
+            '--limit',
+            action='store',
+            default=None,
+            help=_("A string that identifies a single node or comma-separated"
+                   "list of nodes the config-download Ansible playbook "
+                   "execution will be limited to. For example: --limit"
+                   " \"compute-0,compute-1,compute-5\".")
+        )
 
         return parser
 
@@ -112,7 +121,8 @@ class ExternalUpgradeRun(command.Command):
         # Run ansible:
         inventory = oooutils.get_tripleo_ansible_inventory(
             parsed_args.static_inventory, parsed_args.ssh_user, stack)
-        limit_hosts = 'all'
+        limit_hosts = oooutils.playbook_limit_parse(
+            limit_nodes=parsed_args.limit)
         playbook = 'all'
         extra_vars = oooutils.parse_extra_vars(parsed_args.extra_vars)
 
