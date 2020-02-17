@@ -127,7 +127,7 @@ class DeployOvercloud(command.Command):
             raise exceptions.DeploymentError('No entry for %s in /etc/hosts'
                                              % ctlplane_hostname)
 
-        return out.rstrip()
+        return re.sub(' +', ' ', str(out).rstrip())
 
     def _create_breakpoint_cleanup_env(self, tht_root, container_name):
         bp_env = {}
