@@ -11,7 +11,6 @@
 # under the License.
 from __future__ import print_function
 
-import pprint
 import time
 
 from heatclient.common import event_utils
@@ -20,7 +19,6 @@ from tripleo_common.actions import package_update
 
 from tripleoclient import exceptions
 from tripleoclient import utils
-from tripleoclient.workflows import base
 
 
 _WORKFLOW_TIMEOUT = 120 * 60  # 2h
@@ -107,24 +105,3 @@ def update(clients, container):
             ' `openstack --os-cloud undercloud stack failures list {}`'
             ' to investigate these failures further.'.format(container)
         )
-
-
-def run_on_nodes(clients, **workflow_input):
-    workflow_client = clients.workflow_engine
-    tripleoclients = clients.tripleoclient
-
-    with tripleoclients.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client,
-            'tripleo.deployment.v1.deploy_on_servers',
-            workflow_input=workflow_input
-        )
-
-        for payload in base.wait_for_messages(workflow_client, ws, execution,
-                                              _WORKFLOW_TIMEOUT):
-            assert payload['status'] == "SUCCESS", pprint.pformat(payload)
-
-    if payload['status'] == "SUCCESS":
-        print('Success')
-    else:
-        raise RuntimeError('run on nodes failed: {}'.format(payload))

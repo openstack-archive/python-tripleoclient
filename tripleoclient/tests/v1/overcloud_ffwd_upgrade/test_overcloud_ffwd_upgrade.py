@@ -35,6 +35,13 @@ class TestFFWDUpgradePrepare(fakes.TestFFWDUpgradePrepare):
         uuid4_patcher = mock.patch('uuid.uuid4', return_value="UUID4")
         self.mock_uuid4 = uuid4_patcher.start()
         self.addCleanup(self.mock_uuid4.stop)
+        deploy_action = mock.patch(
+            'tripleo_common.actions.deployment.OrchestrationDeployAction.run',
+            autospec=True
+        )
+        deploy_action.start()
+        deploy_action.return_value = mock.Mock(is_success=True)
+        self.addCleanup(deploy_action.stop)
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 'take_action')
