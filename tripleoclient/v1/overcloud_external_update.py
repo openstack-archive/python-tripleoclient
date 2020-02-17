@@ -91,6 +91,15 @@ class ExternalUpdateRun(command.Command):
                             default=True,
                             help=_('This option no longer has any effect.')
                             )
+        parser.add_argument(
+            '--limit',
+            action='store',
+            default=None,
+            help=_("A string that identifies a single node or comma-separated"
+                   "list of nodes the config-download Ansible playbook "
+                   "execution will be limited to. For example: --limit"
+                   " \"compute-0,compute-1,compute-5\".")
+        )
 
         return parser
 
@@ -121,6 +130,9 @@ class ExternalUpdateRun(command.Command):
                 return_inventory_file_path=True
             ),
             tags=parsed_args.tags,
-            skip_tags=parsed_args.skip_tags
+            skip_tags=parsed_args.skip_tags,
+            limit_hosts=oooutils.playbook_limit_parse(
+                limit_nodes=parsed_args.limit
+            )
         )
         self.log.info("Completed Overcloud External Update Run.")

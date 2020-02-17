@@ -35,6 +35,7 @@ import netaddr
 import os
 import os.path
 import pwd
+import re
 import shutil
 import simplejson
 import six
@@ -202,6 +203,23 @@ def makedirs(dir_path):
     else:
         LOG.debug('Directory "{}" was created.'.format(dir_path))
         return True
+
+
+def playbook_limit_parse(limit_nodes):
+    """Return a parsed string for limits.
+
+    This will sanitize user inputs so that we guarantee what is provided is
+    expected to be functional. If limit_nodes is None, this function will
+    return None.
+
+
+    :returns: String
+    """
+
+    if not limit_nodes:
+        return limit_nodes
+
+    return ':'.join([i.strip() for i in re.split(',| |:', limit_nodes) if i])
 
 
 def playbook_verbosity(self):
@@ -403,7 +421,6 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
             ' multi-playbook execution: {}'
             ' Working directory: {},'
             ' Playbook directory: {}'.format(
-                playbook,
                 verified_playbooks,
                 workdir,
                 playbook_dir
@@ -415,12 +432,17 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
             _running_ansible_msg(playbook, timeout) +
             ' Working directory: {},'
             ' Playbook directory: {}'.format(
-                playbook,
                 workdir,
                 playbook_dir
             )
         )
 
+    if limit_hosts:
+        LOG.info(
+            'Running ansible with the following limit: {}'.format(
+                limit_hosts
+            )
+        )
     cwd = os.getcwd()
     ansible_fact_path = os.path.join(
         os.path.join(

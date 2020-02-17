@@ -113,11 +113,13 @@ class UpgradeRun(command.Command):
     def get_parser(self, prog_name):
         parser = super(UpgradeRun, self).get_parser(prog_name)
         parser.add_argument(
-            '--limit', action='store', required=True, help=_(
-                "A string that identifies a single node or comma-separated"
-                "list of nodes to be upgraded in parallel in this upgrade"
-                " run invocation. For example: --limit \"compute-0,"
-                " compute-1, compute-5\".")
+            '--limit',
+            action='store',
+            required=True,
+            help=_("A string that identifies a single node or comma-separated"
+                   "list of nodes the config-download Ansible playbook "
+                   "execution will be limited to. For example: --limit"
+                   " \"compute-0,compute-1,compute-5\".")
         )
         parser.add_argument('--playbook',
                             nargs="*",
@@ -225,9 +227,9 @@ class UpgradeRun(command.Command):
             ),
             tags=parsed_args.tags,
             skip_tags=parsed_args.skip_tags,
-            limit_list=[
-                i.strip() for i in parsed_args.limit.split(',') if i
-            ]
+            limit_hosts=oooutils.playbook_limit_parse(
+                limit_nodes=parsed_args.limit
+            )
         )
         self.log.info("Completed Overcloud Major Upgrade Run.")
 

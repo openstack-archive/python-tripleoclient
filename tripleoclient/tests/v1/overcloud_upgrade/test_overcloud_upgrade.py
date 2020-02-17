@@ -216,10 +216,10 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
             self, mock_open, mock_execute, mock_expanduser, upgrade_ansible,
             mock_run, mock_run_prepare):
         mock_expanduser.return_value = '/home/fake/'
-        argslist = ['--limit', 'compute-0, compute-1',
+        argslist = ['--limit', 'compute-0,compute-1',
                     '--playbook', 'fake-playbook.yaml', ]
         verifylist = [
-            ('limit', 'compute-0, compute-1'),
+            ('limit', 'compute-0,compute-1'),
             ('static_inventory', None),
             ('playbook', ['fake-playbook.yaml']),
         ]
