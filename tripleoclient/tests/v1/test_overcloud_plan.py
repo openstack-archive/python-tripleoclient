@@ -141,6 +141,14 @@ class TestOvercloudCreatePlan(utils.TestCommand):
         self.workflow.executions.create.return_value = execution
         self.swift = self.app.client_manager.tripleoclient.object_store
 
+        self.create_action = mock.patch(
+            'tripleo_common.actions.plan.CreateContainerAction.run',
+            autospec=True,
+            return_value=None
+        )
+        self.create_action.start()
+        self.addCleanup(self.create_action.stop)
+
     def test_create_default_plan(self):
 
         # Setup
@@ -219,12 +227,6 @@ class TestOvercloudCreatePlan(utils.TestCommand):
         # Run
         self.cmd.take_action(parsed_args)
 
-        # Verify
-        self.workflow.action_executions.create.assert_called_once_with(
-            'tripleo.plan.create_container', {"container": "overcast"},
-            run_sync=True, save_result=True
-        )
-
         self.workflow.executions.create.assert_called_once_with(
             'tripleo.plan_management.v1.create_deployment_plan',
             workflow_input={
@@ -277,12 +279,6 @@ class TestOvercloudCreatePlan(utils.TestCommand):
         self.assertRaises(exceptions.WorkflowServiceError,
                           self.cmd.take_action, parsed_args)
 
-        # Verify
-        self.workflow.action_executions.create.assert_called_once_with(
-            'tripleo.plan.create_container', {"container": "overcast"},
-            run_sync=True, save_result=True
-        )
-
         self.workflow.executions.create.assert_called_once_with(
             'tripleo.plan_management.v1.create_deployment_plan',
             workflow_input={
@@ -322,12 +318,6 @@ class TestOvercloudCreatePlan(utils.TestCommand):
         mock_open_context = mock.mock_open()
         with mock.patch('six.moves.builtins.open', mock_open_context):
             self.cmd.take_action(parsed_args)
-
-        # Verify
-        self.workflow.action_executions.create.assert_called_once_with(
-            'tripleo.plan.create_container', {"container": "overcast"},
-            run_sync=True, save_result=True
-        )
 
         self.workflow.executions.create.assert_called_once_with(
             'tripleo.plan_management.v1.create_deployment_plan',

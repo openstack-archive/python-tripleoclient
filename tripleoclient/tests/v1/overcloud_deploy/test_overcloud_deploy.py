@@ -126,6 +126,14 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         horizon_url.return_value = 'fake://url:12345'
         self.addCleanup(horizon_url.stop)
 
+        self.create_action = mock.patch(
+            'tripleo_common.actions.plan.CreateContainerAction.run',
+            autospec=True,
+            return_value=None
+        )
+        self.create_action.start()
+        self.addCleanup(self.create_action.stop)
+
     def tearDown(self):
         super(TestDeployOvercloud, self).tearDown()
         os.unlink(self.parameter_defaults_env_file)
