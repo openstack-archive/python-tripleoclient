@@ -22,7 +22,9 @@ from tripleoclient import command
 from tripleoclient import constants
 from tripleoclient import utils as oooutils
 from tripleoclient.v1.overcloud_deploy import DeployOvercloud
+from tripleoclient.workflows import deployment
 from tripleoclient.workflows import package_update
+
 
 CONF = cfg.CONF
 logging.register_options(CONF)
@@ -92,20 +94,16 @@ class UpdateRun(command.Command):
                 " compute-1, compute-5\".")
         )
         parser.add_argument('--playbook',
-                            action="store",
-                            default="all",
-                            help=_("Ansible playbook to use for the minor "
-                                   "update. Defaults to the special value "
-                                   "\'all\' which causes all the update "
-                                   "playbooks to be executed. That is the "
-                                   "update_steps_playbook.yaml and then the"
-                                   "deploy_steps_playbook.yaml. "
-                                   "Set this to each of those playbooks in "
-                                   "consecutive invocations of this command "
-                                   "if you prefer to run them manually. Note: "
-                                   "make sure to run both those playbooks so "
-                                   "that all services are updated and running "
-                                   "with the target version configuration.")
+                            nargs="*",
+                            default=None,
+                            help=_("Ansible playbook to use for the minor"
+                                   " update. Can be used multiple times."
+                                   " Set this to each of those playbooks in"
+                                   " consecutive invocations of this command"
+                                   " if you prefer to run them manually."
+                                   " Note: make sure to run all playbooks so"
+                                   " that all services are updated and running"
+                                   " with the target version configuration.")
                             )
         parser.add_argument("--ssh-user",
                             dest="ssh_user",
@@ -139,35 +137,40 @@ class UpdateRun(command.Command):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
-        clients = self.app.client_manager
-        orchestration = clients.orchestration
-        verbosity = self.app_args.verbose_level - 1
-        stack = parsed_args.stack
+        # NOTE(cloudnull): The string option "all" was a special default
+        #                  that is no longer relevant. To retain compatibility
+        #                  this condition has been put in place.
+        if not parsed_args.playbook or parsed_args.playbook == ['all']:
+            playbook = constants.MINOR_UPDATE_PLAYBOOKS
+        else:
+            playbook = parsed_args.playbook
 
-        key, ansible_dir = self.get_ansible_key_and_dir(
-            no_workflow=parsed_args.no_workflow,
-            stack=stack,
-            orchestration=orchestration
+        _, ansible_dir = self.get_ansible_key_and_dir(
+            no_workflow=True,
+            stack=parsed_args.stack,
+            orchestration=self.app.client_manager.orchestration
         )
-
-        # Run ansible:
-        limit_hosts = parsed_args.limit
-
-        playbook = parsed_args.playbook
-        inventory = oooutils.get_tripleo_ansible_inventory(
-            parsed_args.static_inventory, parsed_args.ssh_user, stack,
-            return_inventory_file_path=True)
-        extra_vars = {'ansible_become': True}
-        oooutils.run_update_ansible_action(self.log, clients, stack,
-                                           limit_hosts, inventory, playbook,
-                                           constants.MINOR_UPDATE_PLAYBOOKS,
-                                           parsed_args.ssh_user,
-                                           (None if parsed_args.no_workflow
-                                            else package_update),
-                                           verbosity=verbosity,
-                                           workdir=ansible_dir,
-                                           priv_key=key,
-                                           extra_vars=extra_vars)
+        deployment.config_download(
+            log=self.log,
+            clients=self.app.client_manager,
+            stack=oooutils.get_stack(
+                self.app.client_manager.orchestration,
+                parsed_args.stack
+            ),
+            output_dir=ansible_dir,
+            verbosity=self.app_args.verbose_level - 1,
+            ansible_playbook_name=playbook,
+            inventory_path=oooutils.get_tripleo_ansible_inventory(
+                parsed_args.static_inventory,
+                parsed_args.ssh_user,
+                parsed_args.stack,
+                return_inventory_file_path=True
+            ),
+            limit_list=[
+                i.strip() for i in parsed_args.limit.split(',') if i
+            ]
+        )
+        self.log.info("Completed Overcloud Minor Update Run.")
 
 
 class UpdateConverge(DeployOvercloud):

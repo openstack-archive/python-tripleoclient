@@ -22,7 +22,8 @@ from osc_lib import utils
 from tripleoclient import command
 from tripleoclient import constants
 from tripleoclient import utils as oooutils
-from tripleoclient.workflows import package_update
+from tripleoclient.workflows import deployment
+
 
 CONF = cfg.CONF
 logging.register_options(CONF)
@@ -95,32 +96,31 @@ class ExternalUpdateRun(command.Command):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
-        clients = self.app.client_manager
-        orchestration = clients.orchestration
-        verbosity = self.app_args.verbose_level - 1
-        stack = parsed_args.stack
-
-        key, ansible_dir = self.get_ansible_key_and_dir(
-            no_workflow=parsed_args.no_workflow,
-            stack=stack,
-            orchestration=orchestration
+        _, ansible_dir = self.get_ansible_key_and_dir(
+            no_workflow=True,
+            stack=parsed_args.stack,
+            orchestration=self.app.client_manager.orchestration
         )
-
-        # Run ansible:
-        inventory = oooutils.get_tripleo_ansible_inventory(
-            parsed_args.static_inventory, parsed_args.ssh_user, stack,
-            return_inventory_file_path=True)
-        limit_hosts = 'all'
-        playbook = 'all'
-        extra_vars = oooutils.parse_extra_vars(parsed_args.extra_vars)
-        extra_vars['ansible_become'] = True
-
-        oooutils.run_update_ansible_action(
-            self.log, clients, stack, limit_hosts, inventory, playbook,
-            constants.EXTERNAL_UPDATE_PLAYBOOKS, parsed_args.ssh_user,
-            (None if parsed_args.no_workflow else package_update),
-            tags=parsed_args.tags, skip_tags=parsed_args.skip_tags,
-            verbosity=verbosity, extra_vars=extra_vars, workdir=ansible_dir,
-            priv_key=key)
-
+        deployment.config_download(
+            log=self.log,
+            clients=self.app.client_manager,
+            stack=oooutils.get_stack(
+                self.app.client_manager.orchestration,
+                parsed_args.stack
+            ),
+            output_dir=ansible_dir,
+            verbosity=self.app_args.verbose_level - 1,
+            ansible_playbook_name=constants.EXTERNAL_UPDATE_PLAYBOOKS,
+            extra_vars=oooutils.parse_extra_vars(
+                extra_var_strings=parsed_args.extra_vars
+            ),
+            inventory_path=oooutils.get_tripleo_ansible_inventory(
+                parsed_args.static_inventory,
+                parsed_args.ssh_user,
+                parsed_args.stack,
+                return_inventory_file_path=True
+            ),
+            tags=parsed_args.tags,
+            skip_tags=parsed_args.skip_tags
+        )
         self.log.info("Completed Overcloud External Update Run.")

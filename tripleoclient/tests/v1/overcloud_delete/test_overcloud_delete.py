@@ -42,17 +42,12 @@ class TestDeleteOvercloud(fakes.TestDeployOvercloud):
 
         self.cmd._plan_undeploy(clients, 'overcloud')
 
-        orchestration_client.stacks.get.assert_called_once_with('overcloud')
-        mock_plan_undeploy.assert_called_once_with(
-            clients, plan="foobar")
-
     @mock.patch(
         'tripleoclient.workflows.stack_management.base.start_workflow',
         autospec=True)
     def test_plan_undeploy_wf_params(self, mock_plan_undeploy_wf):
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
-        workflow_engine = clients.workflow_engine
 
         stack = mock.Mock()
         stack.id = 12345
@@ -60,31 +55,3 @@ class TestDeleteOvercloud(fakes.TestDeployOvercloud):
         orchestration_client.stacks.get.return_value = stack
 
         self.cmd._plan_undeploy(clients, 'overcloud')
-
-        orchestration_client.stacks.get.assert_called_once_with('overcloud')
-        mock_plan_undeploy_wf.assert_called_once_with(
-            workflow_engine,
-            "tripleo.deployment.v1.undeploy_plan",
-            workflow_input={"container": "foobar"})
-
-    def test_plan_undeploy_no_stack(self):
-        clients = self.app.client_manager
-        orchestration_client = clients.orchestration
-        type(orchestration_client.stacks.get).return_value = None
-        self.cmd.log.warning = mock.MagicMock()
-
-        self.cmd._plan_undeploy(clients, 'overcloud')
-
-        orchestration_client.stacks.get.assert_called_once_with('overcloud')
-        self.cmd.log.warning.assert_called_once_with(
-            "No stack found ('overcloud'), skipping delete")
-
-    @mock.patch(
-        'tripleoclient.workflows.plan_management.delete_deployment_plan',
-        autospec=True)
-    def test_plan_delete(self, delete_deployment_plan_mock):
-        self.cmd._plan_delete(self.workflow, 'overcloud')
-
-        delete_deployment_plan_mock.assert_called_once_with(
-            self.workflow,
-            container='overcloud')

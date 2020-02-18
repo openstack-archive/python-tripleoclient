@@ -57,7 +57,7 @@ class Command(command.Command):
         if no_workflow:
             key = utils.get_key(stack=stack)
             stack_config = config.Config(orchestration)
-            with utils.TempDirs(cleanup=False, chdir=False) as tmp:
+            with utils.TempDirs(chdir=False) as tmp:
                 stack_config.write_config(
                     stack_config.fetch_config(stack),
                     stack,

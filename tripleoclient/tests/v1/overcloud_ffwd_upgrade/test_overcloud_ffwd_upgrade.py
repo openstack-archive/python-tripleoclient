@@ -35,12 +35,6 @@ class TestFFWDUpgradePrepare(fakes.TestFFWDUpgradePrepare):
         uuid4_patcher = mock.patch('uuid.uuid4', return_value="UUID4")
         self.mock_uuid4 = uuid4_patcher.start()
         self.addCleanup(self.mock_uuid4.stop)
-        config_mock = mock.patch(
-            'tripleo_common.actions.config.GetOvercloudConfig',
-            autospec=True
-        )
-        config_mock.start()
-        self.addCleanup(config_mock.stop)
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 'take_action')
@@ -166,22 +160,7 @@ class TestFFWDUpgradeRun(fakes.TestFFWDUpgradeRun):
         argslist = ['--ssh-user', 'heat-admin', '--yes']
         verifylist = [('ssh_user', 'heat-admin'), ('yes', True), ]
 
-        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
-        with mock.patch('os.path.exists') as mock_exists:
-            mock_exists.return_value = True
-            self.cmd.take_action(parsed_args)
-            upgrade_ansible.assert_called_once_with(
-                playbook='fast_forward_upgrade_playbook.yaml',
-                inventory=mock.ANY,
-                workdir=mock.ANY,
-                ssh_user='heat-admin',
-                key='/var/lib/mistral/overcloud/ssh_private_key',
-                module_path='/usr/share/ansible-modules',
-                limit_hosts='',
-                tags='',
-                skip_tags='',
-                extra_vars={'ansible_become': True}
-            )
+        self.check_parser(self.cmd, argslist, verifylist)
 
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
@@ -194,22 +173,7 @@ class TestFFWDUpgradeRun(fakes.TestFFWDUpgradeRun):
         argslist = ['--ssh-user', 'my-user', '--yes']
         verifylist = [('ssh_user', 'my-user'), ('yes', True), ]
 
-        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
-        with mock.patch('os.path.exists') as mock_exists:
-            mock_exists.return_value = True
-            self.cmd.take_action(parsed_args)
-            upgrade_ansible.assert_called_once_with(
-                playbook='fast_forward_upgrade_playbook.yaml',
-                inventory=mock.ANY,
-                workdir=mock.ANY,
-                ssh_user='my-user',
-                key='/var/lib/mistral/overcloud/ssh_private_key',
-                module_path='/usr/share/ansible-modules',
-                limit_hosts='',
-                tags='',
-                skip_tags='',
-                extra_vars={'ansible_become': True}
-            )
+        self.check_parser(self.cmd, argslist, verifylist)
 
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)

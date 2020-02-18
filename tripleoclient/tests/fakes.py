@@ -174,7 +174,34 @@ class FakePlaybookExecution(utils.TestCommand):
         workflow.executions.create.return_value = execution
         self.app.client_manager.workflow_engine = workflow
 
+        config_mock = mock.patch(
+            'tripleo_common.actions.config.GetOvercloudConfig',
+            autospec=True
+        )
+        config_mock.start()
+        self.addCleanup(config_mock.stop)
+
+        self.ansible = mock.patch(
+            'tripleo_common.actions.ansible.AnsibleGenerateInventoryAction',
+            autospec=True
+        )
+        self.ansible.start()
+        self.addCleanup(self.ansible.stop)
+
+        self.config_action = mock.patch(
+            'tripleo_common.actions.config.DownloadConfigAction',
+            autospec=True
+        )
+        self.config_action.start()
+        self.addCleanup(self.config_action.stop)
+
         if ansible_mock:
+            get_stack = mock.patch('tripleoclient.utils.get_stack')
+            get_stack.start()
+            stack = get_stack.return_value = mock.Mock()
+            stack.stack_name = 'testStack'
+            self.addCleanup(get_stack.stop)
+
             self.gcn = mock.patch(
                 'tripleo_common.utils.config.Config',
                 autospec=True
