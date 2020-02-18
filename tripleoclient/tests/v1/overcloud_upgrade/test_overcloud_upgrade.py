@@ -195,7 +195,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                 node_user='tripleo-admin',
                 tags='',
                 skip_tags='',
-                verbosity=0,
+                verbosity=1,
                 extra_vars=None
             )
 
@@ -230,7 +230,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                     node_user='tripleo-admin',
                     tags='',
                     skip_tags='validation',
-                    verbosity=0,
+                    verbosity=1,
                     extra_vars=None
                 )
 
@@ -265,7 +265,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                     node_user='tripleo-admin',
                     tags='validation',
                     skip_tags='',
-                    verbosity=0,
+                    verbosity=1,
                     extra_vars=None
                 )
 
@@ -298,7 +298,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                 node_user='tripleo-admin',
                 tags='',
                 skip_tags='',
-                verbosity=0,
+                verbosity=1,
                 extra_vars=None
             )
 
@@ -331,7 +331,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                     node_user='tripleo-admin',
                     tags='',
                     skip_tags='',
-                    verbosity=0,
+                    verbosity=1,
                     extra_vars=None
                 )
 
@@ -366,7 +366,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                     node_user='tripleo-admin',
                     tags='',
                     skip_tags='pre-upgrade,validation',
-                    verbosity=0,
+                    verbosity=1,
                     extra_vars=None
                 )
 

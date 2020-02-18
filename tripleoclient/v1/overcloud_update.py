@@ -143,7 +143,7 @@ class UpdateRun(command.Command):
         self.log.debug("take_action(%s)" % parsed_args)
         clients = self.app.client_manager
         orchestration = clients.orchestration
-        verbosity = self.app_args.verbose_level - 1
+        verbosity = self.app_args.verbose_level
         stack = parsed_args.stack
 
         ansible_dir = None
