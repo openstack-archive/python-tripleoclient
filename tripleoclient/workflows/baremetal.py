@@ -17,6 +17,7 @@ from __future__ import print_function
 import six
 
 from tripleo_common.actions import baremetal
+from tripleo_common.actions import baremetal_deploy
 
 from tripleoclient import exceptions
 from tripleoclient.workflows import base
@@ -613,11 +614,10 @@ def undeploy_roles(clients, **workflow_input):
 
 
 def expand_roles(clients, roles, stackname, provisioned):
-    workflow_client = clients.workflow_engine
-    return base.call_action(
-        workflow_client,
-        'tripleo.baremetal_deploy.expand_roles',
+    context = clients.tripleoclient.create_mistral_context()
+    expand_roles = baremetal_deploy.ExpandRolesAction(
         roles=roles,
         stackname=stackname,
         provisioned=provisioned
     )
+    return expand_roles.run(context=context)
