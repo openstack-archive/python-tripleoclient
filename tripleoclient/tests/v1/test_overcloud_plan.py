@@ -266,10 +266,6 @@ class TestOvercloudCreatePlan(utils.TestCommand):
              {u'hash': u'0f1043e65e95ec24054a4ea63cdb3984',
               u'last_modified': u'2016-12-09T21:18:19.612600', u'bytes': 583,
               u'name': u'bootstrap-config.yaml',
-              u'content_type': u'application/octet-stream'},
-             {u'hash': u'f9415b93617acd6b151582543a77c689',
-              u'last_modified': u'2016-12-09T21:18:16.486870', u'bytes': 20903,
-              u'name': u'capabilities-map.yaml',
               u'content_type': u'application/octet-stream'}]
         )
 
@@ -294,7 +290,6 @@ class TestOvercloudCreatePlan(utils.TestCommand):
         self.swift.get_account.assert_called_once()
         self.swift.get_container.assert_called_once_with('overcast')
         self.swift.delete_object.assert_has_calls([
-            mock.call('overcast', u'capabilities-map.yaml'),
             mock.call('overcast', u'bootstrap-config.yaml'),
             mock.call('overcast', u'all-nodes-validation.yaml'),
         ], any_order=True)
