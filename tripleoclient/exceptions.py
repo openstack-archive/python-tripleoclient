@@ -21,10 +21,6 @@ class Base(Exception):
     """Base TripleO exception."""
 
 
-class Timeout(Base):
-    """An operation timed out"""
-
-
 class WorkflowServiceError(Base):
     """The service type is unknown"""
 
@@ -51,10 +47,6 @@ class DeploymentError(Base):
 
 class PlanEnvWorkflowError(Base):
     """Plan Environment workflow has failed"""
-
-
-class StackInProgress(Base):
-    """Unable to deploy as the stack is busy"""
 
 
 class ConfigDownloadInProgress(Base):
@@ -90,10 +82,6 @@ class NodeProvideError(WorkflowServiceError):
 
 class NodeConfigurationError(WorkflowServiceError):
     """Node Configuration failed."""
-
-
-class StateTransitionFailed(Base):
-    """Ironic node state transition failed"""
 
 
 class ProfileMatchingError(Base):
