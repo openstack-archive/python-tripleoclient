@@ -14,10 +14,17 @@
 #
 
 import argparse
+import collections
+import json
 import logging
 import os
+import sys
 
+from cliff.formatters import table
+from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
+from osc_lib import utils
+import yaml
 
 from tripleoclient import command
 from tripleoclient import constants
@@ -31,8 +38,6 @@ from tripleoclient.v1.overcloud_node import ConfigureNode  # noqa
 from tripleoclient.v1.overcloud_node import DeleteNode  # noqa
 from tripleoclient.v1.overcloud_node import DiscoverNode  # noqa
 from tripleoclient.v1.overcloud_node import ProvideNode  # noqa
-from tripleoclient.v1.overcloud_node import ProvisionNode  # noqa
-from tripleoclient.v1.overcloud_node import UnprovisionNode  # noqa
 
 
 class ImportNode(command.Command):
@@ -187,3 +192,176 @@ class IntrospectNode(command.Command):
                 )
             else:
                 baremetal.provide_manageable_nodes(self.app.client_manager)
+
+
+class ProvisionNode(command.Command):
+    """Provision new nodes using Ironic."""
+
+    log = logging.getLogger(__name__ + ".ProvisionNode")
+
+    def get_parser(self, prog_name):
+        parser = super(ProvisionNode, self).get_parser(prog_name)
+        parser.add_argument('input',
+                            metavar='<baremetal_deployment.yaml>',
+                            help=_('Configuration file describing the '
+                                   'baremetal deployment'))
+        parser.add_argument('-o', '--output',
+                            default='baremetal_environment.yaml',
+                            help=_('The output environment file path'))
+        parser.add_argument('--stack', dest='stack',
+                            help=_('Name or ID of heat stack '
+                                   '(default=Env: OVERCLOUD_STACK_NAME)'),
+                            default=utils.env('OVERCLOUD_STACK_NAME',
+                                              default='overcloud'))
+        parser.add_argument('--overcloud-ssh-user',
+                            default='heat-admin',
+                            help=_('User for SSH access to newly deployed '
+                                   'nodes'))
+        parser.add_argument('--overcloud-ssh-key',
+                            default=None,
+                            help=_('Key path for ssh access to'
+                                   'overcloud nodes. When undefined the key'
+                                   'will be autodetected.'))
+        parser.add_argument('--concurrency', type=int,
+                            default=20,
+                            help=_('Maximum number of nodes to provision at '
+                                   'once. (default=20)'))
+        parser.add_argument('--timeout', type=int,
+                            default=3600,
+                            help=_('Number of seconds to wait for the node '
+                                   'provision to complete. (default=3600)'))
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)" % parsed_args)
+
+        with open(parsed_args.input, 'r') as fp:
+            roles = yaml.safe_load(fp)
+
+        key = self.get_key_pair(parsed_args)
+        with open('{}.pub'.format(key), 'rt') as fp:
+            ssh_key = fp.read()
+
+        output_path = os.path.abspath(parsed_args.output)
+
+        extra_vars = {
+            "stack_name": parsed_args.stack,
+            "baremetal_deployment": roles,
+            "baremetal_deployed_path": output_path,
+            "ssh_public_keys": ssh_key,
+            "ssh_user_name": parsed_args.overcloud_ssh_user,
+            "node_timeout": parsed_args.timeout,
+            "concurrency": parsed_args.concurrency
+        }
+
+        with oooutils.TempDirs() as tmp:
+            oooutils.run_ansible_playbook(
+                playbook='cli-overcloud-node-provision.yaml',
+                inventory='localhost,',
+                verbosity=self.app_args.verbose_level - 1,
+                workdir=tmp,
+                playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                extra_vars=extra_vars,
+            )
+
+        print('Nodes deployed successfully, add %s to your deployment '
+              'environment' % parsed_args.output)
+
+
+class UnprovisionNode(command.Command):
+    """Unprovisions nodes using Ironic."""
+
+    log = logging.getLogger(__name__ + ".UnprovisionNode")
+
+    def get_parser(self, prog_name):
+        parser = super(UnprovisionNode, self).get_parser(prog_name)
+        parser.add_argument('--stack', dest='stack',
+                            help=_('Name or ID of heat stack '
+                                   '(default=Env: OVERCLOUD_STACK_NAME)'),
+                            default=utils.env('OVERCLOUD_STACK_NAME',
+                                              default='overcloud'))
+        parser.add_argument('--all',
+                            help=_('Unprovision every instance in the '
+                                   'deployment'),
+                            default=False,
+                            action="store_true")
+        parser.add_argument('-y', '--yes',
+                            help=_('Skip yes/no prompt (assume yes)'),
+                            default=False,
+                            action="store_true")
+        parser.add_argument('input',
+                            metavar='<baremetal_deployment.yaml>',
+                            help=_('Configuration file describing the '
+                                   'baremetal deployment'))
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)" % parsed_args)
+
+        with open(parsed_args.input, 'r') as fp:
+            roles = yaml.safe_load(fp)
+
+        with oooutils.TempDirs() as tmp:
+            unprovision_confirm = os.path.join(tmp, 'unprovision_confirm.json')
+
+            if not parsed_args.yes:
+                oooutils.run_ansible_playbook(
+                    playbook='cli-overcloud-node-unprovision.yaml',
+                    inventory='localhost,',
+                    verbosity=self.app_args.verbose_level - 1,
+                    workdir=tmp,
+                    playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                    extra_vars={
+                        "stack_name": parsed_args.stack,
+                        "baremetal_deployment": roles,
+                        "all": parsed_args.all,
+                        "prompt": True,
+                        "unprovision_confirm": unprovision_confirm
+                    }
+                )
+                with open(unprovision_confirm) as f:
+                    to_unprovision = json.load(f)
+                    if not to_unprovision:
+                        print('Nothing to unprovision, exiting')
+                        return
+                    self._print_nodes(to_unprovision)
+
+                confirm = oooutils.prompt_user_for_confirmation(
+                    message=_("Are you sure you want to unprovision these %s "
+                              "nodes [y/N]? ") % parsed_args.stack,
+                    logger=self.log)
+                if not confirm:
+                    raise oscexc.CommandError("Action not confirmed, exiting.")
+
+            oooutils.run_ansible_playbook(
+                playbook='cli-overcloud-node-unprovision.yaml',
+                inventory='localhost,',
+                verbosity=self.app_args.verbose_level - 1,
+                workdir=tmp,
+                playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                extra_vars={
+                    "stack_name": parsed_args.stack,
+                    "baremetal_deployment": roles,
+                    "all": parsed_args.all,
+                    "prompt": False,
+                }
+            )
+
+        print('Unprovision complete')
+
+    def _print_nodes(self, nodes):
+        TableArgs = collections.namedtuple(
+            'TableArgs', 'print_empty max_width fit_width')
+        args = TableArgs(print_empty=True, max_width=-1, fit_width=True)
+        nodes_data = [(i.get('hostname', ''),
+                       i.get('name', ''),
+                       i.get('id', '')) for i in nodes]
+
+        sys.stdout.write('\n')
+        formatter = table.TableFormatter()
+        formatter.emit_list(
+            column_names=['hostname', 'name', 'id'],
+            data=nodes_data,
+            stdout=sys.stdout,
+            parsed_args=args
+        )
