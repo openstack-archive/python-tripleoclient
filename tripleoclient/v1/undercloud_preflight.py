@@ -91,7 +91,7 @@ def _check_diskspace(upgrade=False):
     with utils.TempDirs() as tmp:
         rc, _ = utils.run_ansible_playbook(
             workdir=tmp,
-            inventory='undercloud,',
+            inventory='undercloud',
             connection='local',
             output_callback='validation_output',
             playbook_dir=constants.ANSIBLE_VALIDATION_DIR,

@@ -15,7 +15,8 @@ import pprint
 import time
 
 from heatclient.common import event_utils
-from openstackclient import shell
+from tripleo_common.actions import container_images
+from tripleo_common.actions import package_update
 
 from tripleoclient import exceptions
 from tripleoclient import utils
@@ -25,43 +26,87 @@ from tripleoclient.workflows import base
 _WORKFLOW_TIMEOUT = 120 * 60  # 2h
 
 
-def update(clients, **workflow_input):
-    workflow_client = clients.workflow_engine
-    tripleoclients = clients.tripleoclient
-    plan_name = workflow_input['container']
+def update(clients, container):
+    """Update the heat stack outputs for purposes of update/upgrade.
 
-    with tripleoclients.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client,
-            'tripleo.package_update.v1.package_update_plan',
-            workflow_input=workflow_input
+    This workflow assumes that previously the
+    plan_management.update_deployment_plan workflow has already been
+    run to process the templates and environments (the same way as
+    'deploy' command processes them).
+
+    :param clients: Application client object.
+    :type clients: Object
+
+    :param container: Container name to pull from.
+    :type container: String.
+    """
+
+    def _check_response(response):
+        """This test checks if a response is mistral based.
+
+        Some responses are constructed using the mistral Result class, but
+        because the returns from methods within tripleo-common are not
+        type safe, this static method will check for success using the
+        mistral attribute, but if it does not exist the raw response will
+        be returned.
+
+        :param response: Object
+        :Type response: Object
+
+        :returns: Boolean || Object
+        """
+        try:
+            return response.is_success()
+        except AttributeError:
+            return response
+
+    context = clients.tripleoclient.create_mistral_context()
+    container_action = container_images.PrepareContainerImageParameters(
+        container=container
+    )
+    success = _check_response(container_action.run(context=context))
+    if success is False:
+        raise RuntimeError(
+            'Prepare container image parameters failed: {}'.format(
+                success.to_dict()
+            )
         )
 
-        for payload in base.wait_for_messages(workflow_client, ws, execution,
-                                              _WORKFLOW_TIMEOUT):
-            status = payload.get('status', 'RUNNING')
-            message = payload.get('message')
-            if message and status == "RUNNING":
-                print(message)
+    update_action = package_update.UpdateStackAction(
+        timeout=240,
+        container=container
+    )
+    success = _check_response(update_action.run(context=context))
+    if success is False:
+        raise RuntimeError(
+            'Upgrade failed: {}'.format(
+                success.to_dict()
+            )
+        )
 
-        if payload['status'] == "FAILED":
-            raise RuntimeError('Upgrade failed with: {}'
-                               ''.format(payload['message']))
-
-    orchestration_client = clients.orchestration
-
-    events = event_utils.get_events(orchestration_client,
-                                    stack_id=plan_name,
-                                    event_args={'sort_dir': 'desc',
-                                                'limit': 1})
+    events = event_utils.get_events(
+        clients.orchestration,
+        stack_id=container,
+        event_args={
+            'sort_dir': 'desc',
+            'limit': 1
+        }
+    )
     marker = events[0].id if events else None
-
     time.sleep(10)
     create_result = utils.wait_for_stack_ready(
-        orchestration_client, plan_name, marker, 'UPDATE', 1)
+        clients.orchestration,
+        container,
+        marker,
+        'UPDATE',
+        1
+    )
     if not create_result:
-        shell.OpenStackShell().run(["stack", "failures", "list", plan_name])
-        raise exceptions.DeploymentError("Heat Stack update failed.")
+        raise exceptions.DeploymentError(
+            'Heat Stack update failed, run the following command'
+            ' `openstack --os-cloud undercloud stack failures list {}`'
+            ' to investigate these failures further.'.format(container)
+        )
 
 
 def run_on_nodes(clients, **workflow_input):

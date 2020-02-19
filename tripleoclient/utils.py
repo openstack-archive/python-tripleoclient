@@ -516,11 +516,18 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
             env['ANSIBLE_CONFIG'] = ansible_cfg
         elif 'ANSIBLE_CONFIG' not in env and ansible_cfg:
             env['ANSIBLE_CONFIG'] = ansible_cfg
+        inventory_file = None
+        if inventory and not os.path.exists(inventory):
+            inventory_file = ansible_runner.utils.dump_artifact(
+                inventory,
+                ansible_artifact_path,
+                'hosts'
+            )
 
         r_opts = {
             'private_data_dir': workdir,
             'project_dir': playbook_dir,
-            'inventory': inventory,
+            'inventory': (inventory_file if inventory_file else inventory),
             'envvars': _encode_envvars(env=env),
             'playbook': playbook,
             'verbosity': verbosity,
