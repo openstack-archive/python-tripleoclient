@@ -128,9 +128,22 @@ def list_deployment_plans(clients):
     return plan.ListPlansAction().run(mistral_context)
 
 
-def create_container(workflow_client, **input_):
-    return base.call_action(workflow_client, 'tripleo.plan.create_container',
-                            **input_)
+def create_container(clients, container):
+    """Create a container.
+
+    :param clients: openstack clients
+    :type clients: Object
+
+    :param container: Name of the container to create
+    :type container: String
+
+    :returns: Object
+    """
+
+    mistral_context = clients.tripleoclient.create_mistral_context()
+    return plan.CreateContainerAction(
+        container=container
+    ).run(context=mistral_context)
 
 
 def create_plan_from_templates(clients, name, tht_root, roles_file=None,

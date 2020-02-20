@@ -39,6 +39,14 @@ class TestPlanCreationWorkflows(utils.TestCommand):
             "status": "SUCCESS",
         }])
 
+        self.create_action = mock.patch(
+            'tripleo_common.actions.plan.CreateContainerAction.run',
+            autospec=True,
+            return_value=None
+        )
+        self.create_action.start()
+        self.addCleanup(self.create_action.stop)
+
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
                 autospec=True)
     def test_create_plan_from_templates_success(self, mock_tarball):
@@ -54,20 +62,19 @@ class TestPlanCreationWorkflows(utils.TestCommand):
             '/tht-root/',
             validate_stack=False)
 
-        self.workflow.action_executions.create.assert_called_once_with(
-            'tripleo.plan.create_container',
-            {'container': 'test-overcloud'},
-            run_sync=True, save_result=True)
-
         self.workflow.executions.create.assert_called_once_with(
             'tripleo.plan_management.v1.create_deployment_plan',
             workflow_input={'container': 'test-overcloud',
                             'generate_passwords': True,
                             'validate_stack': False})
 
+    @mock.patch('tripleoclient.workflows.plan_management.create_container',
+                autospec=True,
+                return_value=mock.Mock(error='Error'))
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
                 autospec=True)
-    def test_create_plan_from_templates_container_error(self, mock_tarball):
+    def test_create_plan_from_templates_container_error(self, mock_tarball,
+                                                        mock_create_container):
         error = mock.Mock(output='{"result": "Error"}')
         error.id = "IDID"
         self.workflow.action_executions.create.return_value = error
@@ -80,11 +87,6 @@ class TestPlanCreationWorkflows(utils.TestCommand):
             'test-overcloud',
             '/tht-root/',
             validate_stack=False)
-
-        self.workflow.action_executions.create.assert_called_once_with(
-            'tripleo.plan.create_container',
-            {'container': 'test-overcloud'},
-            run_sync=True, save_result=True)
 
         self.workflow.executions.create.assert_not_called()
 
@@ -107,11 +109,6 @@ class TestPlanCreationWorkflows(utils.TestCommand):
                 '/tht-root/',
                 'the_roles_file.yaml',
                 validate_stack=False)
-
-        self.workflow.action_executions.create.assert_called_once_with(
-            'tripleo.plan.create_container',
-            {'container': 'test-overcloud'},
-            run_sync=True, save_result=True)
 
         self.workflow.executions.create.assert_called_once_with(
             'tripleo.plan_management.v1.create_deployment_plan',
@@ -143,11 +140,6 @@ class TestPlanCreationWorkflows(utils.TestCommand):
                 plan_env_file='the-plan-environment.yaml',
                 validate_stack=False)
 
-        self.workflow.action_executions.create.assert_called_once_with(
-            'tripleo.plan.create_container',
-            {'container': 'test-overcloud'},
-            run_sync=True, save_result=True)
-
         self.workflow.executions.create.assert_called_once_with(
             'tripleo.plan_management.v1.create_deployment_plan',
             workflow_input={'container': 'test-overcloud',
@@ -177,11 +169,6 @@ class TestPlanCreationWorkflows(utils.TestCommand):
                 '/tht-root/',
                 networks_file='the-network-data.yaml',
                 validate_stack=False)
-
-        self.workflow.action_executions.create.assert_called_once_with(
-            'tripleo.plan.create_container',
-            {'container': 'test-overcloud'},
-            run_sync=True, save_result=True)
 
         self.workflow.executions.create.assert_called_once_with(
             'tripleo.plan_management.v1.create_deployment_plan',
@@ -225,11 +212,6 @@ class TestPlanCreationWorkflows(utils.TestCommand):
             '/tht-root/',
             generate_passwords=False,
             validate_stack=False)
-
-        self.workflow.action_executions.create.assert_called_once_with(
-            'tripleo.plan.create_container',
-            {'container': 'test-overcloud'},
-            run_sync=True, save_result=True)
 
         self.workflow.executions.create.assert_called_once_with(
             'tripleo.plan_management.v1.create_deployment_plan',
