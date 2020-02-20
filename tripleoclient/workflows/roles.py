@@ -12,34 +12,59 @@
 
 import logging
 
-from tripleoclient import exceptions
-from tripleoclient.workflows import base
+import yaml
+
+from tripleo_common.actions import plan
+
 
 LOG = logging.getLogger(__name__)
 
 
-def list_roles(workflow_client, **input_):
-    return base.call_action(workflow_client, 'tripleo.role.list', **input_)
+def list_available_roles(clients, container='overcloud'):
+    """Return a list of available roles.
+
+    :param clients: openstack clients
+    :type clients: Object
+
+    :param container: Name of swift object container
+    :type container: String
+
+    :returns: List
+    """
+
+    LOG.info('Pulling role list from: {}'.format(container))
+    obj_client = clients.tripleoclient.object_store
+    available_yaml_roles = list()
+    LOG.info('Indexing roles from: {}'.format(container))
+    for obj in obj_client.get_container(container)[-1]:
+        name = obj['name']
+        if name.startswith('roles/') and name.endswith(('yml', 'yaml')):
+            role_data = yaml.safe_load(
+                obj_client.get_object(container, name)[-1]
+            )
+            available_yaml_roles.append(role_data[0])
+
+    return available_yaml_roles
 
 
-def list_available_roles(clients, **workflow_input):
-    workflow_client = clients.workflow_engine
-    tripleoclients = clients.tripleoclient
+def list_roles(clients, container, detail=False):
+    """Return a list of roles.
 
-    available_roles = []
-    with tripleoclients.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client,
-            'tripleo.plan_management.v1.list_available_roles',
-            workflow_input=workflow_input
-        )
+    :param clients: openstack clients
+    :type clients: Object
 
-        for payload in base.wait_for_messages(workflow_client, ws, execution):
-            if payload['status'] == 'SUCCESS':
-                available_roles = payload['available_roles']
-            else:
-                raise exceptions.WorkflowServiceError(
-                    'Error retrieving available roles: {}'.format(
-                        payload.get('message')))
+    :param container: Name of swift object container
+    :type container: String
 
-    return available_roles
+    :param detail: Enable or disable extra detail
+    :type detail: Boolean
+
+    :returns: List
+    """
+
+    context = clients.tripleoclient.create_mistral_context()
+    LOG.info('Pulling roles from: {}'.format(container))
+    return plan.ListRolesAction(
+        container=container,
+        detail=detail
+    ).run(context=context)

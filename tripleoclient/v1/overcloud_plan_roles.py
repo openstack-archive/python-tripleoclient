@@ -50,7 +50,7 @@ class ListRoles(command.Lister):
 
         if parsed_args.current:
             result = roles.list_roles(
-                self.app.client_manager.workflow_engine,
+                self.app.client_manager,
                 container=parsed_args.name,
                 detail=parsed_args.detail)
         else:
