@@ -212,7 +212,8 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
                          plan='overcloud', gathering_policy='smart',
                          extra_env_variables=None, parallel_run=False,
                          callback_whitelist=None, ansible_cfg=None,
-                         ansible_timeout=30, reproduce_command=False):
+                         ansible_timeout=30, reproduce_command=False,
+                         fail_on_rc=True):
     """Simple wrapper for ansible-playbook.
 
     :param playbook: Playbook filename.
@@ -296,6 +297,11 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
                               playbook command which is helpful for debugging
                               and retry purposes.
     :type reproduce_command: Boolean
+
+    :param fail_on_rc: Enable or disable raising an exception whenever the
+                       return code from the playbook execution results in a
+                       non 0 exit code. The default is True.
+    :type fail_on_rc: Boolean
     """
 
     def _playbook_check(play):
@@ -599,7 +605,9 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
 
         if not quiet:
             LOG.error(err_msg)
-        raise ansible_runner.AnsibleRunnerException(err_msg)
+
+        if fail_on_rc:
+            raise RuntimeError(err_msg)
 
     LOG.info(
         'Ansible execution success. playbook: {}'.format(
