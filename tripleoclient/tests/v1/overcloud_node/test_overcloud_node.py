@@ -1290,6 +1290,8 @@ class TestProvisionNode(fakes.TestOvercloudNode):
                     inp.flush()
                     keyf.write(b'I am a key')
                     keyf.flush()
+                    with open('{}.pub'.format(keyf.name), 'w') as f:
+                        f.write('I am a key')
 
                     argslist = ['--output', outp.name,
                                 '--overcloud-ssh-key', keyf.name,

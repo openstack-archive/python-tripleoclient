@@ -70,6 +70,29 @@ class Command(command.Command):
             key = '.ssh/tripleo-admin-rsa'
             return key, None
 
+    def get_key_pair(self, parsed_args):
+        """Autodetect or return a user defined key file.
+
+        :param parsed_args: An argparse object.
+        :type parsed_args: Object
+
+        :returns: String
+        """
+
+        if not parsed_args.overcloud_ssh_key:
+            key = utils.get_key(
+                stack=parsed_args.stack,
+                needs_pair=True
+            )
+            if not key:
+                raise oscexc.CommandError(
+                    'No key pair found, set the ssh key using'
+                    'the --overcloud-ssh-key switch.'
+                )
+            return key
+        else:
+            return parsed_args.overcloud_ssh_key
+
 
 class Lister(Command, command.Lister):
     pass

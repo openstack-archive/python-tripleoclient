@@ -1404,7 +1404,7 @@ def get_config(clients, container):
     config_action.run(context=context)
 
 
-def get_key(stack):
+def get_key(stack, needs_pair=False):
     """Returns the private key from the local file system.
 
     Searches for and returns the stack private key. If the key is inaccessible
@@ -1414,18 +1414,26 @@ def get_key(stack):
     :params stack: name of the stack to use
     :type stack: String
 
+    :param needs_pair: Enable key pair search
+    :type needs_pair: Boolean
+
     :returns: String || None
     """
 
+    key_files = list()
     stack_dir = os.path.join(constants.DEFAULT_WORK_DIR, stack)
-    stack_key_file = os.path.join(stack_dir, 'ssh_private_key')
+    key_files.append(os.path.join(stack_dir, 'ssh_private_key'))
     user_dir = os.path.join(os.path.expanduser("~"), '.ssh')
-    user_key_file = os.path.join(user_dir, 'id_rsa_tripleo')
+    key_files.append(os.path.join(user_dir, 'id_rsa_tripleo'))
+    key_files.append(os.path.join(user_dir, 'id_rsa'))
     legacy_dir = os.path.join(constants.DEFAULT_WORK_DIR, '.ssh')
-    legacy_key_file = os.path.join(legacy_dir, 'tripleo-admin-rsa')
-    for key_file in [stack_key_file, user_key_file, legacy_key_file]:
+    key_files.append(os.path.join(legacy_dir, 'tripleo-admin-rsa'))
+    for key_file in key_files:
         try:
             if os.path.exists(key_file):
+                if needs_pair:
+                    if not os.path.exists('{}.pub'.format(key_file)):
+                        continue
                 with open(key_file):
                     return key_file
         except IOError:

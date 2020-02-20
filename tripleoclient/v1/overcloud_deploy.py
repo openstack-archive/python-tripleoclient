@@ -608,14 +608,17 @@ class DeployOvercloud(command.Command):
         with open(parsed_args.baremetal_deployment, 'r') as fp:
             roles = yaml.safe_load(fp)
 
-        with open(parsed_args.overcloud_ssh_key, 'rt') as fp:
+        key = self.get_key_pair(parsed_args)
+        with open('{}.pub'.format(key), 'rt') as fp:
             ssh_key = fp.read()
 
         parameter_defaults = baremetal.deploy_roles(
             self.app.client_manager,
             plan=parsed_args.stack,
-            roles=roles, ssh_keys=[ssh_key],
-            ssh_user_name=parsed_args.overcloud_ssh_user)
+            roles=roles,
+            ssh_keys=[ssh_key],
+            ssh_user_name=parsed_args.overcloud_ssh_user
+        )
 
         env_path, swift_path = self._write_user_environment(
             parameter_defaults,
@@ -674,9 +677,9 @@ class DeployOvercloud(command.Command):
         )
         parser.add_argument(
             '--overcloud-ssh-key',
-            default=os.path.join(
-                os.path.expanduser('~'), '.ssh', 'id_rsa_tripleo'),
-            help=_('Key path for ssh access to overcloud nodes.')
+            default=None,
+            help=_('Key path for ssh access to overcloud nodes. When'
+                   'undefined the key will be autodetected.')
         )
         parser.add_argument(
             '--overcloud-ssh-network',
@@ -956,7 +959,7 @@ class DeployOvercloud(command.Command):
                         stack,
                         parsed_args.overcloud_ssh_network,
                         parsed_args.overcloud_ssh_user,
-                        parsed_args.overcloud_ssh_key,
+                        self.get_key_pair(parsed_args),
                         parsed_args.overcloud_ssh_port_timeout
                     )
 

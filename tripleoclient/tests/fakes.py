@@ -194,6 +194,10 @@ class FakePlaybookExecution(utils.TestCommand):
         )
         self.config_action.start()
         self.addCleanup(self.config_action.stop)
+        get_key = mock.patch('tripleoclient.utils.get_key')
+        get_key.start()
+        get_key.return_value = 'keyfile-path'
+        self.addCleanup(get_key.stop)
 
         if ansible_mock:
             get_stack = mock.patch('tripleoclient.utils.get_stack')

@@ -13,6 +13,8 @@
 #   under the License.
 #
 
+import mock
+
 from tripleoclient.tests import base
 from tripleoclient.tests import fakes
 
@@ -35,3 +37,7 @@ class TestPluginV1(base.TestCommand):
             endpoint=fakes.AUTH_URL,
             token=fakes.AUTH_TOKEN,
         )
+        get_key = mock.patch('tripleoclient.utils.get_key')
+        get_key.start()
+        get_key.return_value = 'keyfile-path'
+        self.addCleanup(get_key.stop)

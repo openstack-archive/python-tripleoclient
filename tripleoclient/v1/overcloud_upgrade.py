@@ -85,7 +85,7 @@ class UpgradePrepare(DeployOvercloud):
             stack,
             parsed_args.overcloud_ssh_network,
             parsed_args.overcloud_ssh_user,
-            parsed_args.overcloud_ssh_key,
+            self.get_key_pair(parsed_args),
             parsed_args.overcloud_ssh_port_timeout
         )
 

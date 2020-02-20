@@ -100,7 +100,7 @@ class TestFFWDUpgradePrepare(fakes.TestFFWDUpgradePrepare):
             mock_stack,
             parsed_args.overcloud_ssh_network,
             parsed_args.overcloud_ssh_user,
-            parsed_args.overcloud_ssh_key,
+            mock.ANY,
             parsed_args.overcloud_ssh_port_timeout
         )
         mock_overcloud_deploy.assert_called_once_with(parsed_args)

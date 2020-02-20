@@ -12,7 +12,6 @@
 #   License for the specific language governing permissions and limitations
 #   under the License.
 #
-import os
 
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -51,9 +50,9 @@ class Authorize(command.Command):
         )
         parser.add_argument(
             '--overcloud-ssh-key',
-            default=os.path.join(
-                os.path.expanduser('~'), '.ssh', 'id_rsa'),
-            help=_('Key path for ssh access to overcloud nodes.')
+            default=None,
+            help=_('Key path for ssh access to overcloud nodes. When'
+                   'undefined the key will be autodetected.')
         )
         parser.add_argument(
             '--overcloud-ssh-network',
@@ -83,6 +82,6 @@ class Authorize(command.Command):
             stack,
             parsed_args.overcloud_ssh_network,
             parsed_args.overcloud_ssh_user,
-            parsed_args.overcloud_ssh_key,
+            self.get_key_pair(parsed_args),
             parsed_args.overcloud_ssh_port_timeout
         )
