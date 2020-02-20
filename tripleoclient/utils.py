@@ -1052,6 +1052,44 @@ def load_environment_directories(directories):
     return environments
 
 
+def get_key(stack, needs_pair=False):
+    """Returns the private key from the local file system.
+
+    Searches for and returns the stack private key. If the key is inaccessible
+    for any reason, the process will fall back to using the users key. If no
+    key is found, this method will return None.
+
+    :params stack: name of the stack to use
+    :type stack: String
+
+    :param needs_pair: Enable key pair search
+    :type needs_pair: Boolean
+
+    :returns: String || None
+    """
+
+    key_files = list()
+    stack_dir = os.path.join('/var/lib/mistral', stack)
+    key_files.append(os.path.join(stack_dir, 'ssh_private_key'))
+    user_dir = os.path.join(os.path.expanduser("~"), '.ssh')
+    key_files.append(os.path.join(user_dir, 'id_rsa_tripleo'))
+    key_files.append(os.path.join(user_dir, 'id_rsa'))
+    legacy_dir = os.path.join('/var/lib/mistral', '.ssh')
+    key_files.append(os.path.join(legacy_dir, 'tripleo-admin-rsa'))
+    for key_file in key_files:
+        try:
+            if os.path.exists(key_file):
+                if needs_pair:
+                    if not os.path.exists('{}.pub'.format(key_file)):
+                        continue
+                with open(key_file):
+                    return key_file
+        except IOError:
+            pass
+    else:
+        return
+
+
 def get_tripleo_ansible_inventory(inventory_file=None,
                                   ssh_user='tripleo-admin',
                                   stack='overcloud',

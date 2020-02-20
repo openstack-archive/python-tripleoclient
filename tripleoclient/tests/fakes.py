@@ -80,3 +80,60 @@ class FakeClientWrapper(object):
 
     def messaging_websocket(self):
         return self.ws
+
+
+class FakeRunnerConfig(object):
+    env = dict()  # noqa
+
+    def prepare(self):
+        pass
+
+
+class FakeInstanceData(object):
+    cacert = '/file/system/path'
+    _region_name = 'region1'
+
+    @staticmethod
+    def get_endpoint_for_service_type(*args, **kwargs):
+        return 'http://things'
+
+    class auth_ref(object):
+        trust_id = 'yy'
+        project_id = 'ww'
+
+    class auth(object):
+        auth_url = 'http://url'
+        _project_name = 'projectname'
+        _username = 'username'
+        _user_id = 'zz'
+
+        @staticmethod
+        def get_token(*args, **kwargs):
+            return '12345abcde'
+
+        @staticmethod
+        def get_project_id(*args, **kwargs):
+            return 'xx'
+
+    class session(object):
+        class auth(object):
+            class auth_ref(object):
+                _data = {'token': {}}
+
+
+class FakeObjectClient(object):
+
+    def __init__(self):
+        self._instance = mock.Mock()
+        self.put_object = mock.Mock()
+
+    def get_object(self, *args):
+        return [None, "fake"]
+
+    def get_container(self, *args):
+        return [None, [{"name": "fake"}]]
+
+
+def fake_ansible_runner_run_return(rc=0):
+
+    return 'Test Status', rc

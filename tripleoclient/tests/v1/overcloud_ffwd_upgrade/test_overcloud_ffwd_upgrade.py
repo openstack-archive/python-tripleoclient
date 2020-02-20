@@ -99,7 +99,7 @@ class TestFFWDUpgradePrepare(fakes.TestFFWDUpgradePrepare):
         mock_enable_ssh_admin.assert_called_once_with(
             self.cmd.log, self.app.client_manager, mock_stack,
             parsed_args.overcloud_ssh_network,
-            parsed_args.overcloud_ssh_user, parsed_args.overcloud_ssh_key,
+            parsed_args.overcloud_ssh_user, mock.ANY,
             600, 600)
         mock_overcloud_deploy.assert_called_once_with(parsed_args)
 

@@ -52,6 +52,10 @@ class TestOvercloudUpgradePrepare(utils.TestCommand):
         execution.id = "IDID"
         workflow.executions.create.return_value = execution
         self.app.client_manager.workflow_engine = workflow
+        get_key = mock.patch('tripleoclient.utils.get_key')
+        get_key.start()
+        get_key.return_value = 'keyfile-path'
+        self.addCleanup(get_key.stop)
 
 
 class TestOvercloudUpgradeRun(utils.TestCommand):

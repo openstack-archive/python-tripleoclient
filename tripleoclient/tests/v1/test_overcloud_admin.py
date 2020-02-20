@@ -39,6 +39,6 @@ class TestAdminAuthorize(test_plugin.TestPluginV1):
             mock_stack,
             parsed_args.overcloud_ssh_network,
             parsed_args.overcloud_ssh_user,
-            parsed_args.overcloud_ssh_key,
+            mock.ANY,
             600,
             600)

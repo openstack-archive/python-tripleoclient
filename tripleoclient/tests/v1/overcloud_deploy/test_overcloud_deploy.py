@@ -1559,6 +1559,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         with open(ssh_key_path, 'w') as temp_file:
             temp_file.write('sekrit')
 
+        with open('{}.pub'.format(ssh_key_path), 'w') as f:
+            f.write('sekrit')
+
         arglist = [
             '--baremetal-deployment', bm_deploy_path,
             '--overcloud-ssh-key', ssh_key_path

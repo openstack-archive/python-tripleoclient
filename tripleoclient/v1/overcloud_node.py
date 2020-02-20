@@ -616,10 +616,10 @@ class ProvisionNode(command.Command):
                             help=_('User for SSH access to newly deployed '
                                    'nodes'))
         parser.add_argument('--overcloud-ssh-key',
-                            default=os.path.join(
-                                os.path.expanduser('~'), '.ssh', 'id_rsa.pub'),
-                            help=_('Public key path for SSH access to newly '
-                                   'deployed nodes'))
+                            default=None,
+                            help=_('Key path for ssh access to'
+                                   'overcloud nodes. When undefined the key'
+                                   'will be autodetected.'))
         return parser
 
     def take_action(self, parsed_args):
@@ -628,14 +628,17 @@ class ProvisionNode(command.Command):
         with open(parsed_args.input, 'r') as fp:
             roles = yaml.safe_load(fp)
 
-        with open(parsed_args.overcloud_ssh_key, 'rt') as fp:
+        key = self.get_key_pair(parsed_args)
+        with open('{}.pub'.format(key), 'rt') as fp:
             ssh_key = fp.read()
 
         output = baremetal.deploy_roles(
             self.app.client_manager,
             plan=parsed_args.stack,
-            roles=roles, ssh_keys=[ssh_key],
-            ssh_user_name=parsed_args.overcloud_ssh_user)
+            roles=roles,
+            ssh_keys=[ssh_key],
+            ssh_user_name=parsed_args.overcloud_ssh_user
+        )
 
         with open(parsed_args.output, 'w') as fp:
             yaml.safe_dump(output['environment'], fp, default_flow_style=False)
