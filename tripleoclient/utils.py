@@ -306,6 +306,23 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
         LOG.debug('Ansible playbook {} found'.format(play))
         return play
 
+    def _inventory(inventory):
+        if inventory:
+            if isinstance(inventory, six.string_types):
+                # check is file path
+                if os.path.exists(inventory):
+                    return inventory
+            elif isinstance(inventory, dict):
+                inventory = yaml.safe_dump(
+                    inventory,
+                    default_flow_style=False
+                )
+            return ansible_runner.utils.dump_artifact(
+                inventory,
+                ansible_artifact_path,
+                'hosts'
+            )
+
     if not playbook_dir:
         playbook_dir = workdir
 
@@ -516,18 +533,11 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
             env['ANSIBLE_CONFIG'] = ansible_cfg
         elif 'ANSIBLE_CONFIG' not in env and ansible_cfg:
             env['ANSIBLE_CONFIG'] = ansible_cfg
-        inventory_file = None
-        if inventory and not os.path.exists(inventory):
-            inventory_file = ansible_runner.utils.dump_artifact(
-                inventory,
-                ansible_artifact_path,
-                'hosts'
-            )
 
         r_opts = {
             'private_data_dir': workdir,
             'project_dir': playbook_dir,
-            'inventory': (inventory_file if inventory_file else inventory),
+            'inventory': _inventory(inventory),
             'envvars': _encode_envvars(env=env),
             'playbook': playbook,
             'verbosity': verbosity,
