@@ -108,6 +108,43 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         client.object_store.put_object = mock.Mock()
         get_container = client.object_store.get_container = mock.MagicMock()
         get_container.return_value = ('container', [{'name': 'f1'}])
+        roles = mock.patch(
+            'tripleoclient.workflows.roles.list_available_roles',
+            autospec=True,
+            return_value=[
+                {
+                    'TestRole1': {
+                        'TestParameter1': {}
+                    }
+                }
+            ]
+        )
+        roles.start()
+        self.addCleanup(roles.stop)
+        flatten = mock.patch(
+            'tripleo_common.actions.parameters.GetFlattenedParametersAction'
+            '.run',
+            autospec=True,
+            return_value={
+                'environment_parameters': {
+                    'TestParameter1': {},
+                    'TestRole1': 'TestParameter2'
+                },
+                'heat_resource_tree': {
+                    'parameters': {
+                        'TestParameter2': {
+                            'name': 'TestParameter2',
+                            'tags': [
+                                'role_specific'
+                            ]
+                        }
+                    },
+                    'resources': {}
+                }
+            }
+        )
+        flatten.start()
+        self.addCleanup(flatten.stop)
 
         # Mock playbook runner
         playbook_runner = mock.patch(

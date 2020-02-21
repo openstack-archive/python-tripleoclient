@@ -9,6 +9,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
+
 import logging
 import re
 import yaml
@@ -18,6 +19,7 @@ from tripleo_common.actions import parameters
 from tripleoclient.constants import UNUSED_PARAMETER_EXCLUDES_RE
 from tripleoclient import exceptions
 from tripleoclient.workflows import base
+from tripleoclient.workflows import roles
 
 
 LOG = logging.getLogger(__name__)
@@ -72,67 +74,110 @@ def invoke_plan_env_workflows(clients, stack_name, plan_env_file):
 
 
 def check_deprecated_parameters(clients, container):
-    """Checks for deprecated parameters in plan and adds warning if present"""
+    """Checks for deprecated parameters in plan and adds warning if present.
 
-    workflow_client = clients.workflow_engine
-    tripleoclients = clients.tripleoclient
-    workflow_input = {
-        'container': container
-    }
+    :param clients: application client object.
+    :type clients: Object
 
-    with tripleoclients.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client,
-            'tripleo.plan_management.v1.get_deprecated_parameters',
-            workflow_input=workflow_input
+    :param container: Name of the stack container.
+    :type container: String
+    """
+
+    context = clients.tripleoclient.create_mistral_context()
+    role_name_list = roles.list_available_roles(
+        clients=clients,
+        container=container
+    )
+    flattened_parms = parameters.GetFlattenedParametersAction(
+        container=container
+    ).run(context=context)
+    user_params = flattened_parms['environment_parameters']
+    heat_resource_tree = flattened_parms['heat_resource_tree']
+    heat_resource_tree_params = heat_resource_tree['parameters']
+    heat_resource_tree_resources = heat_resource_tree['resources']
+    plan_params = heat_resource_tree_params.keys()
+    parameter_groups = [
+        i.get('parameter_groups')
+        for i in heat_resource_tree_resources.values()
+        if i.get('parameter_groups')
+    ]
+    params_role_specific_tag = [
+        i.get('name')
+        for i in heat_resource_tree_params.values()
+        if 'tags' in i and 'role_specific' in i['tags']
+    ]
+
+    r = re.compile(".*Count")
+    filtered_names = list(filter(r.match, plan_params))
+    valid_role_name_list = list()
+    for name in filtered_names:
+        default = heat_resource_tree_params[name].get('default', 0)
+        if default and int(default) > 0:
+            role_name = name.rstrip('Count')
+            if [i for i in role_name_list if i.get('name') == role_name]:
+                valid_role_name_list.append(role_name)
+
+    deprecated_params = [
+        i[0] for i in parameter_groups
+        if i[0].get('label') == 'deprecated'
+    ]
+    deprecated_result = [
+        {
+            'parameter': i,
+            'deprecated': True,
+            'user_defined': i in user_params.keys()
+        }
+        for i in deprecated_params
+    ]
+    unused_params = [i for i in user_params.keys() if i not in plan_params]
+    user_provided_role_specific = [
+        v for i in role_name_list
+        for k, v in user_params.items()
+        if k in i
+    ]
+    invalid_role_specific_params = [
+        i for i in user_provided_role_specific
+        if i in params_role_specific_tag
+    ]
+    deprecated_parameters = [
+        param['parameter'] for param in deprecated_result
+        if param.get('user_defined')
+    ]
+
+    if deprecated_parameters:
+        deprecated_join = ', '.join(deprecated_parameters)
+        LOG.warning(
+            'WARNING: Following parameter(s) are deprecated and still '
+            'defined. Deprecated parameters will be removed soon!'
+            ' {deprecated_join}'.format(
+                deprecated_join=deprecated_join
+            )
         )
 
-        messages = base.wait_for_messages(workflow_client, ws, execution, 120)
-        has_messages = False
+    # exclude our known params that may not be used
+    ignore_re = re.compile('|'.join(UNUSED_PARAMETER_EXCLUDES_RE))
+    unused_params = [p for p in unused_params if not ignore_re.search(p)]
 
-        for message in messages:
-            if message['status'] != 'SUCCESS':
-                return
+    if unused_params:
+        unused_join = ', '.join(unused_params)
+        LOG.warning(
+            'WARNING: Following parameter(s) are defined but not '
+            'currently used in the deployment plan. These parameters '
+            'may be valid but not in use due to the service or '
+            'deployment configuration.'
+            ' {unused_join}'.format(
+                unused_join=unused_join
+            )
+        )
 
-            has_messages = True
-            deprecated_params = [
-                param['parameter'] for param in message.get('deprecated', [])
-                if param.get('user_defined')
-            ]
-            unused_params = message.get('unused', [])
-            invalid_role_specific_params = message.get(
-                'invalid_role_specific', [])
-
-        if not has_messages:
-            return
-
-        if deprecated_params:
-            deprecated_join = ', '.join(deprecated_params)
-            LOG.warning(
-                  'WARNING: Following parameter(s) are deprecated and still '
-                  'defined. Deprecated parameters will be removed soon!'
-                  ' {deprecated_join}'.format(
-                      deprecated_join=deprecated_join))
-
-        # exclude our known params that may not be used
-        ignore_re = re.compile('|'.join(UNUSED_PARAMETER_EXCLUDES_RE))
-        unused_params = [p for p in unused_params if not ignore_re.search(p)]
-
-        if unused_params:
-            unused_join = ', '.join(unused_params)
-            LOG.warning(
-                  'WARNING: Following parameter(s) are defined but not '
-                  'currently used in the deployment plan. These parameters '
-                  'may be valid but not in use due to the service or '
-                  'deployment configuration.'
-                  ' {unused_join}'.format(unused_join=unused_join))
-
-        if invalid_role_specific_params:
-            invalid_join = ', '.join(invalid_role_specific_params)
-            LOG.warning(
-                  'WARNING: Following parameter(s) are not supported as '
-                  'role-specific inputs. {invalid_join}'.format(
-                      invalid_join=invalid_join))
+    if invalid_role_specific_params:
+        invalid_join = ', '.join(invalid_role_specific_params)
+        LOG.warning(
+            'WARNING: Following parameter(s) are not supported as '
+            'role-specific inputs. {invalid_join}'.format(
+                invalid_join=invalid_join
+            )
+        )
 
 
 def generate_fencing_parameters(clients, nodes_json, delay, ipmi_level,
