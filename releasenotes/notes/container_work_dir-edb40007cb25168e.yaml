@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Add --work-dir to openstack overcloud container image build command and
+    every run will create a unique workspace which where will be stored Kolla
+    configs and build logs. Default directory will be in
+    /tmp/container-builds. UUIDs are used to identify each time we run the
+    command and will be the directory name in the work dir.
