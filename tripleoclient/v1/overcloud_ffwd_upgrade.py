@@ -18,8 +18,11 @@ from oslo_log import log as logging
 from osc_lib.i18n import _
 from osc_lib import utils
 
+from tripleo_common.actions import deployment as deployment_actions
+
 from tripleoclient import command
 from tripleoclient import constants
+from tripleoclient import exceptions
 from tripleoclient import utils as oooutils
 from tripleoclient.v1.overcloud_deploy import DeployOvercloud
 from tripleoclient.workflows import deployment
@@ -62,10 +65,23 @@ class FFWDUpgradePrepare(DeployOvercloud):
         stack_name = stack.stack_name
 
         # ffwd-upgrade "init" run command on overcloud nodes
-        package_update.run_on_nodes(
-            clients, server_name='all',
-            config_name='ffwd-upgrade-prepare',
-            config=constants.FFWD_UPGRADE_PREPARE_SCRIPT, group='script')
+        context = clients.tripleoclient.create_mistral_context()
+        jobs = dict()
+        for server in clients.compute.servers.list():
+            init_deploy = deployment_actions.OrchestrationDeployAction(
+                server_id=server.id,
+                config=constants.FFWD_UPGRADE_PREPARE_SCRIPT,
+                name='ffwd-upgrade-prepare'
+            )
+            init_deploy_return = init_deploy.run(context=context)
+            jobs[server.name] = init_deploy_return.is_success()
+
+        if jobs and any([not i for i in jobs.values() if not i]):
+            raise exceptions.DeploymentError(
+                'The following nodes failed: {}'.format(
+                    [k for k, v in jobs.items() if not v]
+                )
+            )
 
         # In case of update and upgrade we need to force the
         # update_plan_only. The heat stack update is done by the

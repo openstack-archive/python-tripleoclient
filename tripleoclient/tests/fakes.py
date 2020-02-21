@@ -156,7 +156,8 @@ class FakePlaybookExecution(utils.TestCommand):
 
         self.app.client_manager.auth_ref = mock.Mock(auth_token="TOKEN")
         self.app.client_manager.baremetal = mock.Mock()
-        self.app.client_manager.compute = mock.Mock()
+        compute = self.app.client_manager.compute = mock.Mock()
+        compute.servers.list.return_value = []
         self.app.client_manager.identity = mock.Mock()
         self.app.client_manager.image = mock.Mock()
         self.app.client_manager.network = mock.Mock()

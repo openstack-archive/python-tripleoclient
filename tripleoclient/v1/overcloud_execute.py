@@ -18,7 +18,10 @@ import logging
 import os.path
 import re
 
+from tripleo_common.actions import deployment as deployment_actions
+
 from tripleoclient import command
+from tripleoclient import exceptions
 
 
 class RemoteExecute(command.Command):
@@ -39,45 +42,36 @@ class RemoteExecute(command.Command):
 
     def take_action(self, parsed_args):
 
-        self.log.debug("take_action(%s)" % parsed_args)
+        self.log.debug("take_action({})".format(parsed_args))
         config = parsed_args.file_in.read()
         parsed_args.file_in.close()
-        workflow_client = self.app.client_manager.workflow_engine
         tripleoclients = self.app.client_manager.tripleoclient
-        messaging_websocket = tripleoclients.messaging_websocket()
 
         # no special characters here
-        config_name = re.sub('[^\w]*', '',
-                             os.path.basename(parsed_args.file_in.name))
+        config_name = re.sub(
+            r'[^\w]*', '', os.path.basename(parsed_args.file_in.name)
+        )
 
         if not parsed_args.server_name:
             raise Exception('Please specify the -s (--server_name) option.')
 
-        workflow_input = {
-            'server_name': parsed_args.server_name,
-            'config_name': config_name,
-            'group': parsed_args.group,
-            'config': config
-        }
-
-        workflow_client.executions.create(
-            'tripleo.deployment.v1.deploy_on_servers',
-            workflow_input=workflow_input
+        context = tripleoclients.create_mistral_context()
+        init_deploy = deployment_actions.OrchestrationDeployAction(
+            server_id=self.app.client_manager.compute.servers.list(
+                search_opts={
+                    'name': parsed_args.server_name
+                }
+            ),
+            config=config,
+            name=config_name,
+            group=parsed_args.group
         )
-
-        while True:
-            body = messaging_websocket.recv()['body']
-            if 'tripleo.deployment.v1.deploy_on_server' == body['type']:
-                payload = body['payload']
-                status = 'SUCCESS'
-                if payload['status_code'] != 0:
-                    status = 'FAILED'
-                print('%s :: -- %s --' % (payload['server_name'], status))
-                if payload['stdout']:
-                    print('stdout\n: %s\n' % payload['stdout'])
-                if payload['stderr']:
-                    print('stderr\n: %s\n' % payload['stderr'])
-            if 'tripleo.deployment.v1.deploy_on_servers' == body['type']:
-                break
-
-        messaging_websocket.cleanup()
+        init_deploy_return = init_deploy.run(context=context)
+        if init_deploy_return.is_success():
+            print(init_deploy_return)
+        else:
+            raise exceptions.DeploymentError(
+                'Execution failed: {}'.format(
+                    init_deploy_return
+                )
+            )
