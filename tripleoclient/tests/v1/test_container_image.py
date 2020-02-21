@@ -21,6 +21,7 @@ import shutil
 import six
 import sys
 import tempfile
+import uuid
 import yaml
 
 from osc_lib import exceptions as oscexc
@@ -927,7 +928,11 @@ class TestContainerImageBuild(TestPluginV1):
         # Get the command object to test
         self.cmd = container_image.BuildImage(self.app, None)
         self.cmd.app.stdout = six.StringIO()
-        self.temp_dir = self.useFixture(fixtures.TempDir()).join()
+        self.uuid = str(uuid.uuid4())
+        self.temp_dir = os.path.join(self.useFixture(
+                                     fixtures.TempDir()).join())
+        self.temp_dir_uuid = os.path.join(self.temp_dir, self.uuid)
+
         # Default conf file
         self.default_kolla_conf = os.path.join(
             sys.prefix, 'share', 'tripleo-common', 'container-images',
@@ -936,7 +941,9 @@ class TestContainerImageBuild(TestPluginV1):
     @mock.patch('sys.exit')
     @mock.patch('tripleo_common.image.kolla_builder.KollaImageBuilder',
                 autospec=True)
-    def test_container_image_build_noargs(self, mock_builder, exit_mock):
+    @mock.patch('os.makedirs')
+    def test_container_image_build_noargs(self, mock_mkdirs, mock_builder,
+                                          exit_mock):
         arglist = []
         verifylist = []
         mock_builder.return_value.build_images.return_value = 'done'
@@ -953,38 +960,39 @@ class TestContainerImageBuild(TestPluginV1):
 
     @mock.patch('tripleo_common.image.kolla_builder.KollaImageBuilder',
                 autospec=True)
-    def test_container_image_build(self, mock_builder):
+    @mock.patch('uuid.uuid4')
+    def test_container_image_build(self, mock_uuid, mock_builder):
         arglist = [
             '--config-file',
             '/tmp/foo.yaml',
             '--config-file',
             '/tmp/bar.yaml',
+            '--work-dir',
+            self.temp_dir,
             '--kolla-config-file',
             '/tmp/kolla.conf'
         ]
         verifylist = []
         mock_builder.return_value.build_images.return_value = 'done'
+        mock_uuid.return_value = self.uuid
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         f, path = tempfile.mkstemp(dir=self.temp_dir)
-        with mock.patch('tempfile.mkdtemp') as mock_mkd:
-            mock_mkd.return_value = '/tmp/testing'
-            with mock.patch('tempfile.mkstemp') as mock_mkstemp:
-                with mock.patch('os.chdir'):
-                    mock_mkstemp.return_value = f, path
-                    self.cmd.take_action(parsed_args)
+        with mock.patch('tempfile.mkstemp') as mock_mkstemp:
+            with mock.patch('os.chdir'):
+                mock_mkstemp.return_value = f, path
+                self.cmd.take_action(parsed_args)
 
         mock_builder.assert_called_once_with([
             '/tmp/foo.yaml', '/tmp/bar.yaml'])
         mock_builder.return_value.build_images.assert_called_once_with([
             self.default_kolla_conf, '/tmp/kolla.conf',
             path
-        ], [], False, '/tmp/testing')
+        ], [], False, self.temp_dir_uuid)
 
     @mock.patch('os.chdir')
     @mock.patch('os.fdopen', autospec=True)
-    @mock.patch('tempfile.mkdtemp')
     @mock.patch('tempfile.mkstemp')
     @mock.patch(
         'tripleoclient.utils.get_from_cfg')
@@ -1001,14 +1009,15 @@ class TestContainerImageBuild(TestPluginV1):
                                                 mock_builder, mock_buildah,
                                                 mock_kolla_boolean_cfg,
                                                 mock_kolla_cfg, mock_mkstemp,
-                                                mock_mkdtemp, mock_fdopen,
-                                                mock_chdir):
+                                                mock_fdopen, mock_chdir):
         arglist = [
             '--config-file',
             '/tmp/bar.yaml',
             '--kolla-config-file',
             '/tmp/kolla.conf',
-            '--use-buildah'
+            '--use-buildah',
+            '--work-dir',
+            self.temp_dir,
         ]
 
         parsed_args = self.check_parser(self.cmd, arglist, [])
@@ -1016,7 +1025,6 @@ class TestContainerImageBuild(TestPluginV1):
         mock_builder.return_value.build_images.return_value = deps
 
         mock_mkstemp.return_value = (1, '/tmp/whatever_file')
-        mock_mkdtemp.return_value = '/tmp/whatever_dir'
 
         mock_bb = mock.MagicMock()
         mock_bb.build_all = mock.MagicMock()
@@ -1042,7 +1050,8 @@ class TestContainerImageBuild(TestPluginV1):
 
     @mock.patch('tripleo_common.image.kolla_builder.KollaImageBuilder',
                 autospec=True)
-    def test_container_image_build_with_exclude(self, mock_builder):
+    @mock.patch('uuid.uuid4')
+    def test_container_image_build_with_exclude(self, mock_uuid, mock_builder):
         arglist = [
             '--config-file',
             '/tmp/foo.yaml',
@@ -1050,6 +1059,8 @@ class TestContainerImageBuild(TestPluginV1):
             '/tmp/bar.yaml',
             '--kolla-config-file',
             '/tmp/kolla.conf',
+            '--work-dir',
+            '/tmp/testing',
             '--exclude',
             'foo',
             '--exclude',
@@ -1057,6 +1068,7 @@ class TestContainerImageBuild(TestPluginV1):
         ]
         verifylist = []
         mock_builder.return_value.build_images.return_value = 'done'
+        mock_uuid.return_value = '123'
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
@@ -1073,7 +1085,7 @@ class TestContainerImageBuild(TestPluginV1):
         mock_builder.return_value.build_images.assert_called_once_with([
             self.default_kolla_conf, '/tmp/kolla.conf',
             path
-        ], ['foo', 'bar'], False, '/tmp/testing')
+        ], ['foo', 'bar'], False, '/tmp/testing/123')
 
     @mock.patch('tripleo_common.image.kolla_builder.KollaImageBuilder',
                 autospec=True)
@@ -1084,6 +1096,8 @@ class TestContainerImageBuild(TestPluginV1):
             '--list-images',
             '--config-file',
             '/tmp/bar.yaml',
+            '--work-dir',
+            '/tmp/testing',
             '--kolla-config-file',
             '/tmp/kolla.conf'
         ]
@@ -1105,7 +1119,9 @@ class TestContainerImageBuild(TestPluginV1):
     @mock.patch('tripleo_common.image.kolla_builder.KollaImageBuilder',
                 autospec=True)
     @mock.patch('os.remove')
-    def test_container_image_build_list_deps(self, mock_remove, mock_builder):
+    @mock.patch('os.makedirs')
+    def test_container_image_build_list_deps(self, mock_mkdirs, mock_remove,
+                                             mock_builder):
         arglist = [
             '--config-file',
             '/tmp/bar.yaml',

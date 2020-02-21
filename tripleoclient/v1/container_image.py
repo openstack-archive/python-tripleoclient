@@ -22,6 +22,7 @@ import shutil
 import sys
 import tempfile
 import time
+import uuid
 
 from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
@@ -182,6 +183,14 @@ class BuildImage(command.Command):
             help=_('Use Buildah instead of Docker to build the images '
                    'with Kolla.')
         )
+        parser.add_argument(
+            "--work-dir",
+            dest="work_dir",
+            default='/tmp/container-builds',
+            metavar='<container builds directory>',
+            help=_("TripleO container builds directory, storing configs and "
+                   "logs for each image and its dependencies.")
+        )
         return parser
 
     def take_action(self, parsed_args):
@@ -194,49 +203,53 @@ class BuildImage(command.Command):
                 tmp.write('list_dependencies=true')
         kolla_config_files = list(parsed_args.kolla_config_files)
         kolla_config_files.append(path)
-        with utils.TempDirs(dir_prefix='kolla-') as kolla_tmp_dir:
-            try:
-                builder = kolla_builder.KollaImageBuilder(
-                    parsed_args.config_files
-                )
-                result = builder.build_images(kolla_config_files,
-                                              parsed_args.excludes,
-                                              parsed_args.use_buildah,
-                                              kolla_tmp_dir)
+        # Generate an unique work directory so we can keep configs and logs
+        # each time we run the command; they'll be stored in work_dir.
+        kolla_work_dir = os.path.join(parsed_args.work_dir, str(uuid.uuid4()))
 
-                if parsed_args.use_buildah:
-                    deps = json.loads(result)
-                    kolla_cfg = utils.get_read_config(kolla_config_files)
-                    bb = buildah.BuildahBuilder(
-                        kolla_tmp_dir, deps,
-                        utils.get_from_cfg(kolla_cfg, "base"),
-                        utils.get_from_cfg(kolla_cfg, "type"),
-                        utils.get_from_cfg(kolla_cfg, "tag"),
-                        utils.get_from_cfg(kolla_cfg, "namespace"),
-                        utils.get_from_cfg(kolla_cfg, "registry"),
-                        utils.getboolean_from_cfg(kolla_cfg, "push"))
-                    bb.build_all()
-                elif parsed_args.list_dependencies:
-                    deps = json.loads(result)
-                    yaml.safe_dump(
-                        deps,
-                        self.app.stdout,
-                        indent=2,
-                        default_flow_style=False
-                    )
-                elif parsed_args.list_images:
-                    deps = json.loads(result)
-                    images = []
-                    BuildImage.images_from_deps(images, deps)
-                    yaml.safe_dump(
-                        images,
-                        self.app.stdout,
-                        default_flow_style=False
-                    )
-                elif result:
-                    self.app.stdout.write(result)
-            finally:
-                os.remove(path)
+        # Make sure the unique work directory exists
+        if not os.path.exists(kolla_work_dir):
+            self.log.debug("Creating container builds "
+                           "workspace in: %s" % kolla_work_dir)
+            os.makedirs(kolla_work_dir)
+
+        builder = kolla_builder.KollaImageBuilder(parsed_args.config_files)
+        result = builder.build_images(kolla_config_files,
+                                      parsed_args.excludes,
+                                      parsed_args.use_buildah,
+                                      kolla_work_dir)
+
+        if parsed_args.use_buildah:
+            deps = json.loads(result)
+            kolla_cfg = utils.get_read_config(kolla_config_files)
+            bb = buildah.BuildahBuilder(
+                kolla_work_dir, deps,
+                utils.get_from_cfg(kolla_cfg, "base"),
+                utils.get_from_cfg(kolla_cfg, "type"),
+                utils.get_from_cfg(kolla_cfg, "tag"),
+                utils.get_from_cfg(kolla_cfg, "namespace"),
+                utils.get_from_cfg(kolla_cfg, "registry"),
+                utils.getboolean_from_cfg(kolla_cfg, "push"))
+            bb.build_all()
+        elif parsed_args.list_dependencies:
+            deps = json.loads(result)
+            yaml.safe_dump(
+                deps,
+                self.app.stdout,
+                indent=2,
+                default_flow_style=False
+            )
+        elif parsed_args.list_images:
+            deps = json.loads(result)
+            images = []
+            BuildImage.images_from_deps(images, deps)
+            yaml.safe_dump(
+                images,
+                self.app.stdout,
+                default_flow_style=False
+            )
+        elif result:
+            self.app.stdout.write(result)
 
 
 class PrepareImageFiles(command.Command):
