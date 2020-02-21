@@ -89,17 +89,14 @@ def _check_diskspace(upgrade=False):
         playbook_args = constants.DEPLOY_ANSIBLE_ACTIONS['preflight-deploy']
 
     with utils.TempDirs() as tmp:
-        rc, _ = utils.run_ansible_playbook(
+        utils.run_ansible_playbook(
             workdir=tmp,
             inventory='undercloud',
             connection='local',
             output_callback='validation_output',
             playbook_dir=constants.ANSIBLE_VALIDATION_DIR,
-            fail_on_rc=False,
             **playbook_args
         )
-        if rc != 0:
-            raise RuntimeError(_("Disk space check failed"))
 
 
 def _check_memory():
