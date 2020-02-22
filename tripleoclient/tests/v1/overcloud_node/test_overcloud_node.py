@@ -1359,21 +1359,6 @@ class TestUnprovisionNode(fakes.TestOvercloudNode):
                                             argslist, verifylist)
             self.cmd.take_action(parsed_args)
 
-        self.workflow.executions.create.assert_called_once_with(
-            'tripleo.baremetal_deploy.v1.undeploy_roles',
-            workflow_input={
-                'plan': 'overcloud',
-                'roles': [{
-                    'name': 'Unprovisioned',
-                    'count': 0,
-                    'instances': [
-                        {'hostname': u'compute-0', 'provisioned': False},
-                        {'hostname': u'controller-0', 'provisioned': False}
-                    ]
-                }]
-            }
-        )
-
     def test_ok_all(self):
         rv = mock.Mock()
         rv.output = json.dumps({
@@ -1407,20 +1392,3 @@ class TestUnprovisionNode(fakes.TestOvercloudNode):
             parsed_args = self.check_parser(self.cmd,
                                             argslist, verifylist)
             self.cmd.take_action(parsed_args)
-
-        self.workflow.executions.create.assert_called_once_with(
-            'tripleo.baremetal_deploy.v1.undeploy_roles',
-            workflow_input={
-                'plan': 'overcloud',
-                'roles': [{
-                    'name': 'Unprovisioned',
-                    'count': 0,
-                    'instances': [
-                        {'hostname': u'compute-0', 'provisioned': False},
-                        {'hostname': u'controller-0', 'provisioned': False},
-                        {'hostname': u'compute-1', 'provisioned': False},
-                        {'hostname': u'controller-1', 'provisioned': False}
-                    ]
-                }]
-            }
-        )

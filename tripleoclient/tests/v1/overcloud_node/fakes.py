@@ -14,7 +14,11 @@
 #
 
 import mock
+
 from osc_lib.tests import utils
+
+from tripleoclient import plugin
+from tripleoclient.tests import fakes
 
 
 class FakeClientWrapper(object):
@@ -48,4 +52,7 @@ class TestOvercloudNode(utils.TestCommand):
 
         self.app.client_manager.baremetal = mock.Mock()
         self.app.client_manager.workflow_engine = mock.Mock()
-        self.app.client_manager.tripleoclient = FakeClientWrapper()
+        tc = self.app.client_manager.tripleoclient = FakeClientWrapper()
+        tc.create_mistral_context = plugin.ClientWrapper(
+            instance=fakes.FakeInstanceData
+        ).create_mistral_context
