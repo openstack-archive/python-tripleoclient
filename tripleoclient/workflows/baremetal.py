@@ -23,34 +23,25 @@ from tripleoclient import exceptions
 from tripleoclient.workflows import base
 
 
-def validate_nodes(clients, **workflow_input):
-    """Node Registration or Update
+def validate_nodes(clients, nodes_json):
+    """Validate nodes.
 
-    Run the tripleo.baremetal.v1.validate_nodes Mistral workflow.
+    :param clients: Application client object.
+    :type clients: Object
+
+    :param nodes_json:
+    :type nodes_json: Object
+
+    :returns: Boolean
     """
 
-    workflow_client = clients.workflow_engine
-    tripleoclients = clients.tripleoclient
-
-    with tripleoclients.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client,
-            'tripleo.baremetal.v1.validate_nodes',
-            workflow_input=workflow_input
-        )
-
-        for payload in base.wait_for_messages(workflow_client, ws, execution):
-            if 'message' in payload:
-                print(payload['message'])
-
-    if payload['status'] == 'SUCCESS':
-        print('Successfully validated environment file')
+    context = clients.tripleoclient.create_mistral_context()
+    nodes = baremetal.ValidateNodes(nodes_json=nodes_json)
+    validated_nodes = nodes.run(context=context)
+    if not validated_nodes:
         return True
     else:
-        raise exceptions.RegisterOrUpdateError(
-            'Exception validating environment file: {}'.format(
-                payload['message'])
-        )
+        raise exceptions.RegisterOrUpdateError(validated_nodes)
 
 
 def register_or_update(clients, **workflow_input):
