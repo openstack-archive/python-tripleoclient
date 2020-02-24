@@ -13,39 +13,16 @@
 #   under the License.
 #
 
-import mock
-from osc_lib.tests import utils
+from tripleoclient.tests import fakes
 
 
-class FakeClientWrapper(object):
-
-    def __init__(self):
-        self._instance = mock.Mock()
-        self._mock_websocket = mock.Mock()
-        self._mock_websocket.__enter__ = mock.Mock(
-            return_value=self._mock_websocket)
-        # Return False to avoid silencing exceptions
-        self._mock_websocket.__exit__ = mock.Mock(return_value=False)
-
-    def messaging_websocket(self):
-        return self._mock_websocket
-
-
-class TestDeleteNode(utils.TestCommand):
+class TestDeleteNode(fakes.FakePlaybookExecution):
 
     def setUp(self):
         super(TestDeleteNode, self).setUp()
 
-        self.app.client_manager.auth_ref = mock.Mock(auth_token="TOKEN")
-        self.app.client_manager.orchestration = mock.Mock()
-        self.app.client_manager.tripleoclient = FakeClientWrapper()
 
-
-class TestOvercloudNode(utils.TestCommand):
+class TestOvercloudNode(fakes.FakePlaybookExecution):
 
     def setUp(self):
         super(TestOvercloudNode, self).setUp()
-
-        self.app.client_manager.baremetal = mock.Mock()
-        self.app.client_manager.workflow_engine = mock.Mock()
-        self.app.client_manager.tripleoclient = FakeClientWrapper()

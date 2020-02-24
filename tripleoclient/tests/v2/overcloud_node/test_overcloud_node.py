@@ -297,3 +297,54 @@ class TestIntrospectNode(fakes.TestOvercloudNode):
         self.assertRaises(test_utils.ParserException,
                           self.check_parser,
                           self.cmd, argslist, verifylist)
+
+    def _check_introspect_all_manageable(self, parsed_args, provide=False):
+        self.websocket.wait_for_messages.return_value = iter([{
+            "status": "SUCCESS",
+            "message": "Success",
+            "introspected_nodes": {},
+            "execution_id": "IDID"
+        }] * 2)
+
+        self.cmd.take_action(parsed_args)
+
+        call_list = [mock.call(
+            'tripleo.baremetal.v1.introspect_manageable_nodes',
+            workflow_input={'run_validations': False, 'concurrency': 20}
+        )]
+
+        if provide:
+            call_list.append(mock.call(
+                'tripleo.baremetal.v1.provide_manageable_nodes',
+                workflow_input={}
+            ))
+
+        self.workflow.executions.create.assert_has_calls(call_list)
+        self.assertEqual(self.workflow.executions.create.call_count,
+                         2 if provide else 1)
+
+    def _check_introspect_nodes(self, parsed_args, nodes, provide=False):
+        self.websocket.wait_for_messages.return_value = [{
+            "status": "SUCCESS",
+            "message": "Success",
+            "execution_id": "IDID",
+        }]
+
+        self.cmd.take_action(parsed_args)
+
+        call_list = [mock.call(
+            'tripleo.baremetal.v1.introspect', workflow_input={
+                'node_uuids': nodes,
+                'run_validations': False,
+                'concurrency': 20}
+        )]
+
+        if provide:
+            call_list.append(mock.call(
+                'tripleo.baremetal.v1.provide', workflow_input={
+                    'node_uuids': nodes}
+            ))
+
+        self.workflow.executions.create.assert_has_calls(call_list)
+        self.assertEqual(self.workflow.executions.create.call_count,
+                         2 if provide else 1)

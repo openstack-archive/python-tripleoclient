@@ -59,12 +59,11 @@ def deploy(log, clients, **workflow_input):
             message = payload.get('message')
             if message and status == "RUNNING":
                 print(message)
-
-        if payload['status'] != "SUCCESS":
-            log.info(pprint.pformat(payload))
-            print(payload['message'])
-            raise ValueError("Unexpected status %s for %s"
-                             % (payload['status'], wf_name))
+            elif payload['status'] != "SUCCESS":
+                log.info(pprint.pformat(payload))
+                print(payload['message'])
+                raise ValueError("Unexpected status %s for %s"
+                                 % (payload['status'], wf_name))
 
 
 def deploy_and_wait(log, clients, stack, plan_name, verbose_level,

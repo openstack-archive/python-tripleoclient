@@ -14,13 +14,12 @@
 
 import mock
 
-from osc_lib.tests import utils
-
 from tripleoclient import exceptions
+from tripleoclient.tests import fakes
 from tripleoclient.workflows import baremetal
 
 
-class TestBaremetalWorkflows(utils.TestCommand):
+class TestBaremetalWorkflows(fakes.FakePlaybookExecution):
 
     def setUp(self):
         super(TestBaremetalWorkflows, self).setUp()
@@ -49,44 +48,11 @@ class TestBaremetalWorkflows(utils.TestCommand):
         }])
 
     def test_register_or_update_success(self):
-
-        self.websocket.wait_for_messages.return_value = self.message_success
-
         self.assertEqual(baremetal.register_or_update(
             self.app.client_manager,
             nodes_json=[],
-            kernel_name="kernel",
-            ramdisk_name="ramdisk"
-        ), [])
-
-        self.workflow.executions.create.assert_called_once_with(
-            'tripleo.baremetal.v1.register_or_update',
-            workflow_input={
-                'kernel_name': 'kernel',
-                'nodes_json': [],
-                'ramdisk_name': 'ramdisk'
-            })
-
-    def test_register_or_update_error(self):
-
-        self.websocket.wait_for_messages.return_value = self.message_failed
-
-        self.assertRaises(
-            exceptions.RegisterOrUpdateError,
-            baremetal.register_or_update,
-            self.app.client_manager,
-            nodes_json=[],
-            kernel_name="kernel",
-            ramdisk_name="ramdisk"
-        )
-
-        self.workflow.executions.create.assert_called_once_with(
-            'tripleo.baremetal.v1.register_or_update',
-            workflow_input={
-                'kernel_name': 'kernel',
-                'nodes_json': [],
-                'ramdisk_name': 'ramdisk'
-            })
+            instance_boot_option='local'
+        ), [mock.ANY])
 
     def test_provide_success(self):
 

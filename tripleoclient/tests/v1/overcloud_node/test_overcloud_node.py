@@ -15,21 +15,23 @@
 
 import collections
 import copy
+import fixtures
 import json
 import mock
 import os
 import tempfile
 
-import fixtures
 from osc_lib import exceptions as oscexc
 from osc_lib.tests import utils as test_utils
 import yaml
 
+from tripleoclient import constants
 from tripleoclient import exceptions
 from tripleoclient import plugin
 from tripleoclient.tests import fakes as ooofakes
 from tripleoclient.tests.v1.overcloud_node import fakes
 from tripleoclient.v1 import overcloud_node
+from tripleoclient.v2 import overcloud_node as overcloud_node_v2
 
 
 class TestDeleteNode(fakes.TestDeleteNode):
@@ -45,31 +47,7 @@ class TestDeleteNode(fakes.TestDeleteNode):
         self.websocket = mock.Mock()
         self.websocket.__enter__ = lambda s: self.websocket
         self.websocket.__exit__ = lambda s, *exc: None
-        self.tripleoclient = mock.Mock()
         self.tripleoclient.messaging_websocket.return_value = self.websocket
-        tc = self.app.client_manager.tripleoclient = self.tripleoclient
-        tc.create_mistral_context = plugin.ClientWrapper(
-            instance=ooofakes.FakeInstanceData
-        ).create_mistral_context
-        self.gcn = mock.patch(
-            'tripleo_common.actions.config.DownloadConfigAction',
-            autospec=True
-        )
-        self.gcn.start()
-        self.addCleanup(self.gcn.stop)
-        self.ansible = mock.patch(
-            'tripleo_common.actions.ansible.AnsibleGenerateInventoryAction',
-            autospec=True
-        )
-        self.ansible.start()
-        self.addCleanup(self.ansible.stop)
-        config_mock = mock.patch(
-            'tripleo_common.actions.config.GetOvercloudConfig',
-            autospec=True
-        )
-        config_mock.start()
-        self.addCleanup(config_mock.stop)
-
         self.workflow = self.app.client_manager.workflow_engine
         self.stack_name = self.app.client_manager.orchestration.stacks.get
         stack = self.stack_name.return_value = mock.Mock(
@@ -95,6 +73,7 @@ class TestDeleteNode(fakes.TestDeleteNode):
         wait_stack.start()
         wait_stack.return_value = None
         self.addCleanup(wait_stack.stop)
+        self.app.client_manager.compute.servers.get.return_value = None
 
     # TODO(someone): This test does not pass with autospec=True, it should
     # probably be fixed so that it can pass with that.
@@ -125,23 +104,23 @@ class TestDeleteNode(fakes.TestDeleteNode):
                           self.cmd.take_action,
                           parsed_args)
 
-    def test_node_wrong_stack(self):
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
+                autospec=True,
+                side_effect=exceptions.InvalidConfiguration)
+    def test_node_wrong_stack(self, mock_playbook):
         argslist = ['instance1', '--templates',
                     '--stack', 'overcast', '--yes']
         verifylist = [
             ('stack', 'overcast'),
             ('nodes', ['instance1', ])
         ]
-        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
-
         self.stack_name.return_value = None
+
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
 
         self.assertRaises(exceptions.InvalidConfiguration,
                           self.cmd.take_action,
                           parsed_args)
-
-        # Verify
-        self.workflow.executions.create.assert_not_called()
 
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
@@ -461,116 +440,6 @@ class TestProvideNode(fakes.TestOvercloudNode):
                           self.cmd, argslist, verifylist)
 
 
-class TestIntrospectNode(fakes.TestOvercloudNode):
-
-    def setUp(self):
-        super(TestIntrospectNode, self).setUp()
-
-        self.workflow = self.app.client_manager.workflow_engine
-        execution = mock.Mock()
-        execution.id = "IDID"
-        self.workflow.executions.create.return_value = execution
-        client = self.app.client_manager.tripleoclient
-        self.websocket = client.messaging_websocket()
-
-        # Get the command object to test
-        self.cmd = overcloud_node.IntrospectNode(self.app, None)
-
-    def _check_introspect_all_manageable(self, parsed_args, provide=False):
-        self.websocket.wait_for_messages.return_value = iter([{
-            "status": "SUCCESS",
-            "message": "Success",
-            "introspected_nodes": {},
-            "execution_id": "IDID"
-        }] * 2)
-
-        self.cmd.take_action(parsed_args)
-
-        call_list = [mock.call(
-            'tripleo.baremetal.v1.introspect_manageable_nodes',
-            workflow_input={'run_validations': False, 'concurrency': 20}
-        )]
-
-        if provide:
-            call_list.append(mock.call(
-                'tripleo.baremetal.v1.provide_manageable_nodes',
-                workflow_input={}
-            ))
-
-        self.workflow.executions.create.assert_has_calls(call_list)
-        self.assertEqual(self.workflow.executions.create.call_count,
-                         2 if provide else 1)
-
-    def _check_introspect_nodes(self, parsed_args, nodes, provide=False):
-        self.websocket.wait_for_messages.return_value = [{
-            "status": "SUCCESS",
-            "message": "Success",
-            "execution_id": "IDID",
-        }]
-
-        self.cmd.take_action(parsed_args)
-
-        call_list = [mock.call(
-            'tripleo.baremetal.v1.introspect', workflow_input={
-                'node_uuids': nodes,
-                'run_validations': False,
-                'concurrency': 20}
-        )]
-
-        if provide:
-            call_list.append(mock.call(
-                'tripleo.baremetal.v1.provide', workflow_input={
-                    'node_uuids': nodes}
-            ))
-
-        self.workflow.executions.create.assert_has_calls(call_list)
-        self.assertEqual(self.workflow.executions.create.call_count,
-                         2 if provide else 1)
-
-    def test_introspect_all_manageable_nodes_without_provide(self):
-        parsed_args = self.check_parser(self.cmd,
-                                        ['--all-manageable'],
-                                        [('all_manageable', True)])
-        self._check_introspect_all_manageable(parsed_args, provide=False)
-
-    def test_introspect_all_manageable_nodes_with_provide(self):
-        parsed_args = self.check_parser(self.cmd,
-                                        ['--all-manageable', '--provide'],
-                                        [('all_manageable', True),
-                                         ('provide', True)])
-        self._check_introspect_all_manageable(parsed_args, provide=True)
-
-    def test_introspect_nodes_without_provide(self):
-        nodes = ['node_uuid1', 'node_uuid2']
-        parsed_args = self.check_parser(self.cmd,
-                                        nodes,
-                                        [('node_uuids', nodes)])
-        self._check_introspect_nodes(parsed_args, nodes, provide=False)
-
-    def test_introspect_nodes_with_provide(self):
-        nodes = ['node_uuid1', 'node_uuid2']
-        argslist = nodes + ['--provide']
-
-        parsed_args = self.check_parser(self.cmd,
-                                        argslist,
-                                        [('node_uuids', nodes),
-                                         ('provide', True)])
-        self._check_introspect_nodes(parsed_args, nodes, provide=True)
-
-    def test_introspect_no_node_or_flag_specified(self):
-        self.assertRaises(test_utils.ParserException,
-                          self.check_parser,
-                          self.cmd, [], [])
-
-    def test_introspect_uuids_and_all_both_specified(self):
-        argslist = ['node_id1', 'node_id2', '--all-manageable']
-        verifylist = [('node_uuids', ['node_id1', 'node_id2']),
-                      ('all_manageable', True)]
-        self.assertRaises(test_utils.ParserException,
-                          self.check_parser,
-                          self.cmd, argslist, verifylist)
-
-
 class TestCleanNode(fakes.TestOvercloudNode):
 
     def setUp(self):
@@ -666,156 +535,6 @@ class TestCleanNode(fakes.TestOvercloudNode):
         self._check_clean_nodes(parsed_args, nodes, provide=True)
 
 
-class TestImportNode(fakes.TestOvercloudNode):
-
-    def setUp(self):
-        super(TestImportNode, self).setUp()
-
-        self.nodes_list = [{
-            "pm_user": "stack",
-            "pm_addr": "192.168.122.1",
-            "pm_password": "KEY1",
-            "pm_type": "pxe_ssh",
-            "mac": [
-                "00:0b:d0:69:7e:59"
-            ],
-        }, {
-            "pm_user": "stack",
-            "pm_addr": "192.168.122.2",
-            "pm_password": "KEY2",
-            "pm_type": "pxe_ssh",
-            "mac": [
-                "00:0b:d0:69:7e:58"
-            ]
-        }]
-        self.json_file = tempfile.NamedTemporaryFile(
-            mode='w', delete=False, suffix='.json')
-        json.dump(self.nodes_list, self.json_file)
-        self.json_file.close()
-        self.addCleanup(os.unlink, self.json_file.name)
-
-        self.workflow = self.app.client_manager.workflow_engine
-        execution = mock.Mock()
-        execution.id = "IDID"
-        self.workflow.executions.create.return_value = execution
-        client = self.app.client_manager.tripleoclient
-        self.websocket = client.messaging_websocket()
-
-        # Get the command object to test
-        self.cmd = overcloud_node.ImportNode(self.app, None)
-
-        image = collections.namedtuple('image', ['id', 'name'])
-        self.app.client_manager.image = mock.Mock()
-        self.app.client_manager.image.images.list.return_value = [
-            image(id=3, name='overcloud-full'),
-        ]
-
-        self.http_boot = '/var/lib/ironic/httpboot'
-
-        self.useFixture(fixtures.MockPatch(
-            'os.path.exists', autospec=True,
-            side_effect=lambda path: path in [os.path.join(self.http_boot, i)
-                                              for i in ('agent.kernel',
-                                                        'agent.ramdisk')]))
-
-    def _check_workflow_call(self, parsed_args, introspect=False,
-                             provide=False, local=None, no_deploy_image=False):
-        self.websocket.wait_for_messages.return_value = [{
-            "status": "SUCCESS",
-            "message": "Success",
-            "registered_nodes": [{
-                "uuid": "MOCK_NODE_UUID"
-            }],
-            "execution_id": "IDID"
-        }]
-
-        self.cmd.take_action(parsed_args)
-
-        nodes_list = copy.deepcopy(self.nodes_list)
-        if not no_deploy_image:
-            for node in nodes_list:
-                node.update({
-                    'kernel_id': 'file://%s/agent.kernel' % self.http_boot,
-                    'ramdisk_id': 'file://%s/agent.ramdisk' % self.http_boot,
-                })
-
-        call_count = 1
-        call_list = [mock.call(
-            'tripleo.baremetal.v1.register_or_update', workflow_input={
-                'nodes_json': nodes_list,
-                'instance_boot_option': ('local' if local is True else
-                                         'netboot' if local is False else None)
-            }
-        )]
-
-        if introspect:
-            call_count += 1
-            call_list.append(mock.call(
-                'tripleo.baremetal.v1.introspect', workflow_input={
-                    'node_uuids': ['MOCK_NODE_UUID'],
-                    'run_validations': False,
-                    'concurrency': 20}
-            ))
-
-        if provide:
-            call_count += 1
-            call_list.append(mock.call(
-                'tripleo.baremetal.v1.provide', workflow_input={
-                    'node_uuids': ['MOCK_NODE_UUID']
-                }
-            ))
-
-        self.workflow.executions.create.assert_has_calls(call_list)
-        self.assertEqual(self.workflow.executions.create.call_count,
-                         call_count)
-
-    def test_import_only(self):
-        argslist = [self.json_file.name]
-        verifylist = [('introspect', False),
-                      ('provide', False)]
-
-        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
-        self._check_workflow_call(parsed_args)
-
-    def test_import_and_introspect(self):
-        argslist = [self.json_file.name, '--introspect']
-        verifylist = [('introspect', True),
-                      ('provide', False)]
-
-        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
-        self._check_workflow_call(parsed_args, introspect=True)
-
-    def test_import_and_provide(self):
-        argslist = [self.json_file.name, '--provide']
-        verifylist = [('introspect', False),
-                      ('provide', True)]
-
-        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
-        self._check_workflow_call(parsed_args, provide=True)
-
-    def test_import_and_introspect_and_provide(self):
-        argslist = [self.json_file.name, '--introspect', '--provide']
-        verifylist = [('introspect', True),
-                      ('provide', True)]
-
-        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
-        self._check_workflow_call(parsed_args, introspect=True, provide=True)
-
-    def test_import_with_netboot(self):
-        arglist = [self.json_file.name, '--instance-boot-option', 'netboot']
-        verifylist = [('instance_boot_option', 'netboot')]
-
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-        self._check_workflow_call(parsed_args, local=False)
-
-    def test_import_with_no_deployed_image(self):
-        arglist = [self.json_file.name, '--no-deploy-image']
-        verifylist = [('no_deploy_image', True)]
-
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-        self._check_workflow_call(parsed_args, no_deploy_image=True)
-
-
 class TestImportNodeMultiArch(fakes.TestOvercloudNode):
 
     def setUp(self):
@@ -863,7 +582,7 @@ class TestImportNodeMultiArch(fakes.TestOvercloudNode):
         self.websocket = client.messaging_websocket()
 
         # Get the command object to test
-        self.cmd = overcloud_node.ImportNode(self.app, None)
+        self.cmd = overcloud_node_v2.ImportNode(self.app, None)
 
         image = collections.namedtuple('image', ['id', 'name'])
         self.app.client_manager.image = mock.Mock()
@@ -894,7 +613,9 @@ class TestImportNodeMultiArch(fakes.TestOvercloudNode):
             "execution_id": "IDID"
         }]
 
-        self.cmd.take_action(parsed_args)
+        with mock.patch('tripleoclient.utils.run_ansible_playbook',
+                        autospec=True):
+            self.cmd.take_action(parsed_args)
 
         nodes_list = copy.deepcopy(self.nodes_list)
         if not no_deploy_image:
@@ -911,14 +632,8 @@ class TestImportNodeMultiArch(fakes.TestOvercloudNode):
             nodes_list[2]['ramdisk_id'] = (
                 'file://%s/SNB-x86_64/agent.ramdisk' % self.http_boot)
 
-        call_count = 1
-        call_list = [mock.call(
-            'tripleo.baremetal.v1.register_or_update', workflow_input={
-                'nodes_json': nodes_list,
-                'instance_boot_option': ('local' if local is True else
-                                         'netboot' if local is False else None)
-            }
-        )]
+        call_count = 0
+        call_list = []
 
         if introspect:
             call_count += 1
@@ -949,13 +664,26 @@ class TestImportNodeMultiArch(fakes.TestOvercloudNode):
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
         self._check_workflow_call(parsed_args)
 
-    def test_import_and_introspect(self):
-        argslist = [self.json_file.name, '--introspect']
-        verifylist = [('introspect', True),
-                      ('provide', False)]
-
-        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
-        self._check_workflow_call(parsed_args, introspect=True)
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
+                autospec=True)
+    def test_import_and_introspect(self, mock_playbook):
+        parsed_args = self.check_parser(self.cmd,
+                                        [self.json_file.name,
+                                         '--introspect'],
+                                        [('introspect', True),
+                                         ('provide', False)])
+        self.cmd.take_action(parsed_args)
+        mock_playbook.assert_called_once_with(
+            workdir=mock.ANY,
+            playbook=mock.ANY,
+            inventory=mock.ANY,
+            playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            extra_vars={
+                'node_uuids': ['MOCK_NODE_UUID'],
+                'run_validations': False,
+                'concurrency': 20
+            }
+        )
 
     def test_import_and_provide(self):
         argslist = [self.json_file.name, '--provide']
@@ -965,13 +693,27 @@ class TestImportNodeMultiArch(fakes.TestOvercloudNode):
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
         self._check_workflow_call(parsed_args, provide=True)
 
-    def test_import_and_introspect_and_provide(self):
-        argslist = [self.json_file.name, '--introspect', '--provide']
-        verifylist = [('introspect', True),
-                      ('provide', True)]
-
-        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
-        self._check_workflow_call(parsed_args, introspect=True, provide=True)
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
+                autospec=True)
+    def test_import_and_introspect_and_provide(self, mock_playbook):
+        parsed_args = self.check_parser(self.cmd,
+                                        [self.json_file.name,
+                                         '--introspect',
+                                         '--provide'],
+                                        [('introspect', True),
+                                         ('provide', True)])
+        self.cmd.take_action(parsed_args)
+        mock_playbook.assert_called_once_with(
+            workdir=mock.ANY,
+            playbook=mock.ANY,
+            inventory=mock.ANY,
+            playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            extra_vars={
+                'node_uuids': ['MOCK_NODE_UUID'],
+                'run_validations': False,
+                'concurrency': 20
+            }
+        )
 
     def test_import_with_netboot(self):
         arglist = [self.json_file.name, '--instance-boot-option', 'netboot']
@@ -1193,12 +935,6 @@ class TestDiscoverNode(fakes.TestOvercloudNode):
         )
         self.gcn.start()
         self.addCleanup(self.gcn.stop)
-        self.roun = mock.patch(
-            'tripleo_common.actions.baremetal.RegisterOrUpdateNodes',
-            autospec=True
-        )
-        self.roun.start()
-        self.addCleanup(self.roun.stop)
 
         self.websocket.wait_for_messages.return_value = [{
             "status": "SUCCESS",
@@ -1252,11 +988,11 @@ class TestDiscoverNode(fakes.TestOvercloudNode):
 
         workflows_calls = [
             mock.call('tripleo.baremetal.v1.introspect',
-                      workflow_input={'node_uuids': [],
+                      workflow_input={'node_uuids': ['MOCK_NODE_UUID'],
                                       'run_validations': True,
                                       'concurrency': 10}),
             mock.call('tripleo.baremetal.v1.provide',
-                      workflow_input={'node_uuids': []}
+                      workflow_input={'node_uuids': ['MOCK_NODE_UUID']}
                       )
         ]
         self.workflow.executions.create.assert_has_calls(workflows_calls)

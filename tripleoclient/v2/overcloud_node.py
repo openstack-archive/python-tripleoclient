@@ -102,7 +102,7 @@ class ImportNode(command.Command):
             instance_boot_option=parsed_args.instance_boot_option
         )
 
-        nodes_uuids = [node['uuid'] for node in nodes]
+        nodes_uuids = [node.uuid for node in nodes]
 
         if parsed_args.introspect:
             extra_vars = {
