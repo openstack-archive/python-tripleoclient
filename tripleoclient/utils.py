@@ -320,7 +320,7 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
             return ansible_runner.utils.dump_artifact(
                 inventory,
                 ansible_artifact_path,
-                'hosts'
+                constants.ANSIBLE_HOSTS_FILENAME
             )
 
     if not playbook_dir:
