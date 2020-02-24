@@ -591,38 +591,58 @@ def deploy_roles(clients, **workflow_input):
     return payload
 
 
-def undeploy_roles(clients, **workflow_input):
-    """Undeploy provided roles using Ironic.
+def expand_roles(clients, roles, stackname, provisioned):
+    """Convert a baremetal_deployment file to list of instances.
 
-    Run the tripleo.baremetal_deploy.v1.undeploy_roles Mistral workflow.
+    :param clients: application client object.
+    :type clients: Object
+
+    :param roles: List of roles to undeploy.
+    :type roles: List
+
+    :param stackname: Name of plan / stack.
+    :type stackname: String
+
+    :param provisioned: Enable or Disable the provisioned flag.
+    :type provisioned: Boolean
+
+    :returns: Dictionary
     """
 
-    workflow_client = clients.workflow_engine
-    tripleoclients = clients.tripleoclient
-
-    with tripleoclients.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client,
-            'tripleo.baremetal_deploy.v1.undeploy_roles',
-            workflow_input=workflow_input
-        )
-
-        for payload in base.wait_for_messages(workflow_client, ws, execution):
-            if payload.get('message'):
-                print(payload['message'])
-
-    if payload['status'] != 'SUCCESS':
-        raise exceptions.NodeConfigurationError(
-            'Error undeploying nodes: {}'.format(payload['message']))
-
-    return payload
-
-
-def expand_roles(clients, roles, stackname, provisioned):
     context = clients.tripleoclient.create_mistral_context()
-    expand_roles = baremetal_deploy.ExpandRolesAction(
+    expand = baremetal_deploy.ExpandRolesAction(
         roles=roles,
         stackname=stackname,
         provisioned=provisioned
+    ).run(context=context)
+    if not isinstance(expand, dict):
+        raise RuntimeError(expand)
+    else:
+        return expand
+
+
+def undeploy_roles(clients, roles, plan):
+    """Undeploy provided roles using Ironic.
+
+    :param clients: application client object.
+    :type clients: Object
+
+    :param roles: List of roles to undeploy.
+    :type roles: List
+
+    :param plan: Name of plan / stack.
+    :type plan: String
+    """
+
+    expanded_roles = expand_roles(
+        clients=clients,
+        roles=roles,
+        stackname=plan,
+        provisioned=True
     )
-    return expand_roles.run(context=context)
+
+    context = clients.tripleoclient.create_mistral_context()
+    for instance in expanded_roles['instances']:
+        baremetal_deploy.UndeployInstanceAction(
+            instance=instance
+        ).run(context=context)
