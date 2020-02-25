@@ -1,0 +1,15 @@
+---
+features:
+  - ReportExecute has been moved to the V2 client version where it will now
+    execute an ansible playbook when running all log collection tasks. This
+    playbook will run `sosreport` and collect a log archive on the undercloud
+    host.
+deprecations:
+  - The log collection process will no longer store logs within swift. All
+    collected logs will be stored in the `--output` path as provided by the
+    CLI switch, using a default of **/var/lib/tripleo/support**.
+  - The following ReportExecute CLI switches no longer have any effect;
+    `--container`, `--skip-container-delete`, `--timeout`, `--concurrency`,
+    `--collect-only`, `--download-only`. These options have been retained
+    to ensure we're not breaking legacy compatibility, however, they will
+    be removed in a future release.
