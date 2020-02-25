@@ -310,6 +310,8 @@ class TestContainerImagePush(TestPluginV1):
                                      mock_get_uc_registry):
         arglist = ['--registry-url', '127.0.0.1:8787',
                    '--append-tag', 'test',
+                   '--source-username', 'sourceuser',
+                   '--source-password', 'sourcepassword',
                    '--username', 'user',
                    '--password', 'password',
                    '--dry-run',
@@ -354,9 +356,15 @@ class TestContainerImagePush(TestPluginV1):
 
         self.cmd.take_action(parsed_args)
 
+        source_url = parse.urlparse("docker://docker.io/namespace/foo:tag")
         registry_url = parse.urlparse("docker://127.0.0.1:8787")
-        mock_uploader.authenticate.assert_called_once_with(
-            registry_url, parsed_args.username, parsed_args.password)
+        auth_calls = [mock.call(source_url,
+                                parsed_args.source_username,
+                                parsed_args.source_password),
+                      mock.call(registry_url,
+                                parsed_args.username,
+                                parsed_args.password)]
+        mock_uploader.authenticate.assert_has_calls(auth_calls)
 
         mock_task.assert_called_once_with(
                 image_name='namespace/foo:tag',
