@@ -41,4 +41,4 @@ class TestAdminAuthorize(test_plugin.TestPluginV1):
             parsed_args.overcloud_ssh_user,
             parsed_args.overcloud_ssh_key,
             600,
-            300)
+            600)
