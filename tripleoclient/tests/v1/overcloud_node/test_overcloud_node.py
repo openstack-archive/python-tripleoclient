@@ -874,13 +874,6 @@ class TestDiscoverNode(fakes.TestOvercloudNode):
 
         self.http_boot = '/var/lib/ironic/httpboot'
 
-        self.mock_playbook = mock.patch(
-            'tripleoclient.utils.run_ansible_playbook',
-            autospec=True
-        )
-        self.mock_playbook.start()
-        self.addCleanup(self.mock_playbook.stop)
-
     def test_with_ip_range(self):
         argslist = ['--range', '10.0.0.0/24',
                     '--credentials', 'admin:password']

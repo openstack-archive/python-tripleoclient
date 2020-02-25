@@ -404,59 +404,44 @@ def discover_and_enroll(clients, ip_addresses, credentials, kernel_name,
     )
 
 
-def clean_nodes(clients, **workflow_input):
+def clean_nodes(clients, node_uuids):
     """Clean Baremetal Nodes
 
-    Run the tripleo.baremetal.v1.clean_nodes Mistral workflow.
+    :param clients: application client object.
+    :type clients: Object
+
+    :param node_uuids: List of instance UUID(s).
+    :type node_uuids: List
     """
 
-    workflow_client = clients.workflow_engine
-    tripleoclients = clients.tripleoclient
-
-    with tripleoclients.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client,
-            'tripleo.baremetal.v1.clean_nodes',
-            workflow_input={'node_uuids': workflow_input['node_uuids']}
+    with utils.TempDirs() as tmp:
+        utils.run_ansible_playbook(
+            playbook='cli-baremetal-clean.yaml',
+            inventory='localhost,',
+            workdir=tmp,
+            playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            extra_vars={
+                'node_uuids': node_uuids
+            }
         )
 
-        for payload in base.wait_for_messages(workflow_client, ws, execution):
-            if payload.get('message'):
-                print(payload['message'])
-
-    if payload['status'] != 'SUCCESS':
-        message = _format_errors(payload)
-        raise exceptions.NodeConfigurationError(
-            'Error(s) cleaning nodes:\n{}'.format(message))
-
-    print('Successfully cleaned nodes')
+    print('Successfully cleaned nodes: {}'.format(node_uuids))
 
 
-def clean_manageable_nodes(clients, **workflow_input):
+def clean_manageable_nodes(clients):
     """Clean all manageable Nodes
 
-    Run the tripleo.baremetal.v1.clean_manageable_nodes Mistral workflow.
+    :param clients: application client object.
+    :type clients: Object
     """
 
-    workflow_client = clients.workflow_engine
-    tripleoclients = clients.tripleoclient
-
-    with tripleoclients.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client,
-            'tripleo.baremetal.v1.clean_manageable_nodes',
-            workflow_input=workflow_input
-        )
-
-        for payload in base.wait_for_messages(workflow_client, ws, execution):
-            if payload.get('message'):
-                print(payload['message'])
-
-    if payload['status'] != 'SUCCESS':
-        raise exceptions.NodeConfigurationError(
-            'Error cleaning nodes: {}'.format(payload['message']))
-
-    print('Cleaned %d node(s)' % len(payload['cleaned_nodes']))
+    clean_nodes(
+        clients=clients,
+        node_uuids=[
+            i.uuid for i in clients.baremetal.node.list()
+            if i.provision_state == "manageable" and not i.maintenance
+        ]
+    )
 
 
 def apply_bios_configuration(clients, node_uuids, configuration):

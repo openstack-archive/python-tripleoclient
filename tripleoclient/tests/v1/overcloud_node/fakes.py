@@ -13,6 +13,8 @@
 #   under the License.
 #
 
+import mock
+
 from tripleoclient.tests import fakes
 
 
@@ -26,3 +28,10 @@ class TestOvercloudNode(fakes.FakePlaybookExecution):
 
     def setUp(self):
         super(TestOvercloudNode, self).setUp()
+
+        self.mock_playbook = mock.patch(
+            'tripleoclient.utils.run_ansible_playbook',
+            autospec=True
+        )
+        self.mock_playbook.start()
+        self.addCleanup(self.mock_playbook.stop)
