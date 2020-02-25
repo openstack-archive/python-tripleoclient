@@ -11,6 +11,7 @@
 #   under the License.
 
 import json
+import mock
 import tempfile
 
 from osc_lib.tests import utils as test_utils
@@ -30,6 +31,7 @@ class Base(fakes.TestBaremetal):
             ]
         }
         tripleoclient = self.app.client_manager.tripleoclient
+        self.app.client_manager.baremetal.node.list.return_value = []
         self.websocket = tripleoclient.messaging_websocket()
         self.websocket.wait_for_messages.return_value = iter([{
             'status': "SUCCESS",
@@ -47,6 +49,12 @@ class TestConfigureBIOS(Base):
     def setUp(self):
         super(TestConfigureBIOS, self).setUp()
         self.cmd = overcloud_bios.ConfigureBIOS(self.app, None)
+        playbook_runner = mock.patch(
+            'tripleoclient.utils.run_ansible_playbook',
+            autospec=True
+        )
+        playbook_runner.start()
+        self.addCleanup(playbook_runner.stop)
 
     def test_configure_specified_nodes_ok(self):
         conf = json.dumps(self.conf)
@@ -58,14 +66,6 @@ class TestConfigureBIOS(Base):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.cmd.take_action(parsed_args)
-
-        self.workflow.executions.create.assert_called_once_with(
-            'tripleo.baremetal.v1.apply_bios_settings',
-            workflow_input={
-                'node_uuids': ['node_uuid1', 'node_uuid2'],
-                'configuration': self.conf,
-            }
-        )
 
     def test_configure_specified_nodes_and_configuration_from_file(self):
         with tempfile.NamedTemporaryFile('w+t') as fp:
@@ -79,23 +79,6 @@ class TestConfigureBIOS(Base):
             parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
             self.cmd.take_action(parsed_args)
-
-        self.workflow.executions.create.assert_called_once_with(
-            'tripleo.baremetal.v1.apply_bios_settings',
-            workflow_input={
-                'node_uuids': ['node_uuid1', 'node_uuid2'],
-                'configuration': self.conf,
-            }
-        )
-
-    def test_configure_no_nodes(self):
-        arglist = ['--configuration', '{}']
-        verifylist = [
-            ('configuration', '{}')
-        ]
-        self.assertRaises(test_utils.ParserException, self.check_parser,
-                          self.cmd, arglist, verifylist)
-        self.assertFalse(self.workflow.executions.create.called)
 
     def test_configure_specified_nodes_and_configuration_not_yaml(self):
         arglist = ['--configuration', ':', 'node_uuid1', 'node_uuid2']
@@ -156,38 +139,18 @@ class TestConfigureBIOS(Base):
 
         self.cmd.take_action(parsed_args)
 
-        self.workflow.executions.create.assert_called_once_with(
-            'tripleo.baremetal.v1.apply_bios_settings_on_manageable_nodes',
-            workflow_input={'configuration': self.conf})
-
-    def test_configure_all_manageable_nodes_fail(self):
-        conf = json.dumps(self.conf)
-        arglist = ['--configuration', conf, '--all-manageable']
-        verifylist = [
-            ('all_manageable', True),
-            ('configuration', conf)
-        ]
-
-        self.websocket.wait_for_messages.return_value = iter([{
-            "status": "FAILED",
-            "message": "Test failure.",
-            'execution_id': 'fake id',
-            'root_execution_id': 'fake id',
-        }])
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-        self.assertRaisesRegex(RuntimeError, 'Failed to apply BIOS settings',
-                               self.cmd.take_action, parsed_args)
-
-        self.workflow.executions.create.assert_called_once_with(
-            'tripleo.baremetal.v1.apply_bios_settings_on_manageable_nodes',
-            workflow_input={'configuration': self.conf})
-
 
 class TestResetBIOS(Base):
 
     def setUp(self):
         super(TestResetBIOS, self).setUp()
         self.cmd = overcloud_bios.ResetBIOS(self.app, None)
+        playbook_runner = mock.patch(
+            'tripleoclient.utils.run_ansible_playbook',
+            autospec=True
+        )
+        playbook_runner.start()
+        self.addCleanup(playbook_runner.stop)
 
     def test_reset_specified_nodes_ok(self):
         arglist = ['node_uuid1', 'node_uuid2']
@@ -196,56 +159,12 @@ class TestResetBIOS(Base):
 
         self.cmd.take_action(parsed_args)
 
-        self.workflow.executions.create.assert_called_once_with(
-            'tripleo.baremetal.v1.reset_bios_settings',
-            workflow_input={'node_uuids': ['node_uuid1', 'node_uuid2']})
-
-    def test_reset_specified_nodes_fail(self):
-        arglist = ['node_uuid1', 'node_uuid2']
-        verifylist = [('node_uuids', ['node_uuid1', 'node_uuid2'])]
-
-        self.websocket.wait_for_messages.return_value = iter([{
-            "status": "FAILED",
-            "message": "Test failure.",
-            'execution_id': 'fake id',
-            'root_execution_id': 'fake id',
-        }])
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-        self.assertRaisesRegex(RuntimeError, 'Failed to reset BIOS settings',
-                               self.cmd.take_action, parsed_args)
-
-        self.workflow.executions.create.assert_called_once_with(
-            'tripleo.baremetal.v1.reset_bios_settings',
-            workflow_input={'node_uuids': ['node_uuid1', 'node_uuid2']})
-
     def test_reset_all_manageable_nodes_ok(self):
         arglist = ['--all-manageable']
         verifylist = [('all_manageable', True)]
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.cmd.take_action(parsed_args)
-
-        self.workflow.executions.create.assert_called_once_with(
-            'tripleo.baremetal.v1.reset_bios_settings_on_manageable_nodes',
-            workflow_input={})
-
-    def test_reset_all_manageable_nodes_fail(self):
-        arglist = ['--all-manageable']
-        verifylist = [('all_manageable', True)]
-
-        self.websocket.wait_for_messages.return_value = iter([{
-            "status": "FAILED",
-            "message": "Test failure.",
-            'execution_id': 'fake id',
-            'root_execution_id': 'fake id',
-        }])
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-        self.assertRaisesRegex(RuntimeError, 'Failed to reset BIOS settings',
-                               self.cmd.take_action, parsed_args)
-
-        self.workflow.executions.create.assert_called_once_with(
-            'tripleo.baremetal.v1.reset_bios_settings_on_manageable_nodes',
-            workflow_input={})
 
     def test_reset_no_nodes(self):
         arglist = []
