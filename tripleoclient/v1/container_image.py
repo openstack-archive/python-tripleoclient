@@ -582,6 +582,19 @@ class TripleOContainerImagePush(command.Command):
             help=_("Password for the destination image registry.")
         )
         parser.add_argument(
+            "--source-username",
+            dest="source_username",
+            metavar='<source_username>',
+            help=_("Username for the source image registry.")
+        )
+        parser.add_argument(
+            "--source-password",
+            dest="source_password",
+            metavar='<source_password>',
+            help=_("Password for the source image registry.")
+        )
+
+        parser.add_argument(
             "--dry-run",
             dest="dry_run",
             action="store_true",
@@ -630,6 +643,8 @@ class TripleOContainerImagePush(command.Command):
             source_url = parse.urlparse(source_image)
             image_name = source_url.geturl()
             image_source = None
+            if parsed_args.source_username or parsed_args.source_password:
+                self.log.warning('Source credentials ignored for local images')
         else:
             storage = 'docker://'
             if not source_image.startswith(storage):
@@ -642,6 +657,17 @@ class TripleOContainerImagePush(command.Command):
                                                'container image should be '
                                                '<registry>/<namespace>/<name>:'
                                                '<tag>')
+            if parsed_args.source_username or parsed_args.source_password:
+                if not parsed_args.source_username:
+                    self.log.warning('Skipping authentication - missing source'
+                                     ' username')
+                elif not parsed_args.source_password:
+                    self.log.warning('Skipping authentication - missing source'
+                                     ' password')
+                else:
+                    uploader.authenticate(source_url,
+                                          parsed_args.source_username,
+                                          parsed_args.source_password)
 
         registry_url = parsed_args.registry_url
         if not registry_url.startswith('docker://'):
