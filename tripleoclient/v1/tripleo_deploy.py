@@ -1320,6 +1320,7 @@ class Deploy(command.Command):
                             ),
                             workdir=self.ansible_dir,
                             extra_env_variables=extra_env_var,
+                            fail_on_rc=False,
                             **operation
                         )[0]
         except Exception as e:

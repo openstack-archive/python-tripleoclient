@@ -44,7 +44,6 @@ from tripleoclient.tests import fakes
 from six.moves.configparser import ConfigParser
 from six.moves.urllib import error as url_error
 
-from ansible_runner import AnsibleRunnerException
 from ansible_runner import Runner
 
 
@@ -84,7 +83,7 @@ class TestRunAnsiblePlaybook(TestCase):
     def test_subprocess_error(self, mock_dump_artifact,
                               mock_run, mock_mkdirs, mock_exists,
                               mock_mkstemp):
-        with self.assertRaises(AnsibleRunnerException):
+        with self.assertRaises(RuntimeError):
             utils.run_ansible_playbook(
                 'existing.yaml',
                 'localhost,',

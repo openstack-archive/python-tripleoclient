@@ -95,6 +95,7 @@ def _check_diskspace(upgrade=False):
             connection='local',
             output_callback='validation_output',
             playbook_dir=constants.ANSIBLE_VALIDATION_DIR,
+            fail_on_rc=False,
             **playbook_args
         )
         if rc != 0:
