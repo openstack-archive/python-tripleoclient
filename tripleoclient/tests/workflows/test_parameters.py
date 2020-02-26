@@ -280,16 +280,23 @@ class TestParameterWorkflows(utils.TestCommand):
                 workflow_input={'container': 'container-name'})
             mock_log.warning.assert_called_once_with(msg)
 
-    def test_generate_fencing_parameters(self):
-        self.websocket.wait_for_messages.return_value = iter([{
-            "execution_id": "IDID",
-            "status": "SUCCESS",
-            "fencing_parameters": "{}"
-        }])
+    @mock.patch(
+        'tripleo_common.actions.parameters.GenerateFencingParametersAction'
+        '.run',
+        autospec=True
+    )
+    def test_generate_fencing_parameters(self, mock_params):
+        mock_params.return_value = {"parameter_defaults": {}}
 
-        parameters.generate_fencing_parameters(
-            self.app.client_manager, **{})
-
-        self.workflow.executions.create.assert_called_once_with(
-            'tripleo.parameters.v1.generate_fencing_parameters',
-            workflow_input={})
+        workflow_input = {
+            'nodes_json': [],
+            'delay': 0,
+            'ipmi_level': 'test',
+            'ipmi_cipher': 'test',
+            'ipmi_lanplus': True
+        }
+        params = parameters.generate_fencing_parameters(
+            self.app.client_manager,
+            **workflow_input
+        )
+        self.assertEqual(params, {"parameter_defaults": {}})
