@@ -92,25 +92,13 @@ def create_deployment_plan(clients, **workflow_input):
             'Exception creating plan: {}'.format(payload['message']))
 
 
-def delete_deployment_plan(clients, **workflow_input):
-    workflow_client = clients.workflow_engine
-    tripleoclients = clients.tripleoclient
-
-    with tripleoclients.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client,
-            'tripleo.plan_management.v1.delete_deployment_plan',
-            workflow_input=workflow_input
-        )
-
-        for payload in base.wait_for_messages(workflow_client, ws, execution,
-                                              _WORKFLOW_TIMEOUT):
-            if payload.get('message'):
-                print(payload['message'])
-
-            if payload['status'] != 'SUCCESS':
-                raise exceptions.WorkflowServiceError(
-                    'Exception deleting plan: {}'.format(payload['message']))
+def delete_deployment_plan(clients, container):
+    mistral_context = clients.create_mistral_context()
+    result = plan.DeletePlanAction(container=container).run(mistral_context)
+    # The action returns None if there are no errors.
+    if result and result.error:
+        raise exceptions.WorkflowServiceError(
+                    'Exception deleting plan: {}'.format(result.error))
 
 
 def update_deployment_plan(clients, **workflow_input):
