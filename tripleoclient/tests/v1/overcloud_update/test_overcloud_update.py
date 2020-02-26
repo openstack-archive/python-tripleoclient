@@ -148,7 +148,7 @@ class TestOvercloudUpdateConverge(fakes.TestOvercloudUpdateConverge):
 
         # Get the command object to test
         app_args = mock.Mock()
-        app_args.verbose_level = 0
+        app_args.verbose_level = 1
         self.cmd = overcloud_update.UpdateConverge(self.app, app_args)
 
     @mock.patch(

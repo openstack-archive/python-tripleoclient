@@ -257,7 +257,7 @@ def enable_ssh_admin(stack, hosts, ssh_user, ssh_key, timeout):
 
 def config_download(log, clients, stack, ssh_network=None,
                     output_dir=None, override_ansible_cfg=None,
-                    timeout=None, verbosity=0, deployment_options=None,
+                    timeout=None, verbosity=1, deployment_options=None,
                     in_flight_validations=False,
                     ansible_playbook_name='deploy_steps_playbook.yaml',
                     limit_list=None, extra_vars=None, inventory_path=None,
