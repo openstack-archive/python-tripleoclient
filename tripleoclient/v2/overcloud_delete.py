@@ -20,9 +20,8 @@ from osc_lib.i18n import _
 from osc_lib import utils as osc_utils
 
 from tripleoclient import command
+from tripleoclient import constants
 from tripleoclient import utils
-from tripleoclient.workflows import plan_management
-from tripleoclient.workflows import stack_management
 
 
 class DeleteOvercloud(command.Command):
@@ -44,37 +43,7 @@ class DeleteOvercloud(command.Command):
 
     def _validate_args(self, parsed_args):
         if parsed_args.stack in (None, ''):
-            raise oscexc.CommandError(
-                "You must specify a stack name")
-
-    def _plan_undeploy(self, clients, stack_name):
-        orchestration_client = clients.orchestration
-
-        print("Undeploying stack {s}...".format(s=stack_name))
-        stack = utils.get_stack(orchestration_client, stack_name)
-        if stack is None:
-            self.log.warning("No stack found ('{s}'), skipping delete".
-                             format(s=stack_name))
-        else:
-            try:
-                stack_management.plan_undeploy(
-                    clients,
-                    plan=stack.stack_name
-                )
-            except Exception as e:
-                raise oscexc.CommandError(
-                    "Error occurred during stack delete {}".
-                    format(e))
-
-    def _plan_delete(self, clients, stack_name):
-        print("Deleting plan {s}...".format(s=stack_name))
-        try:
-            plan_management.delete_deployment_plan(
-                clients,
-                container=stack_name)
-        except Exception as err:
-            raise oscexc.CommandError(
-                "Error occurred while deleting plan {}".format(err))
+            raise oscexc.CommandError("You must specify a stack name")
 
     def take_action(self, parsed_args):
         self.log.debug("take_action({args})".format(args=parsed_args))
@@ -89,8 +58,14 @@ class DeleteOvercloud(command.Command):
             if not confirm:
                 raise oscexc.CommandError("Action not confirmed, exiting.")
 
-        clients = self.app.client_manager
+        utils.run_ansible_playbook(
+            "cli-overcloud-delete.yaml",
+            'undercloud,',
+            constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            extra_vars={
+                "stack_name": parsed_args.stack
+            },
+            verbosity=3 if self.app.options.debug else 1
+        )
 
-        self._plan_undeploy(clients, parsed_args.stack)
-        self._plan_delete(clients, parsed_args.stack)
         print("Success.")
