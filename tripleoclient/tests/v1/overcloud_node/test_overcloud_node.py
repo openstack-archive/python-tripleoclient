@@ -1352,7 +1352,9 @@ class TestProvisionNode(fakes.TestOvercloudNode):
                                       {'name': 'Controller'}],
                             'plan': 'overcloud',
                             'ssh_keys': ['I am a key'],
-                            'ssh_user_name': 'heat-admin'}
+                            'ssh_user_name': 'heat-admin',
+                            'concurrency': 20,
+                            'timeout': 3600}
         )
 
 
