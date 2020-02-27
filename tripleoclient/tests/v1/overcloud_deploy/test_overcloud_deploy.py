@@ -145,11 +145,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         )
         flatten.start()
         self.addCleanup(flatten.stop)
-        self.rc_action_patcher = mock.patch(
-            'tripleo_common.actions.deployment.OvercloudRcAction',
-            autospec=True)
-        self.mock_rc_action = self.rc_action_patcher.start()
-        self.addCleanup(self.rc_action_patcher.stop)
 
         # Mock playbook runner
         playbook_runner = mock.patch(

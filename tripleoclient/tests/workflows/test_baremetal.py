@@ -14,7 +14,6 @@
 
 import mock
 
-from tripleoclient import exceptions
 from tripleoclient.tests import fakes
 from tripleoclient.workflows import baremetal
 
@@ -62,33 +61,7 @@ class TestBaremetalWorkflows(fakes.FakePlaybookExecution):
         ), [mock.ANY])
 
     def test_provide_success(self):
-
-        self.websocket.wait_for_messages.return_value = self.message_success
-
         baremetal.provide(self.app.client_manager, node_uuids=[])
-
-        self.workflow.executions.create.assert_called_once_with(
-            'tripleo.baremetal.v1.provide',
-            workflow_input={
-                'node_uuids': [],
-            })
-
-    def test_provide_error(self):
-
-        self.websocket.wait_for_messages.return_value = self.message_failed
-
-        self.assertRaises(
-            exceptions.NodeProvideError,
-            baremetal.provide,
-            self.app.client_manager,
-            node_uuids=[]
-        )
-
-        self.workflow.executions.create.assert_called_once_with(
-            'tripleo.baremetal.v1.provide',
-            workflow_input={
-                'node_uuids': [],
-            })
 
     def test_format_errors(self):
         payload = {'message': [{'result': 'Error1a\nError1b'},
@@ -96,21 +69,6 @@ class TestBaremetalWorkflows(fakes.FakePlaybookExecution):
 
         error_string = baremetal._format_errors(payload)
         self.assertEqual(error_string, "Error1b\nError2b")
-
-    def test_provide_error_with_format_message(self):
-
-        self.websocket.wait_for_messages.return_value = iter([{
-            "execution_id": "IDID",
-            "status": "FAIL",
-            "message": ['Error1', 'Error2']
-        }])
-
-        self.assertRaises(
-            exceptions.NodeProvideError,
-            baremetal.provide,
-            self.app.client_manager,
-            node_uuids=[]
-        )
 
     def test_introspect_success(self):
         baremetal.introspect(self.app.client_manager, node_uuids=[],
@@ -122,16 +80,8 @@ class TestBaremetalWorkflows(fakes.FakePlaybookExecution):
         )
 
     def test_provide_manageable_nodes_success(self):
-
-        self.websocket.wait_for_messages.return_value = self.message_success
-
         baremetal.provide_manageable_nodes(
             self.app.client_manager
-        )
-
-        self.workflow.executions.create.assert_called_once_with(
-            'tripleo.baremetal.v1.provide_manageable_nodes',
-            workflow_input={}
         )
 
     def test_configure_success(self):

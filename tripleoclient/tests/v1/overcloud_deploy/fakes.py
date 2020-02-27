@@ -108,3 +108,9 @@ class TestDeployOvercloud(fakes.FakePlaybookExecution):
 
     def setUp(self):
         super(TestDeployOvercloud, self).setUp(ansible_mock=False)
+
+        self.rc_action_patcher = mock.patch(
+            'tripleo_common.actions.deployment.OvercloudRcAction',
+            autospec=True)
+        self.mock_rc_action = self.rc_action_patcher.start()
+        self.addCleanup(self.rc_action_patcher.stop)

@@ -140,15 +140,13 @@ class TestImportNode(fakes.TestOvercloudNode):
                                         [('introspect', True),
                                          ('provide', True)])
         self.cmd.take_action(parsed_args)
-        mock_playbook.assert_called_once_with(
+        mock_playbook.assert_called_with(
             workdir=mock.ANY,
             playbook=mock.ANY,
             inventory=mock.ANY,
             playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             extra_vars={
-                'node_uuids': ['MOCK_NODE_UUID'],
-                'run_validations': False,
-                'concurrency': 20
+                'node_uuids': ['MOCK_NODE_UUID']
             }
         )
 
@@ -223,15 +221,13 @@ class TestIntrospectNode(fakes.TestOvercloudNode):
                                         [('all_manageable', True),
                                          ('provide', True)])
         self.cmd.take_action(parsed_args)
-        mock_playbook.assert_called_once_with(
+        mock_playbook.assert_called_with(
             workdir=mock.ANY,
-            playbook='cli-baremetal-introspect.yaml',
+            playbook='cli-overcloud-node-provide.yaml',
             inventory=mock.ANY,
             playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             extra_vars={
-                'node_uuids': [],
-                'run_validations': False,
-                'concurrency': 20
+                'node_uuids': []
             }
         )
 
@@ -265,15 +261,13 @@ class TestIntrospectNode(fakes.TestOvercloudNode):
                                         [('node_uuids', nodes),
                                          ('provide', True)])
         self.cmd.take_action(parsed_args)
-        mock_playbook.assert_called_once_with(
+        mock_playbook.assert_called_with(
             workdir=mock.ANY,
-            playbook='cli-baremetal-introspect.yaml',
+            playbook='cli-overcloud-node-provide.yaml',
             inventory=mock.ANY,
             playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             extra_vars={
-                'node_uuids': nodes,
-                'run_validations': False,
-                'concurrency': 20
+                'node_uuids': nodes
             }
         )
 

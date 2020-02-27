@@ -115,33 +115,47 @@ def _format_errors(payload):
     return '\n'.join(errors)
 
 
-def provide(clients, **workflow_input):
+def provide(clients, node_uuids):
     """Provide Baremetal Nodes
 
-    Run the tripleo.baremetal.v1.provide Mistral workflow.
+    :param clients: Application client object.
+    :type clients: Object
+
+    :param node_uuids: List of instance UUID(s).
+    :type node_uuids: List
     """
 
-    workflow_client = clients.workflow_engine
-    tripleoclients = clients.tripleoclient
-
-    with tripleoclients.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client,
-            'tripleo.baremetal.v1.provide',
-            workflow_input={'node_uuids': workflow_input['node_uuids']}
+    with utils.TempDirs() as tmp:
+        utils.run_ansible_playbook(
+            playbook='cli-overcloud-node-provide.yaml',
+            inventory='localhost,',
+            workdir=tmp,
+            playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            extra_vars={
+                'node_uuids': node_uuids
+            }
         )
 
-        for payload in base.wait_for_messages(workflow_client, ws, execution):
-            if 'message' in payload:
-                print(payload['message'])
+    print('Successfully provided nodes: {}'.format(node_uuids))
 
-    if payload['status'] != 'SUCCESS':
-        try:
-            message = _format_errors(payload)
-        except Exception:
-            message = 'Failed.'
-        raise exceptions.NodeProvideError(
-            'Failed to set nodes to available state: {}'.format(message))
+
+def provide_manageable_nodes(clients):
+    """Provide all manageable Nodes
+
+    :param clients: Application client object.
+    :type clients: Object
+
+    :param node_uuids: List of instance UUID(s).
+    :type node_uuids: List
+    """
+
+    provide(
+        clients,
+        node_uuids=[
+            i.uuid for i in clients.baremetal.node.list()
+            if i.provision_state == "manageable" and not i.maintenance
+        ]
+    )
 
 
 def introspect(clients, node_uuids, run_validations, concurrency):
@@ -181,33 +195,6 @@ def introspect_manageable_nodes(clients, run_validations, concurrency):
         run_validations=run_validations,
         concurrency=concurrency
     )
-
-
-def provide_manageable_nodes(clients, **workflow_input):
-    """Provide all manageable Nodes
-
-    Run the tripleo.baremetal.v1.provide_manageable_nodes Mistral workflow.
-    """
-
-    workflow_client = clients.workflow_engine
-    tripleoclients = clients.tripleoclient
-
-    with tripleoclients.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client,
-            'tripleo.baremetal.v1.provide_manageable_nodes',
-            workflow_input=workflow_input
-        )
-
-        for payload in base.wait_for_messages(workflow_client, ws, execution):
-            if 'message' in payload:
-                print(payload['message'])
-
-    if payload['status'] != 'SUCCESS':
-        raise exceptions.NodeProvideError(
-            'Exception providing nodes:{}'.format(payload['message']))
-
-    print(payload['message'])
 
 
 def configure(clients, node_uuids, kernel_name='bm-deploy-kernel',
