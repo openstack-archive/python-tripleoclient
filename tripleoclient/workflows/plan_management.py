@@ -137,11 +137,10 @@ def create_container(clients, container):
 def create_plan_from_templates(clients, name, tht_root, roles_file=None,
                                generate_passwords=True, plan_env_file=None,
                                networks_file=None, validate_stack=True):
-    workflow_client = clients.workflow_engine
     swift_client = clients.tripleoclient.object_store
 
     print("Creating Swift container to store the plan")
-    result = create_container(workflow_client, container=name)
+    result = create_container(clients, container=name)
     if result:
         # create_container returns 'None' on success and a string with
         # the error message when failing.
