@@ -145,7 +145,7 @@ class TestContainerImagePush(TestPluginV1):
         mock_task.assert_called_once_with(
                 image_name='namespace/foo',
                 pull_source='docker.io',
-                push_destination=parsed_args.registry_url,
+                push_destination='uc.ctlplane.somedomain',
                 append_tag=parsed_args.append_tag,
                 modify_role=None,
                 modify_vars=None,
@@ -198,7 +198,7 @@ class TestContainerImagePush(TestPluginV1):
         mock_task.assert_called_once_with(
                 image_name='containers-storage:docker.io/namespace/foo',
                 pull_source=None,
-                push_destination=parsed_args.registry_url,
+                push_destination='uc.ctlplane.somedomain',
                 append_tag=parsed_args.append_tag,
                 modify_role=None,
                 modify_vars=None,
@@ -251,7 +251,7 @@ class TestContainerImagePush(TestPluginV1):
         mock_task.assert_called_once_with(
                 image_name='containers-storage:docker.io/namespace/foo',
                 pull_source=None,
-                push_destination=parsed_args.registry_url,
+                push_destination='uc.ctlplane.somedomain',
                 append_tag=parsed_args.append_tag,
                 modify_role=None,
                 modify_vars=None,
@@ -370,7 +370,7 @@ class TestContainerImagePush(TestPluginV1):
         mock_task.assert_called_once_with(
                 image_name='namespace/foo:tag',
                 pull_source='docker.io',
-                push_destination=parsed_args.registry_url,
+                push_destination='127.0.0.1:8787',
                 append_tag=parsed_args.append_tag,
                 modify_role=None,
                 modify_vars=None,
