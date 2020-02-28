@@ -100,7 +100,7 @@ class TestFFWDUpgradePrepare(fakes.TestFFWDUpgradePrepare):
             self.cmd.log, self.app.client_manager, mock_stack,
             parsed_args.overcloud_ssh_network,
             parsed_args.overcloud_ssh_user, parsed_args.overcloud_ssh_key,
-            600, 300)
+            600, 600)
         mock_overcloud_deploy.assert_called_once_with(parsed_args)
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
