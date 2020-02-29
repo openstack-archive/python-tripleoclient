@@ -13,6 +13,7 @@
 #   under the License.
 #
 
+from datetime import datetime
 import mock
 import os
 
@@ -249,9 +250,10 @@ class TestFileImageClientAdapter(TestPluginV1):
     @mock.patch('os.stat')
     @mock.patch('tripleoclient.utils.file_checksum')
     def test_get_image(self, mock_checksum, mock_stat, mock_exists):
+        st_mtime = 1573695219
         mock_exists.return_value = True
         mock_stat.return_value.st_size = 982802432
-        mock_stat.return_value.st_mtime = 1573695219
+        mock_stat.return_value.st_mtime = st_mtime
         mock_checksum.return_value = 'asdf'
 
         image = self.adapter._get_image(
@@ -262,7 +264,8 @@ class TestFileImageClientAdapter(TestPluginV1):
         )
         self.assertEqual('overcloud-full', image.name)
         self.assertEqual('asdf', image.checksum)
-        self.assertEqual('2019-11-14T01:33:39', image.created_at)
+        self.assertEqual(datetime.fromtimestamp(st_mtime).isoformat(),
+                         image.created_at)
         self.assertEqual(982802432, image.size)
 
     @mock.patch('tripleoclient.utils.file_checksum')
