@@ -94,16 +94,6 @@ ANSIBLE_TRIPLEO_PLAYBOOKS = \
 
 VALIDATION_GROUPS_INFO = '%s/groups.yaml' % DEFAULT_VALIDATIONS_BASEDIR
 
-VALIDATION_GROUPS = ['no-op',
-                     'openshift-on-openstack',
-                     'prep',
-                     'pre-introspection',
-                     'pre-deployment',
-                     'post-deployment',
-                     'pre-upgrade',
-                     'post-upgrade']
-
-
 # ctlplane network defaults
 CTLPLANE_CIDR_DEFAULT = '192.168.24.0/24'
 CTLPLANE_DHCP_START_DEFAULT = ['192.168.24.5']

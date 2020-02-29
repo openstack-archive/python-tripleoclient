@@ -39,10 +39,12 @@ RESET = "\033[0;0m"
 FAILED_VALIDATION = "{}FAILED{}".format(RED, RESET)
 PASSED_VALIDATION = "{}PASSED{}".format(GREEN, RESET)
 
+GROUP_FILE = constants.VALIDATION_GROUPS_INFO
+
 
 class _CommaListGroupAction(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
-        opts = constants.VALIDATION_GROUPS
+        opts = oooutils.get_validation_group_name_list()
         for value in values.split(','):
             if value not in opts:
                 message = ("Invalid choice: {value} (choose from {choice})"
@@ -65,12 +67,11 @@ class TripleOValidatorGroupInfo(command.Lister):
         return parser
 
     def take_action(self, parsed_args):
-        group_file = constants.VALIDATION_GROUPS_INFO
-        group = oooutils.parse_all_validation_groups_on_disk(group_file)
+        group = oooutils.prepare_validation_groups_for_display()
 
         if not group:
             raise exceptions.CommandError(
-                "Could not find groups information file %s" % group_file)
+                "Could not find groups information file %s" % GROUP_FILE)
 
         group_info = []
         for gp in group:
@@ -444,7 +445,7 @@ class TripleOValidatorRun(command.Command):
 
         else:
             for pb in parsed_args.validation_name:
-                if pb not in constants.VALIDATION_GROUPS:
+                if pb not in oooutils.get_validation_group_name_list():
                     playbooks.append(pb + '.yaml')
                 else:
                     raise exceptions.CommandError(

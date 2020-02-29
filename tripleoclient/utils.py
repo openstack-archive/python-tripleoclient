@@ -2148,19 +2148,38 @@ def get_validation_parameters(validation):
         return dict()
 
 
-def parse_all_validation_groups_on_disk(groups_file_path=None):
-    results = []
-
+def read_validation_groups_file(groups_file_path=None):
+    """Load groups.yaml file and return a dictionary with its contents"""
     if not groups_file_path:
         groups_file_path = constants.VALIDATION_GROUPS_INFO
 
     if not os.path.exists(groups_file_path):
-        return results
+        return []
 
     with open(groups_file_path, 'r') as grps:
         contents = yaml.safe_load(grps)
 
-    for grp_name, grp_desc in sorted(contents.items()):
+    return contents
+
+
+def get_validation_group_name_list():
+    """Get the validation group name list only"""
+    results = []
+
+    groups = read_validation_groups_file()
+
+    if groups and isinstance(dict, groups):
+        for grp_name in six.viewkeys(groups):
+            results.append(grp_name)
+
+    return results
+
+
+def prepare_validation_groups_for_display():
+    results = []
+    groups = read_validation_groups_file()
+
+    for grp_name, grp_desc in sorted(groups.items()):
         results.append((grp_name, grp_desc[0].get('description')))
 
     return results

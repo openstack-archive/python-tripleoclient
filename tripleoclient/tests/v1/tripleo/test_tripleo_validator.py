@@ -151,7 +151,7 @@ class TestValidatorGroupInfo(utils.TestCommand):
         # Get the command object to test
         self.cmd = tripleo_validator.TripleOValidatorGroupInfo(self.app, None)
 
-    @mock.patch('tripleoclient.utils.parse_all_validation_groups_on_disk',
+    @mock.patch('tripleoclient.utils.prepare_validation_groups_for_display',
                 return_value=GROUPS_LIST)
     def test_show_group_info(self, mock_validations):
         arglist = []
