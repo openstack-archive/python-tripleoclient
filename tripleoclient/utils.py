@@ -2416,8 +2416,11 @@ def copy_clouds_yaml(user):
     """
     clouds_etc_file = '/etc/openstack/clouds.yaml'
     clouds_home_dir = os.path.join('/home', user)
-    clouds_config_dir = os.path.join(clouds_home_dir, '.config/openstack')
-    clouds_config_file = os.path.join(clouds_config_dir, 'clouds.yaml')
+    clouds_config_dir = os.path.join(clouds_home_dir, '.config')
+    clouds_openstack_config_dir = os.path.join(clouds_config_dir,
+                                               'openstack')
+    clouds_config_file = os.path.join(clouds_openstack_config_dir,
+                                      'clouds.yaml')
     clouds_user_id = os.stat(clouds_home_dir).st_uid
     clouds_group_id = os.stat(clouds_home_dir).st_gid
 
@@ -2426,21 +2429,21 @@ def copy_clouds_yaml(user):
     if not os.path.isfile(clouds_etc_file):
         return
 
-    if not os.path.exists(clouds_config_dir):
+    if not os.path.exists(clouds_openstack_config_dir):
         try:
-            os.makedirs(clouds_config_dir)
+            os.makedirs(clouds_openstack_config_dir)
         except OSError as e:
             messages = _("Unable to create credentials directory: "
-                         "{0}, {1}").format(clouds_config_dir, e)
+                         "{0}, {1}").format(clouds_openstack_config_dir, e)
             raise OSError(messages)
 
     # Using 'sudo' here as for the overcloud the deployment command is run
     # from regular deployment user.
-    cp_args = ['sudo', 'cp', clouds_etc_file, clouds_config_dir]
+    cp_args = ['sudo', 'cp', clouds_etc_file, clouds_openstack_config_dir]
     if run_command_and_log(LOG, cp_args) != 0:
         msg = _('Error when user %(user)s tried to copy %(src)s to %(dest)s'
                 ' with sudo') % {'user': user, 'src': clouds_etc_file,
-                                 'dest': clouds_config_dir}
+                                 'dest': clouds_openstack_config_dir}
         LOG.error(msg)
         raise exceptions.DeploymentError(msg)
     chmod_args = ['sudo', 'chmod', '0600', clouds_config_file]
