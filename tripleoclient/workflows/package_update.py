@@ -97,7 +97,7 @@ def update(clients, container):
         container,
         marker,
         'UPDATE',
-        1
+        verbose=True
     )
     if not create_result:
         raise exceptions.DeploymentError(
