@@ -191,9 +191,8 @@ class UndercloudConfig(StandaloneConfig):
                             'this certificate will be used in place of the '
                             'value for undercloud_service_certificate.  The '
                             'resulting certificate will be written to '
-                            '/etc/pki/tls/certs/'
-                            'undercloud-[undercloud_public_host].pem.  This '
-                            'certificate is signed by CA selected by the '
+                            '/etc/pki/tls/private/overcloud_endpoint.pem. This'
+                            ' certificate is signed by CA selected by the '
                             '"certificate_generation_ca" option.')
                         ),
             cfg.StrOpt('certificate_generation_ca',
