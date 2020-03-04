@@ -264,8 +264,9 @@ class TestFileImageClientAdapter(TestPluginV1):
         )
         self.assertEqual('overcloud-full', image.name)
         self.assertEqual('asdf', image.checksum)
-        self.assertEqual(datetime.fromtimestamp(st_mtime).isoformat(),
-                         image.created_at)
+        self.assertEqual(datetime.fromtimestamp(st_mtime).strftime("%M:%S"),
+                         datetime.strptime(
+            image.created_at, "%Y-%m-%dT%H:%M:%S").strftime("%M:%S"))
         self.assertEqual(982802432, image.size)
 
     @mock.patch('tripleoclient.utils.file_checksum')
