@@ -25,6 +25,7 @@ import re
 import shutil
 import six
 import subprocess
+import tempfile
 import time
 import yaml
 
@@ -351,16 +352,20 @@ class DeployOvercloud(command.Command):
         # copy tht_root to temporary directory because we need to
         # download any missing (e.g j2 rendered) files from the plan
         tht_root = os.path.abspath(parsed_args.templates)
-
-        with utils.TempDirs(dir_prefix='tripleoclient-',
-                            cleanup=(not parsed_args.no_cleanup)) as tht_tmp:
-            new_tht_root = "%s/tripleo-heat-templates" % tht_tmp
-            self.log.debug(
-                "Creating temporary templates tree in %s" % new_tht_root
-            )
+        tht_tmp = tempfile.mkdtemp(prefix='tripleoclient-')
+        new_tht_root = "%s/tripleo-heat-templates" % tht_tmp
+        self.log.debug("Creating temporary templates tree in %s"
+                       % new_tht_root)
+        try:
             shutil.copytree(tht_root, new_tht_root, symlinks=True)
             self._deploy_tripleo_heat_templates(stack, parsed_args,
                                                 new_tht_root, tht_root)
+        finally:
+            if parsed_args.no_cleanup:
+                self.log.warning("Not cleaning temporary directory %s"
+                                 % tht_tmp)
+            else:
+                shutil.rmtree(tht_tmp)
 
     def _deploy_tripleo_heat_templates(self, stack, parsed_args,
                                        tht_root, user_tht_root):

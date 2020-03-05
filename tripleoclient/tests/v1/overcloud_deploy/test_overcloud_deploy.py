@@ -269,7 +269,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_create_parameters_env.side_effect = _custom_create_params_env
 
+        mock_rm = shutil.rmtree = mock.MagicMock()
         self.cmd.take_action(parsed_args)
+        mock_rm.assert_called_once()
 
         self.assertFalse(orchestration_client.stacks.update.called)
 
@@ -354,7 +356,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 'UndercloudHostsEntries':
                     ['192.168.0.1 uc.ctlplane.localhost uc.ctlplane']}}
 
+        mock_rm = shutil.rmtree = mock.MagicMock()
         self.cmd.take_action(parsed_args)
+        mock_rm.assert_not_called()
 
         self.assertFalse(orchestration_client.stacks.create.called)
 
@@ -622,7 +626,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_create_parameters_env.side_effect = _custom_create_params_env
 
+        mock_rm = shutil.rmtree = mock.MagicMock()
         self.cmd.take_action(parsed_args)
+        mock_rm.assert_called_once()
         execution_calls = workflow_client.executions.create.call_args_list
         deploy_plan_call = execution_calls[1]
         deploy_plan_call_input = deploy_plan_call[1]['workflow_input']
