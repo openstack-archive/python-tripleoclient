@@ -25,25 +25,14 @@ class TestOvercloudCredentials(test_plugin.TestPluginV1):
         super(TestOvercloudCredentials, self).setUp()
 
         self.cmd = overcloud_credentials.OvercloudCredentials(self.app, None)
-        workflow = execution = mock.Mock()
-        execution.id = "IDID"
-        workflow.executions.create.return_value = execution
-        self.app.client_manager.workflow_engine = workflow
-        self.app.client_manager.workflow_engine = self.workflow = workflow
         self.tripleoclient = mock.Mock()
-        self.websocket = mock.Mock()
-        self.websocket.__enter__ = lambda s: self.websocket
-        self.websocket.__exit__ = lambda s, *exc: None
-        self.tripleoclient.messaging_websocket.return_value = self.websocket
         self.app.client_manager.tripleoclient = self.tripleoclient
 
-        self.websocket.wait_for_messages.return_value = iter([{
-            "execution_id": "IDID",
-            "status": "SUCCESS",
-            "message": {
-                "overcloudrc": "OVERCLOUDRC CONTENTS",
-            }
-        }])
+        self.rc_action_patcher = mock.patch(
+            'tripleo_common.actions.deployment.OvercloudRcAction',
+            autospec=True)
+        self.mock_rc_action = self.rc_action_patcher.start()
+        self.addCleanup(self.rc_action_patcher.stop)
 
     @mock.patch('os.chmod')
     def test_ok(self, mock_chmod):
@@ -61,10 +50,6 @@ class TestOvercloudCredentials(test_plugin.TestPluginV1):
         self.assertIn(mock.call('./overcloudrc', 'w'), m.call_args_list)
         mock_chmod.assert_has_calls([
             mock.call('./overcloudrc', 384)])
-
-        self.workflow.executions.create.assert_called_once_with(
-            'tripleo.deployment.v1.create_overcloudrc',
-            workflow_input={'container': 'overcloud'})
 
     @mock.patch('os.chmod')
     def test_okay_custom_dir(self, mock_chmod):
@@ -87,7 +72,3 @@ class TestOvercloudCredentials(test_plugin.TestPluginV1):
         self.assertIn(mock.call(path, 'w'), m.call_args_list)
         mock_chmod.assert_has_calls([
             mock.call(path, 384)])
-
-        self.workflow.executions.create.assert_called_once_with(
-            'tripleo.deployment.v1.create_overcloudrc',
-            workflow_input={'container': 'overcloud'})
