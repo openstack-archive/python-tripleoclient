@@ -91,10 +91,10 @@ def check_deprecated_parameters(clients, container):
     flattened_parms = parameters.GetFlattenedParametersAction(
         container=container
     ).run(context=context)
-    user_params = flattened_parms['environment_parameters']
-    heat_resource_tree = flattened_parms['heat_resource_tree']
-    heat_resource_tree_params = heat_resource_tree['parameters']
-    heat_resource_tree_resources = heat_resource_tree['resources']
+    user_params = flattened_parms.get('environment_parameters', {})
+    heat_resource_tree = flattened_parms.get('heat_resource_tree', {})
+    heat_resource_tree_params = heat_resource_tree.get('parameters', {})
+    heat_resource_tree_resources = heat_resource_tree.get('resources', {})
     plan_params = heat_resource_tree_params.keys()
     parameter_groups = [
         i.get('parameter_groups')
@@ -121,11 +121,18 @@ def check_deprecated_parameters(clients, container):
         i[0] for i in parameter_groups
         if i[0].get('label') == 'deprecated'
     ]
+    # We are setting a frozenset here because python 3 complains that dict is
+    # a unhashable type.
+    # On user_defined, we check if the size is higher than 0 because an empty
+    # frozenset still is a subset of a frozenset, so we can't use issubset
+    # here.
+    user_params_keys = frozenset(user_params.keys())
     deprecated_result = [
         {
             'parameter': i,
             'deprecated': True,
-            'user_defined': i in user_params.keys()
+            'user_defined': len(
+                [x for x in frozenset(i) if x in user_params_keys]) > 0
         }
         for i in deprecated_params
     ]
