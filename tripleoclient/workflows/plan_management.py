@@ -94,12 +94,20 @@ def create_deployment_plan(clients, **workflow_input):
 
 
 def delete_deployment_plan(clients, container):
-    mistral_context = clients.create_mistral_context()
-    result = plan.DeletePlanAction(container=container).run(mistral_context)
+    """Delete a deployment plan.
+
+    :param clients: Application client object.
+    :type clients: Object
+
+    :param container: Container name to pull from.
+    :type container: String
+    """
+
+    context = clients.tripleoclient.create_mistral_context()
+    result = plan.DeletePlanAction(container=container).run(context=context)
     # The action returns None if there are no errors.
-    if result and result.error:
-        raise exceptions.WorkflowServiceError(
-                    'Exception deleting plan: {}'.format(result.error))
+    if result:
+        raise RuntimeError(result)
 
 
 def update_deployment_plan(clients, **workflow_input):

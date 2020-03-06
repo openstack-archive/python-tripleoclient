@@ -65,14 +65,12 @@ class TestOvercloudPlanList(utils.TestCommand):
         self.assertEqual([('test-plan-1',), ('test-plan-2',)], result[1])
 
 
-class TestOvercloudDeletePlan(utils.TestCommand):
+class TestOvercloudDeletePlan(fakes.FakePlaybookExecution):
 
     def setUp(self):
         super(TestOvercloudDeletePlan, self).setUp()
 
         self.cmd = overcloud_plan.DeletePlan(self.app, None)
-        self.context = mock.Mock()
-        self.app.client_manager.create_mistral_context = self.context
 
     @mock.patch("tripleo_common.actions.plan.DeletePlanAction.run",
                 return_value=None)
@@ -82,8 +80,6 @@ class TestOvercloudDeletePlan(utils.TestCommand):
 
         self.cmd.take_action(parsed_args)
 
-        mock_run.assert_called_once_with(self.context())
-
     @mock.patch("tripleo_common.actions.plan.DeletePlanAction.run",
                 return_value=None)
     def test_delete_multiple_plans(self, mock_run):
@@ -92,9 +88,6 @@ class TestOvercloudDeletePlan(utils.TestCommand):
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
 
         self.cmd.take_action(parsed_args)
-
-        mock_run.assert_has_calls([
-            mock.call(self.context()), mock.call(self.context())])
 
 
 class TestOvercloudCreatePlan(utils.TestCommand):
