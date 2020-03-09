@@ -151,7 +151,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'tripleoclient.utils.run_ansible_playbook',
             autospec=True
         )
-        playbook_runner.start()
+        self.mock_playbook = playbook_runner.start()
         self.addCleanup(playbook_runner.stop)
 
         # Mock horizon url return
@@ -1591,19 +1591,14 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                           self.cmd.take_action,
                           parsed_args)
 
-    @mock.patch('tripleoclient.workflows.baremetal.undeploy_roles',
-                autospec=True)
-    @mock.patch('tripleoclient.workflows.baremetal.deploy_roles',
-                autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_write_user_environment', autospec=True)
-    def test_provision_baremetal(self, mock_write, mock_deploy_roles,
-                                 mock_undeploy_roles):
+    def test_provision_baremetal(self, mock_write):
         mock_write.return_value = (
             '/tmp/tht/user-environments/baremetal-deployed.yaml',
             'overcloud/user-environments/baremetal-deployed.yaml'
         )
-        mock_deploy_roles.return_value = {
+        baremetal_deployed = {
             'parameter_defaults': {'foo': 'bar'}
         }
 
@@ -1633,30 +1628,55 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
-        tht_root = '/tmp/tht'
+        tht_root = self.tmp_dir.join('tht')
+        env_dir = os.path.join(tht_root, 'user-environments')
+        env_path = os.path.join(env_dir, 'baremetal-deployed.yaml')
+        os.makedirs(env_dir)
+        with open(env_path, 'w') as f:
+            yaml.safe_dump(baremetal_deployed, f)
+
         result = self.cmd._provision_baremetal(parsed_args, tht_root)
         self.cmd._unprovision_baremetal(parsed_args)
-        self.assertEqual(
-            ['/tmp/tht/user-environments/baremetal-deployed.yaml'],
-            result
-        )
-        mock_deploy_roles.assert_called_once_with(
-            self.app.client_manager,
-            plan='overcloud',
-            roles=deploy_data,
-            ssh_keys=['sekrit'],
-            ssh_user_name='heat-admin'
-        )
-        mock_undeploy_roles.assert_called_once_with(
-            self.app.client_manager,
-            plan='overcloud',
-            roles=deploy_data
-        )
+        self.assertEqual([env_path], result)
+        self.mock_playbook.assert_has_calls([
+            mock.call(
+                extra_vars={
+                    'stack_name': 'overcloud',
+                    'baremetal_deployment': [
+                        {'count': 10, 'name': 'Compute'},
+                        {'count': 3, 'name': 'Controller'}
+                    ],
+                    'baremetal_deployed_path': env_path,
+                    'ssh_public_keys': 'sekrit',
+                    'ssh_user_name': 'heat-admin'
+                },
+                inventory='localhost,',
+                playbook='cli-overcloud-node-provision.yaml',
+                playbook_dir='/usr/share/ansible/tripleo-playbooks',
+                verbosity=0,
+                workdir=mock.ANY
+            ),
+            mock.call(
+                extra_vars={
+                    'stack_name': 'overcloud',
+                    'baremetal_deployment': [
+                        {'count': 10, 'name': 'Compute'},
+                        {'count': 3, 'name': 'Controller'}
+                    ],
+                    'prompt': False
+                },
+                inventory='localhost,',
+                playbook='cli-overcloud-node-unprovision.yaml',
+                playbook_dir='/usr/share/ansible/tripleo-playbooks',
+                verbosity=0,
+                workdir=mock.ANY
+            )
+        ])
         mock_write.assert_called_once_with(
             self.cmd,
             {'parameter_defaults': {'foo': 'bar'}},
             'baremetal-deployed.yaml',
-            '/tmp/tht',
+            tht_root,
             'overcloud'
         )
 
