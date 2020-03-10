@@ -19,6 +19,7 @@ import fixtures
 import json
 import mock
 import os
+import sys
 import tempfile
 
 from osc_lib import exceptions as oscexc
@@ -75,8 +76,6 @@ class TestDeleteNode(fakes.TestDeleteNode):
         self.addCleanup(wait_stack.stop)
         self.app.client_manager.compute.servers.get.return_value = None
 
-    # TODO(someone): This test does not pass with autospec=True, it should
-    # probably be fixed so that it can pass with that.
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
     def test_node_delete(self, mock_playbook):
@@ -247,9 +246,11 @@ class TestDeleteNode(fakes.TestDeleteNode):
             )
         ])
 
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
+                autospec=True)
     @mock.patch('tripleoclient.workflows.baremetal.expand_roles',
                 autospec=True)
-    def test_nodes_to_delete(self, mock_expand_roles):
+    def test_nodes_to_delete(self, mock_expand_roles, mock_playbook):
         bm_yaml = [{
             'name': 'Compute',
             'count': 5,
@@ -615,7 +616,19 @@ class TestImportNodeMultiArch(fakes.TestOvercloudNode):
 
         with mock.patch('tripleoclient.utils.run_ansible_playbook',
                         autospec=True):
-            self.cmd.take_action(parsed_args)
+            file_return_nodes = [
+                {
+                    'uuid': 'MOCK_NODE_UUID'
+                }
+            ]
+            mock_open = mock.mock_open(read_data=json.dumps(file_return_nodes))
+            # TODO(cloudnull): Remove this when py27 is dropped
+            if sys.version_info >= (3, 0):
+                mock_open_path = 'builtins.open'
+            else:
+                mock_open_path = 'tripleoclient.v1.overcloud_node.open'
+            with mock.patch(mock_open_path, mock_open):
+                self.cmd.take_action(parsed_args)
 
         nodes_list = copy.deepcopy(self.nodes_list)
         if not no_deploy_image:

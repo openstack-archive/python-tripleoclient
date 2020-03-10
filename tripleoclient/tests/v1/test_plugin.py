@@ -32,7 +32,6 @@ class FakePluginV1Client(object):
 class TestPluginV1(base.TestCommand):
     def setUp(self):
         super(TestPluginV1, self).setUp()
-
         self.app.client_manager.tripleoclient = FakePluginV1Client(
             endpoint=fakes.AUTH_URL,
             token=fakes.AUTH_TOKEN,

@@ -163,6 +163,7 @@ class FakePlaybookExecution(utils.TestCommand):
     def setUp(self, ansible_mock=True):
         super(FakePlaybookExecution, self).setUp()
 
+        self.app.options = FakeOptions()
         self.app.client_manager.auth_ref = mock.Mock(auth_token="TOKEN")
         self.app.client_manager.baremetal = mock.Mock()
         compute = self.app.client_manager.compute = mock.Mock()

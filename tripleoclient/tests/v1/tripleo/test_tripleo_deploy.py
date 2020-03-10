@@ -64,8 +64,6 @@ class TestDeployUndercloud(TestPluginV1):
         self.orc.stacks.create = mock.MagicMock(
             return_value={'stack': {'id': 'foo'}})
 
-        self.ansible_playbook_cmd = "ansible-playbook"
-
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy._is_undercloud_deploy')
     @mock.patch('tripleoclient.utils.check_hostname')
     def test_run_preflight_checks(self, mock_check_hostname, mock_uc):
