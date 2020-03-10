@@ -84,24 +84,26 @@ class FakeFile(FakeHandle):
         self.contents = None
 
 
-class FakeWebSocket(FakeHandle):
-
-    def wait_for_messages(self, timeout=None):
-        yield {
-            'execution_id': 'IDID',
-            'status': 'SUCCESS',
-        }
-
-
 class FakeClientWrapper(object):
 
     def __init__(self):
-        self.ws = FakeWebSocket()
-        self.object_store = FakeObjectClient()
         self._instance = mock.Mock()
+        self.object_store = FakeObjectClient()
+        self._mock_websocket = mock.Mock()
+        self._mock_websocket.__enter__ = mock.Mock(
+            return_value=self._mock_websocket)
+        # Return False to avoid silencing exceptions
+        self._mock_websocket.__exit__ = mock.Mock(return_value=False)
+        self._mock_websocket.wait_for_messages = mock.Mock(
+            return_value=iter([{
+                "status": "SUCCESS",
+                "message": "Success",
+                "execution_id": "IDID"
+            }])
+        )
 
     def messaging_websocket(self):
-        return self.ws
+        return self._mock_websocket
 
 
 class FakeRunnerConfig(object):
@@ -169,7 +171,8 @@ class FakePlaybookExecution(utils.TestCommand):
         self.app.client_manager.image = mock.Mock()
         self.app.client_manager.network = mock.Mock()
         tc = self.app.client_manager.tripleoclient = FakeClientWrapper()
-        self.app.client_manager.workflow_engine = mock.Mock()
+        self.tripleoclient = mock.Mock()
+        self.workflow = self.app.client_manager.workflow_engine = mock.Mock()
         stack = self.app.client_manager.orchestration = mock.Mock()
         stack.stacks.get.return_value = FakeStackObject
         tc.create_mistral_context = plugin.ClientWrapper(
@@ -177,10 +180,9 @@ class FakePlaybookExecution(utils.TestCommand):
         ).create_mistral_context
 
         # NOTE(cloudnull): When mistral is gone this should be removed.
-        workflow = execution = mock.Mock()
-        execution.id = "IDID"
-        workflow.executions.create.return_value = execution
-        self.app.client_manager.workflow_engine = workflow
+        self.execution = mock.Mock()
+        self.execution.id = "IDID"
+        self.workflow.executions.create.return_value = self.execution
 
         config_mock = mock.patch(
             'tripleo_common.actions.config.GetOvercloudConfig',
@@ -206,6 +208,14 @@ class FakePlaybookExecution(utils.TestCommand):
         get_key.start()
         get_key.return_value = 'keyfile-path'
         self.addCleanup(get_key.stop)
+
+        self.register_or_update = mock.patch(
+            'tripleo_common.actions.baremetal.RegisterOrUpdateNodes.run',
+            autospec=True,
+            return_value=[mock.Mock(uuid='MOCK_NODE_UUID')]
+        )
+        self.register_or_update.start()
+        self.addCleanup(self.register_or_update.stop)
 
         if ansible_mock:
             get_stack = mock.patch('tripleoclient.utils.get_stack')

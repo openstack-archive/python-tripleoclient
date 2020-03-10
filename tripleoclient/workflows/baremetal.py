@@ -44,34 +44,53 @@ def validate_nodes(clients, nodes_json):
         raise exceptions.RegisterOrUpdateError(validated_nodes)
 
 
-def register_or_update(clients, **workflow_input):
+def register_or_update(clients, nodes_json, kernel_name=None,
+                       ramdisk_name=None, instance_boot_option=None):
     """Node Registration or Update
 
-    Run the tripleo.baremetal.v1.register_or_update Mistral workflow.
+    :param clients: Application client object.
+    :type clients: Object
+
+    :param nodes_json:
+    :type nodes_json: Object
+
+    :param kernel_name: Kernel to use
+    :type kernel_name: String
+
+    :param ramdisk_name: RAMDISK to use
+    :type ramdisk_name: String
+
+    :param instance_boot_option: Whether to set instances for booting from
+                                 local hard drive (local) or network
+                                 (netboot).
+    :type instance_boot_option: String
+
+    :returns: List
     """
 
-    workflow_client = clients.workflow_engine
-    tripleoclients = clients.tripleoclient
+    context = clients.tripleoclient.create_mistral_context()
+    nodes = baremetal.RegisterOrUpdateNodes(
+        nodes_json=nodes_json,
+        ramdisk_name=ramdisk_name,
+        kernel_name=kernel_name,
+        instance_boot_option=instance_boot_option
+    )
 
-    with tripleoclients.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client,
-            'tripleo.baremetal.v1.register_or_update',
-            workflow_input=workflow_input
-        )
-
-        for payload in base.wait_for_messages(workflow_client, ws, execution):
-            if 'message' in payload:
-                print(payload['message'])
-
-    if payload['status'] == 'SUCCESS':
-        registered_nodes = payload['registered_nodes']
-        for nd in registered_nodes:
-            print('Successfully registered node UUID %s' % nd['uuid'])
-        return registered_nodes
+    registered_nodes = nodes.run(context=context)
+    if not isinstance(registered_nodes, list):
+        raise exceptions.RegisterOrUpdateError(registered_nodes)
     else:
-        raise exceptions.RegisterOrUpdateError(
-            'Exception registering nodes: {}'.format(payload['message']))
+        for node in registered_nodes:
+            if node.provision_state == 'enroll':
+                clients.baremetal.node.set_provision_state(
+                    node_uuid=node.uuid,
+                    state='manage'
+                )
+                print('Successfully registered node UUID {}'.format(node.uuid))
+            else:
+                print('Node UUID {} is already registered'.format(node.uuid))
+
+    return registered_nodes
 
 
 def _format_errors(payload):
@@ -363,18 +382,13 @@ def discover_and_enroll(clients, ip_addresses, credentials, kernel_name,
         )
         print('Successfully probed node IP {}'.format(node['ip']))
 
-    register_or_update = baremetal.RegisterOrUpdateNodes(
+    return register_or_update(
+        clients=clients,
         nodes_json=probed_nodes,
         instance_boot_option=instance_boot_option,
         kernel_name=kernel_name,
         ramdisk_name=ramdisk_name
     )
-    registered_nodes = list()
-    for node in register_or_update.run(context=context):
-        print('Successfully registered node UUID {}'.format(node['uuid']))
-        registered_nodes.append(node)
-    else:
-        return registered_nodes
 
 
 def clean_nodes(clients, **workflow_input):
