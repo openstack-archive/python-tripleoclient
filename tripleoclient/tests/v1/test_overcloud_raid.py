@@ -49,6 +49,12 @@ class TestCreateRAID(fakes.TestBaremetal):
         )
         execution.id = "IDID"
         self.workflow.executions.create.return_value = execution
+        playbook_runner = mock.patch(
+            'tripleoclient.utils.run_ansible_playbook',
+            autospec=True
+        )
+        playbook_runner.start()
+        self.addCleanup(playbook_runner.stop)
 
     def test_ok(self):
         conf = json.dumps(self.conf)
@@ -60,14 +66,6 @@ class TestCreateRAID(fakes.TestBaremetal):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.cmd.take_action(parsed_args)
-
-        self.workflow.executions.create.assert_called_once_with(
-            'tripleo.baremetal.v1.create_raid_configuration',
-            workflow_input={
-                'node_uuids': ['uuid1', 'uuid2'],
-                'configuration': self.conf,
-            }
-        )
 
     def test_from_file(self):
         with tempfile.NamedTemporaryFile('w+t') as fp:
@@ -81,14 +79,6 @@ class TestCreateRAID(fakes.TestBaremetal):
             parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
             self.cmd.take_action(parsed_args)
-
-        self.workflow.executions.create.assert_called_once_with(
-            'tripleo.baremetal.v1.create_raid_configuration',
-            workflow_input={
-                'node_uuids': ['uuid1', 'uuid2'],
-                'configuration': self.conf,
-            }
-        )
 
     def test_no_nodes(self):
         arglist = ['{}']

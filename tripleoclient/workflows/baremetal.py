@@ -19,7 +19,9 @@ import six
 from tripleo_common.actions import baremetal
 from tripleo_common.actions import baremetal_deploy
 
+from tripleoclient import constants
 from tripleoclient import exceptions
+from tripleoclient import utils
 from tripleoclient.workflows import base
 
 
@@ -297,33 +299,32 @@ def configure_manageable_nodes(clients, **workflow_input):
     print(payload['message'])
 
 
-def create_raid_configuration(clients, **workflow_input):
+def create_raid_configuration(clients, node_uuids, configuration):
     """Create RAID configuration on nodes.
 
-    Run the tripleo.baremetal.v1.create_raid_configuration Mistral workflow.
+    :param clients: application client object.
+    :type clients: Object
+
+    :param node_uuids: List of instance UUID(s).
+    :type node_uuids: List
+
+    :param node_uuids: List of instance UUID(s).
+    :type node_uuids: List
     """
 
-    workflow_client = clients.workflow_engine
-    ooo_client = clients.tripleoclient
-
-    print('Creating RAID configuration for given nodes, this may take time')
-
-    with ooo_client.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client,
-            'tripleo.baremetal.v1.create_raid_configuration',
-            workflow_input=workflow_input
+    with utils.TempDirs() as tmp:
+        utils.run_ansible_playbook(
+            playbook='cli-baremetal-raid.yaml',
+            inventory='localhost,',
+            workdir=tmp,
+            playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            extra_vars={
+                'node_uuids': node_uuids,
+                'raid_configuration': configuration
+            }
         )
 
-        for payload in base.wait_for_messages(workflow_client, ws, execution):
-            if 'message' in payload:
-                print(payload['message'])
-
-    if payload['status'] == 'SUCCESS':
-        print('Success')
-    else:
-        raise RuntimeError(
-            'Failed to create RAID: {}'.format(payload['message']))
+    print('Successfully configured RAID for nodes: {}'.format(node_uuids))
 
 
 def discover_and_enroll(clients, ip_addresses, credentials, kernel_name,
