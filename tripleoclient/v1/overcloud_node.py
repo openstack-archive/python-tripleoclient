@@ -14,7 +14,9 @@
 #
 
 import collections
+import json
 import logging
+import os
 import sys
 
 from cliff.formatters import table
@@ -87,76 +89,46 @@ class DeleteNode(command.Command):
         return parser
 
     def _nodes_to_delete(self, parsed_args, roles):
-        # expand for provisioned:False to get a list of nodes
-        # to delete
-        expanded = baremetal.expand_roles(
-            self.app.client_manager,
-            roles=roles,
-            stackname=parsed_args.stack,
-            provisioned=False)
-        nodes = expanded.get('instances', [])
+        with oooutils.TempDirs() as tmp:
+            unprovision_confirm = os.path.join(
+                tmp, 'unprovision_confirm.json')
+
+            oooutils.run_ansible_playbook(
+                playbook='cli-overcloud-node-unprovision.yaml',
+                inventory='localhost,',
+                verbosity=self.app_args.verbose_level - 1,
+                workdir=tmp,
+                playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                extra_vars={
+                    "stack_name": parsed_args.stack,
+                    "baremetal_deployment": roles,
+                    "prompt": True,
+                    "unprovision_confirm": unprovision_confirm,
+                }
+            )
+            with open(unprovision_confirm) as f:
+                nodes = json.load(f)
         if not nodes:
             print('No nodes to unprovision')
-            return
+            return None, None
         TableArgs = collections.namedtuple(
             'TableArgs', 'print_empty max_width fit_width')
-        args = TableArgs(print_empty=True, max_width=80, fit_width=True)
+        args = TableArgs(print_empty=True, max_width=-1, fit_width=True)
         nodes_data = [(i.get('hostname', ''),
-                       i.get('name', '')) for i in nodes]
+                       i.get('name', ''),
+                       i.get('id', '')) for i in nodes]
+
+        node_hostnames = [i['hostname'] for i in nodes if 'hostname' in i]
 
         formatter = table.TableFormatter()
         output = six.StringIO()
         formatter.emit_list(
-            column_names=['hostname', 'name'],
+            column_names=['hostname', 'name', 'id'],
             data=nodes_data,
             stdout=output,
             parsed_args=args
         )
-        return output.getvalue()
-
-    def _translate_nodes_to_resources(self, parsed_args, roles):
-        # build a dict of resource type names to role name
-        role_types = dict(
-            ('OS::TripleO::%sServer' % r['name'], r['name'])
-            for r in roles
-        )
-        expanded = baremetal.expand_roles(
-            self.app.client_manager,
-            roles=roles,
-            stackname=parsed_args.stack,
-            provisioned=True)
-
-        parameters = expanded.get(
-            'environment', {}).get('parameter_defaults', {})
-
-        # build a dict with the role and
-        # a list of indexes of nodes to delete for that role
-        removal_indexes = {}
-        for role in role_types.values():
-            removal_indexes.setdefault(role, [])
-            param = '%sRemovalPolicies' % role
-            policies = parameters.get(param, [])
-            if policies:
-                removal_indexes[role] = policies[0].get('resource_list', [])
-
-        nodes = []
-        clients = self.app.client_manager
-
-        # iterate every server resource and compare its index with
-        # the list of indexes to be deleted
-        resources = clients.orchestration.resources.list(
-            parsed_args.stack, nested_depth=5)
-        for res in resources:
-            if res.resource_type not in role_types:
-                continue
-            role = role_types[res.resource_type]
-            removal_list = removal_indexes.get(role, [])
-
-            index = int(res.parent_resource)
-            if index in removal_list:
-                node = res.physical_resource_id
-                nodes.append(node)
-        return nodes
+        return output.getvalue(), node_hostnames
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
@@ -166,10 +138,8 @@ class DeleteNode(command.Command):
             with open(parsed_args.baremetal_deployment, 'r') as fp:
                 roles = yaml.safe_load(fp)
 
-            nodes_text = self._nodes_to_delete(parsed_args, roles)
+            nodes_text, nodes = self._nodes_to_delete(parsed_args, roles)
             if nodes_text:
-                nodes = self._translate_nodes_to_resources(
-                    parsed_args, roles)
                 print(nodes_text)
             else:
                 return
@@ -204,10 +174,19 @@ class DeleteNode(command.Command):
         )
 
         if parsed_args.baremetal_deployment:
-            baremetal.undeploy_roles(
-                self.app.client_manager,
-                roles=roles,
-                plan=parsed_args.stack)
+            with oooutils.TempDirs() as tmp:
+                oooutils.run_ansible_playbook(
+                    playbook='cli-overcloud-node-unprovision.yaml',
+                    inventory='localhost,',
+                    verbosity=self.app_args.verbose_level - 1,
+                    workdir=tmp,
+                    playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                    extra_vars={
+                        "stack_name": parsed_args.stack,
+                        "baremetal_deployment": roles,
+                        "prompt": False,
+                    }
+                )
 
 
 class ProvideNode(command.Command):
