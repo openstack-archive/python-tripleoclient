@@ -122,7 +122,8 @@ class DeployOvercloud(command.Command):
         """
         ctlplane_hostname = '.'.join([utils.get_short_hostname(), 'ctlplane'])
         cmd = ['getent', 'hosts', ctlplane_hostname]
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                                   universal_newlines=True)
         out, err = process.communicate()
         if process.returncode != 0:
             raise exceptions.DeploymentError('No entry for %s in /etc/hosts'
