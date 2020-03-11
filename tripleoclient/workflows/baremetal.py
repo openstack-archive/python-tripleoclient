@@ -247,56 +247,105 @@ def provide_manageable_nodes(clients, **workflow_input):
     print(payload['message'])
 
 
-def configure(clients, **workflow_input):
+def configure(clients, node_uuids, kernel_name='bm-deploy-kernel',
+              ramdisk_name='bm-deploy-ramdisk', instance_boot_option=None,
+              root_device=None, root_device_minimum_size=4,
+              overwrite_root_device_hints=False):
     """Configure Node boot options.
 
-    Run the tripleo.baremetal.v1.configure Mistral workflow.
+    :param node_uuids: List of instance UUID(s).
+    :type node_uuids: List
+
+    :param kernel_name: Kernel to use
+    :type kernel_name: String
+
+    :param ramdisk_name: RAMDISK to use
+    :type ramdisk_name: String
+
+    :param instance_boot_option: Boot options to use
+    :type instance_boot_option: String
+
+    :param root_device: Path (name) of the root device.
+    :type root_device: String
+
+    :param root_device_minimum_size: Size of the given root device.
+    :type root_device_minimum_size: Integer
+
+    :param overwrite_root_device_hints: Whether to overwrite existing root
+                                        device hints when `root_device` is
+                                        used.
+    :type overwrite_root_device_hints: Boolean
     """
 
-    workflow_client = clients.workflow_engine
-    ooo_client = clients.tripleoclient
-
-    with ooo_client.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client,
-            'tripleo.baremetal.v1.configure',
-            workflow_input=workflow_input
+    context = clients.tripleoclient.create_mistral_context()
+    for node_uuid in node_uuids:
+        boot_action = baremetal.ConfigureBootAction(
+            node_uuid=node_uuid,
+            kernel_name=kernel_name,
+            ramdisk_name=ramdisk_name,
+            instance_boot_option=instance_boot_option
+        ).run(context=context)
+        if boot_action:
+            raise RuntimeError(boot_action)
+        root_device_action = baremetal.ConfigureRootDeviceAction(
+            node_uuid=node_uuid,
+            root_device=root_device,
+            minimum_size=root_device_minimum_size,
+            overwrite=overwrite_root_device_hints
         )
-
-        for payload in base.wait_for_messages(workflow_client, ws, execution):
-            if 'message' in payload:
-                print(payload['message'])
-
-    if payload['status'] != 'SUCCESS':
-        raise exceptions.NodeConfigurationError(
-            'Failed to configure nodes: {}'.format(payload['message']))
+        root_device_action.run(context=context)
+    else:
+        print('Successfully configured the nodes.')
 
 
-def configure_manageable_nodes(clients, **workflow_input):
+def configure_manageable_nodes(clients, kernel_name='bm-deploy-kernel',
+                               ramdisk_name='bm-deploy-ramdisk',
+                               instance_boot_option=None,
+                               root_device=None, root_device_minimum_size=4,
+                               overwrite_root_device_hints=False):
     """Configure all manageable Nodes.
 
-    Run the tripleo.baremetal.v1.configure_manageable_nodes Mistral workflow.
+    kernel_name=parsed_args.deploy_kernel,
+    ramdisk_name=parsed_args.deploy_ramdisk,
+    instance_boot_option=parsed_args.instance_boot_option,
+    root_device=parsed_args.root_device,
+    root_device_minimum_size=parsed_args.root_device_minimum_size,
+    overwrite_root_device_hints=(parsed_args.overwrite_root_device_hints)
+
+    :param kernel_name: Kernel to use
+    :type kernel_name: String
+
+    :param ramdisk_name: RAMDISK to use
+    :type ramdisk_name: String
+
+    :param instance_boot_option: Boot options to use
+    :type instance_boot_option: String
+
+    :param root_device: Path (name) of the root device.
+    :type root_device: String
+
+    :param root_device_minimum_size: Size of the given root device.
+    :type root_device_minimum_size: Integer
+
+    :param overwrite_root_device_hints: Whether to overwrite existing root
+                                        device hints when `root_device` is
+                                        used.
+    :type overwrite_root_device_hints: Boolean
     """
 
-    workflow_client = clients.workflow_engine
-    ooo_client = clients.tripleoclient
-
-    with ooo_client.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client,
-            'tripleo.baremetal.v1.configure_manageable_nodes',
-            workflow_input=workflow_input
-        )
-
-        for payload in base.wait_for_messages(workflow_client, ws, execution):
-            if 'message' in payload:
-                print(payload['message'])
-
-    if payload['status'] != 'SUCCESS':
-        raise exceptions.NodeConfigurationError(
-            'Exception configuring nodes: {}'.format(payload['message']))
-
-    print(payload['message'])
+    configure(
+        clients=clients,
+        node_uuids=[
+            i.uuid for i in clients.baremetal.node.list()
+            if i.provision_state == "manageable" and not i.maintenance
+        ],
+        kernel_name=kernel_name,
+        ramdisk_name=ramdisk_name,
+        instance_boot_option=instance_boot_option,
+        root_device=root_device,
+        root_device_minimum_size=root_device_minimum_size,
+        overwrite_root_device_hints=overwrite_root_device_hints
+    )
 
 
 def create_raid_configuration(clients, node_uuids, configuration):

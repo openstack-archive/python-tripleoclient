@@ -165,7 +165,8 @@ class FakePlaybookExecution(utils.TestCommand):
 
         self.app.options = FakeOptions()
         self.app.client_manager.auth_ref = mock.Mock(auth_token="TOKEN")
-        self.app.client_manager.baremetal = mock.Mock()
+        baremetal = self.app.client_manager.baremetal = mock.Mock()
+        baremetal.node.list.return_value = []
         compute = self.app.client_manager.compute = mock.Mock()
         compute.servers.list.return_value = []
         self.app.client_manager.identity = mock.Mock()
@@ -217,6 +218,19 @@ class FakePlaybookExecution(utils.TestCommand):
         )
         self.register_or_update.start()
         self.addCleanup(self.register_or_update.stop)
+        self.boot_action = mock.patch(
+            'tripleo_common.actions.baremetal.ConfigureBootAction.run',
+            autospec=True,
+            return_value=None
+        )
+        self.boot_action.start()
+        self.addCleanup(self.boot_action.stop)
+        self.boot_action = mock.patch(
+            'tripleo_common.actions.baremetal.ConfigureRootDeviceAction.run',
+            autospec=True
+        )
+        self.boot_action.start()
+        self.addCleanup(self.boot_action.stop)
 
         if ansible_mock:
             get_stack = mock.patch('tripleoclient.utils.get_stack')
