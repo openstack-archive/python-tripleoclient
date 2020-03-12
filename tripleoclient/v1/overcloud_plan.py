@@ -133,7 +133,8 @@ class CreatePlan(command.Command):
                 clients, container=name,
                 generate_passwords=generate_passwords,
                 source_url=source_url,
-                use_default_templates=use_default_templates)
+                use_default_templates=use_default_templates,
+                validate_stack=False)
 
 
 class DeployPlan(command.Command):

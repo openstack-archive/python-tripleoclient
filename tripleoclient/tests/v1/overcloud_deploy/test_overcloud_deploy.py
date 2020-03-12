@@ -624,10 +624,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_rm = shutil.rmtree = mock.MagicMock()
         self.cmd.take_action(parsed_args)
         mock_rm.assert_called_once()
-        execution_calls = workflow_client.executions.create.call_args_list
-        deploy_plan_call = execution_calls[1]
-        deploy_plan_call_input = deploy_plan_call[1]['workflow_input']
-        self.assertTrue(deploy_plan_call_input['skip_deploy_identifier'])
         mock_copy.assert_called_once()
 
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')

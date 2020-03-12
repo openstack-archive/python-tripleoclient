@@ -11,13 +11,12 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-
 import mock
 
 from osc_lib.tests import utils
 from swiftclient import exceptions as swift_exc
 
-from tripleoclient import exceptions
+from tripleoclient import constants
 from tripleoclient.tests import base
 from tripleoclient.workflows import plan_management
 
@@ -26,12 +25,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
 
     def setUp(self):
         super(TestPlanCreationWorkflows, self).setUp()
-        self.app.client_manager.workflow_engine = self.workflow = mock.Mock()
         self.tripleoclient = mock.Mock()
-        self.websocket = mock.Mock()
-        self.websocket.__enter__ = lambda s: self.websocket
-        self.websocket.__exit__ = lambda s, *exc: None
-        self.tripleoclient.messaging_websocket.return_value = self.websocket
         self.app.client_manager.tripleoclient = self.tripleoclient
 
         self.message_success = iter([{
@@ -47,60 +41,36 @@ class TestPlanCreationWorkflows(utils.TestCommand):
         self.create_action.start()
         self.addCleanup(self.create_action.stop)
 
+    @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
                 autospec=True)
-    def test_create_plan_from_templates_success(self, mock_tarball):
-        output = mock.Mock(output='{"result": ""}')
-        output.id = "IDID"
-        self.workflow.action_executions.create.return_value = output
-        self.workflow.executions.create.return_value = output
-        self.websocket.wait_for_messages.return_value = self.message_success
-
+    def test_create_plan_from_templates_success(self, mock_tarball,
+                                                mock_run_playbook):
         plan_management.create_plan_from_templates(
             self.app.client_manager,
             'test-overcloud',
             '/tht-root/',
             validate_stack=False)
 
-        self.workflow.executions.create.assert_called_once_with(
-            'tripleo.plan_management.v1.create_deployment_plan',
-            workflow_input={'container': 'test-overcloud',
-                            'generate_passwords': True,
-                            'validate_stack': False})
+        mock_run_playbook.assert_called_once_with(
+            'cli-create-deployment-plan.yaml',
+            'undercloud,',
+            constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            extra_vars={
+                "container": "test-overcloud",
+                "generate_passwords": True,
+                "validate": False
+            },
+            verbosity=3,
+        )
 
-    @mock.patch('tripleoclient.workflows.plan_management.create_container',
-                autospec=True,
-                return_value=mock.Mock(error='Error'))
-    @mock.patch('tripleoclient.workflows.plan_management.tarball',
-                autospec=True)
-    def test_create_plan_from_templates_container_error(self, mock_tarball,
-                                                        mock_create_container):
-        error = mock.Mock(output='{"result": "Error"}')
-        error.id = "IDID"
-        self.workflow.action_executions.create.return_value = error
-        self.workflow.executions.create.return_value = error
-
-        self.assertRaises(
-            exceptions.PlanCreationError,
-            plan_management.create_plan_from_templates,
-            self.app.client_manager,
-            'test-overcloud',
-            '/tht-root/',
-            validate_stack=False)
-
-        self.workflow.executions.create.assert_not_called()
-
+    @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
     @mock.patch('tripleoclient.utils.rel_or_abs_path')
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
                 autospec=True)
     def test_create_plan_from_templates_roles_data(self, mock_tarball,
-                                                   mock_norm_path):
-        output = mock.Mock(output='{"result": ""}')
-        output.id = "IDID"
-        self.workflow.action_executions.create.return_value = output
-        self.workflow.executions.create.return_value = output
-        self.websocket.wait_for_messages.return_value = self.message_success
-
+                                                   mock_norm_path,
+                                                   mock_run_playbook):
         mock_open_context = mock.mock_open()
         with mock.patch('six.moves.builtins.open', mock_open_context):
             plan_management.create_plan_from_templates(
@@ -110,11 +80,17 @@ class TestPlanCreationWorkflows(utils.TestCommand):
                 'the_roles_file.yaml',
                 validate_stack=False)
 
-        self.workflow.executions.create.assert_called_once_with(
-            'tripleo.plan_management.v1.create_deployment_plan',
-            workflow_input={'container': 'test-overcloud',
-                            'generate_passwords': True,
-                            'validate_stack': False})
+        mock_run_playbook.assert_called_once_with(
+            'cli-create-deployment-plan.yaml',
+            'undercloud,',
+            constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            extra_vars={
+                "container": "test-overcloud",
+                "generate_passwords": True,
+                "validate": False
+            },
+            verbosity=3,
+        )
 
         self.assertIn(mock.call('the_roles_file.yaml', '/tht-root/'),
                       mock_norm_path.call_args_list)
@@ -122,15 +98,11 @@ class TestPlanCreationWorkflows(utils.TestCommand):
         self.tripleoclient.object_store.put_object.assert_called_once_with(
             'test-overcloud', 'roles_data.yaml', mock_open_context())
 
+    @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
                 autospec=True)
-    def test_create_plan_from_templates_plan_env_data(self, mock_tarball):
-        output = mock.Mock(output='{"result": ""}')
-        output.id = "IDID"
-        self.workflow.action_executions.create.return_value = output
-        self.workflow.executions.create.return_value = output
-        self.websocket.wait_for_messages.return_value = self.message_success
-
+    def test_create_plan_from_templates_plan_env_data(self, mock_tarball,
+                                                      mock_run_playbook):
         mock_open_context = mock.mock_open()
         with mock.patch('six.moves.builtins.open', mock_open_context):
             plan_management.create_plan_from_templates(
@@ -140,27 +112,29 @@ class TestPlanCreationWorkflows(utils.TestCommand):
                 plan_env_file='the-plan-environment.yaml',
                 validate_stack=False)
 
-        self.workflow.executions.create.assert_called_once_with(
-            'tripleo.plan_management.v1.create_deployment_plan',
-            workflow_input={'container': 'test-overcloud',
-                            'generate_passwords': True,
-                            'validate_stack': False})
-
+        mock_run_playbook.assert_called_once_with(
+            'cli-create-deployment-plan.yaml',
+            'undercloud,',
+            constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            extra_vars={
+                "container": "test-overcloud",
+                "generate_passwords": True,
+                "plan_environment": "the-plan-environment.yaml",
+                "validate": False
+            },
+            verbosity=3,
+        )
         mock_open_context.assert_has_calls(
             [mock.call('the-plan-environment.yaml', 'rb')])
 
         self.tripleoclient.object_store.put_object.assert_called_once_with(
             'test-overcloud', 'plan-environment.yaml', mock_open_context())
 
+    @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
                 autospec=True)
-    def test_create_plan_from_templates_networks_data(self, mock_tarball):
-        output = mock.Mock(output='{"result": ""}')
-        output.id = "IDID"
-        self.workflow.action_executions.create.return_value = output
-        self.workflow.executions.create.return_value = output
-        self.websocket.wait_for_messages.return_value = self.message_success
-
+    def test_create_plan_from_templates_networks_data(self, mock_tarball,
+                                                      mock_run_playbook):
         mock_open_context = mock.mock_open()
         with mock.patch('six.moves.builtins.open', mock_open_context):
             plan_management.create_plan_from_templates(
@@ -170,27 +144,28 @@ class TestPlanCreationWorkflows(utils.TestCommand):
                 networks_file='the-network-data.yaml',
                 validate_stack=False)
 
-        self.workflow.executions.create.assert_called_once_with(
-            'tripleo.plan_management.v1.create_deployment_plan',
-            workflow_input={'container': 'test-overcloud',
-                            'generate_passwords': True,
-                            'validate_stack': False})
-
+        mock_run_playbook.assert_called_once_with(
+            'cli-create-deployment-plan.yaml',
+            'undercloud,',
+            constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            extra_vars={
+                "container": "test-overcloud",
+                "generate_passwords": True,
+                "validate": False
+            },
+            verbosity=3,
+        )
         mock_open_context.assert_has_calls(
             [mock.call('the-network-data.yaml', 'rb')])
 
         self.tripleoclient.object_store.put_object.assert_called_once_with(
             'test-overcloud', 'network_data.yaml', mock_open_context())
 
+    @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
                 autospec=True)
-    def test_create_plan_with_password_gen_disabled(self, mock_tarball):
-        output = mock.Mock(output='{"result": ""}')
-        output.id = "IDID"
-        self.workflow.action_executions.create.return_value = output
-        self.workflow.executions.create.return_value = output
-        self.websocket.wait_for_messages.return_value = self.message_success
-
+    def test_create_plan_with_password_gen_disabled(self, mock_tarball,
+                                                    mock_run_playbook):
         plan_management.create_plan_from_templates(
             self.app.client_manager,
             'test-overcloud',
@@ -198,35 +173,26 @@ class TestPlanCreationWorkflows(utils.TestCommand):
             generate_passwords=False,
             validate_stack=False)
 
-        self.workflow.executions.create.assert_called_once_with(
-            'tripleo.plan_management.v1.create_deployment_plan',
-            workflow_input={'container': 'test-overcloud',
-                            'generate_passwords': False,
-                            'validate_stack': False})
+        mock_run_playbook.assert_called_once_with(
+            'cli-create-deployment-plan.yaml',
+            'undercloud,',
+            constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            extra_vars={
+                "container": "test-overcloud",
+                "generate_passwords": False,
+                "validate": False
+            },
+            verbosity=3,
+        )
 
 
 class TestPlanUpdateWorkflows(base.TestCommand):
 
     def setUp(self):
         super(TestPlanUpdateWorkflows, self).setUp()
-        self.app.client_manager.workflow_engine = self.workflow = mock.Mock()
         self.app.client_manager.tripleoclient = self.tripleoclient = \
             mock.Mock()
         self.tripleoclient.object_store = self.object_store = mock.Mock()
-
-        self.websocket = mock.Mock()
-        self.websocket.__enter__ = lambda s: self.websocket
-        self.websocket.__exit__ = lambda s, *exc: None
-        self.tripleoclient.messaging_websocket.return_value = self.websocket
-        output = mock.Mock(output='{"result": ""}')
-        output.id = "IDID"
-        self.workflow.action_executions.create.return_value = output
-        self.workflow.executions.create.return_value = output
-        self.message_success = iter([{
-            "execution_id": "IDID",
-            "status": "SUCCESS",
-        }])
-        self.websocket.wait_for_messages.return_value = self.message_success
 
         self.object_store.get_container.return_value = (
             {},
@@ -252,12 +218,13 @@ class TestPlanUpdateWorkflows(base.TestCommand):
             return {}, '{0}: mock content\n'.format(args[1])
         self.object_store.get_object.side_effect = get_object
 
+    @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
                 autospec=True)
     @mock.patch('tripleo_common.utils.swift.empty_container',
                 autospec=True)
     def test_update_plan_from_templates_keep_env(
-            self, mock_empty_container, mock_tarball):
+            self, mock_empty_container, mock_tarball, mock_run_playbook):
 
         plan_management.update_plan_from_templates(
             self.app.client_manager,
@@ -288,19 +255,25 @@ class TestPlanUpdateWorkflows(base.TestCommand):
             ],
             any_order=True,
         )
+        mock_run_playbook.assert_called_once_with(
+            'cli-update-deployment-plan.yaml',
+            'undercloud,',
+            constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            extra_vars={
+                "container": "test-overcloud",
+                "generate_passwords": True,
+                "validate": False
+            },
+            verbosity=3,
+        )
 
-        self.workflow.executions.create.assert_called_once_with(
-            'tripleo.plan_management.v1.update_deployment_plan',
-            workflow_input={'container': 'test-overcloud',
-                            'generate_passwords': True, 'source_url': None,
-                            'validate_stack': False})
-
+    @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
                 autospec=True)
     @mock.patch('tripleo_common.utils.swift.empty_container',
                 autospec=True)
     def test_update_plan_from_templates_recreate_env(
-            self, mock_empty_container, mock_tarball):
+            self, mock_empty_container, mock_tarball, mock_run_playbook):
 
         plan_management.update_plan_from_templates(
             self.app.client_manager,
@@ -318,12 +291,19 @@ class TestPlanUpdateWorkflows(base.TestCommand):
             'plan-environment.yaml: mock content\n'
         )
 
-        self.workflow.executions.create.assert_called_once_with(
-            'tripleo.plan_management.v1.update_deployment_plan',
-            workflow_input={'container': 'test-overcloud',
-                            'generate_passwords': True, 'source_url': None,
-                            'validate_stack': False})
+        mock_run_playbook.assert_called_once_with(
+            'cli-update-deployment-plan.yaml',
+            'undercloud,',
+            constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            extra_vars={
+                "container": "test-overcloud",
+                "generate_passwords": True,
+                "validate": False
+            },
+            verbosity=3,
+        )
 
+    @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
     @mock.patch('tripleoclient.workflows.plan_management._update_passwords',
                 autospec=True)
     @mock.patch('yaml.safe_load',
@@ -334,7 +314,7 @@ class TestPlanUpdateWorkflows(base.TestCommand):
                 autospec=True)
     def test_update_plan_from_templates_recreate_env_missing_passwords(
             self, mock_empty_container, mock_tarball, mock_yaml_safe_load,
-            mock_update_passwords):
+            mock_update_passwords, mock_run_playbook):
         plan_management.update_plan_from_templates(
             self.app.client_manager,
             'test-overcloud',
@@ -346,6 +326,17 @@ class TestPlanUpdateWorkflows(base.TestCommand):
         # Ensure that the passwords variable is passed with a value of None.
         mock_update_passwords.assert_called_with(
             mock.ANY, 'test-overcloud', None)
+        mock_run_playbook.assert_called_once_with(
+            'cli-update-deployment-plan.yaml',
+            'undercloud,',
+            constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            extra_vars={
+                "container": "test-overcloud",
+                "generate_passwords": True,
+                "validate": False
+            },
+            verbosity=3,
+        )
 
 
 class TestUpdatePasswords(base.TestCase):

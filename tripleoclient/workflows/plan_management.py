@@ -23,7 +23,6 @@ from tripleo_common.utils import tarball
 from tripleoclient import constants
 from tripleoclient import exceptions
 from tripleoclient import utils
-from tripleoclient.workflows import base
 
 LOG = logging.getLogger(__name__)
 # Plan management workflows should generally be quick. However, the creation
@@ -65,32 +64,25 @@ def _upload_templates(swift_client, container_name, tht_root, roles_file=None,
                      constants.PLAN_ENVIRONMENT, plan_env_file)
 
 
-def _create_update_deployment_plan(clients, workflow, **workflow_input):
-    workflow_client = clients.workflow_engine
-    tripleoclients = clients.tripleoclient
-
-    with tripleoclients.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client, workflow,
-            workflow_input=workflow_input
-        )
-
-        for payload in base.wait_for_messages(workflow_client, ws, execution,
-                                              _WORKFLOW_TIMEOUT):
-            if 'message' in payload:
-                print(payload['message'])
-
-    return payload
-
-
 def create_deployment_plan(clients, **workflow_input):
-    payload = _create_update_deployment_plan(
-        clients, 'tripleo.plan_management.v1.create_deployment_plan',
-        **workflow_input)
+    extra_vars = {
+            "container": workflow_input['container'],
+            "validate": workflow_input['validate_stack'],
+            "generate_passwords": workflow_input["generate_passwords"]}
 
-    if payload['status'] != 'SUCCESS':
-        raise exceptions.WorkflowServiceError(
-            'Exception creating plan: {}'.format(payload['message']))
+    if 'plan_env_file' in workflow_input and workflow_input[
+            'plan_env_file'] is not None:
+        extra_vars.update(plan_environment=workflow_input['plan_env_file'])
+
+    utils.run_ansible_playbook(
+        "cli-create-deployment-plan.yaml",
+        'undercloud,',
+        constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+        extra_vars=extra_vars,
+        verbosity=3
+    )
+
+    print("Success.")
 
 
 def delete_deployment_plan(clients, container):
@@ -111,13 +103,19 @@ def delete_deployment_plan(clients, container):
 
 
 def update_deployment_plan(clients, **workflow_input):
-    payload = _create_update_deployment_plan(
-        clients, 'tripleo.plan_management.v1.update_deployment_plan',
-        **workflow_input)
+    utils.run_ansible_playbook(
+        "cli-update-deployment-plan.yaml",
+        'undercloud,',
+        constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+        extra_vars={
+            "container": workflow_input['container'],
+            "validate": workflow_input['validate_stack'],
+            "generate_passwords": workflow_input["generate_passwords"],
+        },
+        verbosity=3
+    )
 
-    if payload['status'] != 'SUCCESS':
-        raise exceptions.WorkflowServiceError(
-            'Exception updating plan: {}'.format(payload['message']))
+    print("Success.")
 
 
 def list_deployment_plans(clients):
@@ -164,6 +162,7 @@ def create_plan_from_templates(clients, name, tht_root, roles_file=None,
     try:
         create_deployment_plan(clients, container=name,
                                generate_passwords=generate_passwords,
+                               plan_env_file=plan_env_file,
                                validate_stack=validate_stack)
     except exceptions.WorkflowServiceError:
         swiftutils.delete_container(swift_client, name)
