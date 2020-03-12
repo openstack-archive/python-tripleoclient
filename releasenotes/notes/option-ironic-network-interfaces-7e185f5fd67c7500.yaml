@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    The network interface drivers for the Baremetal service on the undercloud
+    is now configurable. New undercloud.conf options
+    ``enabled_network_interfaces`` (Default: ``flat``) and
+    ``default_network_interface`` (Default: ``flat``) control the enabled
+    network interface and the default network interface when enrolling nodes.
