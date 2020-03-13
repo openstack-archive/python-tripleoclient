@@ -362,6 +362,24 @@ class UndercloudConfig(StandaloneConfig):
                        help=(_('IPv6 address configuration mode for the '
                                'undercloud provisioning network.'))
                        ),
+            cfg.ListOpt('ironic_enabled_network_interfaces',
+                        default=['flat'],
+                        help=(_('Enabled ironic network interface '
+                                'implementations. Each hardware type must '
+                                'have at least one valid implementation '
+                                'enabled.'))
+                        ),
+            cfg.StrOpt('ironic_default_network_interface',
+                       default='flat',
+                       choices=[
+                           ('flat', 'Use one flat provider network.'),
+                           ('neutron', 'Ironic interacts with Neutron to '
+                                       'enable other network types and '
+                                       'advanced networking features.')
+                       ],
+                       help=(_('Ironic network interface implementation to '
+                               'use by default.'))
+                       ),
         ]
         return self.sort_opts(_base_opts + _opts)
 

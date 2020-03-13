@@ -40,14 +40,19 @@ class TestProcessDriversAndHardwareTypes(base.TestCase):
     def setUp(self):
         super(TestProcessDriversAndHardwareTypes, self).setUp()
         self.conf = mock.Mock(**{key: getattr(undercloud_config.CONF, key)
-                                 for key in ('enabled_hardware_types',
-                                             'enable_node_discovery',
-                                             'discovery_default_driver')})
+                                 for key in (
+                                     'enabled_hardware_types',
+                                     'enable_node_discovery',
+                                     'discovery_default_driver',
+                                     'ironic_enabled_network_interfaces',
+                                     'ironic_default_network_interface')})
 
     def test_defaults(self):
         env = {}
         undercloud_config._process_drivers_and_hardware_types(self.conf, env)
         self.assertEqual({
+            'IronicEnabledNetworkInterfaces': ['flat'],
+            'IronicDefaultNetworkInterface': 'flat',
             'IronicEnabledHardwareTypes': ['idrac', 'ilo', 'ipmi', 'redfish'],
             'IronicEnabledBootInterfaces': ['ilo-pxe', 'ipxe', 'pxe'],
             'IronicEnabledBiosInterfaces': ['ilo', 'no-bios', 'redfish'],
@@ -70,6 +75,8 @@ class TestProcessDriversAndHardwareTypes(base.TestCase):
 
         undercloud_config._process_drivers_and_hardware_types(self.conf, env)
         self.assertEqual({
+            'IronicEnabledNetworkInterfaces': ['flat'],
+            'IronicDefaultNetworkInterface': 'flat',
             # ipmi added because it's the default discovery driver
             'IronicEnabledHardwareTypes': ['ipmi', 'redfish'],
             'IronicEnabledBootInterfaces': ['ipxe', 'pxe'],
@@ -96,6 +103,8 @@ class TestProcessDriversAndHardwareTypes(base.TestCase):
 
         undercloud_config._process_drivers_and_hardware_types(self.conf, env)
         self.assertEqual({
+            'IronicEnabledNetworkInterfaces': ['flat'],
+            'IronicDefaultNetworkInterface': 'flat',
             'IronicEnabledHardwareTypes': ['fake-hardware', 'idrac', 'ilo',
                                            'ipmi', 'irmc', 'redfish', 'snmp',
                                            'staging-ovirt', 'xclarity'],

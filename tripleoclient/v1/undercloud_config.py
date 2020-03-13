@@ -143,6 +143,11 @@ def _process_drivers_and_hardware_types(conf, env):
         env['IronicInspectorDiscoveryDefaultDriver'] = (
             conf.discovery_default_driver)
 
+    env['IronicEnabledNetworkInterfaces'] = \
+        conf.ironic_enabled_network_interfaces
+    env['IronicDefaultNetworkInterface'] = \
+        conf.ironic_default_network_interface
+
     # In most cases power and management interfaces are called the same, so we
     # use one variable for them.
     mgmt_interfaces = {'fake', 'ipmitool'}
