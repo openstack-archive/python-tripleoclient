@@ -41,7 +41,7 @@ def export_passwords(swift, stack, excludes=True):
                   "file from swift: %s", str(e))
         sys.exit(1)
 
-    data = yaml.load(content)["passwords"]
+    data = yaml.safe_load(content)["passwords"]
     if excludes:
         excluded_passwords = []
         for k in data:

@@ -2346,7 +2346,7 @@ def check_file_for_enabled_service(env_file):
     """
     if os.path.exists(env_file):
         with open(env_file, "r") as f:
-            content = yaml.load(f)
+            content = yaml.safe_load(f)
         deprecated_services_enabled = []
         for service in constants.DEPRECATED_SERVICES.keys():
             try:
