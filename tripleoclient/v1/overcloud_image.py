@@ -15,6 +15,7 @@
 
 from __future__ import print_function
 
+import abc
 import logging
 import os
 import re
@@ -95,61 +96,79 @@ class BuildOvercloudImage(command.Command):
         manager.build()
 
 
-class GlanceBaseClientAdapter(object):
-    def __init__(self, client):
+class BaseClientAdapter(object):
+
+    log = logging.getLogger(__name__ + ".BaseClientAdapter")
+
+    def __init__(self, image_path, progress=False,
+                 update_existing=False, updated=None):
+        self.progress = progress
+        self.image_path = image_path
+        self.update_existing = update_existing
+        self.updated = updated
+
+    @abc.abstractmethod
+    def get_image_property(self, image, prop):
+        pass
+
+    @abc.abstractmethod
+    def update_or_upload(self, image_name, properties, names_func,
+                         arch, platform=None,
+                         disk_format='qcow2', container_format='bare'):
+        pass
+
+    def _copy_file(self, src, dest):
+        subprocess.check_call('sudo cp -f "{0}" "{1}"'.format(src, dest),
+                              shell=True)
+
+    def _files_changed(self, filepath1, filepath2):
+        return (plugin_utils.file_checksum(filepath1) !=
+                plugin_utils.file_checksum(filepath2))
+
+    def file_create_or_update(self, src_file, dest_file):
+        if os.path.isfile(dest_file):
+            if self._files_changed(src_file, dest_file):
+                if self.update_existing:
+                    self._copy_file(src_file, dest_file)
+                else:
+                    print('Image file "%s" already exists and can be updated'
+                          ' with --update-existing.' % dest_file)
+            else:
+                print('Image file "%s" is up-to-date, skipping.' % dest_file)
+        else:
+            self._copy_file(src_file, dest_file)
+
+    def check_file_exists(self, file_path):
+        if not os.path.isfile(file_path):
+            raise exceptions.CommandError(
+                'Required file "%s" does not exist.' % file_path
+            )
+
+    def read_image_file_pointer(self, filepath):
+        self.check_file_exists(filepath)
+        file_descriptor = open(filepath, 'rb')
+
+        if self.progress:
+            file_descriptor = VerboseFileWrapper(file_descriptor)
+
+        return file_descriptor
+
+
+class GlanceClientAdapter(BaseClientAdapter):
+
+    def __init__(self, client, **kwargs):
+        super(GlanceClientAdapter, self).__init__(**kwargs)
         self.client = client
 
-    def print_image_info(self, image):
+    def _print_image_info(self, image):
         table = PrettyTable(['ID', 'Name', 'Disk Format', 'Size', 'Status'])
         table.add_row([image.id, image.name, image.disk_format, image.size,
                        image.status])
         print(table, file=sys.stdout)
 
-
-class GlanceV1ClientAdapter(GlanceBaseClientAdapter):
-    def upload_image(self, *args, **kwargs):
-        image = self.client.images.create(*args, **kwargs)
-
-        print('Image "%s" was uploaded.' % image.name, file=sys.stdout)
-        self.print_image_info(image)
-        return image
-
-    def get_image_property(self, image, prop):
-        return image.properties[prop]
-
-
-class GlanceV2ClientAdapter(GlanceBaseClientAdapter):
-    def upload_image(self, *args, **kwargs):
-        is_public = kwargs.pop('is_public')
-        data = kwargs.pop('data')
-        properties = kwargs.pop('properties', None)
-        kwargs['visibility'] = 'public' if is_public else 'private'
-        kwargs.setdefault('container_format', 'bare')
-
-        image = self.client.images.create(*args, **kwargs)
-
-        self.client.images.upload(image.id, image_data=data)
-        if properties:
-            self.client.images.update(image.id, **properties)
-        # Refresh image info
-        image = self.client.images.get(image.id)
-
-        print('Image "%s" was uploaded.' % image.name, file=sys.stdout)
-        self.print_image_info(image)
-        return image
-
-    def get_image_property(self, image, prop):
-        return getattr(image, prop)
-
-
-class UploadOvercloudImage(command.Command):
-    """Create overcloud glance images from existing image files."""
-    log = logging.getLogger(__name__ + ".UploadOvercloudImage")
-
     def _get_image(self, name):
         try:
-            image = utils.find_resource(self.app.client_manager.image.images,
-                                        name)
+            image = utils.find_resource(self.client.images, name)
         except exceptions.CommandError as e:
             # TODO(maufart): enhance error detection, when python-glanceclient
             # starts provide it https://bugs.launchpad.net/glance/+bug/1480156
@@ -164,43 +183,22 @@ class UploadOvercloudImage(command.Command):
                 return None
         return image
 
-    def _image_changed(self, name, filename):
-        image = utils.find_resource(self.app.client_manager.image.images,
-                                    name)
+    def _image_changed(self, image, filename):
         return image.checksum != plugin_utils.file_checksum(filename)
 
-    def _check_file_exists(self, file_path):
-        if not os.path.isfile(file_path):
-            raise exceptions.CommandError(
-                'Required file "%s" does not exist.' % file_path
-            )
-
-    def _read_image_file_pointer(self, dirname, filename):
-        filepath = os.path.join(dirname, filename)
-        self._check_file_exists(filepath)
-        file_descriptor = open(filepath, 'rb')
-
-        if self._progress:
-            file_descriptor = VerboseFileWrapper(file_descriptor)
-
-        return file_descriptor
-
-    def _copy_file(self, src, dest):
-        subprocess.check_call('sudo cp -f "{0}" "{1}"'.format(src, dest),
-                              shell=True)
-
-    def _image_try_update(self, image_name, image_file, parsed_args):
+    def _image_try_update(self, image_name, image_file):
         image = self._get_image(image_name)
         if image:
-            if self._image_changed(image_name, image_file):
-                if parsed_args.update_existing:
-                    self.app.client_manager.image.images.update(
+            if self._image_changed(image, image_file):
+                if self.update_existing:
+                    self.client.images.update(
                         image.id,
                         name='%s_%s' % (image.name, re.sub(r'[\-:\.]|(0+$)',
                                                            '',
                                                            image.created_at))
                     )
-                    self.updated = True
+                    if self.updated is not None:
+                        self.updated.append(image.id)
                     return None
                 else:
                     print('Image "%s" already exists and can be updated'
@@ -212,28 +210,66 @@ class UploadOvercloudImage(command.Command):
         else:
             return None
 
-    def _files_changed(self, filepath1, filepath2):
-        return (plugin_utils.file_checksum(filepath1) !=
-                plugin_utils.file_checksum(filepath2))
+    def _upload_image(self, name, data, properties=None, visibility='public',
+                      disk_format='qcow2', container_format='bare'):
 
-    def _file_create_or_update(self, src_file, dest_file, update_existing):
-        if os.path.isfile(dest_file):
-            if self._files_changed(src_file, dest_file):
-                if update_existing:
-                    self._copy_file(src_file, dest_file)
-                else:
-                    print('Image file "%s" already exists and can be updated'
-                          ' with --update-existing.' % dest_file)
-            else:
-                print('Image file "%s" is up-to-date, skipping.' % dest_file)
-        else:
-            self._copy_file(src_file, dest_file)
+        image = self.client.images.create(
+            name=name,
+            visibility=visibility,
+            disk_format=disk_format,
+            container_format=container_format
+        )
 
-    def _get_glance_client_adaptor(self):
-        if self.app.client_manager.image.version >= 2.0:
-            return GlanceV2ClientAdapter(self.app.client_manager.image)
-        else:
-            return GlanceV1ClientAdapter(self.app.client_manager.image)
+        self.client.images.upload(image.id, image_data=data)
+        if properties:
+            self.client.images.update(image.id, **properties)
+        # Refresh image info
+        image = self.client.images.get(image.id)
+
+        print('Image "%s" was uploaded.' % image.name, file=sys.stdout)
+        self._print_image_info(image)
+        return image
+
+    def get_image_property(self, image, prop):
+        return getattr(image, prop)
+
+    def update_or_upload(self, image_name, properties, names_func,
+                         arch, platform=None,
+                         disk_format='qcow2', container_format='bare'):
+
+        if arch == 'x86_64' and platform is None:
+            arch = None
+
+        (glance_name, extension) = names_func(
+                image_name, arch=arch, platform=platform)
+
+        file_path = os.path.join(self.image_path, image_name + extension)
+
+        updated_image = self._image_try_update(glance_name, file_path)
+        if updated_image:
+            return updated_image
+
+        with self.read_image_file_pointer(file_path) as data:
+            return self._upload_image(
+                    name=glance_name,
+                    disk_format=disk_format,
+                    container_format=container_format,
+                    properties=properties,
+                    data=data)
+
+
+class UploadOvercloudImage(command.Command):
+    """Make existing image files available for overcloud deployment."""
+    log = logging.getLogger(__name__ + ".UploadOvercloudImage")
+
+    def _get_client_adapter(self, parsed_args):
+        return GlanceClientAdapter(
+            self.app.client_manager.image,
+            progress=parsed_args.progress,
+            image_path=parsed_args.image_path,
+            update_existing=parsed_args.update_existing,
+            updated=self.updated
+        )
 
     def _get_environment_var(self, envvar, default, deprecated=[]):
         for env_key in deprecated:
@@ -293,7 +329,7 @@ class UploadOvercloudImage(command.Command):
             "--architecture",
             help=_("Architecture type for these images, "
                    "\'x86_64\', \'i386\' and \'ppc64le\' "
-                   "are common options.  This option should match at least "
+                   "are common options. This option should match at least "
                    "one \'arch\' value in instackenv.json"),
         )
         parser.add_argument(
@@ -322,9 +358,8 @@ class UploadOvercloudImage(command.Command):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
-        glance_client_adaptor = self._get_glance_client_adaptor()
-        self.updated = False
-        self._progress = parsed_args.progress
+        self.updated = []
+        self.adapter = self._get_client_adapter(parsed_args)
 
         if parsed_args.platform and not parsed_args.architecture:
             raise exceptions.CommandError('You supplied a platform (%s) '
@@ -348,12 +383,12 @@ class UploadOvercloudImage(command.Command):
             overcloud_image_type = 'partition'
 
         for image in image_files:
-            self._check_file_exists(os.path.join(parsed_args.image_path,
-                                                 image))
+            self.adapter.check_file_exists(
+                os.path.join(parsed_args.image_path, image))
 
         image_name = parsed_args.os_image_name.split('.')[0]
 
-        self.log.debug("uploading %s overcloud images to glance" %
+        self.log.debug("uploading %s overcloud images " %
                        overcloud_image_type)
 
         properties = {}
@@ -369,69 +404,38 @@ class UploadOvercloudImage(command.Command):
         if parsed_args.image_type is None or parsed_args.image_type == 'os':
             # vmlinuz and initrd only need to be uploaded for a partition image
             if not parsed_args.whole_disk:
-                (oc_vmlinuz_name,
-                 oc_vmlinuz_extension) = plugin_utils.overcloud_kernel(
-                     image_name, arch=arch, platform=platform)
-                oc_vmlinuz_file = os.path.join(parsed_args.image_path,
-                                               image_name +
-                                               oc_vmlinuz_extension)
-                with self._read_image_file_pointer(
-                        parsed_args.image_path, oc_vmlinuz_file) as data:
-                    kernel = (self._image_try_update(oc_vmlinuz_name,
-                                                     oc_vmlinuz_file,
-                                                     parsed_args) or
-                              glance_client_adaptor.upload_image(
-                                  name=oc_vmlinuz_name,
-                                  is_public=True,
-                                  disk_format='aki',
-                                  properties=properties,
-                                  data=data
-                    ))
+                kernel = self.adapter.update_or_upload(
+                    image_name=image_name,
+                    properties=properties,
+                    names_func=plugin_utils.overcloud_kernel,
+                    arch=arch,
+                    platform=platform,
+                    disk_format='aki'
+                )
 
-                (oc_initrd_name,
-                 oc_initrd_extension) = plugin_utils.overcloud_ramdisk(
-                     image_name, arch=arch, platform=platform)
-                oc_initrd_file = os.path.join(parsed_args.image_path,
-                                              image_name +
-                                              oc_initrd_extension)
-                with self._read_image_file_pointer(
-                        parsed_args.image_path, oc_initrd_file) as data:
-                    ramdisk = (self._image_try_update(oc_initrd_name,
-                                                      oc_initrd_file,
-                                                      parsed_args) or
-                               glance_client_adaptor.upload_image(
-                                   name=oc_initrd_name,
-                                   is_public=True,
-                                   disk_format='ari',
-                                   properties=properties,
-                                   data=data
-                    ))
+                ramdisk = self.adapter.update_or_upload(
+                    image_name=image_name,
+                    properties=properties,
+                    names_func=plugin_utils.overcloud_ramdisk,
+                    arch=arch,
+                    platform=platform,
+                    disk_format='ari'
+                )
 
-                (oc_name,
-                 oc_extension) = plugin_utils.overcloud_image(
-                     image_name, arch=arch, platform=platform)
-                oc_file = os.path.join(parsed_args.image_path,
-                                       image_name +
-                                       oc_extension)
-                with self._read_image_file_pointer(
-                        parsed_args.image_path, oc_file) as data:
-                    overcloud_image = (self._image_try_update(oc_name, oc_file,
-                                                              parsed_args) or
-                                       glance_client_adaptor.upload_image(
-                                           name=oc_name,
-                                           is_public=True,
-                                           disk_format='qcow2',
-                                           container_format='bare',
-                                           properties=dict(
-                                               {'kernel_id': kernel.id,
-                                                'ramdisk_id': ramdisk.id},
-                                               **properties),
-                                           data=data
-                    ))
+                overcloud_image = self.adapter.update_or_upload(
+                    image_name=image_name,
+                    properties=dict(
+                        {'kernel_id': kernel.id,
+                         'ramdisk_id': ramdisk.id},
+                        **properties),
+                    names_func=plugin_utils.overcloud_image,
+                    arch=arch,
+                    platform=platform
+                )
 
-                img_kernel_id = glance_client_adaptor.get_image_property(
+                img_kernel_id = self.adapter.get_image_property(
                     overcloud_image, 'kernel_id')
-                img_ramdisk_id = glance_client_adaptor.get_image_property(
+                img_ramdisk_id = self.adapter.get_image_property(
                     overcloud_image, 'ramdisk_id')
                 # check overcloud image links
                 if (img_kernel_id != kernel.id or
@@ -442,46 +446,33 @@ class UploadOvercloudImage(command.Command):
                                    'manually.')
 
             else:
-                (oc_name,
-                 oc_extension) = plugin_utils.overcloud_image(
-                     image_name, arch=arch, platform=platform)
-                oc_file = os.path.join(parsed_args.image_path,
-                                       image_name +
-                                       oc_extension)
-                with self._read_image_file_pointer(
-                        parsed_args.image_path, oc_file) as data:
-                    overcloud_image = (self._image_try_update(oc_name, oc_file,
-                                                              parsed_args) or
-                                       glance_client_adaptor.upload_image(
-                                           name=oc_name,
-                                           is_public=True,
-                                           disk_format='qcow2',
-                                           container_format='bare',
-                                           properties=properties,
-                                           data=data
-                    ))
+                overcloud_image = self.adapter.update_or_upload(
+                    image_name=image_name,
+                    properties=properties,
+                    names_func=plugin_utils.overcloud_image,
+                    arch=arch,
+                    platform=platform
+                )
 
-            self.log.debug("uploading bm images to glance")
+            self.log.debug("uploading bm images")
 
         if parsed_args.image_type is None or \
                 parsed_args.image_type == 'ironic-python-agent':
             self.log.debug("copy agent images to HTTP BOOT dir")
 
-            self._file_create_or_update(
+            self.adapter.file_create_or_update(
                 os.path.join(parsed_args.image_path,
                              '%s.kernel' % parsed_args.ipa_name),
-                os.path.join(parsed_args.http_boot, 'agent.kernel'),
-                parsed_args.update_existing
+                os.path.join(parsed_args.http_boot, 'agent.kernel')
             )
 
-            self._file_create_or_update(
+            self.adapter.file_create_or_update(
                 os.path.join(parsed_args.image_path,
                              '%s.initramfs' % parsed_args.ipa_name),
-                os.path.join(parsed_args.http_boot, 'agent.ramdisk'),
-                parsed_args.update_existing
+                os.path.join(parsed_args.http_boot, 'agent.ramdisk')
             )
 
         if self.updated:
-            print('Some images have been updated in Glance, make sure to '
+            print('%s images have been updated, make sure to '
                   'rerun\n\topenstack overcloud node configure\nto reflect '
-                  'the changes on the nodes')
+                  'the changes on the nodes' % len(self.updated))

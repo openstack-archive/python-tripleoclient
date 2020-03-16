@@ -1568,31 +1568,37 @@ def _name_helper(basename, arch=None, platform=None, use_subdir=False):
     return basename
 
 
-def overcloud_kernel(basename, arch=None, platform=None):
+def overcloud_kernel(basename, arch=None, platform=None,
+                     use_subdir=False):
     return (_name_helper('%s-vmlinuz' % basename, arch=arch,
-                         platform=platform),
+                         platform=platform, use_subdir=use_subdir),
             '.vmlinuz')
 
 
-def overcloud_ramdisk(basename, arch=None, platform=None):
+def overcloud_ramdisk(basename, arch=None, platform=None,
+                      use_subdir=False):
     return (_name_helper('%s-initrd' % basename, arch=arch,
-                         platform=platform),
+                         platform=platform, use_subdir=use_subdir),
             '.initrd')
 
 
-def overcloud_image(basename, arch=None, platform=None):
-    return (_name_helper(basename, arch=arch, platform=platform),
+def overcloud_image(basename, arch=None, platform=None,
+                    use_subdir=False):
+    return (_name_helper(basename, arch=arch, platform=platform,
+                         use_subdir=use_subdir),
             '.qcow2')
 
 
-def deploy_kernel(arch=None, platform=None):
-    return _name_helper('agent', arch=arch, platform=platform,
-                        use_subdir=True) + '.kernel'
+def deploy_kernel(basename='agent', arch=None, platform=None,
+                  use_subdir=True):
+    return _name_helper(basename, arch=arch, platform=platform,
+                        use_subdir=use_subdir) + '.kernel'
 
 
-def deploy_ramdisk(arch=None, platform=None):
-    return _name_helper('agent', arch=arch, platform=platform,
-                        use_subdir=True) + '.ramdisk'
+def deploy_ramdisk(basename='agent', arch=None, platform=None,
+                   use_subdir=True):
+    return _name_helper(basename, arch=arch, platform=platform,
+                        use_subdir=use_subdir) + '.ramdisk'
 
 
 def _candidate_files(node, call):
