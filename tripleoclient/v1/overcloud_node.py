@@ -477,8 +477,8 @@ class ProvisionNode(command.Command):
         parser.add_argument('--overcloud-ssh-key',
                             default=None,
                             help=_('Key path for ssh access to'
-                                   'overcloud nodes. When undefined the key'
-                                   'will be autodetected.'))
+                                   ' overcloud nodes. When undefined the key'
+                                   ' will be autodetected.'))
         parser.add_argument('--concurrency', type=int,
                             default=20,
                             help=_('Maximum number of nodes to provision at '
