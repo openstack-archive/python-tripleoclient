@@ -1407,7 +1407,7 @@ def load_environment_directories(directories):
     return environments
 
 
-def get_config(clients, container):
+def get_config(clients, container, container_config):
     """Get cloud config.
 
     :param clients: Application client object.
@@ -1418,7 +1418,8 @@ def get_config(clients, container):
     """
 
     context = clients.tripleoclient.create_mistral_context()
-    config_action = config.GetOvercloudConfig(container=container)
+    config_action = config.GetOvercloudConfig(
+        container=container, container_config=container_config)
     config_action.run(context=context)
 
 

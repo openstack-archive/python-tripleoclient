@@ -99,7 +99,9 @@ class FFWDUpgradePrepare(DeployOvercloud):
 
         super(FFWDUpgradePrepare, self).take_action(parsed_args)
         package_update.update(clients, container=stack_name)
-        oooutils.get_config(clients, container=stack_name)
+        oooutils.get_config(
+            clients, container=stack_name,
+            container_config='{}-config'.format(stack.stack_name))
 
         overcloudrcs = deployment.create_overcloudrc(
             clients, container=stack_name)
