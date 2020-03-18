@@ -382,7 +382,10 @@ def config_download(log, clients, stack, ssh_network=None,
         logger=log,
         print_msg=(verbosity == 0)
     )
-    utils.get_config(clients, container=stack.stack_name)
+    container_config = '{}-config'.format(stack.stack_name)
+
+    utils.get_config(clients, container=stack.stack_name,
+                     container_config=container_config)
     _log_and_print(
         message='Downloading configuration for stack: {}'.format(
             stack.stack_name
@@ -392,8 +395,8 @@ def config_download(log, clients, stack, ssh_network=None,
     )
     download = config.DownloadConfigAction(
         work_dir=stack_work_dir,
-        container_config='{}-config'.format(stack.stack_name)
-    )
+        container_config=container_config)
+
     work_dir = download.run(context=context)
     _log_and_print(
         message='Retrieving keyfile for stack: {}'.format(
