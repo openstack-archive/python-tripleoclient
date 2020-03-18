@@ -53,7 +53,7 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
     @mock.patch('tripleoclient.workflows.package_update.update',
                 autospec=True)
     @mock.patch('os.path.abspath')
-    @mock.patch('yaml.load')
+    @mock.patch('yaml.safe_load')
     @mock.patch('shutil.copytree', autospec=True)
     @mock.patch('six.moves.builtins.open')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
@@ -118,7 +118,7 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
                 autospec=True)
     @mock.patch('six.moves.builtins.open')
     @mock.patch('os.path.abspath')
-    @mock.patch('yaml.load')
+    @mock.patch('yaml.safe_load')
     @mock.patch('shutil.copytree', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_tripleo_heat_templates', autospec=True)
