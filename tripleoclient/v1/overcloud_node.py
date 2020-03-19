@@ -81,6 +81,12 @@ class DeleteNode(command.Command):
                    "Keep in mind that due to keystone session duration "
                    "that timeout has an upper bound of 4 hours ")
         )
+        parser.add_argument(
+            '--overcloud-ssh-port-timeout',
+            help=_('Timeout for the ssh port to become active.'),
+            type=int,
+            default=constants.ENABLE_SSH_ADMIN_SSH_PORT_TIMEOUT
+        )
         parser.add_argument('-y', '--yes',
                             help=_('Skip yes/no prompt (assume yes).'),
                             default=False,
@@ -169,6 +175,7 @@ class DeleteNode(command.Command):
             clients=clients,
             stack=stack,
             nodes=nodes,
+            connection_timeout=parsed_args.overcloud_ssh_port_timeout,
             timeout=parsed_args.timeout,
             verbosity=oooutils.playbook_verbosity(self=self)
         )

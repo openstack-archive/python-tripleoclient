@@ -185,9 +185,11 @@ class TestDeleteNode(fakes.TestDeleteNode):
             inp.flush()
 
             argslist = ['--baremetal-deployment', inp.name, '--templates',
-                        '--stack', 'overcast', '--timeout', '90', '--yes']
+                        '--stack', 'overcast', '--overcloud-ssh-port-timeout',
+                        '42', '--timeout', '90', '--yes']
             verifylist = [
                 ('stack', 'overcast'),
+                ('overcloud_ssh_port_timeout', 42),
                 ('baremetal_deployment', inp.name)
             ]
             parsed_args = self.check_parser(self.cmd, argslist, verifylist)
@@ -245,11 +247,12 @@ class TestDeleteNode(fakes.TestDeleteNode):
                 ssh_user='tripleo-admin',
                 key=mock.ANY,
                 limit_hosts='overcast-controller-1:overcast-compute-0',
-                ansible_timeout=90,
+                ansible_timeout=42,
                 reproduce_command=True,
                 extra_env_variables={'ANSIBLE_BECOME': True},
                 extra_vars=None,
-                tags=None
+                tags=None,
+                timeout=90
             ),
             mock.call(
                 inventory='localhost,',

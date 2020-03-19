@@ -287,11 +287,11 @@ class TestOvercloudDeployPlan(utils.TestCommand):
             'undercloud,',
             mock.ANY,
             constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            timeout=240,
             extra_vars={
                 "container": "overcast",
                 "run_validations": True,
                 "skip_deploy_identifier": False,
-                "ansible_timeout": 240
             },
             verbosity=3,
         )

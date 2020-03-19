@@ -231,7 +231,7 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
                          extra_env_variables=None, parallel_run=False,
                          callback_whitelist=None, ansible_cfg=None,
                          ansible_timeout=30, reproduce_command=False,
-                         fail_on_rc=True):
+                         fail_on_rc=True, timeout=None):
     """Simple wrapper for ansible-playbook.
 
     :param playbook: Playbook filename.
@@ -320,6 +320,9 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
                        return code from the playbook execution results in a
                        non 0 exit code. The default is True.
     :type fail_on_rc: Boolean
+
+    :param timeout: Timeout for ansible to finish playbook execution (minutes).
+    :type timeout: int
     """
 
     def _playbook_check(play):
@@ -347,8 +350,29 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
                 'hosts'
             )
 
+    def _running_ansible_msg(playbook, timeout=None):
+        if timeout and timeout > 0:
+            return ('Running Ansible playbook with timeout %sm: %s,' %
+                    (timeout, playbook))
+        else:
+            return ('Running Ansible playbook: %s,' % playbook)
+
     if not playbook_dir:
         playbook_dir = workdir
+
+    if timeout and timeout > 0:
+        makedirs(os.path.join(workdir, 'env'))
+        settings_file = os.path.join(workdir, 'env/settings')
+        timeout_value = timeout * 60
+        if os.path.exists(settings_file):
+            with open(os.path.join(workdir, 'env/settings'), 'r') as f:
+                settings_object = yaml.safe_load(f.read())
+                settings_object['job_timeout'] = timeout_value
+        else:
+            settings_object = {'job_timeout': timeout_value}
+
+        with open(os.path.join(workdir, 'env/settings'), 'w') as f:
+            f.write(yaml.safe_dump(settings_object, default_flow_style=False))
 
     if isinstance(playbook, (list, set)):
         verified_playbooks = [_playbook_check(play=i) for i in playbook]
@@ -362,7 +386,7 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
             )
 
         LOG.info(
-            'Running Ansible playbook: {},'
+            _running_ansible_msg(playbook, timeout) +
             ' multi-playbook execution: {}'
             ' Working directory: {},'
             ' Playbook directory: {}'.format(
@@ -375,7 +399,7 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
     else:
         playbook = _playbook_check(play=playbook)
         LOG.info(
-            'Running Ansible playbook: {},'
+            _running_ansible_msg(playbook, timeout) +
             ' Working directory: {},'
             ' Playbook directory: {}'.format(
                 playbook,
