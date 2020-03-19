@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Ansible connection timeout used for config download and the deployment
+    timeout now will be given proper values. It fixes `bug 1868063
+    <https://bugs.launchpad.net/tripleo/+bug/1868063>`__.

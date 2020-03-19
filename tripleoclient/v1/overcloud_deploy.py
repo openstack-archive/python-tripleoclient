@@ -993,10 +993,12 @@ class DeployOvercloud(command.Command):
                     parsed_args.overcloud_ssh_network,
                     parsed_args.output_dir,
                     parsed_args.override_ansible_cfg,
-                    timeout,
+                    timeout=parsed_args.overcloud_ssh_port_timeout,
                     verbosity=self.app_args.verbose_level,
                     deployment_options=deployment_options,
-                    in_flight_validations=parsed_args.inflight)
+                    in_flight_validations=parsed_args.inflight,
+                    deployment_timeout=timeout
+                )
             except Exception:
                 deployment.set_deployment_status(
                     self.clients, 'failed',
