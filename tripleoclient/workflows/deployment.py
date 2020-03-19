@@ -14,7 +14,6 @@ from __future__ import print_function
 import copy
 import getpass
 import os
-import pprint
 import time
 
 import six
@@ -31,39 +30,25 @@ from tripleoclient.constants import DEFAULT_WORK_DIR
 from tripleoclient import exceptions
 from tripleoclient import utils
 
-from tripleoclient.workflows import base
-
 
 _WORKFLOW_TIMEOUT = 360  # 6 * 60 seconds
 
 
 def deploy(log, clients, **workflow_input):
+    utils.run_ansible_playbook(
+        "cli-deploy-deployment-plan.yaml",
+        'undercloud,',
+        ANSIBLE_TRIPLEO_PLAYBOOKS,
+        extra_vars={
+            "container": workflow_input['container'],
+            "run_validations": workflow_input['run_validations'],
+            "skip_deploy_identifier": workflow_input['skip_deploy_identifier'],
+            "timeout_mins": workflow_input['timeout'],
+        },
+        verbosity=3
+    )
 
-    workflow_client = clients.workflow_engine
-    tripleoclients = clients.tripleoclient
-    wf_name = 'tripleo.deployment.v1.deploy_plan'
-
-    with tripleoclients.messaging_websocket() as ws:
-        execution = base.start_workflow(
-            workflow_client,
-            wf_name,
-            workflow_input=workflow_input
-        )
-
-        # The deploy workflow ends once the Heat create/update starts. This
-        # means that is shouldn't take very long. Wait for 10 minutes for
-        # messages from the workflow.
-        for payload in base.wait_for_messages(workflow_client, ws, execution,
-                                              600):
-            status = payload.get('status', 'RUNNING')
-            message = payload.get('message')
-            if message and status == "RUNNING":
-                print(message)
-            elif payload['status'] != "SUCCESS":
-                log.info(pprint.pformat(payload))
-                print(payload['message'])
-                raise ValueError("Unexpected status %s for %s"
-                                 % (payload['status'], wf_name))
+    print("Success.")
 
 
 def deploy_and_wait(log, clients, stack, plan_name, verbose_level,
@@ -75,7 +60,7 @@ def deploy_and_wait(log, clients, stack, plan_name, verbose_level,
         "container": plan_name,
         "run_validations": run_validations,
         "skip_deploy_identifier": skip_deploy_identifier,
-        "deployment_options": deployment_options,
+        "timeout": timeout
     }
 
     if timeout is not None:
@@ -83,6 +68,7 @@ def deploy_and_wait(log, clients, stack, plan_name, verbose_level,
 
     deploy(log, clients, **workflow_input)
 
+    # need to move this to the playbook I guess
     orchestration_client = clients.orchestration
 
     if stack is None:

@@ -146,7 +146,7 @@ class DeployPlan(command.Command):
         parser = super(DeployPlan, self).get_parser(prog_name)
         parser.add_argument('name', help=_('The name of the plan to deploy.'))
         parser.add_argument('--timeout', '-t', metavar='<TIMEOUT>',
-                            type=int,
+                            type=int, default=240,
                             help=_('Deployment timeout in minutes.'))
         parser.add_argument('--run-validations', action='store_true',
                             default=False,

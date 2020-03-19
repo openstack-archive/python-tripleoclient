@@ -150,27 +150,16 @@ class TestDeploymentWorkflows(utils.TestCommand):
 
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
-    @mock.patch('tripleoclient.workflows.deployment.base')
     def test_config_download_already_in_progress_for_diff_stack(
-            self, mock_base, mock_playbook):
+            self, mock_playbook):
         log = mock.Mock()
         stack = mock.Mock()
         stack.stack_name = 'stacktest'
         stack.output_show.return_value = {'output': {'output_value': []}}
         clients = mock.Mock()
-        mock_execution = mock.Mock()
-        mock_execution.input = '{"plan_name": "someotherstack"}'
-        mock_return = mock.Mock(return_value=[mock_execution])
-        clients.workflow_engine.executions.find = mock_return
-        mock_exit = mock.Mock()
-        mock_exit.__exit__ = mock.Mock()
-        mock_exit.__enter__ = mock.Mock()
-        clients.tripleoclient.messaging_websocket = mock.Mock(
-            return_value=mock_exit)
-        mock_base.wait_for_messages = mock.Mock(
-            return_value=[dict(status='SUCCESS')])
-
         deployment.config_download(
             log, clients, stack, 'templates', 'ssh_user',
             'ssh_key', 'ssh_networks', 'output_dir', False,
             'timeout')
+
+        self.assertEqual(2, mock_playbook.call_count)

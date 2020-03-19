@@ -250,56 +250,44 @@ class TestOvercloudDeployPlan(utils.TestCommand):
         app_args.verbose_level = 1
         self.cmd = overcloud_plan.DeployPlan(self.app, app_args)
 
-        self.workflow = self.app.client_manager.workflow_engine = mock.Mock()
-        execution = mock.Mock()
-        execution.id = "IDID"
-        self.workflow.executions.create.return_value = execution
-        self.orch = self.app.client_manager.orchestration = mock.Mock()
-
-        self.websocket = mock.Mock()
-        self.websocket.__enter__ = lambda s: self.websocket
-        self.websocket.__exit__ = lambda s, *exc: None
-        self.tripleoclient = mock.Mock()
-        self.tripleoclient.messaging_websocket.return_value = self.websocket
-        self.app.client_manager.tripleoclient = self.tripleoclient
-
         sleep_patch = mock.patch('time.sleep')
         self.addCleanup(sleep_patch.stop)
         sleep_patch.start()
 
+    @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
     @mock.patch('tripleoclient.utils.wait_for_stack_ready', autospec=True)
-    def test_overcloud_deploy_plan(self, mock_for_stack_ready):
+    def test_overcloud_deploy_plan(self, mock_for_stack_ready,
+                                   mock_run_playbook):
 
         # Setup
         arglist = ['--run-validations', 'overcast']
         verifylist = [
             ('name', 'overcast'),
             ('run_validations', True),
+            ('timeout', 240)
         ]
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
+        self.orch = self.app.client_manager.orchestration = mock.Mock()
         # No existing stack, this is a new deploy.
         self.orch.stacks.get.return_value = None
-
-        self.websocket.wait_for_messages.return_value = iter([{
-            'execution_id': 'IDID',
-            'status': 'SUCCESS'
-        }])
 
         mock_for_stack_ready.return_value = True
 
         # Run
         self.cmd.take_action(parsed_args)
 
-        # Verify
-        self.workflow.executions.create.assert_called_once_with(
-            'tripleo.deployment.v1.deploy_plan',
-            workflow_input={
-                'container': 'overcast',
-                'run_validations': True,
-                'skip_deploy_identifier': False,
-                'deployment_options': {},
-            }
+        mock_run_playbook.assert_called_once_with(
+            'cli-deploy-deployment-plan.yaml',
+            'undercloud,',
+            constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            extra_vars={
+                "container": "overcast",
+                "run_validations": True,
+                "skip_deploy_identifier": False,
+                "timeout_mins": 240
+            },
+            verbosity=3,
         )
 
 
