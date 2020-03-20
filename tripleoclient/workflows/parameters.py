@@ -11,13 +11,16 @@
 # under the License.
 
 import logging
+import os
 import re
 import yaml
 
 from tripleo_common.actions import parameters
 
+from tripleoclient.constants import ANSIBLE_TRIPLEO_PLAYBOOKS
 from tripleoclient.constants import UNUSED_PARAMETER_EXCLUDES_RE
 from tripleoclient import exceptions
+from tripleoclient import utils
 from tripleoclient.workflows import base
 from tripleoclient.workflows import roles
 
@@ -40,7 +43,42 @@ def invoke_plan_env_workflows(clients, stack_name, plan_env_file):
         raise exceptions.PlanEnvWorkflowError('File (%s) is not found: '
                                               '%s' % (plan_env_file, exc))
 
-    if plan_env_data and "workflow_parameters" in plan_env_data:
+    if plan_env_data and "playbook_parameters" in plan_env_data:
+        static_inventory = utils.get_tripleo_ansible_inventory(
+            ssh_user='heat-admin',
+            stack=stack_name,
+            undercloud_connection='local',
+            return_inventory_file_path=True
+        )
+        with utils.TempDirs() as tmp:
+            for pb, pb_vars in plan_env_data["playbook_parameters"].items():
+                print('Invoking playbook ({}) specified in plan-environment'
+                      ' file'.format(pb))
+                LOG.debug(
+                    'Running playbook "{}" with the'
+                    ' following options {}.'.format(
+                        pb,
+                        pb_vars
+                    )
+                )
+                playbook_dir = os.path.dirname(pb)
+                if not playbook_dir:
+                    playbook_dir = ANSIBLE_TRIPLEO_PLAYBOOKS
+
+                utils.run_ansible_playbook(
+                    playbook=os.path.basename(pb),
+                    inventory=static_inventory,
+                    workdir=tmp,
+                    playbook_dir=playbook_dir,
+                    extra_vars=pb_vars
+                )
+
+    # NOTE(cloudnull): Remove this when mistral is gone.
+    elif plan_env_data and "workflow_parameters" in plan_env_data:
+        LOG.warning(
+            'The workflow_parameters interface is deprecated, begin using'
+            ' playbook_parameters instead.'
+        )
         for wf_name, wf_inputs in plan_env_data["workflow_parameters"].items():
             print('Invoking workflow (%s) specified in plan-environment '
                   'file' % wf_name)
