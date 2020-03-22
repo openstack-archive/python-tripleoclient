@@ -2169,7 +2169,7 @@ def get_validation_group_name_list():
 
     groups = read_validation_groups_file()
 
-    if groups and isinstance(dict, groups):
+    if groups and isinstance(groups, dict):
         for grp_name in six.viewkeys(groups):
             results.append(grp_name)
 
