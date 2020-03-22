@@ -525,10 +525,7 @@ class TripleOValidatorRun(command.Command):
                         contents = json.load(val)
 
                     for i in contents['plays']:
-                        host = [
-                            x.encode('utf-8')
-                            for x in i['play'].get('host').split(', ')
-                        ]
+                        host = [x for x in i['play'].get('host').split(', ')]
                         val_id = i['play'].get('validation_id')
                         time_elapsed = \
                             i['play']['duration'].get('time_elapsed', None)
@@ -542,8 +539,7 @@ class TripleOValidatorRun(command.Command):
 
                     unreachable_hosts = []
                     hosts_result = []
-                    for h in list(contents['stats'].keys()):
-                        ht = h.encode('utf-8')
+                    for ht in list(contents['stats'].keys()):
                         if contents['stats'][ht]['unreachable'] != 0:
                             unreachable_hosts.append(ht)
                         elif contents['stats'][ht]['failures'] != 0:
