@@ -415,73 +415,79 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
     env['ANSIBLE_REMOTE_USER'] = ssh_user
     env['ANSIBLE_STDOUT_CALLBACK'] = output_callback
     env['ANSIBLE_LIBRARY'] = os.path.expanduser(
-        '~/.ansible/plugins/modules:'
+        '{}/.ansible/plugins/modules:'
         '{}:{}:'
         '/usr/share/ansible/tripleo-plugins/modules:'
         '/usr/share/ansible/plugins/modules:'
         '/usr/share/ceph-ansible/library:'
         '{}/library'.format(
+            constants.CLOUD_HOME_DIR,
             os.path.join(workdir, 'modules'),
             os.path.join(cwd, 'modules'),
             constants.DEFAULT_VALIDATIONS_BASEDIR
         )
     )
     env['ANSIBLE_LOOKUP_PLUGINS'] = os.path.expanduser(
-        '~/.ansible/plugins/lookup:'
+        '{}/.ansible/plugins/lookup:'
         '{}:{}:'
         '/usr/share/ansible/tripleo-plugins/lookup:'
         '/usr/share/ansible/plugins/lookup:'
         '/usr/share/ceph-ansible/plugins/lookup:'
         '{}/lookup_plugins'.format(
+            constants.CLOUD_HOME_DIR,
             os.path.join(workdir, 'lookup'),
             os.path.join(cwd, 'lookup'),
             constants.DEFAULT_VALIDATIONS_BASEDIR
         )
     )
     env['ANSIBLE_CALLBACK_PLUGINS'] = os.path.expanduser(
-        '~/.ansible/plugins/callback:'
+        '{}/.ansible/plugins/callback:'
         '{}:{}:'
         '/usr/share/ansible/tripleo-plugins/callback:'
         '/usr/share/ansible/plugins/callback:'
         '/usr/share/ceph-ansible/plugins/callback:'
         '{}/callback_plugins'.format(
+            constants.CLOUD_HOME_DIR,
             os.path.join(workdir, 'callback'),
             os.path.join(cwd, 'callback'),
             constants.DEFAULT_VALIDATIONS_BASEDIR
         )
     )
     env['ANSIBLE_ACTION_PLUGINS'] = os.path.expanduser(
-        '~/.ansible/plugins/action:'
+        '{}/.ansible/plugins/action:'
         '{}:{}:'
         '/usr/share/ansible/tripleo-plugins/action:'
         '/usr/share/ansible/plugins/action:'
         '/usr/share/ceph-ansible/plugins/actions:'
         '{}/action_plugins'.format(
+            constants.CLOUD_HOME_DIR,
             os.path.join(workdir, 'action'),
             os.path.join(cwd, 'action'),
             constants.DEFAULT_VALIDATIONS_BASEDIR
         )
     )
     env['ANSIBLE_FILTER_PLUGINS'] = os.path.expanduser(
-        '~/.ansible/plugins/filter:'
+        '{}/.ansible/plugins/filter:'
         '{}:{}:'
         '/usr/share/ansible/tripleo-plugins/filter:'
         '/usr/share/ansible/plugins/filter:'
         '/usr/share/ceph-ansible/plugins/filter:'
         '{}/filter_plugins'.format(
+            constants.CLOUD_HOME_DIR,
             os.path.join(workdir, 'filter'),
             os.path.join(cwd, 'filter'),
             constants.DEFAULT_VALIDATIONS_BASEDIR
         )
     )
     env['ANSIBLE_ROLES_PATH'] = os.path.expanduser(
-        '~/.ansible/roles:'
+        '{}/.ansible/roles:'
         '{}:{}:'
         '/usr/share/ansible/tripleo-roles:'
         '/usr/share/ansible/roles:'
         '/usr/share/ceph-ansible/roles:'
         '/etc/ansible/roles:'
         '{}/roles'.format(
+            constants.CLOUD_HOME_DIR,
             os.path.join(workdir, 'roles'),
             os.path.join(cwd, 'roles'),
             constants.DEFAULT_VALIDATIONS_BASEDIR
@@ -509,7 +515,7 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
     try:
         user_pwd = pwd.getpwuid(int(os.getenv('SUDO_UID', os.getuid())))
     except TypeError:
-        home = os.path.expanduser('~')
+        home = constants.CLOUD_HOME_DIR
     else:
         home = user_pwd.pw_dir
 
@@ -761,7 +767,7 @@ def store_cli_param(command_name, parsed_args):
     # stored as "undercloud-install" for example.
     command_name = command_name.replace(" ", "-")
 
-    history_path = os.path.join(os.path.expanduser("~"), '.tripleo')
+    history_path = os.path.join(constants.CLOUD_HOME_DIR, '.tripleo')
     makedirs(history_path)
     if os.path.isdir(history_path):
         try:
@@ -988,7 +994,7 @@ def check_stack_network_matches_env_files(stack, environment):
 def remove_known_hosts(overcloud_ip):
     """For a given IP address remove SSH keys from the known_hosts file"""
 
-    known_hosts = os.path.expanduser("~/.ssh/known_hosts")
+    known_hosts = os.path.join(constants.CLOUD_HOME_DIR, '.ssh/known_hosts')
 
     if os.path.exists(known_hosts):
         command = ['ssh-keygen', '-R', overcloud_ip, '-f', known_hosts]
@@ -1442,7 +1448,7 @@ def get_key(stack, needs_pair=False):
     key_files = list()
     stack_dir = os.path.join(constants.DEFAULT_WORK_DIR, stack)
     key_files.append(os.path.join(stack_dir, 'ssh_private_key'))
-    user_dir = os.path.join(os.path.expanduser("~"), '.ssh')
+    user_dir = os.path.join(constants.CLOUD_HOME_DIR, '.ssh')
     key_files.append(os.path.join(user_dir, 'id_rsa_tripleo'))
     key_files.append(os.path.join(user_dir, 'id_rsa'))
     legacy_dir = os.path.join(constants.DEFAULT_WORK_DIR, '.ssh')
@@ -1467,8 +1473,10 @@ def get_tripleo_ansible_inventory(inventory_file=None,
                                   undercloud_connection='ssh',
                                   return_inventory_file_path=False):
     if not inventory_file:
-        inventory_file = '%s/%s' % (os.path.expanduser('~'),
-                                    'tripleo-ansible-inventory.yaml')
+        inventory_file = os.path.join(
+            constants.CLOUD_HOME_DIR,
+            'tripleo-ansible-inventory.yaml'
+        )
         try:
             processutils.execute(
                 '/usr/bin/tripleo-ansible-inventory',

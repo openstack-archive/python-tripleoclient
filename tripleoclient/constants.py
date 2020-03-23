@@ -142,7 +142,7 @@ DEPRECATED_SERVICES = {"OS::TripleO::Services::OpenDaylightApi":
                        "alternatives such as OVS or OVN. "}
 
 # clouds_yaml related constants
-CLOUD_HOME_DIR = os.path.expanduser("~")
+CLOUD_HOME_DIR = os.path.expanduser('~' + os.environ.get('SUDO_USER', ''))
 CLOUDS_YAML_DIR = os.path.join('.config', 'openstack')
 
 # regex patterns to exclude when looking for unused params
