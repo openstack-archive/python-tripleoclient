@@ -15,6 +15,18 @@
 
 import os
 
+# NOTE(cloudnull): Condition imports and exceptions to support PY2, When we
+#                  drop py2 this should be simplified.
+try:
+    import configparser as cfgp
+except ImportError:
+    import ConfigParser as cfgp
+try:
+    FileNotFoundError = FileNotFoundError
+except NameError:
+    FileNotFoundError = IOError
+
+
 TRIPLEO_HEAT_TEMPLATES = "/usr/share/openstack-tripleo-heat-templates/"
 OVERCLOUD_YAML_NAME = "overcloud.yaml"
 OVERCLOUD_ROLES_FILE = "roles_data.yaml"
@@ -23,10 +35,8 @@ MINION_OUTPUT_DIR = os.path.join(os.environ.get('HOME', '~/'))
 MINION_CONF_PATH = os.path.join(MINION_OUTPUT_DIR, "minion.conf")
 MINION_LOG_FILE = "install-minion.log"
 UNDERCLOUD_ROLES_FILE = "roles_data_undercloud.yaml"
-UNDERCLOUD_OUTPUT_DIR = os.path.join(os.environ.get('HOME', '~/'))
 STANDALONE_EPHEMERAL_STACK_VSTATE = '/var/lib/tripleo-heat-installer'
 UNDERCLOUD_LOG_FILE = "install-undercloud.log"
-UNDERCLOUD_CONF_PATH = os.path.join(UNDERCLOUD_OUTPUT_DIR, "undercloud.conf")
 OVERCLOUD_NETWORKS_FILE = "network_data.yaml"
 STANDALONE_NETWORKS_FILE = "/dev/null"
 UNDERCLOUD_NETWORKS_FILE = "network_data_undercloud.yaml"
@@ -128,6 +138,18 @@ DEPRECATED_SERVICES = {"OS::TripleO::Services::OpenDaylightApi":
 # clouds_yaml related constants
 CLOUD_HOME_DIR = os.path.expanduser("~")
 CLOUDS_YAML_DIR = os.path.join('.config', 'openstack')
+
+# Undercloud config and output
+UNDERCLOUD_CONF_PATH = os.path.join(CLOUD_HOME_DIR, "undercloud.conf")
+try:
+    if os.path.exists(UNDERCLOUD_CONF_PATH):
+        config = cfgp.ConfigParser()
+        config.read(UNDERCLOUD_CONF_PATH)
+        UNDERCLOUD_OUTPUT_DIR = config.get('DEFAULT', 'output_dir')
+    else:
+        raise FileNotFoundError
+except (cfgp.NoOptionError, FileNotFoundError):
+    UNDERCLOUD_OUTPUT_DIR = CLOUD_HOME_DIR
 
 # regex patterns to exclude when looking for unused params
 # - exclude *Image params as they may be unused because the service is not
