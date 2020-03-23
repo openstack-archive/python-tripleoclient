@@ -39,8 +39,10 @@ CONF = cfg.CONF
 # We need 8 GB, leave a little room for variation in what 8 GB means on
 # different platforms.
 REQUIRED_MB = 7680
-PASSWORD_PATH = '%s/%s' % (constants.UNDERCLOUD_OUTPUT_DIR,
-                           'undercloud-passwords.conf')
+PASSWORD_PATH = os.path.join(
+    constants.UNDERCLOUD_OUTPUT_DIR,
+    'undercloud-passwords.conf'
+)
 
 LOG = logging.getLogger(__name__ + ".UndercloudSetup")
 
