@@ -420,6 +420,7 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
         '/usr/share/ansible/tripleo-plugins/modules:'
         '/usr/share/ansible/plugins/modules:'
         '/usr/share/ceph-ansible/library:'
+        '/usr/share/ansible-modules:'
         '{}/library'.format(
             os.path.join(workdir, 'modules'),
             os.path.join(cwd, 'modules'),
