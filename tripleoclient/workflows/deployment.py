@@ -23,7 +23,7 @@ from openstackclient import shell
 from tripleo_common.actions import ansible
 from tripleo_common.actions import config
 from tripleo_common.actions import deployment
-from tripleo_common.actions import swifthelper
+from tripleo_common.utils import swift as swift_utils
 
 from tripleoclient.constants import ANSIBLE_TRIPLEO_PLAYBOOKS
 from tripleoclient.constants import DEFAULT_WORK_DIR
@@ -492,10 +492,10 @@ def config_download_export(clients, plan, config_type):
             plan
         )
     )
-    return swifthelper.SwiftTempUrlAction(
-        container=container_config,
-        obj='{}.tar.gz'.format(container_config)
-    ).run(context=context)
+
+    return swift_utils.get_temp_url(
+        clients.tripleoclient.object_store, container=container_config,
+        object_name='{}.tar.gz'.format(container_config))
 
 
 def get_horizon_url(stack):

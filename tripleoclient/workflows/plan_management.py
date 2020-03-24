@@ -16,7 +16,6 @@ import yaml
 
 from swiftclient import exceptions as swift_exc
 from tripleo_common.actions import plan
-from tripleo_common.actions import swifthelper
 from tripleo_common.utils import swift as swiftutils
 from tripleo_common.utils import tarball
 
@@ -322,8 +321,8 @@ def export_deployment_plan(clients, plan_name):
         raise exceptions.WorkflowServiceError(
             'Exception exporting plan: {}'.format(result.error))
 
-    action = swifthelper.SwiftTempUrlAction(
-        export_container, "{}.tar.gz".format(plan_name), valid=delete_after)
-    url = action.run(mistral_context)
+    url = swiftutils.get_temp_url(clients.tripleoclient.object_store,
+                                  container=export_container,
+                                  object_name="{}.tar.gz".format(plan_name))
     print(url)
     return url
