@@ -1674,6 +1674,7 @@ class TestGeneralUtils(base.TestCommand):
         self.tc = self.app.client_manager.tripleoclient = mock.Mock()
         obj = self.tc.object_store = mock.Mock()
         obj.put_object = mock.Mock()
+        obj.put_container = mock.Mock()
 
     def test_update_deployment_status(self):
         mock_status = {
@@ -1686,3 +1687,4 @@ class TestGeneralUtils(base.TestCommand):
             mock_status
         )
         self.tc.object_store.put_object.assert_called()
+        self.tc.object_store.put_container.assert_called()

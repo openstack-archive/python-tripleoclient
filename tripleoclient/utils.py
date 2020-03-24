@@ -2483,8 +2483,14 @@ def update_deployment_status(clients, plan, status, message=None):
     if not message:
         message = 'Status updated without mistral.'
 
-    clients.tripleoclient.object_store.put_object(
-        '{}-messages'.format(plan),
+    container = '{}-messages'.format(plan)
+
+    # create {plan}-messages container if not there
+    swift = clients.tripleoclient.object_store
+    swift.put_container(container)
+
+    swift.put_object(
+        container,
         'deployment_status.yaml',
         yaml.safe_dump(
             {

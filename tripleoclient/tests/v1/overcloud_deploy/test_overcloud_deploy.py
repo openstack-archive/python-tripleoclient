@@ -1721,6 +1721,7 @@ class TestGetDeploymentStatus(utils.TestCommand):
         ).create_mistral_context
         obj = tc.object_store = mock.Mock()
         obj.put_object = mock.Mock()
+        obj.put_container = mock.Mock()
 
     @mock.patch(
         'tripleo_common.actions.deployment.DeploymentStatusAction.run',
