@@ -163,13 +163,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         horizon_url.return_value = 'fake://url:12345'
         self.addCleanup(horizon_url.stop)
 
-        self.create_action = mock.patch(
-            'tripleo_common.actions.plan.CreateContainerAction.run',
-            autospec=True,
-            return_value=None
-        )
-        self.create_action.start()
-        self.addCleanup(self.create_action.stop)
+        client.object_store.get_account = mock.MagicMock()
 
     def tearDown(self):
         super(TestDeployOvercloud, self).tearDown()
@@ -224,6 +218,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         object_client = clients.tripleoclient.object_store
         object_client.get_object = mock.Mock()
+        object_client.put_container = mock.Mock()
         mock_env = yaml.safe_dump({'environments': []})
         object_client.get_object.return_value = ({}, mock_env)
 
@@ -276,6 +271,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_create_tempest_deployer_input.assert_called_with()
         mock_copy.assert_called_once()
+        object_client.put_container.assert_called_once_with(
+            'overcloud', headers={'x-container-meta-usage-tripleo': 'plan'})
 
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
@@ -325,6 +322,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         object_client = clients.tripleoclient.object_store
         object_client.get_object = mock.Mock()
+        object_client.put_container = mock.Mock()
         mock_env = yaml.safe_dump({'environments': []})
         object_client.get_object.return_value = ({}, mock_env)
 
@@ -398,6 +396,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertEqual(env_map.get('parameter_defaults'),
                          parameters_env.get('parameter_defaults'))
         mock_copy.assert_called_once()
+        object_client.put_container.assert_called_once_with(
+            'overcloud', headers={'x-container-meta-usage-tripleo': 'plan'})
 
     @mock.patch('os.chdir')
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
@@ -464,6 +464,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         object_client = clients.tripleoclient.object_store
         object_client.get_object = mock.Mock()
+        object_client.put_container = mock.Mock()
         mock_env = yaml.safe_dump({'environments': []})
         object_client.get_object.return_value = ({}, mock_env)
 
@@ -538,6 +539,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         clients.tripleoclient.object_store.put_object.assert_called()
         self.assertTrue(mock_invoke_plan_env_wf.called)
         mock_copy.assert_called_once()
+        object_client.put_container.assert_called_once_with(
+            'overcloud', headers={'x-container-meta-usage-tripleo': 'plan'})
 
     @mock.patch('os.chdir')
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
@@ -598,6 +601,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         object_client = clients.tripleoclient.object_store
         object_client.get_object = mock.Mock()
+        object_client.put_container = mock.Mock()
         mock_env = yaml.safe_dump({'environments': []})
         object_client.get_object.return_value = ({}, mock_env)
 
@@ -625,6 +629,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.cmd.take_action(parsed_args)
         mock_rm.assert_called_once()
         mock_copy.assert_called_once()
+        object_client.put_container.assert_called_once_with(
+            'overcloud', headers={'x-container-meta-usage-tripleo': 'plan'})
 
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
@@ -680,6 +686,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         object_client = clients.tripleoclient.object_store
         object_client.get_object = mock.Mock()
+        object_client.put_container = mock.Mock()
         mock_env = yaml.safe_dump({'environments': []})
         object_client.get_object.return_value = ({}, mock_env)
 
@@ -697,6 +704,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_create_tempest_deployer_input.assert_called_with()
         mock_copy.assert_called_once()
+        object_client.put_container.assert_called_once_with(
+            'overcloud', headers={'x-container-meta-usage-tripleo': 'plan'})
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_tripleo_heat_templates', autospec=True)
@@ -773,6 +782,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_deploy_heat.side_effect = _fake_heat_deploy
         object_client = clients.tripleoclient.object_store
         object_client.get_object = mock.Mock()
+        object_client.put_container = mock.Mock()
         mock_env = yaml.safe_dump({'parameter_defaults':
                                   {'NovaComputeLibvirtType': 'qemu'}})
         object_client.get_object.return_value = ({}, mock_env)
@@ -780,6 +790,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         self.cmd.take_action(parsed_args)
         mock_copy.assert_called_once()
+        object_client.put_container.assert_called_once_with(
+            'overcloud', headers={'x-container-meta-usage-tripleo': 'plan'})
 
     @mock.patch('tripleoclient.utils.check_stack_network_matches_env_files')
     @mock.patch('tripleoclient.utils.get_stack', autospec=True)
@@ -834,9 +846,13 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                  'resource_registry': {'Test': u'OS::Heat::None'}}, env)
 
         mock_deploy_heat.side_effect = _fake_heat_deploy
+        object_client = clients.tripleoclient.object_store
+        object_client.put_container = mock.Mock()
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         self.cmd.take_action(parsed_args)
+        object_client.put_container.assert_called_once_with(
+            'overcloud', headers={'x-container-meta-usage-tripleo': 'plan'})
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig', autospec=True)
@@ -882,6 +898,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         object_client = clients.tripleoclient.object_store
         object_client.get_object = mock.Mock()
+        object_client.put_container = mock.Mock()
         mock_env = yaml.safe_dump({'parameter_defaults':
                                   {'NovaComputeLibvirtType': 'qemu'}})
         object_client.get_object.return_value = ({}, mock_env)
@@ -890,6 +907,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         error = self.assertRaises(hc_exc.CommandError, self.cmd.take_action,
                                   parsed_args)
         self.assertIn('tmp/doesnexit.yaml', str(error))
+        object_client.put_container.assert_called_once_with(
+            'overcloud', headers={'x-container-meta-usage-tripleo': 'plan'})
 
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
                 autospec=True)
@@ -1087,6 +1106,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         object_client = clients.tripleoclient.object_store
         object_client.get_object = mock.Mock()
+        object_client.put_container = mock.Mock()
         mock_env = yaml.safe_dump({'parameter_defaults':
                                   {'NovaComputeLibvirtType': 'qemu'}})
         object_client.get_object.return_value = ({}, mock_env)
@@ -1109,6 +1129,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         utils_fixture.mock_deploy_tht.assert_called_with()
         mock_copy.assert_called_once()
+        object_client.put_container.assert_called_once_with(
+            'overcloud', headers={'x-container-meta-usage-tripleo': 'plan'})
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_get_undercloud_host_entry', autospec=True,
@@ -1144,6 +1166,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         object_client = clients.tripleoclient.object_store
         object_client.get_object = mock.Mock()
+        object_client.put_container = mock.Mock()
         mock_env = yaml.safe_dump({'environments': []})
         object_client.get_object.return_value = ({}, mock_env)
 
@@ -1164,6 +1187,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertRaises(exceptions.InvalidConfiguration,
                           self.cmd.take_action,
                           parsed_args)
+        object_client.put_container.assert_called_once_with(
+            'overcloud', headers={'x-container-meta-usage-tripleo': 'plan'})
 
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
@@ -1223,6 +1248,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         object_client = clients.tripleoclient.object_store
         object_client.get_object = mock.Mock()
+        object_client.put_container = mock.Mock()
         mock_env = yaml.safe_dump({'environments': []})
         object_client.get_object.return_value = ({}, mock_env)
 
@@ -1277,6 +1303,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_validate_args.assert_called_once_with(parsed_args)
         mock_copy.assert_called_once()
+        object_client.put_container.assert_called_once_with(
+            'overcloud', headers={'x-container-meta-usage-tripleo': 'plan'})
 
     @mock.patch('tripleoclient.workflows.parameters.'
                 'check_deprecated_parameters', autospec=True)

@@ -27,19 +27,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
         super(TestPlanCreationWorkflows, self).setUp()
         self.tripleoclient = mock.Mock()
         self.app.client_manager.tripleoclient = self.tripleoclient
-
-        self.message_success = iter([{
-            "execution_id": "IDID",
-            "status": "SUCCESS",
-        }])
-
-        self.create_action = mock.patch(
-            'tripleo_common.actions.plan.CreateContainerAction.run',
-            autospec=True,
-            return_value=None
-        )
-        self.create_action.start()
-        self.addCleanup(self.create_action.stop)
+        self.tripleoclient.object_store.get_account = mock.MagicMock()
 
     @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
     @mock.patch('tripleoclient.workflows.plan_management.tarball',

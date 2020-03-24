@@ -16,6 +16,7 @@ import yaml
 
 from swiftclient import exceptions as swift_exc
 from tripleo_common.actions import plan
+from tripleo_common.utils import plan as plan_utils
 from tripleo_common.utils import swift as swiftutils
 from tripleo_common.utils import tarball
 
@@ -122,36 +123,13 @@ def list_deployment_plans(clients):
     return plan.ListPlansAction().run(mistral_context)
 
 
-def create_container(clients, container):
-    """Create a container.
-
-    :param clients: openstack clients
-    :type clients: Object
-
-    :param container: Name of the container to create
-    :type container: String
-
-    :returns: Object
-    """
-
-    mistral_context = clients.tripleoclient.create_mistral_context()
-    return plan.CreateContainerAction(
-        container=container
-    ).run(context=mistral_context)
-
-
 def create_plan_from_templates(clients, name, tht_root, roles_file=None,
                                generate_passwords=True, plan_env_file=None,
                                networks_file=None, validate_stack=True):
     swift_client = clients.tripleoclient.object_store
 
     print("Creating Swift container to store the plan")
-    result = create_container(clients, container=name)
-    if result:
-        # create_container returns 'None' on success and a string with
-        # the error message when failing.
-        raise exceptions.PlanCreationError(
-            "Unable to create plan. {}".format(result))
+    plan_utils.create_plan_container(swift_client, name)
 
     print("Creating plan from template files in: {}".format(tht_root))
     _upload_templates(swift_client, name, tht_root,

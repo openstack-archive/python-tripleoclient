@@ -98,27 +98,10 @@ class TestOvercloudCreatePlan(utils.TestCommand):
         self.cmd = overcloud_plan.CreatePlan(self.app, None)
         self.app.client_manager.workflow_engine = mock.Mock()
         self.tripleoclient = mock.Mock()
-
-        self.websocket = mock.Mock()
-        self.websocket.__enter__ = lambda s: self.websocket
-        self.websocket.__exit__ = lambda s, *exc: None
-        self.tripleoclient = mock.Mock()
-        self.tripleoclient.messaging_websocket.return_value = self.websocket
         self.app.client_manager.tripleoclient = self.tripleoclient
 
-        self.workflow = self.app.client_manager.workflow_engine
-        execution = mock.Mock()
-        execution.id = "IDID"
-        self.workflow.executions.create.return_value = execution
         self.swift = self.app.client_manager.tripleoclient.object_store
-
-        self.create_action = mock.patch(
-            'tripleo_common.actions.plan.CreateContainerAction.run',
-            autospec=True,
-            return_value=None
-        )
-        self.create_action.start()
-        self.addCleanup(self.create_action.stop)
+        self.swift.get_account = mock.MagicMock()
 
     @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
     def test_create_default_plan(self, mock_run_playbook):
@@ -175,6 +158,7 @@ class TestOvercloudCreatePlan(utils.TestCommand):
             },
             verbosity=3,
         )
+        self.swift.get_account.assert_called_once()
 
     @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
     @mock.patch("tripleoclient.workflows.plan_management.tarball")
@@ -211,6 +195,7 @@ class TestOvercloudCreatePlan(utils.TestCommand):
             },
             verbosity=3,
         )
+        self.swift.get_account.assert_called_once()
 
     @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
     def test_create_default_plan_with_password_gen_disabled(
