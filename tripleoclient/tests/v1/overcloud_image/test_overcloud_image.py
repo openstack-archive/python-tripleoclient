@@ -45,9 +45,9 @@ class TestOvercloudImageBuild(TestPluginV1):
 
         mock_manager.assert_called_once_with(
             ['/usr/share/openstack-tripleo-common/image-yaml/'
-             'overcloud-images.yaml',
+             'overcloud-images-python3.yaml',
              '/usr/share/openstack-tripleo-common/image-yaml/'
-             'overcloud-images-centos7.yaml'],
+             'overcloud-images-centos8.yaml'],
             output_directory='.',
             skip=True,
             images=None)

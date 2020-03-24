@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Starting with "Ussuri", the default images that are built when running
+    the `openstack overcloud image build` action are python3 and centos8 based.
