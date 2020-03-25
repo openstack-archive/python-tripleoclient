@@ -390,7 +390,6 @@ class TestWaitForStackUtil(TestCase):
 
     def test_check_stack_network_matches_env_files(self):
         stack_reg = {
-            'OS::TripleO::Hosts::SoftwareConfig': 'val',
             'OS::TripleO::Network': 'val',
             'OS::TripleO::Network::External': 'val',
             'OS::TripleO::Network::ExtraConfig': 'OS::Heat::None',
@@ -402,7 +401,6 @@ class TestWaitForStackUtil(TestCase):
             'OS::TripleO::Network::Tenant': 'val'
         }
         env_reg = {
-            'OS::TripleO::Hosts::SoftwareConfig': 'newval',
             'OS::TripleO::Network': 'newval',
             'OS::TripleO::Network::External': 'newval',
             'OS::TripleO::Network::ExtraConfig': 'OS::Heat::None',
@@ -424,7 +422,6 @@ class TestWaitForStackUtil(TestCase):
 
     def test_check_stack_network_matches_env_files_fail(self):
         stack_reg = {
-            'OS::TripleO::Hosts::SoftwareConfig': 'val',
             'OS::TripleO::LoggingConfiguration': 'val',
             'OS::TripleO::Network': 'val',
             'OS::TripleO::Network::External': 'val',
@@ -437,7 +434,6 @@ class TestWaitForStackUtil(TestCase):
             'OS::TripleO::Network::Tenant': 'val'
         }
         env_reg = {
-            'OS::TripleO::Hosts::SoftwareConfig': 'newval',
             'OS::TripleO::LoggingConfiguration': 'newval',
             'OS::TripleO::Network': 'newval',
             'OS::TripleO::Network::InternalApi': 'newval'
