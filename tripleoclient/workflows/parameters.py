@@ -15,6 +15,7 @@ import re
 import yaml
 
 from tripleo_common.actions import parameters
+from tripleo_common.utils import stack_parameters as stk_parameters
 
 from tripleoclient.constants import UNUSED_PARAMETER_EXCLUDES_RE
 from tripleoclient import exceptions
@@ -82,15 +83,13 @@ def check_deprecated_parameters(clients, container):
     :param container: Name of the stack container.
     :type container: String
     """
-
-    context = clients.tripleoclient.create_mistral_context()
     role_name_list = roles.list_available_roles(
         clients=clients,
         container=container
     )
-    flattened_parms = parameters.GetFlattenedParametersAction(
-        container=container
-    ).run(context=context)
+    flattened_parms = stk_parameters.get_flattened_parameters(
+        clients.tripleoclient.object_store,
+        clients.orchestration, container=container)
     user_params = flattened_parms.get('environment_parameters', {})
     heat_resource_tree = flattened_parms.get('heat_resource_tree', {})
     heat_resource_tree_params = heat_resource_tree.get('parameters', {})

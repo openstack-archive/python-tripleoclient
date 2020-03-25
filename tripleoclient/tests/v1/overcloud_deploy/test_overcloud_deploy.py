@@ -122,8 +122,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         roles.start()
         self.addCleanup(roles.stop)
         flatten = mock.patch(
-            'tripleo_common.actions.parameters.GetFlattenedParametersAction'
-            '.run',
+            'tripleo_common.utils.stack_parameters.get_flattened_parameters',
             autospec=True,
             return_value={
                 'environment_parameters': {

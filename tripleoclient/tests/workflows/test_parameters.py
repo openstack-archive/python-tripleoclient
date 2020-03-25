@@ -36,12 +36,15 @@ class TestParameterWorkflows(utils.TestCommand):
     def setUp(self):
         super(TestParameterWorkflows, self).setUp()
         self.app.client_manager.workflow_engine = self.workflow = mock.Mock()
+        self.orchestration = mock.Mock()
         self.tripleoclient = mock.Mock()
+        self.tripleoclient.object_store = mock.MagicMock()
         self.websocket = mock.Mock()
         self.websocket.__enter__ = lambda s: self.websocket
         self.websocket.__exit__ = lambda s, *exc: None
         self.tripleoclient.messaging_websocket.return_value = self.websocket
         self.app.client_manager.tripleoclient = self.tripleoclient
+        self.app.client_manager.orchestration = self.orchestration
         execution = mock.Mock()
         execution.id = "IDID"
         self.workflow.executions.create.return_value = execution
@@ -61,9 +64,9 @@ class TestParameterWorkflows(utils.TestCommand):
         )
         roles.start()
         self.addCleanup(roles.stop)
+
         flatten = mock.patch(
-            'tripleo_common.actions.parameters.GetFlattenedParametersAction'
-            '.run',
+            'tripleo_common.utils.stack_parameters.get_flattened_parameters',
             autospec=True,
             return_value={
                 'environment_parameters': {
