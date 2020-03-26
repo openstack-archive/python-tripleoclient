@@ -1323,6 +1323,8 @@ class Deploy(command.Command):
                             fail_on_rc=False,
                             **operation
                         )[0]
+                        if rc != 0:
+                            break
         except Exception as e:
             self.log.error("Exception: %s" % six.text_type(e))
             self.log.error(traceback.print_exc())
