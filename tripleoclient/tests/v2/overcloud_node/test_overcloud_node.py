@@ -338,3 +338,123 @@ class TestIntrospectNode(fakes.TestOvercloudNode):
         self.workflow.executions.create.assert_has_calls(call_list)
         self.assertEqual(self.workflow.executions.create.call_count,
                          2 if provide else 1)
+
+
+class TestProvisionNode(fakes.TestOvercloudNode):
+
+    def setUp(self):
+        super(TestProvisionNode, self).setUp()
+        self.cmd = overcloud_node.ProvisionNode(self.app, None)
+        self.cmd.app_args = mock.Mock(verbose_level=1)
+
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
+                autospec=True)
+    def test_ok(self, mock_playbook):
+        with tempfile.NamedTemporaryFile() as inp:
+            with tempfile.NamedTemporaryFile() as outp:
+                with tempfile.NamedTemporaryFile() as keyf:
+                    inp.write(b'- name: Compute\n- name: Controller\n')
+                    inp.flush()
+                    keyf.write(b'I am a key')
+                    keyf.flush()
+                    with open('{}.pub'.format(keyf.name), 'w') as f:
+                        f.write('I am a key')
+
+                    argslist = ['--output', outp.name,
+                                '--overcloud-ssh-key', keyf.name,
+                                inp.name]
+                    verifylist = [('input', inp.name),
+                                  ('output', outp.name),
+                                  ('overcloud_ssh_key', keyf.name)]
+
+                    parsed_args = self.check_parser(self.cmd,
+                                                    argslist, verifylist)
+                    self.cmd.take_action(parsed_args)
+
+        mock_playbook.assert_called_once_with(
+            extra_vars={
+                'stack_name': 'overcloud',
+                'baremetal_deployment': [
+                    {'name': 'Compute'},
+                    {'name': 'Controller'}
+                ],
+                'baremetal_deployed_path': mock.ANY,
+                'ssh_public_keys': 'I am a key',
+                'ssh_user_name': 'heat-admin',
+                'node_timeout': 3600,
+                'concurrency': 20
+            },
+            inventory='localhost,',
+            playbook='cli-overcloud-node-provision.yaml',
+            playbook_dir='/usr/share/ansible/tripleo-playbooks',
+            verbosity=0,
+            workdir=mock.ANY
+        )
+
+
+class TestUnprovisionNode(fakes.TestOvercloudNode):
+
+    def setUp(self):
+        super(TestUnprovisionNode, self).setUp()
+        self.cmd = overcloud_node.UnprovisionNode(self.app, None)
+        self.cmd.app_args = mock.Mock(verbose_level=1)
+
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
+                autospec=True)
+    @mock.patch('tripleoclient.utils.tempfile')
+    @mock.patch('tripleoclient.utils.prompt_user_for_confirmation')
+    def test_ok(self, mock_prompt, mock_tempfile, mock_playbook):
+        tmp = tempfile.mkdtemp()
+        mock_tempfile.mkdtemp.return_value = tmp
+        mock_prompt.return_value = True
+        unprovision_confirm = os.path.join(tmp, 'unprovision_confirm.json')
+        with open(unprovision_confirm, 'w') as confirm:
+            confirm.write(json.dumps([
+                {'hostname': 'compute-0', 'name': 'baremetal-1'},
+                {'hostname': 'controller-0', 'name': 'baremetal-2'}
+            ]))
+
+        with tempfile.NamedTemporaryFile() as inp:
+            inp.write(b'- name: Compute\n- name: Controller\n')
+            inp.flush()
+            argslist = ['--all', inp.name]
+            verifylist = [('input', inp.name), ('all', True)]
+
+            parsed_args = self.check_parser(self.cmd,
+                                            argslist, verifylist)
+            self.cmd.take_action(parsed_args)
+        mock_playbook.assert_has_calls([
+            mock.call(
+                extra_vars={
+                    'stack_name': 'overcloud',
+                    'baremetal_deployment': [
+                        {'name': 'Compute'},
+                        {'name': 'Controller'}
+                    ],
+                    'all': True,
+                    'prompt': True,
+                    'unprovision_confirm': unprovision_confirm
+                },
+                inventory='localhost,',
+                playbook='cli-overcloud-node-unprovision.yaml',
+                playbook_dir='/usr/share/ansible/tripleo-playbooks',
+                verbosity=0,
+                workdir=tmp
+            ),
+            mock.call(
+                extra_vars={
+                    'stack_name': 'overcloud',
+                    'baremetal_deployment': [
+                        {'name': 'Compute'},
+                        {'name': 'Controller'}
+                    ],
+                    'all': True,
+                    'prompt': False
+                },
+                inventory='localhost,',
+                playbook='cli-overcloud-node-unprovision.yaml',
+                playbook_dir='/usr/share/ansible/tripleo-playbooks',
+                verbosity=0,
+                workdir=tmp
+            )
+        ])
