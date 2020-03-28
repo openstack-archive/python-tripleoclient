@@ -44,7 +44,8 @@ class BuildOvercloudImage(command.Command):
     log = logging.getLogger(__name__ + ".BuildOvercloudImage")
 
     IMAGE_YAML_PATH = "/usr/share/openstack-tripleo-common/image-yaml"
-    DEFAULT_YAML = ['overcloud-images.yaml', 'overcloud-images-centos7.yaml']
+    DEFAULT_YAML = ['overcloud-images-python3.yaml',
+                    'overcloud-images-centos8.yaml']
 
     def get_parser(self, prog_name):
         parser = super(BuildOvercloudImage, self).get_parser(prog_name)
