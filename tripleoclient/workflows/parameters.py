@@ -14,7 +14,6 @@ import logging
 import re
 import yaml
 
-from tripleo_common.actions import parameters
 from tripleo_common.utils import stack_parameters as stk_parameters
 
 from tripleoclient.constants import UNUSED_PARAMETER_EXCLUDES_RE
@@ -210,12 +209,11 @@ def generate_fencing_parameters(clients, nodes_json, delay, ipmi_level,
 
     :returns: Dictionary
     """
-    context = clients.tripleoclient.create_mistral_context()
-    fencing_params = parameters.GenerateFencingParametersAction(
+    return stk_parameters.generate_fencing_parameters(
+        clients.baremetal,
+        clients.compute,
         nodes_json=nodes_json,
         delay=delay,
         ipmi_level=ipmi_level,
         ipmi_cipher=ipmi_cipher,
-        ipmi_lanplus=ipmi_lanplus
-    )
-    return fencing_params.run(context=context)
+        ipmi_lanplus=ipmi_lanplus)

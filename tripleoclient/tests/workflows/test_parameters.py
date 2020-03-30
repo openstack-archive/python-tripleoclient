@@ -45,25 +45,14 @@ class TestParameterWorkflows(utils.TestCommand):
         self.tripleoclient.messaging_websocket.return_value = self.websocket
         self.app.client_manager.tripleoclient = self.tripleoclient
         self.app.client_manager.orchestration = self.orchestration
+        self.app.client_manager.baremetal = mock.Mock()
+        self.app.client_manager.compute = mock.Mock()
         execution = mock.Mock()
         execution.id = "IDID"
         self.workflow.executions.create.return_value = execution
         get_container = self.tripleoclient.object_store.get_container \
             = mock.MagicMock()
         get_container.return_value = ('container', [{'name': 'f1'}])
-        roles = mock.patch(
-            'tripleoclient.workflows.roles.list_available_roles',
-            autospec=True,
-            return_value=[
-                {
-                    'TestRole1': {
-                        'TestParameter1': {}
-                    }
-                }
-            ]
-        )
-        roles.start()
-        self.addCleanup(roles.stop)
 
         flatten = mock.patch(
             'tripleo_common.utils.stack_parameters.get_flattened_parameters',
@@ -224,10 +213,8 @@ class TestParameterWorkflows(utils.TestCommand):
             self.assertTrue(mock_log.warning.called)
 
     @mock.patch(
-        'tripleo_common.actions.parameters.GenerateFencingParametersAction'
-        '.run',
-        autospec=True
-    )
+        'tripleo_common.utils.stack_parameters.generate_fencing_parameters',
+        return_value={})
     def test_generate_fencing_parameters(self, mock_params):
         mock_params.return_value = {"parameter_defaults": {}}
 
