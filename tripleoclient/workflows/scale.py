@@ -64,7 +64,8 @@ def scale_down(log, clients, stack, nodes, timeout=None):
 
     print('Running scale down')
     context = clients.tripleoclient.create_mistral_context()
-    scale_down_action = scale.ScaleDownAction(nodes=nodes, timeout=timeout)
+    scale_down_action = scale.ScaleDownAction(nodes=nodes, timeout=timeout,
+                                              container=stack.stack_name)
     scale_down_action.run(context=context)
     utils.wait_for_stack_ready(
         orchestration_client=clients.orchestration,
