@@ -17,21 +17,6 @@ from tripleoclient import exceptions
 LOG = logging.getLogger(__name__)
 
 
-def call_action(workflow_client, action, **input_):
-    """Trigger a Mistral action and parse the JSON response"""
-
-    result = workflow_client.action_executions.create(
-        action, input_,
-        save_result=True, run_sync=True)
-
-    # Parse the JSON output. Mistral client should do this for us really.
-    output = json.loads(result.output)['result']
-
-    if result.state == 'ERROR':
-        raise exceptions.WorkflowActionError(action, output)
-    return output
-
-
 def start_workflow(workflow_client, identifier, workflow_input):
 
     execution = workflow_client.executions.create(

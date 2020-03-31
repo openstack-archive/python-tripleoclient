@@ -18,6 +18,7 @@ import yaml
 from osc_lib.i18n import _
 
 from tripleoclient import command
+from tripleoclient import constants
 from tripleoclient import exceptions
 from tripleoclient import utils
 from tripleoclient.workflows import parameters
@@ -53,16 +54,17 @@ class SetParameters(command.Command):
         if 'parameter_defaults' in params:
             params = params['parameter_defaults']
 
-        clients = self.app.client_manager
-        workflow_client = clients.workflow_engine
-
-        name = parsed_args.name
-
-        parameters.update_parameters(
-            workflow_client,
-            container=name,
-            parameters=params
-        )
+        with utils.TempDirs() as tmp:
+            utils.run_ansible_playbook(
+                playbook='cli-update-params.yaml',
+                inventory='localhost,',
+                workdir=tmp,
+                playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                extra_vars={
+                    "container": parsed_args.name,
+                    "parameters": params
+                }
+            )
 
 
 class GenerateFencingParameters(command.Command):

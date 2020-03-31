@@ -52,17 +52,15 @@ class TestSetParameters(utils.TestCommand):
             })
         )
 
+        playbook_runner = mock.patch(
+            'tripleoclient.utils.run_ansible_playbook',
+            autospec=True
+        )
+        playbook_runner.start()
+        self.addCleanup(playbook_runner.stop)
+
         # Run
         self.cmd.take_action(parsed_args)
-
-        # Verify
-        self.workflow.action_executions.create.assert_called_once_with(
-            'tripleo.parameters.update',
-            {
-                'container': 'overcast',
-                'parameters': data.get('parameter_defaults', data)
-            },
-            run_sync=True, save_result=True)
 
     def test_json_params_file(self):
         self._test_set_parameters(".json", json.dumps, {

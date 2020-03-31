@@ -293,9 +293,17 @@ class DeployOvercloud(command.Command):
         # Parameters are sent to the update parameters action, this stores them
         # in the plan environment and means the UI can find them.
         if params:
-            workflow_params.update_parameters(
-                self.workflow_client, container=container_name,
-                parameters=params)
+            with utils.TempDirs() as tmp:
+                utils.run_ansible_playbook(
+                    playbook='cli-update-params.yaml',
+                    inventory='localhost,',
+                    workdir=tmp,
+                    playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                    extra_vars={
+                        "container": container_name,
+                        "parameters": params
+                    }
+                )
 
     def _upload_missing_files(self, container_name, files_dict, tht_root):
         """Find the files referenced in custom environments and upload them

@@ -154,28 +154,6 @@ class TestBaseWorkflows(utils.TestCommand):
 
         websocket.wait_for_messages.assert_called_with(timeout=None)
 
-    def test_call_action_success(self):
-        mistral = mock.Mock()
-        action = 'test-action'
-
-        result = mock.Mock()
-        result.output = '{"result":"test-result"}'
-        mistral.action_executions.create = mock.Mock(return_value=result)
-
-        self.assertEqual(base.call_action(mistral, action), "test-result")
-
-    def test_call_action_fail(self):
-        mistral = mock.Mock()
-        action = 'test-action'
-
-        result = mock.Mock()
-        result.output = '{"result":"test-result"}'
-        result.state = 'ERROR'
-        mistral.action_executions.create = mock.Mock(return_value=result)
-
-        self.assertRaises(ex.WorkflowActionError,
-                          base.call_action, mistral, action)
-
     def test_wait_for_messages_execution_complete(self):
         payload_a = {
             'status': 'RUNNING',
