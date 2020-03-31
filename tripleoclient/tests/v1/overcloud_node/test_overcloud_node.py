@@ -41,6 +41,7 @@ class TestDeleteNode(fakes.TestDeleteNode):
 
         # Get the command object to test
         self.cmd = overcloud_node.DeleteNode(self.app, None)
+        self.cmd.app_args = mock.Mock(verbose_level=1)
         self.app.client_manager.workflow_engine = mock.Mock()
         self.tripleoclient = mock.Mock()
 
@@ -134,13 +135,11 @@ class TestDeleteNode(fakes.TestDeleteNode):
 
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
-    @mock.patch('tripleoclient.workflows.baremetal.expand_roles',
-                autospec=True)
-    @mock.patch('tripleoclient.workflows.baremetal.undeploy_roles',
-                autospec=True)
-    def test_node_delete_baremetal_deployment(self, mock_undeploy_roles,
-                                              mock_expand_roles,
+    @mock.patch('tripleoclient.utils.tempfile')
+    def test_node_delete_baremetal_deployment(self,
+                                              mock_tempfile,
                                               mock_playbook):
+
         bm_yaml = [{
             'name': 'Compute',
             'count': 5,
@@ -159,60 +158,27 @@ class TestDeleteNode(fakes.TestDeleteNode):
             }]
         }]
 
-        expand_to_delete = {
-            'instances': [{
-                'name': 'baremetal-1',
-                'hostname': 'overcast-controller-1'
-            }, {
-                'name': 'baremetal-2',
-                'hostname': 'overcast-compute-0'
-            }]
-        }
-        expand_to_translate = {
-            'environment': {
-                'parameter_defaults': {
-                    'ComputeRemovalPolicies': [{
-                        'resource_list': [0]
-                    }],
-                    'ControllerRemovalPolicies': [{
-                        'resource_list': [1]
-                    }]
-                }
-            }
-        }
-        mock_expand_roles.side_effect = [
-            expand_to_delete,
-            expand_to_translate
+        tmp = tempfile.mkdtemp()
+        mock_tempfile.mkdtemp.side_effect = [
+            tmp,
+            tempfile.mkdtemp(),
+            tempfile.mkdtemp(),
+            tempfile.mkdtemp()
         ]
 
-        res_list = self.app.client_manager.orchestration.resources.list
-        res_list.return_value = [
-            mock.Mock(
-                resource_type='OS::TripleO::ComputeServer',
-                parent_resource='0',
-                physical_resource_id='aaaa'
-            ),
-            mock.Mock(
-                resource_type='OS::TripleO::ComputeServer',
-                parent_resource='1',
-                physical_resource_id='bbbb'
-            ),
-            mock.Mock(
-                resource_type='OS::TripleO::ControllerServer',
-                parent_resource='0',
-                physical_resource_id='cccc'
-            ),
-            mock.Mock(
-                resource_type='OS::TripleO::ControllerServer',
-                parent_resource='1',
-                physical_resource_id='dddd'
-            ),
-            mock.Mock(
-                resource_type='OS::TripleO::ControllerServer',
-                parent_resource='2',
-                physical_resource_id='eeee'
-            )
-        ]
+        unprovision_confirm = os.path.join(tmp, 'unprovision_confirm.json')
+        with open(unprovision_confirm, 'w') as confirm:
+            confirm.write(json.dumps([
+                {
+                    'hostname': 'overcast-controller-1',
+                    'name': 'baremetal-1',
+                    'id': 'aaaa'
+                }, {
+                    'hostname': 'overcast-compute-0',
+                    'name': 'baremetal-2',
+                    'id': 'bbbb'
+                }
+            ]))
 
         with tempfile.NamedTemporaryFile(mode='w') as inp:
             yaml.dump(bm_yaml, inp, encoding='utf-8')
@@ -229,71 +195,94 @@ class TestDeleteNode(fakes.TestDeleteNode):
             self.cmd.take_action(parsed_args)
 
         # Verify
-        res_list.assert_called_once_with('overcast', nested_depth=5)
-        mock_expand_roles.assert_has_calls([
+        mock_playbook.assert_has_calls([
             mock.call(
-                self.app.client_manager,
-                provisioned=False,
-                roles=bm_yaml,
-                stackname='overcast'
+                playbook='cli-overcloud-node-unprovision.yaml',
+                inventory='localhost,',
+                verbosity=0,
+                workdir=mock.ANY,
+                playbook_dir='/usr/share/ansible/tripleo-playbooks',
+                extra_vars={
+                    'stack_name': 'overcast',
+                    'baremetal_deployment': [{
+                        'count': 5,
+                        'instances': [{
+                            'hostname': 'overcast-compute-0',
+                            'name': 'baremetal-2',
+                            'provisioned': False
+                        }],
+                        'name': 'Compute'
+                    }, {
+                        'count': 2,
+                        'instances': [{
+                            'hostname': 'overcast-controller-1',
+                            'name': 'baremetal-1',
+                            'provisioned': False
+                        }], 'name': 'Controller'
+                    }],
+                    'prompt': True,
+                    'unprovision_confirm': unprovision_confirm,
+                },
             ),
             mock.call(
-                self.app.client_manager,
-                provisioned=True,
-                roles=bm_yaml,
-                stackname='overcast'
+                playbook='cli-grant-local-access.yaml',
+                inventory='localhost,',
+                workdir=mock.ANY,
+                playbook_dir='/usr/share/ansible/tripleo-playbooks',
+                extra_vars={
+                    'access_path': '/var/lib/mistral',
+                    'execution_user': mock.ANY},
+            ),
+            mock.call(
+                playbook=mock.ANY,
+                inventory=mock.ANY,
+                workdir=mock.ANY,
+                playbook_dir=mock.ANY,
+                skip_tags='opendev-validation',
+                ansible_cfg=None,
+                verbosity=1,
+                ssh_user='tripleo-admin',
+                key=mock.ANY,
+                limit_hosts='overcast-controller-1:overcast-compute-0',
+                ansible_timeout=90,
+                reproduce_command=True,
+                extra_env_variables={'ANSIBLE_BECOME': True},
+                extra_vars=None,
+                tags=None
+            ),
+            mock.call(
+                inventory='localhost,',
+                playbook='cli-overcloud-node-unprovision.yaml',
+                verbosity=0,
+                workdir=mock.ANY,
+                playbook_dir='/usr/share/ansible/tripleo-playbooks',
+                extra_vars={
+                    'stack_name': 'overcast',
+                    'baremetal_deployment': [{
+                        'count': 5,
+                        'instances': [{
+                            'hostname': 'overcast-compute-0',
+                            'name': 'baremetal-2',
+                            'provisioned': False
+                        }], 'name': 'Compute'
+                    }, {
+                        'count': 2,
+                        'instances': [{
+                            'hostname': 'overcast-controller-1',
+                            'name': 'baremetal-1',
+                            'provisioned': False
+                        }],
+                        'name': 'Controller'
+                    }],
+                    'prompt': False
+                },
             )
         ])
 
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
-    @mock.patch('tripleoclient.workflows.baremetal.expand_roles',
-                autospec=True)
-    def test_nodes_to_delete(self, mock_expand_roles, mock_playbook):
-        bm_yaml = [{
-            'name': 'Compute',
-            'count': 5,
-            'instances': [{
-                'name': 'baremetal-2',
-                'hostname': 'overcast-compute-0',
-                'provisioned': False
-            }],
-        }, {
-            'name': 'Controller',
-            'count': 2,
-            'instances': [{
-                'name': 'baremetal-1',
-                'hostname': 'overcast-controller-1',
-                'provisioned': False
-            }]
-        }]
-        mock_expand_roles.return_value = {
-            'instances': [{
-                'name': 'baremetal-1',
-                'hostname': 'overcast-controller-1'
-            }, {
-                'name': 'baremetal-2',
-                'hostname': 'overcast-compute-0'
-            }]
-        }
-        argslist = ['--baremetal-deployment', '/foo/bm_deploy.yaml']
-        verifylist = [
-            ('baremetal_deployment', '/foo/bm_deploy.yaml')
-        ]
-        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
-        result = self.cmd._nodes_to_delete(parsed_args, bm_yaml)
-        expected = '''+-----------------------+-------------+
-| hostname              | name        |
-+-----------------------+-------------+
-| overcast-controller-1 | baremetal-1 |
-| overcast-compute-0    | baremetal-2 |
-+-----------------------+-------------+
-'''
-        self.assertEqual(expected, result)
-
-    @mock.patch('tripleoclient.workflows.baremetal.expand_roles',
-                autospec=True)
-    def test_translate_nodes_to_resources(self, mock_expand_roles):
+    @mock.patch('tripleoclient.utils.tempfile')
+    def test_nodes_to_delete(self, mock_tempfile, mock_playbook):
         bm_yaml = [{
             'name': 'Compute',
             'count': 5,
@@ -312,56 +301,38 @@ class TestDeleteNode(fakes.TestDeleteNode):
             }]
         }]
 
-        res_list = self.app.client_manager.orchestration.resources.list
-        res_list.return_value = [
-            mock.Mock(
-                resource_type='OS::TripleO::ComputeServer',
-                parent_resource='0',
-                physical_resource_id='aaaa'
-            ),
-            mock.Mock(
-                resource_type='OS::TripleO::ComputeServer',
-                parent_resource='1',
-                physical_resource_id='bbbb'
-            ),
-            mock.Mock(
-                resource_type='OS::TripleO::ControllerServer',
-                parent_resource='0',
-                physical_resource_id='cccc'
-            ),
-            mock.Mock(
-                resource_type='OS::TripleO::ControllerServer',
-                parent_resource='1',
-                physical_resource_id='dddd'
-            ),
-            mock.Mock(
-                resource_type='OS::TripleO::ControllerServer',
-                parent_resource='2',
-                physical_resource_id='eeee'
-            )
-        ]
+        tmp = tempfile.mkdtemp()
+        mock_tempfile.mkdtemp.return_value = tmp
 
-        mock_expand_roles.return_value = {
-            'environment': {
-                'parameter_defaults': {
-                    'ComputeRemovalPolicies': [{
-                        'resource_list': [0]
-                    }],
-                    'ControllerRemovalPolicies': [{
-                        'resource_list': [1]
-                    }]
+        unprovision_confirm = os.path.join(tmp, 'unprovision_confirm.json')
+        with open(unprovision_confirm, 'w') as confirm:
+            confirm.write(json.dumps([
+                {
+                    'hostname': 'compute-0',
+                    'name': 'baremetal-1',
+                    'id': 'aaaa'
+                }, {
+                    'hostname': 'controller-0',
+                    'name': 'baremetal-2',
+                    'id': 'bbbb'
                 }
-            }
-        }
+            ]))
 
         argslist = ['--baremetal-deployment', '/foo/bm_deploy.yaml']
         verifylist = [
             ('baremetal_deployment', '/foo/bm_deploy.yaml')
         ]
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
-        result = self.cmd._translate_nodes_to_resources(
-            parsed_args, bm_yaml)
-        self.assertEqual(['aaaa', 'dddd'], result)
+        nodes_text, nodes = self.cmd._nodes_to_delete(parsed_args, bm_yaml)
+        expected = '''+--------------+-------------+------+
+| hostname     | name        | id   |
++--------------+-------------+------+
+| compute-0    | baremetal-1 | aaaa |
+| controller-0 | baremetal-2 | bbbb |
++--------------+-------------+------+
+'''
+        self.assertEqual(expected, nodes_text)
+        self.assertEqual(['compute-0', 'controller-0'], nodes)
 
 
 class TestProvideNode(fakes.TestOvercloudNode):
