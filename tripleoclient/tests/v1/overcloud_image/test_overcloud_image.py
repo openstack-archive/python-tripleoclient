@@ -414,16 +414,10 @@ class TestGlanceClientAdapter(TestPluginV1):
             updated=self.updated
         )
 
-    @mock.patch('osc_lib.utils.find_resource')
-    def test_get_image_exists(self, mock_find_resource):
+    def test_get_image_exists(self):
         image_mock = mock.Mock(name='imagename')
-        mock_find_resource.return_value = image_mock
+        self.app.client_manager.image.find_image.return_value = image_mock
         self.assertEqual(self.adapter._get_image('imagename'), image_mock)
-
-    @mock.patch('osc_lib.utils.find_resource')
-    def test_get_image_none(self, mock_find_resource):
-        mock_find_resource.side_effect = exceptions.CommandError('')
-        self.assertIsNone(self.adapter._get_image('noimagename'))
 
     @mock.patch('tripleoclient.v1.overcloud_image.'
                 'GlanceClientAdapter._get_image', autospec=True)
@@ -448,7 +442,7 @@ class TestGlanceClientAdapter(TestPluginV1):
             image_mock
         )
         self.assertEqual([], self.updated)
-        self.app.client_manager.image.images.update.assert_not_called()
+        self.app.client_manager.image.update_image.assert_not_called()
 
     @mock.patch('tripleoclient.v1.overcloud_image.'
                 'GlanceClientAdapter._image_changed', autospec=True)
@@ -460,7 +454,7 @@ class TestGlanceClientAdapter(TestPluginV1):
         image_mock = mock.Mock(name='imagename',
                                created_at='2015-07-31T14:37:22.000000')
         update_mock = mock.Mock(return_value=image_mock)
-        self.app.client_manager.image.images.update = update_mock
+        self.app.client_manager.image.update_image = update_mock
         mock_get_image.return_value = image_mock
         mock_image_changed.return_value = True
         self.adapter.update_existing = True
@@ -482,7 +476,7 @@ class TestUploadOvercloudImage(TestPluginV1):
         self.app.client_manager.image = mock.Mock()
         self.app.client_manager.image.version = 2.0
         self._arch = tripleo_common.arch.kernel_arch()
-        self.app.client_manager.image.images.create.return_value = (
+        self.app.client_manager.image.create_image.return_value = (
             mock.Mock(id=10, name='imgname',
                       properties={'kernel_id': 10, 'ramdisk_id': 10,
                                   'hw_architecture': self._arch},
@@ -546,20 +540,26 @@ class TestUploadOvercloudImage(TestPluginV1):
         )
         self.assertEqual(
             3,
-            self.app.client_manager.image.images.create.call_count
+            self.app.client_manager.image.create_image.call_count
         )
-        self.app.client_manager.image.images.create.assert_has_calls([
+        self.app.client_manager.image.create_image.assert_has_calls([
             mock.call(name='overcloud-full-vmlinuz',
                       disk_format='aki',
                       container_format='bare',
+                      data=mock.ANY,
+                      validate_checksum=False,
                       visibility='public'),
             mock.call(name='overcloud-full-initrd',
                       disk_format='ari',
                       container_format='bare',
+                      data=mock.ANY,
+                      validate_checksum=False,
                       visibility='public'),
             mock.call(name='overcloud-full',
                       disk_format='qcow2',
                       container_format='bare',
+                      data=mock.ANY,
+                      validate_checksum=False,
                       visibility='public'),
         ])
 
@@ -637,15 +637,15 @@ class TestUploadOvercloudImage(TestPluginV1):
 
         self.assertEqual(
             0,
-            self.app.client_manager.image.images.delete.call_count
+            self.app.client_manager.image.delete_image.call_count
         )
         self.assertEqual(
             0,
-            self.app.client_manager.image.images.create.call_count
+            self.app.client_manager.image.create_image.call_count
         )
         self.assertEqual(
             0,
-            self.app.client_manager.image.images.update.call_count
+            self.app.client_manager.image.image_update.call_count
         )
 
         self.assertEqual(mock_subprocess_call.call_count, 0)
@@ -672,22 +672,22 @@ class TestUploadOvercloudImage(TestPluginV1):
                                    created_at='2015-07-31T14:37:22.000000')
         mock_get_image.return_value = existing_image
         mock_image_changed.return_value = True
-        self.app.client_manager.image.images.update.return_value = (
+        self.app.client_manager.image.image_update.return_value = (
             existing_image)
 
         self.cmd.take_action(parsed_args)
 
         self.assertEqual(
             0,
-            self.app.client_manager.image.images.delete.call_count
+            self.app.client_manager.image.delete_image.call_count
         )
         self.assertEqual(
             3,
-            self.app.client_manager.image.images.create.call_count
+            self.app.client_manager.image.create_image.call_count
         )
         self.assertEqual(
             6,  # 3 for new uploads, 3 updating the existsing
-            self.app.client_manager.image.images.update.call_count
+            self.app.client_manager.image.update_image.call_count
         )
         self.assertEqual(mock_subprocess_call.call_count, 2)
         self.assertTrue(self.cmd.updated)
@@ -703,7 +703,7 @@ class TestUploadOvercloudImageFull(TestPluginV1):
         self.app.client_manager.image = mock.Mock()
         self.app.client_manager.image.version = 2.0
         self._arch = tripleo_common.arch.kernel_arch()
-        self.app.client_manager.image.images.create.return_value = (
+        self.app.client_manager.image.create_image.return_value = (
             mock.Mock(id=10, name='imgname',
                       properties={'hw_architecture': self._arch},
                       created_at='2015-07-31T14:37:22.000000'))
@@ -739,21 +739,23 @@ class TestUploadOvercloudImageFull(TestPluginV1):
 
         self.assertEqual(
             0,
-            self.app.client_manager.image.images.delete.call_count
+            self.app.client_manager.image.delete_image.call_count
         )
         self.assertEqual(
             1,
-            self.app.client_manager.image.images.create.call_count
+            self.app.client_manager.image.create_image.call_count
         )
 
-        self.app.client_manager.image.images.create.assert_has_calls([
+        self.app.client_manager.image.create_image.assert_has_calls([
             mock.call(name='overcloud-full',
                       disk_format='qcow2',
                       container_format='bare',
-                      visibility='public'),
+                      data=mock.ANY,
+                      validate_checksum=False,
+                      visibility='public',),
         ])
         # properties are set by updating the image
-        self.app.client_manager.image.images.update.assert_has_calls([
+        self.app.client_manager.image.update_image.assert_has_calls([
             mock.call(mock.ANY, hw_architecture=self._arch),
         ])
 
@@ -784,21 +786,23 @@ class TestUploadOvercloudImageFull(TestPluginV1):
 
         self.assertEqual(
             0,
-            self.app.client_manager.image.images.delete.call_count
+            self.app.client_manager.image.delete_image.call_count
         )
         self.assertEqual(
             1,
-            self.app.client_manager.image.images.create.call_count
+            self.app.client_manager.image.create_image.call_count
         )
 
-        self.app.client_manager.image.images.create.assert_has_calls([
+        self.app.client_manager.image.create_image.assert_has_calls([
             mock.call(name='ppc64le-overcloud-full',
                       disk_format='qcow2',
                       container_format='bare',
+                      data=mock.ANY,
+                      validate_checksum=False,
                       visibility='public'),
         ])
 
-        self.app.client_manager.image.images.update.assert_has_calls([
+        self.app.client_manager.image.update_image.assert_has_calls([
             mock.call(mock.ANY, hw_architecture='ppc64le'),
         ])
         self.assertEqual(mock_subprocess_call.call_count, 2)
@@ -836,15 +840,15 @@ class TestUploadOvercloudImageFull(TestPluginV1):
 
         self.assertEqual(
             0,
-            self.app.client_manager.image.images.delete.call_count
+            self.app.client_manager.image.delete_image.call_count
         )
         self.assertEqual(
             0,
-            self.app.client_manager.image.images.create.call_count
+            self.app.client_manager.image.create_image.call_count
         )
         self.assertEqual(
             0,
-            self.app.client_manager.image.images.update.call_count
+            self.app.client_manager.image.update_image.call_count
         )
 
         self.assertEqual(mock_subprocess_call.call_count, 0)
@@ -869,22 +873,22 @@ class TestUploadOvercloudImageFull(TestPluginV1):
                                    created_at='2015-07-31T14:37:22.000000')
         mock_get_image.return_value = existing_image
         mock_image_changed.return_value = True
-        self.app.client_manager.image.images.update.return_value = (
+        self.app.client_manager.image.update_image.return_value = (
             existing_image)
 
         self.cmd.take_action(parsed_args)
 
         self.assertEqual(
             0,
-            self.app.client_manager.image.images.delete.call_count
+            self.app.client_manager.image.delete_image.call_count
         )
         self.assertEqual(
             1,
-            self.app.client_manager.image.images.create.call_count
+            self.app.client_manager.image.create_image.call_count
         )
         self.assertEqual(
             2,  # update 1 image *and* add properties to 1 image
-            self.app.client_manager.image.images.update.call_count
+            self.app.client_manager.image.update_image.call_count
         )
         self.assertEqual(mock_subprocess_call.call_count, 2)
 
@@ -909,8 +913,8 @@ class TestUploadOvercloudImageFullMultiArch(TestPluginV1):
         # GlanceClientAdapter._upload_image() calls
         # self.client.images.create() and self.client.images.get() once each
         # call so this way we always create() and get() the same mocked "image"
-        self.app.client_manager.image.images.create.side_effect = self.images
-        self.app.client_manager.image.images.get.side_effect = self.images
+        self.app.client_manager.image.create_image.side_effect = self.images
+        self.app.client_manager.image.get_image.side_effect = self.images
 
         mock_cfe = mock.patch('tripleoclient.v1.overcloud_image.'
                               'BaseClientAdapter.check_file_exists',
@@ -952,25 +956,29 @@ class TestUploadOvercloudImageFullMultiArch(TestPluginV1):
 
         self.assertEqual(
             0,
-            self.app.client_manager.image.images.delete.call_count
+            self.app.client_manager.image.delete_image.call_count
         )
         self.assertEqual(
             2,
-            self.app.client_manager.image.images.create.call_count
+            self.app.client_manager.image.create_image.call_count
         )
 
-        self.app.client_manager.image.images.create.assert_has_calls([
+        self.app.client_manager.image.create_image.assert_has_calls([
             mock.call(name='overcloud-full',
                       disk_format='qcow2',
                       container_format='bare',
+                      data=mock.ANY,
+                      validate_checksum=False,
                       visibility='public'),
             mock.call(name='ppc64le-overcloud-full',
                       disk_format='qcow2',
                       container_format='bare',
+                      data=mock.ANY,
+                      validate_checksum=False,
                       visibility='public'),
         ])
 
-        self.app.client_manager.image.images.update.assert_has_calls([
+        self.app.client_manager.image.update_image.assert_has_calls([
             mock.call(10, hw_architecture='x86_64'),
             mock.call(11, hw_architecture='ppc64le'),
         ])
@@ -1020,29 +1028,35 @@ class TestUploadOvercloudImageFullMultiArch(TestPluginV1):
 
         self.assertEqual(
             0,
-            self.app.client_manager.image.images.delete.call_count
+            self.app.client_manager.image.delete_image.call_count
         )
         self.assertEqual(
             3,
-            self.app.client_manager.image.images.create.call_count
+            self.app.client_manager.image.create_image.call_count
         )
 
-        self.app.client_manager.image.images.create.assert_has_calls([
+        self.app.client_manager.image.create_image.assert_has_calls([
             mock.call(name='overcloud-full',
                       disk_format='qcow2',
                       container_format='bare',
+                      data=mock.ANY,
+                      validate_checksum=False,
                       visibility='public'),
             mock.call(name='ppc64le-overcloud-full',
                       disk_format='qcow2',
                       container_format='bare',
+                      data=mock.ANY,
+                      validate_checksum=False,
                       visibility='public'),
             mock.call(name='p9-ppc64le-overcloud-full',
                       disk_format='qcow2',
                       container_format='bare',
+                      data=mock.ANY,
+                      validate_checksum=False,
                       visibility='public'),
         ])
 
-        self.app.client_manager.image.images.update.assert_has_calls([
+        self.app.client_manager.image.update_image.assert_has_calls([
             mock.call(10, hw_architecture='x86_64'),
             mock.call(11, hw_architecture='ppc64le'),
             mock.call(12, hw_architecture='ppc64le', tripleo_platform='p9'),
@@ -1073,7 +1087,7 @@ class TestUploadOnlyExisting(TestPluginV1):
         self.cmd = overcloud_image.UploadOvercloudImage(self.app, None)
         self.app.client_manager.image = mock.Mock()
         self.app.client_manager.image.version = 2.0
-        self.app.client_manager.image.images.create.return_value = (
+        self.app.client_manager.image.create_image.return_value = (
             mock.Mock(id=10, name='imgname', properties={},
                       created_at='2015-07-31T14:37:22.000000'))
         mock_cfe = mock.patch('tripleoclient.v1.overcloud_image.'

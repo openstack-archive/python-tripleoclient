@@ -27,7 +27,6 @@ import sys
 from glanceclient.common.progressbar import VerboseFileWrapper
 from osc_lib import exceptions
 from osc_lib.i18n import _
-from osc_lib import utils
 from prettytable import PrettyTable
 import tripleo_common.arch
 from tripleo_common.image import build
@@ -290,21 +289,9 @@ class GlanceClientAdapter(BaseClientAdapter):
         print(table, file=sys.stdout)
 
     def _get_image(self, name):
-        try:
-            image = utils.find_resource(self.client.images, name)
-        except exceptions.CommandError as e:
-            # TODO(maufart): enhance error detection, when python-glanceclient
-            # starts provide it https://bugs.launchpad.net/glance/+bug/1480156
-            if 'More than one image exists' in e.args[0]:
-                raise exceptions.CommandError(
-                    'Image "%s" already exists in glance more than once,'
-                    ' delete all copies except the first one.' % name
-                )
-            else:
-                self.log.debug('Image "%s" does not exists, no problem.'
-                               % name)
-                return None
-        return image
+        # This would return None by default for an non-existent resorurce
+        # And DuplicateResource exception if there more than one.
+        return self.client.find_image(name)
 
     def _image_changed(self, image, filename):
         return image.checksum != plugin_utils.file_checksum(filename)
@@ -314,7 +301,7 @@ class GlanceClientAdapter(BaseClientAdapter):
         if image:
             if self._image_changed(image, image_file):
                 if self.update_existing:
-                    self.client.images.update(
+                    self.client.update_image(
                         image.id,
                         name='%s_%s' % (image.name, re.sub(r'[\-:\.]|(0+$)',
                                                            '',
@@ -336,18 +323,19 @@ class GlanceClientAdapter(BaseClientAdapter):
     def _upload_image(self, name, data, properties=None, visibility='public',
                       disk_format='qcow2', container_format='bare'):
 
-        image = self.client.images.create(
+        image = self.client.create_image(
             name=name,
             visibility=visibility,
             disk_format=disk_format,
-            container_format=container_format
+            container_format=container_format,
+            data=data,
+            validate_checksum=False
         )
 
-        self.client.images.upload(image.id, image_data=data)
         if properties:
-            self.client.images.update(image.id, **properties)
+            self.client.update_image(image.id, **properties)
         # Refresh image info
-        image = self.client.images.get(image.id)
+        image = self.client.get_image(image.id)
 
         print('Image "%s" was uploaded.' % image.name, file=sys.stdout)
         self._print_image_info(image)
