@@ -113,6 +113,86 @@ class TestParameterWorkflows(utils.TestCommand):
 
     @mock.patch('yaml.safe_load')
     @mock.patch("six.moves.builtins.open")
+    @mock.patch('tripleoclient.utils.run_ansible_playbook', autospec=True)
+    @mock.patch('tripleoclient.utils.get_tripleo_ansible_inventory',
+                autospec=True)
+    def test_invoke_plan_env_workflows_single_playbook(self,
+                                                       mock_inventory,
+                                                       mock_playbook,
+                                                       mock_open,
+                                                       mock_safe_load):
+        plan_env_data = {
+            'name': 'overcloud',
+            'playbook_parameters': {
+                'sample-playbook-1.yaml': {
+                    'num_phy_cores_per_numa_node_for_pmd': 2
+                }
+            }
+        }
+        mock_safe_load.return_value = plan_env_data
+        parameters.invoke_plan_env_workflows(
+            self.app.client_manager,
+            'overcloud',
+            'the-plan-environment.yaml'
+        )
+        calls = [
+            mock.call(
+                playbook='sample-playbook-1.yaml',
+                inventory=mock.ANY,
+                workdir=mock.ANY,
+                playbook_dir=mock.ANY,
+                extra_vars={'num_phy_cores_per_numa_node_for_pmd': 2}
+            )
+        ]
+        mock_playbook.assert_has_calls(calls, any_order=True)
+
+    @mock.patch('yaml.safe_load')
+    @mock.patch("six.moves.builtins.open")
+    @mock.patch('tripleoclient.utils.run_ansible_playbook', autospec=True)
+    @mock.patch('tripleoclient.utils.get_tripleo_ansible_inventory',
+                autospec=True)
+    def test_invoke_plan_env_workflows_multi_playbook(self,
+                                                      mock_inventory,
+                                                      mock_playbook,
+                                                      mock_open,
+                                                      mock_safe_load):
+        plan_env_data = {
+            'name': 'overcloud',
+            'playbook_parameters': {
+                'sample-playbook-1.yaml': {
+                    'num_phy_cores_per_numa_node_for_pmd': 2
+                },
+                '/playbook/dir-1/sample-playbook-2.yaml': {
+                    'some_opt': 0
+                }
+            }
+        }
+        mock_safe_load.return_value = plan_env_data
+        parameters.invoke_plan_env_workflows(
+            self.app.client_manager,
+            'overcloud',
+            'the-plan-environment.yaml'
+        )
+        calls = [
+            mock.call(
+                playbook='sample-playbook-1.yaml',
+                inventory=mock.ANY,
+                workdir=mock.ANY,
+                playbook_dir=mock.ANY,
+                extra_vars={'num_phy_cores_per_numa_node_for_pmd': 2}
+            ),
+            mock.call(
+                playbook='sample-playbook-2.yaml',
+                inventory=mock.ANY,
+                workdir=mock.ANY,
+                playbook_dir='/playbook/dir-1',
+                extra_vars={'some_opt': 0}
+            )
+        ]
+        mock_playbook.assert_has_calls(calls, any_order=True)
+
+    @mock.patch('yaml.safe_load')
+    @mock.patch("six.moves.builtins.open")
     def test_invoke_plan_env_workflow_failed(self, mock_open,
                                              mock_safe_load):
         plan_env_data = {

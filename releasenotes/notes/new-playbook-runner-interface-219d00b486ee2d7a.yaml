@@ -1,0 +1,26 @@
+---
+features:
+  - |
+    A new interface has been created allowing deployers to run arbitrary
+    playbooks which are defined within a deployment plan. This interface is
+    being created to replace the existing Mistral interface, which is largely
+    used for HCI and NFV use cases. The interface will now process playbooks
+    when they're defined within a plan under the `playbook_parameters` key.
+
+    Playbook entries can be defined with, and without the base path. If no base
+    path is defined within the entry, the interface will fall back to the
+    constant tripleo playbook path, `/usr/share/ansible/tripleo-playbooks`.
+    Options fined within a playbook entry will be passed into the playbook at
+    runtime using extra-vars.
+
+    * Interface usage example
+
+    .. code-block:: yaml
+
+      playbook_parameters:
+        sample-playbook-0.yaml:
+          x: 1
+          y: a
+        /path/to/sample-playbook-1.yaml:
+          x: a
+          y: 1
