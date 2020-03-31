@@ -176,11 +176,18 @@ class StandaloneConfig(BaseConfig):
                        ),
             cfg.StrOpt('container_images_file',
                        default='',
+                       required=False,
                        help=_(
-                           'Heat environment file with parameters for all '
-                           'required container images. Or alternatively, '
-                           'parameter "ContainerImagePrepare" to drive the '
-                           'required image preparation.')),
+                           'REQUIRED if authentication is needed to fetch '
+                           'containers. This file should contain values for '
+                           '"ContainerImagePrepare" and '
+                           '"ContainerImageRegistryCredentials" that will be '
+                           'used to fetch the containers for the undercloud '
+                           'installation. `openstack tripleo container image '
+                           'prepare default` can be used to provide a sample '
+                           '"ContainerImagePrepare" value. Alternatively this '
+                           'file can contain all the required Heat parameters '
+                           'for the containers for advanced configurations.')),
             cfg.ListOpt('custom_env_files',
                         default=[],
                         help=_('List of any custom environment yaml files to '
