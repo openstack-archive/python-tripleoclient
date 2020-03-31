@@ -17,6 +17,7 @@
 
 import argparse
 import logging
+import os
 import subprocess
 
 from openstackclient.i18n import _
@@ -145,7 +146,10 @@ class InstallUndercloud(command.Command):
             try:
                 subprocess.check_call(cmd)
                 self.log.warning(UNDERCLOUD_COMPLETION_MESSAGE.format(
-                    '~/undercloud-passwords.conf',
+                    os.path.join(
+                        constants.UNDERCLOUD_OUTPUT_DIR,
+                        'undercloud-passwords.conf'
+                    ),
                     '~/stackrc'
                     ))
             except Exception as e:
@@ -183,7 +187,10 @@ class UpgradeUndercloud(InstallUndercloud):
                 subprocess.check_call(cmd)
                 self.log.warning(
                     UNDERCLOUD_UPGRADE_COMPLETION_MESSAGE.format(
-                        '~/undercloud-passwords.conf',
+                        os.path.join(
+                            constants.UNDERCLOUD_OUTPUT_DIR,
+                            'undercloud-passwords.conf'
+                        ),
                         '~/stackrc'))
             except Exception as e:
                 self.log.error(UNDERCLOUD_FAILURE_MESSAGE)
