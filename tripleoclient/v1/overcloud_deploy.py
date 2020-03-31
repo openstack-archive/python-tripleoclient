@@ -39,7 +39,6 @@ from tripleoclient import command
 from tripleoclient import constants
 from tripleoclient import exceptions
 from tripleoclient import utils
-from tripleoclient.workflows import baremetal
 from tripleoclient.workflows import deployment
 from tripleoclient.workflows import parameters as workflow_params
 from tripleoclient.workflows import plan_management
@@ -150,18 +149,22 @@ class DeployOvercloud(command.Command):
             container_name)
         return parameter_defaults
 
-    def _write_user_environment(self, env_map, abs_env_path, tht_root,
-                                container_name):
-        # We write the env_map to the local /tmp tht_root and also
-        # to the swift plan container.
-        contents = yaml.safe_dump(env_map, default_flow_style=False)
+    def _user_env_path(self, abs_env_path, tht_root):
         env_dirname = os.path.dirname(abs_env_path)
         user_env_dir = os.path.join(
             tht_root, 'user-environments', env_dirname[1:])
         user_env_path = os.path.join(
             user_env_dir, os.path.basename(abs_env_path))
-        self.log.debug("user_env_path=%s" % user_env_path)
         utils.makedirs(user_env_dir)
+        return user_env_path
+
+    def _write_user_environment(self, env_map, abs_env_path, tht_root,
+                                container_name):
+        # We write the env_map to the local /tmp tht_root and also
+        # to the swift plan container.
+        contents = yaml.safe_dump(env_map, default_flow_style=False)
+        user_env_path = self._user_env_path(abs_env_path, tht_root)
+        self.log.debug("user_env_path=%s" % user_env_path)
         with open(user_env_path, 'w') as f:
             self.log.debug("Writing user environment %s" % user_env_path)
             f.write(contents)
@@ -619,20 +622,40 @@ class DeployOvercloud(command.Command):
         with open('{}.pub'.format(key), 'rt') as fp:
             ssh_key = fp.read()
 
-        parameter_defaults = baremetal.deploy_roles(
-            self.app.client_manager,
-            plan=parsed_args.stack,
-            roles=roles,
-            ssh_keys=[ssh_key],
-            ssh_user_name=parsed_args.overcloud_ssh_user
+        output_path = self._user_env_path(
+            'baremetal-deployed.yaml',
+            tht_root
         )
+        extra_vars = {
+            "stack_name": parsed_args.stack,
+            "baremetal_deployment": roles,
+            "baremetal_deployed_path": output_path,
+            "ssh_public_keys": ssh_key,
+            "ssh_user_name": parsed_args.overcloud_ssh_user,
+        }
 
-        env_path, swift_path = self._write_user_environment(
+        with utils.TempDirs() as tmp:
+            utils.run_ansible_playbook(
+                playbook='cli-overcloud-node-provision.yaml',
+                inventory='localhost,',
+                verbosity=self.app_args.verbose_level - 1,
+                workdir=tmp,
+                playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                extra_vars=extra_vars,
+            )
+
+        with open(output_path, 'r') as fp:
+            parameter_defaults = yaml.safe_load(fp)
+
+        # TODO(sbaker) Remove this call when it is no longer necessary
+        # to write to a swift object
+        self._write_user_environment(
             parameter_defaults,
             'baremetal-deployed.yaml',
             tht_root,
             parsed_args.stack)
-        return [env_path]
+
+        return [output_path]
 
     def _unprovision_baremetal(self, parsed_args):
 
@@ -642,11 +665,19 @@ class DeployOvercloud(command.Command):
         with open(parsed_args.baremetal_deployment, 'r') as fp:
             roles = yaml.safe_load(fp)
 
-        baremetal.undeploy_roles(
-            self.app.client_manager,
-            plan=parsed_args.stack,
-            roles=roles
-        )
+        with utils.TempDirs() as tmp:
+            utils.run_ansible_playbook(
+                playbook='cli-overcloud-node-unprovision.yaml',
+                inventory='localhost,',
+                verbosity=self.app_args.verbose_level - 1,
+                workdir=tmp,
+                playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                extra_vars={
+                    "stack_name": parsed_args.stack,
+                    "baremetal_deployment": roles,
+                    "prompt": False,
+                }
+            )
 
     def get_parser(self, prog_name):
         # add_help doesn't work properly, set it to False:
