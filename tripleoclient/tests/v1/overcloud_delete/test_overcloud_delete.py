@@ -88,3 +88,46 @@ class TestDeleteOvercloud(fakes.TestDeployOvercloud):
         delete_deployment_plan_mock.assert_called_once_with(
             self.workflow,
             container='overcloud')
+
+    @mock.patch('os.path.exists')
+    def test_cleanup_ipa_without_tripleo_ipa_installed_succeeds(self, os_mock):
+        # Make sure we log a warning and short-circuit the _cleanup_ipa()
+        # method if the playbook isn't installed on the system.
+        os_mock.return_value = False
+        self.cmd.log.debug = mock.MagicMock()
+
+        self.cmd._cleanup_ipa('overcloud')
+        self.cmd.log.debug.assert_called_once_with(
+            "/usr/share/ansible/tripleo-playbooks/cli-cleanup-ipa.yml "
+            "doesn't exist on system. Ignoring IPA cleanup."
+        )
+
+    @mock.patch('shutil.rmtree')
+    @mock.patch('os.path.exists')
+    @mock.patch('tripleoclient.utils.get_tripleo_ansible_inventory')
+    @mock.patch('tripleoclient.utils.cleanup_tripleo_ansible_inventory_file')
+    @mock.patch('tripleoclient.utils.run_ansible_playbook')
+    @mock.patch('tripleo_common.actions.ansible.write_default_ansible_cfg')
+    def test_cleanup_ipa_cleans_up_after_failure(
+            self, ansible_mock, pb_mock, inv_mock, clean_inv_mock, os_mock,
+            shutil_mock):
+        os_mock.return_value = True
+        pb_mock.return_value = (1, 'fake output')
+        inv_mock.return_value = 'fake inventory'
+        ansible_mock.return_value = 'fake config'
+
+        self.cmd.log.debug = mock.MagicMock()
+        self.cmd.log.warning = mock.MagicMock()
+
+        self.cmd._cleanup_ipa('overcloud')
+
+        self.cmd.log.debug.assert_any_call(
+            "Removing static tripleo ansible inventory file"
+        )
+        self.cmd.log.debug.assert_any_call(
+            "Removing temporary ansible configuration directory"
+        )
+        self.cmd.log.warning.assert_any_call(
+            "/usr/share/ansible/tripleo-playbooks/cli-cleanup-ipa.yml "
+            "did not complete successfully."
+        )

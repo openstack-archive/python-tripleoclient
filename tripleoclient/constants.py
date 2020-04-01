@@ -93,6 +93,8 @@ VALIDATION_GROUPS = ['no-op',
                      'pre-upgrade',
                      'post-upgrade']
 
+ANSIBLE_TRIPLEO_PLAYBOOKS = \
+    '/usr/share/ansible/tripleo-playbooks'
 
 # ctlplane network defaults
 CTLPLANE_CIDR_DEFAULT = '192.168.24.0/24'
