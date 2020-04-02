@@ -1660,7 +1660,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 inventory='localhost,',
                 playbook='cli-overcloud-node-provision.yaml',
                 playbook_dir='/usr/share/ansible/tripleo-playbooks',
-                verbosity=0,
+                verbosity=3,
                 workdir=mock.ANY
             ),
             mock.call(
@@ -1675,7 +1675,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 inventory='localhost,',
                 playbook='cli-overcloud-node-unprovision.yaml',
                 playbook_dir='/usr/share/ansible/tripleo-playbooks',
-                verbosity=0,
+                verbosity=3,
                 workdir=mock.ANY
             )
         ])

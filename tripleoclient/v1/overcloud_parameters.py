@@ -60,6 +60,7 @@ class SetParameters(command.Command):
                 inventory='localhost,',
                 workdir=tmp,
                 playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                verbosity=utils.playbook_verbosity(self=self),
                 extra_vars={
                     "container": parsed_args.name,
                     "parameters": params

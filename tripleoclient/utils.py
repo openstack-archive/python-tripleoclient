@@ -204,6 +204,24 @@ def makedirs(dir_path):
         return True
 
 
+def playbook_verbosity(self):
+    """Return an integer for playbook verbosity levels.
+
+    :param self: Class object used to interpret the runtime state.
+    :type self: Object
+
+    :returns: Integer
+    """
+
+    if self.app.options.debug:
+        return 3
+    else:
+        if self.app_args.verbose_level <= 1:
+            return 0
+        else:
+            return self.app_args.verbose_level
+
+
 def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
                          connection='smart', output_callback='yaml',
                          ssh_user='root', key=None, module_path=None,

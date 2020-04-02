@@ -222,9 +222,12 @@ class DeployOvercloud(command.Command):
 
         # Invokes the workflows specified in plan environment file
         if plan_env_file:
-            workflow_params.invoke_plan_env_workflows(self.clients,
-                                                      stack_name,
-                                                      plan_env_file)
+            workflow_params.invoke_plan_env_workflows(
+                self.clients,
+                stack_name,
+                plan_env_file,
+                verbosity=utils.playbook_verbosity(self=self)
+            )
 
         workflow_params.check_deprecated_parameters(self.clients, stack_name)
 
@@ -232,12 +235,16 @@ class DeployOvercloud(command.Command):
             print("Deploying templates in the directory {0}".format(
                 os.path.abspath(tht_root)))
             deployment.deploy_and_wait(
-                self.log, self.clients, stack,
-                stack_name, self.app_args.verbose_level,
+                log=self.log,
+                clients=self.clients,
+                stack=stack,
+                plan_name=stack_name,
+                verbose_level=utils.playbook_verbosity(self=self),
                 timeout=timeout,
                 run_validations=run_validations,
                 skip_deploy_identifier=skip_deploy_identifier,
-                deployment_options=deployment_options)
+                deployment_options=deployment_options
+            )
 
     def _process_and_upload_environment(self, container_name,
                                         env, moved_files, tht_root):
@@ -299,6 +306,7 @@ class DeployOvercloud(command.Command):
                     inventory='localhost,',
                     workdir=tmp,
                     playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                    verbosity=utils.playbook_verbosity(self=self),
                     extra_vars={
                         "container": container_name,
                         "parameters": params
@@ -397,14 +405,18 @@ class DeployOvercloud(command.Command):
                 parsed_args.plan_environment_file,
                 parsed_args.networks_file,
                 type(self)._keep_env_on_update,
-                validate_stack=False)
+                validate_stack=False,
+                verbosity_level=utils.playbook_verbosity(self=self)
+            )
         else:
             plan_management.create_plan_from_templates(
                 self.clients, parsed_args.stack, tht_root,
                 parsed_args.roles_file, generate_passwords,
                 parsed_args.plan_environment_file,
                 parsed_args.networks_file,
-                validate_stack=False)
+                validate_stack=False,
+                verbosity_level=utils.playbook_verbosity(self=self)
+            )
 
         # Get any missing (e.g j2 rendered) files from the plan to tht_root
         self._download_missing_files_from_plan(
@@ -646,9 +658,9 @@ class DeployOvercloud(command.Command):
             utils.run_ansible_playbook(
                 playbook='cli-overcloud-node-provision.yaml',
                 inventory='localhost,',
-                verbosity=self.app_args.verbose_level - 1,
                 workdir=tmp,
                 playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                verbosity=utils.playbook_verbosity(self=self),
                 extra_vars=extra_vars,
             )
 
@@ -677,9 +689,9 @@ class DeployOvercloud(command.Command):
             utils.run_ansible_playbook(
                 playbook='cli-overcloud-node-unprovision.yaml',
                 inventory='localhost,',
-                verbosity=self.app_args.verbose_level - 1,
                 workdir=tmp,
                 playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                verbosity=utils.playbook_verbosity(self=self),
                 extra_vars={
                     "stack_name": parsed_args.stack,
                     "baremetal_deployment": roles,
@@ -1006,7 +1018,8 @@ class DeployOvercloud(command.Command):
                         parsed_args.overcloud_ssh_network,
                         parsed_args.overcloud_ssh_user,
                         self.get_key_pair(parsed_args),
-                        parsed_args.overcloud_ssh_port_timeout
+                        parsed_args.overcloud_ssh_port_timeout,
+                        verbosity=utils.playbook_verbosity(self=self)
                     )
 
                 if parsed_args.config_download_timeout:
@@ -1028,7 +1041,7 @@ class DeployOvercloud(command.Command):
                     parsed_args.output_dir,
                     parsed_args.override_ansible_cfg,
                     timeout,
-                    verbosity=self.app_args.verbose_level,
+                    verbosity=utils.playbook_verbosity(self=self),
                     deployment_options=deployment_options,
                     in_flight_validations=parsed_args.inflight
                 )

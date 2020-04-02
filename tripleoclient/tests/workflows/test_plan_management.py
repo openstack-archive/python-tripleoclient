@@ -49,7 +49,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
                 "generate_passwords": True,
                 "validate": False
             },
-            verbosity=3,
+            verbosity=0,
         )
 
     @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
@@ -77,7 +77,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
                 "generate_passwords": True,
                 "validate": False
             },
-            verbosity=3,
+            verbosity=0,
         )
 
         self.assertIn(mock.call('the_roles_file.yaml', '/tht-root/'),
@@ -110,7 +110,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
                 "plan_environment": "the-plan-environment.yaml",
                 "validate": False
             },
-            verbosity=3,
+            verbosity=0,
         )
         mock_open_context.assert_has_calls(
             [mock.call('the-plan-environment.yaml', 'rb')])
@@ -141,7 +141,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
                 "generate_passwords": True,
                 "validate": False
             },
-            verbosity=3,
+            verbosity=0,
         )
         mock_open_context.assert_has_calls(
             [mock.call('the-network-data.yaml', 'rb')])
@@ -170,7 +170,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
                 "generate_passwords": False,
                 "validate": False
             },
-            verbosity=3,
+            verbosity=0,
         )
 
 
@@ -252,7 +252,7 @@ class TestPlanUpdateWorkflows(base.TestCommand):
                 "generate_passwords": True,
                 "validate": False
             },
-            verbosity=3,
+            verbosity=1,
         )
 
     @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
@@ -288,7 +288,7 @@ class TestPlanUpdateWorkflows(base.TestCommand):
                 "generate_passwords": True,
                 "validate": False
             },
-            verbosity=3,
+            verbosity=1,
         )
 
     @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
@@ -323,7 +323,7 @@ class TestPlanUpdateWorkflows(base.TestCommand):
                 "generate_passwords": True,
                 "validate": False
             },
-            verbosity=3,
+            verbosity=1,
         )
 
 

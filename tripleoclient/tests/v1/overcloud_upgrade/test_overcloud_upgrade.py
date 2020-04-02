@@ -106,7 +106,8 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
             parsed_args.overcloud_ssh_network,
             parsed_args.overcloud_ssh_user,
             mock.ANY,
-            parsed_args.overcloud_ssh_port_timeout
+            parsed_args.overcloud_ssh_port_timeout,
+            mock.ANY
         )
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'

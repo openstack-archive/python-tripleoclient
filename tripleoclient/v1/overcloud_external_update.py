@@ -109,7 +109,7 @@ class ExternalUpdateRun(command.Command):
                 parsed_args.stack
             ),
             output_dir=ansible_dir,
-            verbosity=self.app_args.verbose_level,
+            verbosity=oooutils.playbook_verbosity(self=self),
             ansible_playbook_name=constants.EXTERNAL_UPDATE_PLAYBOOKS,
             extra_vars=oooutils.parse_extra_vars(
                 extra_var_strings=parsed_args.extra_vars

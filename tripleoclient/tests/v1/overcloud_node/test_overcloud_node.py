@@ -199,7 +199,7 @@ class TestDeleteNode(fakes.TestDeleteNode):
             mock.call(
                 playbook='cli-overcloud-node-unprovision.yaml',
                 inventory='localhost,',
-                verbosity=0,
+                verbosity=mock.ANY,
                 workdir=mock.ANY,
                 playbook_dir='/usr/share/ansible/tripleo-playbooks',
                 extra_vars={
@@ -229,6 +229,7 @@ class TestDeleteNode(fakes.TestDeleteNode):
                 inventory='localhost,',
                 workdir=mock.ANY,
                 playbook_dir='/usr/share/ansible/tripleo-playbooks',
+                verbosity=mock.ANY,
                 extra_vars={
                     'access_path': '/var/lib/mistral',
                     'execution_user': mock.ANY},
@@ -240,7 +241,7 @@ class TestDeleteNode(fakes.TestDeleteNode):
                 playbook_dir=mock.ANY,
                 skip_tags='opendev-validation',
                 ansible_cfg=None,
-                verbosity=1,
+                verbosity=mock.ANY,
                 ssh_user='tripleo-admin',
                 key=mock.ANY,
                 limit_hosts='overcast-controller-1:overcast-compute-0',
@@ -253,7 +254,7 @@ class TestDeleteNode(fakes.TestDeleteNode):
             mock.call(
                 inventory='localhost,',
                 playbook='cli-overcloud-node-unprovision.yaml',
-                verbosity=0,
+                verbosity=mock.ANY,
                 workdir=mock.ANY,
                 playbook_dir='/usr/share/ansible/tripleo-playbooks',
                 extra_vars={

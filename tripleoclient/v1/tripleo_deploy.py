@@ -1319,6 +1319,7 @@ class Deploy(command.Command):
                                 'inventory.yaml'
                             ),
                             workdir=self.ansible_dir,
+                            verbosity=utils.playbook_verbosity(self=self),
                             extra_env_variables=extra_env_var,
                             fail_on_rc=False,
                             **operation

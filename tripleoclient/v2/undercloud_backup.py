@@ -90,6 +90,7 @@ class BackupUndercloud(command.Command):
                 inventory='localhost,',
                 workdir=tmp,
                 playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                verbosity=utils.playbook_verbosity(self=self),
                 extra_vars=extra_vars
             )
 

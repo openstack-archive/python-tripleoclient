@@ -17,6 +17,7 @@ import mock
 
 from osc_lib.tests import utils
 
+from tripleoclient.tests import fakes
 from tripleoclient.v2 import overcloud_support
 
 
@@ -26,7 +27,10 @@ class TestOvercloudSupportReport(utils.TestCommand):
         super(TestOvercloudSupportReport, self).setUp()
 
         # Get the command object to test
-        self.cmd = overcloud_support.ReportExecute(self.app, None)
+        app_args = mock.Mock()
+        app_args.verbose_level = 1
+        self.app.options = fakes.FakeOptions()
+        self.cmd = overcloud_support.ReportExecute(self.app, app_args)
 
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
@@ -38,6 +42,7 @@ class TestOvercloudSupportReport(utils.TestCommand):
             playbook='cli-support-collect-logs.yaml',
             inventory=mock.ANY,
             playbook_dir=mock.ANY,
+            verbosity=3,
             extra_vars={
                 'server_name': 'all',
                 'sos_destination': '/var/lib/tripleo/support'
@@ -55,6 +60,7 @@ class TestOvercloudSupportReport(utils.TestCommand):
             playbook='cli-support-collect-logs.yaml',
             inventory=mock.ANY,
             playbook_dir=mock.ANY,
+            verbosity=3,
             extra_vars={
                 'server_name': 'server1',
                 'sos_destination': 'test'

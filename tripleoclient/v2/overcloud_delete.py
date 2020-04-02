@@ -62,10 +62,11 @@ class DeleteOvercloud(command.Command):
             "cli-overcloud-delete.yaml",
             'undercloud,',
             constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            verbosity=utils.playbook_verbosity(self=self),
             extra_vars={
                 "stack_name": parsed_args.stack
-            },
-            verbosity=3 if self.app.options.debug else 1
+            }
+
         )
 
         print("Success.")

@@ -93,5 +93,6 @@ class ReportExecute(command.Command):
                 inventory=constants.ANSIBLE_INVENTORY,
                 workdir=tmp,
                 playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                verbosity=utils.playbook_verbosity(self=self),
                 extra_vars=extra_vars
             )

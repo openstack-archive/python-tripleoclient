@@ -19,6 +19,7 @@ from osc_lib.tests import utils
 import yaml
 
 from tripleoclient import exceptions
+from tripleoclient.tests import fakes
 from tripleoclient.v1 import overcloud_parameters
 
 
@@ -26,8 +27,10 @@ class TestSetParameters(utils.TestCommand):
 
     def setUp(self):
         super(TestSetParameters, self).setUp()
-
-        self.cmd = overcloud_parameters.SetParameters(self.app, None)
+        app_args = mock.Mock()
+        app_args.verbose_level = 1
+        self.app.options = fakes.FakeOptions()
+        self.cmd = overcloud_parameters.SetParameters(self.app, app_args)
         self.app.client_manager.workflow_engine = mock.Mock()
 
         self.workflow = self.app.client_manager.workflow_engine

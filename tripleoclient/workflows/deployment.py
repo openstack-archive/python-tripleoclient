@@ -33,18 +33,37 @@ from tripleoclient import utils
 _WORKFLOW_TIMEOUT = 360  # 6 * 60 seconds
 
 
-def deploy(log, clients, **workflow_input):
+def deploy(container, run_validations, skip_deploy_identifier,
+           timeout, verbosity=0):
+    """Run the deployment playbook.
+
+    :param container: Name of the container
+    :type container: String
+
+    :param run_validations: Enable or disable validations
+    :type run_validations: Boolean
+
+    :param skip_deploy_identifier: Enable or disable validations
+    :type skip_deploy_identifier: Boolean
+
+    :param timeout: Timeout
+    :type timeout: Integer
+
+    :param verbosity: Verbosity level
+    :type verbosity: Integer
+    """
+
     utils.run_ansible_playbook(
         "cli-deploy-deployment-plan.yaml",
         'undercloud,',
         ANSIBLE_TRIPLEO_PLAYBOOKS,
+        verbosity=verbosity,
         extra_vars={
-            "container": workflow_input['container'],
-            "run_validations": workflow_input['run_validations'],
-            "skip_deploy_identifier": workflow_input['skip_deploy_identifier'],
-            "timeout_mins": workflow_input['timeout'],
-        },
-        verbosity=3
+            "container": container,
+            "run_validations": run_validations,
+            "skip_deploy_identifier": skip_deploy_identifier,
+            "ansible_timeout": timeout,
+        }
     )
 
     print("Success.")
@@ -72,17 +91,13 @@ def deploy_and_wait(log, clients, stack, plan_name, verbose_level,
         marker = events[0].id if events else None
         action = 'UPDATE'
 
-    workflow_input = {
-        "container": plan_name,
-        "run_validations": run_validations,
-        "skip_deploy_identifier": skip_deploy_identifier,
-        "timeout": timeout
-    }
-
-    if timeout is not None:
-        workflow_input['timeout'] = timeout
-
-    deploy(log, clients, **workflow_input)
+    deploy(
+        container=plan_name,
+        run_validations=run_validations,
+        skip_deploy_identifier=skip_deploy_identifier,
+        timeout=timeout,
+        verbosity=verbose_level
+    )
 
     verbose_events = verbose_level >= 1
 
@@ -136,7 +151,8 @@ def get_overcloud_hosts(stack, ssh_network):
 
 def get_hosts_and_enable_ssh_admin(stack, overcloud_ssh_network,
                                    overcloud_ssh_user, overcloud_ssh_key,
-                                   overcloud_ssh_port_timeout):
+                                   overcloud_ssh_port_timeout,
+                                   verbosity=0):
     """Enable ssh admin access.
 
     Get a list of hosts from a given stack and enable admin ssh across all of
@@ -156,6 +172,9 @@ def get_hosts_and_enable_ssh_admin(stack, overcloud_ssh_network,
 
     :param overcloud_ssh_port_timeout: Ansible connection timeout
     :type overcloud_ssh_port_timeout: Int
+
+    :param verbosity: Verbosity level
+    :type verbosity: Integer
     """
 
     hosts = get_overcloud_hosts(stack, overcloud_ssh_network)
@@ -165,7 +184,8 @@ def get_hosts_and_enable_ssh_admin(stack, overcloud_ssh_network,
             hosts,
             overcloud_ssh_user,
             overcloud_ssh_key,
-            overcloud_ssh_port_timeout
+            overcloud_ssh_port_timeout,
+            verbosity=verbosity
         )
     else:
         raise exceptions.DeploymentError(
@@ -176,7 +196,8 @@ def get_hosts_and_enable_ssh_admin(stack, overcloud_ssh_network,
         )
 
 
-def enable_ssh_admin(stack, hosts, ssh_user, ssh_key, timeout):
+def enable_ssh_admin(stack, hosts, ssh_user, ssh_key, timeout,
+                     verbosity=0):
     """Run enable ssh admin access playbook.
 
     :param stack: Stack data.
@@ -193,6 +214,9 @@ def enable_ssh_admin(stack, hosts, ssh_user, ssh_key, timeout):
 
     :param timeout: Ansible connection timeout
     :type timeout: int
+
+    :param verbosity: Verbosity level
+    :type verbosity: Integer
     """
 
     print(
@@ -213,6 +237,7 @@ def enable_ssh_admin(stack, hosts, ssh_user, ssh_key, timeout):
             playbook_dir=ANSIBLE_TRIPLEO_PLAYBOOKS,
             key=ssh_key,
             ssh_user=ssh_user,
+            verbosity=verbosity,
             extra_vars={
                 "ssh_user": ssh_user,
                 "ssh_servers": hosts,
@@ -225,7 +250,7 @@ def enable_ssh_admin(stack, hosts, ssh_user, ssh_key, timeout):
 
 def config_download(log, clients, stack, ssh_network=None,
                     output_dir=None, override_ansible_cfg=None,
-                    timeout=None, verbosity=1, deployment_options=None,
+                    timeout=None, verbosity=0, deployment_options=None,
                     in_flight_validations=False,
                     ansible_playbook_name='deploy_steps_playbook.yaml',
                     limit_list=None, extra_vars=None, inventory_path=None,
@@ -339,6 +364,7 @@ def config_download(log, clients, stack, ssh_network=None,
             inventory='localhost,',
             workdir=tmp,
             playbook_dir=ANSIBLE_TRIPLEO_PLAYBOOKS,
+            verbosity=verbosity,
             extra_vars={
                 'access_path': output_dir,
                 'execution_user': getpass.getuser()
@@ -498,7 +524,7 @@ def config_download_export(clients, plan, config_type):
         object_name='{}.tar.gz'.format(container_config))
 
 
-def get_horizon_url(stack):
+def get_horizon_url(stack, verbosity=0):
     """Return horizon URL string.
 
     :params stack: Stack name
@@ -513,6 +539,7 @@ def get_horizon_url(stack):
             inventory='localhost,',
             workdir=tmp,
             playbook_dir=ANSIBLE_TRIPLEO_PLAYBOOKS,
+            verbosity=verbosity,
             extra_vars={
                 'stack_name': stack,
                 'horizon_url_output_file': horizon_tmp_file

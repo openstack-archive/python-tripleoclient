@@ -16,6 +16,7 @@ import tempfile
 
 from osc_lib.tests import utils as test_utils
 
+from tripleoclient.tests import fakes as ooofakes
 from tripleoclient.tests.v1.baremetal import fakes
 from tripleoclient.v1 import overcloud_raid
 
@@ -24,8 +25,10 @@ class TestCreateRAID(fakes.TestBaremetal):
 
     def setUp(self):
         super(TestCreateRAID, self).setUp()
-
-        self.cmd = overcloud_raid.CreateRAID(self.app, None)
+        app_args = mock.Mock()
+        app_args.verbose_level = 1
+        self.app.options = ooofakes.FakeOptions()
+        self.cmd = overcloud_raid.CreateRAID(self.app, app_args)
 
         self.workflow = self.app.client_manager.workflow_engine
         self.conf = {

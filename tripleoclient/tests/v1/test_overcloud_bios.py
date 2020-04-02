@@ -16,6 +16,7 @@ import tempfile
 
 from osc_lib.tests import utils as test_utils
 
+from tripleoclient.tests import fakes as ooofakes
 from tripleoclient.tests.v1.baremetal import fakes
 from tripleoclient.v1 import overcloud_bios
 
@@ -48,7 +49,10 @@ class TestConfigureBIOS(Base):
 
     def setUp(self):
         super(TestConfigureBIOS, self).setUp()
-        self.cmd = overcloud_bios.ConfigureBIOS(self.app, None)
+        app_args = mock.Mock()
+        app_args.verbose_level = 1
+        self.app.options = ooofakes.FakeOptions()
+        self.cmd = overcloud_bios.ConfigureBIOS(self.app, app_args)
         playbook_runner = mock.patch(
             'tripleoclient.utils.run_ansible_playbook',
             autospec=True
@@ -144,7 +148,10 @@ class TestResetBIOS(Base):
 
     def setUp(self):
         super(TestResetBIOS, self).setUp()
-        self.cmd = overcloud_bios.ResetBIOS(self.app, None)
+        app_args = mock.Mock()
+        app_args.verbose_level = 1
+        self.app.options = ooofakes.FakeOptions()
+        self.cmd = overcloud_bios.ResetBIOS(self.app, app_args)
         playbook_runner = mock.patch(
             'tripleoclient.utils.run_ansible_playbook',
             autospec=True

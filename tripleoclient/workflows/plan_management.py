@@ -64,22 +64,25 @@ def _upload_templates(swift_client, container_name, tht_root, roles_file=None,
                      constants.PLAN_ENVIRONMENT, plan_env_file)
 
 
-def create_deployment_plan(clients, **workflow_input):
+def create_deployment_plan(container, generate_passwords,
+                           use_default_templates=False, source_url=None,
+                           validate_stack=True, verbosity_level=0,
+                           plan_env_file=None):
     extra_vars = {
-            "container": workflow_input['container'],
-            "validate": workflow_input['validate_stack'],
-            "generate_passwords": workflow_input["generate_passwords"]}
+        "container": container,
+        "validate": validate_stack,
+        "generate_passwords": generate_passwords
+    }
 
-    if 'plan_env_file' in workflow_input and workflow_input[
-            'plan_env_file'] is not None:
-        extra_vars.update(plan_environment=workflow_input['plan_env_file'])
+    if plan_env_file:
+        extra_vars['plan_environment'] = plan_env_file
 
     utils.run_ansible_playbook(
         "cli-create-deployment-plan.yaml",
         'undercloud,',
         constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
         extra_vars=extra_vars,
-        verbosity=3
+        verbosity=verbosity_level
     )
 
     print("Success.")
@@ -102,7 +105,7 @@ def delete_deployment_plan(clients, container):
         raise RuntimeError(result)
 
 
-def update_deployment_plan(clients, **workflow_input):
+def update_deployment_plan(clients, verbosity_level=0, **workflow_input):
     utils.run_ansible_playbook(
         "cli-update-deployment-plan.yaml",
         'undercloud,',
@@ -112,7 +115,7 @@ def update_deployment_plan(clients, **workflow_input):
             "validate": workflow_input['validate_stack'],
             "generate_passwords": workflow_input["generate_passwords"],
         },
-        verbosity=3
+        verbosity=verbosity_level
     )
 
     print("Success.")
@@ -125,7 +128,8 @@ def list_deployment_plans(clients):
 
 def create_plan_from_templates(clients, name, tht_root, roles_file=None,
                                generate_passwords=True, plan_env_file=None,
-                               networks_file=None, validate_stack=True):
+                               networks_file=None, validate_stack=True,
+                               verbosity_level=0):
     swift_client = clients.tripleoclient.object_store
 
     print("Creating Swift container to store the plan")
@@ -137,10 +141,11 @@ def create_plan_from_templates(clients, name, tht_root, roles_file=None,
                       plan_env_file, networks_file)
 
     try:
-        create_deployment_plan(clients, container=name,
+        create_deployment_plan(container=name,
                                generate_passwords=generate_passwords,
                                plan_env_file=plan_env_file,
-                               validate_stack=validate_stack)
+                               validate_stack=validate_stack,
+                               verbosity_level=verbosity_level)
     except exceptions.WorkflowServiceError:
         swiftutils.delete_container(swift_client, name)
         raise
@@ -149,7 +154,7 @@ def create_plan_from_templates(clients, name, tht_root, roles_file=None,
 def update_plan_from_templates(clients, name, tht_root, roles_file=None,
                                generate_passwords=True, plan_env_file=None,
                                networks_file=None, keep_env=False,
-                               validate_stack=True):
+                               validate_stack=True, verbosity_level=1):
     swift_client = clients.tripleoclient.object_store
     passwords = None
     keep_file_contents = {}
@@ -204,7 +209,8 @@ def update_plan_from_templates(clients, name, tht_root, roles_file=None,
     update_deployment_plan(clients, container=name,
                            generate_passwords=generate_passwords,
                            source_url=None,
-                           validate_stack=validate_stack)
+                           validate_stack=validate_stack,
+                           verbosity_level=verbosity_level)
 
 
 def _load_content_or_file(swift_client, container, remote_and_local_map):

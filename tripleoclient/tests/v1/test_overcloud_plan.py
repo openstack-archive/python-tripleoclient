@@ -95,7 +95,10 @@ class TestOvercloudCreatePlan(utils.TestCommand):
     def setUp(self):
         super(TestOvercloudCreatePlan, self).setUp()
 
-        self.cmd = overcloud_plan.CreatePlan(self.app, None)
+        app_args = mock.Mock()
+        app_args.verbose_level = 1
+        self.app.options = fakes.FakeOptions()
+        self.cmd = overcloud_plan.CreatePlan(self.app, app_args)
         self.app.client_manager.workflow_engine = mock.Mock()
         self.tripleoclient = mock.Mock()
         self.app.client_manager.tripleoclient = self.tripleoclient
@@ -172,6 +175,7 @@ class TestOvercloudCreatePlan(utils.TestCommand):
             ('templates', '/fake/path'),
             ('plan_environment_file', 'the_plan_environment.yaml')
         ]
+        self.app.options = fakes.FakeOptions()
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         mock_open = mock.mock_open()
@@ -211,6 +215,7 @@ class TestOvercloudCreatePlan(utils.TestCommand):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         # Run
+        self.app.options = fakes.FakeOptions()
         self.cmd.take_action(parsed_args)
         # Verify
         mock_run_playbook.assert_called_once_with(
@@ -233,6 +238,7 @@ class TestOvercloudDeployPlan(utils.TestCommand):
 
         app_args = mock.Mock()
         app_args.verbose_level = 1
+        self.app.options = fakes.FakeOptions()
         self.cmd = overcloud_plan.DeployPlan(self.app, app_args)
 
         sleep_patch = mock.patch('time.sleep')
@@ -270,7 +276,7 @@ class TestOvercloudDeployPlan(utils.TestCommand):
                 "container": "overcast",
                 "run_validations": True,
                 "skip_deploy_identifier": False,
-                "timeout_mins": 240
+                "ansible_timeout": 240
             },
             verbosity=3,
         )

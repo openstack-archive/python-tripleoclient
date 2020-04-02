@@ -122,12 +122,13 @@ class ImportNode(command.Command):
                     inventory='localhost,',
                     workdir=tmp,
                     playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                    verbosity=oooutils.playbook_verbosity(self=self),
                     extra_vars=extra_vars
                 )
 
         if parsed_args.provide:
             baremetal.provide(
-                self.app.client_manager,
+                verbosity=oooutils.playbook_verbosity(self=self),
                 node_uuids=nodes_uuids
             )
 
@@ -172,14 +173,16 @@ class IntrospectNode(command.Command):
             baremetal.introspect_manageable_nodes(
                 self.app.client_manager,
                 run_validations=parsed_args.run_validations,
-                concurrency=parsed_args.concurrency
+                concurrency=parsed_args.concurrency,
+                verbosity=oooutils.playbook_verbosity(self=self)
             )
         else:
             baremetal.introspect(
                 self.app.client_manager,
                 node_uuids=parsed_args.node_uuids,
                 run_validations=parsed_args.run_validations,
-                concurrency=parsed_args.concurrency
+                concurrency=parsed_args.concurrency,
+                verbosity=oooutils.playbook_verbosity(self=self)
             )
 
         # NOTE(cloudnull): This is using the old provide function, in a future
@@ -191,7 +194,10 @@ class IntrospectNode(command.Command):
                     node_uuids=parsed_args.node_uuids,
                 )
             else:
-                baremetal.provide_manageable_nodes(self.app.client_manager)
+                baremetal.provide_manageable_nodes(
+                    clients=self.app.client_manager,
+                    verbosity=oooutils.playbook_verbosity(self=self)
+                )
 
 
 class ProvisionNode(command.Command):
@@ -258,9 +264,9 @@ class ProvisionNode(command.Command):
             oooutils.run_ansible_playbook(
                 playbook='cli-overcloud-node-provision.yaml',
                 inventory='localhost,',
-                verbosity=self.app_args.verbose_level - 1,
                 workdir=tmp,
                 playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                verbosity=oooutils.playbook_verbosity(self=self),
                 extra_vars=extra_vars,
             )
 
@@ -308,9 +314,9 @@ class UnprovisionNode(command.Command):
                 oooutils.run_ansible_playbook(
                     playbook='cli-overcloud-node-unprovision.yaml',
                     inventory='localhost,',
-                    verbosity=self.app_args.verbose_level - 1,
                     workdir=tmp,
                     playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                    verbosity=oooutils.playbook_verbosity(self=self),
                     extra_vars={
                         "stack_name": parsed_args.stack,
                         "baremetal_deployment": roles,
@@ -336,9 +342,9 @@ class UnprovisionNode(command.Command):
             oooutils.run_ansible_playbook(
                 playbook='cli-overcloud-node-unprovision.yaml',
                 inventory='localhost,',
-                verbosity=self.app_args.verbose_level - 1,
                 workdir=tmp,
                 playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                verbosity=oooutils.playbook_verbosity(self=self),
                 extra_vars={
                     "stack_name": parsed_args.stack,
                     "baremetal_deployment": roles,

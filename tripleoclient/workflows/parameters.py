@@ -28,7 +28,8 @@ from tripleoclient.workflows import roles
 LOG = logging.getLogger(__name__)
 
 
-def invoke_plan_env_workflows(clients, stack_name, plan_env_file):
+def invoke_plan_env_workflows(clients, stack_name, plan_env_file,
+                              verbosity=0):
     """Invokes the workflows in plan environment file"""
 
     try:
@@ -65,6 +66,7 @@ def invoke_plan_env_workflows(clients, stack_name, plan_env_file):
                     inventory=static_inventory,
                     workdir=tmp,
                     playbook_dir=playbook_dir,
+                    verbosity=verbosity,
                     extra_vars=pb_vars
                 )
 

@@ -113,6 +113,7 @@ class TestImportNode(fakes.TestOvercloudNode):
             playbook=mock.ANY,
             inventory=mock.ANY,
             playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            verbosity=mock.ANY,
             extra_vars={
                 'node_uuids': ['MOCK_NODE_UUID'],
                 'run_validations': False,
@@ -145,6 +146,7 @@ class TestImportNode(fakes.TestOvercloudNode):
             playbook=mock.ANY,
             inventory=mock.ANY,
             playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            verbosity=mock.ANY,
             extra_vars={
                 'node_uuids': ['MOCK_NODE_UUID']
             }
@@ -205,6 +207,7 @@ class TestIntrospectNode(fakes.TestOvercloudNode):
             playbook=mock.ANY,
             inventory=mock.ANY,
             playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            verbosity=mock.ANY,
             extra_vars={
                 'node_uuids': [],
                 'run_validations': False,
@@ -226,6 +229,7 @@ class TestIntrospectNode(fakes.TestOvercloudNode):
             playbook='cli-overcloud-node-provide.yaml',
             inventory=mock.ANY,
             playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            verbosity=mock.ANY,
             extra_vars={
                 'node_uuids': []
             }
@@ -244,6 +248,7 @@ class TestIntrospectNode(fakes.TestOvercloudNode):
             playbook='cli-baremetal-introspect.yaml',
             inventory=mock.ANY,
             playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            verbosity=mock.ANY,
             extra_vars={
                 'node_uuids': nodes,
                 'run_validations': False,
@@ -266,6 +271,7 @@ class TestIntrospectNode(fakes.TestOvercloudNode):
             playbook='cli-overcloud-node-provide.yaml',
             inventory=mock.ANY,
             playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            verbosity=mock.ANY,
             extra_vars={
                 'node_uuids': nodes
             }
@@ -387,7 +393,7 @@ class TestProvisionNode(fakes.TestOvercloudNode):
             inventory='localhost,',
             playbook='cli-overcloud-node-provision.yaml',
             playbook_dir='/usr/share/ansible/tripleo-playbooks',
-            verbosity=0,
+            verbosity=mock.ANY,
             workdir=mock.ANY
         )
 
@@ -438,7 +444,7 @@ class TestUnprovisionNode(fakes.TestOvercloudNode):
                 inventory='localhost,',
                 playbook='cli-overcloud-node-unprovision.yaml',
                 playbook_dir='/usr/share/ansible/tripleo-playbooks',
-                verbosity=0,
+                verbosity=mock.ANY,
                 workdir=tmp
             ),
             mock.call(
@@ -454,7 +460,7 @@ class TestUnprovisionNode(fakes.TestOvercloudNode):
                 inventory='localhost,',
                 playbook='cli-overcloud-node-unprovision.yaml',
                 playbook_dir='/usr/share/ansible/tripleo-playbooks',
-                verbosity=0,
+                verbosity=mock.ANY,
                 workdir=tmp
             )
         ])

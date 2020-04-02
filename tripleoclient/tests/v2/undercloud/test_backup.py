@@ -18,6 +18,7 @@ import mock
 from osc_lib.tests import utils
 
 from tripleoclient import constants
+from tripleoclient.tests import fakes
 from tripleoclient.v2 import undercloud_backup
 
 
@@ -27,7 +28,10 @@ class TestUndercloudBackup(utils.TestCommand):
         super(TestUndercloudBackup, self).setUp()
 
         # Get the command object to test
-        self.cmd = undercloud_backup.BackupUndercloud(self.app, None)
+        app_args = mock.Mock()
+        app_args.verbose_level = 1
+        self.app.options = fakes.FakeOptions()
+        self.cmd = undercloud_backup.BackupUndercloud(self.app, app_args)
         self.app.client_manager.workflow_engine = mock.Mock()
         self.workflow = self.app.client_manager.workflow_engine
 
@@ -45,6 +49,7 @@ class TestUndercloudBackup(utils.TestCommand):
             playbook='cli-undercloud-backup.yaml',
             inventory='localhost,',
             playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            verbosity=3,
             extra_vars={
                 'sources_path': '/home/stack/'
             }
@@ -69,6 +74,7 @@ class TestUndercloudBackup(utils.TestCommand):
             playbook=mock.ANY,
             inventory=mock.ANY,
             playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            verbosity=3,
             extra_vars={'sources_path':
                         '/home/stack/,/tmp/bar.yaml,/tmp/foo.yaml'})
 
@@ -94,6 +100,7 @@ class TestUndercloudBackup(utils.TestCommand):
             workdir=mock.ANY,
             playbook=mock.ANY,
             inventory=mock.ANY,
+            verbosity=3,
             playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             extra_vars={'sources_path':
                         '/tmp/foo.yaml'})
@@ -121,6 +128,7 @@ class TestUndercloudBackup(utils.TestCommand):
             playbook=mock.ANY,
             inventory=mock.ANY,
             playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            verbosity=3,
             extra_vars={'sources_path':
                         '/home/stack/,/tmp/bar.yaml'})
 
@@ -143,5 +151,6 @@ class TestUndercloudBackup(utils.TestCommand):
             playbook=mock.ANY,
             inventory=mock.ANY,
             playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            verbosity=3,
             extra_vars={'sources_path':
                         '/home/stack/,/tmp/foo.yaml'})

@@ -113,11 +113,11 @@ def _format_errors(payload):
     return '\n'.join(errors)
 
 
-def provide(clients, node_uuids):
+def provide(verbosity, node_uuids):
     """Provide Baremetal Nodes
 
-    :param clients: Application client object.
-    :type clients: Object
+    :param verbosity: Verbosity level
+    :type verbosity: Integer
 
     :param node_uuids: List of instance UUID(s).
     :type node_uuids: List
@@ -129,6 +129,7 @@ def provide(clients, node_uuids):
             inventory='localhost,',
             workdir=tmp,
             playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            verbosity=verbosity,
             extra_vars={
                 'node_uuids': node_uuids
             }
@@ -137,18 +138,18 @@ def provide(clients, node_uuids):
     print('Successfully provided nodes: {}'.format(node_uuids))
 
 
-def provide_manageable_nodes(clients):
+def provide_manageable_nodes(clients, verbosity=0):
     """Provide all manageable Nodes
 
     :param clients: Application client object.
     :type clients: Object
 
-    :param node_uuids: List of instance UUID(s).
-    :type node_uuids: List
+    :param verbosity: Verbosity level
+    :type verbosity: Integer
     """
 
     provide(
-        clients,
+        verbosity=verbosity,
         node_uuids=[
             i.uuid for i in clients.baremetal.node.list()
             if i.provision_state == "manageable" and not i.maintenance
@@ -156,10 +157,24 @@ def provide_manageable_nodes(clients):
     )
 
 
-def introspect(clients, node_uuids, run_validations, concurrency):
+def introspect(clients, node_uuids, run_validations, concurrency,
+               verbosity=0):
     """Introspect Baremetal Nodes
 
-    Run the tripleo.baremetal.v1.introspect Mistral workflow.
+    :param clients: Application client object.
+    :type clients: Object
+
+    :param node_uuids: List of instance UUID(s).
+    :type node_uuids: List
+
+    :param run_validations: Enable or disable validations
+    :type run_validations: Boolean
+
+    :param concurrency: concurrency level
+    :type concurrency: Integer
+
+    :param verbosity: Verbosity level
+    :type verbosity: Integer
     """
 
     with utils.TempDirs() as tmp:
@@ -168,6 +183,7 @@ def introspect(clients, node_uuids, run_validations, concurrency):
             inventory='localhost,',
             workdir=tmp,
             playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            verbosity=verbosity,
             extra_vars={
                 "node_uuids": node_uuids,
                 "run_validations": run_validations,
@@ -178,10 +194,21 @@ def introspect(clients, node_uuids, run_validations, concurrency):
     print('Successfully introspected nodes: {}'.format(node_uuids))
 
 
-def introspect_manageable_nodes(clients, run_validations, concurrency):
+def introspect_manageable_nodes(clients, run_validations, concurrency,
+                                verbosity=0):
     """Introspect all manageable nodes
 
-    Run the tripleo.baremetal.v1.introspect_manageable_nodes Mistral workflow.
+    :param clients: Application client object.
+    :type clients: Object
+
+    :param verbosity: Enable or disable validations
+    :type verbosity: Boolean
+
+    :param verbosity: concurrency level
+    :type verbosity: Integer
+
+    :param verbosity: Verbosity level
+    :type verbosity: Integer
     """
 
     introspect(
@@ -191,7 +218,8 @@ def introspect_manageable_nodes(clients, run_validations, concurrency):
             if i.provision_state == "manageable" and not i.maintenance
         ],
         run_validations=run_validations,
-        concurrency=concurrency
+        concurrency=concurrency,
+        verbosity=verbosity
     )
 
 
@@ -296,7 +324,8 @@ def configure_manageable_nodes(clients, kernel_name='bm-deploy-kernel',
     )
 
 
-def create_raid_configuration(clients, node_uuids, configuration):
+def create_raid_configuration(clients, node_uuids, configuration,
+                              verbosity=0):
     """Create RAID configuration on nodes.
 
     :param clients: application client object.
@@ -305,8 +334,11 @@ def create_raid_configuration(clients, node_uuids, configuration):
     :param node_uuids: List of instance UUID(s).
     :type node_uuids: List
 
-    :param node_uuids: List of instance UUID(s).
-    :type node_uuids: List
+    :param configuration: RAID configuration object.
+    :type configuration: Object
+
+    :param verbosity: Verbosity level
+    :type verbosity: Integer
     """
 
     with utils.TempDirs() as tmp:
@@ -315,6 +347,7 @@ def create_raid_configuration(clients, node_uuids, configuration):
             inventory='localhost,',
             workdir=tmp,
             playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            verbosity=verbosity,
             extra_vars={
                 'node_uuids': node_uuids,
                 'raid_configuration': configuration
@@ -389,14 +422,14 @@ def discover_and_enroll(clients, ip_addresses, credentials, kernel_name,
     )
 
 
-def clean_nodes(clients, node_uuids):
+def clean_nodes(node_uuids, verbosity=0):
     """Clean Baremetal Nodes
-
-    :param clients: application client object.
-    :type clients: Object
 
     :param node_uuids: List of instance UUID(s).
     :type node_uuids: List
+
+    :param verbosity: Verbosity level
+    :type verbosity: Integer
     """
 
     with utils.TempDirs() as tmp:
@@ -405,6 +438,7 @@ def clean_nodes(clients, node_uuids):
             inventory='localhost,',
             workdir=tmp,
             playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            verbosity=verbosity,
             extra_vars={
                 'node_uuids': node_uuids
             }
@@ -413,26 +447,36 @@ def clean_nodes(clients, node_uuids):
     print('Successfully cleaned nodes: {}'.format(node_uuids))
 
 
-def clean_manageable_nodes(clients):
+def clean_manageable_nodes(clients, verbosity=0):
     """Clean all manageable Nodes
 
     :param clients: application client object.
     :type clients: Object
+
+    :param verbosity: Verbosity level
+    :type verbosity: Integer
     """
 
     clean_nodes(
-        clients=clients,
         node_uuids=[
             i.uuid for i in clients.baremetal.node.list()
             if i.provision_state == "manageable" and not i.maintenance
-        ]
+        ],
+        verbosity=verbosity
     )
 
 
-def apply_bios_configuration(clients, node_uuids, configuration):
+def apply_bios_configuration(node_uuids, configuration, verbosity=0):
     """Apply BIOS settings on nodes.
 
-    Run the tripleo.baremetal.v1.apply_bios_settings Mistral workflow.
+    :param node_uuids: List of instance UUID(s).
+    :type node_uuids: List
+
+    :param configuration: BIOS configuration object.
+    :type configuration: Object
+
+    :param verbosity: Verbosity level
+    :type verbosity: Integer
     """
 
     print('Applying BIOS settings for given nodes, this may take time')
@@ -443,6 +487,7 @@ def apply_bios_configuration(clients, node_uuids, configuration):
             inventory='localhost,',
             workdir=tmp,
             playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            verbosity=verbosity,
             extra_vars={
                 'node_uuids': node_uuids,
                 'bios_configuration': configuration
@@ -452,31 +497,38 @@ def apply_bios_configuration(clients, node_uuids, configuration):
     print('Successfully applied the BIOS for nodes: {}'.format(node_uuids))
 
 
-def apply_bios_configuration_on_manageable_nodes(clients, configuration):
+def apply_bios_configuration_on_manageable_nodes(clients, configuration,
+                                                 verbosity=0):
     """Apply BIOS settings on manageable nodes.
-
-    Run the tripleo.baremetal.v1.apply_bios_settings_on_manageable_nodes
-    Mistral workflow.
-    """
-
-    apply_bios_configuration(
-        clients=clients,
-        node_uuids=[
-            i.uuid for i in clients.baremetal.node.list()
-            if i.provision_state == "manageable" and not i.maintenance
-        ],
-        configuration=configuration
-    )
-
-
-def reset_bios_configuration(clients, node_uuids):
-    """Reset BIOS settings on nodes.
 
     :param clients: application client object.
     :type clients: Object
 
+    :param configuration: BIOS configuration object.
+    :type configuration: Object
+
+    :param verbosity: Verbosity level
+    :type verbosity: Integer
+    """
+
+    apply_bios_configuration(
+        node_uuids=[
+            i.uuid for i in clients.baremetal.node.list()
+            if i.provision_state == "manageable" and not i.maintenance
+        ],
+        configuration=configuration,
+        verbosity=verbosity
+    )
+
+
+def reset_bios_configuration(node_uuids, verbosity=0):
+    """Reset BIOS settings on nodes.
+
     :param node_uuids: List of instance UUID(s).
     :type node_uuids: List
+
+    :param verbosity: Verbosity level
+    :type verbosity: Integer
     """
 
     with utils.TempDirs() as tmp:
@@ -485,6 +537,7 @@ def reset_bios_configuration(clients, node_uuids):
             inventory='localhost,',
             workdir=tmp,
             playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            verbosity=verbosity,
             extra_vars={
                 'node_uuids': node_uuids
             }
@@ -493,17 +546,20 @@ def reset_bios_configuration(clients, node_uuids):
     print('Successfully reset the BIOS for nodes: {}'.format(node_uuids))
 
 
-def reset_bios_configuration_on_manageable_nodes(clients, **workflow_input):
+def reset_bios_configuration_on_manageable_nodes(clients, verbosity=0):
     """Reset BIOS settings on manageable nodes.
 
     :param clients: application client object.
     :type clients: Object
+
+    :param verbosity: Verbosity level
+    :type verbosity: Integer
     """
 
     reset_bios_configuration(
-        clients=clients,
         node_uuids=[
             i.uuid for i in clients.baremetal.node.list()
             if i.provision_state == "manageable" and not i.maintenance
         ],
+        verbosity=verbosity
     )

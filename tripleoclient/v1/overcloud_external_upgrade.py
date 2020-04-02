@@ -108,7 +108,7 @@ class ExternalUpgradeRun(command.Command):
                 parsed_args.stack
             ),
             output_dir=ansible_dir,
-            verbosity=self.app_args.verbose_level,
+            verbosity=oooutils.playbook_verbosity(self=self),
             ansible_playbook_name=constants.EXTERNAL_UPGRADE_PLAYBOOKS,
             inventory_path=oooutils.get_tripleo_ansible_inventory(
                 parsed_args.static_inventory,

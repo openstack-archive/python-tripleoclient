@@ -75,7 +75,7 @@ def _run_live_command(args, env=None, name=None, cwd=None, wait=True):
         raise RuntimeError(message)
 
 
-def _check_diskspace(upgrade=False):
+def _check_diskspace(upgrade=False, verbose_level=0):
     """Check undercloud disk space
 
     This runs a simple ansible playbook located in tripleo-validations
@@ -97,6 +97,7 @@ def _check_diskspace(upgrade=False):
             connection='local',
             output_callback='validation_output',
             playbook_dir=constants.ANSIBLE_VALIDATION_DIR,
+            verbosity=verbose_level,
             **playbook_args
         )
 
@@ -492,7 +493,7 @@ def check(verbose_level, upgrade=False):
         _checking_status('Memory')
         _check_memory()
         _checking_status('Disk space')
-        _check_diskspace(upgrade)
+        _check_diskspace(upgrade, verbose_level)
         _checking_status('Sysctl')
         _check_sysctl()
         _checking_status('Password file')

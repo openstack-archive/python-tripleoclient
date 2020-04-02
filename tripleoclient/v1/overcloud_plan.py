@@ -127,14 +127,18 @@ class CreatePlan(command.Command):
                 clients, name, parsed_args.templates,
                 generate_passwords=generate_passwords,
                 plan_env_file=parsed_args.plan_environment_file,
-                validate_stack=False)
+                validate_stack=False,
+                verbosity_level=utils.playbook_verbosity(self=self)
+            )
         else:
             plan_management.create_deployment_plan(
-                clients, container=name,
+                container=name,
                 generate_passwords=generate_passwords,
                 source_url=source_url,
                 use_default_templates=use_default_templates,
-                validate_stack=False)
+                validate_stack=False,
+                verbosity_level=utils.playbook_verbosity(self=self)
+            )
 
 
 class DeployPlan(command.Command):
@@ -163,10 +167,15 @@ class DeployPlan(command.Command):
         stack = utils.get_stack(orchestration_client, parsed_args.name)
 
         print("Starting to deploy plan: {}".format(parsed_args.name))
-        deployment.deploy_and_wait(self.log, clients, stack, parsed_args.name,
-                                   self.app_args.verbose_level,
-                                   timeout=parsed_args.timeout,
-                                   run_validations=parsed_args.run_validations)
+        deployment.deploy_and_wait(
+            log=self.log,
+            clients=clients,
+            stack=stack,
+            plan_name=parsed_args.name,
+            verbose_level=utils.playbook_verbosity(self=self),
+            timeout=parsed_args.timeout,
+            run_validations=parsed_args.run_validations,
+        )
 
 
 class ExportPlan(command.Command):

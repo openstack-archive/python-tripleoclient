@@ -20,6 +20,7 @@ from osc_lib.i18n import _
 import yaml
 
 from tripleoclient import command
+from tripleoclient import utils
 from tripleoclient.workflows import baremetal
 
 
@@ -81,11 +82,16 @@ class ConfigureBIOS(command.Command):
         clients = self.app.client_manager
         if parsed_args.node_uuids:
             baremetal.apply_bios_configuration(
-                clients, node_uuids=parsed_args.node_uuids,
-                configuration=configuration)
+                node_uuids=parsed_args.node_uuids,
+                configuration=configuration,
+                verbosity=utils.playbook_verbosity(self=self)
+            )
         else:
             baremetal.apply_bios_configuration_on_manageable_nodes(
-                clients, configuration=configuration)
+                clients,
+                configuration=configuration,
+                verbosity=utils.playbook_verbosity(self=self)
+            )
 
 
 class ResetBIOS(command.Command):
@@ -114,6 +120,11 @@ class ResetBIOS(command.Command):
         clients = self.app.client_manager
         if parsed_args.node_uuids:
             baremetal.reset_bios_configuration(
-                clients, node_uuids=parsed_args.node_uuids)
+                node_uuids=parsed_args.node_uuids,
+                verbosity=utils.playbook_verbosity(self=self)
+            )
         else:
-            baremetal.reset_bios_configuration_on_manageable_nodes(clients)
+            baremetal.reset_bios_configuration_on_manageable_nodes(
+                clients=clients,
+                verbosity=utils.playbook_verbosity(self=self)
+            )

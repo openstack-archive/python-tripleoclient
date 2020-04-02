@@ -141,6 +141,7 @@ class TestParameterWorkflows(utils.TestCommand):
                 inventory=mock.ANY,
                 workdir=mock.ANY,
                 playbook_dir=mock.ANY,
+                verbosity=0,
                 extra_vars={'num_phy_cores_per_numa_node_for_pmd': 2}
             )
         ]
@@ -179,6 +180,7 @@ class TestParameterWorkflows(utils.TestCommand):
                 inventory=mock.ANY,
                 workdir=mock.ANY,
                 playbook_dir=mock.ANY,
+                verbosity=0,
                 extra_vars={'num_phy_cores_per_numa_node_for_pmd': 2}
             ),
             mock.call(
@@ -186,6 +188,7 @@ class TestParameterWorkflows(utils.TestCommand):
                 inventory=mock.ANY,
                 workdir=mock.ANY,
                 playbook_dir='/playbook/dir-1',
+                verbosity=0,
                 extra_vars={'some_opt': 0}
             )
         ]
