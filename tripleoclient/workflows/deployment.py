@@ -14,7 +14,6 @@ from __future__ import print_function
 import copy
 import getpass
 import os
-import time
 
 import six
 
@@ -56,19 +55,6 @@ def deploy_and_wait(log, clients, stack, plan_name, verbose_level,
                     skip_deploy_identifier=False, deployment_options={}):
     """Start the deploy and wait for it to finish"""
 
-    workflow_input = {
-        "container": plan_name,
-        "run_validations": run_validations,
-        "skip_deploy_identifier": skip_deploy_identifier,
-        "timeout": timeout
-    }
-
-    if timeout is not None:
-        workflow_input['timeout'] = timeout
-
-    deploy(log, clients, **workflow_input)
-
-    # need to move this to the playbook I guess
     orchestration_client = clients.orchestration
 
     if stack is None:
@@ -86,8 +72,22 @@ def deploy_and_wait(log, clients, stack, plan_name, verbose_level,
         marker = events[0].id if events else None
         action = 'UPDATE'
 
-    time.sleep(10)
+    workflow_input = {
+        "container": plan_name,
+        "run_validations": run_validations,
+        "skip_deploy_identifier": skip_deploy_identifier,
+        "timeout": timeout
+    }
+
+    if timeout is not None:
+        workflow_input['timeout'] = timeout
+
+    deploy(log, clients, **workflow_input)
+
     verbose_events = verbose_level >= 1
+
+    # TODO(rabi) Simplify call to get events as we don't need to wait
+    # for stack to be ready anymore i.e just get the events.
     create_result = utils.wait_for_stack_ready(
         orchestration_client, plan_name, marker, action, verbose_events)
     if not create_result:
