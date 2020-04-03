@@ -165,6 +165,29 @@ class UpgradeUndercloud(InstallUndercloud):
     log = logging.getLogger(__name__ + ".UpgradeUndercloud")
     osloconfig = cfg.CONF
 
+    def _update_extra_packages(self, packages=[], dry_run=False):
+        """Necessary packages to be updated before undercloud upgrade."""
+
+        cmd = []
+        if packages:
+            cmd = ['sudo', 'yum', 'upgrade', '-y'] + packages
+
+        if cmd:
+            if not dry_run:
+                self.log.warning(
+                    "Updating necessary packages: {}\n{}".format(
+                        " ".join(packages),
+                        ("Note that tripleoclient and tripleo-common "
+                         "still need to be updated manually.")
+                    ),
+                )
+                output = utils.run_command(cmd, name="Update extra packages")
+                self.log.warning("{}".format(output))
+            else:
+                self.log.warning(
+                    "Would update necessary packages: {}".format(" ".join(cmd))
+                )
+
     def take_action(self, parsed_args):
         # Fetch configuration used to add logging to a file
         utils.load_config(self.osloconfig, constants.UNDERCLOUD_CONF_PATH)
@@ -173,6 +196,10 @@ class UpgradeUndercloud(InstallUndercloud):
         self.log.debug("take action(%s)" % parsed_args)
 
         utils.ensure_run_as_normal_user()
+
+        self._update_extra_packages(constants.UNDERCLOUD_EXTRA_PACKAGES,
+                                    parsed_args.dry_run)
+
         cmd = undercloud_config.\
             prepare_undercloud_deploy(
                 upgrade=True,
@@ -182,6 +209,7 @@ class UpgradeUndercloud(InstallUndercloud):
                 verbose_level=self.app_args.verbose_level,
                 force_stack_update=parsed_args.force_stack_update)
         self.log.warning("Running: %s" % ' '.join(cmd))
+
         if not parsed_args.dry_run:
             try:
                 subprocess.check_call(cmd)

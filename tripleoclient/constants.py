@@ -166,3 +166,11 @@ UNUSED_PARAMETER_EXCLUDES_RE = ['^(Docker|Container).*Image$',
 EXPORT_PASSWORD_EXCLUDE_PATTERNS = [
     'ceph.*'
 ]
+
+# Package that need to be to the latest before undercloud
+# update/update/ffwd.
+UNDERCLOUD_EXTRA_PACKAGES = [
+    "openstack-tripleo-heat-templates",
+    "openstack-tripleo-validations",
+    "tripleo-ansible"
+]
