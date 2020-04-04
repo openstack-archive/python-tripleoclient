@@ -258,9 +258,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_create_parameters_env.side_effect = _custom_create_params_env
 
-        mock_rm = shutil.rmtree = mock.MagicMock()
         self.cmd.take_action(parsed_args)
-        mock_rm.assert_called_once()
 
         self.assertFalse(orchestration_client.stacks.update.called)
 
@@ -348,9 +346,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 'UndercloudHostsEntries':
                     ['192.168.0.1 uc.ctlplane.localhost uc.ctlplane']}}
 
-        mock_rm = shutil.rmtree = mock.MagicMock()
         self.cmd.take_action(parsed_args)
-        mock_rm.assert_not_called()
 
         self.assertFalse(orchestration_client.stacks.create.called)
 
@@ -386,17 +382,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         object_client = clients.tripleoclient.object_store
         object_client.put_object.assert_has_calls(calls)
-        tmp_param_env = self.tmp_dir.join(
-            'tripleo-heat-templates',
-            'user-environments/tripleoclient-parameters.yaml')
-        self.assertTrue(os.path.isfile(tmp_param_env))
-        with open(tmp_param_env, 'r') as f:
-            env_map = yaml.safe_load(f)
-        self.assertEqual(env_map.get('parameter_defaults'),
-                         parameters_env.get('parameter_defaults'))
-        mock_copy.assert_called_once()
-        object_client.put_container.assert_called_once_with(
-            'overcloud', headers={'x-container-meta-usage-tripleo': 'plan'})
 
     @mock.patch('os.chdir')
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
@@ -530,9 +515,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             tarball_extract_to_swift_container.assert_called_with(
                 clients.tripleoclient.object_store, mock.ANY, 'overcloud')
 
-        workflow_client.action_executions.create.assert_called()
-        # workflow_client.executions.create.assert_called()
-
         mock_open_context.assert_has_calls(
             [mock.call('the-plan-environment.yaml')])
         clients.tripleoclient.object_store.put_object.assert_called()
@@ -624,9 +606,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_create_parameters_env.side_effect = _custom_create_params_env
 
-        mock_rm = shutil.rmtree = mock.MagicMock()
         self.cmd.take_action(parsed_args)
-        mock_rm.assert_called_once()
         mock_copy.assert_called_once()
         object_client.put_container.assert_called_once_with(
             'overcloud', headers={'x-container-meta-usage-tripleo': 'plan'})

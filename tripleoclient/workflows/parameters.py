@@ -28,11 +28,6 @@ from tripleoclient.workflows import roles
 LOG = logging.getLogger(__name__)
 
 
-def update_parameters(workflow_client, **input_):
-    return base.call_action(workflow_client, 'tripleo.parameters.update',
-                            **input_)
-
-
 def invoke_plan_env_workflows(clients, stack_name, plan_env_file):
     """Invokes the workflows in plan environment file"""
 
