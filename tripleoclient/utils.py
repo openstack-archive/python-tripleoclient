@@ -412,6 +412,7 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
     env['ANSIBLE_GATHER_TIMEOUT'] = 45
     env['ANSIBLE_SSH_RETRIES'] = 3
     env['ANSIBLE_PIPELINING'] = True
+    env['ANSIBLE_SCP_IF_SSH'] = True
     env['ANSIBLE_REMOTE_USER'] = ssh_user
     env['ANSIBLE_STDOUT_CALLBACK'] = output_callback
     env['ANSIBLE_LIBRARY'] = os.path.expanduser(
