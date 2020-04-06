@@ -30,7 +30,9 @@ class TestDeleteOvercloud(deploy_fakes.TestDeployOvercloud):
         self.cmd = overcloud_delete.DeleteOvercloud(self.app, None)
 
     @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
-    def test_plan_undeploy(self, mock_run_playbook):
+    @mock.patch('os.chdir', autospec=True)
+    @mock.patch('tempfile.mkdtemp', autospec=True)
+    def test_plan_undeploy(self, mock_mkdir, mock_cd, mock_run_playbook):
         arglist = ["overcast", "-y"]
         verifylist = [
             ("stack", "overcast"),
@@ -44,6 +46,7 @@ class TestDeleteOvercloud(deploy_fakes.TestDeployOvercloud):
         mock_run_playbook.assert_called_once_with(
             'cli-overcloud-delete.yaml',
             'undercloud,',
+            mock.ANY,
             constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             extra_vars={
                 "stack_name": "overcast",

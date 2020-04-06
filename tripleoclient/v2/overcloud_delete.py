@@ -58,15 +58,16 @@ class DeleteOvercloud(command.Command):
             if not confirm:
                 raise oscexc.CommandError("Action not confirmed, exiting.")
 
-        utils.run_ansible_playbook(
-            "cli-overcloud-delete.yaml",
-            'undercloud,',
-            constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
-            verbosity=utils.playbook_verbosity(self=self),
-            extra_vars={
-                "stack_name": parsed_args.stack
-            }
-
-        )
+        with utils.TempDirs() as tmp:
+            utils.run_ansible_playbook(
+                "cli-overcloud-delete.yaml",
+                'undercloud,',
+                workdir=tmp,
+                playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                verbosity=utils.playbook_verbosity(self=self),
+                extra_vars={
+                    "stack_name": parsed_args.stack
+                }
+            )
 
         print("Success.")

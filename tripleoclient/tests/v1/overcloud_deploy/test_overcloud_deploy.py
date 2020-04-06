@@ -285,12 +285,12 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 '_validate_args')
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
+    @mock.patch('os.chdir', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True)
-    def test_tht_deploy(self, mock_tmpdir,
-                        mock_get_template_contents,
-                        mock_validate_args,
-                        mock_breakpoints_cleanup,
-                        mock_postconfig,
+    @mock.patch('tripleoclient.utils.makedirs')
+    def test_tht_deploy(self, mock_md, mock_tmpdir, mock_cd,
+                        mock_get_template_contents, mock_validate_args,
+                        mock_breakpoints_cleanup, mock_postconfig,
                         mock_invoke_plan_env_wf,
                         mock_get_undercloud_host_entry, mock_copy):
 
@@ -346,7 +346,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 'UndercloudHostsEntries':
                     ['192.168.0.1 uc.ctlplane.localhost uc.ctlplane']}}
 
-        self.cmd.take_action(parsed_args)
+        mock_open_context = mock.mock_open()
+        with mock.patch('six.moves.builtins.open', mock_open_context):
+            self.cmd.take_action(parsed_args)
 
         self.assertFalse(orchestration_client.stacks.create.called)
 

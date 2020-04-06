@@ -77,13 +77,15 @@ def create_deployment_plan(container, generate_passwords,
     if plan_env_file:
         extra_vars['plan_environment'] = plan_env_file
 
-    utils.run_ansible_playbook(
-        "cli-create-deployment-plan.yaml",
-        'undercloud,',
-        constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
-        extra_vars=extra_vars,
-        verbosity=verbosity_level
-    )
+    with utils.TempDirs() as tmp:
+        utils.run_ansible_playbook(
+            "cli-create-deployment-plan.yaml",
+            'undercloud,',
+            workdir=tmp,
+            playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            extra_vars=extra_vars,
+            verbosity=verbosity_level
+        )
 
     print("Success.")
 
@@ -106,17 +108,19 @@ def delete_deployment_plan(clients, container):
 
 
 def update_deployment_plan(clients, verbosity_level=0, **workflow_input):
-    utils.run_ansible_playbook(
-        "cli-update-deployment-plan.yaml",
-        'undercloud,',
-        constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
-        extra_vars={
-            "container": workflow_input['container'],
-            "validate": workflow_input['validate_stack'],
-            "generate_passwords": workflow_input["generate_passwords"],
-        },
-        verbosity=verbosity_level
-    )
+    with utils.TempDirs() as tmp:
+        utils.run_ansible_playbook(
+            "cli-update-deployment-plan.yaml",
+            'undercloud,',
+            workdir=tmp,
+            playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            extra_vars={
+                "container": workflow_input['container'],
+                "validate": workflow_input['validate_stack'],
+                "generate_passwords": workflow_input["generate_passwords"],
+            },
+            verbosity=verbosity_level
+        )
 
     print("Success.")
 
