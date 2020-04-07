@@ -32,7 +32,10 @@ class TestPlanCreationWorkflows(utils.TestCommand):
     @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
                 autospec=True)
-    def test_create_plan_from_templates_success(self, mock_tarball,
+    @mock.patch('os.chdir', autospec=True)
+    @mock.patch('tempfile.mkdtemp', autospec=True)
+    def test_create_plan_from_templates_success(self, mock_tmp, mock_cd,
+                                                mock_tarball,
                                                 mock_run_playbook):
         plan_management.create_plan_from_templates(
             self.app.client_manager,
@@ -43,6 +46,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
         mock_run_playbook.assert_called_once_with(
             'cli-create-deployment-plan.yaml',
             'undercloud,',
+            mock.ANY,
             constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             extra_vars={
                 "container": "test-overcloud",
@@ -56,7 +60,10 @@ class TestPlanCreationWorkflows(utils.TestCommand):
     @mock.patch('tripleoclient.utils.rel_or_abs_path')
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
                 autospec=True)
-    def test_create_plan_from_templates_roles_data(self, mock_tarball,
+    @mock.patch('os.chdir', autospec=True)
+    @mock.patch('tempfile.mkdtemp', autospec=True)
+    def test_create_plan_from_templates_roles_data(self, mock_tmp, mock_cd,
+                                                   mock_tarball,
                                                    mock_norm_path,
                                                    mock_run_playbook):
         mock_open_context = mock.mock_open()
@@ -71,6 +78,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
         mock_run_playbook.assert_called_once_with(
             'cli-create-deployment-plan.yaml',
             'undercloud,',
+            mock.ANY,
             constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             extra_vars={
                 "container": "test-overcloud",
@@ -89,7 +97,10 @@ class TestPlanCreationWorkflows(utils.TestCommand):
     @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
                 autospec=True)
-    def test_create_plan_from_templates_plan_env_data(self, mock_tarball,
+    @mock.patch('os.chdir', autospec=True)
+    @mock.patch('tempfile.mkdtemp', autospec=True)
+    def test_create_plan_from_templates_plan_env_data(self, mock_tmp, mock_cd,
+                                                      mock_tarball,
                                                       mock_run_playbook):
         mock_open_context = mock.mock_open()
         with mock.patch('six.moves.builtins.open', mock_open_context):
@@ -103,6 +114,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
         mock_run_playbook.assert_called_once_with(
             'cli-create-deployment-plan.yaml',
             'undercloud,',
+            mock.ANY,
             constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             extra_vars={
                 "container": "test-overcloud",
@@ -121,7 +133,10 @@ class TestPlanCreationWorkflows(utils.TestCommand):
     @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
                 autospec=True)
-    def test_create_plan_from_templates_networks_data(self, mock_tarball,
+    @mock.patch('os.chdir', autospec=True)
+    @mock.patch('tempfile.mkdtemp', autospec=True)
+    def test_create_plan_from_templates_networks_data(self, mock_tmp, mock_cd,
+                                                      mock_tarball,
                                                       mock_run_playbook):
         mock_open_context = mock.mock_open()
         with mock.patch('six.moves.builtins.open', mock_open_context):
@@ -135,6 +150,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
         mock_run_playbook.assert_called_once_with(
             'cli-create-deployment-plan.yaml',
             'undercloud,',
+            mock.ANY,
             constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             extra_vars={
                 "container": "test-overcloud",
@@ -152,7 +168,10 @@ class TestPlanCreationWorkflows(utils.TestCommand):
     @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
                 autospec=True)
-    def test_create_plan_with_password_gen_disabled(self, mock_tarball,
+    @mock.patch('os.chdir', autospec=True)
+    @mock.patch('tempfile.mkdtemp', autospec=True)
+    def test_create_plan_with_password_gen_disabled(self, mock_tmp, mock_cd,
+                                                    mock_tarball,
                                                     mock_run_playbook):
         plan_management.create_plan_from_templates(
             self.app.client_manager,
@@ -164,6 +183,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
         mock_run_playbook.assert_called_once_with(
             'cli-create-deployment-plan.yaml',
             'undercloud,',
+            mock.ANY,
             constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             extra_vars={
                 "container": "test-overcloud",
@@ -211,8 +231,11 @@ class TestPlanUpdateWorkflows(base.TestCommand):
                 autospec=True)
     @mock.patch('tripleo_common.utils.swift.empty_container',
                 autospec=True)
+    @mock.patch('os.chdir', autospec=True)
+    @mock.patch('tempfile.mkdtemp', autospec=True)
     def test_update_plan_from_templates_keep_env(
-            self, mock_empty_container, mock_tarball, mock_run_playbook):
+            self, mock_tmp, mock_cd, mock_empty_container, mock_tarball,
+            mock_run_playbook):
 
         plan_management.update_plan_from_templates(
             self.app.client_manager,
@@ -246,6 +269,7 @@ class TestPlanUpdateWorkflows(base.TestCommand):
         mock_run_playbook.assert_called_once_with(
             'cli-update-deployment-plan.yaml',
             'undercloud,',
+            mock.ANY,
             constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             extra_vars={
                 "container": "test-overcloud",
@@ -282,6 +306,7 @@ class TestPlanUpdateWorkflows(base.TestCommand):
         mock_run_playbook.assert_called_once_with(
             'cli-update-deployment-plan.yaml',
             'undercloud,',
+            mock.ANY,
             constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             extra_vars={
                 "container": "test-overcloud",
@@ -300,9 +325,11 @@ class TestPlanUpdateWorkflows(base.TestCommand):
                 autospec=True)
     @mock.patch('tripleo_common.utils.swift.empty_container',
                 autospec=True)
+    @mock.patch('os.chdir', autospec=True)
+    @mock.patch('tempfile.mkdtemp', autospec=True)
     def test_update_plan_from_templates_recreate_env_missing_passwords(
-            self, mock_empty_container, mock_tarball, mock_yaml_safe_load,
-            mock_update_passwords, mock_run_playbook):
+            self, mock_tmp, mock_cd, mock_empty_container, mock_tarball,
+            mock_yaml_safe_load, mock_update_passwords, mock_run_playbook):
         plan_management.update_plan_from_templates(
             self.app.client_manager,
             'test-overcloud',
@@ -317,6 +344,7 @@ class TestPlanUpdateWorkflows(base.TestCommand):
         mock_run_playbook.assert_called_once_with(
             'cli-update-deployment-plan.yaml',
             'undercloud,',
+            mock.ANY,
             constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             extra_vars={
                 "container": "test-overcloud",

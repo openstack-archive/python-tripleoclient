@@ -52,19 +52,20 @@ def deploy(container, run_validations, skip_deploy_identifier,
     :param verbosity: Verbosity level
     :type verbosity: Integer
     """
-
-    utils.run_ansible_playbook(
-        "cli-deploy-deployment-plan.yaml",
-        'undercloud,',
-        ANSIBLE_TRIPLEO_PLAYBOOKS,
-        verbosity=verbosity,
-        extra_vars={
-            "container": container,
-            "run_validations": run_validations,
-            "skip_deploy_identifier": skip_deploy_identifier,
-            "ansible_timeout": timeout,
-        }
-    )
+    with utils.TempDirs() as tmp:
+        utils.run_ansible_playbook(
+            "cli-deploy-deployment-plan.yaml",
+            'undercloud,',
+            workdir=tmp,
+            playbook_dir=ANSIBLE_TRIPLEO_PLAYBOOKS,
+            verbosity=verbosity,
+            extra_vars={
+                "container": container,
+                "run_validations": run_validations,
+                "skip_deploy_identifier": skip_deploy_identifier,
+                "ansible_timeout": timeout
+            }
+        )
 
     print("Success.")
 

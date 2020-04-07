@@ -107,7 +107,9 @@ class TestOvercloudCreatePlan(utils.TestCommand):
         self.swift.get_account = mock.MagicMock()
 
     @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
-    def test_create_default_plan(self, mock_run_playbook):
+    @mock.patch('os.chdir', autospec=True)
+    @mock.patch('tempfile.mkdtemp', autospec=True)
+    def test_create_default_plan(self, mock_tmp, mock_cd, mock_run_playbook):
 
         # Setup
         arglist = ['overcast']
@@ -124,6 +126,7 @@ class TestOvercloudCreatePlan(utils.TestCommand):
         mock_run_playbook.assert_called_once_with(
             'cli-create-deployment-plan.yaml',
             'undercloud,',
+            mock.ANY,
             constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             extra_vars={
                 "container": "overcast",
@@ -135,7 +138,9 @@ class TestOvercloudCreatePlan(utils.TestCommand):
 
     @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
     @mock.patch("tripleoclient.workflows.plan_management.tarball")
-    def test_create_custom_plan(self, mock_tarball,
+    @mock.patch('os.chdir', autospec=True)
+    @mock.patch('tempfile.mkdtemp', autospec=True)
+    def test_create_custom_plan(self, mock_tmp, mock_cd, mock_tarball,
                                 mock_run_playbook):
 
         # Setup
@@ -153,6 +158,7 @@ class TestOvercloudCreatePlan(utils.TestCommand):
         mock_run_playbook.assert_called_once_with(
             'cli-create-deployment-plan.yaml',
             'undercloud,',
+            mock.ANY,
             constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             extra_vars={
                 "container": "overcast",
@@ -165,8 +171,10 @@ class TestOvercloudCreatePlan(utils.TestCommand):
 
     @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
     @mock.patch("tripleoclient.workflows.plan_management.tarball")
+    @mock.patch('os.chdir', autospec=True)
+    @mock.patch('tempfile.mkdtemp', autospec=True)
     def test_create_custom_plan_plan_environment_file(
-            self, mock_tarball, mock_run_playbook):
+            self, mock_tmp, mock_cd, mock_tarball, mock_run_playbook):
         # Setup
         arglist = ['overcast', '--templates', '/fake/path',
                    '-p', 'the_plan_environment.yaml']
@@ -190,6 +198,7 @@ class TestOvercloudCreatePlan(utils.TestCommand):
         mock_run_playbook.assert_called_once_with(
             'cli-create-deployment-plan.yaml',
             'undercloud,',
+            mock.ANY,
             constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             extra_vars={
                 "container": "overcast",
@@ -202,8 +211,10 @@ class TestOvercloudCreatePlan(utils.TestCommand):
         self.swift.get_account.assert_called_once()
 
     @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
+    @mock.patch('os.chdir', autospec=True)
+    @mock.patch('tempfile.mkdtemp', autospec=True)
     def test_create_default_plan_with_password_gen_disabled(
-            self, mock_run_playbook):
+            self, mock_tmp, mock_cd, mock_run_playbook):
 
         # Setup
         arglist = ['overcast', '--disable-password-generation']
@@ -221,6 +232,7 @@ class TestOvercloudCreatePlan(utils.TestCommand):
         mock_run_playbook.assert_called_once_with(
             'cli-create-deployment-plan.yaml',
             'undercloud,',
+            mock.ANY,
             constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             extra_vars={
                 "container": "overcast",
@@ -247,8 +259,10 @@ class TestOvercloudDeployPlan(utils.TestCommand):
 
     @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
     @mock.patch('tripleoclient.utils.wait_for_stack_ready', autospec=True)
-    def test_overcloud_deploy_plan(self, mock_for_stack_ready,
-                                   mock_run_playbook):
+    @mock.patch('os.chdir', autospec=True)
+    @mock.patch('tempfile.mkdtemp', autospec=True)
+    def test_overcloud_deploy_plan(self, mock_tmp, mock_cd,
+                                   mock_for_stack_ready, mock_run_playbook):
 
         # Setup
         arglist = ['--run-validations', 'overcast']
@@ -271,6 +285,7 @@ class TestOvercloudDeployPlan(utils.TestCommand):
         mock_run_playbook.assert_called_once_with(
             'cli-deploy-deployment-plan.yaml',
             'undercloud,',
+            mock.ANY,
             constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             extra_vars={
                 "container": "overcast",
