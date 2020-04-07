@@ -46,7 +46,7 @@ def deploy(container, run_validations, skip_deploy_identifier,
     :param skip_deploy_identifier: Enable or disable validations
     :type skip_deploy_identifier: Boolean
 
-    :param timeout: Timeout
+    :param timeout: Deployment timeout (minutes).
     :type timeout: Integer
 
     :param verbosity: Verbosity level
@@ -59,11 +59,11 @@ def deploy(container, run_validations, skip_deploy_identifier,
             workdir=tmp,
             playbook_dir=ANSIBLE_TRIPLEO_PLAYBOOKS,
             verbosity=verbosity,
+            timeout=timeout,
             extra_vars={
                 "container": container,
                 "run_validations": run_validations,
                 "skip_deploy_identifier": skip_deploy_identifier,
-                "ansible_timeout": timeout
             }
         )
 
@@ -171,7 +171,7 @@ def get_hosts_and_enable_ssh_admin(stack, overcloud_ssh_network,
     :param overcloud_ssh_key: SSH access key.
     :type overcloud_ssh_key: String
 
-    :param overcloud_ssh_port_timeout: Ansible connection timeout
+    :param overcloud_ssh_port_timeout: Ansible connection timeout in seconds
     :type overcloud_ssh_port_timeout: Int
 
     :param verbosity: Verbosity level
@@ -213,7 +213,7 @@ def enable_ssh_admin(stack, hosts, ssh_user, ssh_key, timeout,
     :param ssh_key: SSH access key.
     :type ssh_key: String
 
-    :param timeout: Ansible connection timeout
+    :param timeout: Ansible connection timeout in seconds
     :type timeout: int
 
     :param verbosity: Verbosity level
@@ -251,11 +251,12 @@ def enable_ssh_admin(stack, hosts, ssh_user, ssh_key, timeout,
 
 def config_download(log, clients, stack, ssh_network=None,
                     output_dir=None, override_ansible_cfg=None,
-                    timeout=None, verbosity=0, deployment_options=None,
+                    timeout=600, verbosity=0, deployment_options=None,
                     in_flight_validations=False,
                     ansible_playbook_name='deploy_steps_playbook.yaml',
                     limit_list=None, extra_vars=None, inventory_path=None,
-                    ssh_user='tripleo-admin', tags=None, skip_tags=None):
+                    ssh_user='tripleo-admin', tags=None, skip_tags=None,
+                    deployment_timeout=None):
     """Run config download.
 
     :param log: Logging object
@@ -276,8 +277,7 @@ def config_download(log, clients, stack, ssh_network=None,
     :param override_ansible_cfg: Ansible configuration file location.
     :type override_ansible_cfg: String
 
-    :param timeout: Ansible connection timeout. If None, the effective
-                    default will be set to 30 at playbook runtime.
+    :param timeout: Ansible connection timeout in seconds.
     :type timeout: Integer
 
     :param verbosity: Ansible verbosity level.
@@ -311,6 +311,10 @@ def config_download(log, clients, stack, ssh_network=None,
 
     :param skip_tags: Ansible exclusion tags.
     :type skip_tags: String
+
+    :param deployment_timeout: Deployment timeout in minutes.
+    :type deployment_timeout: Integer
+
     """
 
     def _log_and_print(message, logger, level='info', print_msg=True):
@@ -346,9 +350,6 @@ def config_download(log, clients, stack, ssh_network=None,
             skip_tags = 'opendev-validation,{}'.format(skip_tags)
         else:
             skip_tags = 'opendev-validation'
-
-    if not timeout:
-        timeout = 30
 
     # NOTE(cloudnull): List of hosts to limit the current playbook execution
     #                  The list is later converted into an ansible compatible
@@ -480,7 +481,8 @@ def config_download(log, clients, stack, ssh_network=None,
                 'ANSIBLE_BECOME': True,
             },
             extra_vars=extra_vars,
-            tags=tags
+            tags=tags,
+            timeout=deployment_timeout,
         )
 
     _log_and_print(

@@ -20,7 +20,8 @@ from tripleoclient import utils
 from tripleoclient.workflows import deployment
 
 
-def scale_down(log, clients, stack, nodes, timeout=None, verbosity=0):
+def scale_down(log, clients, stack, nodes, timeout=None, verbosity=0,
+               connection_timeout=None):
     """Unprovision and deletes overcloud nodes from a heat stack.
 
     :param log: Logging object
@@ -38,11 +39,14 @@ def scale_down(log, clients, stack, nodes, timeout=None, verbosity=0):
     :type nodes: List
 
     :param timeout: Timeout to use when deleting nodes. If timeout is None
-                    it will be set to 240.
+                    it will be set to 240 minutes.
     :type timeout: Integer
 
     :param verbosity: Verbosity level
     :type verbosity: Integer
+
+    :param connection_timeout: Ansible connection timeout in seconds.
+    :type connection_timeout: Integer
     """
 
     if not timeout:
@@ -60,10 +64,11 @@ def scale_down(log, clients, stack, nodes, timeout=None, verbosity=0):
         log=log,
         clients=clients,
         stack=stack,
-        timeout=timeout,
+        timeout=connection_timeout,
         ansible_playbook_name='scale_playbook.yaml',
         limit_list=limit_list,
-        verbosity=verbosity
+        verbosity=verbosity,
+        deployment_timeout=timeout
     )
 
     print('Running scale down')

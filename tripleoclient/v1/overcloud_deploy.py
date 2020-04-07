@@ -1023,10 +1023,13 @@ class DeployOvercloud(command.Command):
                     )
 
                 if parsed_args.config_download_timeout:
-                    timeout = parsed_args.config_download_timeout * 60
+                    timeout = parsed_args.config_download_timeout
                 else:
-                    used = int(time.time() - start)
-                    timeout = (parsed_args.timeout * 60) - used
+                    used = int((time.time() - start) // 60)
+                    timeout = parsed_args.timeout - used
+                    if timeout <= 0:
+                        raise exceptions.DeploymentError(
+                            'Deployment timed out after %sm' % used)
 
                 deployment_options = {}
                 if parsed_args.deployment_python_interpreter:
@@ -1040,10 +1043,11 @@ class DeployOvercloud(command.Command):
                     parsed_args.overcloud_ssh_network,
                     parsed_args.output_dir,
                     parsed_args.override_ansible_cfg,
-                    timeout,
+                    timeout=parsed_args.overcloud_ssh_port_timeout,
                     verbosity=utils.playbook_verbosity(self=self),
                     deployment_options=deployment_options,
-                    in_flight_validations=parsed_args.inflight
+                    in_flight_validations=parsed_args.inflight,
+                    deployment_timeout=timeout
                 )
             except Exception:
                 deployment.set_deployment_status(

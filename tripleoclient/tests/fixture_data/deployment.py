@@ -54,6 +54,10 @@ class UtilsOvercloudFixture(fixtures.Fixture):
         self.mock_create_ocrc = self.useFixture(fixtures.MockPatch(
             'tripleoclient.utils.write_overcloudrc')
         ).mock
+        self.mock_update_deployment_status = self.useFixture(
+            fixtures.MockPatch(
+                'tripleoclient.utils.update_deployment_status')
+        ).mock
 
 
 class UtilsFixture(fixtures.Fixture):
@@ -69,4 +73,7 @@ class UtilsFixture(fixtures.Fixture):
         ).mock
         self.mock_write_overcloudrc = self.useFixture(fixtures.MockPatch(
             'tripleoclient.utils.write_overcloudrc')
+        ).mock
+        self.mock_run_ansible_playbook = self.useFixture(fixtures.MockPatch(
+            'tripleoclient.utils.run_ansible_playbook')
         ).mock

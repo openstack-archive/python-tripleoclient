@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    `openstack overcloud node delete` now can take
+    `--overcloud-ssh-port-timeout` to configure connection timeout
+    for Ansible. While `--timeout` configures the command timeout as expected.
+fixes:
+  - |
+    Ansible connection timeout used for config download and the deployment
+    timeout now will be given proper values. It fixes `bug 1868063
+    <https://bugs.launchpad.net/tripleo/+bug/1868063>`__.
