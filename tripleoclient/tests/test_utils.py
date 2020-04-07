@@ -707,7 +707,8 @@ class TestCreateOvercloudRC(TestCase):
         try:
             utils.write_overcloudrc(stack_name, overcloudrcs,
                                     config_directory=tempdir)
-            rc = open(rcfile, 'rt').read()
+            with open(rcfile, 'rt') as f:
+                rc = f.read()
             self.assertEqual('overcloudrc', rc)
         finally:
             if os.path.exists(rcfile):
@@ -722,7 +723,8 @@ class TestCreateTempestDeployerInput(TestCase):
         with tempfile.NamedTemporaryFile() as cfgfile:
             filepath = cfgfile.name
             utils.create_tempest_deployer_input(filepath)
-            cfg = open(filepath, 'rt').read()
+            with open(filepath, 'rt') as f:
+                cfg = f.read()
             # Just make a simple test, to make sure it created a proper file:
             self.assertIn(
                 '[volume-feature-enabled]\nbootable = true', cfg)
