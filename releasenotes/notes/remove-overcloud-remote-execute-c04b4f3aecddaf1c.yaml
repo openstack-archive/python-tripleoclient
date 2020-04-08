@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    ``openstack overcloud remote execute`` command has been removed.
+    It depended on os-collect-config service on the overcloud nodes,
+    that had been disabled by default since rocky. Please use ansible
+    playbooks to make necessary configuration changes in place of this
+    command.
