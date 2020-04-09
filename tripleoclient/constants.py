@@ -181,6 +181,7 @@ EXPORT_PASSWORD_EXCLUDE_PATTERNS = [
 # Package that need to be to the latest before undercloud
 # update/update/ffwd.
 UNDERCLOUD_EXTRA_PACKAGES = [
+    "openstack-tripleo-common",
     "openstack-tripleo-heat-templates",
     "openstack-tripleo-validations",
     "tripleo-ansible"
