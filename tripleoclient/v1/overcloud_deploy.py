@@ -308,7 +308,9 @@ class DeployOvercloud(command.Command):
                     playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
                     verbosity=utils.playbook_verbosity(self=self),
                     extra_vars={
-                        "container": container_name,
+                        "container": container_name
+                    },
+                    extra_vars_file={
                         "parameters": params
                     }
                 )

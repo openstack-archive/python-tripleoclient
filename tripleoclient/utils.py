@@ -227,11 +227,12 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
                          ssh_user='root', key=None, module_path=None,
                          limit_hosts=None, tags=None, skip_tags=None,
                          verbosity=0, quiet=False, extra_vars=None,
-                         plan='overcloud', gathering_policy='smart',
-                         extra_env_variables=None, parallel_run=False,
-                         callback_whitelist=None, ansible_cfg=None,
-                         ansible_timeout=30, reproduce_command=False,
-                         fail_on_rc=True, timeout=None):
+                         extra_vars_file=None, plan='overcloud',
+                         gathering_policy='smart', extra_env_variables=None,
+                         parallel_run=False, callback_whitelist=None,
+                         ansible_cfg=None, ansible_timeout=30,
+                         reproduce_command=False, fail_on_rc=True,
+                         timeout=None):
     """Simple wrapper for ansible-playbook.
 
     :param playbook: Playbook filename.
@@ -286,6 +287,10 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
     :param extra_vars: Set additional variables as a Dict or the absolute
                        path of a JSON or YAML file type.
     :type extra_vars: Either a Dict or the absolute path of JSON or YAML
+
+    :param extra_vars_file: Set additional ansible variables using an
+                            extravar file.
+    :type extra_vars_file: Dictionary
 
     :param plan: Plan name (Defaults to "overcloud").
     :type plan: String
@@ -360,18 +365,26 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
     if not playbook_dir:
         playbook_dir = workdir
 
+    # Ensure that the ansible-runner env exists
+    runner_env = os.path.join(workdir, 'env')
+    makedirs(runner_env)
+
+    if extra_vars_file:
+        runner_extra_vars = os.path.join(runner_env, 'extravars')
+        with open(runner_extra_vars, 'w') as f:
+            f.write(yaml.safe_dump(extra_vars_file, default_flow_style=False))
+
     if timeout and timeout > 0:
-        makedirs(os.path.join(workdir, 'env'))
-        settings_file = os.path.join(workdir, 'env/settings')
+        settings_file = os.path.join(runner_env, 'settings')
         timeout_value = timeout * 60
         if os.path.exists(settings_file):
-            with open(os.path.join(workdir, 'env/settings'), 'r') as f:
+            with open(settings_file, 'r') as f:
                 settings_object = yaml.safe_load(f.read())
                 settings_object['job_timeout'] = timeout_value
         else:
             settings_object = {'job_timeout': timeout_value}
 
-        with open(os.path.join(workdir, 'env/settings'), 'w') as f:
+        with open(settings_file, 'w') as f:
             f.write(yaml.safe_dump(settings_object, default_flow_style=False))
 
     if isinstance(playbook, (list, set)):

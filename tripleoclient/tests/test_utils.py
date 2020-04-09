@@ -215,6 +215,36 @@ class TestRunAnsiblePlaybook(TestCase):
             mock.call().__enter__().write('job_timeout: 2520\n'),  # 42m * 60
             mock_open.mock_calls)
 
+    @mock.patch('six.moves.builtins.open')
+    @mock.patch('tripleoclient.utils.makedirs')
+    @mock.patch('os.path.exists', side_effect=(False, True, True))
+    def test_run_with_extravar_file(self, mock_exists, mock_mkdir, mock_open):
+        ansible_runner.ArtifactLoader = mock.MagicMock()
+        ansible_runner.Runner.run = mock.MagicMock(return_value=('', 0))
+        ansible_runner.runner_config = mock.MagicMock()
+        utils.run_ansible_playbook(
+            playbook='existing.yaml',
+            inventory='localhost,',
+            workdir='/tmp',
+            extra_vars_file={
+                'foo': 'bar',
+                'things': {
+                    'more': 'options'
+                },
+                'num': 42
+            }
+        )
+        self.assertIn(
+            mock.call('/tmp/env/extravars', 'w'),
+            mock_open.mock_calls
+        )
+        self.assertIn(
+            mock.call().__enter__().write(
+                'foo: bar\nnum: 42\nthings:\n  more: options\n'
+            ),
+            mock_open.mock_calls
+        )
+
 
 class TestRunCommandAndLog(TestCase):
     def setUp(self):

@@ -62,7 +62,9 @@ class SetParameters(command.Command):
                 playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
                 verbosity=utils.playbook_verbosity(self=self),
                 extra_vars={
-                    "container": parsed_args.name,
+                    "container": parsed_args.name
+                },
+                extra_vars_file={
                     "parameters": params
                 }
             )
