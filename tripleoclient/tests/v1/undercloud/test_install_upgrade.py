@@ -17,6 +17,7 @@ import fixtures
 import json
 import mock
 import os
+import sys
 
 from jinja2 import Template
 
@@ -563,6 +564,7 @@ class TestUndercloudUpgrade(TestPluginV1):
         app_args.verbose_level = 1
         self.cmd = undercloud.UpgradeUndercloud(self.app, app_args)
 
+    @mock.patch.object(sys, 'executable', 'python2')
     # TODO(cjeanner) drop once we have proper oslo.privsep
     @mock.patch('getpass.getuser', return_value='stack')
     @mock.patch('shutil.copy')
@@ -582,12 +584,64 @@ class TestUndercloudUpgrade(TestPluginV1):
         self.cmd.take_action(parsed_args)
         mock_run_command.assert_called_with(
             ['sudo', 'yum', 'upgrade', '-y',
+             'python2-tripleoclient',
+             'openstack-tripleo-common',
              'openstack-tripleo-heat-templates',
              'openstack-tripleo-validations',
              'tripleo-ansible'],
             name='Update extra packages'
         )
+        mock_subprocess.assert_called_with([
+            'openstack', 'undercloud', 'upgrade', '--skip-package-updates',
+            '--no-validations'])
 
+    @mock.patch.object(sys, 'executable', 'python3')
+    # TODO(cjeanner) drop once we have proper oslo.privsep
+    @mock.patch('os.geteuid', return_value=1001)
+    @mock.patch('getpass.getuser', return_value='stack')
+    @mock.patch('shutil.copy')
+    @mock.patch('os.mkdir')
+    @mock.patch('tripleoclient.utils.write_env_file', autospec=True)
+    @mock.patch('subprocess.check_call', autospec=True)
+    @mock.patch('tripleoclient.utils.run_command', autospec=True)
+    def test_undercloud_upgrade_all_opts(self, mock_run_command,
+                                         mock_subprocess,
+                                         mock_wr,
+                                         mock_os, mock_copy, mock_user,
+                                         mock_getuid):
+        arglist = ['--force-stack-update', '--no-validations',
+                   '--inflight-validations', '--dry-run', '--yes']
+        verifylist = []
+        self.cmd.app_args.verbose_level = 2
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        # DisplayCommandBase.take_action() returns two tuples
+        self.cmd.take_action(parsed_args)
+        mock_run_command.assert_not_called()
+        mock_subprocess.assert_called_with([
+            'openstack', 'undercloud', 'upgrade', '--skip-package-updates',
+            '--force-stack-update', '--no-validations',
+            '--inflight-validations', '--dry-run', '--yes', '--debug'])
+
+    # TODO(cjeanner) drop once we have proper oslo.privsep
+    @mock.patch('os.geteuid', return_value=1001)
+    @mock.patch('getpass.getuser', return_value='stack')
+    @mock.patch('shutil.copy')
+    @mock.patch('os.mkdir')
+    @mock.patch('tripleoclient.utils.write_env_file', autospec=True)
+    @mock.patch('subprocess.check_call', autospec=True)
+    @mock.patch('tripleoclient.utils.run_command', autospec=True)
+    def test_undercloud_upgrade_no_pkgs(self, mock_run_command,
+                                        mock_subprocess,
+                                        mock_wr,
+                                        mock_os, mock_copy, mock_user,
+                                        mock_getuid):
+        arglist = ['--no-validations', '--skip-package-updates']
+        verifylist = []
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        # DisplayCommandBase.take_action() returns two tuples
+        self.cmd.take_action(parsed_args)
         mock_subprocess.assert_called_with(
             ['sudo', '--preserve-env', 'openstack', 'tripleo', 'deploy',
              '--standalone', '--standalone-role', 'Undercloud', '--stack',
@@ -648,20 +702,12 @@ class TestUndercloudUpgrade(TestPluginV1):
                                                   mock_subprocess,
                                                   mock_wr, mock_os,
                                                   mock_copy, mock_user):
-        arglist = ['--no-validations']
+        arglist = ['--no-validations', '--skip-package-updates']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         # DisplayCommandBase.take_action() returns two tuples
         self.cmd.take_action(parsed_args)
-
-        mock_run_command.assert_called_with(
-            ['sudo', 'yum', 'upgrade', '-y',
-             'openstack-tripleo-heat-templates',
-             'openstack-tripleo-validations',
-             'tripleo-ansible'],
-            name='Update extra packages'
-        )
 
         mock_subprocess.assert_called_with(
             ['sudo', '--preserve-env', 'openstack', 'tripleo', 'deploy',
@@ -722,20 +768,12 @@ class TestUndercloudUpgrade(TestPluginV1):
                                                mock_subprocess,
                                                mock_wr, mock_os,
                                                mock_copy, mock_user):
-        arglist = ['--no-validations']
+        arglist = ['--no-validations', '--skip-package-updates']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         # DisplayCommandBase.take_action() returns two tuples
         self.cmd.take_action(parsed_args)
-
-        mock_run_command.assert_called_with(
-            ['sudo', 'yum', 'upgrade', '-y',
-             'openstack-tripleo-heat-templates',
-             'openstack-tripleo-validations',
-             'tripleo-ansible'],
-            name='Update extra packages'
-        )
 
         mock_subprocess.assert_called_with(
             ['sudo', '--preserve-env', 'openstack', 'tripleo', 'deploy',
@@ -795,21 +833,13 @@ class TestUndercloudUpgrade(TestPluginV1):
     def test_undercloud_upgrade_with_heat_and_yes(self, mock_run_command,
                                                   mock_subprocess,
                                                   mock_wr, mock_os,
-                                                  mock_user, mock_copy):
-        arglist = ['--no-validations', '-y']
+                                                  mock_copy, mock_user):
+        arglist = ['--no-validations', '-y', '--skip-package-updates']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         # DisplayCommandBase.take_action() returns two tuples
         self.cmd.take_action(parsed_args)
-
-        mock_run_command.assert_called_with(
-            ['sudo', 'yum', 'upgrade', '-y',
-             'openstack-tripleo-heat-templates',
-             'openstack-tripleo-validations',
-             'tripleo-ansible'],
-            name='Update extra packages'
-        )
 
         mock_subprocess.assert_called_with(
             ['sudo', '--preserve-env', 'openstack', 'tripleo', 'deploy',
@@ -871,7 +901,7 @@ class TestUndercloudUpgrade(TestPluginV1):
                                                     mock_subprocess,
                                                     mock_wr, mock_os,
                                                     mock_copy, mock_user):
-        arglist = ['--no-validations']
+        arglist = ['--no-validations', '--skip-package-updates']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
@@ -880,14 +910,6 @@ class TestUndercloudUpgrade(TestPluginV1):
         self.cmd.app_args.verbose_level = 2
         self.cmd.take_action(parsed_args)
         self.cmd.app_args.verbose_level = old_verbose
-
-        mock_run_command.assert_called_with(
-            ['sudo', 'yum', 'upgrade', '-y',
-             'openstack-tripleo-heat-templates',
-             'openstack-tripleo-validations',
-             'tripleo-ansible'],
-            name='Update extra packages'
-        )
 
         mock_subprocess.assert_called_with(
             ['sudo', '--preserve-env', 'openstack', 'tripleo', 'deploy',
