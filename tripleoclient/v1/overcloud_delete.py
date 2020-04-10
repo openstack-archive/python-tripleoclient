@@ -14,15 +14,24 @@
 #
 
 import logging
+import os
+import pwd
+import shutil
+import sys
+import tempfile
 
 from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
 from osc_lib import utils as osc_utils
 
 from tripleoclient import command
+from tripleoclient import constants
 from tripleoclient import utils
 from tripleoclient.workflows import plan_management
 from tripleoclient.workflows import stack_management
+
+# For ansible.cfg generation
+from tripleo_common.actions import ansible
 
 
 class DeleteOvercloud(command.Command):
@@ -76,6 +85,55 @@ class DeleteOvercloud(command.Command):
             raise oscexc.CommandError(
                 "Error occurred while deleting plan {}".format(err))
 
+    def _cleanup_ipa(self, stack_name):
+        python_interpreter = \
+            "/usr/bin/python{}".format(sys.version_info[0])
+        playbook = '/usr/share/ansible/tripleo-playbooks/cli-cleanup-ipa.yml'
+
+        if not os.path.exists(playbook):
+            self.log.debug(
+                "{} doesn't exist on system. "
+                "Ignoring IPA cleanup.".format(playbook)
+            )
+            return
+
+        static_inventory = utils.get_tripleo_ansible_inventory(
+            return_inventory_file_path=True)
+
+        # We don't technically need remote_user to generate an ansible.cfg for
+        # stack.  The write_default_ansible_cfg() method treats this as an
+        # optional parameter even though the method signature requires it.
+        remote_user = None
+        tmp_tripleoclient_dir = tempfile.mkdtemp(prefix='tripleoclient-')
+        self.log.debug(
+            "Creating temporary directory for "
+            "ansible config in {}".format(tmp_tripleoclient_dir)
+        )
+
+        ansible_config = ansible.write_default_ansible_cfg(
+            tmp_tripleoclient_dir, remote_user)
+
+        try:
+            rc, output = utils.run_ansible_playbook(
+                self.log,
+                constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                playbook,
+                static_inventory,
+                log_path_dir=pwd.getpwuid(os.getuid()).pw_dir,
+                ansible_config=ansible_config,
+                python_interpreter=python_interpreter)
+            if rc != 0:
+                self.log.warning(
+                    "{} did not complete successfully.".format(playbook)
+                )
+        finally:
+            self.log.debug("Removing static tripleo ansible inventory file")
+            utils.cleanup_tripleo_ansible_inventory_file(static_inventory)
+            self.log.debug(
+                "Removing temporary ansible configuration directory"
+            )
+            shutil.rmtree(tmp_tripleoclient_dir)
+
     def take_action(self, parsed_args):
         self.log.debug("take_action({args})".format(args=parsed_args))
 
@@ -91,6 +149,7 @@ class DeleteOvercloud(command.Command):
 
         clients = self.app.client_manager
 
+        self._cleanup_ipa(parsed_args.stack)
         self._plan_undeploy(clients, parsed_args.stack)
         self._plan_delete(clients, parsed_args.stack)
         print("Success.")
