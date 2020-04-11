@@ -1010,7 +1010,7 @@ class DeployOvercloud(command.Command):
             deployment.set_deployment_status(
                 clients=self.clients,
                 plan=stack.stack_name,
-                status='deploying'
+                status='DEPLOYING'
             )
 
             try:
@@ -1051,11 +1051,15 @@ class DeployOvercloud(command.Command):
                     in_flight_validations=parsed_args.inflight,
                     deployment_timeout=timeout
                 )
+                deployment.set_deployment_status(
+                    clients=self.clients,
+                    plan=stack.stack_name,
+                    status='DEPLOY_SUCCESS')
             except Exception:
                 deployment.set_deployment_status(
                     clients=self.clients,
                     plan=stack.stack_name,
-                    status='failed'
+                    status='DEPLOY_FAILED'
                 )
                 raise
 
