@@ -430,13 +430,6 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
         'fact_cache'
     )
     makedirs(ansible_fact_path)
-    extravars = dict()
-    if extra_vars:
-        if isinstance(extra_vars, dict):
-            extravars.update(extra_vars)
-        elif os.path.exists(extra_vars) and os.path.isfile(extra_vars):
-            with open(extra_vars) as f:
-                extravars.update(yaml.safe_load(f.read()))
 
     if callback_whitelist:
         callback_whitelist = ','.join([callback_whitelist, output_callback])
@@ -605,7 +598,7 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
             'playbook': playbook,
             'verbosity': verbosity,
             'quiet': quiet,
-            'extravars': extravars,
+            'extravars': extra_vars,
             'fact_cache': ansible_fact_path,
             'fact_cache_type': 'jsonfile',
             'artifact_dir': ansible_artifact_path,
