@@ -92,13 +92,22 @@ def deploy_and_wait(log, clients, stack, plan_name, verbose_level,
         marker = events[0].id if events else None
         action = 'UPDATE'
 
-    deploy(
-        container=plan_name,
-        run_validations=run_validations,
-        skip_deploy_identifier=skip_deploy_identifier,
-        timeout=timeout,
-        verbosity=verbose_level
-    )
+    set_deployment_status(clients=clients,
+                          plan=plan_name,
+                          status='DEPLOYING')
+
+    try:
+        deploy(
+            container=plan_name,
+            run_validations=run_validations,
+            skip_deploy_identifier=skip_deploy_identifier,
+            timeout=timeout,
+            verbosity=verbose_level)
+    except Exception:
+        set_deployment_status(clients=clients,
+                              plan=plan_name,
+                              status='DEPLOY_FAILED')
+        raise
 
     verbose_events = verbose_level >= 1
 
@@ -111,7 +120,7 @@ def deploy_and_wait(log, clients, stack, plan_name, verbose_level,
         set_deployment_status(
             clients=clients,
             plan=plan_name,
-            status='failed'
+            status='DEPLOY_FAILED'
         )
         if stack is None:
             raise exceptions.DeploymentError("Heat Stack create failed.")
@@ -593,8 +602,7 @@ def set_deployment_status(clients, plan, status):
     :param status: Current status of the deployment.
     :type status: String
     """
-
-    deploy_status = 'DEPLOY_{}'.format(status.upper())
+    deploy_status = '{}'.format(status.upper())
     utils.update_deployment_status(
         clients=clients,
         plan=plan,

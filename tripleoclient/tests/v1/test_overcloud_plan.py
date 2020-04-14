@@ -257,12 +257,15 @@ class TestOvercloudDeployPlan(utils.TestCommand):
         self.addCleanup(sleep_patch.stop)
         sleep_patch.start()
 
+    @mock.patch("tripleoclient.utils.update_deployment_status", autospec=True)
     @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
     @mock.patch('tripleoclient.utils.wait_for_stack_ready', autospec=True)
     @mock.patch('os.chdir', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True)
     def test_overcloud_deploy_plan(self, mock_tmp, mock_cd,
-                                   mock_for_stack_ready, mock_run_playbook):
+                                   mock_for_stack_ready,
+                                   mock_run_playbook,
+                                   mock_update_status):
 
         # Setup
         arglist = ['--run-validations', 'overcast']
@@ -295,6 +298,7 @@ class TestOvercloudDeployPlan(utils.TestCommand):
             },
             verbosity=3,
         )
+        mock_update_status.assert_called()
 
 
 class TestOvercloudExportPlan(utils.TestCommand):
