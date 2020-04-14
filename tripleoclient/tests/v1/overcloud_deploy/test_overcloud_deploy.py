@@ -1823,20 +1823,11 @@ class TestGetDeploymentStatus(utils.TestCommand):
         obj.put_object = mock.Mock()
         obj.put_container = mock.Mock()
 
-    @mock.patch(
-        'tripleo_common.actions.deployment.DeploymentStatusAction.run',
-        autospec=True
-    )
+    @mock.patch("tripleoclient.workflows.deployment.get_deployment_status")
     def test_get_deployment_status(self, mock_get_deployment_status):
         parsed_args = self.check_parser(self.cmd, [], [])
         self.cmd.app.stdout = six.StringIO()
-        status = dict(
-            cd_status='SUCCESS',
-            stack_status='SUCCESS',
-            deployment_status='SUCCESS',
-            ansible_status='SUCCESS',
-            status_update='SUCCESS'
-        )
+        status = 'DEPLOY_SUCCESS'
         mock_get_deployment_status.return_value = status
 
         self.cmd.take_action(parsed_args)
@@ -1845,7 +1836,7 @@ class TestGetDeploymentStatus(utils.TestCommand):
             '+-----------+-------------------+\n'
             '| Plan Name | Deployment Status |\n'
             '+-----------+-------------------+\n'
-            '| overcloud |      SUCCESS      |\n'
+            '| overcloud |   DEPLOY_SUCCESS  |\n'
             '+-----------+-------------------+\n')
 
         self.assertEqual(expected, self.cmd.app.stdout.getvalue())

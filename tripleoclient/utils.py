@@ -2513,7 +2513,7 @@ def copy_clouds_yaml(user):
         raise exceptions.DeploymentError(msg)
 
 
-def update_deployment_status(clients, plan, status, message=None):
+def update_deployment_status(clients, plan, status):
     """Update the deployment status object in swift.
 
     :param clients: application client object.
@@ -2524,13 +2524,7 @@ def update_deployment_status(clients, plan, status, message=None):
 
     :param status: Status information.
     :type status: Dictionary
-
-    :param message: Status message.
-    :type message: String
     """
-
-    if not message:
-        message = 'Status updated without mistral.'
 
     container = '{}-messages'.format(plan)
 
@@ -2543,15 +2537,11 @@ def update_deployment_status(clients, plan, status, message=None):
         'deployment_status.yaml',
         yaml.safe_dump(
             {
-                'deployment_status': status['status_update'],
+                'deployment_status': status,
                 'workflow_status': {
                     'payload': {
-                        'deployment_status': status['status_update'],
-                        'execution_id': 'UNDEFINED',
-                        'message': message,
+                        'deployment_status': status,
                         'plan_name': plan,
-                        'root_execution_id': 'UNDEFINED',
-                        'status': status['status_update']
                     },
                     'type': 'tripleoclient'
                 }

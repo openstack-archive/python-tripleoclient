@@ -14,11 +14,13 @@ from __future__ import print_function
 import copy
 import getpass
 import os
-
-import six
+import yaml
 
 from heatclient.common import event_utils
+from heatclient import exc as heat_exc
 from openstackclient import shell
+import six
+from swiftclient import exceptions as swiftexceptions
 from tripleo_common.actions import ansible
 from tripleo_common.actions import config
 from tripleo_common.actions import deployment
@@ -573,21 +575,20 @@ def get_deployment_status(clients, plan):
 
     :returns: string
     """
+    try:
+        clients.orchestration.stacks.get(plan)
+    except heat_exc.HTTPNotFound:
+        return None
 
-    context = clients.tripleoclient.create_mistral_context()
-    get_deployment_status = deployment.DeploymentStatusAction(plan=plan)
-    status = get_deployment_status.run(context=context)
-    status_update = status.get('status_update')
-    deployment_status = status.get('deployment_status')
-    if status_update:
-        utils.update_deployment_status(
-            clients=clients,
-            plan=plan,
-            status=status
-        )
-        return status_update, plan
-    else:
-        return deployment_status, plan
+    try:
+        body = swift_utils.get_object_string(
+            clients.tripleoclient.object_store,
+            '%s-messages' % plan,
+            'deployment_status.yaml')
+
+        return yaml.safe_load(body)['deployment_status']
+    except swiftexceptions.ClientException:
+        return None
 
 
 def set_deployment_status(clients, plan, status):
@@ -602,15 +603,10 @@ def set_deployment_status(clients, plan, status):
     :param status: Current status of the deployment.
     :type status: String
     """
-    deploy_status = '{}'.format(status.upper())
     utils.update_deployment_status(
         clients=clients,
         plan=plan,
-        status={
-            'deployment_status': deploy_status,
-            'status_update': deploy_status
-        }
-    )
+        status=status)
 
 
 def get_deployment_failures(clients, plan):

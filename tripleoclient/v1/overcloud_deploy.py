@@ -1109,7 +1109,7 @@ class GetDeploymentStatus(command.Command):
         self.log.debug("take_action(%s)" % parsed_args)
         plan = parsed_args.plan
 
-        status, plan = deployment.get_deployment_status(
+        status = deployment.get_deployment_status(
             self.app.client_manager,
             plan=plan
         )
