@@ -905,6 +905,19 @@ class TripleOImagePrepareDefault(command.Command):
             help=_('Include a push_destination to trigger upload to a local '
                    'registry.')
         )
+        parser.add_argument(
+            '--enable-registry-login',
+            dest='registry_login',
+            action='store_true',
+            default=False,
+            help=_('Use this flag to enable the flag to have systems attempt '
+                   'to login to a remote registry prior to pulling their '
+                   'containers. This flag should be used when '
+                   '--local-push-destination is *NOT* used and the target '
+                   'systems will have network connectivity to the remote '
+                   'registries. Do not use this for an overcloud that '
+                   'may not have network connectivity to a remote registry.')
+        )
         return parser
 
     def take_action(self, parsed_args):
@@ -917,6 +930,18 @@ class TripleOImagePrepareDefault(command.Command):
         params = {
             'ContainerImagePrepare': cip
         }
+        if parsed_args.registry_login:
+            if parsed_args.push_destination:
+                self.log.warning('[WARNING] --local-push-destination was used '
+                                 'with --enable-registry-login. Please make '
+                                 'sure you understand the use of these '
+                                 'parameters together as they can cause '
+                                 'deployment failures.')
+            self.log.warning('[NOTE] Make sure to update the paramter_defaults'
+                             ' with ContainerImageRegistryCredentials for the '
+                             'registries requiring authentication.')
+            params['ContainerImageRegistryLogin'] = True
+
         env_data = build_env_file(params, self.app.command_options)
         self.app.stdout.write(env_data)
         if parsed_args.output_env_file:
