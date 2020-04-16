@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    ``openstack overcloud failures`` command used to get ansible
+    errors with mistral api has been removed as part of removal
+    of mistral service from undercloud.

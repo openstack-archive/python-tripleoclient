@@ -607,20 +607,3 @@ def set_deployment_status(clients, plan, status):
         clients=clients,
         plan=plan,
         status=status)
-
-
-def get_deployment_failures(clients, plan):
-    """Return a list of deployment failures.
-
-    :param clients: application client object.
-    :type clients: Object
-
-    :param plan: Name of plan to lookup.
-    :param plan: String
-
-    :returns: Dictionary
-    """
-
-    context = clients.tripleoclient.create_mistral_context()
-    get_failures = deployment.DeploymentFailuresAction(plan=plan)
-    return get_failures.run(context=context)['failures']
