@@ -1,4 +1,4 @@
-#   Copyright 2018 Red Hat, Inc.
+#   Copyright 2020 Red Hat, Inc.
 #
 #   Licensed under the Apache License, Version 2.0 (the "License"); you may
 #   not use this file except in compliance with the License. You may obtain
@@ -35,6 +35,24 @@ class BackupUndercloud(command.Command):
             add_help=False
         )
 
+        # New flags for tripleo-ansible backup and restore role.
+        parser.add_argument(
+            '--init',
+            default=False,
+            action='store_true',
+            help=_("Initialize enviornment for backup,"
+                   "which will check for package install"
+                   "status and configured ReaR.")
+        )
+
+        parser.add_argument(
+            '--inventory',
+            action='store',
+            default='/home/stack/tripleo-inventory.yaml',
+            help=_("Tripleo inventory file generated with"
+                   "tripleo-ansible-inventory command.")
+        )
+
         # Parameter to choose the files to backup
         parser.add_argument(
             '--add-path',
@@ -65,9 +83,31 @@ class BackupUndercloud(command.Command):
                    "Swift itself is backed up if you call this multiple times "
                    "the backup size will grow exponentially")
         )
+
         return parser
 
     def _run_backup_undercloud(self, parsed_args):
+
+        if parsed_args.init is False:
+            playbook = 'cli-undercloud-backup.yaml'
+            skip_tags = None
+        elif parsed_args.init is True:
+            playbook = 'prepare-undercloud-backup.yaml'
+            skip_tags = 'bar_create_recover_image'
+
+        self._run_ansible_playbook(
+                            playbook=playbook,
+                            inventory=parsed_args.inventory,
+                            skip_tags=skip_tags,
+                            extra_vars=None
+                            )
+
+    def _legacy_backup_undercloud(self, parsed_args):
+        """Legacy backup undercloud.
+
+        This will allow for easier removal once the functionality
+        is no longer needed.
+        """
 
         merge_paths = sorted(list(set(parsed_args.add_path)))
         for exc in parsed_args.exclude_path:
@@ -84,19 +124,43 @@ class BackupUndercloud(command.Command):
             extra_vars.update({"save_swift": True})
 
         LOG.debug(_('Launch the Undercloud Backup'))
+        self._run_ansible_playbook(
+            playbook='cli-undercloud-backup-legacy.yaml',
+            inventory='localhost, ',
+            skip_tags=None,
+            extra_vars=extra_vars
+            )
+
+    def _run_ansible_playbook(self,
+                              playbook,
+                              inventory,
+                              skip_tags,
+                              extra_vars):
+        """Run ansible playbook"""
+
         with utils.TempDirs() as tmp:
             utils.run_ansible_playbook(
-                playbook='cli-undercloud-backup.yaml',
-                inventory='localhost,',
+                playbook=playbook,
+                inventory=inventory,
                 workdir=tmp,
                 playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                skip_tags=skip_tags,
                 verbosity=utils.playbook_verbosity(self=self),
                 extra_vars=extra_vars
             )
 
     def take_action(self, parsed_args):
 
-        self._run_backup_undercloud(parsed_args)
+        if len(parsed_args.add_path) > 1 or parsed_args.save_swift:
+
+            LOG.warning("The following flags will be deprecated:"
+                        "[--add-path, --exclude-path, --save-swift]")
+
+            self._legacy_backup_undercloud(parsed_args)
+
+        else:
+            self._run_backup_undercloud(parsed_args)
+
         print(
             '\n'
             ' #############################################################\n'
