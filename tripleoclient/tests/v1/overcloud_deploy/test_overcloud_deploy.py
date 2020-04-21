@@ -1473,10 +1473,17 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.workflows.deployment.create_overcloudrc',
                 autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_deploy_tripleo_heat_templates_tmpdir', autospec=True)
+                '_heat_deploy', autospec=True)
+    @mock.patch('tripleoclient.utils.check_stack_network_matches_env_files')
+    @mock.patch('heatclient.common.template_utils.deep_update', autospec=True)
+    @mock.patch('tripleoclient.workflows.plan_management.'
+                'create_plan_from_templates', autospec=True)
+    @mock.patch('tripleoclient.workflows.plan_management.'
+                'list_deployment_plans', autospec=True)
     def test_config_download_timeout(
-            self, mock_deploy_tmpdir,
-            mock_overcloudrc, mock_get_undercloud_host_entry, mock_copy):
+            self, mock_plan_list, mock_plan_create, mock_hc,
+            mock_stack_network_check, mock_hd, mock_overcloudrc,
+            mock_get_undercloud_host_entry, mock_copy):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         utils_fixture = deployment.UtilsOvercloudFixture()
@@ -1485,16 +1492,88 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         orchestration_client = clients.orchestration
         orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
 
-        arglist = ['--templates', '--config-download-timeout', '240']
+        arglist = ['--templates', '--overcloud-ssh-port-timeout', '42',
+                   '--timeout', '451']
         verifylist = [
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
+            ('overcloud_ssh_port_timeout', 42), ('timeout', 451)
+        ]
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        # assuming heat deploy consumed a 3m out of total 451m timeout
+        with mock.patch('time.time', side_effect=[0, 1585820346, 1585820526]):
+            self.cmd.take_action(parsed_args)
+        self.assertIn(
+            [mock.call(mock.ANY, mock.ANY, 'overcloud', mock.ANY,
+                       {'DeployIdentifier': '', 'UpdateIdentifier': '',
+                        'StackAction': 'UPDATE', 'UndercloudHostsEntries':
+                        ['192.168.0.1 uc.ctlplane.localhost uc.ctlplane']}, {},
+                       451, mock.ANY, {}, False, False, False, None,
+                       deployment_options={})],
+            mock_hd.mock_calls)
+        self.assertIn(
+            [mock.call(mock.ANY, mock.ANY, mock.ANY,
+                       '/usr/share/openstack-tripleo-heat-templates/',
+                       'heat-admin', None, 'ctlplane', None, None,
+                       deployment_options={},
+                       deployment_timeout=26880,  # 451 - 3 = 448m time left
+                       in_flight_validations=False, timeout=42, verbosity=1)],
+            fixture.mock_config_download.mock_calls)
+        fixture.mock_config_download.assert_called()
+        mock_copy.assert_called_once()
+
+    @mock.patch('tripleoclient.utils.copy_clouds_yaml')
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_update_parameters')
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_get_undercloud_host_entry', autospec=True,
+                return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
+    @mock.patch('tripleoclient.workflows.deployment.create_overcloudrc',
+                autospec=True)
+    @mock.patch('tripleoclient.workflows.base.start_workflow')
+    @mock.patch('tripleoclient.workflows.deployment.base')
+    def test_config_download_only_timeout(
+            self, mock_base, mock_wf, mock_overcloudrc,
+            mock_get_undercloud_host_entry, mock_update, mock_copy):
+        fixture = deployment.DeploymentWorkflowFixture()
+        self.useFixture(fixture)
+        utils_fixture = deployment.UtilsOvercloudFixture()
+        self.useFixture(utils_fixture)
+        clients = self.app.client_manager
+        stack = mock.Mock()
+        stack.stack_name = 'overcloud'
+        stack.output_show.return_value = {'output': {'output_value': []}}
+        orchestration_client = clients.orchestration
+        orchestration_client.stacks.get.return_value = stack
+        clients.workflow_engine.executions.find = mock.Mock(return_value=[])
+        mock_exit = mock.Mock()
+        mock_exit.__exit__ = mock_exit.__enter__ = mock.Mock()
+        clients.tripleoclient.messaging_websocket = mock.Mock(
+            return_value=mock_exit)
+        mock_base.wait_for_messages = mock.MagicMock(
+            return_value=[dict(status='SUCCESS')])
+
+        arglist = ['--templates', '--config-download-only',
+                   '--overcloud-ssh-port-timeout', '42',
+                   '--config-download-timeout', '240']
+        verifylist = [
+            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
+            ('config_download_only', True),
             ('config_download_timeout', 240),
+            ('overcloud_ssh_port_timeout', 42)
         ]
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.cmd.take_action(parsed_args)
-        fixture.mock_config_download.assert_called()
-        self.assertEqual(240*60, fixture.mock_config_download.call_args[0][9])
+        self.assertIn(
+            [mock.call(mock.ANY, mock.ANY, mock.ANY,
+                       '/usr/share/openstack-tripleo-heat-templates/',
+                       'heat-admin', None, 'ctlplane', None, None,
+                       deployment_options={},
+                       deployment_timeout=14400,  # 240 * 60
+                       in_flight_validations=False, timeout=42, verbosity=1)],
+            fixture.mock_config_download.mock_calls)
+
         mock_copy.assert_called_once()
 
     def test_download_missing_files_from_plan(self):
