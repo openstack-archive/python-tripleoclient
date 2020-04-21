@@ -1624,7 +1624,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.cmd.take_action(parsed_args)
-        playbook = '/var/lib/mistral/overcloud/deploy_steps_playbook.yaml'
+        playbook = os.path.join(os.environ.get(
+            'HOME'), 'config-download/overcloud/deploy_steps_playbook.yaml')
         self.assertIn(
             [mock.call(
                 ansible_cfg=None, ansible_timeout=42,

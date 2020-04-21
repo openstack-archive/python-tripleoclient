@@ -11,6 +11,7 @@
 #   WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #   License for the specific language governing permissions and limitations
 #   under the License.
+import os
 
 import mock
 
@@ -37,7 +38,8 @@ class TestOvercloudExport(utils.TestCommand):
     @mock.patch('tripleoclient.export.export_passwords')
     def test_export(self, mock_export_passwords,
                     mock_export_stack,
-                    mock_safe_dump, mock_exists):
+                    mock_safe_dump,
+                    mock_exists):
         argslist = []
         verifylist = []
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
@@ -49,11 +51,13 @@ class TestOvercloudExport(utils.TestCommand):
         mock_export_passwords.assert_called_once_with(
             self.app.client_manager.tripleoclient.object_store,
             'overcloud', True)
+        path = os.path.join(os.environ.get('HOME'),
+                            'config-download/overcloud')
         mock_export_stack.assert_called_once_with(
             self.app.client_manager.orchestration,
             'overcloud',
             False,
-            '/var/lib/mistral/overcloud')
+            path)
         self.assertEqual(
             {'parameter_defaults': {'key': 'value',
                                     'key0': 'value0'}},
@@ -65,7 +69,8 @@ class TestOvercloudExport(utils.TestCommand):
     @mock.patch('tripleoclient.export.export_passwords')
     def test_export_stack_name(self, mock_export_passwords,
                                mock_export_stack,
-                               mock_safe_dump, mock_exists):
+                               mock_safe_dump,
+                               mock_exists):
         argslist = ['--stack', 'foo']
         verifylist = [('stack', 'foo')]
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
@@ -75,11 +80,13 @@ class TestOvercloudExport(utils.TestCommand):
         mock_export_passwords.assert_called_once_with(
             self.app.client_manager.tripleoclient.object_store,
             'foo', True)
+        path = os.path.join(os.environ.get('HOME'),
+                            'config-download/foo')
         mock_export_stack.assert_called_once_with(
             self.app.client_manager.orchestration,
             'foo',
             False,
-            '/var/lib/mistral/foo')
+            path)
 
     @mock.patch('os.path.exists')
     @mock.patch('yaml.safe_dump')

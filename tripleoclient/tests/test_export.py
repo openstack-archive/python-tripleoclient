@@ -12,7 +12,7 @@
 #   License for the specific language governing permissions and limitations
 #   under the License.
 #
-
+import os
 
 from io import StringIO
 import mock
@@ -57,7 +57,10 @@ class TestExport(TestCase):
 
         self.assertEqual(expected, data)
         self.mock_open.assert_called_once_with(
-            '/var/lib/mistral/overcloud/group_vars/overcloud.json', 'r')
+            os.path.join(
+                os.environ.get('HOME'),
+                'config-download/overcloud/group_vars/overcloud.json'),
+            'r')
 
     @mock.patch('tripleoclient.utils.get_stack')
     def test_export_stack_should_filter(self, mock_get_stack):
@@ -76,7 +79,10 @@ class TestExport(TestCase):
 
         self.assertEqual(expected, data)
         self.mock_open.assert_called_once_with(
-            '/var/lib/mistral/overcloud/group_vars/overcloud.json', 'r')
+            os.path.join(
+                os.environ.get('HOME'),
+                'config-download/overcloud/group_vars/overcloud.json'),
+            'r')
 
     @mock.patch('tripleoclient.utils.get_stack')
     def test_export_stack_cd_dir(self, mock_get_stack):
@@ -84,7 +90,7 @@ class TestExport(TestCase):
         mock_get_stack.return_value = self.mock_stack
         with mock.patch('six.moves.builtins.open', self.mock_open):
             export.export_stack(heat, "overcloud",
-                                config_download_dir='/foo/overcloud')
+                                config_download_dir='/foo')
         self.mock_open.assert_called_once_with(
             '/foo/overcloud/group_vars/overcloud.json', 'r')
 

@@ -923,10 +923,8 @@ class DeployOvercloud(command.Command):
             action='store',
             default=None,
             help=_('Directory to use for saved output when using '
-                   '--config-download. The directory must be '
-                   'writeable by the mistral user. When not '
-                   'specified, the default server side value '
-                   'will be used (/var/lib/mistral/<execution id>.')
+                   '--config-download. When not '
+                   'specified, $HOME/config-download will be used.')
         )
         parser.add_argument(
             '--override-ansible-cfg',
