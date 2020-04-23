@@ -354,10 +354,23 @@ def _calculate_allocation_pools(subnet):
             for ip_range in list(ip_set.iter_ipranges())]
 
 
+def _generate_inspection_physnet_cidr_map():
+    cidr_map = {}
+    for subnet in CONF.subnets:
+        s = CONF.get(subnet)
+        if subnet == str(CONF.local_subnet):
+            cidr_map[s.cidr] = 'ctlplane'
+        else:
+            cidr_map[s.cidr] = subnet
+
+    return cidr_map
+
+
 def _process_network_args(env):
     """Populate the environment with network configuration."""
 
     env['IronicInspectorSubnets'] = _generate_inspection_subnets()
+    env['PortPhysnetCidrMap'] = _generate_inspection_physnet_cidr_map()
     env['ControlPlaneStaticRoutes'] = _generate_subnets_static_routes()
     env['UndercloudCtlplaneSubnets'] = {}
     env['UndercloudCtlplaneIPv6AddressMode'] = CONF['ipv6_address_mode']
