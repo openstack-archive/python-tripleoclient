@@ -14,9 +14,11 @@
 #
 
 import mock
+import os
 
 from osc_lib.tests import utils
 
+from tripleoclient import constants
 from tripleoclient.tests import fakes
 from tripleoclient.v2 import overcloud_support
 
@@ -59,6 +61,28 @@ class TestOvercloudSupportReport(utils.TestCommand):
             workdir=mock.ANY,
             playbook='cli-support-collect-logs.yaml',
             inventory=mock.ANY,
+            playbook_dir=mock.ANY,
+            verbosity=3,
+            extra_vars={
+                'server_name': 'server1',
+                'sos_destination': 'test'
+            }
+        )
+
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
+                autospec=True)
+    def test_overcloud_support_args_stack(self, mock_playbook):
+        arglist = ['server1', '--output', 'test', '--stack', 'notovercloud']
+        parsed_args = self.check_parser(self.cmd, arglist, [])
+        self.cmd.take_action(parsed_args)
+        inv = os.path.join(
+            constants.DEFAULT_WORK_DIR,
+            'notovercloud/tripleo-ansible-inventory.yaml'
+        )
+        mock_playbook.assert_called_once_with(
+            workdir=mock.ANY,
+            playbook='cli-support-collect-logs.yaml',
+            inventory=inv,
             playbook_dir=mock.ANY,
             verbosity=3,
             extra_vars={

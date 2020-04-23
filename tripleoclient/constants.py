@@ -94,7 +94,7 @@ DEFAULT_WORK_DIR = os.path.join(os.environ.get('HOME', '~/'),
                                 'config-download')
 
 ANSIBLE_INVENTORY = os.path.join(DEFAULT_WORK_DIR,
-                                 'overcloud/tripleo-ansible-inventory.yaml')
+                                 '{}/tripleo-ansible-inventory.yaml')
 
 ANSIBLE_VALIDATION_DIR = \
     '/usr/share/openstack-tripleo-validations/playbooks'

@@ -34,6 +34,9 @@ class ReportExecute(command.Command):
                                    ' to match. For example "Controller" will'
                                    ' match all controllers for an'
                                    ' environment.'))
+        parser.add_argument('--stack',
+                            help=_("Stack name to use for log collection."),
+                            default='overcloud')
         # Deprecated in U
         parser.add_argument('-c',
                             '--container',
@@ -90,7 +93,9 @@ class ReportExecute(command.Command):
         with utils.TempDirs() as tmp:
             utils.run_ansible_playbook(
                 playbook='cli-support-collect-logs.yaml',
-                inventory=constants.ANSIBLE_INVENTORY,
+                inventory=constants.ANSIBLE_INVENTORY.format(
+                    parsed_args.stack
+                ),
                 workdir=tmp,
                 playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
                 verbosity=utils.playbook_verbosity(self=self),
