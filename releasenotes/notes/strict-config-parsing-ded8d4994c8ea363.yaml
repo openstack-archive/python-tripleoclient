@@ -1,0 +1,9 @@
+---
+upgrade:
+  - The `undercloud.conf` file is now strictly parsed. If there are
+    detected issues within the `undercloud.conf` configuration file
+    operations will halt, producing an error and highlighting how
+    to resolve the issue.
+fixes:
+  - The `undercloud.conf` file is now strictly parsed which ensures a
+    clean configuration when deploying the undercloud.
