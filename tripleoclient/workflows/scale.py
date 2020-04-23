@@ -60,13 +60,18 @@ def scale_down(log, clients, stack, nodes, timeout=None, verbosity=0,
         except Exception:
             limit_list.append(node)
 
+    if limit_list:
+        limit_list = ':'.join(limit_list)
+    else:
+        limit_list = None
+
     deployment.config_download(
         log=log,
         clients=clients,
         stack=stack,
         timeout=connection_timeout,
         ansible_playbook_name='scale_playbook.yaml',
-        limit_list=limit_list,
+        limit_hosts=limit_list,
         verbosity=verbosity,
         deployment_timeout=timeout
     )

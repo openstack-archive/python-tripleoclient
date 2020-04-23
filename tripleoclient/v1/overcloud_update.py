@@ -89,11 +89,13 @@ class UpdateRun(command.Command):
     def get_parser(self, prog_name):
         parser = super(UpdateRun, self).get_parser(prog_name)
         parser.add_argument(
-            '--limit', action='store', required=True, help=_(
-                "A string that identifies a single node or comma-separated"
-                " list of nodes to be upgraded in parallel in this upgrade"
-                " run invocation. For example: --limit \"compute-0,"
-                " compute-1, compute-5\".")
+            '--limit',
+            action='store',
+            required=True,
+            help=_("A string that identifies a single node or comma-separated"
+                   "list of nodes the config-download Ansible playbook "
+                   "execution will be limited to. For example: --limit"
+                   " \"compute-0,compute-1,compute-5\".")
         )
         parser.add_argument('--playbook',
                             nargs="*",
@@ -134,7 +136,20 @@ class UpdateRun(command.Command):
                             default=True,
                             help=_('This option no longer has any effect.')
                             )
-
+        parser.add_argument(
+            '--tags',
+            action='store',
+            default=None,
+            help=_('A list of tags to use when running the the config-download'
+                   ' ansible-playbook command.')
+        )
+        parser.add_argument(
+            '--skip-tags',
+            action='store',
+            default=None,
+            help=_('A list of tags to skip when running the the'
+                   ' config-download ansible-playbook command.')
+        )
         return parser
 
     def take_action(self, parsed_args):
@@ -168,9 +183,11 @@ class UpdateRun(command.Command):
                 parsed_args.stack,
                 return_inventory_file_path=True
             ),
-            limit_list=[
-                i.strip() for i in parsed_args.limit.split(',') if i
-            ]
+            limit_hosts=oooutils.playbook_limit_parse(
+                limit_nodes=parsed_args.limit
+            ),
+            skip_tags=parsed_args.skip_tags,
+            tags=parsed_args.tags
         )
         self.log.info("Completed Overcloud Minor Update Run.")
 

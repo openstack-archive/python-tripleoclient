@@ -1582,7 +1582,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             [mock.call(mock.ANY, mock.ANY, mock.ANY, 'ctlplane', None, None,
                        deployment_options={},
                        deployment_timeout=448,  # 451 - 3, total time left
-                       in_flight_validations=False, timeout=42, verbosity=3)],
+                       in_flight_validations=False, limit_hosts=None,
+                       skip_tags=None, tags=None, timeout=42, verbosity=3)],
             fixture.mock_config_download.mock_calls)
         fixture.mock_config_download.assert_called()
         mock_copy.assert_called_once()

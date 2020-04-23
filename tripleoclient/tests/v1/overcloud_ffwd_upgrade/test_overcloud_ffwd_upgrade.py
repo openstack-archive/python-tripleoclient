@@ -184,8 +184,21 @@ class TestFFWDUpgradeRun(fakes.TestFFWDUpgradeRun):
     def test_upgrade_no_nodes_or_roles(self, mock_open, mock_execute,
                                        mock_expanduser, upgrade_ansible):
         mock_expanduser.return_value = '/home/fake/'
-        argslist = ["--nodes", "controller-1", "--roles", "foo", "--yes"]
+        argslist = ["--limit", "controller-1", "--roles", "foo", "--yes"]
         verifylist = []
+        self.assertRaises(ParserException, lambda: self.check_parser(
+            self.cmd, argslist, verifylist))
+
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
+                autospec=True)
+    @mock.patch('os.path.expanduser')
+    @mock.patch('oslo_concurrency.processutils.execute')
+    @mock.patch('six.moves.builtins.open')
+    def test_upgrade_limit(self, mock_open, mock_execute,
+                           mock_expanduser, upgrade_ansible):
+        mock_expanduser.return_value = '/home/fake/'
+        argslist = ['--limit', 'controller1,controller2,controll3']
+        verifylist = [('limit', 'controller1,controller2,controll3')]
         self.assertRaises(ParserException, lambda: self.check_parser(
             self.cmd, argslist, verifylist))
 

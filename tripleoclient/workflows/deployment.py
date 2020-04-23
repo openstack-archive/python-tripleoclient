@@ -19,7 +19,6 @@ import yaml
 from heatclient.common import event_utils
 from heatclient import exc as heat_exc
 from openstackclient import shell
-import six
 from swiftclient import exceptions as swiftexceptions
 from tripleo_common.actions import ansible
 from tripleo_common.actions import config
@@ -265,7 +264,7 @@ def config_download(log, clients, stack, ssh_network=None,
                     timeout=600, verbosity=0, deployment_options=None,
                     in_flight_validations=False,
                     ansible_playbook_name='deploy_steps_playbook.yaml',
-                    limit_list=None, extra_vars=None, inventory_path=None,
+                    limit_hosts=None, extra_vars=None, inventory_path=None,
                     ssh_user='tripleo-admin', tags=None, skip_tags=None,
                     deployment_timeout=None):
     """Run config download.
@@ -303,8 +302,8 @@ def config_download(log, clients, stack, ssh_network=None,
     :param ansible_playbook_name: Name of the playbook to execute.
     :type ansible_playbook_name: String
 
-    :param limit_list: List of hosts to limit the current playbook to.
-    :type limit_list: List
+    :param limit_hosts: String of hosts to limit the current playbook to.
+    :type limit_hosts: String
 
     :param extra_vars: Set additional variables as a Dict or the absolute
                        path of a JSON or YAML file type.
@@ -362,15 +361,6 @@ def config_download(log, clients, stack, ssh_network=None,
         else:
             skip_tags = 'opendev-validation'
 
-    # NOTE(cloudnull): List of hosts to limit the current playbook execution
-    #                  The list is later converted into an ansible compatible
-    #                  string. Storing hosts in list format will ensure all
-    #                  entries are consistent.
-    if not limit_list:
-        limit_list = list()
-    elif isinstance(limit_list, six.string_types):
-        limit_list = [i.strip() for i in limit_list.split(',')]
-
     with utils.TempDirs() as tmp:
         utils.run_ansible_playbook(
             playbook='cli-grant-local-access.yaml',
@@ -397,9 +387,14 @@ def config_download(log, clients, stack, ssh_network=None,
     blacklist_stack_output = blacklist_show.get('output', dict())
     blacklist_stack_output_value = blacklist_stack_output.get('output_value')
     if blacklist_stack_output_value:
-        limit_list.extend(
-            ['!{}'.format(i) for i in blacklist_stack_output_value if i]
-        )
+
+        if not limit_hosts:
+            limit_hosts = ""
+
+        limit_hosts += (
+            ':'.join(['!{}'.format(i) for i in blacklist_stack_output_value
+                      if i]))
+
     _log_and_print(
         message='Retrieving configuration for stack: {}'.format(
             stack.stack_name
@@ -460,14 +455,6 @@ def config_download(log, clients, stack, ssh_network=None,
         print_msg=(verbosity == 0)
     )
 
-    # NOTE(cloudnull): Join the limit_list into an ansible compatible string.
-    #                  If it is an empty, the object will be reset to None.
-    limit_hosts = ':'.join(limit_list)
-    if not limit_hosts:
-        limit_hosts = None
-    else:
-        limit_hosts = '{}'.format(limit_hosts)
-
     if isinstance(ansible_playbook_name, list):
         playbooks = [os.path.join(stack_work_dir, p)
                      for p in ansible_playbook_name]
@@ -481,6 +468,7 @@ def config_download(log, clients, stack, ssh_network=None,
             workdir=tmp,
             playbook_dir=work_dir,
             skip_tags=skip_tags,
+            tags=tags,
             ansible_cfg=override_ansible_cfg,
             verbosity=verbosity,
             ssh_user=ssh_user,
@@ -492,7 +480,6 @@ def config_download(log, clients, stack, ssh_network=None,
                 'ANSIBLE_BECOME': True,
             },
             extra_vars=extra_vars,
-            tags=tags,
             timeout=deployment_timeout,
         )
 

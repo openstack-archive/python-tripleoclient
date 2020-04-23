@@ -1740,3 +1740,9 @@ class TestGeneralUtils(base.TestCommand):
         )
         self.tc.object_store.put_object.assert_called()
         self.tc.object_store.put_container.assert_called()
+
+    def test_playbook_limit_parse(self):
+        limit_nodes = 'controller0, compute0:compute1,!compute2'
+        limit_hosts_expected = 'controller0:compute0:compute1:!compute2'
+        limit_hosts_actual = utils.playbook_limit_parse(limit_nodes)
+        self.assertEqual(limit_hosts_actual, limit_hosts_expected)
