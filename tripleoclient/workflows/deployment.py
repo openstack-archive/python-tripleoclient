@@ -395,8 +395,7 @@ def config_download_export(clients, **workflow_input):
             workflow_input=workflow_input
         )
 
-        for payload in base.wait_for_messages(workflow_client, ws, execution,
-                                              _WORKFLOW_TIMEOUT):
+        for payload in base.wait_for_messages(workflow_client, ws, execution):
             message = payload.get('message')
             if message:
                 print(message)
