@@ -53,7 +53,7 @@ def export_passwords(swift, stack, excludes=True):
 
 
 def export_stack(heat, stack, should_filter=False,
-                 config_download_dir='/var/lib/mistral/overcloud'):
+                 config_download_dir=constants.DEFAULT_WORK_DIR):
 
     # data to export
     # parameter: Parameter to be exported
@@ -90,6 +90,7 @@ def export_stack(heat, stack, should_filter=False,
         if "file" in export_param:
             # get file data
             file = os.path.join(config_download_dir,
+                                stack,
                                 export_param["file"])
             with open(file, 'r') as ff:
                 try:

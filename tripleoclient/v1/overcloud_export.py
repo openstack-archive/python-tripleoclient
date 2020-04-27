@@ -51,7 +51,7 @@ class ExportOvercloud(command.Command):
                             action='store',
                             help=_('Directory to search for config-download '
                                    'export data. Defaults to '
-                                   '/var/lib/mistral/<stack>'))
+                                   '$HOME/config-download/<stack>'))
         parser.add_argument('--no-password-excludes',
                             action='store_true',
                             dest='no_password_excludes',
@@ -78,7 +78,8 @@ class ExportOvercloud(command.Command):
                 "File '%s' already exists, not exporting." % output_file)
 
         if not parsed_args.config_download_dir:
-            config_download_dir = os.path.join('/var/lib/mistral',
+            config_download_dir = os.path.join(os.environ.get('HOME'),
+                                               'config-download',
                                                parsed_args.stack)
         else:
             config_download_dir = parsed_args.config_download_dir
