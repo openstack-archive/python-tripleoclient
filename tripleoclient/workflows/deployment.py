@@ -23,6 +23,7 @@ import yaml
 
 from heatclient.common import event_utils
 from openstackclient import shell
+import six
 
 from tripleoclient.constants import ENABLE_SSH_ADMIN_SSH_PORT_TIMEOUT
 from tripleoclient.constants import ENABLE_SSH_ADMIN_STATUS_INTERVAL
@@ -199,11 +200,14 @@ def get_hosts_and_enable_ssh_admin(
                              enable_ssh_timeout, enable_ssh_port_timeout)
         except subprocess.CalledProcessError as e:
             if e.returncode == 255:
-                log.error("Couldn't not import keys to one of {}. "
-                          "Check if the user/ip are corrects.\n".format(hosts))
+                log.error("Could not import keys to one of {}. "
+                          "Original error message: {}\n".format(
+                              hosts, six.text_type(e)))
             else:
                 log.error("Unknown error. "
-                          "Original message is:\n{}".format(hosts, e.message))
+                          "Original error message:{}\n".format(
+                              six.text_type(e)))
+            raise
 
     else:
         raise exceptions.DeploymentError("Cannot find any hosts on '{}'"
