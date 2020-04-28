@@ -171,13 +171,13 @@ class TestUndercloudConfig(base.TestCase):
         expected = {'enable_cinder': False,
                     'enable_ironic': True,
                     'enable_ironic_inspector': True,
-                    'enable_mistral': True,
+                    'enable_mistral': False,
                     'enable_nova': False,
                     'enable_novajoin': False,
                     'enable_telemetry': False,
                     'enable_tempest': True,
                     'enable_validations': True,
-                    'enable_zaqar': True}
+                    'enable_zaqar': False}
         self.assertEqual(sorted(expected.keys()), [x.name for x in ret])
         for x in ret:
             self.assertEqual(expected[x.name], x.default, "%s config not %s" %

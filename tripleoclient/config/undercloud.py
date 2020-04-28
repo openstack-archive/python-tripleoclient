@@ -74,13 +74,13 @@ class UndercloudConfig(StandaloneConfig):
             cinder=False,
             ironic=True,
             ironic_inspector=True,
-            mistral=True,
+            mistral=False,
             nova=False,
             novajoin=False,
             tempest=True,
             telemetry=False,
             validations=True,
-            zaqar=True)
+            zaqar=False)
 
     def get_base_opts(self):
         _base_opts = super(UndercloudConfig, self).get_base_opts()
