@@ -58,7 +58,6 @@ class DeployOvercloud(command.Command):
     def _setup_clients(self, parsed_args):
         self.clients = self.app.client_manager
         self.object_client = self.clients.tripleoclient.object_store
-        self.workflow_client = self.clients.workflow_engine
         self.orchestration_client = self.clients.orchestration
         if not parsed_args.deployed_server:
             self.compute_client = self.clients.compute
