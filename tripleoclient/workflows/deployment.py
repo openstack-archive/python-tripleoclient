@@ -24,6 +24,7 @@ import yaml
 from heatclient.common import event_utils
 from openstackclient import shell
 import six
+import tenacity
 
 from tripleoclient.constants import ENABLE_SSH_ADMIN_SSH_PORT_TIMEOUT
 from tripleoclient.constants import ENABLE_SSH_ADMIN_STATUS_INTERVAL
@@ -198,15 +199,11 @@ def get_hosts_and_enable_ssh_admin(
             enable_ssh_admin(log, clients, stack.stack_name, hosts,
                              overcloud_ssh_user, overcloud_ssh_key,
                              enable_ssh_timeout, enable_ssh_port_timeout)
-        except subprocess.CalledProcessError as e:
-            if e.returncode == 255:
-                log.error("Could not import keys to one of {}. "
-                          "Original error message: {}\n".format(
-                              hosts, six.text_type(e)))
-            else:
-                log.error("Unknown error. "
-                          "Original error message:{}\n".format(
-                              six.text_type(e)))
+        except (subprocess.CalledProcessError,
+                tenacity.RetryError) as e:
+            log.error("Could not import keys to one of {}. "
+                      "Original error message: {}\n".format(
+                          hosts, six.text_type(e)))
             raise
 
     else:
@@ -214,6 +211,14 @@ def get_hosts_and_enable_ssh_admin(
                                          " in network '{}'"
                                          .format(stack.stack_name,
                                                  overcloud_ssh_network))
+
+
+@tenacity.retry(
+    retry=tenacity.retry_if_exception_message(match="^.*exit status 255.*$"),
+    wait=tenacity.wait_exponential(multiplier=1, max=60),
+    stop=tenacity.stop_after_attempt(10))
+def copy_temp_key(command):
+    subprocess.check_call(command, stderr=subprocess.STDOUT)
 
 
 def enable_ssh_admin(log, clients, plan_name, hosts, ssh_user, ssh_key,
@@ -263,8 +268,7 @@ def enable_ssh_admin(log, clients, plan_name, hosts, ssh_user, ssh_key,
                  "echo -e '\n%s' >> $HOME/.ssh/authorized_keys" %
                  tmp_key_public_contents]
             print("Inserting TripleO short term key for %s" % host)
-            subprocess.check_call(copy_tmp_key_command,
-                                  stderr=subprocess.STDOUT)
+            copy_temp_key(copy_tmp_key_command)
 
         print("Starting ssh admin enablement workflow")
 
