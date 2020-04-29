@@ -927,6 +927,29 @@ class TestTripleoImagePrepareDefault(TestPluginV1):
             [0]['push_destination']
         )
 
+    def test_prepare_default_registyr_login(self):
+        temp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, temp)
+        env_file = os.path.join(temp, 'containers_env.yaml')
+
+        arglist = ['--enable-registry-login', '--output-env-file', env_file]
+        verifylist = []
+
+        self.app.command_options = [
+            'tripleo', 'container', 'image', 'prepare', 'default'
+        ] + arglist
+        cmd = container_image.TripleOImagePrepareDefault(self.app, None)
+        parsed_args = self.check_parser(cmd, arglist, verifylist)
+
+        cmd.take_action(parsed_args)
+
+        with open(env_file) as f:
+            result = yaml.safe_load(f)
+        self.assertEqual(
+            True,
+            result['parameter_defaults']['ContainerImageRegistryLogin']
+        )
+
 
 class TestContainerImageBuild(TestPluginV1):
 
