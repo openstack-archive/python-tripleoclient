@@ -211,9 +211,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_event = mock.Mock()
         mock_event.id = '1234'
         mock_events.return_value = [mock_events]
-        workflow_client = clients.workflow_engine
-        workflow_client.action_executions.create.return_value = mock.MagicMock(
-            output='{"result":[]}')
 
         object_client = clients.tripleoclient.object_store
         object_client.get_object = mock.Mock()
@@ -313,9 +310,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         orchestration_client = clients.orchestration
         mock_stack = fakes.create_tht_stack()
         orchestration_client.stacks.get.side_effect = [None, mock.Mock()]
-        workflow_client = clients.workflow_engine
-        workflow_client.action_executions.create.return_value = mock.MagicMock(
-            output='{"result":[]}')
 
         object_client = clients.tripleoclient.object_store
         object_client.get_object = mock.Mock()
@@ -573,9 +567,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         orchestration_client = clients.orchestration
         mock_stack = fakes.create_tht_stack()
         orchestration_client.stacks.get.side_effect = [None, mock.Mock()]
-        workflow_client = clients.workflow_engine
-        workflow_client.action_executions.create.return_value = mock.MagicMock(
-            output='{"result":[]}')
 
         def _orch_clt_create(**kwargs):
             orchestration_client.stacks.get.return_value = mock_stack
@@ -661,10 +652,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         baremetal = clients.baremetal
         baremetal.node.list.return_value = range(10)
 
-        workflow_client = clients.workflow_engine
-        workflow_client.action_executions.create.return_value = mock.MagicMock(
-            output='{"result":[]}')
-
         object_client = clients.tripleoclient.object_store
         object_client.get_object = mock.Mock()
         object_client.put_container = mock.Mock()
@@ -724,9 +711,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.useFixture(utils_overcloud_fixture)
 
         clients = self.app.client_manager
-        workflow_client = clients.workflow_engine
-        workflow_client.action_executions.create.return_value = mock.MagicMock(
-            output='{"result":[]}')
 
         mock_update_parameters.return_value = {}
         utils_overcloud_fixture.mock_utils_endpoint.return_value = 'foo.bar'
@@ -792,9 +776,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         utils_fixture = deployment.UtilsOvercloudFixture()
         self.useFixture(utils_fixture)
         clients = self.app.client_manager
-        workflow_client = clients.workflow_engine
-        workflow_client.action_executions.create.return_value = mock.MagicMock(
-            output='{"result":[]}')
 
         mock_update_parameters.return_value = {}
         mock_utils_get_stack.return_value = None
@@ -849,9 +830,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         utils_fixture = deployment.UtilsOvercloudFixture()
         self.useFixture(utils_fixture)
         clients = self.app.client_manager
-        workflow_client = clients.workflow_engine
-        workflow_client.action_executions.create.return_value = mock.MagicMock(
-            output='{"result":[]}')
 
         mock_update_parameters.return_value = {}
         utils_fixture.mock_utils_endpoint.return_value = 'foo.bar'
@@ -905,10 +883,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                                 mock_tarball):
         utils_fixture = deployment.UtilsOvercloudFixture()
         self.useFixture(utils_fixture)
-        clients = self.app.client_manager
-        workflow_client = clients.workflow_engine
-        workflow_client.action_executions.create.return_value = mock.MagicMock(
-            output='{"result":[]}')
 
         mock_update_parameters.return_value = {}
         utils_fixture.mock_utils_endpoint.return_value = 'foo.bar'
@@ -1047,10 +1021,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         clients = self.app.client_manager
 
-        workflow_client = clients.workflow_engine
-        workflow_client.action_executions.create.return_value = mock.MagicMock(
-            output='{"result":[]}')
-
         mock_tmpdir.return_value = self.tmp_dir.path
         mock_rmtree.return_value = None
         network_client = clients.network
@@ -1141,9 +1111,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         verifylist = [
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
         ]
-        workflow_client = clients.workflow_engine
-        workflow_client.action_executions.create.return_value = mock.MagicMock(
-            output='{"result":[]}')
 
         object_client = clients.tripleoclient.object_store
         object_client.get_object = mock.Mock()
@@ -1222,10 +1189,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             orchestration_client.stacks.get.return_value = mock_stack
 
         orchestration_client.stacks.create.side_effect = _orch_clt_create
-
-        workflow_client = clients.workflow_engine
-        workflow_client.action_executions.create.return_value = mock.MagicMock(
-            output='{"result":[]}')
 
         object_client = clients.tripleoclient.object_store
         object_client.get_object = mock.Mock()
@@ -1317,10 +1280,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             None,
             mock.MagicMock()
         ]
-
-        workflow_client = clients.workflow_engine
-        workflow_client.action_executions.create.return_value = mock.MagicMock(
-            output='{"result":[]}')
 
         object_client = clients.tripleoclient.object_store
         object_client.get_object = mock.Mock()
