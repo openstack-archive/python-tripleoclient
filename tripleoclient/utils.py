@@ -234,7 +234,7 @@ def playbook_verbosity(self):
     if self.app.options.debug:
         return 3
     else:
-        if self.app_args.verbose_level <= 1:
+        if self.app_args.verbose_level < 1:
             return 0
         else:
             return self.app_args.verbose_level
