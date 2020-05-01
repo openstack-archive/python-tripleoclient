@@ -110,7 +110,8 @@ def deploy_and_wait(log, clients, stack, plan_name, verbose_level,
                               status='DEPLOY_FAILED')
         raise
 
-    verbose_events = verbose_level >= 1
+    # we always want the heat stack output while it's going.
+    verbose_events = True
 
     # TODO(rabi) Simplify call to get events as we don't need to wait
     # for stack to be ready anymore i.e just get the events.
