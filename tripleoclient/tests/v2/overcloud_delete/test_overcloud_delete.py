@@ -44,8 +44,8 @@ class TestDeleteOvercloud(deploy_fakes.TestDeployOvercloud):
         self.cmd.take_action(parsed_args)
 
         mock_run_playbook.assert_called_once_with(
-            'cli-overcloud-delete.yaml',
-            'undercloud,',
+            ['cli-cleanup-ipa.yml', 'cli-overcloud-delete.yaml'],
+            constants.ANSIBLE_INVENTORY,
             mock.ANY,
             constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             extra_vars={
@@ -65,3 +65,26 @@ class TestDeleteOvercloud(deploy_fakes.TestDeployOvercloud):
 
         self.assertRaises(exceptions.CommandError,
                           self.cmd.take_action, parsed_args)
+
+    @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
+    def test_skip_ipa_cleanup(self, mock_run_playbook):
+        arglist = ["overcast", "-y", "--skip-ipa-cleanup"]
+        verifylist = [
+            ("stack", "overcast"),
+            ("yes", True),
+            ("skip_ipa_cleanup", True)
+        ]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        self.cmd.take_action(parsed_args)
+
+        mock_run_playbook.assert_called_once_with(
+            ['cli-overcloud-delete.yaml'],
+            constants.ANSIBLE_INVENTORY,
+            mock.ANY,
+            constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            extra_vars={
+                "stack_name": "overcast",
+            },
+            verbosity=3,
+        )

@@ -39,6 +39,18 @@ class DeleteOvercloud(command.Command):
                             help=_('Skip yes/no prompt (assume yes).'),
                             default=False,
                             action="store_true")
+        parser.add_argument('-s', '--skip-ipa-cleanup',
+                            help=_('Skip removing overcloud hosts, services, '
+                                   'and DNS records from FreeIPA. This is '
+                                   'particularly relevant for deployments '
+                                   'using certificates from FreeIPA for TLS. '
+                                   'By default, overcloud hosts, services, '
+                                   'and DNS records will be removed from '
+                                   'FreeIPA before deleting the overcloud. '
+                                   'Using this option might require you to '
+                                   'manually cleanup FreeIPA later.'),
+                            default=False,
+                            action="store_true")
         return parser
 
     def _validate_args(self, parsed_args):
@@ -58,10 +70,17 @@ class DeleteOvercloud(command.Command):
             if not confirm:
                 raise oscexc.CommandError("Action not confirmed, exiting.")
 
+        if parsed_args.skip_ipa_cleanup:
+            playbooks = ["cli-overcloud-delete.yaml"]
+        else:
+            # Order is important, let's make sure we cleanup FreeIPA before we
+            # start removing infrastructure.
+            playbooks = ["cli-cleanup-ipa.yml", "cli-overcloud-delete.yaml"]
+
         with utils.TempDirs() as tmp:
             utils.run_ansible_playbook(
-                "cli-overcloud-delete.yaml",
-                'undercloud,',
+                playbooks,
+                constants.ANSIBLE_INVENTORY,
                 workdir=tmp,
                 playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
                 verbosity=utils.playbook_verbosity(self=self),
