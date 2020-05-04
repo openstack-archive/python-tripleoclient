@@ -131,3 +131,19 @@ class TestDeleteOvercloud(fakes.TestDeployOvercloud):
             "/usr/share/ansible/tripleo-playbooks/cli-cleanup-ipa.yml "
             "did not complete successfully."
         )
+
+    @mock.patch(
+        "tripleoclient.v1.overcloud_delete.DeleteOvercloud._cleanup_ipa",
+        autospec=True)
+    def test_skip_ipa_cleanup(self, mock_overcloud_delete):
+        arglist = ["overcast", "-y", "--skip-ipa-cleanup"]
+        verifylist = [
+            ("stack", "overcast"),
+            ("yes", True),
+            ("skip_ipa_cleanup", True)
+        ]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        self.cmd.take_action(parsed_args)
+
+        mock_overcloud_delete.assert_not_called()

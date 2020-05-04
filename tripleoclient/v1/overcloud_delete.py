@@ -49,6 +49,18 @@ class DeleteOvercloud(command.Command):
                             help=_('Skip yes/no prompt (assume yes).'),
                             default=False,
                             action="store_true")
+        parser.add_argument('-s', '--skip-ipa-cleanup',
+                            help=_('Skip removing overcloud hosts, services, '
+                                   'and DNS records from FreeIPA. This is '
+                                   'particularly relevant for deployments '
+                                   'using certificates from FreeIPA for TLS. '
+                                   'By default, overcloud hosts, services, '
+                                   'and DNS records will be removed from '
+                                   'FreeIPA before deleting the overcloud. '
+                                   'Using this option might require you to '
+                                   'manually cleanup FreeIPA later.'),
+                            default=False,
+                            action="store_true")
         return parser
 
     def _validate_args(self, parsed_args):
@@ -149,7 +161,8 @@ class DeleteOvercloud(command.Command):
 
         clients = self.app.client_manager
 
-        self._cleanup_ipa(parsed_args.stack)
+        if not parsed_args.skip_ipa_cleanup:
+            self._cleanup_ipa(parsed_args.stack)
         self._plan_undeploy(clients, parsed_args.stack)
         self._plan_delete(clients, parsed_args.stack)
         print("Success.")

@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    The `overcloud delete` subcommand now supports cleaning up overcloud hosts,
+    services, and DNS entries in FreeIPA. This is applicable to deployments
+    with TLS support enabled since FreeIPA serves DNS and manages certificates
+    for overcloud infrastructure. This subcommand also includes a new option
+    called ``--skip-ipa-cleanup`` that allows the caller to forego cleaning up
+    FreeIPA. This may be useful when deployers want to forcibly cleanup
+    overcloud stacks and leave FreeIPA entries intact (e.g., network partition
+    events where the FreeIPA server isn't reachable). Note that you will need
+    to manually cleanup FreeIPA if you use ``--skip-ipa-cleanup``.
