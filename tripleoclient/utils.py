@@ -598,19 +598,26 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
         else:
             env.update(extra_env_variables)
 
-    command_path = None
+    if 'ANSIBLE_CONFIG' not in env and not ansible_cfg:
+        config_download = os.path.join(constants.DEFAULT_WORK_DIR, plan)
+        makedirs(config_download)
+        ansible_cfg = os.path.join(config_download, 'ansible.cfg')
+        config = configparser.ConfigParser()
+        if os.path.isfile(ansible_cfg):
+            config.read(ansible_cfg)
 
-    with TempDirs(chdir=False) as ansible_artifact_path:
-        if 'ANSIBLE_CONFIG' not in env and not ansible_cfg:
-            ansible_cfg = os.path.join(ansible_artifact_path, 'ansible.cfg')
-            config = configparser.ConfigParser()
+        if 'defaults' not in config.sections():
             config.add_section('defaults')
-            config.set('defaults', 'internal_poll_interval', '0.05')
-            with open(ansible_cfg, 'w') as f:
-                config.write(f)
-            env['ANSIBLE_CONFIG'] = ansible_cfg
-        elif 'ANSIBLE_CONFIG' not in env and ansible_cfg:
-            env['ANSIBLE_CONFIG'] = ansible_cfg
+
+        config.set('defaults', 'internal_poll_interval', '0.05')
+        with open(ansible_cfg, 'w') as f:
+            config.write(f)
+        env['ANSIBLE_CONFIG'] = ansible_cfg
+    elif 'ANSIBLE_CONFIG' not in env and ansible_cfg:
+        env['ANSIBLE_CONFIG'] = ansible_cfg
+
+    command_path = None
+    with TempDirs(chdir=False) as ansible_artifact_path:
 
         r_opts = {
             'private_data_dir': workdir,

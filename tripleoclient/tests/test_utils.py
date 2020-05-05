@@ -55,6 +55,17 @@ class TestRunAnsiblePlaybook(TestCase):
         self.unlink_patch.start()
         self.mock_log = mock.Mock('logging.getLogger')
         self.ansible_playbook_cmd = "ansible-playbook"
+        self.orig_workdir = utils.constants.DEFAULT_WORK_DIR
+        utils.constants.DEFAULT_WORK_DIR = utils.TempDirs().dir
+        utils.makedirs(
+            os.path.join(
+                utils.constants.DEFAULT_WORK_DIR,
+                'overcloud'
+            )
+        )
+
+    def tearDown(self):
+        utils.constants.DEFAULT_WORK_DIR = self.orig_workdir
 
     @mock.patch('os.path.exists', return_value=False)
     @mock.patch('tripleoclient.utils.run_command_and_log')
