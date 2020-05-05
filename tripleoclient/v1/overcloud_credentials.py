@@ -13,7 +13,6 @@
 import logging
 
 from tripleoclient import command
-from tripleoclient import utils
 from tripleoclient.workflows import deployment
 
 
@@ -33,10 +32,5 @@ class OvercloudCredentials(command.Command):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
-
-        clients = self.app.client_manager
-        plan = parsed_args.plan
-        dir_ = parsed_args.directory
-
-        overcloudrcs = deployment.create_overcloudrc(clients, container=plan)
-        utils.write_overcloudrc(plan, overcloudrcs, dir_)
+        deployment.create_overcloudrc(container=parsed_args.plan,
+                                      output_dir=parsed_args.directory)

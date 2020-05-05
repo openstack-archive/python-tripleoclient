@@ -22,10 +22,10 @@ from openstackclient import shell
 from swiftclient import exceptions as swiftexceptions
 from tripleo_common.actions import ansible
 from tripleo_common.actions import config
-from tripleo_common.actions import deployment
 from tripleo_common.utils import swift as swift_utils
 
 from tripleoclient.constants import ANSIBLE_TRIPLEO_PLAYBOOKS
+from tripleoclient.constants import CLOUD_HOME_DIR
 from tripleoclient.constants import DEFAULT_WORK_DIR
 from tripleoclient import exceptions
 from tripleoclient import utils
@@ -130,9 +130,23 @@ def deploy_and_wait(log, clients, stack, plan_name, verbose_level,
             raise exceptions.DeploymentError("Heat Stack update failed.")
 
 
-def create_overcloudrc(clients, container="overcloud", no_proxy=''):
-    context = clients.tripleoclient.create_mistral_context()
-    return deployment.OvercloudRcAction(container, no_proxy).run(context)
+def create_overcloudrc(container="overcloud", no_proxy='',
+                       output_dir=CLOUD_HOME_DIR, verbosity=0):
+    with utils.TempDirs() as tmp:
+        utils.run_ansible_playbook(
+            "cli-generate-overcloudrc.yaml",
+            'undercloud,',
+            workdir=tmp,
+            playbook_dir=ANSIBLE_TRIPLEO_PLAYBOOKS,
+            verbosity=verbosity,
+            extra_vars={
+                "container": container,
+                "no_proxy": no_proxy,
+                "output_dir": output_dir,
+            }
+        )
+    rcpath = os.path.join(output_dir, container + 'rc')
+    return rcpath
 
 
 def get_overcloud_hosts(stack, ssh_network):

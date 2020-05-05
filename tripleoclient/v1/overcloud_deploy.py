@@ -609,7 +609,7 @@ class DeployOvercloud(command.Command):
 
         if parsed_args.deployed_server and (parsed_args.run_validations
            or not parsed_args.disable_validations):
-                raise oscexc.CommandError(
+            raise oscexc.CommandError(
                     "Error: The --deployed-server cannot be used without "
                     "the --disable-validations")
 
@@ -1090,14 +1090,12 @@ class DeployOvercloud(command.Command):
         # Force fetching of attributes
         stack.get()
 
-        overcloudrcs = deployment.create_overcloudrc(
-            self.clients, container=stack.stack_name,
-            no_proxy=parsed_args.no_proxy)
+        rcpath = deployment.create_overcloudrc(container=stack.stack_name,
+                                               no_proxy=parsed_args.no_proxy)
 
         # Copy clouds.yaml to the cloud user directory
         user = getpwuid(os.stat(constants.CLOUD_HOME_DIR).st_uid).pw_name
         utils.copy_clouds_yaml(user)
-        rcpath = utils.write_overcloudrc(stack.stack_name, overcloudrcs)
         utils.create_tempest_deployer_input()
 
         # Run postconfig on create or force. Use force to makes sure endpoints

@@ -28,31 +28,18 @@ class TestOvercloudCredentials(test_plugin.TestPluginV1):
         self.tripleoclient = mock.Mock()
         self.app.client_manager.tripleoclient = self.tripleoclient
 
-        self.rc_action_patcher = mock.patch(
-            'tripleo_common.actions.deployment.OvercloudRcAction',
-            autospec=True)
-        self.mock_rc_action = self.rc_action_patcher.start()
-        self.addCleanup(self.rc_action_patcher.stop)
-
-    @mock.patch('os.chmod')
-    def test_ok(self, mock_chmod):
+    @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
+    def test_ok(self, mock_run_playbook):
         arglist = ['overcloud', ]
         verifylist = [
             ('plan', 'overcloud'),
             ('directory', '.')
         ]
 
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        self.check_parser(self.cmd, arglist, verifylist)
 
-        with mock.patch("tripleoclient.utils.open", create=True) as m:
-            self.cmd.take_action(parsed_args)
-
-        self.assertIn(mock.call('./overcloudrc', 'w'), m.call_args_list)
-        mock_chmod.assert_has_calls([
-            mock.call('./overcloudrc', 384)])
-
-    @mock.patch('os.chmod')
-    def test_okay_custom_dir(self, mock_chmod):
+    @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
+    def test_okay_custom_dir(self, mock_run_playbook):
 
         temp = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, temp)
@@ -62,13 +49,4 @@ class TestOvercloudCredentials(test_plugin.TestPluginV1):
             ('plan', 'overcloud'),
             ('directory', temp)
         ]
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-
-        with mock.patch("tripleoclient.utils.open", create=True) as m:
-            self.cmd.take_action(parsed_args)
-
-        path = "{}/overcloudrc".format(temp)
-
-        self.assertIn(mock.call(path, 'w'), m.call_args_list)
-        mock_chmod.assert_has_calls([
-            mock.call(path, 384)])
+        self.check_parser(self.cmd, arglist, verifylist)

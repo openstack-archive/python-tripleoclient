@@ -51,9 +51,6 @@ class UtilsOvercloudFixture(fixtures.Fixture):
         self.mock_utils_endpoint = self.useFixture(fixtures.MockPatch(
             'tripleoclient.utils.get_overcloud_endpoint')
         ).mock
-        self.mock_create_ocrc = self.useFixture(fixtures.MockPatch(
-            'tripleoclient.utils.write_overcloudrc')
-        ).mock
         self.mock_update_deployment_status = self.useFixture(
             fixtures.MockPatch(
                 'tripleoclient.utils.update_deployment_status')

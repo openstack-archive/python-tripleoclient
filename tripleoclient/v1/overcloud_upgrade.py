@@ -77,9 +77,7 @@ class UpgradePrepare(DeployOvercloud):
             clients, container=stack_name,
             container_config='{}-config'.format(stack.stack_name))
 
-        overcloudrcs = deployment.create_overcloudrc(
-            clients, container=stack_name)
-        oooutils.write_overcloudrc(stack_name, overcloudrcs)
+        deployment.create_overcloudrc(container=stack_name)
 
         # refresh stack info and enable ssh admin for Ansible-via-Mistral
         stack = oooutils.get_stack(clients.orchestration, parsed_args.stack)
