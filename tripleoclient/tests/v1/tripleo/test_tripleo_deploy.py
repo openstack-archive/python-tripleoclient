@@ -938,8 +938,7 @@ class TestDeployUndercloud(TestPluginV1):
                                          '-e', '/tmp/thtroot42/notouch.yaml',
                                          '-e', '~/custom.yaml',
                                          '-e', 'something.yaml',
-                                         '-e', '../../../outside.yaml',
-                                         '--standalone'], [])
+                                         '-e', '../../../outside.yaml'], [])
 
         mock_file_exists.return_value = True
         fake_orchestration = mock_launchheat(parsed_args)
@@ -977,8 +976,7 @@ class TestDeployUndercloud(TestPluginV1):
                                         ['--local-ip', '127.0.0.1',
                                          '--templates', '/tmp/thtroot',
                                          '--stack', 'undercloud',
-                                         '--output-dir', '/my',
-                                         '--standalone'], [])
+                                         '--output-dir', '/my'], [])
         self.assertRaises(exceptions.DeploymentError,
                           self.cmd.take_action, parsed_args)
         mock_copy.assert_called_once()
@@ -989,8 +987,7 @@ class TestDeployUndercloud(TestPluginV1):
                                         ['--local-ip', '127.0.0.1',
                                          '--templates', '/tmp/thtroot',
                                          '--stack', 'undercloud',
-                                         '--output-dir', '/my',
-                                         '--standalone'], [])
+                                         '--output-dir', '/my'], [])
         self.cmd._set_stack_action(parsed_args)
         self.assertEqual('CREATE', self.cmd.stack_action)
 
@@ -1000,8 +997,7 @@ class TestDeployUndercloud(TestPluginV1):
                                         ['--local-ip', '127.0.0.1',
                                          '--templates', '/tmp/thtroot',
                                          '--stack', 'undercloud',
-                                         '--output-dir', '/my',
-                                         '--standalone'], [])
+                                         '--output-dir', '/my'], [])
         self.cmd._set_stack_action(parsed_args)
         self.assertEqual('UPDATE', self.cmd.stack_action)
 
@@ -1012,7 +1008,6 @@ class TestDeployUndercloud(TestPluginV1):
                                          '--templates', '/tmp/thtroot',
                                          '--stack', 'undercloud',
                                          '--output-dir', '/my',
-                                         '--standalone',
                                          '--force-stack-update'], [])
         self.cmd._set_stack_action(parsed_args)
         self.assertEqual('UPDATE', self.cmd.stack_action)
@@ -1024,7 +1019,6 @@ class TestDeployUndercloud(TestPluginV1):
                                          '--templates', '/tmp/thtroot',
                                          '--stack', 'undercloud',
                                          '--output-dir', '/my',
-                                         '--standalone',
                                          '--force-stack-create'], [])
         self.cmd._set_stack_action(parsed_args)
         self.assertEqual('CREATE', self.cmd.stack_action)
@@ -1039,7 +1033,6 @@ class TestDeployUndercloud(TestPluginV1):
              '--templates', '/tmp/thtroot',
              '--stack', 'undercloud',
              '--output-dir', '/my',
-             '--standalone',
              '--force-stack-create',
              '--force-stack-update'], [])
 
@@ -1100,8 +1093,7 @@ class TestDeployUndercloud(TestPluginV1):
                                          '--templates', '/tmp/thtroot',
                                          '--stack', 'undercloud',
                                          '--output-dir', '/my',
-                                         '--output-only',
-                                         '--standalone'], [])
+                                         '--output-only'], [])
 
         rc = self.cmd.take_action(parsed_args)
         self.assertEqual(None, rc)
