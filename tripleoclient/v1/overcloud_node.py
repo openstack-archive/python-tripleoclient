@@ -14,9 +14,11 @@
 #
 
 import collections
+import datetime
 import json
 import logging
 import os
+import sys
 
 from cliff.formatters import table
 from osc_lib import exceptions as oscexc
@@ -439,3 +441,87 @@ class DiscoverNode(command.Command):
             baremetal.provide(self.app.client_manager,
                               node_uuids=nodes_uuids
                               )
+
+
+class ExtractProvisionedNode(command.Command):
+
+    log = logging.getLogger(__name__ + ".ExtractProvisionedNode")
+
+    def _setup_clients(self):
+        self.clients = self.app.client_manager
+        self.orchestration_client = self.clients.orchestration
+        self.baremetal_client = self.clients.baremetal
+
+    def get_parser(self, prog_name):
+        parser = super(ExtractProvisionedNode, self).get_parser(prog_name)
+        parser.add_argument('--stack', dest='stack',
+                            help=_('Name or ID of heat stack '
+                                   '(default=Env: OVERCLOUD_STACK_NAME)'),
+                            default=utils.env('OVERCLOUD_STACK_NAME',
+                                              default='overcloud'))
+        parser.add_argument('-o', '--output',
+                            metavar='<baremetal_deployment.yaml>',
+                            help=_('The output file path describing the '
+                                   'baremetal deployment'))
+        parser.add_argument('-y', '--yes', default=False, action='store_true',
+                            help=_('Skip yes/no prompt for existing files '
+                                   '(assume yes).'))
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)" % parsed_args)
+        self._setup_clients()
+        stack = oooutils.get_stack(self.orchestration_client,
+                                   parsed_args.stack)
+        host_vars = oooutils.get_stack_output_item(
+            stack, 'AnsibleHostVarsMap') or {}
+        parameters = stack.to_dict().get('parameters', {})
+
+        # list all baremetal nodes and map hostname to node name
+        node_details = self.baremetal_client.node.list(detail=True)
+        hostname_node_map = {}
+        for node in node_details:
+            hostname = node.instance_info.get('display_name')
+            if hostname and node.name:
+                hostname_node_map[hostname] = node.name
+
+        role_data = six.StringIO()
+        role_data.write('# Generated with the following on %s\n#\n' %
+                        datetime.datetime.now().isoformat())
+        role_data.write('#   openstack %s\n#\n\n' %
+                        ' '.join(self.app.command_options))
+        for role, entries in host_vars.items():
+            role_count = len(entries)
+
+            # skip zero count roles
+            if not role_count:
+                continue
+
+            role_data.write('- name: %s\n' % role)
+            role_data.write('  count: %s\n' % role_count)
+
+            hostname_format = parameters.get('%sHostnameFormat' % role)
+            if hostname_format:
+                role_data.write('  hostname_format: "%s"\n' % hostname_format)
+
+            role_data.write('  instances:\n')
+
+            for entry in sorted(entries):
+                role_data.write('  - hostname: %s\n' % entry)
+                if entry in hostname_node_map:
+                    role_data.write('    name: %s\n' %
+                                    hostname_node_map[entry])
+
+        if parsed_args.output:
+            if (os.path.exists(parsed_args.output)
+                    and not parsed_args.yes and sys.stdin.isatty()):
+                prompt_response = six.moves.input(
+                    ('Overwrite existing file %s [y/N]?' % parsed_args.output)
+                ).lower()
+                if not prompt_response.startswith('y'):
+                    raise oscexc.CommandError(
+                        "Will not overwrite existing file:"
+                        " %s" % parsed_args.output)
+            with open(parsed_args.output, 'w+') as fp:
+                fp.write(role_data.getvalue())
+        self.app.stdout.write(role_data.getvalue())
