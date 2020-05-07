@@ -130,16 +130,16 @@ class StandaloneConfig(BaseConfig):
             cfg.StrOpt('net_config_override',
                        default='',
                        help=_(
-                           'Path to network config override template.'
+                           'Path to network config override template. '
                            'Relative paths get computed inside of $HOME. '
-                           'Must be in the json format.'
+                           'Must be in the json format. '
                            'Its content overrides anything in t-h-t '
                            '<role>NetConfigOverride. The processed '
                            'template is then passed in Heat via the '
                            'generated parameters file created in '
                            'output_dir and used to configure the networking '
                            'via run-os-net-config. If you wish to disable '
-                           'you can set this location to an empty file.'
+                           'you can set this location to an empty file. '
                            'Templated for instack j2 tags '
                            'may be used, '
                            'for example:\n%s ') % NETCONFIG_TAGS_EXAMPLE
