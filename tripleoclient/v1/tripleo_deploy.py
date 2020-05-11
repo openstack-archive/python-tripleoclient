@@ -1406,27 +1406,6 @@ class Deploy(command.Command):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
-        unconf_msg = _('User did not confirm upgrade, so exiting. '
-                       'Consider using the --yes parameter if you '
-                       'prefer to skip this warning in the future')
-        try:
-            if parsed_args.upgrade and (
-                    not parsed_args.yes and sys.stdin.isatty()):
-                prompt_response = six.moves.input(
-                    ('It is strongly recommended to perform a backup '
-                     'before the upgrade. Are you sure you want to '
-                     'upgrade [y/N]?')
-                ).lower()
-                if not prompt_response.startswith('y'):
-                    raise exceptions.UndercloudUpgradeNotConfirmed(unconf_msg)
-        except KeyboardInterrupt:
-            # ctrl-c
-            raise exceptions.UndercloudUpgradeNotConfirmed("(ctrl-c) %s" %
-                                                           unconf_msg)
-        except EOFError:
-            # ctrl-d
-            raise exceptions.UndercloudUpgradeNotConfirmed("(ctrl-d) %s" %
-                                                           unconf_msg)
 
         try:
             if parsed_args.standalone:
