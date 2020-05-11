@@ -31,6 +31,7 @@ import logging
 from six.moves.configparser import ConfigParser
 
 import json
+import multiprocessing
 import netaddr
 import os
 import os.path
@@ -477,7 +478,7 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
         '-T'
     ).format(os.devnull)
     env['ANSIBLE_DISPLAY_FAILED_STDERR'] = True
-    env['ANSIBLE_FORKS'] = 36
+    env['ANSIBLE_FORKS'] = multiprocessing.cpu_count() * 4
     env['ANSIBLE_TIMEOUT'] = ansible_timeout
     env['ANSIBLE_GATHER_TIMEOUT'] = 45
     env['ANSIBLE_SSH_RETRIES'] = 3
