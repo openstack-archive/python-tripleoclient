@@ -564,6 +564,8 @@ class TestUndercloudUpgrade(TestPluginV1):
         app_args.verbose_level = 1
         self.cmd = undercloud.UpgradeUndercloud(self.app, app_args)
 
+    @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
+                return_value=True)
     @mock.patch.object(sys, 'executable', 'python2')
     # TODO(cjeanner) drop once we have proper oslo.privsep
     @mock.patch('getpass.getuser', return_value='stack')
@@ -575,7 +577,8 @@ class TestUndercloudUpgrade(TestPluginV1):
     def test_undercloud_upgrade_default(self, mock_run_command,
                                         mock_subprocess,
                                         mock_wr,
-                                        mock_os, mock_copy, mock_user):
+                                        mock_os, mock_copy, mock_user,
+                                        mock_confirm):
         arglist = ['--no-validations']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
@@ -623,6 +626,8 @@ class TestUndercloudUpgrade(TestPluginV1):
             '--force-stack-update', '--no-validations',
             '--inflight-validations', '--dry-run', '--yes', '--debug'])
 
+    @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
+                return_value=True)
     # TODO(cjeanner) drop once we have proper oslo.privsep
     @mock.patch('os.geteuid', return_value=1001)
     @mock.patch('getpass.getuser', return_value='stack')
@@ -635,7 +640,7 @@ class TestUndercloudUpgrade(TestPluginV1):
                                         mock_subprocess,
                                         mock_wr,
                                         mock_os, mock_copy, mock_user,
-                                        mock_getuid):
+                                        mock_getuid, mock_confirm):
         arglist = ['--no-validations', '--skip-package-updates']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
@@ -691,6 +696,8 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/'
              'undercloud-stack-vstate-dropin.yaml'])
 
+    @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
+                return_value=True)
     # TODO(cjeanner) drop once we have proper oslo.privsep
     @mock.patch('getpass.getuser', return_value='stack')
     @mock.patch('shutil.copy')
@@ -701,7 +708,8 @@ class TestUndercloudUpgrade(TestPluginV1):
     def test_undercloud_upgrade_with_heat_enabled(self, mock_run_command,
                                                   mock_subprocess,
                                                   mock_wr, mock_os,
-                                                  mock_copy, mock_user):
+                                                  mock_copy, mock_user,
+                                                  mock_confirm):
         arglist = ['--no-validations', '--skip-package-updates']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
@@ -757,6 +765,8 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/'
              'undercloud-stack-vstate-dropin.yaml'])
 
+    @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
+                return_value=True)
     # TODO(cjeanner) drop once we have proper oslo.privsep
     @mock.patch('getpass.getuser', return_value='stack')
     @mock.patch('shutil.copy')
@@ -767,7 +777,8 @@ class TestUndercloudUpgrade(TestPluginV1):
     def test_undercloud_upgrade_with_heat_true(self, mock_run_command,
                                                mock_subprocess,
                                                mock_wr, mock_os,
-                                               mock_copy, mock_user):
+                                               mock_copy, mock_user,
+                                               mock_confirm):
         arglist = ['--no-validations', '--skip-package-updates']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
@@ -890,6 +901,8 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/'
              'undercloud-stack-vstate-dropin.yaml'])
 
+    @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
+                return_value=True)
     # TODO(cjeanner) drop once we have proper oslo.privsep
     @mock.patch('getpass.getuser', return_value='stack')
     @mock.patch('shutil.copy')
@@ -900,7 +913,8 @@ class TestUndercloudUpgrade(TestPluginV1):
     def test_undercloud_upgrade_with_heat_and_debug(self, mock_run_command,
                                                     mock_subprocess,
                                                     mock_wr, mock_os,
-                                                    mock_copy, mock_user):
+                                                    mock_copy, mock_user,
+                                                    mock_confirm):
         arglist = ['--no-validations', '--skip-package-updates']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
