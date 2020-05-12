@@ -42,7 +42,6 @@ class TestFFWDUpgradePrepare(fakes.TestFFWDUpgradePrepare):
                 'get_hosts_and_enable_ssh_admin', autospec=True)
     @mock.patch('tripleoclient.workflows.deployment.create_overcloudrc',
                 autospec=True)
-    @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
     @mock.patch('tripleoclient.utils.prepend_environment', autospec=True)
     @mock.patch('tripleoclient.utils.get_stack',
                 autospec=True)
@@ -67,7 +66,6 @@ class TestFFWDUpgradePrepare(fakes.TestFFWDUpgradePrepare):
                           mock_logger,
                           mock_get_stack,
                           mock_prepend_env,
-                          mock_write_overcloudrc,
                           mock_overcloudrc,
                           mock_enable_ssh_admin,
                           mock_overcloud_deploy):
@@ -92,10 +90,7 @@ class TestFFWDUpgradePrepare(fakes.TestFFWDUpgradePrepare):
             container='mystack',
         )
 
-        mock_overcloudrc.assert_called_once_with(mock.ANY,
-                                                 container="mystack")
-        mock_write_overcloudrc.assert_called_once_with("mystack",
-                                                       mock.ANY)
+        mock_overcloudrc.assert_called_once_with(container="mystack")
         mock_enable_ssh_admin.assert_called_once_with(
             mock_stack,
             parsed_args.overcloud_ssh_network,
