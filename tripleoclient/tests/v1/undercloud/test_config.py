@@ -184,6 +184,7 @@ class TestNetworkSettings(TestBaseNetworkSettings):
                  'tag': 'ctlplane-subnet',
                  'mtu': 1500}],
             'MasqueradeNetworks': {},
+            'PortPhysnetCidrMap': {'192.168.24.0/24': 'ctlplane'},
             'UndercloudCtlplaneSubnets': {
                 'ctlplane-subnet': {
                     'AllocationPools': [
@@ -230,6 +231,7 @@ class TestNetworkSettings(TestBaseNetworkSettings):
                  'tag': 'ctlplane-subnet',
                  'mtu': 1500}],
             'MasqueradeNetworks': {},
+            'PortPhysnetCidrMap': {'fd12:3456:789a:1::/64': 'ctlplane'},
             'UndercloudCtlplaneSubnets': {
                 'ctlplane-subnet': {
                     'AllocationPools': [
@@ -279,6 +281,7 @@ class TestNetworkSettings(TestBaseNetworkSettings):
                  'tag': 'ctlplane-subnet',
                  'mtu': 1500}],
             'MasqueradeNetworks': {},
+            'PortPhysnetCidrMap': {'fd12:3456:789a:1::/64': 'ctlplane'},
             'UndercloudCtlplaneSubnets': {
                 'ctlplane-subnet': {
                     'AllocationPools': [
@@ -356,6 +359,7 @@ class TestNetworkSettings(TestBaseNetworkSettings):
                  'tag': 'ctlplane-subnet',
                  'mtu': 1500}],
             'MasqueradeNetworks': {},
+            'PortPhysnetCidrMap': {'192.168.24.0/24': 'ctlplane'},
             'UndercloudCtlplaneSubnets': {
                 'ctlplane-subnet': {
                     'AllocationPools': [
@@ -386,6 +390,7 @@ class TestNetworkSettings(TestBaseNetworkSettings):
                  'tag': 'ctlplane-subnet',
                  'mtu': 1500}],
             'MasqueradeNetworks': {},
+            'PortPhysnetCidrMap': {'192.168.10.0/24': 'ctlplane'},
             'UndercloudCtlplaneSubnets': {
                 'ctlplane-subnet': {
                     'AllocationPools': [
@@ -418,6 +423,7 @@ class TestNetworkSettings(TestBaseNetworkSettings):
                  'tag': 'ctlplane-subnet',
                  'mtu': 1500}],
             'MasqueradeNetworks': {},
+            'PortPhysnetCidrMap': {'192.168.10.0/24': 'ctlplane'},
             'UndercloudCtlplaneSubnets': {
                 'ctlplane-subnet': {
                     'AllocationPools': [
@@ -449,6 +455,7 @@ class TestNetworkSettings(TestBaseNetworkSettings):
                  'tag': 'ctlplane-subnet',
                  'mtu': 1500}],
             'MasqueradeNetworks': {},
+            'PortPhysnetCidrMap': {'192.168.24.0/24': 'ctlplane'},
             'UndercloudCtlplaneSubnets': {
                 'ctlplane-subnet': {
                     'AllocationPools': [
@@ -478,6 +485,7 @@ class TestNetworkSettings(TestBaseNetworkSettings):
                  'tag': 'ctlplane-subnet',
                  'mtu': 1500}],
             'MasqueradeNetworks': {},
+            'PortPhysnetCidrMap': {'192.168.24.0/24': 'ctlplane'},
             'UndercloudCtlplaneSubnets': {
                 'ctlplane-subnet': {
                     'AllocationPools': [
@@ -508,6 +516,7 @@ class TestNetworkSettings(TestBaseNetworkSettings):
                  'tag': 'ctlplane-subnet',
                  'mtu': 1500}],
             'MasqueradeNetworks': {},
+            'PortPhysnetCidrMap': {'192.168.24.0/24': 'ctlplane'},
             'UndercloudCtlplaneSubnets': {
                 'ctlplane-subnet': {
                     'AllocationPools': [
@@ -585,6 +594,9 @@ class TestNetworkSettings(TestBaseNetworkSettings):
                 '192.168.24.0/24': ['192.168.24.0/24',
                                     '192.168.10.0/24',
                                     '192.168.20.0/24']},
+            'PortPhysnetCidrMap': {'192.168.10.0/24': 'subnet1',
+                                   '192.168.20.0/24': 'subnet2',
+                                   '192.168.24.0/24': 'ctlplane'},
             'UndercloudCtlplaneSubnets': {
                 # The ctlplane-subnet subnet have defaults
                 'ctlplane-subnet': {
@@ -662,6 +674,9 @@ class TestNetworkSettings(TestBaseNetworkSettings):
                  'mtu': 1500}
             ],
             'MasqueradeNetworks': {},
+            'PortPhysnetCidrMap': {'192.168.10.0/24': 'subnet1',
+                                   '192.168.20.0/24': 'subnet2',
+                                   '192.168.24.0/24': 'ctlplane'},
             'UndercloudCtlplaneSubnets': {
                 # The ctlplane-subnet subnet have defaults
                 'ctlplane-subnet': {
@@ -721,6 +736,8 @@ class TestNetworkSettings(TestBaseNetworkSettings):
                  'mtu': 1500},
             ],
             'MasqueradeNetworks': {},
+            'PortPhysnetCidrMap': {'192.168.10.0/24': 'subnet1',
+                                   '192.168.24.0/24': 'ctlplane'},
             'UndercloudCtlplaneSubnets': {
                 # The ctlplane-subnet subnet have defaults
                 'ctlplane-subnet': {
@@ -773,6 +790,8 @@ class TestNetworkSettings(TestBaseNetworkSettings):
                  'mtu': 1500},
             ],
             'MasqueradeNetworks': {},
+            'PortPhysnetCidrMap': {'192.168.10.0/24': 'subnet1',
+                                   '192.168.24.0/24': 'ctlplane'},
             'UndercloudCtlplaneSubnets': {
                 # The ctlplane-subnet subnet have defaults
                 'ctlplane-subnet': {
@@ -854,6 +873,9 @@ class TestNetworkSettings(TestBaseNetworkSettings):
                  'mtu': 1500}
             ],
             'MasqueradeNetworks': {},
+            'PortPhysnetCidrMap': {'192.168.10.0/24': 'subnet1',
+                                   '192.168.20.0/24': 'subnet2',
+                                   '192.168.24.0/24': 'ctlplane'},
             'UndercloudCtlplaneSubnets': {
                 # The ctlplane-subnet subnet have defaults
                 'ctlplane-subnet': {

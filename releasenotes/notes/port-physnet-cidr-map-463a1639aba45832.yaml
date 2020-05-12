@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    The undercloud install now configures ironic inspector to automatically
+    populate the physical_network field on baremetal provisioning ports. See
+    bug `1870529 <https://launchpad.net/bugs/1870529>`_.
