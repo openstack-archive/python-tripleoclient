@@ -15,6 +15,7 @@
 
 import copy
 import datetime
+import errno
 import json
 import logging
 import os
@@ -696,8 +697,9 @@ class TripleOContainerImagePush(command.Command):
             uploader.add_upload_task(task)
             uploader.run_tasks()
         except OSError as e:
-            self.log.error("Unable to upload due to permissions. "
-                           "Please prefix command with sudo.")
+            if e.errno == errno.EACCES:
+                self.log.error("Unable to upload due to permissions. "
+                               "Please prefix command with sudo.")
             raise oscexc.CommandError(e)
 
 
@@ -766,8 +768,9 @@ class TripleOContainerImageDelete(command.Command):
         try:
             uploader.delete(parsed_args.image_to_delete, session=session)
         except OSError as e:
-            self.log.error("Unable to remove due to permissions. "
-                           "Please prefix command with sudo.")
+            if e.errno == errno.EACCES:
+                self.log.error("Unable to remove due to permissions. "
+                               "Please prefix command with sudo.")
             raise oscexc.CommandError(e)
 
 
