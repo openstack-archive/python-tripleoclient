@@ -68,9 +68,6 @@ class UtilsFixture(fixtures.Fixture):
         self.mock_remove_known_hosts = self.useFixture(fixtures.MockPatch(
             'tripleoclient.utils.remove_known_hosts')
         ).mock
-        self.mock_write_overcloudrc = self.useFixture(fixtures.MockPatch(
-            'tripleoclient.utils.write_overcloudrc')
-        ).mock
         self.mock_run_ansible_playbook = self.useFixture(fixtures.MockPatch(
             'tripleoclient.utils.run_ansible_playbook')
         ).mock
