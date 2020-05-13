@@ -247,6 +247,12 @@ class UpgradeUndercloud(InstallUndercloud):
                                 self.osloconfig['undercloud_log_file'])
         self.log.debug("take action(%s)" % parsed_args)
 
+        if (not parsed_args.yes
+                and not utils.prompt_user_for_confirmation(
+                    constants.UPGRADE_PROMPT, self.log)):
+            raise exceptions.UndercloudUpgradeNotConfirmed(
+                    constants.UPGRADE_NO)
+
         utils.ensure_run_as_normal_user()
 
         if not parsed_args.skip_package_updates:
