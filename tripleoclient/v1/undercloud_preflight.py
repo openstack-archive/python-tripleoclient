@@ -34,6 +34,7 @@ from tripleoclient import utils
 class FailedValidation(Exception):
     pass
 
+
 CONF = cfg.CONF
 
 # We need 8 GB, leave a little room for variation in what 8 GB means on

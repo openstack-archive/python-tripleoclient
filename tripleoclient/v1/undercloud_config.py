@@ -112,6 +112,7 @@ def _load_subnets_config_groups():
         else:
             CONF.register_opts(config.get_remote_subnet_opts(), group=g)
 
+
 LOG = logging.getLogger(__name__ + ".undercloud_config")
 
 

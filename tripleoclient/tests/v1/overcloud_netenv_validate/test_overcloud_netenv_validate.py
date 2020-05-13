@@ -263,14 +263,14 @@ class TestValidateOvercloudNetenv(fakes.TestValidateOvercloudNetenv):
     def test_command(self, mock_nic_validate):
         """Testing the command with a minimal file that will fail"""
         with tempfile.NamedTemporaryFile('wt') as net_file:
-                net_file.write(EMPTY_NETENV)
-                net_file.flush()
+            net_file.write(EMPTY_NETENV)
+            net_file.flush()
 
-                arglist = ['--file', net_file.name]
-                verifylist = [
-                    ('netenv', net_file.name),
-                ]
+            arglist = ['--file', net_file.name]
+            verifylist = [
+                ('netenv', net_file.name),
+            ]
 
-                parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-                # Validating a minimal file shouldn't raise errors.
-                self.cmd.take_action(parsed_args)
+            parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+            # Validating a minimal file shouldn't raise errors.
+            self.cmd.take_action(parsed_args)
