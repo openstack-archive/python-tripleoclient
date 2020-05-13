@@ -256,7 +256,6 @@ class UpgradeUndercloud(InstallUndercloud):
         utils.ensure_run_as_normal_user()
 
         if not parsed_args.skip_package_updates:
-            print("executable is {}".format(sys.executable))
             if ('python3' in sys.executable):
                 pyver = '3'
             else:
