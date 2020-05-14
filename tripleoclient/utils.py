@@ -460,7 +460,7 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
 
     callback_whitelist = ','.join([callback_whitelist, 'profile_tasks'])
 
-    env = os.environ.copy()
+    env = dict()
     env['ANSIBLE_SSH_ARGS'] = (
         '-o UserKnownHostsFile={} '
         '-o StrictHostKeyChecking=no '
@@ -589,6 +589,10 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
 
     if key:
         env['ANSIBLE_PRIVATE_KEY_FILE'] = key
+
+    # NOTE(cloudnull): Re-apply the original environment ensuring that
+    # anything defined on the CLI is set accordingly.
+    env.update(os.environ.copy())
 
     if extra_env_variables:
         if not isinstance(extra_env_variables, dict):
