@@ -13,8 +13,6 @@
     check:
       jobs:
         - openstack-tox-lower-constraints
-        - tripleo-ci-centos-7-scenario009-multinode-oooq-container:
-            voting: true
     gate:
       jobs:
         - openstack-tox-lower-constraints
