@@ -35,6 +35,7 @@ import json
 import netaddr
 import os
 import os.path
+import re
 import simplejson
 import six
 import socket
@@ -77,8 +78,8 @@ def run_ansible_playbook(logger,
                          key=None,
                          module_path=None,
                          limit_hosts=None,
-                         tags=None,
                          skip_tags=None,
+                         tags=None,
                          verbosity=1,
                          extra_vars=None,
                          plan='overcloud',
@@ -1212,7 +1213,7 @@ def process_multiple_environments(created_env_files, tht_root,
 
 def run_update_ansible_action(log, clients, stack, nodes, inventory,
                               playbook, all_playbooks, ssh_user,
-                              action=None, tags='', skip_tags='',
+                              action=None, skip_tags=None, tags=None,
                               verbosity='1', extra_vars=None,
                               workdir='', priv_key=''):
 
@@ -1225,7 +1226,7 @@ def run_update_ansible_action(log, clients, stack, nodes, inventory,
             action.update_ansible(clients, container=stack, nodes=nodes,
                                   inventory_file=inventory,
                                   playbook=book, node_user=ssh_user,
-                                  tags=tags, skip_tags=skip_tags,
+                                  skip_tags=skip_tags, tags=tags,
                                   verbosity=verbosity, extra_vars=extra_vars)
         else:
             run_ansible_playbook(logger=LOG,
@@ -1235,8 +1236,9 @@ def run_update_ansible_action(log, clients, stack, nodes, inventory,
                                  ssh_user=ssh_user,
                                  key=ssh_private_key(workdir, priv_key),
                                  module_path='/usr/share/ansible-modules',
-                                 limit_hosts=nodes, tags=tags,
-                                 skip_tags=skip_tags)
+                                 limit_hosts=nodes,
+                                 skip_tags=skip_tags,
+                                 tags=tags)
 
 
 def ssh_private_key(workdir, key):
@@ -2102,3 +2104,20 @@ def copy_clouds_yaml(user):
                 ' with sudo') % {'user': user, 'dir': clouds_config_dir}
         LOG.error(msg)
         raise exceptions.DeploymentError(msg)
+
+
+def playbook_limit_parse(limit_nodes):
+    """Return a parsed string for limits.
+
+    This will sanitize user inputs so that we guarantee what is provided is
+    expected to be functional. If limit_nodes is None, this function will
+    return None.
+
+
+    :returns: String
+    """
+
+    if not limit_nodes:
+        return limit_nodes
+
+    return ':'.join([i.strip() for i in re.split(',| |:', limit_nodes) if i])

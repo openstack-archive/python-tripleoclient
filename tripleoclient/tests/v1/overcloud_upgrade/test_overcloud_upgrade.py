@@ -189,7 +189,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
             upgrade_ansible.assert_called_once_with(
                 self.app.client_manager,
                 container='overcloud',
-                nodes='Compute, Controller',
+                nodes='Compute:Controller',
                 inventory_file=mock_open().__enter__().read(),
                 playbook='fake-playbook.yaml',
                 node_user='tripleo-admin',
@@ -277,10 +277,10 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
     def test_upgrade_nodes_with_playbook_no_skip_tags(
             self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
         mock_expanduser.return_value = '/home/fake/'
-        argslist = ['--limit', 'compute-0, compute-1',
+        argslist = ['--limit', 'compute-0,compute-1',
                     '--playbook', 'fake-playbook.yaml', ]
         verifylist = [
-            ('limit', 'compute-0, compute-1'),
+            ('limit', 'compute-0,compute-1'),
             ('static_inventory', None),
             ('playbook', 'fake-playbook.yaml'),
         ]
@@ -292,7 +292,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
             upgrade_ansible.assert_called_once_with(
                 self.app.client_manager,
                 container='overcloud',
-                nodes='compute-0, compute-1',
+                nodes='compute-0:compute-1',
                 inventory_file=mock_open().__enter__().read(),
                 playbook='fake-playbook.yaml',
                 node_user='tripleo-admin',

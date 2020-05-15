@@ -1517,7 +1517,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                        'heat-admin', None, 'ctlplane', None, None,
                        deployment_options={},
                        deployment_timeout=26880,  # 451 - 3 = 448m time left
-                       in_flight_validations=False, timeout=42, verbosity=1)],
+                       in_flight_validations=False, limit_hosts=None,
+                       skip_tags=None, tags=None, timeout=42, verbosity=1)],
             fixture.mock_config_download.mock_calls)
         fixture.mock_config_download.assert_called()
         mock_copy.assert_called_once()
@@ -1571,7 +1572,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                        'heat-admin', None, 'ctlplane', None, None,
                        deployment_options={},
                        deployment_timeout=14400,  # 240 * 60
-                       in_flight_validations=False, timeout=42, verbosity=1)],
+                       in_flight_validations=False, limit_hosts=None,
+                       skip_tags=None, tags=None, timeout=42, verbosity=1)],
             fixture.mock_config_download.mock_calls)
 
         mock_copy.assert_called_once()
