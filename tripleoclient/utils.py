@@ -813,18 +813,6 @@ def write_env_file(env_data, env_file, registry_overwrites):
         yaml.dump(data, f, default_flow_style=False, Dumper=dumper)
 
 
-def write_overcloudrc(stack_name, overcloudrcs, config_directory='.'):
-    """Write the overcloudrc files"""
-
-    rcpath = os.path.join(config_directory, '%src' % stack_name)
-
-    with open(rcpath, 'w') as rcfile:
-        rcfile.write(overcloudrcs['overcloudrc'])
-    os.chmod(rcpath, 0o600)
-
-    return os.path.abspath(rcpath)
-
-
 def store_cli_param(command_name, parsed_args):
     """write the cli parameters into an history file"""
 

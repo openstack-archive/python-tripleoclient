@@ -561,31 +561,6 @@ class TestEnsureRunAsNormalUser(TestCase):
         self.assertEqual('stack', u)
 
 
-class TestCreateOvercloudRC(TestCase):
-
-    def test_write_overcloudrc(self):
-        stack_name = 'teststack'
-
-        tempdir = tempfile.mkdtemp()
-        rcfile = os.path.join(tempdir, 'teststackrc')
-
-        overcloudrcs = {
-            "overcloudrc": "overcloudrc",
-        }
-
-        try:
-            utils.write_overcloudrc(stack_name, overcloudrcs,
-                                    config_directory=tempdir)
-            with open(rcfile, 'rt') as f:
-                rc = f.read()
-            self.assertEqual('overcloudrc', rc)
-        finally:
-            if os.path.exists(rcfile):
-                os.unlink(rcfile)
-
-            os.rmdir(tempdir)
-
-
 class TestCreateTempestDeployerInput(TestCase):
 
     def test_create_tempest_deployer_input(self):
