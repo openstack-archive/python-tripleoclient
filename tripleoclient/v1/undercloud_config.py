@@ -633,6 +633,10 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
         deploy_args += ['-e', os.path.join(
             tht_templates, "environments/services/novajoin.yaml")]
         env_data['NovajoinIpaOtp'] = CONF['ipa_otp']
+    elif CONF.get('ipa_otp'):
+        deploy_args += ['-e', os.path.join(
+            tht_templates, "environments/services/undercloud-tls.yaml")]
+        env_data['UndercloudIpaOtp'] = CONF['ipa_otp']
 
     if CONF.get('enable_zaqar'):
         deploy_args += ['-e', os.path.join(
