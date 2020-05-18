@@ -19,6 +19,7 @@ from osc_lib.i18n import _
 from oslo_concurrency import processutils
 
 from tripleoclient import command
+from tripleoclient import constants
 from tripleoclient import utils
 from tripleoclient.workflows import deployment
 
@@ -41,7 +42,10 @@ class DownloadConfig(command.Command):
         parser.add_argument(
             '--config-dir',
             dest='config_dir',
-            default=os.path.expanduser("~")+'/tripleo-config',
+            default=os.path.join(
+                constants.CLOUD_HOME_DIR,
+                'tripleo-config'
+            ),
             help=_('The directory where the configuration files will be '
                    'pushed'),
         )

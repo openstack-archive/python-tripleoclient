@@ -331,7 +331,7 @@ def _validate_passwords_file():
     is missing it will break the undercloud, so we should fail-fast and let
     the user know about the problem.
     """
-    if (os.path.isfile(os.path.expanduser('~/stackrc')) and
+    if (os.path.isfile(os.path.join(constants.CLOUD_HOME_DIR, 'stackrc')) and
             not os.path.isfile(PASSWORD_PATH)):
         message = (_('The %s file is missing.  This will cause all service '
                      'passwords to change and break the existing '
