@@ -311,7 +311,8 @@ def _validate_no_ip_change():
         with open(os_net_config_file) as f:
             network_config = json.loads(f.read())
         ctlplane = [i for i in network_config.get('network_config', [])
-                    if i['name'] == 'br-ctlplane'][0]
+                    if i.get('name') == 'br-ctlplane'][0]
+
     except ValueError:
         # File was empty
         return
