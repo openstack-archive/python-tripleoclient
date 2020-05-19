@@ -239,9 +239,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'NeutronPublicInterface': 'nic1',
             'NtpServer': '',
             'SnmpdReadonlyUserPassword': 'PASSWORD',
-            'UpdateIdentifier': '',
             'StackAction': 'UPDATE',
-            'DeployIdentifier': '',
             'UndercloudHostsEntries': [
                 '192.168.0.1 uc.ctlplane.localhost uc.ctlplane']
         }
@@ -338,8 +336,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         parameters_env = {
             'parameter_defaults': {
                 'StackAction': 'CREATE',
-                'UpdateIdentifier': '',
-                'DeployIdentifier': '',
                 'UndercloudHostsEntries':
                     ['192.168.0.1 uc.ctlplane.localhost uc.ctlplane']}}
 
@@ -474,9 +470,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'NeutronTunnelTypes': 'gre',
             'NtpServer': '',
             'SnmpdReadonlyUserPassword': 'PASSWORD',
-            'UpdateIdentifier': '',
             'StackAction': 'CREATE',
-            'DeployIdentifier': '',
             'UndercloudHostsEntries': [
                 '192.168.0.1 uc.ctlplane.localhost uc.ctlplane'
             ]
@@ -594,16 +588,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         baremetal = clients.baremetal
         baremetal.node.list.return_value = range(10)
-
-        testcase = self
-
-        def _custom_create_params_env(_self, parameters, tht_root,
-                                      container_name):
-            testcase.assertTrue(parameters['DeployIdentifier'] == '')
-            parameter_defaults = {"parameter_defaults": parameters}
-            return parameter_defaults
-
-        mock_create_parameters_env.side_effect = _custom_create_params_env
 
         self.cmd.take_action(parsed_args)
         mock_copy.assert_called_once()
@@ -1221,10 +1205,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'NeutronPublicInterface': 'nic1',
             'NeutronTunnelTypes': 'gre',
             'SnmpdReadonlyUserPassword': 'PASSWORD',
-            'UpdateIdentifier': '',
             'StackAction': 'CREATE',
             'NtpServer': 'ntp',
-            'DeployIdentifier': '',
             'UndercloudHostsEntries': [
                 '192.168.0.1 uc.ctlplane.localhost uc.ctlplane'
             ]
@@ -1532,8 +1514,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             self.cmd.take_action(parsed_args)
         self.assertIn(
             [mock.call(mock.ANY, mock.ANY, 'overcloud', mock.ANY,
-                       {'DeployIdentifier': '', 'UpdateIdentifier': '',
-                        'StackAction': 'UPDATE', 'UndercloudHostsEntries':
+                       {'StackAction': 'UPDATE', 'UndercloudHostsEntries':
                         ['192.168.0.1 uc.ctlplane.localhost uc.ctlplane']}, {},
                        451, mock.ANY, {}, False, False, False, None,
                        deployment_options={})],
