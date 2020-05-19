@@ -280,7 +280,7 @@ class HeatContainerLauncher(HeatBaseLauncher):
             # 137 means the container was killed by 'kill -9' which happens
             # then we're done creating the Heat stack, so we consider it
             # as successful.
-            if e.returncode is not 137:
+            if e.returncode != 137:
                 raise Exception('heat_all container did not run as expected.')
 
     def heat_db_sync(self):
