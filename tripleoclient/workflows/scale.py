@@ -14,6 +14,7 @@
 # under the License.
 from __future__ import print_function
 
+from heatclient.common import event_utils
 from tripleo_common.actions import scale
 
 from tripleoclient import utils
@@ -75,6 +76,11 @@ def scale_down(log, clients, stack, nodes, timeout=None, verbosity=0,
         verbosity=verbosity,
         deployment_timeout=timeout
     )
+    events = event_utils.get_events(clients.orchestration,
+                                    stack_id=stack.stack_name,
+                                    event_args={'sort_dir': 'desc',
+                                                'limit': 1})
+    marker = events[0].id if events else None
 
     print('Running scale down')
     context = clients.tripleoclient.create_mistral_context()
@@ -84,5 +90,6 @@ def scale_down(log, clients, stack, nodes, timeout=None, verbosity=0,
     utils.wait_for_stack_ready(
         orchestration_client=clients.orchestration,
         stack_name=stack.stack_name,
-        action='UPDATE'
+        action='UPDATE',
+        marker=marker
     )
