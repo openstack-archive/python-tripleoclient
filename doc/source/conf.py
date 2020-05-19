@@ -50,7 +50,7 @@ add_function_parentheses = True
 add_module_names = True
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = 'native'
 
 suppress_warnings = ['image.nonlocal_uri']
 
@@ -79,9 +79,10 @@ latex_documents = [
 latex_elements = {'maxlistdepth': 10, 'extraclassoptions': ',openany,oneside'}
 
 # openstackdocstheme options
-repository_name = 'openstack/python-tripleoclient'
-bug_project = 'python-tripleoclient'
-bug_tag = ''
+openstackdocs_repo_name = 'openstack/python-tripleoclient'
+openstackdocs_pdf_link = True
+openstackdocs_bug_project = 'python-tripleoclient'
+openstackdocs_bug_tag = ''
 
 # Last updated timestamp
 autoprogram_cliff_application = 'openstack'
