@@ -74,9 +74,6 @@ class UpdatePrepare(DeployOvercloud):
 
         super(UpdatePrepare, self).take_action(parsed_args)
         package_update.update(clients, container=stack_name)
-        oooutils.get_config(
-            clients, container=stack_name,
-            container_config='{}-config'.format(stack.stack_name))
         self.log.info("Update init on stack {0} complete.".format(
                       parsed_args.stack))
 
