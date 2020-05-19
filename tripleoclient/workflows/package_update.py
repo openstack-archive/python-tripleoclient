@@ -11,8 +11,6 @@
 # under the License.
 from __future__ import print_function
 
-import time
-
 from heatclient.common import event_utils
 from tripleo_common.utils import plan
 from tripleo_common.utils import stack
@@ -44,21 +42,21 @@ def update(clients, container):
     object_client = tripleoclients.object_store
     plan.update_plan_environment_with_image_parameters(
        object_client, container)
-    stack.stack_update(object_client, orchestration_client,
-                       _STACK_TIMEOUT, container)
 
     events = event_utils.get_events(orchestration_client,
                                     stack_id=container,
                                     event_args={'sort_dir': 'desc',
                                                 'limit': 1})
     marker = events[0].id if events else None
-    time.sleep(10)
+
+    stack.stack_update(object_client, orchestration_client,
+                       _STACK_TIMEOUT, container)
+
     create_result = utils.wait_for_stack_ready(
         clients.orchestration,
         container,
         marker,
         'UPDATE',
-        verbose=True
     )
     if not create_result:
         raise exceptions.DeploymentError(
