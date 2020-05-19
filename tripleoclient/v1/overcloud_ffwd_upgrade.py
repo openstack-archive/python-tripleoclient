@@ -77,10 +77,6 @@ class FFWDUpgradePrepare(DeployOvercloud):
 
         super(FFWDUpgradePrepare, self).take_action(parsed_args)
         package_update.update(clients, container=stack_name)
-        oooutils.get_config(
-            clients, container=stack_name,
-            container_config='{}-config'.format(stack.stack_name))
-
         deployment.create_overcloudrc(container=stack_name)
 
         # refresh stack info and enable ssh admin for Ansible-via-Mistral
