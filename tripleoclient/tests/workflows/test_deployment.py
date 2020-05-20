@@ -162,4 +162,4 @@ class TestDeploymentWorkflows(utils.TestCommand):
             'ssh_key', 'ssh_networks', 'output_dir', False,
             'timeout')
 
-        self.assertEqual(2, mock_playbook.call_count)
+        self.assertEqual(3, mock_playbook.call_count)
