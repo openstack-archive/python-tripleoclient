@@ -19,6 +19,7 @@ import argparse
 import logging
 import os
 import subprocess
+import sys
 
 from openstackclient.i18n import _
 
@@ -165,41 +166,55 @@ class UpgradeUndercloud(InstallUndercloud):
     log = logging.getLogger(__name__ + ".UpgradeUndercloud")
     osloconfig = cfg.CONF
 
+    def get_parser(self, prog_name):
+        parser = super(UpgradeUndercloud, self).get_parser(prog_name)
+        parser.add_argument('--skip-package-updates',
+                            dest='skip_package_updates',
+                            action='store_true',
+                            default=False,
+                            help=_("Flag to skip the package update when "
+                                   "performing upgrades and updates"),
+                            )
+        return parser
+
     def _update_extra_packages(self, packages=[], dry_run=False):
         """Necessary packages to be updated before undercloud upgrade."""
 
-        cmd = []
-        if packages:
-            cmd = ['sudo', 'yum', 'upgrade', '-y'] + packages
+        if not packages:
+            return
 
-        if cmd:
-            if not dry_run:
-                self.log.warning(
-                    "Updating necessary packages: {}\n{}".format(
-                        " ".join(packages),
-                        ("Note that tripleoclient and tripleo-common "
-                         "still need to be updated manually.")
-                    ),
-                )
-                output = utils.run_command(cmd, name="Update extra packages")
-                self.log.warning("{}".format(output))
-            else:
-                self.log.warning(
-                    "Would update necessary packages: {}".format(" ".join(cmd))
-                )
+        cmd = ['sudo', 'yum', 'upgrade', '-y'] + packages
 
-    def take_action(self, parsed_args):
-        # Fetch configuration used to add logging to a file
-        utils.load_config(self.osloconfig, constants.UNDERCLOUD_CONF_PATH)
-        utils.configure_logging(self.log, self.app_args.verbose_level,
-                                self.osloconfig['undercloud_log_file'])
-        self.log.debug("take action(%s)" % parsed_args)
+        if not dry_run:
+            self.log.warning("Updating necessary packages: {}".format(
+                             " ".join(packages)))
+            output = utils.run_command(cmd, name="Update extra packages")
+            self.log.warning("{}".format(output))
+        else:
+            self.log.warning("Would update necessary packages: {}".format(
+                " ".join(cmd)))
 
-        utils.ensure_run_as_normal_user()
+    def _invoke_self(self, parsed_args):
+        cmd = ['openstack', 'undercloud', 'upgrade', '--skip-package-updates']
+        opts = {'force_stack_update': '--force-stack-update',
+                'no_validations': '--no-validations',
+                'inflight': '--inflight-validations',
+                'dry_run': '--dry-run',
+                'yes': '--yes'}
+        args = vars(parsed_args)
+        for k, v in opts.items():
+            if args[k]:
+                cmd.append(v)
+        # handle --debug
+        if self.app_args.verbose_level > 1:
+            cmd.append('--debug')
+        try:
+            subprocess.check_call(cmd)
+        except Exception as e:
+            self.log.error(e)
+            raise exceptions.DeploymentError(e)
 
-        self._update_extra_packages(constants.UNDERCLOUD_EXTRA_PACKAGES,
-                                    parsed_args.dry_run)
-
+    def _run_upgrade(self, parsed_args):
         cmd = undercloud_config.\
             prepare_undercloud_deploy(
                 upgrade=True,
@@ -224,3 +239,27 @@ class UpgradeUndercloud(InstallUndercloud):
                 self.log.error(UNDERCLOUD_FAILURE_MESSAGE)
                 self.log.error(e)
                 raise exceptions.DeploymentError(e)
+
+    def take_action(self, parsed_args):
+        # Fetch configuration used to add logging to a file
+        utils.load_config(self.osloconfig, constants.UNDERCLOUD_CONF_PATH)
+        utils.configure_logging(self.log, self.app_args.verbose_level,
+                                self.osloconfig['undercloud_log_file'])
+        self.log.debug("take action(%s)" % parsed_args)
+
+        utils.ensure_run_as_normal_user()
+
+        if not parsed_args.skip_package_updates:
+            print("executable is {}".format(sys.executable))
+            if ('python3' in sys.executable):
+                pyver = '3'
+            else:
+                pyver = '2'
+            client_pkgs = [
+                "python{}-tripleoclient".format(pyver),
+            ]
+            pkgs = client_pkgs + constants.UNDERCLOUD_EXTRA_PACKAGES
+            self._update_extra_packages(pkgs, parsed_args.dry_run)
+            self._invoke_self(parsed_args)
+        else:
+            self._run_upgrade(parsed_args)
