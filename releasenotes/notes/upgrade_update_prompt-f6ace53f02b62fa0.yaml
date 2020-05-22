@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    The upgrade/update commands have a prompt by default now that ask for
+    confirmation before proceeding. It'll prevent an operator to run the
+    command and cause the problems to infrastructure.
+    This prompt can be skipped with --yes/-y argument.

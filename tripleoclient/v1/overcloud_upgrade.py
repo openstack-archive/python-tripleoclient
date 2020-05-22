@@ -18,6 +18,8 @@ from oslo_log import log as logging
 from osc_lib.i18n import _
 from osc_lib import utils
 
+from tripleoclient.exceptions import OvercloudUpgradeNotConfirmed
+
 from tripleoclient import command
 from tripleoclient import constants
 from tripleoclient import exceptions
@@ -49,10 +51,21 @@ class UpgradePrepare(DeployOvercloud):
 
     def get_parser(self, prog_name):
         parser = super(UpgradePrepare, self).get_parser(prog_name)
+        parser.add_argument('-y', '--yes', default=False,
+                            action='store_true',
+                            help=_("Use -y or --yes to skip the confirmation "
+                                   "required before any upgrade "
+                                   "operation. Use this with caution! "),
+                            )
         return parser
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+
+        if (not parsed_args.yes
+                and not oooutils.prompt_user_for_confirmation(
+                    constants.UPGRADE_PROMPT, self.log)):
+            raise OvercloudUpgradeNotConfirmed(constants.UPGRADE_NO)
 
         # Throw deprecation warning if service is enabled and
         # ask user if upgrade should still be continued.
@@ -178,13 +191,19 @@ class UpgradeRun(command.Command):
                             help=_('Name or ID of heat stack '
                                    '(default=Env: OVERCLOUD_STACK_NAME)'),
                             default=utils.env('OVERCLOUD_STACK_NAME',
-                                              default='overcloud'))
+                                              default='overcloud')
+                            )
         parser.add_argument('--no-workflow', dest='no_workflow',
                             action='store_true',
                             default=True,
                             help=_('This option no longer has any effect.')
                             )
-
+        parser.add_argument('-y', '--yes', default=False,
+                            action='store_true',
+                            help=_("Use -y or --yes to skip the confirmation "
+                                   "required before any upgrade "
+                                   "operation. Use this with caution! ")
+                            )
         return parser
 
     def _validate_skip_tags(self, skip_tags):
@@ -199,6 +218,12 @@ class UpgradeRun(command.Command):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+
+        if (not parsed_args.yes
+                and not oooutils.prompt_user_for_confirmation(
+                    constants.UPGRADE_PROMPT, self.log)):
+            raise OvercloudUpgradeNotConfirmed(constants.UPGRADE_NO)
+
         # NOTE(cloudnull): The string option "all" was a special default
         #                  that is no longer relevant. To retain compatibility
         #                  this condition has been put in place.
