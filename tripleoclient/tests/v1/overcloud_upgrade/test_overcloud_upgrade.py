@@ -37,7 +37,8 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
         uuid4_patcher = mock.patch('uuid.uuid4', return_value="UUID4")
         self.mock_uuid4 = uuid4_patcher.start()
         self.addCleanup(self.mock_uuid4.stop)
-
+    @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
+                return_value=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 'take_action')
     @mock.patch('tripleoclient.workflows.deployment.'
@@ -56,7 +57,8 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
                          mock_get_stack,
                          add_env,
                          mock_enable_ssh_admin,
-                         mock_overcloud_deploy):
+                         mock_overcloud_deploy,
+                         mock_confirm):
 
         mock_stack = mock.Mock(parameters={'DeployIdentifier': ''})
         mock_stack.stack_name = 'overcloud'
@@ -90,6 +92,8 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
             mock.ANY
         )
 
+    @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
+                return_value=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 'take_action')
     @mock.patch('tripleoclient.utils.get_stack',
@@ -98,7 +102,8 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
     @mock.patch('six.moves.builtins.open')
     @mock.patch('yaml.safe_load')
     def test_upgrade_failed(self, mock_yaml, mock_open,
-                            add_env, mock_get_stack, mock_overcloud_deploy):
+                            add_env, mock_get_stack, mock_overcloud_deploy,
+                            mock_confirm):
         mock_overcloud_deploy.side_effect = exceptions.DeploymentError()
         mock_yaml.return_value = {'fake_container': 'fake_value'}
         mock_stack = mock.Mock(parameters={'DeployIdentifier': ''})
@@ -142,6 +147,8 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
         self.mock_uuid4 = uuid4_patcher.start()
         self.addCleanup(self.mock_uuid4.stop)
 
+    @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
+                return_value=True)
     @mock.patch(
         'ansible_runner.runner_config.RunnerConfig',
         autospec=True,
@@ -158,7 +165,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
     @mock.patch('six.moves.builtins.open')
     def test_upgrade_limit_with_playbook_and_user(
             self, mock_open, mock_execute, mock_expanduser, upgrade_ansible,
-            mock_run, mock_run_prepare):
+            mock_run, mock_run_prepare, mock_confirm):
         mock_expanduser.return_value = '/home/fake/'
         argslist = ['--limit', 'Compute, Controller',
                     '--playbook', 'fake-playbook1.yaml',
@@ -171,6 +178,8 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
 
         self.check_parser(self.cmd, argslist, verifylist)
 
+    @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
+                return_value=True)
     @mock.patch(
         'ansible_runner.runner_config.RunnerConfig',
         autospec=True,
@@ -187,7 +196,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
     @mock.patch('six.moves.builtins.open')
     def test_upgrade_nodes_with_playbook_no_skip_tags(
             self, mock_open, mock_execute, mock_expanduser, upgrade_ansible,
-            mock_run, mock_run_prepare):
+            mock_run, mock_run_prepare, mock_confirm):
         mock_expanduser.return_value = '/home/fake/'
         argslist = ['--limit', 'compute-0,compute-1',
                     '--playbook', 'fake-playbook.yaml', ]
