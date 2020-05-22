@@ -18,6 +18,8 @@ from oslo_log import log as logging
 from osc_lib.i18n import _
 from osc_lib import utils
 
+from tripleoclient.exceptions import OvercloudUpdateNotConfirmed
+
 from tripleoclient import command
 from tripleoclient import constants
 from tripleoclient import utils as oooutils
@@ -91,6 +93,12 @@ class ExternalUpdateRun(command.Command):
                                    'system command instead of running Ansible'
                                    'via the TripleO mistral workflows.')
                             )
+        parser.add_argument('-y', '--yes', default=False,
+                            action='store_true',
+                            help=_("Use -y or --yes to skip the confirmation "
+                                   "required before any upgrade "
+                                   "operation. Use this with caution! "),
+                            )
         parser.add_argument(
             '--limit',
             action='store',
@@ -105,6 +113,12 @@ class ExternalUpdateRun(command.Command):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+
+        if (not parsed_args.yes
+                and not oooutils.prompt_user_for_confirmation(
+                    constants.UPDATE_PROMPT, self.log)):
+            raise OvercloudUpdateNotConfirmed(constants.UPDATE_NO)
+
         clients = self.app.client_manager
         orchestration = clients.orchestration
         verbosity = self.app_args.verbose_level

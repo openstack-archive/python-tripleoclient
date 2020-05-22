@@ -34,13 +34,16 @@ class TestOvercloudExternalUpdateRun(fakes.TestOvercloudExternalUpdateRun):
         self.mock_uuid4 = uuid4_patcher.start()
         self.addCleanup(self.mock_uuid4.stop)
 
+    @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
+                return_value=True)
     @mock.patch('tripleoclient.workflows.package_update.update_ansible',
                 autospec=True)
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
     @mock.patch('six.moves.builtins.open')
     def test_update_with_user_and_tags(self, mock_open, mock_execute,
-                                       mock_expanduser, update_ansible):
+                                       mock_expanduser, update_ansible,
+                                       mock_confirm):
         mock_expanduser.return_value = '/home/fake/'
         argslist = ['--ssh-user', 'tripleo-admin',
                     '--tags', 'ceph']
@@ -66,13 +69,16 @@ class TestOvercloudExternalUpdateRun(fakes.TestOvercloudExternalUpdateRun):
                 extra_vars={}
             )
 
+    @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
+                return_value=True)
     @mock.patch('tripleoclient.workflows.package_update.update_ansible',
                 autospec=True)
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
     @mock.patch('six.moves.builtins.open')
     def test_update_with_user_and_extra_vars(self, mock_open, mock_execute,
-                                             mock_expanduser, update_ansible):
+                                             mock_expanduser, update_ansible,
+                                             mock_confirm):
         mock_expanduser.return_value = '/home/fake/'
         argslist = ['--ssh-user', 'tripleo-admin',
                     '--extra-vars', 'key1=val1',
