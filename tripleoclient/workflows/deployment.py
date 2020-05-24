@@ -110,13 +110,10 @@ def deploy_and_wait(log, clients, stack, plan_name, verbose_level,
                               status='DEPLOY_FAILED')
         raise
 
-    # we always want the heat stack output while it's going.
-    verbose_events = True
-
     # TODO(rabi) Simplify call to get events as we don't need to wait
     # for stack to be ready anymore i.e just get the events.
     create_result = utils.wait_for_stack_ready(
-        orchestration_client, plan_name, marker, action, verbose_events)
+        orchestration_client, plan_name, marker, action)
     if not create_result:
         shell.OpenStackShell().run(["stack", "failures", "list", plan_name])
         set_deployment_status(

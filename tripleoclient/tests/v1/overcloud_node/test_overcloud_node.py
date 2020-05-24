@@ -45,10 +45,6 @@ class TestDeleteNode(fakes.TestDeleteNode):
         self.app.client_manager.workflow_engine = mock.Mock()
         self.tripleoclient = mock.Mock()
 
-        self.websocket = mock.Mock()
-        self.websocket.__enter__ = lambda s: self.websocket
-        self.websocket.__exit__ = lambda s, *exc: None
-        self.tripleoclient.messaging_websocket.return_value = self.websocket
         self.workflow = self.app.client_manager.workflow_engine
         self.stack_name = self.app.client_manager.orchestration.stacks.get
         stack = self.stack_name.return_value = mock.Mock(
@@ -76,9 +72,11 @@ class TestDeleteNode(fakes.TestDeleteNode):
         self.addCleanup(wait_stack.stop)
         self.app.client_manager.compute.servers.get.return_value = None
 
+    @mock.patch('heatclient.common.event_utils.get_events',
+                autospec=True)
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
-    def test_node_delete(self, mock_playbook):
+    def test_node_delete(self, mock_playbook, mock_get_events):
         argslist = ['instance1', 'instance2', '--templates',
                     '--stack', 'overcast', '--timeout', '90', '--yes']
         verifylist = [
@@ -121,9 +119,12 @@ class TestDeleteNode(fakes.TestDeleteNode):
                           self.cmd.take_action,
                           parsed_args)
 
+    @mock.patch('heatclient.common.event_utils.get_events',
+                autospec=True)
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
-    def test_node_delete_without_stack(self, mock_playbook):
+    def test_node_delete_without_stack(self, mock_playbook,
+                                       mock_get_events):
         arglist = ['instance1', '--yes']
 
         verifylist = [
@@ -133,12 +134,15 @@ class TestDeleteNode(fakes.TestDeleteNode):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         self.cmd.take_action(parsed_args)
 
+    @mock.patch('heatclient.common.event_utils.get_events',
+                autospec=True)
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
     @mock.patch('tripleoclient.utils.tempfile')
     def test_node_delete_baremetal_deployment(self,
                                               mock_tempfile,
-                                              mock_playbook):
+                                              mock_playbook,
+                                              mock_get_events):
 
         bm_yaml = [{
             'name': 'Compute',

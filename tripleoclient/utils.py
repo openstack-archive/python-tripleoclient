@@ -902,7 +902,7 @@ def create_tempest_deployer_input(config_name='tempest-deployer-input.conf'):
 
 
 def wait_for_stack_ready(orchestration_client, stack_name, marker=None,
-                         action='CREATE', verbose=False, nested_depth=2,
+                         action='CREATE', nested_depth=2,
                          max_retries=10):
     """Check the status of an orchestration stack
 
@@ -936,16 +936,13 @@ def wait_for_stack_ready(orchestration_client, stack_name, marker=None,
         return False
     stack_name = "%s/%s" % (stack.stack_name, stack.id)
 
-    if verbose:
-        out = sys.stdout
-    else:
-        out = open(os.devnull, "w")
     retries = 0
+
     while retries <= max_retries:
         try:
             stack_status, msg = event_utils.poll_for_events(
                 orchestration_client, stack_name, action=action,
-                poll_period=5, marker=marker, out=out,
+                poll_period=5, marker=marker, out=sys.stdout,
                 nested_depth=nested_depth)
             print(msg)
             return stack_status == '%s_COMPLETE' % action
@@ -959,9 +956,6 @@ def wait_for_stack_ready(orchestration_client, stack_name, marker=None,
                 continue
             log.error("Error occured while waiting for stack to be ready.")
             raise e
-        finally:
-            if not verbose:
-                out.close()
 
     raise RuntimeError(
         "wait_for_stack_ready: Max retries {} reached".format(max_retries))

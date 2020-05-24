@@ -1244,7 +1244,7 @@ class Deploy(command.Command):
 
             # Wait for complete..
             status = utils.wait_for_stack_ready(orchestration_client, stack_id,
-                                                verbose=True, nested_depth=6)
+                                                nested_depth=6)
             if not status:
                 message = _("Stack create failed")
                 self.log.error(message)
