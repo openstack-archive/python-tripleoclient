@@ -221,3 +221,46 @@ class TestContainerImages(deploy_fakes.TestDeployOvercloud):
         with mock.patch("os.path.isfile", autospec=True) as mock_isfile:
             mock_isfile.return_value = True
             self.assertRaises(IOError, self.cmd.take_action, parsed_args)
+
+
+class TestContainerImagesHotfix(deploy_fakes.TestDeployOvercloud):
+    def setUp(self):
+        super(TestContainerImagesHotfix, self).setUp()
+        self.run_ansible_playbook = mock.patch(
+            "tripleoclient.utils.run_ansible_playbook", autospec=True
+        )
+        self.run_ansible_playbook.start()
+        self.addCleanup(self.run_ansible_playbook.stop)
+        self.cmd = tcib.HotFix(self.app, None)
+
+    def _take_action(self, parsed_args):
+        with mock.patch("os.path.isfile", autospec=True) as mock_isfile:
+            mock_isfile.return_value = True
+            self.cmd.take_action(parsed_args)
+
+    def test_image_hotfix(self):
+        arglist = ["--image", "container1", "--rpms-path", "/opt"]
+        verifylist = [
+            ("images", ["container1"]),
+            ("rpms_path", "/opt"),
+        ]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        self._take_action(parsed_args=parsed_args)
+
+    def test_image_hotfix_multi_image(self):
+        arglist = [
+            "--image",
+            "container1",
+            "--image",
+            "container2",
+            "--rpms-path",
+            "/opt",
+        ]
+        verifylist = [
+            ("images", ["container1", "container2"]),
+            ("rpms_path", "/opt"),
+        ]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        self._take_action(parsed_args=parsed_args)
