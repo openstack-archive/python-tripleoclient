@@ -17,6 +17,7 @@ import datetime
 import json
 import logging
 import os
+import shutil
 import sys
 import tempfile
 
@@ -481,3 +482,84 @@ class DiscoverImageTag(command.Command):
             image=parsed_args.image,
             tag_from_label=parsed_args.tag_from_label
         ))
+
+
+class HotFix(command.Command):
+    """Hotfix tripleo container images with Ansible."""
+
+    def get_parser(self, prog_name):
+        parser = super(HotFix, self).get_parser(prog_name)
+        parser.add_argument(
+            "--image",
+            dest="images",
+            metavar="<images>",
+            default=[],
+            action="append",
+            required=True,
+            help=_(
+                "Fully qualified reference to the source image to be "
+                "modified. Can be specified multiple times (one per "
+                "image) (default: %(default)s)."
+            ),
+        )
+        parser.add_argument(
+            "--rpms-path",
+            dest="rpms_path",
+            metavar="<rpms-path>",
+            required=True,
+            help=_("Path containing RPMs to install (default: %(default)s)."),
+        )
+        parser.add_argument(
+            "--tag",
+            dest="tag",
+            metavar="<image-tag>",
+            default="latest",
+            help=_("Image hotfix tag (default: %(default)s)"),
+        )
+        return parser
+
+    def take_action(self, parsed_args):
+        tmp_modify_dir = tempfile.mkdtemp()
+        tasks = list()
+        try:
+            for image in parsed_args.images:
+                tasks.append(
+                    {
+                        "name": "include ansible-role-tripleo-modify-image",
+                        "import_role": {"name": "tripleo-modify-image"},
+                        "vars": {
+                            "container_build_tool": "docker",
+                            "tasks_from": "rpm_install.yml",
+                            "source_image": image,
+                            "rpms_path": parsed_args.rpms_path,
+                            "modified_append_tag": "-{}".format(
+                                parsed_args.tag
+                            ),
+                            "modify_dir_path": tmp_modify_dir,
+                            },
+                        }
+                    )
+
+                playbook = os.path.join(tmp_modify_dir,
+                                        "tripleo-hotfix-playbook.yaml")
+                playdata = {
+                    "name": "Generate hotfixs",
+                    "connection": "local",
+                    "hosts": "localhost",
+                    "gather_facts": False,
+                    "tasks": tasks,
+                }
+
+                with open(playbook, "w") as f:
+                    yaml.safe_dump(
+                        [playdata], f, default_flow_style=False, width=4096
+                    )
+
+                utils.run_ansible_playbook(
+                    logger=self.log,
+                    workdir=tmp_modify_dir,
+                    playbook=playbook,
+                    inventory="localhost"
+                )
+        finally:
+            shutil.rmtree(tmp_modify_dir)
