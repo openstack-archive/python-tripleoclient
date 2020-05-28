@@ -486,11 +486,6 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
     else:
         env_data['SELinuxMode'] = 'permissive'
 
-    if CONF.get('undercloud_enable_paunch'):
-        env_data['EnablePaunch'] = True
-    else:
-        env_data['EnablePaunch'] = False
-
     if CONF.get('undercloud_ntp_servers', None):
         env_data['NtpServer'] = CONF['undercloud_ntp_servers']
 

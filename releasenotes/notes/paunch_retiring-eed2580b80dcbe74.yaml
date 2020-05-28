@@ -1,0 +1,4 @@
+---
+deprecations:
+  - |
+    undercloud_enable_paunch option is removed as we retire Paunch project.
