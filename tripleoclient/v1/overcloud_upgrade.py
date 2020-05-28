@@ -39,7 +39,11 @@ class UpgradePrepare(DeployOvercloud):
        first step for a major upgrade of your overcloud.
     """
 
-    log = logging.getLogger(__name__ + ".MajorUpgradePrepare")
+    operation = "Prepare"
+
+    template = constants.UPGRADE_PREPARE_ENV
+
+    log = logging.getLogger(__name__ + ".UpgradePrepare")
 
     def get_parser(self, prog_name):
         parser = super(UpgradePrepare, self).get_parser(prog_name)
@@ -62,33 +66,31 @@ class UpgradePrepare(DeployOvercloud):
         stack_name = stack.stack_name
 
         # In case of update and upgrade we need to force the
-        # update_plan_only. The heat stack update is done by the
-        # packag_update mistral action
-        parsed_args.update_plan_only = True
-        # Add the upgrade-prepare.yaml environment to set noops etc
+        # config_download to false. The heat stack update will be performed
+        # by DeployOvercloud class but skipping the config download part.
+        parsed_args.config_download = False
+        # Add the template attribute environment to set noops etc
         templates_dir = (parsed_args.templates or
                          constants.TRIPLEO_HEAT_TEMPLATES)
         parsed_args.environment_files = oooutils.prepend_environment(
             parsed_args.environment_files, templates_dir,
-            constants.UPGRADE_PREPARE_ENV)
+            self.template)
         super(UpgradePrepare, self).take_action(parsed_args)
-        package_update.update(clients, container=stack_name)
+
+        # Download stack_name-config as this is skiped in
+        # DeployOvercloud.
         package_update.get_config(clients, container=stack_name)
 
-        overcloudrcs = deployment.create_overcloudrc(
-            clients, container=stack_name)
-        oooutils.write_overcloudrc(stack_name, overcloudrcs)
-
-        # refresh stack info and enable ssh admin for Ansible-via-Mistral
-        stack = oooutils.get_stack(clients.orchestration, parsed_args.stack)
+        # enable ssh admin for Ansible-via-Mistral as that's done only
+        # when config_download is true
         deployment.get_hosts_and_enable_ssh_admin(
             self.log, clients, stack, parsed_args.overcloud_ssh_network,
             parsed_args.overcloud_ssh_user, self.get_key_pair(parsed_args),
             parsed_args.overcloud_ssh_enable_timeout,
             parsed_args.overcloud_ssh_port_timeout)
 
-        self.log.info("Completed Overcloud Upgrade Prepare for stack "
-                      "{0}".format(stack_name))
+        self.log.info("Completed Overcloud Upgrade {} for stack "
+                      "{}".format(self.operation, stack_name))
 
 
 class UpgradeRun(command.Command):
@@ -103,7 +105,7 @@ class UpgradeRun(command.Command):
        command is the second step in the major upgrade workflow.
     """
 
-    log = logging.getLogger(__name__ + ".MajorUpgradeRun")
+    log = logging.getLogger(__name__ + ".UpgradeRun")
 
     def get_parser(self, prog_name):
         parser = super(UpgradeRun, self).get_parser(prog_name)
@@ -241,7 +243,7 @@ class UpgradeRun(command.Command):
                        "playbooks {1} ").format(limit_hosts, playbooks))
 
 
-class UpgradeConvergeOvercloud(DeployOvercloud):
+class UpgradeConvergeOvercloud(UpgradePrepare):
     """Major upgrade converge - reset Heat resources in the stored plan
 
        This is the last step for completion of a overcloud major
@@ -250,25 +252,8 @@ class UpgradeConvergeOvercloud(DeployOvercloud):
        have set specific values for some stack Heat resources. This
        unsets those back to their default values.
     """
+    operation = "Converge"
+
+    template = constants.UPGRADE_CONVERGE_ENV
 
     log = logging.getLogger(__name__ + ".UpgradeConvergeOvercloud")
-
-    def get_parser(self, prog_name):
-        parser = super(UpgradeConvergeOvercloud, self).get_parser(prog_name)
-        return parser
-
-    def take_action(self, parsed_args):
-        self.log.debug("take_action(%s)" % parsed_args)
-        clients = self.app.client_manager
-        stack = oooutils.get_stack(clients.orchestration,
-                                   parsed_args.stack)
-        # Add the converge environment into the args to unset noop etc
-        templates_dir = (parsed_args.templates or
-                         constants.TRIPLEO_HEAT_TEMPLATES)
-        parsed_args.environment_files = oooutils.prepend_environment(
-            parsed_args.environment_files, templates_dir,
-            constants.UPGRADE_CONVERGE_ENV)
-
-        super(UpgradeConvergeOvercloud, self).take_action(parsed_args)
-        self.log.info("Completed Overcloud Upgrade Converge for stack {0}"
-                      .format(stack.stack_name))

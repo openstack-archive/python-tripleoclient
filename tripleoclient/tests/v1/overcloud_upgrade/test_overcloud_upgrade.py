@@ -41,34 +41,22 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
                 'take_action')
     @mock.patch('tripleoclient.workflows.deployment.'
                 'get_hosts_and_enable_ssh_admin', autospec=True)
-    @mock.patch('tripleoclient.workflows.deployment.create_overcloudrc',
+    @mock.patch('tripleoclient.workflows.package_update.get_config',
                 autospec=True)
-    @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
     @mock.patch('tripleoclient.utils.prepend_environment', autospec=True)
     @mock.patch('tripleoclient.utils.get_stack',
                 autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_upgrade.UpgradePrepare.log',
                 autospec=True)
-    @mock.patch('tripleoclient.workflows.package_update.update',
-                autospec=True)
-    @mock.patch('os.path.abspath')
     @mock.patch('yaml.load')
-    @mock.patch('shutil.copytree', autospec=True)
     @mock.patch('six.moves.builtins.open')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_deploy_tripleo_heat_templates', autospec=True)
     def test_upgrade_out(self,
-                         mock_deploy,
                          mock_open,
-                         mock_copy,
                          mock_yaml,
-                         mock_abspath,
-                         mock_upgrade,
                          mock_logger,
                          mock_get_stack,
                          add_env,
-                         mock_write_overcloudrc,
-                         mock_overcloudrc,
+                         mock_get_config,
                          mock_enable_ssh_admin,
                          mock_overcloud_deploy):
 
@@ -90,16 +78,14 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
 
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
         self.cmd.take_action(parsed_args)
-        mock_upgrade.assert_called_once_with(
-            self.app.client_manager,
-            container='overcloud',
-        )
 
-        mock_overcloudrc.assert_called_once_with(mock.ANY,
-                                                 container="overcloud")
-        mock_write_overcloudrc.assert_called_once_with("overcloud",
-                                                       mock.ANY)
         mock_overcloud_deploy.assert_called_once_with(parsed_args)
+        args, kwargs = mock_overcloud_deploy.call_args
+        # Check config_download arg is set to False
+        self.assertEqual(args[0].config_download, False)
+        mock_get_config.assert_called_once_with(mock.ANY,
+                                                container=mock_stack.stack_name
+                                                )
         mock_enable_ssh_admin.assert_called_once_with(
             self.cmd.log, self.app.client_manager, mock_stack,
             parsed_args.overcloud_ssh_network,
@@ -111,18 +97,11 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
     @mock.patch('tripleoclient.utils.get_stack',
                 autospec=True)
     @mock.patch('tripleoclient.utils.prepend_environment', autospec=True)
-    @mock.patch('tripleoclient.workflows.package_update.update',
-                autospec=True)
     @mock.patch('six.moves.builtins.open')
-    @mock.patch('os.path.abspath')
     @mock.patch('yaml.load')
-    @mock.patch('shutil.copytree', autospec=True)
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_deploy_tripleo_heat_templates', autospec=True)
-    def test_upgrade_failed(self, mock_deploy, mock_copy, mock_yaml,
-                            mock_abspath, mock_open, mock_upgrade,
+    def test_upgrade_failed(self, mock_yaml, mock_open,
                             add_env, mock_get_stack, mock_overcloud_deploy):
-        mock_upgrade.side_effect = exceptions.DeploymentError()
+        mock_overcloud_deploy.side_effect = exceptions.DeploymentError()
         mock_yaml.return_value = {'fake_container': 'fake_value'}
         mock_stack = mock.Mock(parameters={'DeployIdentifier': ''})
         mock_stack.stack_name = 'overcloud'
