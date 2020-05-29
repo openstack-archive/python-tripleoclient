@@ -15,6 +15,9 @@
 from oslo_config import cfg
 from oslo_log import log as logging
 
+from tripleoclient import constants
+from tripleoclient.exceptions import UndercloudUpgradeNotConfirmed
+from tripleoclient import utils
 from tripleoclient.v1.tripleo_deploy import Deploy
 
 CONF = cfg.CONF
@@ -29,6 +32,10 @@ class Upgrade(Deploy):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+        if (not parsed_args.yes
+                and not utils.prompt_user_for_confirmation(
+                    constants.UPGRADE_PROMPT, self.log)):
+            raise UndercloudUpgradeNotConfirmed(constants.UPGRADE_NO)
 
         parsed_args.standalone = True
         parsed_args.upgrade = True

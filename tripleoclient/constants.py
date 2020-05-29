@@ -15,6 +15,8 @@
 
 import os
 
+from osc_lib.i18n import _
+
 # NOTE(cloudnull): Condition imports and exceptions to support PY2, When we
 #                  drop py2 this should be simplified.
 try:
@@ -175,3 +177,11 @@ UNDERCLOUD_EXTRA_PACKAGES = [
     "openstack-tripleo-validations",
     "tripleo-ansible"
 ]
+
+# UPGRADE_PROMPT
+UPGRADE_PROMPT = _('It is strongly recommended to perform a backup '
+                   'before the upgrade. Are you sure you want to '
+                   'upgrade [y/N]?')
+UPGRADE_NO = _('User did not confirm upgrade, so exiting. '
+               'Consider using the --yes parameter if you '
+               'prefer to skip this warning in the future')
