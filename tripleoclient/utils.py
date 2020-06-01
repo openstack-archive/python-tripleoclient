@@ -241,13 +241,14 @@ def playbook_verbosity(self):
 
 
 def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
-                         connection='smart', output_callback='yaml',
+                         connection='smart', output_callback='tripleo_dense',
                          ssh_user='root', key=None, module_path=None,
                          limit_hosts=None, tags=None, skip_tags=None,
                          verbosity=0, quiet=False, extra_vars=None,
                          extra_vars_file=None, plan='overcloud',
                          gathering_policy='smart', extra_env_variables=None,
-                         parallel_run=False, callback_whitelist=None,
+                         parallel_run=False,
+                         callback_whitelist=constants.ANSIBLE_CWL,
                          ansible_cfg=None, ansible_timeout=30,
                          reproduce_command=False, fail_on_rc=True,
                          timeout=None):
@@ -269,13 +270,14 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
     :param connection: Connection type (local, smart, etc).
     :type connection: String
 
-    :param output_callback: Callback for output format. Defaults to "json".
+    :param output_callback: Callback for output format. Defaults to
+                            "tripleo_dense".
     :type output_callback: String
 
     :param callback_whitelist: Comma separated list of callback plugins.
-                               Defaults to the value of `output_callback`.
-                               When the verbosity is > 0 "profile_tasks"
-                               will also be whitelisted.
+                               Defaults to
+                               "tripleo_dense,tripleo_profile_tasks".
+                               Custom output_callback is also whitelisted.
     :type callback_whitelist: String
 
     :param ssh_user: User for the ssh connection.
@@ -453,12 +455,8 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
     )
     makedirs(ansible_fact_path)
 
-    if callback_whitelist:
+    if output_callback not in callback_whitelist.split(','):
         callback_whitelist = ','.join([callback_whitelist, output_callback])
-    else:
-        callback_whitelist = output_callback
-
-    callback_whitelist = ','.join([callback_whitelist, 'profile_tasks'])
 
     env = dict()
     env['ANSIBLE_SSH_ARGS'] = (
