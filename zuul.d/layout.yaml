@@ -22,6 +22,10 @@
             dependencies: *deps_unit_lint
             files:
               - ^tripleoclient/v2/tripleo_container_image.py$
+        - tripleo-ci-centos-8-standalone:
+            dependencies: *deps_unit_lint
+            vars:
+              build_container_images: true
         - tripleo-ci-centos-8-scenario000-multinode-oooq-container-updates:
             dependencies: *deps_unit_lint
         - tripleo-ci-centos-8-scenario001-standalone:
