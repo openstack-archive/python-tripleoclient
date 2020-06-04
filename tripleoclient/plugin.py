@@ -163,6 +163,13 @@ class WebsocketClient(object):
             raise exceptions.WebSocketTimeout()
         except websocket.WebSocketConnectionClosedException:
             raise exceptions.WebSocketConnectionClosed()
+        except Exception as e:
+            err = ("An exception occurred while waiting for messages. "
+                   "This can indicate a timeout or a failure in the "
+                   "workflow execution. To troubleshoot, check the "
+                   "workflow executions for failures and/or the "
+                   "ansible logs.  Exception: {0!r}".format(e))
+            raise exceptions.WorkflowServiceError(err)
 
     def __enter__(self):
         """Return self to allow usage as a context manager"""
