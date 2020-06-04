@@ -20,7 +20,6 @@ from heatclient.common import event_utils
 from heatclient import exc as heat_exc
 from openstackclient import shell
 from swiftclient import exceptions as swiftexceptions
-from tripleo_common.actions import ansible
 from tripleo_common.actions import config
 from tripleo_common.utils import swift as swift_utils
 
@@ -271,7 +270,7 @@ def enable_ssh_admin(stack, hosts, ssh_user, ssh_key, timeout,
     print("Enabling ssh admin - COMPLETE.")
 
 
-def config_download(log, clients, stack, ssh_network=None,
+def config_download(log, clients, stack, ssh_network='ctlplane',
                     output_dir=None, override_ansible_cfg=None,
                     timeout=600, verbosity=0, deployment_options=None,
                     in_flight_validations=False,
@@ -386,8 +385,6 @@ def config_download(log, clients, stack, ssh_network=None,
             }
         )
 
-    stack_work_dir = os.path.join(output_dir, stack.stack_name)
-    context = clients.tripleoclient.create_mistral_context()
     _log_and_print(
         message='Checking for blacklisted hosts from stack: {}'.format(
             stack.stack_name
@@ -407,58 +404,27 @@ def config_download(log, clients, stack, ssh_network=None,
             ':'.join(['!{}'.format(i) for i in blacklist_stack_output_value
                       if i]))
 
-    _log_and_print(
-        message='Retrieving configuration for stack: {}'.format(
-            stack.stack_name
-        ),
-        logger=log,
-        print_msg=(verbosity == 0)
-    )
-    container_config = '{}-config'.format(stack.stack_name)
-
-    utils.get_config(clients, container=stack.stack_name,
-                     container_config=container_config)
-    _log_and_print(
-        message='Downloading configuration for stack: {}'.format(
-            stack.stack_name
-        ),
-        logger=log,
-        print_msg=(verbosity == 0)
-    )
-    download = config.DownloadConfigAction(
-        work_dir=stack_work_dir,
-        container_config=container_config)
-
-    work_dir = download.run(context=context)
-    _log_and_print(
-        message='Retrieving keyfile for stack: {}'.format(
-            stack.stack_name
-        ),
-        logger=log,
-        print_msg=(verbosity == 0)
-    )
-    key_file = utils.get_key(stack=stack.stack_name)
-    _log_and_print(
-        message='Generating information for stack: {}'.format(
-            stack.stack_name
-        ),
-        logger=log,
-        print_msg=(verbosity == 0)
-    )
-    inventory_kwargs = {
-        'ansible_ssh_user': ssh_user,
-        'work_dir': work_dir,
-        'plan_name': stack.stack_name,
-        'undercloud_key_file': key_file
-    }
-    if ssh_network:
-        inventory_kwargs['ssh_network'] = ssh_network
+    key_file = utils.get_key(stack.stack_name)
     python_interpreter = deployment_options.get('ansible_python_interpreter')
-    if python_interpreter:
-        inventory_kwargs['ansible_python_interpreter'] = python_interpreter
-    if not inventory_path:
-        inventory = ansible.AnsibleGenerateInventoryAction(**inventory_kwargs)
-        inventory_path = inventory.run(context=context)
+
+    with utils.TempDirs() as tmp:
+        utils.run_ansible_playbook(
+            playbook='cli-config-download.yaml',
+            inventory='localhost,',
+            workdir=tmp,
+            playbook_dir=ANSIBLE_TRIPLEO_PLAYBOOKS,
+            verbosity=verbosity,
+            extra_vars={
+                'plan': stack.stack_name,
+                'output_dir': output_dir,
+                'ansible_ssh_user': ssh_user,
+                'ansible_ssh_private_key_file': key_file,
+                'ssh_network': ssh_network,
+                'python_interpreter': python_interpreter,
+                'inventory_path': inventory_path
+            }
+        )
+
     _log_and_print(
         message='Executing deployment playbook for stack: {}'.format(
             stack.stack_name
@@ -466,6 +432,11 @@ def config_download(log, clients, stack, ssh_network=None,
         logger=log,
         print_msg=(verbosity == 0)
     )
+
+    stack_work_dir = os.path.join(output_dir, stack.stack_name)
+    if not inventory_path:
+        inventory_path = os.path.join(stack_work_dir,
+                                      'tripleo-ansible-inventory.yaml')
 
     if isinstance(ansible_playbook_name, list):
         playbooks = [os.path.join(stack_work_dir, p)
@@ -478,7 +449,7 @@ def config_download(log, clients, stack, ssh_network=None,
             playbook=playbooks,
             inventory=inventory_path,
             workdir=tmp,
-            playbook_dir=work_dir,
+            playbook_dir=stack_work_dir,
             skip_tags=skip_tags,
             tags=tags,
             ansible_cfg=override_ansible_cfg,

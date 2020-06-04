@@ -167,6 +167,7 @@ class TestDeleteNode(fakes.TestDeleteNode):
             tmp,
             tempfile.mkdtemp(),
             tempfile.mkdtemp(),
+            tempfile.mkdtemp(),
             tempfile.mkdtemp()
         ]
 
@@ -240,6 +241,14 @@ class TestDeleteNode(fakes.TestDeleteNode):
                     'access_path': os.path.join(os.environ.get('HOME'),
                                                 'config-download'),
                     'execution_user': mock.ANY},
+            ),
+            mock.call(
+                playbook='cli-config-download.yaml',
+                inventory='localhost,',
+                workdir=mock.ANY,
+                playbook_dir='/usr/share/ansible/tripleo-playbooks',
+                verbosity=mock.ANY,
+                extra_vars=mock.ANY,
             ),
             mock.call(
                 playbook=mock.ANY,
