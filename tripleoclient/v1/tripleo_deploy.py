@@ -1422,6 +1422,6 @@ class Deploy(command.Command):
             # read by the deployment user and not only root.
             utils.copy_clouds_yaml(parsed_args.deployment_user)
 
-            # send erase sequence to reset the cmdline if paunch/ansible
+            # send erase sequence to reset the cmdline if ansible
             # mangled some escape sequences
             utils.reset_cmdline()
