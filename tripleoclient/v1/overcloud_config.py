@@ -12,16 +12,12 @@
 
 import logging
 import os
-import shutil
-from six.moves.urllib import request
 
 from osc_lib.i18n import _
-from oslo_concurrency import processutils
 
 from tripleoclient import command
 from tripleoclient import constants
 from tripleoclient import utils
-from tripleoclient.workflows import deployment
 
 
 class DownloadConfig(command.Command):
@@ -69,20 +65,6 @@ class DownloadConfig(command.Command):
         )
         return parser
 
-    def create_config_dir(self, config_dir, preserve_config_dir=True):
-        # Create config directory
-        if os.path.exists(config_dir) and preserve_config_dir is False:
-            try:
-                self.log.info("Directory %s already exists, removing"
-                              % config_dir)
-                shutil.rmtree(config_dir)
-            except OSError as e:
-                message = 'Failed to remove: %s, error: %s' % (config_dir,
-                                                               str(e))
-                raise OSError(message)
-
-        utils.makedirs(config_dir)
-
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
 
@@ -90,29 +72,20 @@ class DownloadConfig(command.Command):
         config_dir = parsed_args.config_dir
         config_type = parsed_args.config_type
         preserve_config_dir = parsed_args.preserve_config_dir
-        self.create_config_dir(config_dir, preserve_config_dir)
+        extra_vars = {'plan': name,
+                      'config_dir': config_dir,
+                      'preserve_config': preserve_config_dir}
+        if config_type:
+            extra_vars['config_type'] = config_type
 
-        # Get config
-        print("Starting config-download export...")
-        tempurl = deployment.config_download_export(
-            self.app.client_manager,
-            plan=name,
-            config_type=config_type
-        )
-        print("Finished config-download export.")
-        self.log.debug("config-download tempurl: %s" % tempurl)
-        f = request.urlopen(tempurl)
-        tarball_contents = f.read()
-        f.close()
-        tarball_name = "%s-config.tar.gz" % name
-        tarball_path = os.path.join(config_dir, tarball_name)
-
-        with open(tarball_path, 'wb') as f:
-            f.write(tarball_contents)
-
-        print("Extracting config-download...")
-        cmd = ['/usr/bin/tar', '-C', config_dir, '-xf', tarball_path]
-        processutils.execute(*cmd)
+        with utils.TempDirs() as tmp:
+            utils.run_ansible_playbook(
+                playbook='cli-config-download-export.yaml',
+                inventory='localhost,',
+                workdir=tmp,
+                playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                verbosity=utils.playbook_verbosity(self=self),
+                extra_vars=extra_vars)
 
         print("The TripleO configuration has been successfully generated "
               "into: {0}".format(config_dir))
