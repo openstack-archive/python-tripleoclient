@@ -61,8 +61,6 @@ from heatclient import exc as hc_exc
 from six.moves.urllib import error as url_error
 from six.moves.urllib import request
 
-from tripleo_common.actions import config
-
 from tripleoclient import constants
 from tripleoclient import exceptions
 
@@ -1474,22 +1472,6 @@ def load_environment_directories(directories):
                 if os.path.isfile(f):
                     environments.append(f)
     return environments
-
-
-def get_config(clients, container, container_config):
-    """Get cloud config.
-
-    :param clients: Application client object.
-    :type clients: Object
-
-    :param container: Container name to pull from.
-    :type container: String.
-    """
-
-    context = clients.tripleoclient.create_mistral_context()
-    config_action = config.GetOvercloudConfig(
-        container=container, container_config=container_config)
-    config_action.run(context=context)
 
 
 def get_key(stack, needs_pair=False):
