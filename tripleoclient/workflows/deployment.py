@@ -20,7 +20,6 @@ from heatclient.common import event_utils
 from heatclient import exc as heat_exc
 from openstackclient import shell
 from swiftclient import exceptions as swiftexceptions
-from tripleo_common.actions import config
 from tripleo_common.utils import swift as swift_utils
 
 from tripleoclient.constants import ANSIBLE_TRIPLEO_PLAYBOOKS
@@ -473,39 +472,6 @@ def config_download(log, clients, stack, ssh_network='ctlplane',
         logger=log,
         print_msg=(verbosity == 0)
     )
-
-
-def config_download_export(clients, plan, config_type):
-    """Export a given config.
-
-    :param clients: application client object.
-    :type clients: Object
-
-    :param plan: Plan name.
-    :type plan: String
-
-    :param config_type: List of config type options.
-    :type config_type: List
-
-    :returns: string
-    """
-
-    context = clients.tripleoclient.create_mistral_context()
-    container_config = '{}-config'.format(plan)
-    config.GetOvercloudConfig(
-        container=plan,
-        config_type=config_type,
-        container_config=container_config
-    ).run(context=context)
-    print(
-        'Config Download export complete for {}. Creating temp URL.'.format(
-            plan
-        )
-    )
-
-    return swift_utils.get_temp_url(
-        clients.tripleoclient.object_store, container=container_config,
-        object_name='{}.tar.gz'.format(container_config))
 
 
 def get_horizon_url(stack, verbosity=0):

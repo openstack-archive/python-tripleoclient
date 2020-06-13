@@ -14,6 +14,7 @@ import mock
 
 from osc_lib.tests import utils
 
+from tripleoclient.tests import fakes
 from tripleoclient.v1 import overcloud_config
 
 
@@ -21,20 +22,12 @@ class TestOvercloudConfig(utils.TestCommand):
 
     def setUp(self):
         super(TestOvercloudConfig, self).setUp()
-
         self.cmd = overcloud_config.DownloadConfig(self.app, None)
-        self.app.client_manager.workflow_engine = mock.Mock()
         self.app.client_manager.orchestration = mock.Mock()
-        self.workflow = self.app.client_manager.workflow_engine
+        self.app.options = fakes.FakeOptions()
 
-    @mock.patch('tripleoclient.v1.overcloud_config.processutils.execute')
-    @mock.patch('tripleoclient.v1.overcloud_config.open')
-    @mock.patch('tripleoclient.v1.overcloud_config.request')
-    @mock.patch('shutil.rmtree')
-    @mock.patch('tripleoclient.workflows.deployment.config_download_export')
-    def test_overcloud_download_config(
-            self, mock_config, mock_rmtree, mock_request,
-            mock_open, mock_execute):
+    @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
+    def test_overcloud_download_config(self, mock_playbook):
         arglist = ['--name', 'overcloud', '--config-dir', '/tmp']
         verifylist = [
             ('name', 'overcloud'),
@@ -44,20 +37,15 @@ class TestOvercloudConfig(utils.TestCommand):
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         self.cmd.take_action(parsed_args)
-        mock_config.assert_called_once_with(
-            self.app.client_manager, plan='overcloud', config_type=None)
-        mock_rmtree.assert_not_called()
-        mock_open.assert_called()
-        mock_request.urlopen.assert_called()
+        mock_playbook.assert_called_once_with(
+            extra_vars={'plan': 'overcloud', 'config_dir': '/tmp',
+                        'preserve_config': True},
+            inventory='localhost,', playbook='cli-config-download-export.yaml',
+            playbook_dir='/usr/share/ansible/tripleo-playbooks',
+            verbosity=3, workdir=mock.ANY)
 
-    @mock.patch('tripleoclient.v1.overcloud_config.processutils.execute')
-    @mock.patch('tripleoclient.v1.overcloud_config.open')
-    @mock.patch('tripleoclient.v1.overcloud_config.request')
-    @mock.patch('shutil.rmtree')
-    @mock.patch('tripleoclient.workflows.deployment.config_download_export')
-    def test_overcloud_download_config_no_preserve(
-            self, mock_config, mock_rmtree, mock_request,
-            mock_open, mock_execute):
+    @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
+    def test_overcloud_download_config_no_preserve(self, mock_playbook):
         arglist = ['--name', 'overcloud', '--config-dir', '/tmp',
                    '--no-preserve-config']
         verifylist = [
@@ -68,8 +56,9 @@ class TestOvercloudConfig(utils.TestCommand):
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         self.cmd.take_action(parsed_args)
-        mock_config.assert_called_once_with(
-            self.app.client_manager, plan='overcloud', config_type=None)
-        mock_rmtree.assert_called()
-        mock_open.assert_called()
-        mock_request.urlopen.assert_called()
+        mock_playbook.assert_called_once_with(
+            extra_vars={'plan': 'overcloud', 'config_dir': '/tmp',
+                        'preserve_config': False},
+            inventory='localhost,', playbook='cli-config-download-export.yaml',
+            playbook_dir='/usr/share/ansible/tripleo-playbooks',
+            verbosity=3, workdir=mock.ANY)
