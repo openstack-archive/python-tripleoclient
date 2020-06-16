@@ -274,7 +274,8 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
 
     :param callback_whitelist: Comma separated list of callback plugins.
                                Defaults to
-                               "tripleo_dense,tripleo_profile_tasks".
+                               "tripleo_dense,tripleo_profile_tasks,
+                               tripleo_states".
                                Custom output_callback is also whitelisted.
     :type callback_whitelist: String
 
