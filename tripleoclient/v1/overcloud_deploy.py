@@ -1058,7 +1058,7 @@ class DeployOvercloud(command.Command):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
-        deploy_status = 'success'
+        deploy_status = 'DEPLOY_SUCCESS'
         deploy_message = 'without error'
 
         self._setup_clients(parsed_args)
@@ -1105,6 +1105,7 @@ class DeployOvercloud(command.Command):
         # Get a new copy of the stack after stack update/create. If it was
         # a create then the previous stack object would be None.
         stack = utils.get_stack(self.orchestration_client, parsed_args.stack)
+        working_dir = utils.get_default_working_dir(parsed_args.stack)
 
         if parsed_args.update_plan_only:
             # If we are only updating the plan, then we either wont have a
@@ -1129,8 +1130,11 @@ class DeployOvercloud(command.Command):
             if parsed_args.config_download:
                 print("Deploying overcloud configuration")
                 deployment.set_deployment_status(
-                    self.clients, 'deploying',
-                    plan=stack.stack_name)
+                    clients=self.clients,
+                    status='DEPLOYING',
+                    working_dir=working_dir,
+                    plan=stack.stack_name,
+                )
 
                 if not parsed_args.config_download_only:
                     deployment.get_hosts_and_enable_ssh_admin(
@@ -1172,13 +1176,21 @@ class DeployOvercloud(command.Command):
                     ),
                     forks=parsed_args.ansible_forks
                 )
+                deployment.set_deployment_status(
+                    clients=self.clients,
+                    status=deploy_status,
+                    working_dir=working_dir,
+                    plan=stack.stack_name)
         except Exception as deploy_e:
-            deploy_status = 'failed'
+            deploy_status = 'DEPLOY_FAILED'
             deploy_message = 'with error'
             deploy_trace = deploy_e
             deployment.set_deployment_status(
-                self.clients, deploy_status,
-                plan=stack.stack_name)
+                clients=self.clients,
+                status=deploy_status,
+                working_dir=working_dir,
+                plan=stack.stack_name,
+            )
         finally:
             # Copy clouds.yaml to the cloud user directory
             user = getpwuid(os.stat(constants.CLOUD_HOME_DIR).st_uid).pw_name
@@ -1195,8 +1207,7 @@ class DeployOvercloud(command.Command):
             print("Overcloud Horizon Dashboard URL: {0}".format(horizon_url))
             print("Overcloud rc file: {0}".format(rcpath))
             print("Overcloud Deployed {0}".format(deploy_message))
-
-            if deploy_status == 'failed':
+            if deploy_status == 'DEPLOY_FAILED':
                 raise(deploy_trace)
 
 

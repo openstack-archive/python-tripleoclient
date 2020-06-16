@@ -304,7 +304,9 @@ class UpgradeConverge(UpgradePrepare):
 
     def take_action(self, parsed_args):
         super(UpgradeConverge, self).take_action(parsed_args)
+        working_dir = oooutils.get_default_working_dir(parsed_args.stack)
         deployment.set_deployment_status(
             self.clients,
-            status='success',
+            status='DEPLOY_SUCCESS',
+            working_dir=working_dir,
             plan=parsed_args.stack)

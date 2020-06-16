@@ -1413,8 +1413,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertTrue(fixture.mock_config_download.called)
         self.assertTrue(fixture.mock_set_deployment_status.called)
         self.assertEqual(
-            'deploying',
-            fixture.mock_set_deployment_status.call_args[0][1])
+            'DEPLOY_SUCCESS',
+            fixture.mock_set_deployment_status.call_args[-1]['status'])
         mock_copy.assert_called_once()
 
     @mock.patch('tripleoclient.utils.get_stack_output_item',
@@ -1452,8 +1452,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertTrue(fixture.mock_config_download.called)
         self.assertTrue(fixture.mock_set_deployment_status.called)
         self.assertEqual(
-            'deploying',
-            fixture.mock_set_deployment_status.call_args[0][1])
+            'DEPLOY_SUCCESS',
+            fixture.mock_set_deployment_status.call_args[-1]['status'])
         mock_copy.assert_called_once()
 
     @mock.patch('tripleoclient.utils.get_stack_output_item',
@@ -1501,8 +1501,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertTrue(fixture.mock_config_download.called)
         self.assertTrue(fixture.mock_set_deployment_status.called)
         self.assertEqual(
-            'failed',
-            fixture.mock_set_deployment_status.call_args[0][1])
+            'DEPLOY_FAILED',
+            fixture.mock_set_deployment_status.call_args[-1]['status'])
 
     @mock.patch('tripleoclient.utils.get_stack_output_item',
                 autospec=True)

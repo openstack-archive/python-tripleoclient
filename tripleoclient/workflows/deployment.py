@@ -107,9 +107,12 @@ def deploy_and_wait(log, clients, stack, plan_name, verbose_level,
     verbose_events = verbose_level >= 1
     create_result = utils.wait_for_stack_ready(
         orchestration_client, plan_name, marker, action, verbose_events)
+    working_dir = utils.get_default_working_dir(plan_name)
     if not create_result:
         shell.OpenStackShell().run(["stack", "failures", "list", plan_name])
-        set_deployment_status(clients, 'failed', plan=plan_name)
+        set_deployment_status(clients, 'DEPLOY_FAILED',
+                              working_dir=working_dir,
+                              plan=plan_name)
         if stack is None:
             raise exceptions.DeploymentError("Heat Stack create failed.")
         else:
@@ -473,15 +476,17 @@ def get_deployment_status(clients, **workflow_input):
                 payload.get('message', '')))
 
 
-def set_deployment_status(clients, status='success', **workflow_input):
+def set_deployment_status(clients, status='success',
+                          working_dir='/home/stack/overcloud-deploy/overcloud',
+                          **workflow_input):
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
 
-    if status == 'success':
+    if status == 'DEPLOY_SUCCESS':
         workflow = 'tripleo.deployment.v1.set_deployment_status_success'
-    elif status == 'failed':
+    elif status == 'DEPLOY_FAILED':
         workflow = 'tripleo.deployment.v1.set_deployment_status_failed'
-    elif status == 'deploying':
+    elif status == 'DEPLOYING':
         workflow = 'tripleo.deployment.v1.set_deployment_status_deploying'
     else:
         raise Exception("Can't set unknown deployment status: %s" % status)
@@ -497,6 +502,11 @@ def set_deployment_status(clients, status='success', **workflow_input):
                                               _WORKFLOW_TIMEOUT):
             # Just continue until workflow is done
             continue
+
+    utils.update_deployment_status(
+        stack_name=workflow_input['plan'],
+        status=status,
+        working_dir=working_dir)
 
     if payload['status'] != 'SUCCESS':
         raise exceptions.WorkflowServiceError(

@@ -2011,6 +2011,32 @@ def ansible_symlink():
             run_command(cmd, name='ansible-playbook-3-symlink')
 
 
+def get_default_working_dir(stack):
+    return os.path.join(
+        os.path.expanduser('~'),
+        "overcloud-deploy", stack)
+
+
+def get_status_yaml(stack_name, working_dir):
+    status_yaml = os.path.join(
+        working_dir,
+        '%s-deployment_status.yaml' % stack_name)
+    return status_yaml
+
+
+def update_deployment_status(stack_name, status, working_dir):
+    """Update the deployment status."""
+
+    if not os.path.exists(working_dir):
+        makedirs(working_dir)
+    contents = yaml.safe_dump(
+        {'deployment_status': status},
+        default_flow_style=False)
+
+    safe_write(get_status_yaml(stack_name, working_dir),
+               contents)
+
+
 def check_file_for_enabled_service(env_file):
     """Checks environment file for the said service.
 
