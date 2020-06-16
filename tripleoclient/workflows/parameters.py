@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import logging
+import os
 import re
 import yaml
 
@@ -156,3 +157,84 @@ def generate_fencing_parameters(clients, **workflow_input):
             if ('fencing_parameters' in payload and
                     (payload.get('status', 'FAILED') == "SUCCESS")):
                 return payload['fencing_parameters']
+
+
+def check_forbidden_params(log, env_files, forbidden):
+    """Looks for undesired parameters in the environment files.
+
+    Each of the environment files pass in env_files will be parsed
+    and if the parameters_default key is found, then all the keys
+    from the nested dictionary found under will be converted into
+    a list, for example:
+
+    parameters_default:
+        key1: value1
+        key2: value2
+        key3:
+          - value3
+          - key31:
+              key311: value311
+              key312: value312
+            key32: value32
+
+    Will be converted by get_all_keys into:
+    [key1, key2, key3, key31, key311, key312, key32]
+
+    This list provides us with all the parameters used in the environment
+    file, without the values, in the format of a list. So we can use sets
+    to find occurrences of the forbbiden paramenters.
+
+    The variable matched_params will get all the ocurrences of forbidden
+    parameters stored, so we can parse all the environment files and show
+    all the parameters which should get removed from the environment files
+    at once (saving the user to run the command, modify a template, run it
+    again, modify another, etc...). If matched_params list is not empty,
+    an exception will be raised, stopping the execution of the command and
+    displaying the commands which need to be removed.
+
+    :param log: logging object passed from the calling method
+    :type log: Logging object
+    :param env_files: list of the environment files passed in the command
+    :type env_files: list of strings
+    :param forbidden: list of the undesired parameters
+    :type forbidden: list of strings
+
+    :returns exception if some of the forbidden parameters are found in
+    the environment files.
+    """
+
+    # Iterates over a nested dict and returns all the
+    # keys from the dict in a list
+    # example:
+    #   * input: {'a': '1', 'b': ['c': '2', 'd': {'e': '3'}]}
+    #   * output: ['a', 'b', 'c', 'd', 'e']
+    def get_all_keys(obj, keys_list):
+        if isinstance(obj, dict):
+            keys_list += obj.keys()
+            for value in obj.values():
+                get_all_keys(value, keys_list)
+        elif isinstance(obj, list):
+            for value in obj:
+                get_all_keys(value, keys_list)
+
+    matched_params = []
+
+    for file in env_files:
+        if os.path.exists(file):
+            with open(file, 'r') as env_file:
+                contents = yaml.safe_load(env_file)
+                pd = contents.get('parameter_defaults', {})
+                if pd:
+                    # Intersection of values and forbidden params
+                    list_of_keys = []
+                    get_all_keys(pd, list_of_keys)
+                    found_in_pd = list(set(list_of_keys) & set(forbidden))
+
+                    # Combine them without duplicates
+                    matched_params = list(set(matched_params + found_in_pd))
+
+    if matched_params:
+        raise exceptions.BannedParameters("The following parameters should be "
+                                          "removed from the environment files:"
+                                          "\n{}\n"
+                                          .format('\n'.join(matched_params)))

@@ -135,3 +135,7 @@ class UndercloudUpgradeNotConfirmed(Base):
 
 class CellExportError(Base):
     """Cell export failed"""
+
+
+class BannedParameters(Base):
+    """Some of the environment parameters provided should be removed"""
