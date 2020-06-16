@@ -968,6 +968,9 @@ class DeployOvercloud(command.Command):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+        deploy_status = 'DEPLOY_SUCCESS'
+        deploy_message = 'without error'
+
         self._setup_clients(parsed_args)
 
         # Swiftclient logs things like 404s at error level, which is a problem
@@ -1014,15 +1017,15 @@ class DeployOvercloud(command.Command):
             # wont do anything.
             return
 
-        if parsed_args.config_download:
-            print("Deploying overcloud configuration")
-            deployment.set_deployment_status(
-                clients=self.clients,
-                plan=stack.stack_name,
-                status='DEPLOYING'
-            )
+        try:
+            if parsed_args.config_download:
+                print("Deploying overcloud configuration")
+                deployment.set_deployment_status(
+                    clients=self.clients,
+                    plan=stack.stack_name,
+                    status='DEPLOYING'
+                )
 
-            try:
                 if not parsed_args.config_download_only:
                     deployment.get_hosts_and_enable_ssh_admin(
                         stack,
@@ -1068,40 +1071,49 @@ class DeployOvercloud(command.Command):
                 deployment.set_deployment_status(
                     clients=self.clients,
                     plan=stack.stack_name,
-                    status='DEPLOY_SUCCESS')
-            except Exception:
-                deployment.set_deployment_status(
-                    clients=self.clients,
-                    plan=stack.stack_name,
-                    status='DEPLOY_FAILED'
-                )
-                raise
+                    status=deploy_status)
+        except Exception as deploy_e:
+            deploy_status = 'DEPLOY_FAILED'
+            deploy_message = 'with error'
+            deploy_trace = deploy_e
+            deployment.set_deployment_status(
+                clients=self.clients,
+                plan=stack.stack_name,
+                status=deploy_status
+            )
+        finally:
+            # Force fetching of attributes
+            stack.get()
 
-        # Force fetching of attributes
-        stack.get()
+            rcpath = deployment.create_overcloudrc(
+                container=stack.stack_name,
+                no_proxy=parsed_args.no_proxy)
 
-        rcpath = deployment.create_overcloudrc(container=stack.stack_name,
-                                               no_proxy=parsed_args.no_proxy)
+            # Copy clouds.yaml to the cloud user directory
+            user = \
+                getpwuid(os.stat(constants.CLOUD_HOME_DIR).st_uid).pw_name
+            utils.copy_clouds_yaml(user)
+            utils.create_tempest_deployer_input()
 
-        # Copy clouds.yaml to the cloud user directory
-        user = getpwuid(os.stat(constants.CLOUD_HOME_DIR).st_uid).pw_name
-        utils.copy_clouds_yaml(user)
-        utils.create_tempest_deployer_input()
+            # Run postconfig on create or force. Use force to makes sure
+            # endpoints are created with deploy reruns and upgrades
+            if (stack_create or parsed_args.force_postconfig
+                    and not parsed_args.skip_postconfig):
+                self._deploy_postconfig(stack, parsed_args)
 
-        # Run postconfig on create or force. Use force to makes sure endpoints
-        # are created with deploy reruns and upgrades
-        if (stack_create or parsed_args.force_postconfig
-                and not parsed_args.skip_postconfig):
-            self._deploy_postconfig(stack, parsed_args)
+            overcloud_endpoint = utils.get_overcloud_endpoint(stack)
 
-        overcloud_endpoint = utils.get_overcloud_endpoint(stack)
+            horizon_url = deployment.get_horizon_url(
+                stack=stack.stack_name)
 
-        horizon_url = deployment.get_horizon_url(stack=stack.stack_name)
+            print("Overcloud Endpoint: {0}".format(overcloud_endpoint))
+            print("Overcloud Horizon Dashboard URL: {0}".format(
+                horizon_url))
+            print("Overcloud rc file: {0}".format(rcpath))
+            print("Overcloud Deployed {0}".format(deploy_message))
 
-        print("Overcloud Endpoint: {0}".format(overcloud_endpoint))
-        print("Overcloud Horizon Dashboard URL: {0}".format(horizon_url))
-        print("Overcloud rc file: {0}".format(rcpath))
-        print("Overcloud Deployed")
+            if deploy_status == 'DEPLOY_FAILED':
+                raise(deploy_trace)
 
 
 class GetDeploymentStatus(command.Command):
