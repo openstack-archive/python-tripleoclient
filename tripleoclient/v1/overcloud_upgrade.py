@@ -276,7 +276,7 @@ class UpgradeRun(command.Command):
                        "playbooks {1} ").format(limit_hosts, playbooks))
 
 
-class UpgradeConvergeOvercloud(UpgradePrepare):
+class UpgradeConverge(UpgradePrepare):
     """Major upgrade converge - reset Heat resources in the stored plan
 
        This is the last step for completion of a overcloud major
@@ -291,4 +291,4 @@ class UpgradeConvergeOvercloud(UpgradePrepare):
 
     forbidden_params = constants.UPGRADE_CONVERGE_FORBIDDEN_PARAMS
 
-    log = logging.getLogger(__name__ + ".UpgradeConvergeOvercloud")
+    log = logging.getLogger(__name__ + ".UpgradeConverge")
