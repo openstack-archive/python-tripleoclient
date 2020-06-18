@@ -186,26 +186,6 @@ class FakePlaybookExecution(utils.TestCommand):
         self.execution.id = "IDID"
         self.workflow.executions.create.return_value = self.execution
 
-        config_mock = mock.patch(
-            'tripleo_common.actions.config.GetOvercloudConfig',
-            autospec=True
-        )
-        config_mock.start()
-        self.addCleanup(config_mock.stop)
-
-        self.ansible = mock.patch(
-            'tripleo_common.actions.ansible.AnsibleGenerateInventoryAction',
-            autospec=True
-        )
-        self.ansible.start()
-        self.addCleanup(self.ansible.stop)
-
-        self.config_action = mock.patch(
-            'tripleo_common.actions.config.DownloadConfigAction',
-            autospec=True
-        )
-        self.config_action.start()
-        self.addCleanup(self.config_action.stop)
         get_key = mock.patch('tripleoclient.utils.get_key')
         get_key.start()
         get_key.return_value = 'keyfile-path'

@@ -37,24 +37,6 @@ class TestDeploymentWorkflows(utils.TestCommand):
         tc.create_mistral_context = plugin.ClientWrapper(
             instance=FakeInstanceData
         ).create_mistral_context
-        self.gcn = mock.patch(
-            'tripleo_common.actions.config.DownloadConfigAction',
-            autospec=True
-        )
-        self.gcn.start()
-        self.addCleanup(self.gcn.stop)
-        self.ansible = mock.patch(
-            'tripleo_common.actions.ansible.AnsibleGenerateInventoryAction',
-            autospec=True
-        )
-        self.ansible.start()
-        self.addCleanup(self.ansible.stop)
-        config_mock = mock.patch(
-            'tripleo_common.actions.config.GetOvercloudConfig',
-            autospec=True
-        )
-        config_mock.start()
-        self.addCleanup(config_mock.stop)
         self.message_success = iter([{
             "execution": {"id": "IDID"},
             "status": "SUCCESS",
