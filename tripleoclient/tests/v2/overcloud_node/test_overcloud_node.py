@@ -31,7 +31,6 @@ class TestImportNode(fakes.TestOvercloudNode):
 
     def setUp(self):
         super(TestImportNode, self).setUp()
-
         self.nodes_list = [{
             "pm_user": "stack",
             "pm_addr": "192.168.122.1",
@@ -48,23 +47,6 @@ class TestImportNode(fakes.TestOvercloudNode):
             "mac": [
                 "00:0b:d0:69:7e:58"
             ]
-        }]
-
-        # NOTE(cloudnull): Workflow and client calls are still mocked because
-        #                  mistal is still presnet here.
-        self.workflow = self.app.client_manager.workflow_engine
-        execution = mock.Mock()
-        execution.id = "IDID"
-        self.workflow.executions.create.return_value = execution
-        client = self.app.client_manager.tripleoclient
-        self.websocket = client.messaging_websocket()
-        self.websocket.wait_for_messages.return_value = [{
-            "status": "SUCCESS",
-            "message": "Success",
-            "registered_nodes": [{
-                "uuid": "MOCK_NODE_UUID"
-            }],
-            "execution_id": execution.id
         }]
 
         self.json_file = tempfile.NamedTemporaryFile(
@@ -176,21 +158,6 @@ class TestIntrospectNode(fakes.TestOvercloudNode):
 
     def setUp(self):
         super(TestIntrospectNode, self).setUp()
-
-        # Get the command object to test
-        self.workflow = self.app.client_manager.workflow_engine
-        execution = mock.Mock()
-        execution.id = "IDID"
-        self.workflow.executions.create.return_value = execution
-        client = self.app.client_manager.tripleoclient
-        self.websocket = client.messaging_websocket()
-        self.websocket.wait_for_messages.return_value = iter([{
-            "status": "SUCCESS",
-            "message": "Success",
-            "introspected_nodes": {},
-            "execution_id": execution.id
-        }] * 2)
-
         # Get the command object to test
         self.cmd = overcloud_node.IntrospectNode(self.app, None)
 

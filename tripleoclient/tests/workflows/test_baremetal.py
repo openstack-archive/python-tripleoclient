@@ -25,26 +25,7 @@ class TestBaremetalWorkflows(fakes.FakePlaybookExecution):
 
         self.app.client_manager.workflow_engine = self.workflow = mock.Mock()
         self.tripleoclient = mock.Mock()
-        self.websocket = mock.Mock()
-        self.websocket.__enter__ = lambda s: self.websocket
-        self.websocket.__exit__ = lambda s, *exc: None
-        self.tripleoclient.messaging_websocket.return_value = self.websocket
         self.app.client_manager.tripleoclient = self.tripleoclient
-        execution = mock.Mock()
-        execution.id = "IDID"
-        self.workflow.executions.create.return_value = execution
-
-        self.message_success = iter([{
-            "execution_id": "IDID",
-            "status": "SUCCESS",
-            "message": "Success.",
-            "registered_nodes": [],
-        }])
-        self.message_failed = iter([{
-            "execution_id": "IDID",
-            "status": "FAIL",
-            "message": "Fail.",
-        }])
 
         self.mock_playbook = mock.patch(
             'tripleoclient.utils.run_ansible_playbook',

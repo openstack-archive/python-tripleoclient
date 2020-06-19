@@ -16,8 +16,6 @@ import mock
 
 from osc_lib.tests import utils
 
-from tripleoclient import plugin
-from tripleoclient.tests.fakes import FakeInstanceData
 from tripleoclient.tests.fakes import FakeStackObject
 from tripleoclient.workflows import deployment
 
@@ -26,28 +24,7 @@ class TestDeploymentWorkflows(utils.TestCommand):
 
     def setUp(self):
         super(TestDeploymentWorkflows, self).setUp()
-
-        self.app.client_manager.workflow_engine = self.workflow = mock.Mock()
         self.tripleoclient = mock.Mock()
-        self.websocket = mock.Mock()
-        self.websocket.__enter__ = lambda s: self.websocket
-        self.websocket.__exit__ = lambda s, *exc: None
-        self.tripleoclient.messaging_websocket.return_value = self.websocket
-        tc = self.app.client_manager.tripleoclient = self.tripleoclient
-        tc.create_mistral_context = plugin.ClientWrapper(
-            instance=FakeInstanceData
-        ).create_mistral_context
-        self.message_success = iter([{
-            "execution": {"id": "IDID"},
-            "status": "SUCCESS",
-            "message": "Success.",
-            "registered_nodes": [],
-        }])
-        self.message_failed = iter([{
-            "execution": {"id": "IDID"},
-            "status": "FAIL",
-            "message": "Fail.",
-        }])
 
     @mock.patch('shutil.rmtree')
     @mock.patch('os.chdir')

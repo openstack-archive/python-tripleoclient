@@ -430,11 +430,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         orchestration_client = clients.orchestration
         mock_stack = fakes.create_tht_stack()
         orchestration_client.stacks.get.side_effect = [None, mock.Mock()]
-        workflow_client = clients.workflow_engine
-        workflow_client.environments.get.return_value = mock.MagicMock(
-            variables={'environments': []})
-        workflow_client.action_executions.create.return_value = mock.MagicMock(
-            output='{"result":[]}')
 
         def _orch_clt_create(**kwargs):
             orchestration_client.stacks.get.return_value = mock_stack

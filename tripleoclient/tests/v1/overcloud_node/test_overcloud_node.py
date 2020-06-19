@@ -42,18 +42,13 @@ class TestDeleteNode(fakes.TestDeleteNode):
         # Get the command object to test
         self.cmd = overcloud_node.DeleteNode(self.app, None)
         self.cmd.app_args = mock.Mock(verbose_level=1)
-        self.app.client_manager.workflow_engine = mock.Mock()
         self.tripleoclient = mock.Mock()
 
-        self.workflow = self.app.client_manager.workflow_engine
         self.stack_name = self.app.client_manager.orchestration.stacks.get
         stack = self.stack_name.return_value = mock.Mock(
             stack_name="overcloud"
         )
         stack.output_show.return_value = {'output': {'output_value': []}}
-        execution = mock.Mock()
-        execution.id = "IDID"
-        self.workflow.executions.create.return_value = execution
 
         delete_node = mock.patch(
             'tripleo_common.actions.scale.ScaleDownAction.run',
@@ -392,13 +387,6 @@ class TestCleanNode(fakes.TestOvercloudNode):
     def setUp(self):
         super(TestCleanNode, self).setUp()
 
-        self.workflow = self.app.client_manager.workflow_engine
-        execution = mock.Mock()
-        execution.id = "IDID"
-        self.workflow.executions.create.return_value = execution
-        client = self.app.client_manager.tripleoclient
-        self.websocket = client.messaging_websocket()
-
         # Get the command object to test
         self.cmd = overcloud_node.CleanNode(self.app, None)
 
@@ -478,13 +466,6 @@ class TestImportNodeMultiArch(fakes.TestOvercloudNode):
         self.json_file.close()
         self.addCleanup(os.unlink, self.json_file.name)
 
-        self.workflow = self.app.client_manager.workflow_engine
-        execution = mock.Mock()
-        execution.id = "IDID"
-        self.workflow.executions.create.return_value = execution
-        client = self.app.client_manager.tripleoclient
-        self.websocket = client.messaging_websocket()
-
         # Get the command object to test
         self.cmd = overcloud_node_v2.ImportNode(self.app, None)
 
@@ -513,15 +494,6 @@ class TestImportNodeMultiArch(fakes.TestOvercloudNode):
 
     def _check_workflow_call(self, parsed_args, introspect=False,
                              provide=False, local=None, no_deploy_image=False):
-        self.websocket.wait_for_messages.return_value = [{
-            "status": "SUCCESS",
-            "message": "Success",
-            "registered_nodes": [{
-                "uuid": "MOCK_NODE_UUID"
-            }],
-            "execution_id": "IDID"
-        }]
-
         file_return_nodes = [
             {
                 'uuid': 'MOCK_NODE_UUID'
@@ -588,18 +560,6 @@ class TestConfigureNode(fakes.TestOvercloudNode):
 
     def setUp(self):
         super(TestConfigureNode, self).setUp()
-
-        self.workflow = self.app.client_manager.workflow_engine
-        execution = mock.Mock()
-        execution.id = "IDID"
-        self.workflow.executions.create.return_value = execution
-        client = self.app.client_manager.tripleoclient
-        self.websocket = client.messaging_websocket()
-        self.websocket.wait_for_messages.return_value = iter([{
-            "status": "SUCCESS",
-            "message": "",
-            "execution_id": "IDID"
-        }])
 
         # Get the command object to test
         self.cmd = overcloud_node.ConfigureNode(self.app, None)
@@ -694,15 +654,10 @@ class TestDiscoverNode(fakes.TestOvercloudNode):
     def setUp(self):
         super(TestDiscoverNode, self).setUp()
 
-        self.workflow = self.app.client_manager.workflow_engine
-        execution = mock.Mock()
-        execution.id = "IDID"
-        self.workflow.executions.create.return_value = execution
         client = self.app.client_manager.tripleoclient
         client.create_mistral_context = plugin.ClientWrapper(
             instance=ooofakes.FakeInstanceData
         ).create_mistral_context
-        self.websocket = client.messaging_websocket()
 
         self.cmd = overcloud_node.DiscoverNode(self.app, None)
 
@@ -712,15 +667,6 @@ class TestDiscoverNode(fakes.TestOvercloudNode):
         )
         self.gcn.start()
         self.addCleanup(self.gcn.stop)
-
-        self.websocket.wait_for_messages.return_value = [{
-            "status": "SUCCESS",
-            "message": "Success",
-            "registered_nodes": [{
-                "uuid": "MOCK_NODE_UUID"
-            }],
-            "execution_id": "IDID"
-        }]
 
         self.http_boot = '/var/lib/ironic/httpboot'
 
