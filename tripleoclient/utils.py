@@ -27,7 +27,6 @@ import getpass
 import glob
 import hashlib
 import logging
-from six.moves.configparser import ConfigParser
 
 import multiprocessing
 import netaddr
@@ -2132,7 +2131,7 @@ def check_env_for_proxy(no_proxy_hosts=None):
 
 def get_read_config(cfg):
     """Return the config read from ini config file(s)"""
-    config = ConfigParser()
+    config = configparser.ConfigParser()
     config.read(cfg)
     return config
 

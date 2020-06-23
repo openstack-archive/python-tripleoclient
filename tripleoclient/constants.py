@@ -16,13 +16,10 @@
 import os
 
 from osc_lib.i18n import _
+from six.moves import configparser
 
-# NOTE(cloudnull): Condition imports and exceptions to support PY2, When we
-#                  drop py2 this should be simplified.
-try:
-    import configparser as cfgp
-except ImportError:
-    import ConfigParser as cfgp
+# NOTE(cloudnull): Condition exceptions to support PY2, When we drop py2 this
+#                  should be simplified.
 try:
     FileNotFoundError = FileNotFoundError
 except NameError:
@@ -174,12 +171,12 @@ CLOUDS_YAML_DIR = os.path.join('.config', 'openstack')
 UNDERCLOUD_CONF_PATH = os.path.join(CLOUD_HOME_DIR, "undercloud.conf")
 try:
     if os.path.exists(UNDERCLOUD_CONF_PATH):
-        config = cfgp.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(UNDERCLOUD_CONF_PATH)
         UNDERCLOUD_OUTPUT_DIR = config.get('DEFAULT', 'output_dir')
     else:
         raise FileNotFoundError
-except (cfgp.NoOptionError, FileNotFoundError):
+except (configparser.NoOptionError, FileNotFoundError):
     UNDERCLOUD_OUTPUT_DIR = CLOUD_HOME_DIR
 
 # regex patterns to exclude when looking for unused params
