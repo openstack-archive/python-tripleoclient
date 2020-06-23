@@ -400,7 +400,6 @@ class DeployOvercloud(command.Command):
                 parsed_args.plan_environment_file,
                 parsed_args.networks_file,
                 type(self)._keep_env_on_update,
-                validate_stack=False,
                 verbosity_level=utils.playbook_verbosity(self=self)
             )
         else:

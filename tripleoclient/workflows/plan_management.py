@@ -107,7 +107,23 @@ def delete_deployment_plan(clients, container):
         raise RuntimeError(result)
 
 
-def update_deployment_plan(clients, verbosity_level=0, **workflow_input):
+def update_deployment_plan(clients, container, generate_passwords,
+                           verbosity_level=0):
+    """Update a deployment plan.
+
+    :param clients: Application client object.
+    :type clients: Object
+
+    :param container: Container name to pull from.
+    :type container: String
+
+    :param generate_passwords: Whether to generate password
+    :type generate_passwords: Boolean
+
+    :param verbosity_level: Verbosity level used in playbook execution
+    :type verbosity_level: Integer
+    """
+
     with utils.TempDirs() as tmp:
         utils.run_ansible_playbook(
             "cli-update-deployment-plan.yaml",
@@ -115,9 +131,8 @@ def update_deployment_plan(clients, verbosity_level=0, **workflow_input):
             workdir=tmp,
             playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             extra_vars={
-                "container": workflow_input['container'],
-                "validate": workflow_input['validate_stack'],
-                "generate_passwords": workflow_input["generate_passwords"],
+                "container": container,
+                "generate_passwords": generate_passwords,
             },
             verbosity=verbosity_level
         )
@@ -158,7 +173,7 @@ def create_plan_from_templates(clients, name, tht_root, roles_file=None,
 def update_plan_from_templates(clients, name, tht_root, roles_file=None,
                                generate_passwords=True, plan_env_file=None,
                                networks_file=None, keep_env=False,
-                               validate_stack=True, verbosity_level=1):
+                               verbosity_level=1):
     swift_client = clients.tripleoclient.object_store
     passwords = None
     keep_file_contents = {}
@@ -212,8 +227,6 @@ def update_plan_from_templates(clients, name, tht_root, roles_file=None,
 
     update_deployment_plan(clients, container=name,
                            generate_passwords=generate_passwords,
-                           source_url=None,
-                           validate_stack=validate_stack,
                            verbosity_level=verbosity_level)
 
 
