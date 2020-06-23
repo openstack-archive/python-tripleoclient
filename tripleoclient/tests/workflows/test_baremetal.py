@@ -72,11 +72,14 @@ class TestBaremetalWorkflows(fakes.FakePlaybookExecution):
 
     def test_introspect_success(self):
         baremetal.introspect(self.app.client_manager, node_uuids=[],
-                             run_validations=True, concurrency=20)
+                             run_validations=True, concurrency=20,
+                             node_timeout=1200, max_retries=1,
+                             retry_timeout=120)
 
     def test_introspect_manageable_nodes_success(self):
         baremetal.introspect_manageable_nodes(
-            self.app.client_manager, run_validations=False, concurrency=20
+            self.app.client_manager, run_validations=False, concurrency=20,
+            node_timeout=1200, max_retries=1, retry_timeout=120,
         )
 
     def test_provide_manageable_nodes_success(self):
