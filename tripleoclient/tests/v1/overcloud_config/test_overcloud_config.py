@@ -50,6 +50,7 @@ class TestOvercloudConfig(utils.TestCommand):
         mock_open.assert_called()
         mock_request.urlopen.assert_called()
 
+    @mock.patch('os.path.exists')
     @mock.patch('tripleoclient.v1.overcloud_config.processutils.execute')
     @mock.patch('tripleoclient.v1.overcloud_config.open')
     @mock.patch('tripleoclient.v1.overcloud_config.request')
@@ -57,7 +58,7 @@ class TestOvercloudConfig(utils.TestCommand):
     @mock.patch('tripleoclient.workflows.deployment.config_download_export')
     def test_overcloud_download_config_no_preserve(
             self, mock_config, mock_rmtree, mock_request,
-            mock_open, mock_execute):
+            mock_open, mock_execute, mock_exists):
         arglist = ['--name', 'overcloud', '--config-dir', '/tmp',
                    '--no-preserve-config']
         verifylist = [
@@ -66,6 +67,13 @@ class TestOvercloudConfig(utils.TestCommand):
             ('preserve_config_dir', False)
         ]
 
+        def side_effect(arg):
+            if arg == '/tmp/overcloud':
+                return True
+            else:
+                return False
+
+        mock_exists.side_effect = side_effect
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         self.cmd.take_action(parsed_args)
         mock_config.assert_called_once_with(

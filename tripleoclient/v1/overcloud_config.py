@@ -84,9 +84,11 @@ class DownloadConfig(command.Command):
 
         name = parsed_args.name
         config_dir = parsed_args.config_dir
+
+        work_dir = os.path.join(config_dir, name)
         config_type = parsed_args.config_type
         preserve_config_dir = parsed_args.preserve_config_dir
-        self.create_config_dir(config_dir, preserve_config_dir)
+        self.create_config_dir(work_dir, preserve_config_dir)
 
         # Get config
         print("Starting config-download export...")
@@ -101,14 +103,14 @@ class DownloadConfig(command.Command):
         tarball_contents = f.read()
         f.close()
         tarball_name = "%s-config.tar.gz" % name
-        tarball_path = os.path.join(config_dir, tarball_name)
+        tarball_path = os.path.join(work_dir, tarball_name)
 
         with open(tarball_path, 'wb') as f:
             f.write(tarball_contents)
 
         print("Extracting config-download...")
-        cmd = ['/usr/bin/tar', '-C', config_dir, '-xf', tarball_path]
+        cmd = ['/usr/bin/tar', '-C', work_dir, '-xf', tarball_path]
         processutils.execute(*cmd)
 
         print("The TripleO configuration has been successfully generated "
-              "into: {0}".format(config_dir))
+              "into: {0}".format(work_dir))
