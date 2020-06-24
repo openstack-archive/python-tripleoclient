@@ -547,8 +547,7 @@ class TripleOValidatorRun(command.Command):
 
                     for i in contents['plays']:
                         host = [
-                            x.encode('utf-8')
-                            for x in i['play'].get('host').split(', ')
+                            x for x in i['play'].get('host').split(', ')
                         ]
                         val_id = i['play'].get('validation_id')
                         time_elapsed = \
@@ -563,8 +562,7 @@ class TripleOValidatorRun(command.Command):
 
                     unreachable_hosts = []
                     hosts_result = []
-                    for h in list(contents['stats'].keys()):
-                        ht = h.encode('utf-8')
+                    for ht in list(contents['stats'].keys()):
                         if contents['stats'][ht]['unreachable'] != 0:
                             unreachable_hosts.append(ht)
                         elif contents['stats'][ht]['failures'] != 0:
@@ -592,8 +590,8 @@ class TripleOValidatorRun(command.Command):
             print(t)
 
             if len(new_log_files) > len(results):
-                LOG.warn(_('Looks like we have more log files than '
-                           'executed validations'))
+                LOG.warning(_('Looks like we have more log files than '
+                              'executed validations'))
 
             for i in new_log_files:
                 os.rename(
