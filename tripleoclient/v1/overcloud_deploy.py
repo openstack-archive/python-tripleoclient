@@ -408,7 +408,6 @@ class DeployOvercloud(command.Command):
                 parsed_args.roles_file, generate_passwords,
                 parsed_args.plan_environment_file,
                 parsed_args.networks_file,
-                validate_stack=False,
                 verbosity_level=utils.playbook_verbosity(self=self)
             )
 

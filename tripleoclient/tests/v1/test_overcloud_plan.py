@@ -131,7 +131,7 @@ class TestOvercloudCreatePlan(utils.TestCommand):
             extra_vars={
                 "container": "overcast",
                 "generate_passwords": True,
-                "validate": False
+                "use_default_templates": True,
             },
             verbosity=3,
         )
@@ -163,7 +163,7 @@ class TestOvercloudCreatePlan(utils.TestCommand):
             extra_vars={
                 "container": "overcast",
                 "generate_passwords": True,
-                "validate": False
+                "use_default_templates": False,
             },
             verbosity=3,
         )
@@ -204,7 +204,7 @@ class TestOvercloudCreatePlan(utils.TestCommand):
                 "container": "overcast",
                 "generate_passwords": True,
                 "plan_environment": "the_plan_environment.yaml",
-                "validate": False
+                "use_default_templates": False,
             },
             verbosity=3,
         )
@@ -237,7 +237,40 @@ class TestOvercloudCreatePlan(utils.TestCommand):
             extra_vars={
                 "container": "overcast",
                 "generate_passwords": False,
-                "validate": False
+                "use_default_templates": True,
+            },
+            verbosity=3,
+        )
+
+    @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
+    @mock.patch('os.chdir', autospec=True)
+    @mock.patch('tempfile.mkdtemp', autospec=True)
+    def test_create_custom_plan_from_source_url(
+            self, mock_tmp, mock_cd, mock_run_playbook):
+
+        # Setup
+        arglist = ['overcast', '--source-url', 'http://tripleo.org/templates']
+        verifylist = [
+            ('name', 'overcast'),
+            ('templates', None),
+            ('source_url', 'http://tripleo.org/templates')
+        ]
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        # Run
+        self.cmd.take_action(parsed_args)
+
+        # Verify
+        mock_run_playbook.assert_called_once_with(
+            'cli-create-deployment-plan.yaml',
+            'undercloud,',
+            mock.ANY,
+            constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            extra_vars={
+                "container": "overcast",
+                "generate_passwords": True,
+                "use_default_templates": False,
+                "source_url": "http://tripleo.org/templates",
             },
             verbosity=3,
         )

@@ -125,7 +125,6 @@ class CreatePlan(command.Command):
                 clients, name, parsed_args.templates,
                 generate_passwords=generate_passwords,
                 plan_env_file=parsed_args.plan_environment_file,
-                validate_stack=False,
                 verbosity_level=utils.playbook_verbosity(self=self)
             )
         else:
@@ -134,7 +133,6 @@ class CreatePlan(command.Command):
                 generate_passwords=generate_passwords,
                 source_url=source_url,
                 use_default_templates=use_default_templates,
-                validate_stack=False,
                 verbosity_level=utils.playbook_verbosity(self=self)
             )
 

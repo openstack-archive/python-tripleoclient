@@ -66,13 +66,37 @@ def _upload_templates(swift_client, container_name, tht_root, roles_file=None,
 
 def create_deployment_plan(container, generate_passwords,
                            use_default_templates=False, source_url=None,
-                           validate_stack=True, verbosity_level=0,
-                           plan_env_file=None):
+                           verbosity_level=0, plan_env_file=None):
+    """Create a deployment plan.
+
+    :param container: Container name to push to.
+    :type container: String
+
+    :param generate_passwords: Whether to generate password
+    :type generate_passwords: Boolean
+
+    :param use_default_templates: Whether to use default template files
+    :type use_default_templates: Boolean
+
+    :param source_url: The url of a git repository containing the Heat
+                       templates to deploy
+    :type source_url: String
+
+    :param verbosity_level: Verbosity level used in playbook execution
+    :type verbosity_level: Integer
+
+    :param plan_env_file: Path to plan environment file
+    :type plan_env_file: String
+    """
+
     extra_vars = {
         "container": container,
-        "validate": validate_stack,
-        "generate_passwords": generate_passwords
+        "generate_passwords": generate_passwords,
+        "use_default_templates": use_default_templates,
     }
+
+    if source_url:
+        extra_vars['source_url'] = source_url
 
     if plan_env_file:
         extra_vars['plan_environment'] = plan_env_file
@@ -147,8 +171,7 @@ def list_deployment_plans(clients):
 
 def create_plan_from_templates(clients, name, tht_root, roles_file=None,
                                generate_passwords=True, plan_env_file=None,
-                               networks_file=None, validate_stack=True,
-                               verbosity_level=0):
+                               networks_file=None, verbosity_level=0):
     swift_client = clients.tripleoclient.object_store
 
     print("Creating Swift container to store the plan")
@@ -163,7 +186,6 @@ def create_plan_from_templates(clients, name, tht_root, roles_file=None,
         create_deployment_plan(container=name,
                                generate_passwords=generate_passwords,
                                plan_env_file=plan_env_file,
-                               validate_stack=validate_stack,
                                verbosity_level=verbosity_level)
     except exceptions.WorkflowServiceError:
         swiftutils.delete_container(swift_client, name)

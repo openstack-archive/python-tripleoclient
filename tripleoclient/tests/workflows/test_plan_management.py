@@ -40,8 +40,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
         plan_management.create_plan_from_templates(
             self.app.client_manager,
             'test-overcloud',
-            '/tht-root/',
-            validate_stack=False)
+            '/tht-root/')
 
         mock_run_playbook.assert_called_once_with(
             'cli-create-deployment-plan.yaml',
@@ -51,7 +50,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
             extra_vars={
                 "container": "test-overcloud",
                 "generate_passwords": True,
-                "validate": False
+                "use_default_templates": False,
             },
             verbosity=0,
         )
@@ -72,8 +71,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
                 self.app.client_manager,
                 'test-overcloud',
                 '/tht-root/',
-                'the_roles_file.yaml',
-                validate_stack=False)
+                'the_roles_file.yaml')
 
         mock_run_playbook.assert_called_once_with(
             'cli-create-deployment-plan.yaml',
@@ -83,7 +81,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
             extra_vars={
                 "container": "test-overcloud",
                 "generate_passwords": True,
-                "validate": False
+                "use_default_templates": False,
             },
             verbosity=0,
         )
@@ -108,8 +106,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
                 self.app.client_manager,
                 'test-overcloud',
                 '/tht-root/',
-                plan_env_file='the-plan-environment.yaml',
-                validate_stack=False)
+                plan_env_file='the-plan-environment.yaml')
 
         mock_run_playbook.assert_called_once_with(
             'cli-create-deployment-plan.yaml',
@@ -120,7 +117,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
                 "container": "test-overcloud",
                 "generate_passwords": True,
                 "plan_environment": "the-plan-environment.yaml",
-                "validate": False
+                "use_default_templates": False,
             },
             verbosity=0,
         )
@@ -144,8 +141,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
                 self.app.client_manager,
                 'test-overcloud',
                 '/tht-root/',
-                networks_file='the-network-data.yaml',
-                validate_stack=False)
+                networks_file='the-network-data.yaml')
 
         mock_run_playbook.assert_called_once_with(
             'cli-create-deployment-plan.yaml',
@@ -155,7 +151,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
             extra_vars={
                 "container": "test-overcloud",
                 "generate_passwords": True,
-                "validate": False
+                "use_default_templates": False,
             },
             verbosity=0,
         )
@@ -177,8 +173,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
             self.app.client_manager,
             'test-overcloud',
             '/tht-root/',
-            generate_passwords=False,
-            validate_stack=False)
+            generate_passwords=False)
 
         mock_run_playbook.assert_called_once_with(
             'cli-create-deployment-plan.yaml',
@@ -188,7 +183,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
             extra_vars={
                 "container": "test-overcloud",
                 "generate_passwords": False,
-                "validate": False
+                "use_default_templates": False,
             },
             verbosity=0,
         )
