@@ -16,6 +16,7 @@
 import argparse
 import json
 import logging
+import yaml
 
 from osc_lib import exceptions
 from osc_lib.i18n import _
@@ -164,8 +165,8 @@ class TripleOValidatorShowParameter(command.Command):
             parsed_args.format,
             parsed_args.download)
         if parsed_args.download:
-            print("The file {} has been created successfully").format(
-                parsed_args.download)
+            print("The file {} has been created successfully".format(
+                parsed_args.download))
         else:
             print(params)
 
@@ -314,6 +315,13 @@ class TripleOValidatorRun(command.Command):
         LOG = logging.getLogger(__name__ + ".ValidationsRunAnsible")
         limit = parsed_args.limit
         playbook = parsed_args.playbook
+        extra_vars = parsed_args.extra_vars
+        if parsed_args.extra_vars_file:
+            with open(parsed_args.extra_vars_file, 'r') as env_file:
+                if '.json' in parsed_args.extra_vars_file:
+                    extra_vars.update(json.load(env_file))
+                else:
+                    extra_vars.update(yaml.load(env_file))
 
         static_inventory = oooutils.get_tripleo_ansible_inventory(
             ssh_user='heat-admin',
@@ -329,7 +337,7 @@ class TripleOValidatorRun(command.Command):
             inventory=static_inventory,
             limit_hosts=limit,
             group=parsed_args.group,
-            extra_vars=parsed_args.extra_vars,
+            extra_vars=extra_vars,
             validations_dir=constants.ANSIBLE_VALIDATION_DIR,
             validation_name=parsed_args.validation_name,
             extra_env_vars=parsed_args.extra_env_vars,
