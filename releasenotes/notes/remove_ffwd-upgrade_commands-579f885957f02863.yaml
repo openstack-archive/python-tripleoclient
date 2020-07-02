@@ -1,0 +1,7 @@
+---
+deprecations:
+  - |
+    The ffwd-upgrade command isn't needed anymore since Queens. The ffwd upgrade
+    now relies on the overcloud upgrade commands, therefore there is no need to
+    keep the old ffwd-upgrade commands around as they could just cause confusion
+    to the user.
