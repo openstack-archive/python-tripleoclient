@@ -164,6 +164,16 @@ class IntrospectNode(command.Command):
                             default=20,
                             help=_('Maximum number of nodes to introspect at '
                                    'once.'))
+        parser.add_argument('--node-timeout', type=int,
+                            default=1200,
+                            help=_('Maximum timeout for node introspection.'))
+        parser.add_argument('--max-retries', type=int,
+                            default=1,
+                            help=_('Maximum introspection retries.'))
+        parser.add_argument('--retry-timeout', type=int,
+                            default=120,
+                            help=_('Maximum timeout between introspection'
+                                   'retries'))
         return parser
 
     def take_action(self, parsed_args):
@@ -174,6 +184,9 @@ class IntrospectNode(command.Command):
                 self.app.client_manager,
                 run_validations=parsed_args.run_validations,
                 concurrency=parsed_args.concurrency,
+                node_timeout=parsed_args.node_timeout,
+                max_retries=parsed_args.max_retries,
+                retry_timeout=parsed_args.retry_timeout,
                 verbosity=oooutils.playbook_verbosity(self=self)
             )
         else:
@@ -182,6 +195,9 @@ class IntrospectNode(command.Command):
                 node_uuids=parsed_args.node_uuids,
                 run_validations=parsed_args.run_validations,
                 concurrency=parsed_args.concurrency,
+                node_timeout=parsed_args.node_timeout,
+                max_retries=parsed_args.max_retries,
+                retry_timeout=parsed_args.retry_timeout,
                 verbosity=oooutils.playbook_verbosity(self=self)
             )
 

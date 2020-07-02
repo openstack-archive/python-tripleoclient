@@ -178,7 +178,10 @@ class TestIntrospectNode(fakes.TestOvercloudNode):
             extra_vars={
                 'node_uuids': [],
                 'run_validations': False,
-                'concurrency': 20
+                'concurrency': 20,
+                'node_timeout': 1200,
+                'max_retries': 1,
+                'retry_timeout': 120,
             }
         )
 
@@ -219,7 +222,10 @@ class TestIntrospectNode(fakes.TestOvercloudNode):
             extra_vars={
                 'node_uuids': nodes,
                 'run_validations': False,
-                'concurrency': 20
+                'concurrency': 20,
+                'node_timeout': 1200,
+                'max_retries': 1,
+                'retry_timeout': 120,
             }
         )
 
