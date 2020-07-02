@@ -20,7 +20,6 @@ from osc_lib.tests import utils
 
 from tripleoclient import plugin
 
-
 AUTH_TOKEN = "foobar"
 AUTH_URL = "http://0.0.0.0"
 WS_URL = "ws://0.0.0.0"
@@ -172,19 +171,12 @@ class FakePlaybookExecution(utils.TestCommand):
         self.app.client_manager.identity = mock.Mock()
         self.app.client_manager.image = mock.Mock()
         self.app.client_manager.network = mock.Mock()
-        tc = self.app.client_manager.tripleoclient = FakeClientWrapper()
         self.tripleoclient = mock.Mock()
-        self.workflow = self.app.client_manager.workflow_engine = mock.Mock()
         stack = self.app.client_manager.orchestration = mock.Mock()
         stack.stacks.get.return_value = FakeStackObject
+        tc = self.app.client_manager.tripleoclient = FakeClientWrapper()
         tc.create_mistral_context = plugin.ClientWrapper(
-            instance=FakeInstanceData
-        ).create_mistral_context
-
-        # NOTE(cloudnull): When mistral is gone this should be removed.
-        self.execution = mock.Mock()
-        self.execution.id = "IDID"
-        self.workflow.executions.create.return_value = self.execution
+             instance=FakeInstanceData).create_mistral_context
 
         get_key = mock.patch('tripleoclient.utils.get_key')
         get_key.start()
