@@ -62,8 +62,6 @@ STACK_TIMEOUT = 240
 IRONIC_HTTP_BOOT_BIND_MOUNT = '/var/lib/ironic/httpboot'
 IRONIC_LOCAL_IMAGE_PATH = '/var/lib/ironic/images'
 
-# The default ffwd upgrade ansible playbooks generated from heat stack output
-FFWD_UPGRADE_PLAYBOOK = "fast_forward_upgrade_playbook.yaml"
 # The default minor update ansible playbooks generated from heat stack output
 MINOR_UPDATE_PLAYBOOKS = ['update_steps_playbook.yaml']
 # The default major upgrade ansible playbooks generated from heat stack output
@@ -87,8 +85,6 @@ UPGRADE_CONVERGE_FORBIDDEN_PARAMS = ["ceph3_namespace",
                                      "namespace_stein",
                                      "tag_stein",
                                      ]
-FFWD_UPGRADE_PREPARE_ENV = "environments/lifecycle/ffwd-upgrade-prepare.yaml"
-FFWD_UPGRADE_CONVERGE_ENV = "environments/lifecycle/ffwd-upgrade-converge.yaml"
 
 ENABLE_SSH_ADMIN_TIMEOUT = 600
 ENABLE_SSH_ADMIN_STATUS_INTERVAL = 5
@@ -191,7 +187,7 @@ EXPORT_PASSWORD_EXCLUDE_PATTERNS = [
 ]
 
 # Package that need to be to the latest before undercloud
-# update/update/ffwd.
+# update/update
 UNDERCLOUD_EXTRA_PACKAGES = [
     "openstack-tripleo-common",
     "openstack-tripleo-heat-templates",

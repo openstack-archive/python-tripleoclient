@@ -1829,32 +1829,6 @@ def run_command_and_log(log, cmd, cwd=None, env=None, retcode_only=True):
         return proc
 
 
-def ffwd_upgrade_operator_confirm(parsed_args_yes, log):
-    print("\nWarning! The TripleO Fast Forward Upgrade "
-          "workflow is a critical operation against the deployed "
-          "environment.\nOnce and if you decide to use ffwd-upgrade "
-          "in production, ensure you are adequately prepared "
-          "with valid backup of your current deployment state.\n")
-    if parsed_args_yes:
-        log.debug(_("Fast forward upgrade --yes continuing"))
-        print(_("Continuing fast forward upgrade"))
-        return
-    else:
-        # Fix Python 2.x.
-        try:
-            input = raw_input
-        except NameError:
-            pass
-        response = input("Proceed with the fast forward upgrade? "
-                         "Type 'yes' to continue and anything else to "
-                         "cancel.\nConsider using the --yes parameter if "
-                         "you wish to skip this warning in future. ")
-        if response != 'yes':
-            log.debug(_("Fast forward upgrade cancelled on user request"))
-            print(_("Cancelling fast forward upgrade"))
-            sys.exit(1)
-
-
 def build_prepare_env(environment_files, environment_directories):
     '''Build the environment for container image prepare
 
