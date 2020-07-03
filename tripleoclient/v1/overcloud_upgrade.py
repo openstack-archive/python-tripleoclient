@@ -24,6 +24,7 @@ from tripleoclient import exceptions
 from tripleoclient import utils as oooutils
 from tripleoclient.v1.overcloud_deploy import DeployOvercloud
 from tripleoclient.workflows import deployment
+from tripleoclient.workflows import parameters
 
 CONF = cfg.CONF
 logging.register_options(CONF)
@@ -41,6 +42,8 @@ class UpgradePrepare(DeployOvercloud):
     operation = "Prepare"
 
     template = constants.UPGRADE_PREPARE_ENV
+
+    forbidden_params = []
 
     log = logging.getLogger(__name__ + ".UpgradePrepare")
 
@@ -74,6 +77,11 @@ class UpgradePrepare(DeployOvercloud):
         parsed_args.environment_files = oooutils.prepend_environment(
             parsed_args.environment_files, templates_dir,
             self.template)
+        # Parse all environment files looking for undesired
+        # parameters
+        parameters.check_forbidden_params(self.log,
+                                          parsed_args.environment_files,
+                                          self.forbidden_params)
         super(UpgradePrepare, self).take_action(parsed_args)
 
         # enable ssh admin for Ansible-via-Mistral as that's done only
@@ -241,5 +249,7 @@ class UpgradeConvergeOvercloud(UpgradePrepare):
     operation = "Converge"
 
     template = constants.UPGRADE_CONVERGE_ENV
+
+    forbidden_params = constants.UPGRADE_CONVERGE_FORBIDDEN_PARAMS
 
     log = logging.getLogger(__name__ + ".UpgradeConvergeOvercloud")

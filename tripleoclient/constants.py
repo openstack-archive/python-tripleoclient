@@ -79,6 +79,14 @@ UPDATE_PREPARE_ENV = "environments/lifecycle/update-prepare.yaml"
 UPDATE_CONVERGE_ENV = "environments/lifecycle/update-converge.yaml"
 UPGRADE_PREPARE_ENV = "environments/lifecycle/upgrade-prepare.yaml"
 UPGRADE_CONVERGE_ENV = "environments/lifecycle/upgrade-converge.yaml"
+UPGRADE_CONVERGE_FORBIDDEN_PARAMS = ["ceph3_namespace",
+                                     "ceph3_tag",
+                                     "ceph3_image",
+                                     "name_prefix_stein",
+                                     "name_suffix_stein",
+                                     "namespace_stein",
+                                     "tag_stein",
+                                     ]
 FFWD_UPGRADE_PREPARE_ENV = "environments/lifecycle/ffwd-upgrade-prepare.yaml"
 FFWD_UPGRADE_CONVERGE_ENV = "environments/lifecycle/ffwd-upgrade-converge.yaml"
 
