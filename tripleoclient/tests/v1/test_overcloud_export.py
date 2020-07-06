@@ -52,7 +52,7 @@ class TestOvercloudExport(utils.TestCommand):
             self.app.client_manager.tripleoclient.object_store,
             'overcloud', True)
         path = os.path.join(os.environ.get('HOME'),
-                            'config-download/overcloud')
+                            'config-download')
         mock_export_stack.assert_called_once_with(
             self.app.client_manager.orchestration,
             'overcloud',
@@ -81,7 +81,7 @@ class TestOvercloudExport(utils.TestCommand):
             self.app.client_manager.tripleoclient.object_store,
             'foo', True)
         path = os.path.join(os.environ.get('HOME'),
-                            'config-download/foo')
+                            'config-download')
         mock_export_stack.assert_called_once_with(
             self.app.client_manager.orchestration,
             'foo',
