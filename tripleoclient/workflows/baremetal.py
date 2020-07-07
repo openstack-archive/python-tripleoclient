@@ -158,7 +158,7 @@ def provide_manageable_nodes(clients, verbosity=0):
 
 
 def introspect(clients, node_uuids, run_validations, concurrency,
-               verbosity=0):
+               node_timeout, max_retries, retry_timeout, verbosity=0):
     """Introspect Baremetal Nodes
 
     :param clients: Application client object.
@@ -188,6 +188,10 @@ def introspect(clients, node_uuids, run_validations, concurrency,
                 "node_uuids": node_uuids,
                 "run_validations": run_validations,
                 "concurrency": concurrency,
+                "node_timeout": node_timeout,
+                "max_retries": max_retries,
+                "retry_timeout": retry_timeout,
+
             }
         )
 
@@ -195,17 +199,27 @@ def introspect(clients, node_uuids, run_validations, concurrency,
 
 
 def introspect_manageable_nodes(clients, run_validations, concurrency,
+                                node_timeout, max_retries, retry_timeout,
                                 verbosity=0):
     """Introspect all manageable nodes
 
     :param clients: Application client object.
     :type clients: Object
 
-    :param verbosity: Enable or disable validations
-    :type verbosity: Boolean
+    :param run_validations: Enable or disable validations
+    :type run_validations: Boolean
 
-    :param verbosity: concurrency level
-    :type verbosity: Integer
+    :param concurrency: Concurrency level
+    :type concurrency: Integer
+
+    :param node_timeout: Node timeout for introspection
+    :type node_timeout: Integer
+
+    :param max_retries: Max retries for introspection
+    :type max_retries: Integer
+
+    :param retry_timeout: Max timeout to wait between retries
+    :type retry_timeout: Integer
 
     :param verbosity: Verbosity level
     :type verbosity: Integer
@@ -219,6 +233,9 @@ def introspect_manageable_nodes(clients, run_validations, concurrency,
         ],
         run_validations=run_validations,
         concurrency=concurrency,
+        node_timeout=node_timeout,
+        max_retries=max_retries,
+        retry_timeout=retry_timeout,
         verbosity=verbosity
     )
 
