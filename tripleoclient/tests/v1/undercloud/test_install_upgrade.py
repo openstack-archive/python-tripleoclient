@@ -575,6 +575,8 @@ class TestUndercloudUpgrade(TestPluginV1):
         app_args.verbose_level = 1
         self.cmd = undercloud.UpgradeUndercloud(self.app, app_args)
 
+    @mock.patch('os.system')
+    @mock.patch('sys.version_info')
     @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
                 return_value=True)
     @mock.patch.object(sys, 'executable', 'python2')
@@ -587,14 +589,30 @@ class TestUndercloudUpgrade(TestPluginV1):
     @mock.patch('subprocess.check_call', autospec=True)
     @mock.patch('tripleoclient.utils.run_command', autospec=True)
     def test_undercloud_upgrade_default(self, mock_run_command,
-                                        mock_subprocess,
-                                        mock_wr,
-                                        mock_os, mock_copy, mock_user,
-                                        mock_getuid, mock_confirm):
+                                        mock_subprocess, mock_wr,
+                                        mock_os_mkdir, mock_copy, mock_user,
+                                        mock_getuid, mock_confirm, mock_sys,
+                                        mock_os_sys):
         arglist = ['--no-validations']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
+        mock_sys.major = 3
+        mock_os_sys.return_value = 0
+        # DisplayCommandBase.take_action() returns two tuples
+        self.cmd.take_action(parsed_args)
+        mock_run_command.assert_called_with(
+            ['sudo', 'dnf', 'upgrade', '-y',
+             'python2-tripleoclient',
+             'openstack-tripleo-common',
+             'openstack-tripleo-heat-templates',
+             'openstack-tripleo-validations',
+             'tripleo-ansible'],
+            name='Update extra packages'
+        )
+        mock_os_sys.assert_called_with("which dnf")
+
+        mock_sys.major = 2
         # DisplayCommandBase.take_action() returns two tuples
         self.cmd.take_action(parsed_args)
         mock_run_command.assert_called_with(
@@ -606,6 +624,7 @@ class TestUndercloudUpgrade(TestPluginV1):
              'tripleo-ansible'],
             name='Update extra packages'
         )
+
         mock_subprocess.assert_called_with([
             'openstack', 'undercloud', 'upgrade', '--skip-package-updates',
             '--no-validations'])
