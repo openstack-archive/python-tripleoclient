@@ -1686,12 +1686,20 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('subprocess.Popen', autospec=True)
     def test__get_undercloud_host_entry(self, mock_popen):
         mock_process = mock.Mock()
-        mock_process.communicate.return_value = (
-            'fd12::1 uc.ctlplane.localdomain uc.ctlplane', '')
-        mock_process.returncode = 0
-        mock_popen.return_value = mock_process
-        expected = ('fd12::1 uc.ctlplane.localdomain uc.ctlplane')
-        self.assertEqual(expected, self.cmd._get_undercloud_host_entry())
+        mock_hosts = {
+            'fd12::1 uc.ctlplane.localdomain uc.ctlplane':
+                'fd12::1 uc.ctlplane.localdomain uc.ctlplane',
+            'fd12::1 uc.ctlplane.localdomain uc.ctlplane\n'
+            'fd12::1 uc.ctlplane.localdomain uc.ctlplane':
+                'fd12::1 uc.ctlplane.localdomain uc.ctlplane',
+            '1.2.3.4 uc.ctlplane foo uc.ctlplane bar uc.ctlplane':
+                '1.2.3.4 uc.ctlplane foo bar'
+        }
+        for value, expected in mock_hosts.items():
+            mock_process.communicate.return_value = (value, '')
+            mock_process.returncode = 0
+            mock_popen.return_value = mock_process
+            self.assertEqual(expected, self.cmd._get_undercloud_host_entry())
 
     def test_check_limit_warning(self):
         mock_warning = mock.MagicMock()
