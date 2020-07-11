@@ -523,7 +523,7 @@ def check(verbose_level, upgrade=False):
         _validate_ips()
         _checking_status('Network interfaces')
         _validate_interface_exists()
-        _checking_status('Provisionning IP change')
+        _checking_status('Provisioning IP change')
         _validate_no_ip_change()
         _checking_status('Architecture')
         _validate_architecure_options()
