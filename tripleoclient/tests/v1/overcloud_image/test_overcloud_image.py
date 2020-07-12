@@ -1129,7 +1129,7 @@ class TestUploadOnlyExisting(TestPluginV1):
         self.cmd.take_action(parsed_args)
 
         # ensure check_file_exists has not been called
-        self.assertItemsEqual(
+        self.assertCountEqual(
             self.cmd.adapter.check_file_exists.call_args_list,
             [mock.call(self.cmd.adapter, './ironic-python-agent.initramfs'),
              mock.call(self.cmd.adapter, './ironic-python-agent.kernel')])
@@ -1194,7 +1194,7 @@ class TestUploadOnlyExisting(TestPluginV1):
         self.cmd.take_action(parsed_args)
 
         # ensure check_file_exists has been called just with ipa
-        self.assertItemsEqual(
+        self.assertCountEqual(
             self.cmd.adapter.check_file_exists.call_args_list,
             [mock.call(self.cmd.adapter, './ironic-python-agent.initramfs'),
              mock.call(self.cmd.adapter, './ironic-python-agent.kernel')]
@@ -1226,7 +1226,7 @@ class TestUploadOnlyExisting(TestPluginV1):
         self.cmd.take_action(parsed_args)
 
         # ensure check_file_exists has been called just with ipa
-        self.assertItemsEqual(
+        self.assertCountEqual(
             self.cmd.adapter.check_file_exists.call_args_list,
             [mock.call(self.cmd.adapter, './overcloud-full.qcow2')])
 
