@@ -137,6 +137,12 @@ class DeployOvercloud(command.Command):
             container_name)
         return parameter_defaults
 
+    def _check_limit_skiplist_warning(self, env):
+        if env.get('parameter_defaults').get('DeploymentServerBlacklist'):
+            msg = _('[WARNING] DeploymentServerBlacklist is defined and will '
+                    'be ignored because --limit has been specified.')
+            self.log.warning(msg)
+
     def _user_env_path(self, abs_env_path, tht_root):
         env_dirname = os.path.dirname(abs_env_path)
         user_env_dir = os.path.join(
@@ -451,6 +457,11 @@ class DeployOvercloud(command.Command):
             created_env_files, tht_root, user_tht_root,
             cleanup=(not parsed_args.no_cleanup))
         template_utils.deep_update(env, localenv)
+
+        if parsed_args.limit:
+            # check if skip list is defined while using --limit and throw a
+            # warning if necessary
+            self._check_limit_skiplist_warning(env)
 
         if stack:
             if not parsed_args.disable_validations:
