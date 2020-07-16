@@ -1691,6 +1691,45 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         expected = ('fd12::1 uc.ctlplane.localdomain uc.ctlplane')
         self.assertEqual(expected, self.cmd._get_undercloud_host_entry())
 
+    def test_check_limit_warning(self):
+        mock_warning = mock.MagicMock()
+        mock_log = mock.MagicMock()
+        mock_log.warning = mock_warning
+        env = {'parameter_defaults': {}}
+
+        old_logger = self.cmd.log
+        self.cmd.log = mock_log
+        self.cmd._check_limit_skiplist_warning(env)
+        self.cmd.log = old_logger
+        mock_warning.assert_not_called()
+
+    def test_check_limit_warning_empty(self):
+        mock_warning = mock.MagicMock()
+        mock_log = mock.MagicMock()
+        mock_log.warning = mock_warning
+        env = {'parameter_defaults': {'DeploymentServerBlacklist': []}}
+
+        old_logger = self.cmd.log
+        self.cmd.log = mock_log
+        self.cmd._check_limit_skiplist_warning(env)
+        self.cmd.log = old_logger
+        mock_warning.assert_not_called()
+
+    def test_check_limit_warning_warns(self):
+        mock_warning = mock.MagicMock()
+        mock_log = mock.MagicMock()
+        mock_log.warning = mock_warning
+        env = {'parameter_defaults': {'DeploymentServerBlacklist': ['a']}}
+
+        old_logger = self.cmd.log
+        self.cmd.log = mock_log
+        self.cmd._check_limit_skiplist_warning(env)
+        self.cmd.log = old_logger
+        expected_message = ('[WARNING] DeploymentServerBlacklist is defined '
+                            'and will be ignored because --limit has been '
+                            'specified.')
+        mock_warning.assert_called_once_with(expected_message)
+
 
 class TestArgumentValidation(fakes.TestDeployOvercloud):
 

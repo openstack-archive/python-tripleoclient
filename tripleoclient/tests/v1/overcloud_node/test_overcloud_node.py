@@ -409,6 +409,47 @@ class TestDeleteNode(fakes.TestDeleteNode):
             parsed_args, bm_yaml)
         self.assertEqual(['aaaa', 'dddd'], result)
 
+    def test_check_skiplist_exists(self):
+        mock_warning = mock.MagicMock()
+        mock_log = mock.MagicMock()
+        mock_log.warning = mock_warning
+        env = {'parameter_defaults': {}}
+
+        old_logger = self.cmd.log
+        self.cmd.log = mock_log
+        self.cmd._check_skiplist_exists(env)
+        self.cmd.log = old_logger
+        mock_warning.assert_not_called()
+
+    def test_check_skiplist_exists_empty(self):
+        mock_warning = mock.MagicMock()
+        mock_log = mock.MagicMock()
+        mock_log.warning = mock_warning
+        env = {'parameter_defaults': {'DeploymentServerBlacklist': []}}
+
+        old_logger = self.cmd.log
+        self.cmd.log = mock_log
+        self.cmd._check_skiplist_exists(env)
+        self.cmd.log = old_logger
+        mock_warning.assert_not_called()
+
+    def test_check_skiplist_exists_warns(self):
+        mock_warning = mock.MagicMock()
+        mock_log = mock.MagicMock()
+        mock_log.warning = mock_warning
+        env = {'parameter_defaults': {'DeploymentServerBlacklist': ['a']}}
+
+        old_logger = self.cmd.log
+        self.cmd.log = mock_log
+        self.cmd._check_skiplist_exists(env)
+        self.cmd.log = old_logger
+        expected_message = ('[WARNING] DeploymentServerBlacklist is ignored '
+                            'when executing scale down actions. If the '
+                            'node(s) being removed should *NOT* have any '
+                            'actions executed on them, please shut them off '
+                            'prior to their removal.')
+        mock_warning.assert_called_once_with(expected_message)
+
 
 class TestProvideNode(fakes.TestOvercloudNode):
 
