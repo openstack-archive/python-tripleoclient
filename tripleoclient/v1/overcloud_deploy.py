@@ -1017,7 +1017,6 @@ class DeployOvercloud(command.Command):
             return
 
         try:
-
             if parsed_args.config_download:
                 print("Deploying overcloud configuration")
                 deployment.set_deployment_status(
@@ -1026,52 +1025,52 @@ class DeployOvercloud(command.Command):
                     status='DEPLOYING'
                 )
 
-            if not parsed_args.config_download_only:
-                deployment.get_hosts_and_enable_ssh_admin(
+                if not parsed_args.config_download_only:
+                    deployment.get_hosts_and_enable_ssh_admin(
+                        stack,
+                        parsed_args.overcloud_ssh_network,
+                        parsed_args.overcloud_ssh_user,
+                        self.get_key_pair(parsed_args),
+                        parsed_args.overcloud_ssh_port_timeout,
+                        verbosity=utils.playbook_verbosity(self=self)
+                    )
+
+                if parsed_args.config_download_timeout:
+                    timeout = parsed_args.config_download_timeout
+                else:
+                    used = int((time.time() - start) // 60)
+                    timeout = parsed_args.timeout - used
+                    if timeout <= 0:
+                        raise exceptions.DeploymentError(
+                            'Deployment timed out after %sm' % used)
+
+                deployment_options = {}
+                if parsed_args.deployment_python_interpreter:
+                    deployment_options['ansible_python_interpreter'] = \
+                        parsed_args.deployment_python_interpreter
+
+                deployment.config_download(
+                    self.log,
+                    self.clients,
                     stack,
                     parsed_args.overcloud_ssh_network,
-                    parsed_args.overcloud_ssh_user,
-                    self.get_key_pair(parsed_args),
-                    parsed_args.overcloud_ssh_port_timeout,
-                    verbosity=utils.playbook_verbosity(self=self)
+                    parsed_args.output_dir,
+                    parsed_args.override_ansible_cfg,
+                    timeout=parsed_args.overcloud_ssh_port_timeout,
+                    verbosity=utils.playbook_verbosity(self=self),
+                    deployment_options=deployment_options,
+                    in_flight_validations=parsed_args.inflight,
+                    deployment_timeout=timeout,
+                    tags=parsed_args.tags,
+                    skip_tags=parsed_args.skip_tags,
+                    limit_hosts=utils.playbook_limit_parse(
+                        limit_nodes=parsed_args.limit
+                    )
                 )
-
-            if parsed_args.config_download_timeout:
-                timeout = parsed_args.config_download_timeout
-            else:
-                used = int((time.time() - start) // 60)
-                timeout = parsed_args.timeout - used
-                if timeout <= 0:
-                    raise exceptions.DeploymentError(
-                        'Deployment timed out after %sm' % used)
-
-            deployment_options = {}
-            if parsed_args.deployment_python_interpreter:
-                deployment_options['ansible_python_interpreter'] = \
-                    parsed_args.deployment_python_interpreter
-
-            deployment.config_download(
-                self.log,
-                self.clients,
-                stack,
-                parsed_args.overcloud_ssh_network,
-                parsed_args.output_dir,
-                parsed_args.override_ansible_cfg,
-                timeout=parsed_args.overcloud_ssh_port_timeout,
-                verbosity=utils.playbook_verbosity(self=self),
-                deployment_options=deployment_options,
-                in_flight_validations=parsed_args.inflight,
-                deployment_timeout=timeout,
-                tags=parsed_args.tags,
-                skip_tags=parsed_args.skip_tags,
-                limit_hosts=utils.playbook_limit_parse(
-                    limit_nodes=parsed_args.limit
-                )
-            )
-            deployment.set_deployment_status(
-                clients=self.clients,
-                plan=stack.stack_name,
-                status=deploy_status)
+                deployment.set_deployment_status(
+                    clients=self.clients,
+                    plan=stack.stack_name,
+                    status=deploy_status)
         except Exception as deploy_e:
             deploy_status = 'DEPLOY_FAILED'
             deploy_message = 'with error'
