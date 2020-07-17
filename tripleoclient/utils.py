@@ -703,6 +703,8 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
 
         if fail_on_rc:
             raise RuntimeError(err_msg)
+        else:
+            LOG.error(err_msg + '. Ignoring.')
 
     LOG.info(
         'Ansible execution success. playbook: {}'.format(
