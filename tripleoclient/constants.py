@@ -196,10 +196,17 @@ UNDERCLOUD_EXTRA_PACKAGES = [
     "tripleo-ansible"
 ]
 
-# UPGRADE_PROMPT
-UPGRADE_PROMPT = _('It is strongly recommended to perform a backup '
+UPGRADE_PROMPT = _('You are about to run a UPGRADE command. '
+                   'It is strongly recommended to perform a backup '
                    'before the upgrade. Are you sure you want to '
                    'upgrade [y/N]?')
 UPGRADE_NO = _('User did not confirm upgrade, so exiting. '
-               'Consider using the --yes parameter if you '
+               'Consider using the --yes/-y parameter if you '
                'prefer to skip this warning in the future')
+UPDATE_PROMPT = _('You are about to run a UPDATE command. '
+                  'It is strongly recommended to perform a backup '
+                  'before the update. Are you sure you want to '
+                  'update [y/N]?')
+UPDATE_NO = _('User did not confirm update, so exiting. '
+              'Consider using the --yes/-y parameter if you '
+              'prefer to skip this warning in the future')

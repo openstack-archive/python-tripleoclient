@@ -36,6 +36,8 @@ class TestOvercloudUpdatePrepare(fakes.TestOvercloudUpdatePrepare):
         self.mock_uuid4 = uuid4_patcher.start()
         self.addCleanup(self.mock_uuid4.stop)
 
+    @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
+                return_value=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_get_undercloud_host_entry', autospec=True,
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
@@ -53,7 +55,8 @@ class TestOvercloudUpdatePrepare(fakes.TestOvercloudUpdatePrepare):
                 '_deploy_tripleo_heat_templates_tmpdir', autospec=True)
     def test_update_out(self, mock_deploy, mock_open, mock_copy, mock_yaml,
                         mock_abspath, mock_update, mock_logger,
-                        mock_get_stack, mock_get_undercloud_host_entry):
+                        mock_get_stack, mock_get_undercloud_host_entry,
+                        mock_confirm):
         mock_stack = mock.Mock(parameters={'DeployIdentifier': ''})
         mock_stack.stack_name = 'overcloud'
         mock_get_stack.return_value = mock_stack
@@ -77,6 +80,8 @@ class TestOvercloudUpdatePrepare(fakes.TestOvercloudUpdatePrepare):
                 container='overcloud',
             )
 
+    @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
+                return_value=True)
     @mock.patch('tripleoclient.utils.get_stack',
                 autospec=True)
     @mock.patch('tripleoclient.workflows.package_update.update',
@@ -89,7 +94,7 @@ class TestOvercloudUpdatePrepare(fakes.TestOvercloudUpdatePrepare):
                 '_deploy_tripleo_heat_templates', autospec=True)
     def test_update_failed(self, mock_deploy, mock_copy, mock_yaml,
                            mock_abspath, mock_open, mock_update,
-                           mock_get_stack):
+                           mock_get_stack, mock_confirm):
         mock_stack = mock.Mock(parameters={'DeployIdentifier': ''})
         mock_stack.stack_name = 'overcloud'
         mock_get_stack.return_value = mock_stack
@@ -124,13 +129,16 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
         self.mock_uuid4 = uuid4_patcher.start()
         self.addCleanup(self.mock_uuid4.stop)
 
+    @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
+                return_value=True)
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
     @mock.patch('six.moves.builtins.open')
     def test_update_with_no_limit(
-            self, mock_open, mock_execute, mock_expanduser, update_ansible):
+            self, mock_open, mock_execute, mock_expanduser, update_ansible,
+            mock_confirm):
         mock_expanduser.return_value = '/home/fake/'
         argslist = []
         verifylist = [
@@ -151,9 +159,11 @@ class TestOvercloudUpdateConverge(fakes.TestOvercloudUpdateConverge):
         app_args.verbose_level = 1
         self.cmd = overcloud_update.UpdateConverge(self.app, app_args)
 
+    @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
+                return_value=True)
     @mock.patch(
         'tripleoclient.v1.overcloud_deploy.DeployOvercloud.take_action')
-    def test_update_converge(self, deploy_action):
+    def test_update_converge(self, deploy_action, mock_confirm):
         argslist = ['--templates', '--stack', 'cloud']
         verifylist = [
             ('stack', 'cloud')
