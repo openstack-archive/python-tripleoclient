@@ -18,6 +18,8 @@ from oslo_log import log as logging
 from osc_lib.i18n import _
 from osc_lib import utils
 
+from tripleoclient.exceptions import OvercloudUpdateNotConfirmed
+
 from tripleoclient import command
 from tripleoclient import constants
 from tripleoclient import utils as oooutils
@@ -41,10 +43,22 @@ class UpdatePrepare(DeployOvercloud):
 
     def get_parser(self, prog_name):
         parser = super(UpdatePrepare, self).get_parser(prog_name)
+        parser.add_argument('-y', '--yes', default=False,
+                            action='store_true',
+                            help=_("Use -y or --yes to skip the confirmation "
+                                   "required before any update operation. "
+                                   "Use this with caution! "),
+                            )
         return parser
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+
+        if (not parsed_args.yes
+                and not oooutils.prompt_user_for_confirmation(
+                    constants.UPDATE_PROMPT, self.log)):
+            raise OvercloudUpdateNotConfirmed(constants.UPDATE_NO)
+
         clients = self.app.client_manager
 
         stack = oooutils.get_stack(clients.orchestration,
@@ -152,10 +166,23 @@ class UpdateRun(command.Command):
             help=_('A list of tags to skip when running the'
                    ' config-download ansible-playbook command.')
         )
+        parser.add_argument(
+            '-y', '--yes',
+            default=False,
+            action='store_true',
+            help=_("Use -y or --yes to skip the confirmation required before "
+                   "any update operation. Use this with caution! "),
+        )
         return parser
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+
+        if (not parsed_args.yes
+            and not oooutils.prompt_user_for_confirmation(
+                    constants.UPDATE_PROMPT, self.log)):
+            raise OvercloudUpdateNotConfirmed(constants.UPDATE_NO)
+
         clients = self.app.client_manager
         orchestration = clients.orchestration
         verbosity = self.app_args.verbose_level
@@ -201,8 +228,23 @@ class UpdateConverge(DeployOvercloud):
 
     log = logging.getLogger(__name__ + ".UpdateConverge")
 
+    def get_parser(self, prog_name):
+        parser = super(UpdateConverge, self).get_parser(prog_name)
+        parser.add_argument('-y', '--yes', default=False,
+                            action='store_true',
+                            help=_("Use -y or --yes to skip the confirmation "
+                                   "required before any update operation. "
+                                   "Use this with caution! "),
+                            )
+        return parser
+
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+
+        if (not parsed_args.yes
+            and not oooutils.prompt_user_for_confirmation(
+                    constants.UPDATE_PROMPT, self.log)):
+            raise OvercloudUpdateNotConfirmed(constants.UPDATE_NO)
 
         # Add the update-converge.yaml environment to unset noops
         templates_dir = (parsed_args.templates or

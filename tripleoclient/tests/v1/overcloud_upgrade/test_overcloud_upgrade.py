@@ -37,6 +37,8 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
         self.mock_uuid4 = uuid4_patcher.start()
         self.addCleanup(self.mock_uuid4.stop)
 
+    @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
+                return_value=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 'take_action')
     @mock.patch('tripleoclient.workflows.deployment.'
@@ -58,7 +60,8 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
                          add_env,
                          mock_get_config,
                          mock_enable_ssh_admin,
-                         mock_overcloud_deploy):
+                         mock_overcloud_deploy,
+                         mock_confirm):
 
         mock_stack = mock.Mock(parameters={'DeployIdentifier': ''})
         mock_stack.stack_name = 'overcloud'
@@ -92,6 +95,8 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
             parsed_args.overcloud_ssh_user, mock.ANY,
             10, 10)
 
+    @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
+                return_value=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 'take_action')
     @mock.patch('tripleoclient.utils.get_stack',
@@ -100,7 +105,8 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
     @mock.patch('six.moves.builtins.open')
     @mock.patch('yaml.load')
     def test_upgrade_failed(self, mock_yaml, mock_open,
-                            add_env, mock_get_stack, mock_overcloud_deploy):
+                            add_env, mock_get_stack, mock_overcloud_deploy,
+                            mock_confirm):
         mock_overcloud_deploy.side_effect = exceptions.DeploymentError()
         mock_yaml.return_value = {'fake_container': 'fake_value'}
         mock_stack = mock.Mock(parameters={'DeployIdentifier': ''})
@@ -144,13 +150,16 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
         self.mock_uuid4 = uuid4_patcher.start()
         self.addCleanup(self.mock_uuid4.stop)
 
+    @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
+                return_value=True)
     @mock.patch('tripleoclient.workflows.package_update.update_ansible',
                 autospec=True)
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
     @mock.patch('six.moves.builtins.open')
     def test_upgrade_limit_with_playbook_and_user(
-            self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
+            self, mock_open, mock_execute, mock_expanduser, upgrade_ansible,
+            mock_confirm):
         mock_expanduser.return_value = '/home/fake/'
         argslist = ['--limit', 'Compute, Controller',
                     '--playbook', 'fake-playbook.yaml',
@@ -178,13 +187,16 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                 extra_vars=None
             )
 
+    @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
+                return_value=True)
     @mock.patch('tripleoclient.workflows.package_update.update_ansible',
                 autospec=True)
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
     @mock.patch('six.moves.builtins.open')
     def test_upgrade_limit_all_playbooks_skip_validation(
-            self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
+            self, mock_open, mock_execute, mock_expanduser, upgrade_ansible,
+            mock_confirm):
         mock_expanduser.return_value = '/home/fake/'
         argslist = ['--limit', 'Compute', '--playbook', 'all',
                     '--skip-tags', 'validation']
@@ -213,13 +225,16 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                     extra_vars=None
                 )
 
+    @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
+                return_value=True)
     @mock.patch('tripleoclient.workflows.package_update.update_ansible',
                 autospec=True)
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
     @mock.patch('six.moves.builtins.open')
     def test_upgrade_limit_all_playbooks_only_validation(
-            self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
+            self, mock_open, mock_execute, mock_expanduser, upgrade_ansible,
+            mock_confirm):
         mock_expanduser.return_value = '/home/fake/'
         argslist = ['--limit', 'Compute', '--playbook', 'all',
                     '--tags', 'validation']
@@ -248,13 +263,16 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                     extra_vars=None
                 )
 
+    @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
+                return_value=True)
     @mock.patch('tripleoclient.workflows.package_update.update_ansible',
                 autospec=True)
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
     @mock.patch('six.moves.builtins.open')
     def test_upgrade_nodes_with_playbook_no_skip_tags(
-            self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
+            self, mock_open, mock_execute, mock_expanduser, upgrade_ansible,
+            mock_confirm):
         mock_expanduser.return_value = '/home/fake/'
         argslist = ['--limit', 'compute-0,compute-1',
                     '--playbook', 'fake-playbook.yaml', ]
@@ -281,13 +299,16 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                 extra_vars=None
             )
 
+    @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
+                return_value=True)
     @mock.patch('tripleoclient.workflows.package_update.update_ansible',
                 autospec=True)
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
     @mock.patch('six.moves.builtins.open')
     def test_upgrade_node_all_playbooks_skip_tags_default(
-            self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
+            self, mock_open, mock_execute, mock_expanduser, upgrade_ansible,
+            mock_confirm):
         mock_expanduser.return_value = '/home/fake/'
         argslist = ['--limit', 'swift-1', '--playbook', 'all']
         verifylist = [
@@ -314,13 +335,16 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                     extra_vars=None
                 )
 
+    @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
+                return_value=True)
     @mock.patch('tripleoclient.workflows.package_update.update_ansible',
                 autospec=True)
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
     @mock.patch('six.moves.builtins.open')
     def test_upgrade_node_all_playbooks_skip_tags_all_supported(
-            self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
+            self, mock_open, mock_execute, mock_expanduser, upgrade_ansible,
+            mock_confirm):
         mock_expanduser.return_value = '/home/fake/'
         argslist = ['--limit', 'swift-1', '--playbook', 'all',
                     '--skip-tags', 'pre-upgrade,validation']
@@ -362,6 +386,8 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
         self.assertRaises(ParserException, lambda: self.check_parser(
             self.cmd, argslist, verifylist))
 
+    @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
+                return_value=True)
     @mock.patch('tripleoclient.workflows.package_update.update_ansible',
                 autospec=True)
     @mock.patch('os.path.expanduser')
@@ -369,7 +395,8 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
     @mock.patch('six.moves.builtins.open')
     # it is 'validation' not 'validations'
     def test_upgrade_skip_tags_validations(self, mock_open, mock_execute,
-                                           mock_expanduser, upgrade_ansible):
+                                           mock_expanduser, upgrade_ansible,
+                                           mock_confirm):
         mock_expanduser.return_value = '/home/fake/'
         argslist = ['--limit', 'overcloud-compute-1',
                     '--skip-tags', 'validations']
@@ -385,6 +412,8 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
             self.assertRaises(exceptions.InvalidConfiguration,
                               lambda: self.cmd.take_action(parsed_args))
 
+    @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
+                return_value=True)
     @mock.patch('tripleoclient.workflows.package_update.update_ansible',
                 autospec=True)
     @mock.patch('os.path.expanduser')
@@ -392,7 +421,8 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
     @mock.patch('six.moves.builtins.open')
     # should only support the constants.MAJOR_UPGRADE_SKIP_TAGS
     def test_upgrade_skip_tags_unsupported_validation_anything_else(
-            self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
+            self, mock_open, mock_execute, mock_expanduser, upgrade_ansible,
+            mock_confirm):
         mock_expanduser.return_value = '/home/fake/'
         argslist = ['--limit', 'overcloud-compute-1',
                     '--skip-tags', 'validation,anything-else']
@@ -408,6 +438,8 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
             self.assertRaises(exceptions.InvalidConfiguration,
                               lambda: self.cmd.take_action(parsed_args))
 
+    @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
+                return_value=True)
     @mock.patch('tripleoclient.workflows.package_update.update_ansible',
                 autospec=True)
     @mock.patch('os.path.expanduser')
@@ -415,7 +447,8 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
     @mock.patch('six.moves.builtins.open')
     # should only support the constants.MAJOR_UPGRADE_SKIP_TAGS
     def test_upgrade_skip_tags_unsupported_pre_upgrade_anything_else(
-            self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
+            self, mock_open, mock_execute, mock_expanduser, upgrade_ansible,
+            mock_confirm):
         mock_expanduser.return_value = '/home/fake/'
         argslist = ['--limit', 'overcloud-compute-1',
                     '--skip-tags', 'pre-upgrade,anything-else']
