@@ -390,17 +390,15 @@ def config_download(log, clients, stack, ssh_network='ctlplane',
         logger=log,
         print_msg=(verbosity == 0)
     )
-    blacklist_show = stack.output_show('BlacklistedHostnames')
-    blacklist_stack_output = blacklist_show.get('output', dict())
-    blacklist_stack_output_value = blacklist_stack_output.get('output_value')
-    if blacklist_stack_output_value:
-
-        if not limit_hosts:
-            limit_hosts = ""
-
-        limit_hosts += (
-            ':'.join(['!{}'.format(i) for i in blacklist_stack_output_value
-                      if i]))
+    if not limit_hosts:
+        blacklist_show = stack.output_show('BlacklistedHostnames')
+        blacklist_stack_output = blacklist_show.get('output', dict())
+        blacklist_stack_output_value = blacklist_stack_output.get(
+            'output_value')
+        if blacklist_stack_output_value:
+            limit_hosts = (
+                ':'.join(['!{}'.format(i) for i in blacklist_stack_output_value
+                          if i]))
 
     key_file = utils.get_key(stack.stack_name)
     python_interpreter = deployment_options.get('ansible_python_interpreter')
