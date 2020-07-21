@@ -137,6 +137,16 @@ class DeleteNode(command.Command):
         )
         return output.getvalue(), node_hostnames
 
+    def _check_skiplist_exists(self, env):
+        skiplist = env.get('parameter_defaults',
+                           {}).get('DeploymentServerBlacklist')
+        if skiplist:
+            self.log.warning(_('[WARNING] DeploymentServerBlacklist is '
+                               'ignored when executing scale down actions. If '
+                               'the node(s) being removed should *NOT* have '
+                               'any actions executed on them, please shut '
+                               'them off prior to their removal.'))
+
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
         clients = self.app.client_manager
@@ -171,6 +181,8 @@ class DeleteNode(command.Command):
 
         print("Deleting the following nodes from stack {stack}:\n{nodes}"
               .format(stack=stack.stack_name, nodes=nodes_text))
+
+        self._check_skiplist_exists(stack.environment())
 
         scale.scale_down(
             log=self.log,
