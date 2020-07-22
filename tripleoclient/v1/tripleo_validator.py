@@ -423,7 +423,7 @@ class TripleOValidatorRun(command.Command):
     def _run_ansible(self, logger, plan, workdir, log_path_dir, playbook,
                      inventory, retries, output_callback, extra_vars,
                      python_interpreter, gathering_policy):
-        rc, output = oooutils.run_ansible_playbook(
+        oooutils.run_ansible_playbook(
             logger=logger,
             plan=plan,
             workdir=workdir,
@@ -435,7 +435,6 @@ class TripleOValidatorRun(command.Command):
             extra_vars=extra_vars,
             python_interpreter=python_interpreter,
             gathering_policy=gathering_policy)
-        return rc, output
 
     def _run_validator_run(self, parsed_args):
         LOG = logging.getLogger(__name__ + ".ValidationsRunAnsible")
@@ -505,13 +504,13 @@ class TripleOValidatorRun(command.Command):
 
         for tk, pl in six.iteritems(tasks_exec):
             try:
-                _rc, output = tk.result()
+                tk.result()
                 results.append({
                     'validation': {
                         'validation_id': pl,
                         'logfile': None,
                         'status': 'PASSED',
-                        'output': output
+                        'output': 'Ansible playbook execution complete.'
                     }})
             except Exception as e:
                 failed_val = True

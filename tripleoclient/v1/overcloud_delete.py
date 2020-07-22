@@ -126,18 +126,15 @@ class DeleteOvercloud(command.Command):
             tmp_tripleoclient_dir, remote_user)
 
         try:
-            rc, output = utils.run_ansible_playbook(
+            utils.run_ansible_playbook(
                 self.log,
                 constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
                 playbook,
                 static_inventory,
                 log_path_dir=pwd.getpwuid(os.getuid()).pw_dir,
                 ansible_config=ansible_config,
-                python_interpreter=python_interpreter)
-            if rc != 0:
-                self.log.warning(
-                    "{} did not complete successfully.".format(playbook)
-                )
+                python_interpreter=python_interpreter
+            )
         finally:
             self.log.debug("Removing static tripleo ansible inventory file")
             utils.cleanup_tripleo_ansible_inventory_file(static_inventory)

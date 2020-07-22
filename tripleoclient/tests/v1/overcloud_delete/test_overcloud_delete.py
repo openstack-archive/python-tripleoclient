@@ -127,10 +127,6 @@ class TestDeleteOvercloud(fakes.TestDeployOvercloud):
         self.cmd.log.debug.assert_any_call(
             "Removing temporary ansible configuration directory"
         )
-        self.cmd.log.warning.assert_any_call(
-            "/usr/share/ansible/tripleo-playbooks/cli-cleanup-ipa.yml "
-            "did not complete successfully."
-        )
 
     @mock.patch(
         "tripleoclient.v1.overcloud_delete.DeleteOvercloud._cleanup_ipa",

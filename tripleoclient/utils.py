@@ -211,11 +211,15 @@ def run_ansible_playbook(logger,
 
     play = os.path.join(workdir, playbook)
 
-    if os.path.exists(play):
-        cmd = ["ansible-playbook-{}".format(sys.version_info[0]),
-               '-u', ssh_user,
-               '-i', inventory
-               ]
+    try:
+        if not os.path.exists(play):
+            raise RuntimeError('No such playbook: %s' % play)
+
+        cmd = [
+            "ansible-playbook-{}".format(sys.version_info[0]),
+            '-u', ssh_user,
+            '-i', inventory
+        ]
 
         if 0 < verbosity < 6:
             cmd.extend(['-' + ('v' * verbosity)])
@@ -254,15 +258,15 @@ def run_ansible_playbook(logger,
 
         cmd.extend(['-c', connection, play])
 
-        proc = run_command_and_log(logger, cmd, env=env, retcode_only=False)
-        proc.wait()
+        if run_command_and_log(logger, cmd, env=env) != 0:
+            logger.warning(
+                "{} did not complete successfully.".format(play)
+            )
+            raise RuntimeError(
+                "Ansible playbook execution failed: {}.".format(cmd)
+            )
+    finally:
         cleanup and os.unlink(tmp_config)
-        if proc.returncode != 0:
-            raise RuntimeError(proc.stdout.read())
-        return proc.returncode, proc.stdout.read()
-    else:
-        cleanup and os.unlink(tmp_config)
-        raise RuntimeError('No such playbook: %s' % play)
 
 
 def convert(data):

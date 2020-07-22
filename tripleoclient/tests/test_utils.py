@@ -48,6 +48,7 @@ class TestRunAnsiblePlaybook(TestCase):
         self.addCleanup(self.unlink_patch.stop)
         self.unlink_patch.start()
         self.mock_log = mock.Mock('logging.getLogger')
+        self.mock_log.warning = mock.MagicMock()
         python_version = sys.version_info[0]
         self.ansible_playbook_cmd = "ansible-playbook-%s" % (python_version)
 
@@ -109,7 +110,7 @@ class TestRunAnsiblePlaybook(TestCase):
                                           '-i', 'localhost,', '-v',
                                           '-c', 'smart',
                                           '/tmp/existing.yaml'],
-                                         env=env, retcode_only=False)
+                                         env=env)
 
     @mock.patch('os.path.isabs')
     @mock.patch('os.path.exists', return_value=False)
@@ -128,13 +129,10 @@ class TestRunAnsiblePlaybook(TestCase):
     @mock.patch('os.path.exists', return_value=True)
     @mock.patch('tripleoclient.utils.run_command_and_log')
     def test_run_success_default(self, mock_run, mock_exists, mock_mkstemp):
-        mock_process = mock.Mock()
-        mock_process.returncode = 0
-        mock_run.return_value = mock_process
+        mock_run.return_value = 0
 
-        retcode, output = utils.run_ansible_playbook(
+        utils.run_ansible_playbook(
             self.mock_log, '/tmp', 'existing.yaml', 'localhost,')
-        self.assertEqual(retcode, 0)
         mock_exists.assert_called_once_with('/tmp/existing.yaml')
 
         env = os.environ.copy()
@@ -166,23 +164,20 @@ class TestRunAnsiblePlaybook(TestCase):
                                           '-i', 'localhost,', '-v',
                                           '-c', 'smart',
                                           '/tmp/existing.yaml'],
-                                         env=env, retcode_only=False)
+                                         env=env)
 
     @mock.patch('os.path.isabs')
     @mock.patch('os.path.exists', return_value=True)
     @mock.patch('tripleoclient.utils.run_command_and_log')
     def test_run_success_ansible_cfg(self, mock_run, mock_exists, mock_isabs):
-        mock_process = mock.Mock()
-        mock_process.returncode = 0
-        mock_run.return_value = mock_process
+        mock_run.return_value = 0
 
-        retcode, output = utils.run_ansible_playbook(
+        utils.run_ansible_playbook(
             self.mock_log,
             '/tmp',
             'existing.yaml',
             'localhost,',
             ansible_config='/tmp/foo.cfg')
-        self.assertEqual(retcode, 0)
 
         mock_isabs.assert_called_once_with('/tmp/foo.cfg')
 
@@ -219,24 +214,21 @@ class TestRunAnsiblePlaybook(TestCase):
                                           '-i', 'localhost,', '-v',
                                           '-c', 'smart',
                                           '/tmp/existing.yaml'],
-                                         env=env, retcode_only=False)
+                                         env=env)
 
     @mock.patch('tempfile.mkstemp', return_value=('foo', '/tmp/fooBar.cfg'))
     @mock.patch('os.path.exists', return_value=True)
     @mock.patch('tripleoclient.utils.run_command_and_log')
     def test_run_success_connection_local(self, mock_run, mock_exists,
                                           mok_mkstemp):
-        mock_process = mock.Mock()
-        mock_process.returncode = 0
-        mock_run.return_value = mock_process
+        mock_run.return_value = 0
 
-        retcode, output = utils.run_ansible_playbook(
+        utils.run_ansible_playbook(
             self.mock_log,
             '/tmp',
             'existing.yaml',
             'localhost,',
             connection='local')
-        self.assertEqual(retcode, 0)
         mock_exists.assert_called_once_with('/tmp/existing.yaml')
         env = os.environ.copy()
         env['ANSIBLE_LIBRARY'] = \
@@ -267,24 +259,21 @@ class TestRunAnsiblePlaybook(TestCase):
                                           '-i', 'localhost,', '-v',
                                           '-c', 'local',
                                           '/tmp/existing.yaml'],
-                                         env=env, retcode_only=False)
+                                         env=env)
 
     @mock.patch('tempfile.mkstemp', return_value=('foo', '/tmp/fooBar.cfg'))
     @mock.patch('os.path.exists', return_value=True)
     @mock.patch('tripleoclient.utils.run_command_and_log')
     def test_run_success_gathering_policy(self, mock_run, mock_exists,
                                           mok_mkstemp):
-        mock_process = mock.Mock()
-        mock_process.returncode = 0
-        mock_run.return_value = mock_process
+        mock_run.return_value = 0
 
-        retcode, output = utils.run_ansible_playbook(
+        utils.run_ansible_playbook(
             self.mock_log,
             '/tmp',
             'existing.yaml',
             'localhost,',
             gathering_policy='explicit')
-        self.assertEqual(retcode, 0)
         mock_exists.assert_called_once_with('/tmp/existing.yaml')
         env = os.environ.copy()
         env['ANSIBLE_LIBRARY'] = \
@@ -316,28 +305,25 @@ class TestRunAnsiblePlaybook(TestCase):
                                           '-i', 'localhost,', '-v',
                                           '-c', 'smart',
                                           '/tmp/existing.yaml'],
-                                         env=env, retcode_only=False)
+                                         env=env)
 
     @mock.patch('tempfile.mkstemp', return_value=('foo', '/tmp/fooBar.cfg'))
     @mock.patch('os.path.exists', return_value=True)
     @mock.patch('tripleoclient.utils.run_command_and_log')
     def test_run_success_extra_vars(self, mock_run, mock_exists, mock_mkstemp):
-        mock_process = mock.Mock()
-        mock_process.returncode = 0
-        mock_run.return_value = mock_process
+        mock_run.return_value = 0
 
         arglist = {
             'var_one': 'val_one',
         }
 
-        retcode, output = utils.run_ansible_playbook(
+        utils.run_ansible_playbook(
             self.mock_log,
             '/tmp',
             'existing.yaml',
             'localhost,',
             extra_vars=arglist)
 
-        self.assertEqual(retcode, 0)
         mock_exists.assert_called_once_with('/tmp/existing.yaml')
         env = os.environ.copy()
         env['ANSIBLE_LIBRARY'] = \
@@ -369,8 +355,7 @@ class TestRunAnsiblePlaybook(TestCase):
                 '--extra-vars', '%s' % arglist,
                 '-c', 'smart', '/tmp/existing.yaml'
             ],
-            env=env,
-            retcode_only=False)
+            env=env)
 
 
 class TestRunCommandAndLog(TestCase):
