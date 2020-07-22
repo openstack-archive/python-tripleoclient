@@ -241,8 +241,7 @@ class TestPlanUpdateWorkflows(base.TestCommand):
             self.app.client_manager,
             'test-overcloud',
             '/tht-root/',
-            keep_env=True,
-            validate_stack=False)
+            keep_env=True)
 
         mock_empty_container.assert_called_once_with(
             self.object_store, 'test-overcloud')
@@ -274,7 +273,6 @@ class TestPlanUpdateWorkflows(base.TestCommand):
             extra_vars={
                 "container": "test-overcloud",
                 "generate_passwords": True,
-                "validate": False
             },
             verbosity=1,
         )
@@ -290,8 +288,7 @@ class TestPlanUpdateWorkflows(base.TestCommand):
         plan_management.update_plan_from_templates(
             self.app.client_manager,
             'test-overcloud',
-            '/tht-root/',
-            validate_stack=False)
+            '/tht-root/')
 
         mock_empty_container.assert_called_once_with(
             self.object_store, 'test-overcloud')
@@ -311,7 +308,6 @@ class TestPlanUpdateWorkflows(base.TestCommand):
             extra_vars={
                 "container": "test-overcloud",
                 "generate_passwords": True,
-                "validate": False
             },
             verbosity=1,
         )
@@ -333,8 +329,7 @@ class TestPlanUpdateWorkflows(base.TestCommand):
         plan_management.update_plan_from_templates(
             self.app.client_manager,
             'test-overcloud',
-            '/tht-root/',
-            validate_stack=False)
+            '/tht-root/')
         # A dictionary without the "passwords" key is provided in
         # the _load_passwords method.
         mock_yaml_safe_load.return_value = {}
@@ -349,7 +344,6 @@ class TestPlanUpdateWorkflows(base.TestCommand):
             extra_vars={
                 "container": "test-overcloud",
                 "generate_passwords": True,
-                "validate": False
             },
             verbosity=1,
         )
