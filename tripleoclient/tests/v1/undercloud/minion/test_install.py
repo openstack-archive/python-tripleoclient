@@ -77,7 +77,7 @@ class TestMinionInstall(TestPluginV1):
                 dry_run=True, force_stack_update=False, no_validations=True,
                 verbose_level=1)
         mock_usercheck.assert_called_once()
-        self.assertItemsEqual(mock_subprocess.call_args_list, [])
+        self.assertCountEqual(mock_subprocess.call_args_list, [])
 
 
 class TestMinionUpgrade(TestPluginV1):
