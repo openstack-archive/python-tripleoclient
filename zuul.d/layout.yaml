@@ -25,25 +25,27 @@
               - openstack-tox-pep8
               - openstack-tox-py36
               - openstack-tox-py37
+        - tripleo-ci-centos-8-containers-multinode:
+            dependencies: *deps_unit_lint
         - tripleo-ci-centos-7-scenario000-multinode-oooq-container-upgrades:
             dependencies: *deps_unit_lint
-        - tripleo-ci-centos-7-scenario000-multinode-oooq-container-updates:
+        - tripleo-ci-centos-8-scenario000-multinode-oooq-container-updates-train:
             dependencies: *deps_unit_lint
-        - tripleo-ci-centos-7-scenario007-multinode-oooq-container:
+        - tripleo-ci-centos-8-scenario007-multinode-oooq-container:
             dependencies: *deps_unit_lint
         - tripleo-ci-centos-7-standalone-upgrade:
             dependencies: *deps_unit_lint
-        - tripleo-ci-centos-7-scenario001-standalone:
+        - tripleo-ci-centos-8-scenario001-standalone:
             dependencies: *deps_unit_lint
-        - tripleo-ci-centos-7-scenario002-standalone:
+        - tripleo-ci-centos-8-scenario002-standalone:
             dependencies: *deps_unit_lint
-        - tripleo-ci-centos-7-scenario003-standalone:
+        - tripleo-ci-centos-8-scenario003-standalone:
             dependencies: *deps_unit_lint
-        - tripleo-ci-centos-7-scenario004-standalone:
+        - tripleo-ci-centos-8-scenario004-standalone:
             dependencies: *deps_unit_lint
-        - tripleo-ci-centos-7-scenario012-standalone:
+        - tripleo-ci-centos-8-scenario012-standalone:
             dependencies: *deps_unit_lint
-        - tripleo-ci-centos-7-containers-undercloud-minion:
+        - tripleo-ci-centos-8-containers-undercloud-minion:
             dependencies: *deps_unit_lint
             files:
               - ^config-generator/.*minion.*$
