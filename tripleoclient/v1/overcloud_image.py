@@ -23,6 +23,7 @@ import subprocess
 import sys
 
 from glanceclient.common.progressbar import VerboseFileWrapper
+from keystoneauth1.exceptions import catalog as exc_catalog
 from osc_lib import exceptions
 from osc_lib.i18n import _
 from prettytable import PrettyTable
@@ -378,9 +379,15 @@ class UploadOvercloudImage(command.Command):
             'update_existing': parsed_args.update_existing,
             'updated': self.updated
         }
-        if parsed_args.local:
-            return FileImageClientAdapter(parsed_args.local_path, **kwargs)
-        return GlanceClientAdapter(self.app.client_manager.image, **kwargs)
+        if not parsed_args.local:
+            try:
+                return GlanceClientAdapter(self.app.client_manager.image,
+                                           **kwargs)
+            except exc_catalog.EndpointNotFound:
+                # Missing endpoint implies local-only upload
+                pass
+
+        return FileImageClientAdapter(parsed_args.local_path, **kwargs)
 
     def _get_environment_var(self, envvar, default, deprecated=[]):
         for env_key in deprecated:
