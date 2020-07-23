@@ -678,9 +678,9 @@ class TripleOContainerImagePush(command.Command):
             registry_url = registry_url_arg
         reg_url = parse.urlparse(registry_url)
 
-        uploader.authenticate(reg_url,
-                              parsed_args.username,
-                              parsed_args.password)
+        session = uploader.authenticate(reg_url,
+                                        parsed_args.username,
+                                        parsed_args.password)
 
         task = image_uploader.UploadTask(
                 image_name=image_name,
@@ -699,6 +699,8 @@ class TripleOContainerImagePush(command.Command):
             self.log.error("Unable to upload due to permissions. "
                            "Please prefix command with sudo.")
             raise oscexc.CommandError(e)
+        finally:
+            session.close()
 
 
 class TripleOContainerImageDelete(command.Command):
@@ -769,6 +771,8 @@ class TripleOContainerImageDelete(command.Command):
             self.log.error("Unable to remove due to permissions. "
                            "Please prefix command with sudo.")
             raise oscexc.CommandError(e)
+        finally:
+            session.close()
 
 
 class TripleOContainerImageList(command.Lister):
@@ -813,7 +817,11 @@ class TripleOContainerImageList(command.Lister):
         url = uploader._image_to_url(registry_url_arg)
         session = uploader.authenticate(url, parsed_args.username,
                                         parsed_args.password)
-        results = uploader.list(url.geturl(), session=session)
+        try:
+            results = uploader.list(url.geturl(), session=session)
+        finally:
+            session.close()
+
         cliff_results = []
         for r in results:
             cliff_results.append((r,))
@@ -863,9 +871,12 @@ class TripleOContainerImageShow(command.ShowOne):
         url = uploader._image_to_url(parsed_args.image_to_inspect)
         session = uploader.authenticate(url, parsed_args.username,
                                         parsed_args.password)
-
-        image_inspect_result = uploader.inspect(parsed_args.image_to_inspect,
-                                                session=session)
+        try:
+            image_inspect_result = uploader.inspect(
+                parsed_args.image_to_inspect,
+                session=session)
+        finally:
+            session.close()
 
         return self.format_image_inspect(image_inspect_result)
 
