@@ -1389,6 +1389,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             fixture.mock_set_deployment_status.call_args[0][1])
         mock_copy.assert_called_once()
 
+    @mock.patch('tripleoclient.utils.copy_clouds_yaml')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_get_undercloud_host_entry', autospec=True,
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
@@ -1405,7 +1406,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mock_overcloudrc, mock_write_overcloudrc,
             mock_overcloud_endpoint,
             mock_create_tempest_deployer_input,
-            mock_get_undercloud_host_entry):
+            mock_get_undercloud_host_entry,
+            mock_copy):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         clients = self.app.client_manager
