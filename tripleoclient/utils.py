@@ -627,7 +627,7 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
         if 'defaults' not in config.sections():
             config.add_section('defaults')
 
-        config.set('defaults', 'internal_poll_interval', '0.05')
+        config.set('defaults', 'internal_poll_interval', '0.01')
         with open(ansible_cfg, 'w') as f:
             config.write(f)
         env['ANSIBLE_CONFIG'] = ansible_cfg
