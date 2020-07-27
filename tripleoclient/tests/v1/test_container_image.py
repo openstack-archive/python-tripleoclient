@@ -603,7 +603,7 @@ class TestContainerImagePrepare(TestPluginV1):
             'neutron_driver': 'ovn',
             'name_suffix': '',
             'tag': 'latest',
-            'namespace': 'docker.io/tripleou',
+            'namespace': 'docker.io/tripleomaster',
             'name_prefix':
             'centos-binary-'
         }
@@ -623,7 +623,7 @@ class TestContainerImagePrepare(TestPluginV1):
                 'neutron_driver': 'ovn',
                 'name_suffix': '',
                 'tag': 'latest',
-                'namespace': 'docker.io/tripleou',
+                'namespace': 'docker.io/tripleomaster',
                 'name_prefix':
                 'centos-binary-'
             },

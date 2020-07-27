@@ -138,7 +138,7 @@ class Build(command.Command):
             "--namespace",
             dest="namespace",
             metavar="<registry-namespace>",
-            default="tripleou",
+            default="tripleomaster",
             help=_("Container registry namespace (default: %(default)s)"),
         )
         parser.add_argument(
