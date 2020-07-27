@@ -196,6 +196,8 @@ class BuildImage(command.Command):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+        self.log.warning('This command is deprecated. Please use "openstack '
+                         'tripleo container image build" instead.')
 
         fd, path = tempfile.mkstemp(prefix='kolla_conf_')
         with os.fdopen(fd, 'w') as tmp:
