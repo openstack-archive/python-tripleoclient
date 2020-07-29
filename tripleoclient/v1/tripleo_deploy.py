@@ -907,8 +907,10 @@ class Deploy(command.Command):
             default=constants.TRIPLEO_HEAT_TEMPLATES
         )
         parser.add_argument('--standalone', default=False, action='store_true',
-                            help=_("Run deployment as a standalone deployment "
-                                   "with no undercloud."))
+                            help=_("DEPRECATED. The --standalone argument is "
+                                   "now deprecated. Standalone deployments "
+                                   "can now be run without passing "
+                                   "--standalone. "))
         parser.add_argument('--upgrade', default=False, action='store_true',
                             help=_("Upgrade an existing deployment."))
         parser.add_argument('-y', '--yes', default=False, action='store_true',
@@ -1407,13 +1409,8 @@ class Deploy(command.Command):
         self.log.debug("take_action(%s)" % parsed_args)
 
         try:
-            if parsed_args.standalone:
-                if self._standalone_deploy(parsed_args) != 0:
-                    msg = _('Deployment failed.')
-                    self.log.error(msg)
-                    raise exceptions.DeploymentError(msg)
-            else:
-                msg = _('Non-standalone is currently not supported')
+            if self._standalone_deploy(parsed_args) != 0:
+                msg = _('Deployment failed.')
                 self.log.error(msg)
                 raise exceptions.DeploymentError(msg)
         finally:

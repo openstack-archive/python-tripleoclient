@@ -1,0 +1,7 @@
+---
+deprecations:
+  - |
+    The --standalone argument to the openstack tripleo deploy command is now
+    deprecated. The argument previously had no effect other than allow the
+    tripleo deploy command to not throw an exception, so it can be safely
+    deprecated with no replacement.
