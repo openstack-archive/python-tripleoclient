@@ -114,12 +114,11 @@ class TestRunAnsiblePlaybook(TestCase):
                 return_value="/foo/inventory.yaml")
     def test_run_success_default(self, mock_dump_artifact, mock_run,
                                  mock_mkdirs, mock_exists, mock_mkstemp):
-        retcode, output = utils.run_ansible_playbook(
+        utils.run_ansible_playbook(
             playbook='existing.yaml',
             inventory='localhost,',
             workdir='/tmp'
         )
-        self.assertEqual(retcode, 0)
 
     @mock.patch('os.path.exists', return_value=True)
     @mock.patch('os.makedirs')
@@ -132,12 +131,11 @@ class TestRunAnsiblePlaybook(TestCase):
                 return_value="/foo/inventory.yaml")
     def test_run_success_ansible_cfg(self, mock_dump_artifact, mock_run,
                                      mock_mkdirs, mock_exists):
-        retcode, output = utils.run_ansible_playbook(
+        utils.run_ansible_playbook(
             playbook='existing.yaml',
             inventory='localhost,',
             workdir='/tmp'
         )
-        self.assertEqual(retcode, 0)
 
     @mock.patch('tempfile.mkstemp', return_value=('foo', '/tmp/fooBar.cfg'))
     @mock.patch('os.path.exists', return_value=True)
@@ -152,13 +150,12 @@ class TestRunAnsiblePlaybook(TestCase):
     def test_run_success_connection_local(self, mock_dump_artifact, mock_run,
                                           mock_mkdirs, mock_exists,
                                           mock_mkstemp):
-        retcode, output = utils.run_ansible_playbook(
+        utils.run_ansible_playbook(
             playbook='existing.yaml',
             inventory='localhost,',
             workdir='/tmp',
             connection='local'
         )
-        self.assertEqual(retcode, 0)
 
     @mock.patch('os.makedirs', return_value=None)
     @mock.patch('tempfile.mkstemp', return_value=('foo', '/tmp/fooBar.cfg'))
@@ -173,14 +170,13 @@ class TestRunAnsiblePlaybook(TestCase):
     def test_run_success_gathering_policy(self, mock_dump_artifact, mock_run,
                                           mock_exists, mock_mkstemp,
                                           mock_makedirs):
-        retcode, output = utils.run_ansible_playbook(
+        utils.run_ansible_playbook(
             playbook='existing.yaml',
             inventory='localhost,',
             workdir='/tmp',
             connection='local',
             gathering_policy='smart'
         )
-        self.assertEqual(retcode, 0)
 
     @mock.patch('os.makedirs', return_value=None)
     @mock.patch('tempfile.mkstemp', return_value=('foo', '/tmp/fooBar.cfg'))
@@ -197,7 +193,7 @@ class TestRunAnsiblePlaybook(TestCase):
         arglist = {
             'var_one': 'val_one',
         }
-        retcode, output = utils.run_ansible_playbook(
+        utils.run_ansible_playbook(
             playbook='existing.yaml',
             inventory='localhost,',
             workdir='/tmp',
@@ -205,7 +201,6 @@ class TestRunAnsiblePlaybook(TestCase):
             gathering_policy='smart',
             extra_vars=arglist
         )
-        self.assertEqual(retcode, 0)
 
     @mock.patch('six.moves.builtins.open')
     @mock.patch('tripleoclient.utils.makedirs')
@@ -214,7 +209,7 @@ class TestRunAnsiblePlaybook(TestCase):
         ansible_runner.ArtifactLoader = mock.MagicMock()
         ansible_runner.Runner.run = mock.MagicMock(return_value=('', 0))
         ansible_runner.runner_config = mock.MagicMock()
-        retcode, output = utils.run_ansible_playbook(
+        utils.run_ansible_playbook(
             playbook='existing.yaml',
             inventory='localhost,',
             workdir='/tmp',
