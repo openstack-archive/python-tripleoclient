@@ -1220,7 +1220,7 @@ class Deploy(command.Command):
         # Set default plan if not specified by user
         self._set_default_plan()
 
-        rc = 1
+        rc = 0
         try:
             # NOTE(bogdando): Look for the unique virtual update mark matching
             # the heat stack name we are going to create below. If found the
