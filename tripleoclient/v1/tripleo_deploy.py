@@ -1080,6 +1080,15 @@ class Deploy(command.Command):
                    'deployed services are running right after their '
                    'activation. Defaults to False.')
         )
+        parser.add_argument(
+            '--transport',
+            action='store',
+            default='local',
+            help=_('Transport mechanism to use for ansible.'
+                   'Use "ssh" for multinode deployments. '
+                   'Use "local" for standalone deployments. '
+                   'Defaults to "local".')
+        )
 
         stack_action_group = parser.add_mutually_exclusive_group()
 
@@ -1270,13 +1279,13 @@ class Deploy(command.Command):
                 self.log.warning(
                     _('Generating default ansible config file %s') %
                     ansible_config)
-                # FIXME(bogdando): unhardcode key/transport for future
+                # FIXME(bogdando): unhardcode key for future
                 # multi-node
                 ansible.write_default_ansible_cfg(
                     self.ansible_dir,
                     parsed_args.deployment_user,
                     ssh_private_key=None,
-                    transport='local')
+                    transport=parsed_args.transport)
             else:
                 self.log.warning(
                     _('Using the existing %s for deployment') % ansible_config)

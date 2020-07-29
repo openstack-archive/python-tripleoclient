@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    The --transport argument has been added to openstack tripleo deploy which
+    allows for specifying the ansible transport to use in the ansible
+    configuration file.

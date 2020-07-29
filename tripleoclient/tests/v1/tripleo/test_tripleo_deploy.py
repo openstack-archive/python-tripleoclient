@@ -1097,3 +1097,83 @@ class TestDeployUndercloud(TestPluginV1):
 
         rc = self.cmd.take_action(parsed_args)
         self.assertEqual(None, rc)
+
+    @mock.patch('os.path.exists', return_value=True)
+    @mock.patch('os.chdir')
+    @mock.patch('tripleoclient.utils.reset_cmdline')
+    @mock.patch('tripleoclient.utils.copy_clouds_yaml')
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_download_stack_outputs')
+    @mock.patch('tripleo_common.actions.ansible.'
+                'write_default_ansible_cfg')
+    # TODO(cjeanner) drop once we have proper oslo.privsep
+    @mock.patch('os.chmod')
+    # TODO(cjeanner) drop once we have proper oslo.privsep
+    @mock.patch('os.mkdir')
+    @mock.patch('six.moves.builtins.open')
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_populate_templates_dir')
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_create_install_artifact', return_value='/tmp/foo.tar.bzip2')
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_cleanup_working_dirs')
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_create_working_dirs')
+    @mock.patch('tripleoclient.utils.wait_api_port_ready',
+                autospec=True)
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_deploy_tripleo_heat_templates', autospec=True,
+                return_value='undercloud, 0')
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_download_ansible_playbooks', autospec=True,
+                return_value='/foo')
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_launch_heat')
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_kill_heat')
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_configure_puppet')
+    @mock.patch('os.geteuid', return_value=0)
+    @mock.patch('os.environ', return_value='CREATE_COMPLETE')
+    @mock.patch('tripleoclient.utils.wait_for_stack_ready', return_value=True)
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_set_default_plan')
+    def test_standalone_deploy_transport(
+            self,
+            mock_def_plan, mock_poll,
+            mock_environ, mock_geteuid, mock_puppet,
+            mock_killheat, mock_launchheat,
+            mock_download, mock_tht,
+            mock_wait_for_port, mock_createdirs,
+            mock_cleanupdirs, mock_tarball,
+            mock_templates_dir, mock_open, mock_os,
+            mock_chmod, mock_ac,
+            mock_outputs, mock_copy, mock_cmdline,
+            mock_chdir, mock_file_exists):
+
+        # Test default transport "local"
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--local-ip', '127.0.0.1',
+                                         '--templates', '/tmp/thtroot',
+                                         '--stack', 'undercloud',
+                                         '--output-dir', '/my',
+                                         '--output-only'], [])
+
+        self.cmd.take_action(parsed_args)
+        self.assertEqual(1, mock_ac.call_count)
+        self.assertEqual(
+            "local", mock_ac.call_args_list[0].kwargs["transport"])
+
+        # Test transport "ssh"
+        mock_ac.reset_mock()
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--local-ip', '127.0.0.1',
+                                         '--templates', '/tmp/thtroot',
+                                         '--stack', 'undercloud',
+                                         '--output-dir', '/my',
+                                         '--output-only',
+                                         '--transport', 'ssh'], [])
+
+        self.cmd.take_action(parsed_args)
+        self.assertEqual(1, mock_ac.call_count)
+        self.assertEqual("ssh", mock_ac.call_args_list[0].kwargs["transport"])
