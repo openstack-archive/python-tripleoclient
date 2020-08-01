@@ -178,12 +178,14 @@ def wait_for_ssh_port(host, timeout=ENABLE_SSH_ADMIN_SSH_PORT_TIMEOUT):
             return
         except socket.error:
             try:
+                # close previous socket before creating a new one
+                sock.close()
                 sock = socket.socket(socket.AF_INET6)
                 sock.connect((host, 22))
                 sock.close()
                 return
             except socket.error:
-                pass
+                sock.close()
 
         time.sleep(1)
 
