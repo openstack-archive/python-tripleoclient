@@ -955,6 +955,185 @@ class TestDeployUndercloud(TestPluginV1):
         mock_cleanupdirs.assert_called_once()
         self.assertEqual(mock_killheat.call_count, 2)
 
+    @mock.patch.object(
+        ansible_runner.runner_config,
+        'RunnerConfig',
+        return_value=fakes.FakeRunnerConfig()
+    )
+    @mock.patch.object(
+        ansible_runner.Runner,
+        'run',
+        return_value=fakes.fake_ansible_runner_run_return(1)
+    )
+    @mock.patch('os.path.exists')
+    @mock.patch('os.chdir')
+    @mock.patch('tripleoclient.utils.reset_cmdline')
+    @mock.patch('tripleoclient.utils.copy_clouds_yaml')
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_download_stack_outputs')
+    @mock.patch('tripleo_common.actions.ansible.'
+                'write_default_ansible_cfg')
+    # TODO(cjeanner) drop once we have proper oslo.privsep
+    @mock.patch('os.chmod')
+    # TODO(cjeanner) drop once we have proper oslo.privsep
+    @mock.patch('subprocess.check_call', autospec=True)
+    # TODO(cjeanner) drop once we have proper oslo.privsep
+    @mock.patch('getpass.getuser', return_value='stack')
+    @mock.patch('os.mkdir')
+    @mock.patch('six.moves.builtins.open')
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_populate_templates_dir')
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_create_install_artifact', return_value='/tmp/foo.tar.bzip2')
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_cleanup_working_dirs')
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_create_working_dirs')
+    @mock.patch('tripleoclient.utils.wait_api_port_ready',
+                autospec=True)
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_deploy_tripleo_heat_templates', autospec=True,
+                return_value='undercloud, 0')
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_download_ansible_playbooks', autospec=True,
+                return_value='/foo')
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_launch_heat')
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_kill_heat')
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_configure_puppet')
+    @mock.patch('os.geteuid', return_value=0)
+    @mock.patch('os.environ', return_value='CREATE_COMPLETE')
+    @mock.patch('tripleoclient.utils.wait_for_stack_ready', return_value=True)
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_set_default_plan')
+    @mock.patch('ansible_runner.utils.dump_artifact', autospec=True,
+                return_value="/foo/inventory.yaml")
+    def test_take_action_ansible_err(self, mock_dump_artifact,
+                                     mock_def_plan, mock_poll,
+                                     mock_environ, mock_geteuid, mock_puppet,
+                                     mock_killheat, mock_launchheat,
+                                     mock_download, mock_tht,
+                                     mock_wait_for_port, mock_createdirs,
+                                     mock_cleanupdirs, mock_tarball,
+                                     mock_templates_dir, mock_open, mock_os,
+                                     mock_user, mock_cc, mock_chmod, mock_ac,
+                                     mock_outputs, mock_copy, mock_cmdline,
+                                     mock_chdir, mock_file_exists, mock_run,
+                                     mock_run_prepare):
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--local-ip', '127.0.0.1',
+                                         '--templates', '/tmp/thtroot',
+                                         '--stack', 'undercloud',
+                                         '--output-dir', '/my',
+                                         '--standalone-role', 'Undercloud',
+                                         # TODO(cjeanner) drop once we have
+                                         # proper oslo.privsep
+                                         '--deployment-user', 'stack',
+                                         '-e', '/tmp/thtroot/puppet/foo.yaml',
+                                         '-e', '/tmp/thtroot//docker/bar.yaml',
+                                         '-e', '/tmp/thtroot42/notouch.yaml',
+                                         '-e', '~/custom.yaml',
+                                         '-e', 'something.yaml',
+                                         '-e', '../../../outside.yaml'], [])
+
+        mock_file_exists.return_value = True
+        fake_orchestration = mock_launchheat(parsed_args)
+        self.assertRaises(exceptions.DeploymentError,
+                          self.cmd.take_action, parsed_args)
+        mock_createdirs.assert_called_once()
+        mock_puppet.assert_called_once()
+        mock_launchheat.assert_called_with(parsed_args)
+        mock_tht.assert_called_once_with(self.cmd, fake_orchestration,
+                                         parsed_args)
+        mock_download.assert_called_with(self.cmd, fake_orchestration,
+                                         'undercloud', 'Undercloud',
+                                         sys.executable)
+        mock_tarball.assert_called_once()
+        mock_cleanupdirs.assert_called_once()
+        self.assertEqual(mock_killheat.call_count, 2)
+
+    @mock.patch('os.chdir')
+    @mock.patch('tripleoclient.utils.reset_cmdline')
+    @mock.patch('tripleoclient.utils.copy_clouds_yaml')
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_download_stack_outputs')
+    @mock.patch('tripleo_common.actions.ansible.'
+                'write_default_ansible_cfg')
+    # TODO(cjeanner) drop once we have proper oslo.privsep
+    @mock.patch('os.chmod')
+    # TODO(cjeanner) drop once we have proper oslo.privsep
+    @mock.patch('subprocess.check_call', autospec=True)
+    # TODO(cjeanner) drop once we have proper oslo.privsep
+    @mock.patch('getpass.getuser', return_value='stack')
+    @mock.patch('os.mkdir')
+    @mock.patch('six.moves.builtins.open')
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_populate_templates_dir')
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_create_install_artifact', return_value='/tmp/foo.tar.bzip2')
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_cleanup_working_dirs')
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_create_working_dirs')
+    @mock.patch('tripleoclient.utils.wait_api_port_ready')
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_deploy_tripleo_heat_templates', autospec=True,
+                return_value='undercloud, 0')
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_download_ansible_playbooks', autospec=True,
+                return_value='/foo')
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_launch_heat')
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_kill_heat')
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_configure_puppet')
+    @mock.patch('os.geteuid', return_value=0)
+    @mock.patch('os.environ', return_value='CREATE_COMPLETE')
+    @mock.patch('tripleoclient.utils.wait_for_stack_ready', return_value=True)
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_set_default_plan')
+    def test_take_action_other_err(self,
+                                   mock_def_plan, mock_poll,
+                                   mock_environ, mock_geteuid, mock_puppet,
+                                   mock_killheat, mock_launchheat,
+                                   mock_download, mock_tht,
+                                   mock_wait_for_port, mock_createdirs,
+                                   mock_cleanupdirs, mock_tarball,
+                                   mock_templates_dir, mock_open, mock_os,
+                                   mock_user, mock_cc, mock_chmod, mock_ac,
+                                   mock_outputs, mock_copy, mock_cmdline,
+                                   mock_chdir):
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--local-ip', '127.0.0.1',
+                                         '--templates', '/tmp/thtroot',
+                                         '--stack', 'undercloud',
+                                         '--output-dir', '/my',
+                                         '--standalone-role', 'Undercloud',
+                                         # TODO(cjeanner) drop once we have
+                                         # proper oslo.privsep
+                                         '--deployment-user', 'stack',
+                                         '-e', '/tmp/thtroot/puppet/foo.yaml',
+                                         '-e', '/tmp/thtroot//docker/bar.yaml',
+                                         '-e', '/tmp/thtroot42/notouch.yaml',
+                                         '-e', '~/custom.yaml',
+                                         '-e', 'something.yaml',
+                                         '-e', '../../../outside.yaml'], [])
+
+        mock_wait_for_port.side_effect = exceptions.DeploymentError
+        self.assertRaises(exceptions.DeploymentError,
+                          self.cmd.take_action, parsed_args)
+        mock_createdirs.assert_called_once()
+        mock_puppet.assert_called_once()
+        mock_launchheat.assert_called_with(parsed_args)
+        mock_tht.assert_not_called()
+        mock_download.assert_not_called()
+        mock_tarball.assert_called_once()
+        mock_cleanupdirs.assert_called_once()
+        self.assertEqual(mock_killheat.call_count, 1)
+
     @mock.patch('tripleoclient.utils.reset_cmdline')
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
     def test_take_action(self, mock_copy, mock_cmdline):
@@ -969,14 +1148,14 @@ class TestDeployUndercloud(TestPluginV1):
 
     @mock.patch('tripleoclient.utils.reset_cmdline')
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
-    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy._standalone_deploy',
-                return_value=1)
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy._standalone_deploy')
     def test_take_action_failure(self, mock_deploy, mock_copy, mock_cmdline):
         parsed_args = self.check_parser(self.cmd,
                                         ['--local-ip', '127.0.0.1',
                                          '--templates', '/tmp/thtroot',
                                          '--stack', 'undercloud',
                                          '--output-dir', '/my'], [])
+        mock_deploy.side_effect = exceptions.DeploymentError
         self.assertRaises(exceptions.DeploymentError,
                           self.cmd.take_action, parsed_args)
         mock_copy.assert_called_once()
