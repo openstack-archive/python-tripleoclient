@@ -651,7 +651,8 @@ class Build(command.Command):
                 push_containers=parsed_args.push,
                 volumes=parsed_args.volumes,
                 excludes=list(set(excludes)),
-                build_timeout=parsed_args.build_timeout
+                build_timeout=parsed_args.build_timeout,
+                debug=self.app.options.debug
             )
             try:
                 bb.build_all()
