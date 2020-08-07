@@ -1221,7 +1221,7 @@ class Deploy(command.Command):
         # Set default plan if not specified by user
         self._set_default_plan()
 
-        rc = 1
+        is_complete = False
         try:
             # NOTE(bogdando): Look for the unique virtual update mark matching
             # the heat stack name we are going to create below. If found the
@@ -1313,7 +1313,7 @@ class Deploy(command.Command):
                                 operation[k] = ','.join([operation[k], v])
                             else:
                                 operation[k] = v
-                        rc = utils.run_ansible_playbook(
+                        utils.run_ansible_playbook(
                             inventory=os.path.join(
                                 self.ansible_dir,
                                 'inventory.yaml'
@@ -1321,15 +1321,8 @@ class Deploy(command.Command):
                             workdir=self.ansible_dir,
                             verbosity=utils.playbook_verbosity(self=self),
                             extra_env_variables=extra_env_var,
-                            fail_on_rc=False,
-                            **operation
-                        )[0]
-                        if rc != 0:
-                            break
-        except Exception as e:
-            self.log.error("Exception: %s" % six.text_type(e))
-            self.log.error(traceback.print_exc())
-            raise exceptions.DeploymentError(six.text_type(e))
+                            **operation)
+            is_complete = True
         finally:
             if not parsed_args.keep_running:
                 self._kill_heat(parsed_args)
@@ -1348,7 +1341,7 @@ class Deploy(command.Command):
             if tar_filename:
                 self.log.warning('Install artifact is located at %s' %
                                  tar_filename)
-            if not parsed_args.output_only and rc != 0:
+            if not is_complete:
                 # We only get here on error.
                 # Alter the stack virtual state for failed deployments
                 if (self.stack_update_mark and
@@ -1366,7 +1359,6 @@ class Deploy(command.Command):
                 self.log.error(DEPLOY_FAILURE_MESSAGE.format(
                     self.heat_launch.install_tmp
                     ))
-                raise exceptions.DeploymentError('Deployment failed.')
             else:
                 # We only get here if no errors
                 if parsed_args.output_only:
@@ -1402,21 +1394,18 @@ class Deploy(command.Command):
                         _('Not creating the stack %s virtual update mark '
                           'file') % parsed_args.stack)
 
-            return rc
-
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
-
         try:
             if parsed_args.standalone:
-                if self._standalone_deploy(parsed_args) != 0:
-                    msg = _('Deployment failed.')
-                    self.log.error(msg)
-                    raise exceptions.DeploymentError(msg)
+                self._standalone_deploy(parsed_args)
             else:
                 msg = _('Non-standalone is currently not supported')
                 self.log.error(msg)
-                raise exceptions.DeploymentError(msg)
+        except Exception as ex:
+            self.log.error("Exception: %s" % six.text_type(ex))
+            self.log.error(traceback.print_exc())
+            raise exceptions.DeploymentError(six.text_type(ex))
         finally:
             # Copy clouds.yaml from /etc/openstack so credentials can be
             # read by the deployment user and not only root.
