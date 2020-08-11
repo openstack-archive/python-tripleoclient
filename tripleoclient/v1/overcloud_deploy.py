@@ -14,6 +14,7 @@
 #
 
 import argparse
+from collections import OrderedDict
 import logging
 import os
 import os.path
@@ -101,6 +102,20 @@ class DeployOvercloud(command.Command):
 
         return parameters
 
+    def _cleanup_host_entry(self, entry):
+        # remove any tab or space excess
+        entry_stripped = re.sub('[ \t]+', ' ', str(entry).rstrip())
+        # removes any duplicate identical lines
+        unique_lines = list(set(entry_stripped.splitlines()))
+        ret = ''
+        for line in unique_lines:
+            # remove any duplicate word
+            hosts_unique = (' '.join(
+                OrderedDict((w, w) for w in line.split()).keys()))
+            if hosts_unique != '':
+                ret += hosts_unique + '\n'
+        return ret.rstrip('\n')
+
     def _get_undercloud_host_entry(self):
         """Get hosts entry for undercloud ctlplane network
 
@@ -114,8 +129,7 @@ class DeployOvercloud(command.Command):
         if process.returncode != 0:
             raise exceptions.DeploymentError('No entry for %s in /etc/hosts'
                                              % ctlplane_hostname)
-
-        return re.sub(' +', ' ', str(out).rstrip())
+        return self._cleanup_host_entry(out)
 
     def _create_breakpoint_cleanup_env(self, tht_root, container_name):
         bp_env = {}
