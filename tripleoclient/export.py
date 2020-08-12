@@ -23,6 +23,7 @@ import yaml
 
 from osc_lib.i18n import _
 
+from tripleo_common import constants as tripleo_common_constants
 from tripleoclient import constants
 from tripleoclient import utils as oooutils
 
@@ -41,15 +42,34 @@ def export_passwords(swift, stack, excludes=True):
                   "file from swift: %s", str(e))
         sys.exit(1)
 
-    data = yaml.safe_load(content)["passwords"]
-    if excludes:
-        excluded_passwords = []
-        for k in data:
-            for pattern in constants.EXPORT_PASSWORD_EXCLUDE_PATTERNS:
-                if re.match(pattern, k, re.I):
-                    excluded_passwords.append(k)
-        [data.pop(e) for e in excluded_passwords]
-    return data
+    data = yaml.load(content)
+    # The "passwords" key in plan-environment.yaml are generated passwords,
+    # they are not necessarily the actual password values used during the
+    # deployment.
+    generated_passwords = data["passwords"]
+    # parameter_defaults will contain any user defined password values
+    parameters = data["parameter_defaults"]
+
+    passwords = {}
+
+    # For each password, check if it's excluded, then check if there's a user
+    # defined value from parameter_defaults, and if not use the value from the
+    # generated passwords.
+    def exclude_password(password):
+        for pattern in constants.EXPORT_PASSWORD_EXCLUDE_PATTERNS:
+            return re.match(pattern, password, re.I)
+
+    for password in tripleo_common_constants.PASSWORD_PARAMETER_NAMES:
+        if exclude_password(password):
+            continue
+        if password in parameters:
+            passwords[password] = parameters[password]
+        elif password in generated_passwords:
+            passwords[password] = generated_passwords[password]
+        else:
+            LOG.warning("No password value found for %s", password)
+
+    return passwords
 
 
 def export_stack(heat, stack, should_filter=False,
