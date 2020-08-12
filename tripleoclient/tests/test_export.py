@@ -105,9 +105,12 @@ class TestExport(TestCase):
     def test_export_passwords(self):
         swift = mock.Mock()
         mock_passwords = {
+            'parameter_defaults': {
+                'AdminPassword': 'a_user'
+            },
             'passwords': {
-                'a': 'A',
-                'b': 'B'
+                'AdminPassword': 'A',
+                'RpcPassword': 'B'
             }
         }
         sio = StringIO()
@@ -119,17 +122,22 @@ class TestExport(TestCase):
         swift.get_object.assert_called_once_with(
             'overcloud', 'plan-environment.yaml')
 
-        self.assertEqual(mock_passwords['passwords'], data)
+        self.assertEqual(dict(AdminPassword='a_user',
+                              RpcPassword='B'),
+                         data)
 
     def test_export_passwords_excludes(self):
         swift = mock.Mock()
         mock_passwords = {
+            'parameter_defaults': {
+                'CephClientKey': 'cephkey'
+            },
             'passwords': {
-                'a': 'A',
-                'b': 'B',
-                'Cephkey': 'cephkey',
-                'cephkey': 'cephkey',
-                'CEPH': 'cephkey'
+                'AdminPassword': 'A',
+                'RpcPassword': 'B',
+                'CephClientKey': 'cephkey',
+                'CephClusterFSID': 'cephkey',
+                'CephRgwKey': 'cephkey'
             }
         }
         sio = StringIO()
@@ -138,8 +146,8 @@ class TestExport(TestCase):
         swift.get_object.return_value = ("", sio)
         data = export.export_passwords(swift, 'overcloud')
 
-        mock_passwords['passwords'].pop('Cephkey')
-        mock_passwords['passwords'].pop('cephkey')
-        mock_passwords['passwords'].pop('CEPH')
+        mock_passwords['passwords'].pop('CephClientKey')
+        mock_passwords['passwords'].pop('CephClusterFSID')
+        mock_passwords['passwords'].pop('CephRgwKey')
 
         self.assertEqual(mock_passwords['passwords'], data)
