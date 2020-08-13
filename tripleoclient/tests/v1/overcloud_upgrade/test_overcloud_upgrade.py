@@ -50,7 +50,7 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
                 autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_upgrade.UpgradePrepare.log',
                 autospec=True)
-    @mock.patch('yaml.load')
+    @mock.patch('yaml.safe_load')
     @mock.patch('six.moves.builtins.open')
     def test_upgrade_out(self,
                          mock_open,
@@ -103,7 +103,7 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
                 autospec=True)
     @mock.patch('tripleoclient.utils.prepend_environment', autospec=True)
     @mock.patch('six.moves.builtins.open')
-    @mock.patch('yaml.load')
+    @mock.patch('yaml.safe_load')
     def test_upgrade_failed(self, mock_yaml, mock_open,
                             add_env, mock_get_stack, mock_overcloud_deploy,
                             mock_confirm):
