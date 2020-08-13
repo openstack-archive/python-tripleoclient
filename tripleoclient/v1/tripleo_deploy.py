@@ -489,18 +489,18 @@ class Deploy(command.Command):
             'DeployedServerPortMap': {
                 ('%s-ctlplane' % hostname): {
                     'fixed_ips': [{'ip_address': ip_addr}],
-                    'subnets': [{'cidr': str(ip_nw)}],
-                    'network': {'tags': [str(ip_nw)]}
+                    'subnets': [{'cidr': str(ip_nw.cidr)}],
+                    'network': {'tags': [str(ip_nw.cidr)]}
                 },
                 'control_virtual_ip': {
                     'fixed_ips': [{'ip_address': ctlplane_vip_addr}],
-                    'subnets': [{'cidr': str(ip_nw)}],
-                    'network': {'tags': [str(ip_nw)]}
+                    'subnets': [{'cidr': str(ip_nw.cidr)}],
+                    'network': {'tags': [str(ip_nw.cidr)]}
                 },
                 'public_virtual_ip': {
                     'fixed_ips': [{'ip_address': public_vip_addr}],
-                    'subnets': [{'cidr': str(ip_nw)}],
-                    'network': {'tags': [str(ip_nw)]}
+                    'subnets': [{'cidr': str(ip_nw.cidr)}],
+                    'network': {'tags': [str(ip_nw.cidr)]}
                 }
             }
         }
