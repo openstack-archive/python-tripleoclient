@@ -682,19 +682,20 @@ class TripleOContainerImagePush(command.Command):
                               parsed_args.username,
                               parsed_args.password)
 
-        task = image_uploader.UploadTask(
-                image_name=image_name,
-                pull_source=image_source,
-                push_destination=registry_url_arg,
-                append_tag=parsed_args.append_tag,
-                modify_role=None,
-                modify_vars=None,
-                dry_run=parsed_args.dry_run,
-                cleanup=parsed_args.cleanup,
-                multi_arch=parsed_args.multi_arch)
         try:
-            uploader.add_upload_task(task)
-            uploader.run_tasks()
+            if not parsed_args.dry_run:
+                task = image_uploader.UploadTask(
+                    image_name=image_name,
+                    pull_source=image_source,
+                    push_destination=registry_url_arg,
+                    append_tag=parsed_args.append_tag,
+                    modify_role=None,
+                    modify_vars=None,
+                    cleanup=parsed_args.cleanup,
+                    multi_arch=parsed_args.multi_arch)
+
+                uploader.add_upload_task(task)
+                uploader.run_tasks()
         except OSError as e:
             self.log.error("Unable to upload due to permissions. "
                            "Please prefix command with sudo.")

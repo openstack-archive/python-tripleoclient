@@ -149,7 +149,6 @@ class TestContainerImagePush(TestPluginV1):
                 append_tag=parsed_args.append_tag,
                 modify_role=None,
                 modify_vars=None,
-                dry_run=parsed_args.dry_run,
                 cleanup=False,
                 multi_arch=parsed_args.multi_arch)
 
@@ -202,7 +201,6 @@ class TestContainerImagePush(TestPluginV1):
                 append_tag=parsed_args.append_tag,
                 modify_role=None,
                 modify_vars=None,
-                dry_run=parsed_args.dry_run,
                 cleanup=False,
                 multi_arch=parsed_args.multi_arch)
 
@@ -255,7 +253,6 @@ class TestContainerImagePush(TestPluginV1):
                 append_tag=parsed_args.append_tag,
                 modify_role=None,
                 modify_vars=None,
-                dry_run=parsed_args.dry_run,
                 cleanup=False,
                 multi_arch=parsed_args.multi_arch)
 
@@ -367,19 +364,9 @@ class TestContainerImagePush(TestPluginV1):
                                 parsed_args.password)]
         mock_uploader.authenticate.assert_has_calls(auth_calls)
 
-        mock_task.assert_called_once_with(
-                image_name='namespace/foo:tag',
-                pull_source='docker.io',
-                push_destination='127.0.0.1:8787',
-                append_tag=parsed_args.append_tag,
-                modify_role=None,
-                modify_vars=None,
-                dry_run=parsed_args.dry_run,
-                cleanup=True,
-                multi_arch=parsed_args.multi_arch)
-
-        mock_add_upload.assert_called_once_with(mock_uploadtask)
-        mock_run_tasks.assert_called_once()
+        mock_task.assert_not_called()
+        mock_add_upload.assert_not_called()
+        mock_run_tasks.assert_not_called()
 
 
 class TestContainerImageDelete(TestPluginV1):
