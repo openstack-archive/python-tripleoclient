@@ -15,6 +15,7 @@
 
 import mock
 
+from tripleoclient import exceptions
 from tripleoclient.tests.v1.overcloud_deploy import fakes
 from tripleoclient.v1 import overcloud_delete
 
@@ -143,3 +144,25 @@ class TestDeleteOvercloud(fakes.TestDeployOvercloud):
         self.cmd.take_action(parsed_args)
 
         mock_overcloud_delete.assert_not_called()
+
+    @mock.patch('os.path.exists')
+    @mock.patch('tripleoclient.utils.get_tripleo_ansible_inventory')
+    def test_skip_ipa_cleanup_without_inventory(self, inventory_mock, os_mock):
+        arglist = ["overcloud", "-y"]
+        verifylist = [
+            ("stack", "overcloud"),
+            ("yes", True)
+        ]
+
+        os_mock.return_value = True
+        inventory_mock.side_effect = exceptions.InvalidConfiguration()
+        self.cmd.log.warning = mock.MagicMock()
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        self.cmd.take_action(parsed_args)
+
+        self.cmd.log.warning.assert_called_with(
+            "Unable to generate the necessary ansible inventory required to "
+            "cleanup IPA. Ignoring IPA cleanup. Please cleanup IPA resources "
+            "for overcloud stack manually."
+        )
