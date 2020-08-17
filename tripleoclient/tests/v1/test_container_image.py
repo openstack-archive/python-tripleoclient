@@ -773,7 +773,8 @@ class TestTripleoImagePrepare(TestPluginV1):
         super(TestTripleoImagePrepare, self).setUp()
         # Get the command object to test
         self.cmd = container_image.TripleOImagePrepare(self.app, None)
-
+        self.cmd.app_args = mock.Mock()
+        self.cmd.app_args.verbose_level = 3
         self.temp_dir = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, self.temp_dir)
         self.prepare_default_file = os.path.join(
@@ -810,14 +811,10 @@ class TestTripleoImagePrepare(TestPluginV1):
         with open(self.roles_data_file, 'w') as f:
             f.write(self.roles_yaml)
 
-    @mock.patch('tripleo_common.utils.locks.processlock.'
-                'ProcessLock')
-    @mock.patch('tripleo_common.image.kolla_builder.'
-                'container_images_prepare_multi')
-    def test_tripleo_container_image_prepare(self, prepare_multi, mock_lock):
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
+                autospec=True)
+    def test_tripleo_container_image_prepare(self, mock_playbook):
 
-        mock_lockobj = mock.MagicMock()
-        mock_lock.return_value = mock_lockobj
         env_file = os.path.join(self.temp_dir, 'containers_env.yaml')
 
         arglist = [
@@ -831,34 +828,21 @@ class TestTripleoImagePrepare(TestPluginV1):
             'tripleo', 'container', 'image', 'prepare', 'default'
         ] + arglist
 
-        prepare_multi.return_value = {
-            'DockerAodhApiImage':
-                '192.0.2.0:8787/t/os-aodh-apifoo:passed-ci',
-            'DockerAodhConfigImage':
-                '192.0.2.0:8787/t/os-aodh-apifoo:passed-ci',
-        }
-
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         self.cmd.take_action(parsed_args)
+        e_vars = {'roles_file': self.roles_data_file,
+                  'environment_directories': [mock.ANY],
+                  'environment_files': [self.temp_dir + '/prepare_env.yaml'],
+                  'cleanup': 'full', 'dry_run': False,
+                  'log_file': 'container_image_prepare.log', 'debug': True,
+                  'output_env_file': self.temp_dir + '/containers_env.yaml'}
 
-        prepare_multi.assert_called_once_with(
-            self.default_env,
-            yaml.safe_load(self.roles_yaml),
-            dry_run=False,
-            cleanup='full',
-            lock=mock_lockobj)
-
-        with open(env_file) as f:
-            result = yaml.safe_load(f)
-
-        self.assertEqual({
-            'parameter_defaults': {
-                'DockerAodhApiImage':
-                    '192.0.2.0:8787/t/os-aodh-apifoo:passed-ci',
-                'DockerAodhConfigImage':
-                    '192.0.2.0:8787/t/os-aodh-apifoo:passed-ci',
-            }
-        }, result)
+        mock_playbook.assert_called_with(
+            extra_vars=e_vars,
+            inventory='localhost,',
+            playbook='cli-container-image-prepare.yaml',
+            playbook_dir='/usr/share/ansible/tripleo-playbooks',
+            verbosity=3, workdir=mock.ANY)
 
 
 class TestTripleoImagePrepareDefault(TestPluginV1):
