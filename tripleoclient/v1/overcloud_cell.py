@@ -19,12 +19,9 @@ from osc_lib.i18n import _
 from osc_lib import utils
 
 from tripleoclient import command
+from tripleoclient import constants
 from tripleoclient import exceptions
 from tripleoclient import export
-
-
-MISTRAL_VAR = os.environ.get('MISTRAL_VAR',
-                             "/var/lib/mistral/")
 
 
 class ExportCell(command.Command):
@@ -88,7 +85,8 @@ class ExportCell(command.Command):
             stack_to_export = cell_stack
             should_filter = False
 
-        config_download_dir = os.path.join(MISTRAL_VAR, stack_to_export)
+        config_download_dir = os.path.join(constants.DEFAULT_WORK_DIR,
+                                           stack_to_export)
         data.update(export.export_stack(
             clients.orchestration, stack_to_export, should_filter,
             config_download_dir))
