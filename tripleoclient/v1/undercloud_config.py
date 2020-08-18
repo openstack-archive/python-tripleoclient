@@ -408,15 +408,9 @@ def _process_network_args(env):
     # value here.
     if (CONF.get('generate_service_certificate') or
             CONF.get('undercloud_service_certificate')):
-        undercloud_ips = [
-            CONF.local_ip.split('/')[0],
-            CONF.undercloud_admin_host,
-            CONF.undercloud_public_host
-        ]
-        if len(undercloud_ips) != len(set(undercloud_ips)):
-            msg = ("The same IP is used for multiple endpoints. Please use "
-                   "unique ips for local_ip, undercloud_admin_host and "
-                   "undercloud_public_host")
+        if CONF.local_ip.split('/')[0] == CONF.undercloud_admin_host:
+            msg = ("Different IPs should be assigned to local_ip and "
+                   "undercloud_admin_host")
             raise exceptions.InvalidConfiguration(msg)
 
 
