@@ -333,9 +333,9 @@ def _calculate_allocation_pools(subnet):
     ip_set.remove(netaddr.IPAddress(subnet.get('gateway')))
     ip_set.remove(netaddr.IPNetwork(CONF.local_ip).ip)
     ip_set.remove(netaddr.IPNetwork(utils.get_single_ip(
-        CONF.undercloud_admin_host)))
+        CONF.undercloud_admin_host, ip_version=ip_network.version)))
     ip_set.remove(netaddr.IPNetwork(utils.get_single_ip(
-        CONF.undercloud_public_host)))
+        CONF.undercloud_public_host, ip_version=ip_network.version)))
     # Remove dns nameservers
     for addr in subnet.get('dns_nameservers', []):
         ip_set.remove(netaddr.IPAddress(addr))
@@ -675,10 +675,13 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
 
     if (CONF.get('generate_service_certificate') or
             CONF.get('undercloud_service_certificate')):
+        local_net = netaddr.IPNetwork(CONF.get('local_ip'))
+
         endpoint_environment = _get_tls_endpoint_environment(
             CONF.get('undercloud_public_host'), tht_templates)
 
-        public_host = utils.get_single_ip(CONF.get('undercloud_public_host'))
+        public_host = utils.get_single_ip(CONF.get('undercloud_public_host'),
+                                          ip_version=local_net.version)
         public_ip = netaddr.IPAddress(public_host)
         deploy_args += ['--public-virtual-ip', public_host]
 
@@ -687,11 +690,11 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
             extra_host = public_host + ' ' + CONF.get('undercloud_public_host')
             env_data['ExtraHostFileEntries'] = extra_host
 
-        admin_host = utils.get_single_ip(CONF.get('undercloud_admin_host'))
+        admin_host = utils.get_single_ip(CONF.get('undercloud_admin_host'),
+                                         ip_version=local_net.version)
         admin_ip = netaddr.IPAddress(admin_host)
         deploy_args += ['--control-virtual-ip', admin_host]
 
-        local_net = netaddr.IPNetwork(CONF.get('local_ip'))
         if CONF.get('net_config_override', None):
             if (admin_ip not in local_net.cidr):
                 LOG.warning('You may need to specify a custom '

@@ -464,7 +464,7 @@ def get_host_ips(host, type=None):
     return list(ips)
 
 
-def get_single_ip(host, allow_loopback=False):
+def get_single_ip(host, allow_loopback=False, ip_version=4):
     """Translate an hostname into a single IP address if it is a valid IP.
 
     :param host: IP or hostname or FQDN to lookup
@@ -479,7 +479,8 @@ def get_single_ip(host, allow_loopback=False):
 
     ip = host
     if not is_valid_ip(host):
-        ips = get_host_ips(host)
+        type = socket.AF_INET6 if ip_version == 6 else socket.AF_INET
+        ips = get_host_ips(host, type=type)
         if not ips:
             raise exceptions.LookupError('No IP was found for the host: '
                                          '%s' % host)
