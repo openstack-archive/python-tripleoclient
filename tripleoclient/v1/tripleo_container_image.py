@@ -45,6 +45,7 @@ DEFAULT_AUTHFILE = "{}/containers/auth.json".format(
 DEFAULT_ENV_AUTHFILE = os.environ.get("REGISTRY_AUTH_FILE", DEFAULT_AUTHFILE)
 DEFAULT_CONFIG = "tripleo_containers.yaml"
 DEFAULT_TCIB_CONFIG_BASE = "tcib"
+SUPPORTED_RHEL_MODULES = ['container-tools', 'mariadb', 'redis', 'virt']
 
 
 class Build(command.Command):
@@ -206,6 +207,14 @@ class Build(command.Command):
                 "logs for each image and its dependencies. "
                 "(default: %(default)s)"
             ),
+        )
+        parser.add_argument(
+            "--rhel-modules",
+            dest="rhel_modules",
+            metavar="<rhel-modules>",
+            default=None,
+            help=_("A comma separated list of RHEL modules to enable with "
+                   "their version. Example: 'mariadb:10.3,virt:8.3'."),
         )
         return parser
 
@@ -459,6 +468,22 @@ class Build(command.Command):
                     "ansible_connection": "local",
                 }
             )
+
+            if parsed_args.rhel_modules:
+                rhel_modules = {}
+                for module in parsed_args.rhel_modules.split(','):
+                    try:
+                        name, version = module.split(':', 1)
+                    except Exception:
+                        raise ValueError('Wrong format for --rhel-modules, '
+                                         'must be a comma separated list of '
+                                         '<module>:<version>')
+                    if name not in SUPPORTED_RHEL_MODULES:
+                        raise ValueError('{} is not part of supported modules'
+                                         ' {}'.format(name,
+                                                      SUPPORTED_RHEL_MODULES))
+                    rhel_modules.update({name: version})
+                image_config['tcib_rhel_modules'] = rhel_modules
 
             # NOTE(cloudnull): Check if the reference config has a valid
             #                  "from" option. If the reference "from"
