@@ -22,7 +22,6 @@ from tripleoclient.exceptions import OvercloudUpgradeNotConfirmed
 
 from tripleoclient import command
 from tripleoclient import constants
-from tripleoclient import exceptions
 from tripleoclient import utils as oooutils
 from tripleoclient.v1.overcloud_deploy import DeployOvercloud
 from tripleoclient.workflows import deployment
@@ -205,16 +204,6 @@ class UpgradeRun(command.Command):
                                    "operation. Use this with caution! ")
                             )
         return parser
-
-    def _validate_skip_tags(self, skip_tags):
-        tags_list = skip_tags.split(',')
-        for tag in tags_list:
-            tag = tag.strip()
-            if tag and tag not in constants.MAJOR_UPGRADE_SKIP_TAGS:
-                raise exceptions.InvalidConfiguration(
-                    "Unexpected tag %s. Supported values are %s" % (
-                        tag, constants.MAJOR_UPGRADE_SKIP_TAGS))
-        return skip_tags
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
