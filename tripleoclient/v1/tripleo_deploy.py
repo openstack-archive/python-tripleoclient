@@ -819,8 +819,13 @@ class Deploy(command.Command):
 
         self.log.warning(_("** Performing Heat stack create.. **"))
         stack = orchestration_client.stacks.create(**stack_args)
-        stack_id = stack['stack']['id']
+        if not stack:
+            msg = _('The ephemeral Heat stack could not be created, please '
+                    'check logs in /var/log/heat-launcher and/or any '
+                    'possible misconfiguration.')
+            raise exceptions.DeploymentError(msg)
 
+        stack_id = stack['stack']['id']
         return "%s/%s" % (stack_name, stack_id)
 
     def _download_ansible_playbooks(self, client, stack_name,
