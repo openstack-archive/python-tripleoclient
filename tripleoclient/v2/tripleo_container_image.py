@@ -377,12 +377,6 @@ class Build(command.Command):
                 os.path.dirname(self.tcib_config_path),
                 parsed_args.config_file,
             )
-            if not os.path.isfile(self.config_file):
-                raise IOError(
-                    "Configuration file {} was not found.".format(
-                        self.config_file
-                    )
-                )
 
         self.log.debug("take_action({})".format(parsed_args))
         excludes = parsed_args.excludes
@@ -421,16 +415,42 @@ class Build(command.Command):
             )
             os.makedirs(work_dir)
 
-        with open(self.config_file, "r") as f:
-            containers_yaml = yaml.safe_load(f)
+        if os.path.isfile(self.config_file):
+            self.log.info(
+                "Configuration file found: {}".format(self.config_file)
+            )
+            with open(self.config_file, "r") as f:
+                containers_yaml = yaml.safe_load(f)
 
-        for c in containers_yaml["container_images"]:
-            entry = dict(c)
-            if not entry.get("image_source", "") == "tripleo":
-                continue
-            image = self.imagename_to_regex(entry.get("imagename"))
-            if image and image not in excludes:
-                images_to_prepare.append(image)
+            for c in containers_yaml["container_images"]:
+                entry = dict(c)
+                if not entry.get("image_source", "") == "tripleo":
+                    continue
+                image = self.imagename_to_regex(entry.get("imagename"))
+                if image and image not in excludes:
+                    images_to_prepare.append(image)
+
+            # NOTE(cloudnull): Ensure all dependent images are in the build
+            #                  tree. Once an image has been added to the
+            #                  prepare array, we walk it back and ensure
+            #                  dependencies are also part of the build
+            #                  process.
+            image_parent = self.image_parents.get(image)
+            while image_parent:
+                if image_parent not in images_to_prepare:
+                    images_to_prepare.insert(0, image_parent)
+
+                image_parent = self.image_parents.get(image_parent)
+        else:
+            self.log.warning(
+                "Configuration file not found: {}".format(self.config_file)
+            )
+            self.log.warning(
+                "All identified images will be prepared: {}".format(
+                    self.config_file
+                )
+            )
+            images_to_prepare.extend(self.identified_images)
 
         tcib_inventory = {"all": {"hosts": {}}}
         tcib_inventory_hosts = tcib_inventory["all"]["hosts"]

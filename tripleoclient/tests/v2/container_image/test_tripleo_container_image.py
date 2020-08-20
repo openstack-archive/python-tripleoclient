@@ -206,9 +206,7 @@ class TestContainerImages(deploy_fakes.TestDeployOvercloud):
             ("config_file", "not-a-file-config.yaml"),
         ]
 
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-
-        self.assertRaises(IOError, self.cmd.take_action, parsed_args)
+        self.check_parser(self.cmd, arglist, verifylist)
 
     def test_image_build_failure_no_config_dir(self):
         arglist = ["--config-path", "not-a-path"]
