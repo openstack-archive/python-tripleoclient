@@ -1040,6 +1040,18 @@ class DeployOvercloud(command.Command):
             return
 
         try:
+            # Force fetching of attributes
+            stack.get()
+
+            rcpath = deployment.create_overcloudrc(
+                container=stack.stack_name,
+                no_proxy=parsed_args.no_proxy)
+
+            overcloud_endpoint = utils.get_overcloud_endpoint(stack)
+
+            horizon_url = deployment.get_horizon_url(
+                stack=stack.stack_name)
+
             if parsed_args.config_download:
                 print("Deploying overcloud configuration")
                 deployment.set_deployment_status(
@@ -1104,29 +1116,17 @@ class DeployOvercloud(command.Command):
                 status=deploy_status
             )
         finally:
-            # Force fetching of attributes
-            stack.get()
-
-            rcpath = deployment.create_overcloudrc(
-                container=stack.stack_name,
-                no_proxy=parsed_args.no_proxy)
-
-            # Copy clouds.yaml to the cloud user directory
-            user = \
-                getpwuid(os.stat(constants.CLOUD_HOME_DIR).st_uid).pw_name
-            utils.copy_clouds_yaml(user)
-            utils.create_tempest_deployer_input()
-
             # Run postconfig on create or force. Use force to makes sure
             # endpoints are created with deploy reruns and upgrades
             if (stack_create or parsed_args.force_postconfig
                     and not parsed_args.skip_postconfig):
                 self._deploy_postconfig(stack, parsed_args)
 
-            overcloud_endpoint = utils.get_overcloud_endpoint(stack)
-
-            horizon_url = deployment.get_horizon_url(
-                stack=stack.stack_name)
+            # Copy clouds.yaml to the cloud user directory
+            user = \
+                getpwuid(os.stat(constants.CLOUD_HOME_DIR).st_uid).pw_name
+            utils.copy_clouds_yaml(user)
+            utils.create_tempest_deployer_input()
 
             print("Overcloud Endpoint: {0}".format(overcloud_endpoint))
             print("Overcloud Horizon Dashboard URL: {0}".format(
