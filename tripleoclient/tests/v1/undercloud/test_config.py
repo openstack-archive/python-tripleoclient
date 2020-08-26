@@ -319,18 +319,14 @@ class TestNetworkSettings(TestBaseNetworkSettings):
                          undercloud_admin_host='192.168.24.3',
                          undercloud_public_host='192.168.24.1',
                          generate_service_certificate=True)
-        self.assertRaises(exceptions.InvalidConfiguration,
-                          undercloud_config._process_network_args,
-                          env)
+        undercloud_config._process_network_args(env)
 
         # undercloud_admin_host == undercloud_public_host
         self.conf.config(local_ip='192.168.24.1/24',
                          undercloud_admin_host='192.168.24.2',
                          undercloud_public_host='192.168.24.2',
                          generate_service_certificate=True)
-        self.assertRaises(exceptions.InvalidConfiguration,
-                          undercloud_config._process_network_args,
-                          env)
+        undercloud_config._process_network_args(env)
 
         # We do not care about ip duplication when ssl is disabled
         self.conf.config(local_ip='192.168.24.1/24',
