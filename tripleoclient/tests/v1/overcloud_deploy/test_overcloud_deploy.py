@@ -1521,7 +1521,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                        deployment_options={},
                        deployment_timeout=448,  # 451 - 3, total time left
                        in_flight_validations=False, limit_hosts=None,
-                       skip_tags=None, tags=None, timeout=42, verbosity=3)],
+                       skip_tags=None, tags=None, timeout=42, verbosity=3,
+                       forks=None)],
             fixture.mock_config_download.mock_calls)
         fixture.mock_config_download.assert_called()
         mock_copy.assert_called_once()
@@ -1574,7 +1575,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 reproduce_command=True, skip_tags='opendev-validation',
                 ssh_user='tripleo-admin', tags=None,
                 timeout=240,
-                verbosity=3, workdir=mock.ANY)],
+                verbosity=3, workdir=mock.ANY, forks=None)],
             utils_fixture2.mock_run_ansible_playbook.mock_calls)
 
     def test_download_missing_files_from_plan(self):

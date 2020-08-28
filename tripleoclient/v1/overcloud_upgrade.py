@@ -204,6 +204,14 @@ class UpgradeRun(command.Command):
                                    "required before any upgrade "
                                    "operation. Use this with caution! ")
                             )
+        parser.add_argument(
+            '--ansible-forks',
+            action='store',
+            default=None,
+            type=int,
+            help=_('The number of Ansible forks to use for the'
+                   ' config-download ansible-playbook command.')
+        )
         return parser
 
     def take_action(self, parsed_args):
@@ -248,7 +256,8 @@ class UpgradeRun(command.Command):
             skip_tags=parsed_args.skip_tags,
             limit_hosts=oooutils.playbook_limit_parse(
                 limit_nodes=parsed_args.limit
-            )
+            ),
+            forks=parsed_args.ansible_forks
         )
         self.log.info("Completed Overcloud Major Upgrade Run.")
 

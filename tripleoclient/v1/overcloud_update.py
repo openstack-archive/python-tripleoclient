@@ -169,6 +169,14 @@ class UpdateRun(command.Command):
             help=_("Use -y or --yes to skip the confirmation required before "
                    "any update operation. Use this with caution! "),
         )
+        parser.add_argument(
+            '--ansible-forks',
+            action='store',
+            default=None,
+            type=int,
+            help=_('The number of Ansible forks to use for the'
+                   ' config-download ansible-playbook command.')
+        )
         return parser
 
     def take_action(self, parsed_args):
@@ -212,7 +220,8 @@ class UpdateRun(command.Command):
                 limit_nodes=parsed_args.limit
             ),
             skip_tags=parsed_args.skip_tags,
-            tags=parsed_args.tags
+            tags=parsed_args.tags,
+            forks=parsed_args.ansible_forks
         )
         self.log.info("Completed Overcloud Minor Update Run.")
 
