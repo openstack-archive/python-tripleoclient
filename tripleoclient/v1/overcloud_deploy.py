@@ -985,6 +985,14 @@ class DeployOvercloud(command.Command):
             help=_('A list of tags to skip when running the'
                    ' config-download ansible-playbook command.')
         )
+        parser.add_argument(
+            '--ansible-forks',
+            action='store',
+            default=None,
+            type=int,
+            help=_('The number of Ansible forks to use for the'
+                   ' config-download ansible-playbook command.')
+        )
         return parser
 
     def take_action(self, parsed_args):
@@ -1100,7 +1108,8 @@ class DeployOvercloud(command.Command):
                     skip_tags=parsed_args.skip_tags,
                     limit_hosts=utils.playbook_limit_parse(
                         limit_nodes=parsed_args.limit
-                    )
+                    ),
+                    forks=parsed_args.ansible_forks
                 )
         except Exception as deploy_e:
             deploy_status = 'failed'

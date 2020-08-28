@@ -31,6 +31,7 @@ import logging
 import shutil
 from six.moves.configparser import ConfigParser
 
+import multiprocessing
 import netaddr
 import os
 import os.path
@@ -195,7 +196,8 @@ def run_ansible_playbook(logger,
                          verbosity=1,
                          extra_vars=None,
                          plan='overcloud',
-                         gathering_policy=None):
+                         gathering_policy=None,
+                         forks=None):
     """Simple wrapper for ansible-playbook
 
     :param logger: logger instance
@@ -327,6 +329,10 @@ def run_ansible_playbook(logger,
                                ansible_config)
     elif os.path.exists(os.path.join(workdir, ansible_config)):
         env['ANSIBLE_CONFIG'] = os.path.join(workdir, ansible_config)
+
+    if not forks:
+        forks = min(multiprocessing.cpu_count() * 4, 100)
+    env['ANSIBLE_FORKS'] = str(forks)
 
     play = os.path.join(workdir, playbook)
 
@@ -1382,7 +1388,7 @@ def run_update_ansible_action(log, clients, stack, nodes, inventory,
                               playbook, all_playbooks, ssh_user,
                               action=None, skip_tags=None, tags=None,
                               verbosity='1', extra_vars=None,
-                              workdir='', priv_key=''):
+                              workdir='', priv_key='', forks=None):
 
     playbooks = [playbook]
     if playbook == "all":
@@ -1405,7 +1411,8 @@ def run_update_ansible_action(log, clients, stack, nodes, inventory,
                                  module_path='/usr/share/ansible-modules',
                                  limit_hosts=nodes,
                                  skip_tags=skip_tags,
-                                 tags=tags)
+                                 tags=tags,
+                                 forks=forks)
 
 
 def ssh_private_key(workdir, key):
