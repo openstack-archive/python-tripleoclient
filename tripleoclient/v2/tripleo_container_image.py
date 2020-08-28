@@ -458,6 +458,12 @@ class Build(command.Command):
             image_config = self.find_image(
                 image, self.tcib_config_path, parsed_args.base
             )
+            if not image_config:
+                self.log.error("Image processing failure: {}".format(image))
+                raise RuntimeError(
+                    "Container image specified, but no"
+                    "config was provided. Image: {}".format(image)
+                )
             self.log.debug("processing image config {}".format(image))
 
             if image == "base":
