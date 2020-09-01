@@ -91,7 +91,10 @@ ENABLE_SSH_ADMIN_SSH_PORT_TIMEOUT = 600
 
 ADDITIONAL_ARCHITECTURES = ['ppc64le']
 
-DEFAULT_VALIDATIONS_BASEDIR = '/usr/share/openstack-tripleo-validations'
+DEFAULT_VALIDATIONS_BASEDIR = (
+    "/usr/share/ansible"
+    if os.path.exists("/usr/share/ansible/validation-playbooks")
+    else "/usr/share/openstack-tripleo-validations")
 
 VALIDATIONS_LOG_BASEDIR = '/var/log/validations'
 
@@ -100,8 +103,13 @@ DEFAULT_WORK_DIR = '/var/lib/mistral'
 ANSIBLE_INVENTORY = \
     '/var/lib/mistral/overcloud/tripleo-ansible-inventory.yaml'
 
-ANSIBLE_VALIDATION_DIR = \
-    '/usr/share/openstack-tripleo-validations/playbooks'
+ANSIBLE_VALIDATION_DIR = (
+    "/usr/share/ansible/validation-playbooks"
+    if os.path.exists("/usr/share/ansible/validation-playbooks")
+    else "/usr/share/openstack-tripleo-validations/playbooks")
+
+ANSIBLE_TRIPLEO_PLAYBOOKS = \
+    '/usr/share/ansible/tripleo-playbooks'
 
 VALIDATION_GROUPS_INFO = '%s/groups.yaml' % DEFAULT_VALIDATIONS_BASEDIR
 
