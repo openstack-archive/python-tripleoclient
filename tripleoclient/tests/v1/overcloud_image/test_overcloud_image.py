@@ -227,7 +227,7 @@ class TestFileImageClientAdapter(TestPluginV1):
         )
         self.assertEqual(
             ('/my/images',
-             'overcloud-full.qcow2'),
+             'overcloud-full.raw'),
             self.adapter._paths(
                 'overcloud-full',
                 plugin_utils.overcloud_image,
@@ -382,16 +382,16 @@ class TestFileImageClientAdapter(TestPluginV1):
         )
         mock_upload_image.assert_called_once_with(
             self.adapter,
-            '/home/foo/overcloud-full.qcow2',
-            '/my/images/x86_64/overcloud-full.qcow2'
+            '/home/foo/overcloud-full.raw',
+            '/my/images/x86_64/overcloud-full.raw'
         )
         mock_image_try_update.assert_has_calls([
             mock.call(self.adapter,
-                      '/home/foo/overcloud-full.qcow2',
-                      '/my/images/x86_64/overcloud-full.qcow2'),
+                      '/home/foo/overcloud-full.raw',
+                      '/my/images/x86_64/overcloud-full.raw'),
             mock.call(self.adapter,
-                      '/home/foo/overcloud-full.qcow2',
-                      '/my/images/x86_64/overcloud-full.qcow2')
+                      '/home/foo/overcloud-full.raw',
+                      '/my/images/x86_64/overcloud-full.raw')
         ])
 
 
@@ -519,6 +519,8 @@ class TestUploadOvercloudImage(TestPluginV1):
                           self.cmd.take_action,
                           parsed_args)
 
+    @mock.patch('tripleoclient.v1.overcloud_image.'
+                'BaseClientAdapter._convert_image', autospec=True)
     @mock.patch('os.path.isfile', autospec=True)
     @mock.patch('subprocess.check_call', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_image.'
@@ -526,7 +528,8 @@ class TestUploadOvercloudImage(TestPluginV1):
     def test_overcloud_create_images_v2(self,
                                         mock_get_image,
                                         mock_subprocess_call,
-                                        mock_isfile):
+                                        mock_isfile,
+                                        mock_convert_image):
         parsed_args = self.check_parser(self.cmd, [], [])
         mock_isfile.return_value = False
 
@@ -556,13 +559,14 @@ class TestUploadOvercloudImage(TestPluginV1):
                       validate_checksum=False,
                       visibility='public'),
             mock.call(name='overcloud-full',
-                      disk_format='qcow2',
+                      disk_format='raw',
                       container_format='bare',
                       data=mock.ANY,
                       validate_checksum=False,
                       visibility='public'),
         ])
 
+        self.assertEqual(mock_convert_image.call_count, 1)
         self.assertEqual(mock_subprocess_call.call_count, 2)
         mock_subprocess_call.assert_has_calls([
             mock.call('sudo cp -f "./ironic-python-agent.kernel" '
@@ -600,7 +604,7 @@ class TestUploadOvercloudImage(TestPluginV1):
                       '/foo/overcloud-full.initrd'),
             mock.call(self.cmd.adapter,
                       'overcloud-full',
-                      '/foo/overcloud-full.qcow2'),
+                      '/foo/overcloud-full.raw'),
         ])
         mock_subprocess_call.assert_has_calls([
             mock.call('sudo cp -f "/foo/ironic-python-agent.kernel" '
@@ -609,6 +613,8 @@ class TestUploadOvercloudImage(TestPluginV1):
                       '"/var/lib/ironic/httpboot/agent.ramdisk"', shell=True)
         ])
 
+    @mock.patch('tripleoclient.v1.overcloud_image.'
+                'BaseClientAdapter._convert_image', autospec=True)
     @mock.patch('os.path.isfile', autospec=True)
     @mock.patch('subprocess.check_call', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_image.'
@@ -622,7 +628,8 @@ class TestUploadOvercloudImage(TestPluginV1):
                                               mock_image_changed,
                                               mock_get_image,
                                               mock_subprocess_call,
-                                              mock_isfile):
+                                              mock_isfile,
+                                              mock_convert_image):
         parsed_args = self.check_parser(self.cmd, [], [])
         mock_isfile.return_value = True
         mock_files_changed.return_value = True
@@ -648,9 +655,12 @@ class TestUploadOvercloudImage(TestPluginV1):
             self.app.client_manager.image.image_update.call_count
         )
 
+        self.assertEqual(mock_convert_image.call_count, 1)
         self.assertEqual(mock_subprocess_call.call_count, 0)
         self.assertFalse(self.cmd.updated)
 
+    @mock.patch('tripleoclient.v1.overcloud_image.'
+                'BaseClientAdapter._convert_image', autospec=True)
     @mock.patch('subprocess.check_call', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_image.'
                 'GlanceClientAdapter._get_image', autospec=True)
@@ -662,7 +672,8 @@ class TestUploadOvercloudImage(TestPluginV1):
                                             mock_files_changed,
                                             mock_image_changed,
                                             mock_get_image,
-                                            mock_subprocess_call):
+                                            mock_subprocess_call,
+                                            mock_convert_image):
         parsed_args = self.check_parser(self.cmd, ['--update-existing'], [])
         mock_files_changed.return_value = True
 
@@ -689,6 +700,7 @@ class TestUploadOvercloudImage(TestPluginV1):
             6,  # 3 for new uploads, 3 updating the existsing
             self.app.client_manager.image.update_image.call_count
         )
+        self.assertEqual(mock_convert_image.call_count, 1)
         self.assertEqual(mock_subprocess_call.call_count, 2)
         self.assertTrue(self.cmd.updated)
 
@@ -722,6 +734,8 @@ class TestUploadOvercloudImageFull(TestPluginV1):
         self._file_handle = FakeHandle()
         mock_rifp.return_value = self._file_handle
 
+    @mock.patch('tripleoclient.v1.overcloud_image.'
+                'BaseClientAdapter._convert_image', autospec=True)
     @mock.patch('os.path.isfile', autospec=True)
     @mock.patch('subprocess.check_call', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_image.'
@@ -729,7 +743,7 @@ class TestUploadOvercloudImageFull(TestPluginV1):
     def test_overcloud_create_images(self,
                                      mock_get_image,
                                      mock_subprocess_call,
-                                     mock_isfile):
+                                     mock_isfile, mock_convert_image):
         parsed_args = self.check_parser(self.cmd, ['--whole-disk'], [])
         mock_isfile.return_value = False
 
@@ -748,7 +762,7 @@ class TestUploadOvercloudImageFull(TestPluginV1):
 
         self.app.client_manager.image.create_image.assert_has_calls([
             mock.call(name='overcloud-full',
-                      disk_format='qcow2',
+                      disk_format='raw',
                       container_format='bare',
                       data=mock.ANY,
                       validate_checksum=False,
@@ -759,6 +773,7 @@ class TestUploadOvercloudImageFull(TestPluginV1):
             mock.call(mock.ANY, hw_architecture=self._arch),
         ])
 
+        self.assertEqual(mock_convert_image.call_count, 1)
         self.assertEqual(mock_subprocess_call.call_count, 2)
         mock_subprocess_call.assert_has_calls([
             mock.call('sudo cp -f "./ironic-python-agent.kernel" '
@@ -767,6 +782,8 @@ class TestUploadOvercloudImageFull(TestPluginV1):
                       '"/var/lib/ironic/httpboot/agent.ramdisk"', shell=True)
         ])
 
+    @mock.patch('tripleoclient.v1.overcloud_image.'
+                'BaseClientAdapter._convert_image', autospec=True)
     @mock.patch('os.path.isfile', autospec=True)
     @mock.patch('subprocess.check_call', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_image.'
@@ -774,7 +791,8 @@ class TestUploadOvercloudImageFull(TestPluginV1):
     def test_overcloud_create_images_with_arch(self,
                                                mock_get_image,
                                                mock_subprocess_call,
-                                               mock_isfile):
+                                               mock_isfile,
+                                               mock_convert_image):
         parsed_args = self.check_parser(self.cmd,
                                         ['--whole-disk', '--arch', 'ppc64le'],
                                         [])
@@ -795,7 +813,7 @@ class TestUploadOvercloudImageFull(TestPluginV1):
 
         self.app.client_manager.image.create_image.assert_has_calls([
             mock.call(name='ppc64le-overcloud-full',
-                      disk_format='qcow2',
+                      disk_format='raw',
                       container_format='bare',
                       data=mock.ANY,
                       validate_checksum=False,
@@ -805,6 +823,7 @@ class TestUploadOvercloudImageFull(TestPluginV1):
         self.app.client_manager.image.update_image.assert_has_calls([
             mock.call(mock.ANY, hw_architecture='ppc64le'),
         ])
+        self.assertEqual(mock_convert_image.call_count, 1)
         self.assertEqual(mock_subprocess_call.call_count, 2)
         mock_subprocess_call.assert_has_calls([
             mock.call('sudo cp -f "./ironic-python-agent.kernel" '
@@ -813,6 +832,8 @@ class TestUploadOvercloudImageFull(TestPluginV1):
                       '"/var/lib/ironic/httpboot/agent.ramdisk"', shell=True)
         ])
 
+    @mock.patch('tripleoclient.v1.overcloud_image.'
+                'BaseClientAdapter._convert_image', autospec=True)
     @mock.patch('os.path.isfile', autospec=True)
     @mock.patch('subprocess.check_call', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_image.'
@@ -825,7 +846,8 @@ class TestUploadOvercloudImageFull(TestPluginV1):
                                               mock_files_changed,
                                               mock_image_changed,
                                               mock_subprocess_call,
-                                              mock_isfile):
+                                              mock_isfile,
+                                              mock_convert_image):
         parsed_args = self.check_parser(self.cmd, ['--whole-disk'], [])
         mock_isfile.return_value = True
         mock_files_changed.return_value = True
@@ -851,8 +873,11 @@ class TestUploadOvercloudImageFull(TestPluginV1):
             self.app.client_manager.image.update_image.call_count
         )
 
+        self.assertEqual(mock_convert_image.call_count, 1)
         self.assertEqual(mock_subprocess_call.call_count, 0)
 
+    @mock.patch('tripleoclient.v1.overcloud_image.'
+                'BaseClientAdapter._convert_image', autospec=True)
     @mock.patch('subprocess.check_call', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_image.'
                 'GlanceClientAdapter._image_changed', autospec=True)
@@ -863,7 +888,8 @@ class TestUploadOvercloudImageFull(TestPluginV1):
     def test_overcloud_create_update_images(self, mock_get_image,
                                             mock_files_changed,
                                             mock_image_changed,
-                                            mock_subprocess_call):
+                                            mock_subprocess_call,
+                                            mock_convert_image):
         parsed_args = self.check_parser(
             self.cmd, ['--update-existing', '--whole-disk'], [])
         mock_files_changed.return_value = True
@@ -890,6 +916,7 @@ class TestUploadOvercloudImageFull(TestPluginV1):
             2,  # update 1 image *and* add properties to 1 image
             self.app.client_manager.image.update_image.call_count
         )
+        self.assertEqual(mock_convert_image.call_count, 1)
         self.assertEqual(mock_subprocess_call.call_count, 2)
 
 
@@ -931,6 +958,8 @@ class TestUploadOvercloudImageFullMultiArch(TestPluginV1):
         self._file_handle = FakeHandle()
         mock_rifp.return_value = self._file_handle
 
+    @mock.patch('tripleoclient.v1.overcloud_image.'
+                'BaseClientAdapter._convert_image', autospec=True)
     @mock.patch('tripleo_common.arch.kernel_arch', autospec=True,
                 return_value='x86_64')
     @mock.patch('os.path.isfile', autospec=True)
@@ -939,7 +968,8 @@ class TestUploadOvercloudImageFullMultiArch(TestPluginV1):
                 'GlanceClientAdapter._get_image', autospec=True)
     def test_overcloud_create_images_with_arch(self, mock_get_image,
                                                mock_subprocess_call,
-                                               mock_isfile, mock_arch):
+                                               mock_isfile, mock_arch,
+                                               mock_convert_image):
         mock_isfile.return_value = False
         mock_get_image.return_value = None
 
@@ -965,13 +995,13 @@ class TestUploadOvercloudImageFullMultiArch(TestPluginV1):
 
         self.app.client_manager.image.create_image.assert_has_calls([
             mock.call(name='overcloud-full',
-                      disk_format='qcow2',
+                      disk_format='raw',
                       container_format='bare',
                       data=mock.ANY,
                       validate_checksum=False,
                       visibility='public'),
             mock.call(name='ppc64le-overcloud-full',
-                      disk_format='qcow2',
+                      disk_format='raw',
                       container_format='bare',
                       data=mock.ANY,
                       validate_checksum=False,
@@ -982,6 +1012,7 @@ class TestUploadOvercloudImageFullMultiArch(TestPluginV1):
             mock.call(10, hw_architecture='x86_64'),
             mock.call(11, hw_architecture='ppc64le'),
         ])
+        self.assertEqual(mock_convert_image.call_count, 2)
         self.assertEqual(mock_subprocess_call.call_count, 4)
         mock_subprocess_call.assert_has_calls([
             mock.call('sudo cp -f "./ironic-python-agent.kernel" '
@@ -994,6 +1025,8 @@ class TestUploadOvercloudImageFullMultiArch(TestPluginV1):
                       '"/httpboot/ppc64le/agent.ramdisk"', shell=True),
         ])
 
+    @mock.patch('tripleoclient.v1.overcloud_image.'
+                'BaseClientAdapter._convert_image',  autospec=True)
     @mock.patch('tripleo_common.arch.kernel_arch', autospec=True,
                 return_value='x86_64')
     @mock.patch('os.path.isfile', autospec=True)
@@ -1004,7 +1037,8 @@ class TestUploadOvercloudImageFullMultiArch(TestPluginV1):
                                                            mock_get_image,
                                                            mock_subprocess,
                                                            mock_isfile,
-                                                           mock_arch):
+                                                           mock_arch,
+                                                           mock_convert_image):
         mock_isfile.return_value = False
         mock_get_image.return_value = None
 
@@ -1037,19 +1071,19 @@ class TestUploadOvercloudImageFullMultiArch(TestPluginV1):
 
         self.app.client_manager.image.create_image.assert_has_calls([
             mock.call(name='overcloud-full',
-                      disk_format='qcow2',
+                      disk_format='raw',
                       container_format='bare',
                       data=mock.ANY,
                       validate_checksum=False,
                       visibility='public'),
             mock.call(name='ppc64le-overcloud-full',
-                      disk_format='qcow2',
+                      disk_format='raw',
                       container_format='bare',
                       data=mock.ANY,
                       validate_checksum=False,
                       visibility='public'),
             mock.call(name='p9-ppc64le-overcloud-full',
-                      disk_format='qcow2',
+                      disk_format='raw',
                       container_format='bare',
                       data=mock.ANY,
                       validate_checksum=False,
@@ -1061,6 +1095,7 @@ class TestUploadOvercloudImageFullMultiArch(TestPluginV1):
             mock.call(11, hw_architecture='ppc64le'),
             mock.call(12, hw_architecture='ppc64le', tripleo_platform='p9'),
         ])
+        self.assertEqual(mock_convert_image.call_count, 3)
         self.assertEqual(mock_subprocess.call_count, 6)
         mock_subprocess.assert_has_calls([
             mock.call('sudo cp -f "./ironic-python-agent.kernel" '
@@ -1167,7 +1202,7 @@ class TestUploadOnlyExisting(TestPluginV1):
         mock_image_try_update.assert_called_once_with(
             self.cmd.adapter,
             'overcloud-full',
-            './overcloud-full.qcow2'
+            './overcloud-full.raw'
         )
 
     @mock.patch('subprocess.check_call', autospec=True)
@@ -1225,7 +1260,7 @@ class TestUploadOnlyExisting(TestPluginV1):
         mock_files_changed.return_value = True
         self.cmd.take_action(parsed_args)
 
-        # ensure check_file_exists has been called just with ipa
+        # ensure check_file_exists has been called just with os
         self.assertCountEqual(
             self.cmd.adapter.check_file_exists.call_args_list,
             [mock.call(self.cmd.adapter, './overcloud-full.qcow2')])
@@ -1240,5 +1275,5 @@ class TestUploadOnlyExisting(TestPluginV1):
                       './overcloud-full.initrd'),
             mock.call(self.cmd.adapter,
                       'overcloud-full',
-                      './overcloud-full.qcow2'),
+                      './overcloud-full.raw'),
         ])

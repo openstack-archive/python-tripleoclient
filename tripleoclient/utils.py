@@ -1923,7 +1923,7 @@ def overcloud_image(basename, arch=None, platform=None,
                     use_subdir=False):
     return (_name_helper(basename, arch=arch, platform=platform,
                          use_subdir=use_subdir),
-            '.qcow2')
+            '.raw')
 
 
 def deploy_kernel(basename='agent', arch=None, platform=None,

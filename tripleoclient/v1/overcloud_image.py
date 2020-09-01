@@ -115,7 +115,7 @@ class BaseClientAdapter(object):
     @abc.abstractmethod
     def update_or_upload(self, image_name, properties, names_func,
                          arch, platform=None,
-                         disk_format='qcow2', container_format='bare'):
+                         disk_format='raw', container_format='bare'):
         pass
 
     def _copy_file(self, src, dest):
@@ -125,6 +125,11 @@ class BaseClientAdapter(object):
 
     def _move_file(self, src, dest):
         cmd = 'sudo mv "{0}" "{1}"'.format(src, dest)
+        self.log.debug(cmd)
+        subprocess.check_call(cmd, shell=True)
+
+    def _convert_image(self, src, dest):
+        cmd = 'sudo qemu-img convert -O raw "{0}" "{1}"'.format(src, dest)
         self.log.debug(cmd)
         subprocess.check_call(cmd, shell=True)
 
@@ -262,7 +267,7 @@ class FileImageClientAdapter(BaseClientAdapter):
 
     def update_or_upload(self, image_name, properties, names_func,
                          arch, platform=None,
-                         disk_format='qcow2', container_format='bare'):
+                         disk_format='raw', container_format='bare'):
         (dest_dir, image_file) = self._paths(
             image_name, names_func, arch, platform)
 
@@ -320,7 +325,7 @@ class GlanceClientAdapter(BaseClientAdapter):
             return None
 
     def _upload_image(self, name, data, properties=None, visibility='public',
-                      disk_format='qcow2', container_format='bare'):
+                      disk_format='raw', container_format='bare'):
 
         image = self.client.create_image(
             name=name,
@@ -345,7 +350,7 @@ class GlanceClientAdapter(BaseClientAdapter):
 
     def update_or_upload(self, image_name, properties, names_func,
                          arch, platform=None,
-                         disk_format='qcow2', container_format='bare'):
+                         disk_format='raw', container_format='bare'):
 
         if arch == 'x86_64' and platform is None:
             arch = None
@@ -515,9 +520,17 @@ class UploadOvercloudImage(command.Command):
         else:
             overcloud_image_type = 'partition'
 
+        image_name = parsed_args.os_image_name.split('.')[0]
+
         for image in image_files:
-            self.adapter.check_file_exists(
-                os.path.join(parsed_args.image_path, image))
+            extension = image.split('.')[-1]
+            image_path = os.path.join(parsed_args.image_path, image)
+            self.adapter.check_file_exists(image_path)
+            # Convert qcow2 image to raw, see bug/1893912
+            if extension == 'qcow2':
+                self.adapter._convert_image(
+                    image_path,
+                    os.path.join(parsed_args.image_path, image_name + '.raw'))
 
         image_name = parsed_args.os_image_name.split('.')[0]
 
