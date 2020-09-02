@@ -35,6 +35,7 @@ from tripleo_common.image.builder import buildah
 from tripleo_common.image import image_uploader
 from tripleo_common.image import kolla_builder
 from tripleo_common.utils.locks import processlock
+from tripleoclient import utils as oooutils
 
 from tripleoclient import command
 from tripleoclient import constants
@@ -1037,6 +1038,14 @@ class TripleOImagePrepare(command.Command):
                    "images. 'partial' will leave images required for "
                    "deployment on this host. 'none' will do no cleanup.")
         )
+        parser.add_argument(
+            "--log-file",
+            dest="log_file",
+            default=constants.CONTAINER_IMAGE_PREPARE_LOG_FILE,
+            help=_("Log file to be used for python logging. "
+                   "By default it would be logged to "
+                   "$HOME/container_image_prepare.log.")
+        )
         return parser
 
     def take_action(self, parsed_args):
@@ -1045,25 +1054,25 @@ class TripleOImagePrepare(command.Command):
         if parsed_args.cleanup not in image_uploader.CLEANUP:
             raise oscexc.CommandError('--cleanup must be one of: %s' %
                                       ', '.join(image_uploader.CLEANUP))
+        extra_vars = {
+            "roles_file": parsed_args.roles_file,
+            "environment_directories": parsed_args.environment_directories,
+            "environment_files": parsed_args.environment_files,
+            "cleanup": parsed_args.cleanup,
+            "dry_run": parsed_args.dry_run,
+            "log_file": parsed_args.log_file}
 
-        roles_data = utils.fetch_roles_file(parsed_args.roles_file)
+        if self.app_args.verbose_level >= 3:
+            extra_vars["debug"] = True
 
-        env = utils.build_prepare_env(
-            parsed_args.environment_files,
-            parsed_args.environment_directories
-        )
-
-        lock = processlock.ProcessLock()
-        params = kolla_builder.container_images_prepare_multi(
-            env, roles_data, dry_run=parsed_args.dry_run,
-            cleanup=parsed_args.cleanup, lock=lock)
-        env_data = build_env_file(params, self.app.command_options)
         if parsed_args.output_env_file:
-            if os.path.exists(parsed_args.output_env_file):
-                self.log.warning("Output env file exists, "
-                                 "moving it to backup.")
-                shutil.move(parsed_args.output_env_file,
-                            parsed_args.output_env_file + ".backup")
-            utils.safe_write(parsed_args.output_env_file, env_data)
-        else:
-            self.app.stdout.write(env_data)
+            extra_vars["output_env_file"] = parsed_args.output_env_file
+
+        with oooutils.TempDirs() as tmp:
+            oooutils.run_ansible_playbook(
+                playbook='cli-container-image-prepare.yaml',
+                inventory='localhost,',
+                workdir=tmp,
+                playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                verbosity=oooutils.playbook_verbosity(self=self),
+                extra_vars=extra_vars)

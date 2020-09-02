@@ -44,7 +44,7 @@ STANDALONE_NETWORKS_FILE = "/dev/null"
 UNDERCLOUD_NETWORKS_FILE = "network_data_undercloud.yaml"
 ANSIBLE_HOSTS_FILENAME = "hosts.yaml"
 ANSIBLE_CWL = "tripleo_dense,tripleo_profile_tasks,tripleo_states"
-
+CONTAINER_IMAGE_PREPARE_LOG_FILE = "container_image_prepare.log"
 # The name of the file which holds the plan environment contents
 PLAN_ENVIRONMENT = 'plan-environment.yaml'
 USER_ENVIRONMENT = 'user-environment.yaml'
