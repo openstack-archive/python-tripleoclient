@@ -75,7 +75,7 @@ class UndercloudConfig(StandaloneConfig):
             ironic=True,
             ironic_inspector=True,
             mistral=True,
-            nova=True,
+            nova=False,
             novajoin=False,
             tempest=True,
             telemetry=False,
