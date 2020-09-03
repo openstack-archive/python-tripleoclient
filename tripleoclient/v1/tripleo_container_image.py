@@ -489,8 +489,7 @@ class Build(command.Command):
             #                  "from" option. If the reference "from"
             #                  option is valid, it will be used.
             image_config["tcib_from"] = image_config.get(
-                "tcib_from",
-                image_from
+                "tcib_from", image_from
             )
 
             tcib_inventory_hosts[image_parsed_name] = image_config
@@ -581,3 +580,80 @@ class Build(command.Command):
                 self.log.error(
                     "Buildah failed with the following error: {}".format(exp)
                 )
+
+
+class HotFix(command.Command):
+    """Hotfix tripleo container images with tripleo-ansible."""
+
+    def get_parser(self, prog_name):
+        parser = super(HotFix, self).get_parser(prog_name)
+        parser.add_argument(
+            "--image",
+            dest="images",
+            metavar="<images>",
+            default=[],
+            action="append",
+            required=True,
+            help=_(
+                "Fully qualified reference to the source image to be "
+                "modified. Can be specified multiple times (one per "
+                "image) (default: %(default)s)."
+            ),
+        )
+        parser.add_argument(
+            "--rpms-path",
+            dest="rpms_path",
+            metavar="<rpms-path>",
+            required=True,
+            help=_("Path containing RPMs to install (default: %(default)s)."),
+        )
+        parser.add_argument(
+            "--tag",
+            dest="tag",
+            metavar="<image-tag>",
+            default="latest",
+            help=_("Image hotfix tag (default: %(default)s)"),
+        )
+        return parser
+
+    def take_action(self, parsed_args):
+        with utils.TempDirs() as tmp:
+            tasks = list()
+            for image in parsed_args.images:
+                tasks.append(
+                    {
+                        "name": "include ansible-role-tripleo-modify-image",
+                        "import_role": {"name": "tripleo-modify-image"},
+                        "vars": {
+                            "container_build_tool": "buildah",
+                            "tasks_from": "rpm_install.yml",
+                            "source_image": image,
+                            "rpms_path": parsed_args.rpms_path,
+                            "modified_append_tag": "-{}".format(
+                                parsed_args.tag
+                            ),
+                            "modify_dir_path": tmp,
+                        },
+                    }
+                )
+
+            playbook = os.path.join(tmp, "tripleo-hotfix-playbook.yaml")
+            playdata = {
+                "name": "Generate hotfixs",
+                "connection": "local",
+                "hosts": "localhost",
+                "gather_facts": False,
+                "tasks": tasks,
+            }
+
+            with open(playbook, "w") as f:
+                yaml.safe_dump(
+                    [playdata], f, default_flow_style=False, width=4096
+                )
+
+            utils.run_ansible_playbook(
+                logger=self.log,
+                workdir=tmp,
+                playbook=playbook,
+                inventory="localhost"
+            )
