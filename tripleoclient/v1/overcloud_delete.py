@@ -26,6 +26,7 @@ from osc_lib import utils as osc_utils
 
 from tripleoclient import command
 from tripleoclient import constants
+from tripleoclient import exceptions
 from tripleoclient import utils
 from tripleoclient.workflows import plan_management
 from tripleoclient.workflows import stack_management
@@ -101,6 +102,14 @@ class DeleteOvercloud(command.Command):
         python_interpreter = \
             "/usr/bin/python{}".format(sys.version_info[0])
         playbook = '/usr/share/ansible/tripleo-playbooks/cli-cleanup-ipa.yml'
+        ipa_config = '/etc/ipa/default.conf'
+
+        if not os.path.exists(ipa_config):
+            self.log.debug(
+                "{} doesn't exist on system. "
+                "Ignoring IPA cleanup.".format(playbook)
+            )
+            return
 
         if not os.path.exists(playbook):
             self.log.debug(
@@ -109,8 +118,16 @@ class DeleteOvercloud(command.Command):
             )
             return
 
-        static_inventory = utils.get_tripleo_ansible_inventory(
-            return_inventory_file_path=True)
+        try:
+            static_inventory = utils.get_tripleo_ansible_inventory(
+                return_inventory_file_path=True)
+        except exceptions.InvalidConfiguration:
+            self.log.warning(
+                "Unable to generate the necessary ansible inventory required "
+                "to cleanup IPA. Ignoring IPA cleanup. Please cleanup IPA "
+                "resources for {} stack manually.".format(stack_name)
+            )
+            return
 
         # We don't technically need remote_user to generate an ansible.cfg for
         # stack.  The write_default_ansible_cfg() method treats this as an
