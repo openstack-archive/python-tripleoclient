@@ -151,8 +151,8 @@ class TestValidatorGroupInfo(utils.TestCommand):
         # Get the command object to test
         self.cmd = tripleo_validator.TripleOValidatorGroupInfo(self.app, None)
 
-    @mock.patch('tripleoclient.utils.prepare_validation_groups_for_display',
-                return_value=GROUPS_LIST)
+    @mock.patch('validations_libs.validation_actions.ValidationActions.'
+                'group_information', return_value=GROUPS_LIST)
     def test_show_group_info(self, mock_validations):
         arglist = []
         verifylist = []
@@ -170,7 +170,8 @@ class TestValidatorList(utils.TestCommand):
         # Get the command object to test
         self.cmd = tripleo_validator.TripleOValidatorList(self.app, None)
 
-    @mock.patch('tripleoclient.utils.parse_all_validations_on_disk',
+    @mock.patch('validations_libs.validation_actions.ValidationActions.'
+                'list_validations',
                 return_value=VALIDATIONS_LIST)
     def test_validation_list_noargs(self, mock_validations):
         arglist = []
@@ -189,8 +190,9 @@ class TestValidatorShow(utils.TestCommand):
         # Get the command object to test
         self.cmd = tripleo_validator.TripleOValidatorShow(self.app, None)
 
-    @mock.patch('tripleoclient.utils.parse_all_validations_on_disk',
-                return_value=VALIDATIONS_LIST)
+    @mock.patch('validations_libs.validation_actions.ValidationActions.'
+                'show_validations',
+                return_value=VALIDATIONS_LIST[0])
     def test_validation_show(self, mock_validations):
         arglist = ['my_val1']
         verifylist = [('validation_id', 'my_val1')]
@@ -209,8 +211,9 @@ class TestValidatorShowParameter(utils.TestCommand):
         self.cmd = tripleo_validator.TripleOValidatorShowParameter(self.app,
                                                                    None)
 
-    @mock.patch('tripleoclient.utils.parse_all_validations_on_disk',
-                return_value=VALIDATIONS_LIST)
+    @mock.patch('validations_libs.validation_actions.ValidationActions.'
+                'show_validations_parameters',
+                return_value=VALIDATIONS_LIST[1])
     def test_validation_show_parameter(self, mock_validations):
         arglist = ['--validation', 'my_val2']
         verifylist = [('validation_name', ['my_val2'])]
@@ -229,7 +232,8 @@ class TestValidatorShowRun(utils.TestCommand):
         self.cmd = tripleo_validator.TripleOValidatorShowRun(self.app,
                                                              None)
 
-    @mock.patch('tripleoclient.utils.parse_all_validations_logs_on_disk',
+    @mock.patch('validations_libs.validation_actions.ValidationLogs.'
+                'get_logfile_content_by_uuid',
                 return_value=VALIDATIONS_LOGS_CONTENTS_LIST)
     def test_validation_show_run(self, mock_validations):
         arglist = ['008886df-d297-1eaa-2a74-000000000008']
@@ -249,7 +253,8 @@ class TestValidatorShowHistory(utils.TestCommand):
         self.cmd = tripleo_validator.TripleOValidatorShowHistory(self.app,
                                                                  None)
 
-    @mock.patch('tripleoclient.utils.parse_all_validations_logs_on_disk',
+    @mock.patch('validations_libs.validation_actions.ValidationActions.'
+                'show_history',
                 return_value=VALIDATIONS_LOGS_CONTENTS_LIST)
     def test_validation_show_history(self, mock_validations):
         arglist = []
@@ -259,7 +264,8 @@ class TestValidatorShowHistory(utils.TestCommand):
 
         self.cmd.take_action(parsed_args)
 
-    @mock.patch('tripleoclient.utils.parse_all_validations_logs_on_disk',
+    @mock.patch('validations_libs.validation_actions.ValidationActions.'
+                'show_history',
                 return_value=VALIDATIONS_LOGS_CONTENTS_LIST)
     def test_validation_show_history_for_a_validation(self, mock_validations):
         arglist = [
