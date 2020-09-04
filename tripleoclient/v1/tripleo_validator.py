@@ -282,6 +282,17 @@ class TripleOValidatorRun(command.Command):
                 "ANSIBLE_STDOUT_CALLBACK=default")
         )
 
+        extra_vars_group.add_argument(
+            '--static-inventory',
+            action='store',
+            default='',
+            help=_(
+                "Provide your own static inventory file. You can generate "
+                "such an inventory calling tripleo-ansible-inventory command. "
+                "Especially useful when heat service isn't available."
+            )
+        )
+
         ex_group = parser.add_mutually_exclusive_group(required=True)
 
         ex_group.add_argument(
@@ -323,11 +334,17 @@ class TripleOValidatorRun(command.Command):
                 else:
                     extra_vars.update(yaml.load(env_file))
 
-        static_inventory = oooutils.get_tripleo_ansible_inventory(
-            ssh_user='heat-admin',
-            stack=parsed_args.plan,
-            undercloud_connection='local',
-            return_inventory_file_path=True)
+        # We don't check if the file exists in order to support
+        # passing a string such as "localhost,", like we can do with
+        # the "-i" option of ansible-playbook.
+        if parsed_args.static_inventory:
+            static_inventory = parsed_args.static_inventory
+        else:
+            static_inventory = oooutils.get_tripleo_ansible_inventory(
+                ssh_user='heat-admin',
+                stack=parsed_args.plan,
+                undercloud_connection='local',
+                return_inventory_file_path=True)
 
         v_consts.DEFAULT_VALIDATIONS_BASEDIR = constants.\
             DEFAULT_VALIDATIONS_BASEDIR
@@ -364,9 +381,10 @@ class TripleOValidatorRun(command.Command):
             t.add_row(r.values())
         print(t)
 
-        LOG.debug(_('Removing static tripleo ansible inventory file'))
-        oooutils.cleanup_tripleo_ansible_inventory_file(
-            static_inventory)
+        if not parsed_args.static_inventory:
+            LOG.debug(_('Removing static tripleo ansible inventory file'))
+            oooutils.cleanup_tripleo_ansible_inventory_file(
+                static_inventory)
 
     def take_action(self, parsed_args):
         self._run_validator_run(parsed_args)
