@@ -608,10 +608,10 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
         _process_drivers_and_hardware_types(CONF, env_data)
         _process_ipa_args(CONF, env_data)
 
-    if not CONF.get('enable_nova', True):
+    if CONF.get('enable_nova'):
         deploy_args += [
             '-e', os.path.join(
-                tht_templates, 'environments/undercloud-disable-nova.yaml')
+                tht_templates, 'environments/undercloud-enable-nova.yaml')
             ]
 
     if CONF.get('enable_mistral'):

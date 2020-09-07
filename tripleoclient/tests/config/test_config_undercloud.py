@@ -172,7 +172,7 @@ class TestUndercloudConfig(base.TestCase):
                     'enable_ironic': True,
                     'enable_ironic_inspector': True,
                     'enable_mistral': True,
-                    'enable_nova': True,
+                    'enable_nova': False,
                     'enable_novajoin': False,
                     'enable_telemetry': False,
                     'enable_tempest': True,
