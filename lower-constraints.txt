@@ -151,6 +151,7 @@ traceback2==1.4.0
 tripleo-common==11.4.0
 ujson==1.35
 unittest2==1.1.0
+validations-libs==1.0.0
 vine==1.1.4
 voluptuous==0.8.9
 waitress==1.1.0
