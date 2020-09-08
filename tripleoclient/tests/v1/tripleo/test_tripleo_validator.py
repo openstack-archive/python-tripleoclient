@@ -50,7 +50,7 @@ VALIDATIONS_LOGS_CONTENTS_LIST = [{
             'id': '008886df-d297-1eaa-2a74-000000000008',
             'validation_id': '512e',
             'validation_path':
-            '/usr/share/openstack-tripleo-validations/playbooks'
+            '/usr/share/ansible/validation-playbooks'
         },
         'tasks': [
             {
