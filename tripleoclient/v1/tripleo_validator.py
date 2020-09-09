@@ -16,6 +16,7 @@
 import argparse
 import json
 import logging
+import sys
 import yaml
 
 from osc_lib import exceptions
@@ -238,6 +239,7 @@ class TripleOValidatorRun(command.Command):
                 " run invocation. For example: --limit \"compute-0,"
                 " compute-1, compute-5\".")
         )
+
         parser.add_argument('--playbook',
                             nargs="*",
                             default=None,
@@ -245,6 +247,13 @@ class TripleOValidatorRun(command.Command):
                                    "validations. It could be a playbook path "
                                    "or a list of playbook.")
                             )
+
+        parser.add_argument(
+            '--python-interpreter',
+            action='store',
+            default="/usr/bin/python{}".format(sys.version_info[0]),
+            help=_("Python interpreter for Ansible execution. ")
+        )
 
         extra_vars_group = parser.add_mutually_exclusive_group(required=False)
 
@@ -358,6 +367,7 @@ class TripleOValidatorRun(command.Command):
             validations_dir=constants.ANSIBLE_VALIDATION_DIR,
             validation_name=parsed_args.validation_name,
             extra_env_vars=parsed_args.extra_env_vars,
+            python_interpreter=parsed_args.python_interpreter,
             quiet=parsed_args.quiet)
 
         # Build output
