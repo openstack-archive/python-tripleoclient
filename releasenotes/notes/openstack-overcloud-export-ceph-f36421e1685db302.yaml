@@ -1,0 +1,6 @@
+---
+features:
+  - A new command "openstack overcloud export ceph" is added. The command is
+    used to export the Ceph deployment data from one stack for use in another
+    stack with storage services which use that Ceph cluster when using the
+    multi-stack deployment feature.
