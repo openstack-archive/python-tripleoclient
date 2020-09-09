@@ -42,7 +42,7 @@ def export_passwords(swift, stack, excludes=True):
                   "file from swift: %s", str(e))
         sys.exit(1)
 
-    data = yaml.load(content)
+    data = yaml.safe_load(content)
     # The "passwords" key in plan-environment.yaml are generated passwords,
     # they are not necessarily the actual password values used during the
     # deployment.
@@ -138,5 +138,66 @@ def export_stack(heat, stack, should_filter=False,
         else:
             raise Exception(
                 "No data returned to export %s from." % param)
+
+    return data
+
+
+def export_storage_ips(stack, config_download_dir=constants.DEFAULT_WORK_DIR):
+    inventory_file = "ceph-ansible/inventory.yml"
+    file = os.path.join(config_download_dir, stack, inventory_file)
+    with open(file, 'r') as ff:
+        try:
+            inventory_data = yaml.safe_load(ff)
+        except Exception as e:
+            LOG.error(
+                _('Could not read file %s') % file)
+            LOG.error(e)
+    mon_ips = []
+    for mon_role in inventory_data['mons']['children'].keys():
+        for hostname in inventory_data[mon_role]['hosts']:
+            ip = inventory_data[mon_role]['hosts'][hostname]['storage_ip']
+            mon_ips.append(ip)
+
+    return mon_ips
+
+
+def export_ceph(stack, cephx,
+                config_download_dir=constants.DEFAULT_WORK_DIR,
+                mon_ips=[]):
+    # Return a map of ceph data for a list item in CephExternalMultiConfig
+    # by parsing files within the config_download_dir of a certain stack
+
+    if len(mon_ips) == 0:
+        mon_ips = export_storage_ips(stack, config_download_dir)
+
+    # Use ceph-ansible group_vars/all.yml to get remaining values
+    ceph_ansible_all = "ceph-ansible/group_vars/all.yml"
+    file = os.path.join(config_download_dir, stack, ceph_ansible_all)
+    with open(file, 'r') as ff:
+        try:
+            ceph_data = yaml.safe_load(ff)
+        except Exception as e:
+            LOG.error(
+                _('Could not read file %s') % file)
+            LOG.error(e)
+
+    for key in ceph_data['keys']:
+        if key['name'] == 'client.' + str(cephx):
+            cephx_keys = [key]
+
+    ceph_conf_overrides = {}
+    ceph_conf_overrides['client'] = {}
+    ceph_conf_overrides['client']['keyring'] = '/etc/ceph/' \
+                                               + ceph_data['cluster'] \
+                                               + '.client.' + cephx \
+                                               + '.keyring'
+    # Combine extracted data into one map to return
+    data = {}
+    data['external_cluster_mon_ips'] = str(','.join(mon_ips))
+    data['keys'] = cephx_keys
+    data['ceph_conf_overrides'] = ceph_conf_overrides
+    data['cluster'] = ceph_data['cluster']
+    data['fsid'] = ceph_data['fsid']
+    data['dashboard_enabled'] = False
 
     return data
