@@ -53,8 +53,8 @@ class StandaloneConfig(BaseConfig):
     def get_enable_service_opts(self, cinder=False, ironic=False,
                                 ironic_inspector=False, mistral=False,
                                 nova=False, novajoin=False, tempest=False,
-                                telemetry=False, tripleo_ui=False,
-                                validations=False, zaqar=False):
+                                telemetry=False, validations=False,
+                                zaqar=False):
         _opts = [
             # service enablement
             cfg.BoolOpt('enable_cinder',
