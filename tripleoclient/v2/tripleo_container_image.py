@@ -13,6 +13,7 @@
 #   under the License.
 #
 
+import collections
 import logging
 import os
 import re
@@ -54,7 +55,7 @@ class Build(command.Command):
     auth_required = False
     log = logging.getLogger(__name__ + ".Build")
     identified_images = list()
-    image_parents = dict()
+    image_parents = collections.OrderedDict()
     image_paths = dict()
 
     def get_parser(self, prog_name):
@@ -351,6 +352,39 @@ class Build(command.Command):
             self.image_paths[tree] = os.path.join(work_dir, tree)
             utils.makedirs(dir_path=self.image_paths[tree])
 
+    def process_images(self, expected_images, parsed_args, image_configs):
+        """Process all of expected images and ensure we have valid config.
+
+        :param expected_images: List of expected images.
+        :type expected_images: List.
+        :param parsed_args: Parsed arguments.
+        :type parsed_args: Object.
+        :param image_configs: Hash of pre-processed images.
+        :type image_configs: Dict.
+        :returns List:
+        """
+
+        image_configs = collections.OrderedDict()
+        for image in expected_images:
+            if image != "container-images" and image not in image_configs:
+                self.log.debug("processing image configs".format(image))
+                image_config = self.find_image(
+                    image,
+                    self.tcib_config_path,
+                    parsed_args.base
+                )
+                if not image_config:
+                    self.log.error(
+                        "Image processing failure: {}".format(image)
+                    )
+                    raise RuntimeError(
+                        "Container image specified, but no"
+                        " config was provided. Image: {}".format(image)
+                    )
+                image_configs[image] = image_config
+
+        return image_configs
+
     def take_action(self, parsed_args):
         self.config_file = os.path.expanduser(parsed_args.config_file)
         self.config_path = os.path.expanduser(parsed_args.config_path)
@@ -377,12 +411,6 @@ class Build(command.Command):
                 os.path.dirname(self.tcib_config_path),
                 parsed_args.config_file,
             )
-            if not os.path.isfile(self.config_file):
-                raise IOError(
-                    "Configuration file {} was not found.".format(
-                        self.config_file
-                    )
-                )
 
         self.log.debug("take_action({})".format(parsed_args))
         excludes = parsed_args.excludes
@@ -421,25 +449,70 @@ class Build(command.Command):
             )
             os.makedirs(work_dir)
 
-        with open(self.config_file, "r") as f:
-            containers_yaml = yaml.safe_load(f)
+        if os.path.isfile(self.config_file):
+            self.log.info(
+                "Configuration file found: {}".format(self.config_file)
+            )
+            with open(self.config_file, "r") as f:
+                containers_yaml = yaml.safe_load(f)
 
-        for c in containers_yaml["container_images"]:
-            entry = dict(c)
-            if not entry.get("image_source", "") == "tripleo":
-                continue
-            image = self.imagename_to_regex(entry.get("imagename"))
-            if image and image not in excludes:
-                images_to_prepare.append(image)
+            for c in containers_yaml["container_images"]:
+                entry = dict(c)
+                if not entry.get("image_source", "") == "tripleo":
+                    continue
+                image = self.imagename_to_regex(entry.get("imagename"))
+                if image and image not in excludes:
+                    images_to_prepare.append(image)
+        else:
+            self.log.warning(
+                "Configuration file not found: {}".format(self.config_file)
+            )
+            self.log.warning(
+                "All identified images will be prepared: {}".format(
+                    self.config_file
+                )
+            )
+            images_to_prepare.extend(self.identified_images)
+
+        # NOTE(cloudnull): Ensure all dependent images are in the build
+        #                  tree. Once an image has been added to the
+        #                  prepare array, we walk it back and ensure
+        #                  dependencies are also part of the build
+        #                  process.
+        image_configs = collections.OrderedDict()  # hash
+        image_configs.update(
+            self.process_images(
+                expected_images=images_to_prepare,
+                parsed_args=parsed_args,
+                image_configs=image_configs
+            )
+        )
+        _parents = self.process_images(
+            expected_images=list(self.image_parents.values()),
+            parsed_args=parsed_args,
+            image_configs=image_configs
+        )
+        for key, value in _parents.items():
+            image_configs[key] = value
+            image_configs.move_to_end(key, last=False)
+            images_to_prepare.insert(0, key)
+
+        if "os" in image_configs:  # Second image prepared if found
+            image_configs.move_to_end("os", last=False)
+
+        if "base" in image_configs:  # First image prepared if found
+            image_configs.move_to_end("base", last=False)
+
+        self.log.debug(
+            "Images being prepared: {}".format(
+                [i[0] for i in [(k, v) for k, v in image_configs.items()]]
+            )
+        )
 
         tcib_inventory = {"all": {"hosts": {}}}
         tcib_inventory_hosts = tcib_inventory["all"]["hosts"]
-        for image in images_to_prepare:
-            image_config = self.find_image(
-                image, self.tcib_config_path, parsed_args.base
-            )
+        for image, image_config in [(k, v) for k, v in image_configs.items()]:
             self.log.debug("processing image config {}".format(image))
-
             if image == "base":
                 image_name = image_from = parsed_args.base
             else:
@@ -552,6 +625,7 @@ class Build(command.Command):
 
         # Ensure anything not intended to be built is excluded
         excludes.extend(self.rectify_excludes(images_to_prepare))
+        self.log.info("Images being excluded: {}".format(excludes))
 
         if not parsed_args.skip_build:
             bb = buildah.BuildahBuilder(
