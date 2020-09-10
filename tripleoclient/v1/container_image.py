@@ -1054,10 +1054,19 @@ class TripleOImagePrepare(command.Command):
         if parsed_args.cleanup not in image_uploader.CLEANUP:
             raise oscexc.CommandError('--cleanup must be one of: %s' %
                                       ', '.join(image_uploader.CLEANUP))
+
+        role_file = None
+        if parsed_args.roles_file:
+            role_file = utils.rel_or_abs_path(parsed_args.roles_file,
+                                              constants.TRIPLEO_HEAT_TEMPLATES)
+        env_dirs = [os.path.abspath(x)
+                    for x in parsed_args.environment_directories]
+        env_files = [os.path.abspath(x)
+                     for x in parsed_args.environment_files]
         extra_vars = {
-            "roles_file": parsed_args.roles_file,
-            "environment_directories": parsed_args.environment_directories,
-            "environment_files": parsed_args.environment_files,
+            "roles_file": role_file,
+            "environment_directories": env_dirs,
+            "environment_files": env_files,
             "cleanup": parsed_args.cleanup,
             "dry_run": parsed_args.dry_run,
             "log_file": parsed_args.log_file}
