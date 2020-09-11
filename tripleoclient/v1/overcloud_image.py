@@ -81,6 +81,13 @@ class BuildOvercloudImage(command.Command):
             help=_("Output directory for images. Defaults to $TRIPLEO_ROOT,"
                    "or current directory if unset."),
         )
+        parser.add_argument(
+            "--temp-dir",
+            dest="temp_dir",
+            default=os.environ.get('TMPDIR', os.getcwd()),
+            help=_("Temporary directory to use when building the images. "
+                   "Defaults to $TMPDIR or current directory if unset."),
+        )
         return parser
 
     def take_action(self, parsed_args):
@@ -89,6 +96,7 @@ class BuildOvercloudImage(command.Command):
         if not parsed_args.config_files:
             parsed_args.config_files = [os.path.join(self.IMAGE_YAML_PATH, f)
                                         for f in self.DEFAULT_YAML]
+        os.environ.update({'TMPDIR': parsed_args.temp_dir})
         manager = build.ImageBuildManager(
             parsed_args.config_files,
             output_directory=parsed_args.output_directory,
