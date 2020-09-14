@@ -91,10 +91,8 @@ ENABLE_SSH_ADMIN_SSH_PORT_TIMEOUT = 600
 
 ADDITIONAL_ARCHITECTURES = ['ppc64le']
 
-DEFAULT_VALIDATIONS_BASEDIR = (
-    "/usr/share/ansible"
-    if os.path.exists("/usr/share/ansible/validation-playbooks")
-    else "/usr/share/openstack-tripleo-validations")
+DEFAULT_VALIDATIONS_BASEDIR = "/usr/share/ansible"
+DEFAULT_VALIDATIONS_LEGACY_BASEDIR = "/usr/share/openstack-tripleo-validations"
 
 VALIDATIONS_LOG_BASEDIR = '/var/log/validations'
 
@@ -104,14 +102,19 @@ ANSIBLE_INVENTORY = \
     '/var/lib/mistral/overcloud/tripleo-ansible-inventory.yaml'
 
 ANSIBLE_VALIDATION_DIR = (
-    "/usr/share/ansible/validation-playbooks"
-    if os.path.exists("/usr/share/ansible/validation-playbooks")
-    else "/usr/share/openstack-tripleo-validations/playbooks")
+    os.path.join(DEFAULT_VALIDATIONS_LEGACY_BASEDIR, 'playbooks')
+    if os.path.join(DEFAULT_VALIDATIONS_LEGACY_BASEDIR, 'playbooks')
+    else "/usr/share/ansible/validation-playbooks"
+    )
 
 ANSIBLE_TRIPLEO_PLAYBOOKS = \
     '/usr/share/ansible/tripleo-playbooks'
 
-VALIDATION_GROUPS_INFO = '%s/groups.yaml' % DEFAULT_VALIDATIONS_BASEDIR
+VALIDATION_GROUPS_INFO = (
+        '/usr/share/ansible/groups.yaml'
+        if os.path.exists('/usr/share/ansible/groups.yaml')
+        else os.path.join(DEFAULT_VALIDATIONS_LEGACY_BASEDIR, 'groups.yaml')
+        )
 
 VALIDATION_GROUPS = ['no-op',
                      'openshift-on-openstack',

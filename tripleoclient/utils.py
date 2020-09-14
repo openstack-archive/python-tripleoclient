@@ -270,20 +270,28 @@ def run_ansible_playbook(logger,
     env['ANSIBLE_LIBRARY'] = \
         ('/root/.ansible/plugins/modules:'
          '/usr/share/ansible/plugins/modules:'
-         '%s/library' % constants.DEFAULT_VALIDATIONS_BASEDIR)
+         '{}/library:{}/library'.format(
+            constants.DEFAULT_VALIDATIONS_BASEDIR,
+            constants.DEFAULT_VALIDATIONS_LEGACY_BASEDIR))
     env['ANSIBLE_LOOKUP_PLUGINS'] = \
         ('root/.ansible/plugins/lookup:'
          '/usr/share/ansible/plugins/lookup:'
-         '%s/lookup_plugins' % constants.DEFAULT_VALIDATIONS_BASEDIR)
+         '{}/lookup_plugins:{}/lookup_plugins'.format(
+            constants.DEFAULT_VALIDATIONS_BASEDIR,
+            constants.DEFAULT_VALIDATIONS_LEGACY_BASEDIR))
     env['ANSIBLE_CALLBACK_PLUGINS'] = \
         ('~/.ansible/plugins/callback:'
          '/usr/share/ansible/plugins/callback:'
-         '%s/callback_plugins' % constants.DEFAULT_VALIDATIONS_BASEDIR)
+         '{}/callback_plugins:{}/callback_plugins'.format(
+            constants.DEFAULT_VALIDATIONS_BASEDIR,
+            constants.DEFAULT_VALIDATIONS_LEGACY_BASEDIR))
     env['ANSIBLE_ROLES_PATH'] = \
         ('/root/.ansible/roles:'
          '/usr/share/ansible/roles:'
          '/etc/ansible/roles:'
-         '%s/roles' % constants.DEFAULT_VALIDATIONS_BASEDIR)
+         '{}/roles:{}/roles'.format(
+            constants.DEFAULT_VALIDATIONS_BASEDIR,
+            constants.DEFAULT_VALIDATIONS_LEGACY_BASEDIR))
 
     env['TRIPLEO_PLAN_NAME'] = plan
 
