@@ -485,11 +485,13 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
         '/usr/share/ansible/plugins/modules:'
         '/usr/share/ceph-ansible/library:'
         '/usr/share/ansible-modules:'
+        '{}/library:'
         '{}/library'.format(
             constants.CLOUD_HOME_DIR,
             os.path.join(workdir, 'modules'),
             os.path.join(cwd, 'modules'),
-            constants.DEFAULT_VALIDATIONS_BASEDIR
+            constants.DEFAULT_VALIDATIONS_BASEDIR,
+            constants.DEFAULT_VALIDATIONS_LEGACY_BASEDIR
         )
     )
     env['ANSIBLE_LOOKUP_PLUGINS'] = os.path.expanduser(
@@ -498,11 +500,13 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
         '/usr/share/ansible/tripleo-plugins/lookup:'
         '/usr/share/ansible/plugins/lookup:'
         '/usr/share/ceph-ansible/plugins/lookup:'
+        '{}/lookup_plugins:'
         '{}/lookup_plugins'.format(
             constants.CLOUD_HOME_DIR,
             os.path.join(workdir, 'lookup'),
             os.path.join(cwd, 'lookup'),
-            constants.DEFAULT_VALIDATIONS_BASEDIR
+            constants.DEFAULT_VALIDATIONS_BASEDIR,
+            constants.DEFAULT_VALIDATIONS_LEGACY_BASEDIR
         )
     )
     env['ANSIBLE_CALLBACK_PLUGINS'] = os.path.expanduser(
@@ -511,11 +515,13 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
         '/usr/share/ansible/tripleo-plugins/callback:'
         '/usr/share/ansible/plugins/callback:'
         '/usr/share/ceph-ansible/plugins/callback:'
+        '{}/callback_plugins:'
         '{}/callback_plugins'.format(
             constants.CLOUD_HOME_DIR,
             os.path.join(workdir, 'callback'),
             os.path.join(cwd, 'callback'),
-            constants.DEFAULT_VALIDATIONS_BASEDIR
+            constants.DEFAULT_VALIDATIONS_BASEDIR,
+            constants.DEFAULT_VALIDATIONS_LEGACY_BASEDIR
         )
     )
     env['ANSIBLE_ACTION_PLUGINS'] = os.path.expanduser(
@@ -524,11 +530,13 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
         '/usr/share/ansible/tripleo-plugins/action:'
         '/usr/share/ansible/plugins/action:'
         '/usr/share/ceph-ansible/plugins/actions:'
+        '{}/action_plugins:'
         '{}/action_plugins'.format(
             constants.CLOUD_HOME_DIR,
             os.path.join(workdir, 'action'),
             os.path.join(cwd, 'action'),
-            constants.DEFAULT_VALIDATIONS_BASEDIR
+            constants.DEFAULT_VALIDATIONS_BASEDIR,
+            constants.DEFAULT_VALIDATIONS_LEGACY_BASEDIR
         )
     )
     env['ANSIBLE_FILTER_PLUGINS'] = os.path.expanduser(
@@ -537,11 +545,13 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
         '/usr/share/ansible/tripleo-plugins/filter:'
         '/usr/share/ansible/plugins/filter:'
         '/usr/share/ceph-ansible/plugins/filter:'
+        '{}/filter_plugins:'
         '{}/filter_plugins'.format(
             constants.CLOUD_HOME_DIR,
             os.path.join(workdir, 'filter'),
             os.path.join(cwd, 'filter'),
-            constants.DEFAULT_VALIDATIONS_BASEDIR
+            constants.DEFAULT_VALIDATIONS_BASEDIR,
+            constants.DEFAULT_VALIDATIONS_LEGACY_BASEDIR
         )
     )
     env['ANSIBLE_ROLES_PATH'] = os.path.expanduser(
@@ -551,11 +561,13 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
         '/usr/share/ansible/roles:'
         '/usr/share/ceph-ansible/roles:'
         '/etc/ansible/roles:'
+        '{}/roles:'
         '{}/roles'.format(
             constants.CLOUD_HOME_DIR,
             os.path.join(workdir, 'roles'),
             os.path.join(cwd, 'roles'),
-            constants.DEFAULT_VALIDATIONS_BASEDIR
+            constants.DEFAULT_VALIDATIONS_BASEDIR,
+            constants.DEFAULT_VALIDATIONS_LEGACY_BASEDIR
         )
     )
     env['ANSIBLE_CALLBACK_WHITELIST'] = callback_whitelist
