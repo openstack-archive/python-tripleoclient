@@ -65,3 +65,57 @@ class TestOvercloudNetworkExtract(fakes.FakePlaybookExecution):
         parsed_args = self.check_parser(self.cmd, arglist, [])
         self.assertRaises(osc_lib_exc.CommandError,
                           self.cmd.take_action, parsed_args)
+
+
+class TestOvercloudNetworkProvision(fakes.FakePlaybookExecution):
+
+    def setUp(self):
+        super(TestOvercloudNetworkProvision, self).setUp()
+
+        # Get the command object to test
+        app_args = mock.Mock()
+        app_args.verbose_level = 1
+        self.app.options = fakes.FakeOptions()
+        self.cmd = overcloud_network.OvercloudNetworkProvision(self.app, None)
+        self.cmd.app_args = mock.Mock(verbose_level=1)
+
+    @mock.patch('tripleoclient.utils.TempDirs', autospect=True)
+    @mock.patch('os.path.abspath', autospect=True)
+    @mock.patch('os.path.exists', autospect=True)
+    @mock.patch('tripleoclient.utils.run_ansible_playbook', autospec=True)
+    def test_overcloud_network_provision(self, mock_playbook, mock_path_exists,
+                                         mock_abspath, mock_tempdirs):
+        arglist = ['--output', 'deployed_networks.yaml', '--yes',
+                   'network_data_v2.yaml']
+        parsed_args = self.check_parser(self.cmd, arglist, [])
+
+        mock_abspath.side_effect = ['/test/network_data_v2.yaml',
+                                    '/test/deployed_networks.yaml']
+        mock_path_exists.side_effect = [True, True]
+        self.cmd.take_action(parsed_args)
+        mock_playbook.assert_called_once_with(
+            workdir=mock.ANY,
+            playbook='cli-overcloud-network-provision.yaml',
+            inventory=mock.ANY,
+            playbook_dir=mock.ANY,
+            verbosity=3,
+            extra_vars={
+                "network_data_path": '/test/network_data_v2.yaml',
+                "network_deployed_path": '/test/deployed_networks.yaml',
+                "overwrite": True
+            }
+        )
+
+    @mock.patch('os.path.abspath', autospect=True)
+    @mock.patch('os.path.exists', autospect=True)
+    def test_overcloud_network_extract_no_overwrite(self, mock_abspath,
+                                                    mock_path_exists):
+        arglist = ['--output', 'deployed_networks.yaml', 'network-data.yaml']
+        parsed_args = self.check_parser(self.cmd, arglist, [])
+
+        mock_abspath.side_effect = ['/test/network_data_v2.yaml',
+                                    '/test/deployed_networks.yaml']
+        mock_path_exists.side_effect = [True, True]
+
+        self.assertRaises(osc_lib_exc.CommandError,
+                          self.cmd.take_action, parsed_args)
