@@ -60,6 +60,7 @@ class UpgradePrepare(DeployOvercloud):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+        oooutils.ensure_run_as_normal_user()
 
         if (not parsed_args.yes
                 and not oooutils.prompt_user_for_confirmation(
@@ -207,6 +208,7 @@ class UpgradeRun(command.Command):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+        oooutils.ensure_run_as_normal_user()
 
         if (not parsed_args.yes
                 and not oooutils.prompt_user_for_confirmation(
