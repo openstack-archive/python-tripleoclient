@@ -68,6 +68,11 @@ class TestContainerImages(deploy_fakes.TestDeployOvercloud):
         )
         self.run_ansible_playbook.start()
         self.addCleanup(self.run_ansible_playbook.stop)
+        self.run_ansible_symlink = mock.patch(
+            "tripleoclient.utils.ansible_symlink", autospec=True
+        )
+        self.run_ansible_symlink.start()
+        self.addCleanup(self.run_ansible_symlink.stop)
         self.buildah_build_all = mock.patch(
             "tripleo_common.image.builder.buildah.BuildahBuilder.build_all",
             autospec=True,
