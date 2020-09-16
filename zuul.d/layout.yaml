@@ -20,13 +20,11 @@
             voting: false
         - openstack-tox-py36
         - openstack-tox-py37
-        - tripleo-ci-centos-7-containers-multinode:
+        - tripleo-ci-centos-8-containers-multinode:
             dependencies: &deps_unit_lint
               - openstack-tox-pep8
               - openstack-tox-py36
               - openstack-tox-py37
-        - tripleo-ci-centos-8-containers-multinode:
-            dependencies: *deps_unit_lint
         - tripleo-build-containers-ubi-8:
             dependencies: *deps_unit_lint
             files:
