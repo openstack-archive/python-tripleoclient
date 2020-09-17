@@ -28,6 +28,7 @@ from osc_lib import exceptions as oscexc
 from six.moves.urllib import parse
 from tripleo_common.image import image_uploader
 from tripleo_common.image import kolla_builder
+from tripleoclient import constants
 from tripleoclient.tests.v1.test_plugin import TestPluginV1
 from tripleoclient.v1 import container_image
 
@@ -825,7 +826,7 @@ class TestTripleoImagePrepare(TestPluginV1):
         verifylist = []
 
         self.app.command_options = [
-            'tripleo', 'container', 'image', 'prepare', 'default'
+            'tripleo', 'container', 'image', 'prepare'
         ] + arglist
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
@@ -836,6 +837,47 @@ class TestTripleoImagePrepare(TestPluginV1):
                   'cleanup': 'full', 'dry_run': False,
                   'log_file': 'container_image_prepare.log', 'debug': True,
                   'output_env_file': self.temp_dir + '/containers_env.yaml'}
+
+        mock_playbook.assert_called_with(
+            extra_vars=e_vars,
+            inventory='localhost,',
+            playbook='cli-container-image-prepare.yaml',
+            playbook_dir='/usr/share/ansible/tripleo-playbooks',
+            verbosity=3, workdir=mock.ANY)
+
+    @mock.patch('tripleoclient.utils.rel_or_abs_path')
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
+                autospec=True)
+    def test_tripleo_container_image_prepare_paths(self, mock_playbook,
+                                                   mock_path):
+        arglist = ['-e', 'foo.yaml',
+                   '-e', '/bar.yaml',
+                   '--environment-directory', 'foo',
+                   '--environment-directory', '/bar',
+                   '-r', 'foo.yaml']
+        verifylist = []
+        self.app.command_options = [
+            'tripleo', 'container', 'image', 'prepare'
+        ] + arglist
+
+        mock_path.return_value = ('/usr/share/openstack-tripleo-heat-templates'
+                                  '/foo.yaml')
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        self.cmd.take_action(parsed_args)
+        e_vars = {'roles_file': ('/usr/share/'
+                                 'openstack-tripleo-heat-templates/foo.yaml'),
+                  'environment_directories': [
+                      os.path.expanduser(constants.DEFAULT_ENV_DIRECTORY),
+                      os.getcwd() + '/foo',
+                      '/bar'
+                   ],
+                  'environment_files': [
+                      os.getcwd() + '/foo.yaml',
+                      '/bar.yaml'
+                  ],
+                  'cleanup': 'full', 'dry_run': False,
+                  'log_file': 'container_image_prepare.log', 'debug': True}
 
         mock_playbook.assert_called_with(
             extra_vars=e_vars,
