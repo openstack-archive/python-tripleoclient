@@ -36,6 +36,7 @@ class TestOvercloudUpdatePrepare(fakes.TestOvercloudUpdatePrepare):
         self.mock_uuid4 = uuid4_patcher.start()
         self.addCleanup(self.mock_uuid4.stop)
 
+    @mock.patch('tripleoclient.utils.ensure_run_as_normal_user')
     @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
                 return_value=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
@@ -56,7 +57,7 @@ class TestOvercloudUpdatePrepare(fakes.TestOvercloudUpdatePrepare):
     def test_update_out(self, mock_deploy, mock_open, mock_copy, mock_yaml,
                         mock_abspath, mock_update, mock_logger,
                         mock_get_stack, mock_get_undercloud_host_entry,
-                        mock_confirm):
+                        mock_confirm, mock_usercheck):
         mock_stack = mock.Mock(parameters={'DeployIdentifier': ''})
         mock_stack.stack_name = 'overcloud'
         mock_get_stack.return_value = mock_stack
@@ -75,11 +76,13 @@ class TestOvercloudUpdatePrepare(fakes.TestOvercloudUpdatePrepare):
             mock_exists.return_value = True
             mock_isfile.return_value = True
             self.cmd.take_action(parsed_args)
+            mock_usercheck.assert_called_once()
             mock_update.assert_called_once_with(
                 self.app.client_manager,
                 container='overcloud',
             )
 
+    @mock.patch('tripleoclient.utils.ensure_run_as_normal_user')
     @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
                 return_value=True)
     @mock.patch('tripleoclient.utils.get_stack',
@@ -94,7 +97,7 @@ class TestOvercloudUpdatePrepare(fakes.TestOvercloudUpdatePrepare):
                 '_deploy_tripleo_heat_templates', autospec=True)
     def test_update_failed(self, mock_deploy, mock_copy, mock_yaml,
                            mock_abspath, mock_open, mock_update,
-                           mock_get_stack, mock_confirm):
+                           mock_get_stack, mock_confirm, mock_usercheck):
         mock_stack = mock.Mock(parameters={'DeployIdentifier': ''})
         mock_stack.stack_name = 'overcloud'
         mock_get_stack.return_value = mock_stack
@@ -113,6 +116,7 @@ class TestOvercloudUpdatePrepare(fakes.TestOvercloudUpdatePrepare):
             mock_isfile.return_value = True
             self.assertRaises(exceptions.DeploymentError,
                               self.cmd.take_action, parsed_args)
+            mock_usercheck.assert_called_once()
 
 
 class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
@@ -159,11 +163,13 @@ class TestOvercloudUpdateConverge(fakes.TestOvercloudUpdateConverge):
         app_args.verbose_level = 1
         self.cmd = overcloud_update.UpdateConverge(self.app, app_args)
 
+    @mock.patch('tripleoclient.utils.ensure_run_as_normal_user')
     @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
                 return_value=True)
     @mock.patch(
         'tripleoclient.v1.overcloud_deploy.DeployOvercloud.take_action')
-    def test_update_converge(self, deploy_action, mock_confirm):
+    def test_update_converge(self, deploy_action, mock_confirm,
+                             mock_usercheck):
         argslist = ['--templates', '--stack', 'cloud']
         verifylist = [
             ('stack', 'cloud')
@@ -175,6 +181,7 @@ class TestOvercloudUpdateConverge(fakes.TestOvercloudUpdateConverge):
             mock_exists.return_value = True
             mock_isfile.return_value = True
             self.cmd.take_action(parsed_args)
+            mock_usercheck.assert_called_once()
             assert('/usr/share/openstack-tripleo-heat-templates/'
                    'environments/lifecycle/update-converge.yaml'
                    in parsed_args.environment_files)
