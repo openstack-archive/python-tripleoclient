@@ -395,7 +395,7 @@ def config_download(log, clients, stack, templates,
         )
 
         for payload in base.wait_for_messages(workflow_client, ws, execution):
-            print(payload['message'])
+            print(payload['message'], end='')
 
     if payload['status'] == 'SUCCESS':
         print("Overcloud configuration completed.")
