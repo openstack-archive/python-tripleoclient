@@ -587,8 +587,9 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
 
     env['TRIPLEO_PLAN_NAME'] = plan
 
+    get_uid = int(os.getenv('SUDO_UID', os.getuid()))
     try:
-        user_pwd = pwd.getpwuid(int(os.getenv('SUDO_UID', os.getuid())))
+        user_pwd = pwd.getpwuid(get_uid)
     except TypeError:
         home = constants.CLOUD_HOME_DIR
     else:
@@ -685,7 +686,15 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
                 f.write('{} $@\n'.format(' '.join(runner_config.command)))
             os.chmod(command_path, 0o750)
 
-        status, rc = runner.run()
+        try:
+            status, rc = runner.run()
+        finally:
+            # NOTE(cloudnull): After a playbook executes, ensure the log
+            #                  file, if it exists, was created with
+            #                  appropriate ownership.
+            _log_path = r_opts['envvars']['ANSIBLE_LOG_PATH']
+            if os.path.isfile(_log_path):
+                os.chown(_log_path, get_uid, -1)
 
     if rc != 0:
         err_msg = (
