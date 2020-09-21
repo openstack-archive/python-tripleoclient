@@ -30,8 +30,6 @@ from tripleoclient.workflows import package_update
 from tripleoclient.workflows import parameters
 
 CONF = cfg.CONF
-logging.register_options(CONF)
-logging.setup(CONF, '')
 
 
 class UpgradePrepare(DeployOvercloud):
@@ -61,6 +59,8 @@ class UpgradePrepare(DeployOvercloud):
         return parser
 
     def take_action(self, parsed_args):
+        logging.register_options(CONF)
+        logging.setup(CONF, '')
         self.log.debug("take_action(%s)" % parsed_args)
 
         if (not parsed_args.yes
@@ -233,6 +233,8 @@ class UpgradeRun(command.Command):
         return skip_tags
 
     def take_action(self, parsed_args):
+        logging.register_options(CONF)
+        logging.setup(CONF, '')
         self.log.debug("take_action(%s)" % parsed_args)
 
         if (not parsed_args.yes

@@ -26,8 +26,6 @@ from tripleoclient import utils as oooutils
 from tripleoclient.workflows import package_update
 
 CONF = cfg.CONF
-logging.register_options(CONF)
-logging.setup(CONF, '')
 
 
 class ExternalUpdateRun(command.Command):
@@ -120,6 +118,8 @@ class ExternalUpdateRun(command.Command):
         return parser
 
     def take_action(self, parsed_args):
+        logging.register_options(CONF)
+        logging.setup(CONF, '')
         self.log.debug("take_action(%s)" % parsed_args)
 
         if (not parsed_args.yes
