@@ -29,8 +29,6 @@ from tripleoclient.workflows import package_update
 
 
 CONF = cfg.CONF
-logging.register_options(CONF)
-logging.setup(CONF, '')
 
 
 class UpdatePrepare(DeployOvercloud):
@@ -54,6 +52,8 @@ class UpdatePrepare(DeployOvercloud):
         return parser
 
     def take_action(self, parsed_args):
+        logging.register_options(CONF)
+        logging.setup(CONF, '')
         self.log.debug("take_action(%s)" % parsed_args)
         oooutils.ensure_run_as_normal_user()
 
@@ -172,6 +172,8 @@ class UpdateRun(command.Command):
         return parser
 
     def take_action(self, parsed_args):
+        logging.register_options(CONF)
+        logging.setup(CONF, '')
         self.log.debug("take_action(%s)" % parsed_args)
         oooutils.ensure_run_as_normal_user()
 
@@ -237,6 +239,8 @@ class UpdateConverge(DeployOvercloud):
         return parser
 
     def take_action(self, parsed_args):
+        logging.register_options(CONF)
+        logging.setup(CONF, '')
         self.log.debug("take_action(%s)" % parsed_args)
         oooutils.ensure_run_as_normal_user()
 

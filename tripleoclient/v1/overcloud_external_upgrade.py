@@ -27,8 +27,6 @@ from tripleoclient.workflows import deployment
 
 
 CONF = cfg.CONF
-logging.register_options(CONF)
-logging.setup(CONF, '')
 
 
 class ExternalUpgradeRun(command.Command):
@@ -112,6 +110,8 @@ class ExternalUpgradeRun(command.Command):
         return parser
 
     def take_action(self, parsed_args):
+        logging.register_options(CONF)
+        logging.setup(CONF, '')
         self.log.debug("take_action(%s)" % parsed_args)
         oooutils.ensure_run_as_normal_user()
 
