@@ -22,6 +22,7 @@ import yaml
 
 from heatclient import exc as hc_exc
 import mock
+import openstack
 from osc_lib import exceptions as oscexc
 from osc_lib.tests import utils
 from swiftclient.exceptions import ClientException as ObjectClientException
@@ -93,6 +94,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.cmd._download_missing_files_from_plan = self.real_download_missing
         shutil.rmtree = self.real_shutil
 
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_get_ctlplane_attrs', autospec=True, return_value={})
     @mock.patch('tripleoclient.utils.get_stack_output_item',
                 autospec=True)
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
@@ -117,7 +120,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                        mock_events, mock_stack_network_check,
                        mock_ceph_fsid,
                        mock_get_undercloud_host_entry, mock_copy,
-                       mock_get_stack_output_item):
+                       mock_get_stack_output_item,
+                       mock_get_ctlplane_attrs):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         clients = self.app.client_manager
@@ -173,7 +177,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'StackAction': 'UPDATE',
             'DeployIdentifier': '',
             'UndercloudHostsEntries': [
-                '192.168.0.1 uc.ctlplane.localhost uc.ctlplane']
+                '192.168.0.1 uc.ctlplane.localhost uc.ctlplane'],
+            'CtlplaneNetworkAttributes': {},
         }
 
         def _custom_create_params_env(_self, parameters, tht_root,
@@ -196,6 +201,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_create_tempest_deployer_input.assert_called_with()
         mock_copy.assert_called_once()
 
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_get_ctlplane_attrs', autospec=True, return_value={})
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_get_undercloud_host_entry', autospec=True,
@@ -217,7 +224,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                         mock_breakpoints_cleanup,
                         mock_postconfig,
                         mock_invoke_plan_env_wf,
-                        mock_get_undercloud_host_entry, mock_copy):
+                        mock_get_undercloud_host_entry, mock_copy,
+                        mock_get_ctlplane_attrs):
 
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
@@ -268,7 +276,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 'UpdateIdentifier': '',
                 'DeployIdentifier': '',
                 'UndercloudHostsEntries':
-                    ['192.168.0.1 uc.ctlplane.localhost uc.ctlplane']}}
+                    ['192.168.0.1 uc.ctlplane.localhost uc.ctlplane'],
+                'CtlplaneNetworkAttributes': {}}}
 
         mock_rm = shutil.rmtree = mock.MagicMock()
         self.cmd.take_action(parsed_args)
@@ -284,10 +293,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_validate_args.assert_called_once_with(parsed_args)
 
-        plane_management_fixture.mock_tarball.create_tarball.\
+        plane_management_fixture.mock_tarball.create_tarball. \
             assert_called_with(
                 self.tmp_dir.join('tripleo-heat-templates'), mock.ANY)
-        plane_management_fixture.mock_tarball.\
+        plane_management_fixture.mock_tarball. \
             tarball_extract_to_swift_container.assert_called_with(
                 clients.tripleoclient.object_store, mock.ANY, 'overcloud')
         self.assertFalse(mock_invoke_plan_env_wf.called)
@@ -302,9 +311,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                       yaml.safe_dump({}, default_flow_style=False)),
             mock.call('overcloud',
                       'plan-environment.yaml',
-                      yaml.safe_dump({'environments':
-                                      [{'path': 'user-environment.yaml'}]},
-                                     default_flow_style=False))]
+                      yaml.safe_dump({
+                          'environments': [{'path': 'user-environment.yaml'}]},
+                          default_flow_style=False))]
 
         object_client = clients.tripleoclient.object_store
         object_client.put_object.assert_has_calls(calls)
@@ -318,6 +327,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                          parameters_env.get('parameter_defaults'))
         mock_copy.assert_called_once()
 
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_get_ctlplane_attrs', autospec=True, return_value={})
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_get_undercloud_host_entry', autospec=True,
@@ -350,7 +361,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mock_postconfig, mock_shutil_rmtree,
             mock_invoke_plan_env_wf,
             mock_stack_network_check, mock_ceph_fsid,
-            mock_get_undercloud_host_entry, mock_copy):
+            mock_get_undercloud_host_entry, mock_copy,
+            mock_get_ctlplane_attrs):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         plane_management_fixture = deployment.PlanManagementFixture()
@@ -415,7 +427,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'UndercloudHostsEntries': [
                 '192.168.0.1 uc.ctlplane.localhost uc.ctlplane'
             ],
-            'UseTLSTransportForNbd': True
+            'UseTLSTransportForNbd': True,
+            'CtlplaneNetworkAttributes': {},
         }
 
         testcase = self
@@ -443,10 +456,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_create_tempest_deployer.assert_called_with()
         mock_validate_args.assert_called_once_with(parsed_args)
 
-        plane_management_fixture.mock_tarball.create_tarball.\
+        plane_management_fixture.mock_tarball.create_tarball. \
             assert_called_with(
                 '/tmp/tht/tripleo-heat-templates', mock.ANY)
-        plane_management_fixture.mock_tarball.\
+        plane_management_fixture.mock_tarball. \
             tarball_extract_to_swift_container.assert_called_with(
                 clients.tripleoclient.object_store, mock.ANY, 'overcloud')
 
@@ -675,7 +688,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         test_env = os.path.join(self.tmp_dir.path, 'foo1.yaml')
 
         env_dirs = [os.path.join(os.environ.get('HOME', ''), '.tripleo',
-                    'environments'), self.tmp_dir.path]
+                                 'environments'), self.tmp_dir.path]
 
         with open(test_env, 'w') as temp_file:
             temp_file.write('resource_registry:\n  Test: OS::Heat::None')
@@ -704,8 +717,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_deploy_heat.side_effect = _fake_heat_deploy
         object_client = clients.tripleoclient.object_store
         object_client.get_object = mock.Mock()
-        mock_env = yaml.safe_dump({'parameter_defaults':
-                                  {'NovaComputeLibvirtType': 'qemu'}})
+        mock_env = yaml.safe_dump(
+            {'parameter_defaults': {'NovaComputeLibvirtType': 'qemu'}})
         object_client.get_object.return_value = ({}, mock_env)
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
@@ -815,8 +828,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         object_client = clients.tripleoclient.object_store
         object_client.get_object = mock.Mock()
-        mock_env = yaml.safe_dump({'parameter_defaults':
-                                  {'NovaComputeLibvirtType': 'qemu'}})
+        mock_env = yaml.safe_dump(
+            {'parameter_defaults': {'NovaComputeLibvirtType': 'qemu'}})
         object_client.get_object.return_value = ({}, mock_env)
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
@@ -868,7 +881,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         ]
 
         mock_obj.side_effect = ObjectClientException(mock.Mock(
-                                                     '/fake/path not found'))
+            '/fake/path not found'))
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.assertRaises(oscexc.CommandError,
@@ -1019,13 +1032,12 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         test_answerfile = self.tmp_dir.join('answerfile')
         with open(test_answerfile, 'w') as answerfile:
-                yaml.dump(
-                    {'templates':
-                     '/usr/share/openstack-tripleo-heat-templates/',
-                     'environments': [test_env]
-                     },
-                    answerfile
-                )
+            yaml.dump(
+                {'templates': '/usr/share/openstack-tripleo-heat-templates/',
+                 'environments': [test_env]
+                 },
+                answerfile
+            )
 
         arglist = ['--answers-file', test_answerfile,
                    '--environment-file', test_env2,
@@ -1038,8 +1050,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         object_client = clients.tripleoclient.object_store
         object_client.get_object = mock.Mock()
-        mock_env = yaml.safe_dump({'parameter_defaults':
-                                  {'NovaComputeLibvirtType': 'qemu'}})
+        mock_env = yaml.safe_dump(
+            {'parameter_defaults': {'NovaComputeLibvirtType': 'qemu'}})
         object_client.get_object.return_value = ({}, mock_env)
 
         self.cmd.take_action(parsed_args)
@@ -1123,6 +1135,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                           self.cmd.take_action,
                           parsed_args)
 
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_get_ctlplane_attrs', autospec=True, return_value={})
     @mock.patch('tripleoclient.utils.get_stack_output_item',
                 autospec=True)
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
@@ -1154,7 +1168,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                  mock_stack_network_check,
                                  mock_ceph_fsid,
                                  mock_get_undercloud_host_entry, mock_copy,
-                                 mock_get_stack_output_item):
+                                 mock_get_stack_output_item,
+                                 mock_get_ctlplane_attrs):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         plane_management_fixture = deployment.PlanManagementFixture()
@@ -1219,7 +1234,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'UndercloudHostsEntries': [
                 '192.168.0.1 uc.ctlplane.localhost uc.ctlplane'
             ],
-            'UseTLSTransportForNbd': True
+            'UseTLSTransportForNbd': True,
+            'CtlplaneNetworkAttributes': {},
         }
 
         def _custom_create_params_env(_self, parameters, tht_root,
@@ -1525,6 +1541,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                          fixture.mock_config_download.call_args[0][8])
         mock_copy.assert_called_once()
 
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_get_ctlplane_attrs', autospec=True, return_value={})
     @mock.patch('tripleoclient.utils.get_stack_output_item',
                 autospec=True)
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
@@ -1546,7 +1564,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             self, mock_plan_list, mock_plan_create, mock_hc,
             mock_stack_network_check, mock_ceph_fsid, mock_hd,
             mock_overcloudrc, mock_get_undercloud_host_entry,
-            mock_copy, mock_get_stack_output_item):
+            mock_copy, mock_get_stack_output_item, mock_get_ctlplane_attrs):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         utils_fixture = deployment.UtilsOvercloudFixture()
@@ -1570,9 +1588,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             [mock.call(mock.ANY, mock.ANY, 'overcloud', mock.ANY,
                        {'DeployIdentifier': '', 'UpdateIdentifier': '',
                         'StackAction': 'UPDATE', 'UndercloudHostsEntries':
-                        ['192.168.0.1 uc.ctlplane.localhost uc.ctlplane']}, {},
-                       451, mock.ANY, {}, False, False, False, None,
-                       deployment_options={})],
+                            ['192.168.0.1 uc.ctlplane.localhost uc.ctlplane'],
+                        'CtlplaneNetworkAttributes': {}}, {}, 451, mock.ANY,
+                       {}, False, False, False, None, deployment_options={})],
             mock_hd.mock_calls)
         self.assertIn(
             [mock.call(mock.ANY, mock.ANY, mock.ANY,
@@ -1802,6 +1820,67 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                             'and will be ignored because --limit has been '
                             'specified.')
         mock_warning.assert_called_once_with(expected_message)
+
+    @mock.patch('openstack.connect', autospec=True)
+    def test__get_ctlplane_attrs_no_config(self, mock_connect):
+        mock_connect.side_effect = openstack.exceptions.ConfigException
+        function = overcloud_deploy.DeployOvercloud._get_ctlplane_attrs
+
+        expected = dict()
+        self.assertEqual(expected, function(mock.ANY))
+
+    @mock.patch('openstack.connect', autospec=True)
+    @mock.patch.object(openstack.connection, 'Connection', autospec=True)
+    def test__get_ctlplane_attrs_no_network(self, mock_conn, mock_connect):
+        mock_connect.return_value = mock_conn
+        function = overcloud_deploy.DeployOvercloud._get_ctlplane_attrs
+
+        mock_conn.network.find_network.return_value = None
+        expected = dict()
+        self.assertEqual(expected, function(mock.ANY))
+
+    @mock.patch('openstack.connect', autospec=True)
+    @mock.patch.object(openstack.connection, 'Connection', autospec=True)
+    def test__get_ctlplane_attrs(self, mock_conn, mock_connect):
+        mock_connect.return_value = mock_conn
+        function = overcloud_deploy.DeployOvercloud._get_ctlplane_attrs
+
+        fake_network = fakes.FakeNeutronNetwork(
+            name='net_name',
+            mtu=1440,
+            dns_domain='ctlplane.localdomain.',
+            tags=[],
+            subnet_ids=['subnet_id'])
+        fake_subnet = fakes.FakeNeutronSubnet(
+            id='subnet_id',
+            name='subnet_name',
+            cidr='192.168.24.0/24',
+            gateway_ip='192.168.24.1',
+            host_routes=[
+                {'destination': '192.168.25.0/24', 'nexthop': '192.168.24.1'}],
+            dns_nameservers=['192.168.24.254'],
+            ip_version=4
+        )
+        mock_conn.network.find_network.return_value = fake_network
+        mock_conn.network.get_subnet.return_value = fake_subnet
+        expected = {
+            'network': {
+                'dns_domain': 'ctlplane.localdomain.',
+                'mtu': 1440,
+                'name': 'net_name',
+                'tags': []},
+            'subnets': {
+                'subnet_name': {
+                    'cidr': '192.168.24.0/24',
+                    'dns_nameservers': ['192.168.24.254'],
+                    'gateway_ip': '192.168.24.1',
+                    'host_routes': [{'destination': '192.168.25.0/24',
+                                     'nexthop': '192.168.24.1'}],
+                    'ip_version': 4,
+                    'name': 'subnet_name'}
+            }
+        }
+        self.assertEqual(expected, function(mock.ANY))
 
 
 class TestArgumentValidation(fakes.TestDeployOvercloud):
