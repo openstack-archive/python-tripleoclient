@@ -923,6 +923,32 @@ class TestNetworkSettings(TestBaseNetworkSettings):
         self.assertRaises(exceptions.DeploymentError,
                           undercloud_config._generate_inspection_subnets)
 
+    def test__env_set_undercloud_ctlplane_networks_attribues(self):
+        self.conf.config(local_subnet='ctlplane-subnet',
+                         local_mtu=1444,
+                         undercloud_nameservers=['192.168.24.253',
+                                                 '192.168.24.252'])
+        self.conf.config(cidr='192.168.24.0/24',
+                         gateway='192.168.24.254',
+                         host_routes=[{'destination': '10.10.10.254/32',
+                                       'nexthop': '192.168.24.1'}],
+                         group='ctlplane-subnet')
+        env = {}
+        undercloud_config._env_set_undercloud_ctlplane_networks_attribues(env)
+        expected = {
+            'CtlplaneNetworkAttributes': {
+                'network': {'mtu': 1444},
+                'subnets': {
+                    'ctlplane-subnet': {
+                        'cidr': '192.168.24.0/24',
+                        'dns_nameservers': ['192.168.24.253',
+                                            '192.168.24.252'],
+                        'gateway_ip': '192.168.24.254',
+                        'host_routes': [{'destination': '10.10.10.254/32',
+                                         'nexthop': '192.168.24.1'}],
+                        'tags': []}}}}
+        self.assertEqual(expected, env)
+
 
 class TestChronySettings(TestBaseNetworkSettings):
     def test_default(self):

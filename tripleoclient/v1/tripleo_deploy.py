@@ -703,6 +703,18 @@ class Deploy(command.Command):
             stack_name=parsed_args.stack,
             role_name=self._get_primary_role_name(
                 roles_file_path, parsed_args.templates)))
+        tmp_env.update(
+            {
+                'CtlplaneNetworkAttributes': {
+                    'subnets': {
+                        'ctlplane-subnet': {
+                            'cidr': str(ip_nw.cidr),
+                            'host_routes': []
+                        }
+                    }
+                }
+            }
+        )
 
         with open(maps_file, 'w') as env_file:
             yaml.safe_dump({'parameter_defaults': tmp_env}, env_file,
