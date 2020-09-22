@@ -77,6 +77,7 @@ class UndercloudConfig(StandaloneConfig):
             mistral=True,
             nova=False,
             novajoin=False,
+            swift=True,
             tempest=True,
             telemetry=False,
             validations=True,

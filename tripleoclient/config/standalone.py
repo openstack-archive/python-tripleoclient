@@ -52,9 +52,9 @@ class StandaloneConfig(BaseConfig):
 
     def get_enable_service_opts(self, cinder=False, ironic=False,
                                 ironic_inspector=False, mistral=False,
-                                nova=False, novajoin=False, tempest=False,
-                                telemetry=False, validations=False,
-                                zaqar=False):
+                                nova=False, novajoin=False, swift=False,
+                                tempest=False, telemetry=False,
+                                validations=False, zaqar=False):
         _opts = [
             # service enablement
             cfg.BoolOpt('enable_cinder',
@@ -80,6 +80,11 @@ class StandaloneConfig(BaseConfig):
                         default=novajoin,
                         help=_('Whether to install novajoin metadata service '
                                'in the Undercloud.')
+                        ),
+            cfg.BoolOpt('enable_swift',
+                        default=swift,
+                        help=_('Whether to install Swift services in the '
+                               'Undercloud.')
                         ),
             cfg.BoolOpt('enable_tempest',
                         default=tempest,
