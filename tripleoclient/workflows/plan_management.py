@@ -66,7 +66,8 @@ def _upload_templates(swift_client, container_name, tht_root, roles_file=None,
 
 def create_deployment_plan(container, generate_passwords,
                            use_default_templates=False, source_url=None,
-                           verbosity_level=0, plan_env_file=None):
+                           verbosity_level=0, plan_env_file=None,
+                           disable_image_params_prepare=False):
     """Create a deployment plan.
 
     :param container: Container name to push to.
@@ -87,12 +88,16 @@ def create_deployment_plan(container, generate_passwords,
 
     :param plan_env_file: Path to plan environment file
     :type plan_env_file: String
+
+    :param disable_image_params_prepare: Disable container params prepare task
+    :type disable_image_params_prepare: Boolean
     """
 
     extra_vars = {
         "container": container,
         "generate_passwords": generate_passwords,
         "use_default_templates": use_default_templates,
+        "disable_image_params_prepare": disable_image_params_prepare
     }
 
     if source_url:
@@ -132,7 +137,8 @@ def delete_deployment_plan(clients, container):
 
 
 def update_deployment_plan(clients, container, generate_passwords,
-                           verbosity_level=0):
+                           verbosity_level=0,
+                           disable_image_params_prepare=False):
     """Update a deployment plan.
 
     :param clients: Application client object.
@@ -146,6 +152,9 @@ def update_deployment_plan(clients, container, generate_passwords,
 
     :param verbosity_level: Verbosity level used in playbook execution
     :type verbosity_level: Integer
+
+    :param disable_image_params_prepare: Disable container params prepare task
+    :type disable_image_params_prepare: Boolean
     """
 
     with utils.TempDirs() as tmp:
@@ -157,6 +166,7 @@ def update_deployment_plan(clients, container, generate_passwords,
             extra_vars={
                 "container": container,
                 "generate_passwords": generate_passwords,
+                "disable_image_params_prepare": disable_image_params_prepare
             },
             verbosity=verbosity_level
         )
@@ -171,7 +181,8 @@ def list_deployment_plans(clients):
 
 def create_plan_from_templates(clients, name, tht_root, roles_file=None,
                                generate_passwords=True, plan_env_file=None,
-                               networks_file=None, verbosity_level=0):
+                               networks_file=None, verbosity_level=0,
+                               disable_image_params_prepare=False):
     swift_client = clients.tripleoclient.object_store
 
     print("Creating Swift container to store the plan")
@@ -183,10 +194,12 @@ def create_plan_from_templates(clients, name, tht_root, roles_file=None,
                       plan_env_file, networks_file)
 
     try:
-        create_deployment_plan(container=name,
-                               generate_passwords=generate_passwords,
-                               plan_env_file=plan_env_file,
-                               verbosity_level=verbosity_level)
+        create_deployment_plan(
+            container=name,
+            generate_passwords=generate_passwords,
+            plan_env_file=plan_env_file,
+            verbosity_level=verbosity_level,
+            disable_image_params_prepare=disable_image_params_prepare)
     except exceptions.WorkflowServiceError:
         swiftutils.delete_container(swift_client, name)
         raise
@@ -195,7 +208,8 @@ def create_plan_from_templates(clients, name, tht_root, roles_file=None,
 def update_plan_from_templates(clients, name, tht_root, roles_file=None,
                                generate_passwords=True, plan_env_file=None,
                                networks_file=None, keep_env=False,
-                               verbosity_level=1):
+                               verbosity_level=1,
+                               disable_image_params_prepare=False):
     swift_client = clients.tripleoclient.object_store
     passwords = None
     keep_file_contents = {}
@@ -247,9 +261,11 @@ def update_plan_from_templates(clients, name, tht_root, roles_file=None,
                           plan_env_file, networks_file)
         _update_passwords(swift_client, name, passwords)
 
-    update_deployment_plan(clients, container=name,
-                           generate_passwords=generate_passwords,
-                           verbosity_level=verbosity_level)
+    update_deployment_plan(
+        clients, container=name,
+        generate_passwords=generate_passwords,
+        verbosity_level=verbosity_level,
+        disable_image_params_prepare=disable_image_params_prepare)
 
 
 def _load_content_or_file(swift_client, container, remote_and_local_map):
