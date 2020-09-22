@@ -1,0 +1,4 @@
+---
+other:
+  - |
+    Removed --standalone from `openstack tripleo deploy` command.

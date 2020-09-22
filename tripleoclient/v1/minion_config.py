@@ -360,7 +360,7 @@ def prepare_minion_deploy(upgrade=False, no_validations=False,
 
     roles_file = os.path.join(tht_templates, constants.MINION_ROLES_FILE)
     cmd = ["sudo", "--preserve-env", "openstack", "tripleo", "deploy",
-           "--standalone", "--standalone-role", "UndercloudMinion", "--stack",
+           "--standalone-role", "UndercloudMinion", "--stack",
            "minion", "-r", roles_file]
     cmd += deploy_args[:]
 

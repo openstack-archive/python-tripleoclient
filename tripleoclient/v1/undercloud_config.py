@@ -831,7 +831,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
         deploy_args += ["--force-stack-update"]
 
     cmd = ["sudo", "--preserve-env", "openstack", "tripleo", "deploy",
-           "--standalone", "--standalone-role", "Undercloud", "--stack",
+           "--standalone-role", "Undercloud", "--stack",
            "undercloud"]
     cmd += deploy_args[:]
 
