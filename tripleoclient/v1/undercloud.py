@@ -122,6 +122,16 @@ class InstallUndercloud(command.Command):
         parser.add_argument('-y', '--yes', default=False,
                             action='store_true',
                             help=_("Skip yes/no prompt (assume yes)."))
+        parser.add_argument(
+            '--disable-container-prepare',
+            action='store_true',
+            default=False,
+            help=_('Disable the container preparation actions to prevent '
+                   'container tags from being updated and new containers '
+                   'from being fetched. If you skip this but do not have '
+                   'the container parameters configured, the deployment '
+                   'action may fail.')
+        )
         return parser
 
     def take_action(self, parsed_args):
@@ -140,7 +150,8 @@ class InstallUndercloud(command.Command):
             verbose_level=self.app_args.verbose_level,
             force_stack_update=parsed_args.force_stack_update,
             dry_run=parsed_args.dry_run,
-            inflight=inflight)
+            inflight=inflight,
+            disable_container_prepare=parsed_args.disable_container_prepare)
 
         self.log.warning("Running: %s" % ' '.join(cmd))
         if not parsed_args.dry_run:
