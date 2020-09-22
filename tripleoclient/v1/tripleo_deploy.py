@@ -791,7 +791,8 @@ class Deploy(command.Command):
                 environments, self.tht_render, parsed_args.templates,
                 cleanup=parsed_args.cleanup)
 
-        self._prepare_container_images(env, roles_data)
+        if not parsed_args.disable_container_prepare:
+            self._prepare_container_images(env, roles_data)
         parameters.convert_docker_params(env)
 
         self.log.debug(_("Getting template contents"))
@@ -1091,6 +1092,16 @@ class Deploy(command.Command):
             type=int,
             help=_('The number of Ansible forks to use for the'
                    ' config-download ansible-playbook command.')
+        )
+        parser.add_argument(
+            '--disable-container-prepare',
+            action='store_true',
+            default=False,
+            help=_('Disable the container preparation actions to prevent '
+                   'container tags from being updated and new containers '
+                   'from being fetched. If you skip this but do not have '
+                   'the container parameters configured, the deployment '
+                   'action may fail.')
         )
 
         stack_action_group = parser.add_mutually_exclusive_group()
