@@ -69,7 +69,7 @@ class DownloadConfig(command.Command):
         self.log.debug("take_action(%s)" % parsed_args)
 
         name = parsed_args.name
-        config_dir = parsed_args.config_dir
+        config_dir = os.path.abspath(parsed_args.config_dir)
         config_type = parsed_args.config_type
         preserve_config_dir = parsed_args.preserve_config_dir
         extra_vars = {'plan': name,
