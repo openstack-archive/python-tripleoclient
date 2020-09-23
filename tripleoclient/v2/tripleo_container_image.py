@@ -217,6 +217,14 @@ class Build(command.Command):
             help=_("A comma separated list of RHEL modules to enable with "
                    "their version. Example: 'mariadb:10.3,virt:8.3'."),
         )
+        parser.add_argument(
+            "--build-timeout",
+            dest="build_timeout",
+            metavar="<build timeout in seconds>",
+            default=None,
+            type=int,
+            help=_("Build timeout in seconds.")
+        )
         return parser
 
     def imagename_to_regex(self, imagename):
@@ -639,6 +647,7 @@ class Build(command.Command):
                 push_containers=parsed_args.push,
                 volumes=parsed_args.volumes,
                 excludes=list(set(excludes)),
+                build_timeout=parsed_args.build_timeout
             )
             try:
                 bb.build_all()

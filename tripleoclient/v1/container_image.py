@@ -193,6 +193,14 @@ class BuildImage(command.Command):
             help=_("TripleO container builds directory, storing configs and "
                    "logs for each image and its dependencies.")
         )
+        parser.add_argument(
+            "--build-timeout",
+            dest="build_timeout",
+            default=None,
+            type=int,
+            metavar="<build timeout in seconds>",
+            help=_("Build timeout in seconds.")
+        )
         return parser
 
     def take_action(self, parsed_args):
@@ -233,7 +241,8 @@ class BuildImage(command.Command):
                 utils.get_from_cfg(kolla_cfg, "tag"),
                 utils.get_from_cfg(kolla_cfg, "namespace"),
                 utils.get_from_cfg(kolla_cfg, "registry"),
-                utils.getboolean_from_cfg(kolla_cfg, "push"))
+                utils.getboolean_from_cfg(kolla_cfg, "push"),
+                build_timeout=parsed_args.build_timeout)
             bb.build_all()
         elif parsed_args.list_dependencies:
             deps = json.loads(result)
