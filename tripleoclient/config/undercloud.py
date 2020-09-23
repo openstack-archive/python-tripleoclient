@@ -79,7 +79,6 @@ class UndercloudConfig(StandaloneConfig):
             novajoin=False,
             tempest=True,
             telemetry=False,
-            tripleo_ui=True,
             validations=True,
             zaqar=True)
 

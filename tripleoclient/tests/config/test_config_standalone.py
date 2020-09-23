@@ -68,7 +68,6 @@ class TestStandaloneConfig(base.TestCase):
                                                   novajoin=True,
                                                   telemetry=True,
                                                   tempest=True,
-                                                  tripleo_ui=True,
                                                   validations=True,
                                                   zaqar=True)
         expected = ['enable_cinder',
