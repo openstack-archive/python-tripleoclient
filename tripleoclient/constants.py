@@ -106,7 +106,8 @@ ANSIBLE_INVENTORY = os.path.join(DEFAULT_WORK_DIR,
 
 ANSIBLE_VALIDATION_DIR = (
     os.path.join(DEFAULT_VALIDATIONS_LEGACY_BASEDIR, 'playbooks')
-    if os.path.join(DEFAULT_VALIDATIONS_LEGACY_BASEDIR, 'playbooks')
+    if os.path.exists(os.path.join(DEFAULT_VALIDATIONS_LEGACY_BASEDIR,
+                                   'playbooks'))
     else "/usr/share/ansible/validation-playbooks"
     )
 
