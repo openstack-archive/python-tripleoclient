@@ -120,6 +120,7 @@ class DeleteOvercloud(command.Command):
 
         try:
             static_inventory = utils.get_tripleo_ansible_inventory(
+                stack=stack_name,
                 return_inventory_file_path=True)
         except exceptions.InvalidConfiguration:
             self.log.warning(
