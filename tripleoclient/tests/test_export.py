@@ -42,6 +42,31 @@ class TestExport(TestCase):
         self.mock_stack.to_dict.return_value = dict(outputs=outputs)
         self.mock_open = mock.mock_open(read_data='{"an_key":"an_value"}')
 
+        ceph_inv = {
+            'DistributedComputeHCI': {
+                'hosts': {
+                    'dcn0-distributedcomputehci-0': {
+                        'storage_ip': '192.168.24.42'
+                    }
+                }
+            },
+            'mons': {
+                'children': {
+                    'DistributedComputeHCI': {}
+                }
+            }
+        }
+        self.mock_open_ceph_inv = mock.mock_open(read_data=str(ceph_inv))
+
+        ceph_all = {
+            'cluster': 'dcn0',
+            'fsid': 'a5a22d37-e01f-4fa0-a440-c72585c7487f',
+            'keys': [
+                {'name': 'client.openstack'}
+            ]
+        }
+        self.mock_open_ceph_all = mock.mock_open(read_data=str(ceph_all))
+
     @mock.patch('tripleoclient.utils.get_stack')
     def test_export_stack(self, mock_get_stack):
         heat = mock.Mock()
@@ -151,3 +176,34 @@ class TestExport(TestCase):
         mock_passwords['passwords'].pop('CephRgwKey')
 
         self.assertEqual(mock_passwords['passwords'], data)
+
+    def test_export_storage_ips(self):
+        with mock.patch('six.moves.builtins.open', self.mock_open_ceph_inv):
+            storage_ips = export.export_storage_ips('dcn0',
+                                                    config_download_dir='/foo')
+        self.assertEqual(storage_ips, ['192.168.24.42'])
+        self.mock_open_ceph_inv.assert_called_once_with(
+            '/foo/dcn0/ceph-ansible/inventory.yml', 'r')
+
+    def test_export_ceph(self):
+        expected = {
+            'external_cluster_mon_ips': '192.168.24.42',
+            'keys': [
+                {'name': 'client.openstack'}
+            ],
+            'ceph_conf_overrides': {
+                'client': {
+                    'keyring': '/etc/ceph/dcn0.client.openstack.keyring'
+                }
+            },
+            'cluster': 'dcn0',
+            'fsid': 'a5a22d37-e01f-4fa0-a440-c72585c7487f',
+            'dashboard_enabled': False
+        }
+        with mock.patch('six.moves.builtins.open', self.mock_open_ceph_all):
+            data = export.export_ceph('dcn0', 'openstack',
+                                      config_download_dir='/foo',
+                                      mon_ips=['192.168.24.42'])
+        self.assertEqual(data, expected)
+        self.mock_open_ceph_all.assert_called_once_with(
+            '/foo/dcn0/ceph-ansible/group_vars/all.yml', 'r')
