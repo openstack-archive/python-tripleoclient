@@ -239,22 +239,12 @@ class TripleOValidatorRun(command.Command):
                 " run invocation. For example: --limit \"compute-0,"
                 " compute-1, compute-5\".")
         )
-
-        parser.add_argument('--playbook',
-                            nargs="*",
-                            default=None,
-                            help=_("List of Ansible playbook to use for "
-                                   "validations. It could be a playbook path "
-                                   "or a list of playbook.")
-                            )
-
         parser.add_argument(
             '--python-interpreter',
             action='store',
             default="/usr/bin/python{}".format(sys.version_info[0]),
             help=_("Python interpreter for Ansible execution. ")
         )
-
         extra_vars_group = parser.add_mutually_exclusive_group(required=False)
 
         extra_vars_group.add_argument(
@@ -334,7 +324,6 @@ class TripleOValidatorRun(command.Command):
     def _run_validator_run(self, parsed_args):
         LOG = logging.getLogger(__name__ + ".ValidationsRunAnsible")
         limit = parsed_args.limit
-        playbook = parsed_args.playbook
         extra_vars = parsed_args.extra_vars
         if parsed_args.extra_vars_file:
             with open(parsed_args.extra_vars_file, 'r') as env_file:
@@ -359,7 +348,6 @@ class TripleOValidatorRun(command.Command):
             DEFAULT_VALIDATIONS_BASEDIR
         actions = ValidationActions()
         results = actions.run_validations(
-            playbook=(playbook if playbook else []),
             inventory=static_inventory,
             limit_hosts=limit,
             group=parsed_args.group,
