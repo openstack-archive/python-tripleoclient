@@ -414,6 +414,18 @@ def _process_network_args(env):
             raise exceptions.InvalidConfiguration(msg)
 
 
+def _env_set_undercloud_ctlplane_networks_attribues(env):
+    env['CtlplaneNetworkAttributes'] = dict(network=dict(), subnets=dict())
+    env['CtlplaneNetworkAttributes']['network']['mtu'] = CONF.local_mtu
+    env['CtlplaneNetworkAttributes']['subnets']['ctlplane-subnet'] = {
+        'cidr':  CONF.get(CONF.local_subnet).cidr,
+        'gateway_ip': CONF.get(CONF.local_subnet).gateway,
+        'dns_nameservers': CONF.undercloud_nameservers,
+        'host_routes': CONF.get(CONF.local_subnet).host_routes,
+        'tags': [],
+    }
+
+
 def _process_chrony_acls(env):
     """Populate ACL rules for chrony to allow ctlplane subnets"""
     acl_rules = []
@@ -468,6 +480,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
 
     # Set up parameters for undercloud networking
     _process_network_args(env_data)
+    _env_set_undercloud_ctlplane_networks_attribues(env_data)
 
     # Setup parameter for Chrony ACL rules
     _process_chrony_acls(env_data)

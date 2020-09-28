@@ -18,3 +18,4 @@ tripleo-common>=12.6.0 # Apache-2.0
 cryptography>=2.1 # BSD/Apache-2.0
 ansible-runner>=1.4.5 # Apache 2.0
 validations-libs>=1.0.0
+openstacksdk>=0.48.0 # Apache-2.0
