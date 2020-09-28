@@ -1507,7 +1507,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         # assuming heat deploy consumed a 3m out of total 451m timeout
-        with mock.patch('time.time', side_effect=[0, 1585820346, 1585820526]):
+        with mock.patch('time.time', side_effect=[1585820346, 1585820526]):
             self.cmd.take_action(parsed_args)
         self.assertIn(
             [mock.call(mock.ANY, mock.ANY, 'overcloud', mock.ANY,
