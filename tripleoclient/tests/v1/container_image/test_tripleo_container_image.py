@@ -213,6 +213,15 @@ class TestContainerImages(deploy_fakes.TestDeployOvercloud):
 
         self.check_parser(self.cmd, arglist, verifylist)
 
+    def test_image_build_config_dir(self):
+        arglist = ["--config-file", "config.yaml", "--config-path", "/foo"]
+        verifylist = [("config_file", "config.yaml"), ("config_path", "/foo")]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self._take_action(parsed_args=parsed_args)
+        self.assertEqual(self.cmd.tcib_config_path, '/foo/tcib')
+
     def test_image_build_failure_no_config_dir(self):
         arglist = ["--config-path", "not-a-path"]
         verifylist = [
@@ -224,6 +233,28 @@ class TestContainerImages(deploy_fakes.TestDeployOvercloud):
         with mock.patch("os.path.isfile", autospec=True) as mock_isfile:
             mock_isfile.return_value = True
             self.assertRaises(IOError, self.cmd.take_action, parsed_args)
+
+    def test_process_images(self):
+        rtn_value = {'yay': 'values'}
+        arglist = ["--config-path", "foobar/"]
+        verifylist = [
+            ("config_path", "foobar/"),
+        ]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        expected_images = ['foo', 'foobar']
+        image_configs = {}
+        self.cmd.tcib_config_path = '/foo/tcib'
+        with mock.patch("tripleoclient.v1.tripleo_container_image.Build"
+                        ".find_image", autospec=True) as mock_find_image:
+
+            mock_find_image.return_value = rtn_value
+            cfgs = self.cmd.process_images(expected_images, parsed_args,
+                                           image_configs)
+            mock_find_image.assert_called_once_with(self.cmd, 'foo',
+                                                    '/foo/tcib', 'ubi8')
+        self.assertEqual(cfgs, {'foo': rtn_value})
 
 
 class TestContainerImagesHotfix(deploy_fakes.TestDeployOvercloud):
