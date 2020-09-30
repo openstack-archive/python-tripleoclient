@@ -98,8 +98,9 @@ class Build(command.Command):
             default=BASE_PATH,
             help=_(
                 "Base configuration path. This is the base path for all "
-                "container-image files. If this option is set, the "
-                "default path for <config-file> will be modified. "
+                "container-image files. The defined containers must reside "
+                "within a 'tcib' folder that is in this path.  If this option "
+                "is set, the default path for <config-file> will be modified. "
                 "(default: %(default)s)"
             ),
         )
@@ -373,8 +374,10 @@ class Build(command.Command):
         """
 
         image_configs = collections.OrderedDict()
+        config_path_base = os.path.basename(
+            os.path.abspath(parsed_args.config_path))
         for image in expected_images:
-            if image != "container-images" and image not in image_configs:
+            if (image != config_path_base and image not in image_configs):
                 self.log.debug("processing image configs".format(image))
                 image_config = self.find_image(
                     image,
@@ -407,6 +410,7 @@ class Build(command.Command):
         self.tcib_config_path = os.path.join(
             self.config_path, DEFAULT_TCIB_CONFIG_BASE
         )
+
         if not os.path.isdir(self.tcib_config_path):
             raise IOError(
                 "Configuration directory {} was not found.".format(
