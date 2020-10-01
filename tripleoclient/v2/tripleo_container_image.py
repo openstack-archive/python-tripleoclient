@@ -14,7 +14,6 @@
 #
 
 import collections
-import logging
 import os
 import re
 import sys
@@ -25,12 +24,17 @@ import six
 
 from osc_lib.i18n import _
 
+from oslo_config import cfg
+from oslo_log import log as logging
+
 from tripleo_common.exception import NotFound
 from tripleo_common.image.builder import buildah
 
 from tripleoclient import command
 from tripleoclient import utils
 
+
+CONF = cfg.CONF
 
 BASE_PATH = os.path.join(
     sys.prefix, "share", "tripleo-common", "container-images"
@@ -52,8 +56,9 @@ SUPPORTED_RHEL_MODULES = ['container-tools', 'mariadb', 'redis', 'virt']
 class Build(command.Command):
     """Build tripleo container images with tripleo-ansible."""
 
-    auth_required = False
     log = logging.getLogger(__name__ + ".Build")
+
+    auth_required = False
     identified_images = list()
     image_parents = collections.OrderedDict()
     image_paths = dict()
@@ -397,6 +402,8 @@ class Build(command.Command):
         return image_configs
 
     def take_action(self, parsed_args):
+        logging.register_options(CONF)
+        logging.setup(CONF, '')
         self.config_file = os.path.expanduser(parsed_args.config_file)
         self.config_path = os.path.expanduser(parsed_args.config_path)
         authfile = os.path.expanduser(parsed_args.authfile)
@@ -664,6 +671,8 @@ class Build(command.Command):
 class HotFix(command.Command):
     """Hotfix tripleo container images with tripleo-ansible."""
 
+    log = logging.getLogger(__name__ + ".HotFix")
+
     def get_parser(self, prog_name):
         parser = super(HotFix, self).get_parser(prog_name)
         parser.add_argument(
@@ -696,6 +705,8 @@ class HotFix(command.Command):
         return parser
 
     def take_action(self, parsed_args):
+        logging.register_options(CONF)
+        logging.setup(CONF, '')
         with utils.TempDirs() as tmp:
             tasks = list()
             for image in parsed_args.images:
@@ -730,6 +741,7 @@ class HotFix(command.Command):
                     [playdata], f, default_flow_style=False, width=4096
                 )
 
+            self.log.debug("Running ansible playbook {}".format(playbook))
             utils.run_ansible_playbook(
                 playbook=playbook,
                 inventory="localhost",
