@@ -75,7 +75,6 @@ class Authorize(command.Command):
     def take_action(self, parsed_args):
         logging.register_options(CONF)
         logging.setup(CONF, '')
-
         self.log.debug("take_action({})".format(parsed_args))
         clients = self.app.client_manager
         stack = oooutils.get_stack(clients.orchestration, parsed_args.stack)

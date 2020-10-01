@@ -15,9 +15,10 @@
 
 import argparse
 from collections import OrderedDict
-import logging
 import os
 import os.path
+from oslo_config import cfg
+from oslo_log import log as logging
 from prettytable import PrettyTable
 from pwd import getpwuid
 import re
@@ -43,6 +44,8 @@ from tripleoclient import utils
 from tripleoclient.workflows import deployment
 from tripleoclient.workflows import parameters as workflow_params
 from tripleoclient.workflows import plan_management
+
+CONF = cfg.CONF
 
 
 class DeployOvercloud(command.Command):
@@ -282,7 +285,7 @@ class DeployOvercloud(command.Command):
         workflow_params.check_deprecated_parameters(self.clients, stack_name)
 
         if not update_plan_only:
-            print("Deploying templates in the directory {0}".format(
+            self.log.info("Deploying templates in the directory {0}".format(
                 os.path.abspath(tht_root)))
             deployment.deploy_and_wait(
                 log=self.log,
@@ -472,7 +475,7 @@ class DeployOvercloud(command.Command):
         self._download_missing_files_from_plan(
             tht_root, parsed_args.stack)
 
-        print("Processing templates in the directory {0}".format(
+        self.log.info("Processing templates in the directory {0}".format(
             os.path.abspath(tht_root)))
 
         self.log.debug("Creating Environment files")
@@ -1057,6 +1060,8 @@ class DeployOvercloud(command.Command):
         return parser
 
     def take_action(self, parsed_args):
+        logging.register_options(CONF)
+        logging.setup(CONF, '')
         self.log.debug("take_action(%s)" % parsed_args)
         deploy_status = 'DEPLOY_SUCCESS'
         deploy_message = 'without error'
@@ -1089,7 +1094,7 @@ class DeployOvercloud(command.Command):
             self.log.info("Stack found, will be doing a stack update")
 
         if parsed_args.dry_run:
-            print("Validation Finished")
+            self.log.info("Validation Finished")
             return
 
         start = time.time()
@@ -1121,7 +1126,7 @@ class DeployOvercloud(command.Command):
                 stack=stack.stack_name)
 
             if parsed_args.config_download:
-                print("Deploying overcloud configuration")
+                self.log.info("Deploying overcloud configuration")
                 deployment.set_deployment_status(
                     clients=self.clients,
                     plan=stack.stack_name,
@@ -1198,8 +1203,7 @@ class DeployOvercloud(command.Command):
             utils.create_tempest_deployer_input()
 
             print("Overcloud Endpoint: {0}".format(overcloud_endpoint))
-            print("Overcloud Horizon Dashboard URL: {0}".format(
-                horizon_url))
+            print("Overcloud Horizon Dashboard URL: {0}".format(horizon_url))
             print("Overcloud rc file: {0}".format(rcpath))
             print("Overcloud Deployed {0}".format(deploy_message))
 
@@ -1230,7 +1234,7 @@ class GetDeploymentStatus(command.Command):
         )
 
         if not status:
-            print('No deployment was found for %s' % plan)
+            self.log.info('No deployment was found for %s' % plan)
             return
 
         table = PrettyTable(
