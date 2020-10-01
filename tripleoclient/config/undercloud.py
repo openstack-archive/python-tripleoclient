@@ -293,8 +293,7 @@ class UndercloudConfig(StandaloneConfig):
                        default='',
                        help=_(
                            'One Time Password to register Undercloud node '
-                           'with an IPA server.  Required when '
-                           'enable_novajoin = True.')
+                           'with an IPA server.')
                        ),
             cfg.BoolOpt('ipxe_enabled',
                         default=True,

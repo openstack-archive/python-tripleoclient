@@ -632,13 +632,20 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
             tht_templates, "environments/services/mistral.yaml")]
 
     if CONF.get('enable_novajoin'):
-        deploy_args += ['-e', os.path.join(
-            tht_templates, "environments/services/novajoin.yaml")]
-        env_data['NovajoinIpaOtp'] = CONF['ipa_otp']
-    elif CONF.get('ipa_otp'):
+        LOG.warning('Novajoin has been deprecated and no longer be installed '
+                    'using the enable_novajoin option.  Please remove it from '
+                    'undercloud.conf.  TLS Everywhere is now implemented '
+                    'using an ansible module instead.')
+
+    if CONF.get('ipa_otp'):
         deploy_args += ['-e', os.path.join(
             tht_templates, "environments/services/undercloud-tls.yaml")]
         env_data['UndercloudIpaOtp'] = CONF['ipa_otp']
+
+    # add service to remove novajoin containers
+    deploy_args += ['-e', os.path.join(
+        tht_templates, 'environments/services/undercloud-remove-novajoin.yaml')
+        ]
 
     if CONF.get('enable_zaqar'):
         deploy_args += ['-e', os.path.join(
