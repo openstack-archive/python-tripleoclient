@@ -106,6 +106,14 @@ class ExternalUpgradeRun(command.Command):
                    "execution will be limited to. For example: --limit"
                    " \"compute-0,compute-1,compute-5\".")
         )
+        parser.add_argument(
+            '--ansible-forks',
+            action='store',
+            default=None,
+            type=int,
+            help=_('The number of Ansible forks to use for the'
+                   ' config-download ansible-playbook command.')
+        )
 
         return parser
 
@@ -144,6 +152,7 @@ class ExternalUpgradeRun(command.Command):
             tags=parsed_args.tags,
             skip_tags=parsed_args.skip_tags,
             limit_hosts=oooutils.playbook_limit_parse(
-                limit_nodes=parsed_args.limit)
+                limit_nodes=parsed_args.limit),
+            forks=parsed_args.ansible_forks
         )
         self.log.info("Completed Overcloud External Upgrade Run.")

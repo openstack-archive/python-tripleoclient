@@ -261,7 +261,8 @@ class TestDeleteNode(fakes.TestDeleteNode):
                 extra_env_variables={'ANSIBLE_BECOME': True},
                 extra_vars=None,
                 tags=None,
-                timeout=90
+                timeout=90,
+                forks=None
             ),
             mock.call(
                 inventory='localhost,',

@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    A new `--ansible-forks` argument has been added to the TripleO and Overcloud
+    commands. The default value for forks has also been adjusted to no longer
+    exceed 100 forks.

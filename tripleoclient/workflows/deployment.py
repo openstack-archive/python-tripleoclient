@@ -275,7 +275,7 @@ def config_download(log, clients, stack, ssh_network='ctlplane',
                     ansible_playbook_name='deploy_steps_playbook.yaml',
                     limit_hosts=None, extra_vars=None, inventory_path=None,
                     ssh_user='tripleo-admin', tags=None, skip_tags=None,
-                    deployment_timeout=None):
+                    deployment_timeout=None, forks=None):
     """Run config download.
 
     :param log: Logging object
@@ -460,6 +460,7 @@ def config_download(log, clients, stack, ssh_network='ctlplane',
             },
             extra_vars=extra_vars,
             timeout=deployment_timeout,
+            forks=forks
         )
 
     _log_and_print(

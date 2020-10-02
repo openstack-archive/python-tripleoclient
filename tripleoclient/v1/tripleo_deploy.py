@@ -1106,6 +1106,14 @@ class Deploy(command.Command):
                    'Use "local" for standalone deployments. '
                    'Defaults to "local".')
         )
+        parser.add_argument(
+            '--ansible-forks',
+            action='store',
+            default=None,
+            type=int,
+            help=_('The number of Ansible forks to use for the'
+                   ' config-download ansible-playbook command.')
+        )
 
         stack_action_group = parser.add_mutually_exclusive_group()
 
@@ -1348,6 +1356,7 @@ class Deploy(command.Command):
                             workdir=self.ansible_dir,
                             verbosity=utils.playbook_verbosity(self=self),
                             extra_env_variables=extra_env_var,
+                            forks=parsed_args.ansible_forks,
                             **operation)
             is_complete = True
         finally:

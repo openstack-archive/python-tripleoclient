@@ -247,7 +247,7 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
                          callback_whitelist=constants.ANSIBLE_CWL,
                          ansible_cfg=None, ansible_timeout=30,
                          reproduce_command=False,
-                         timeout=None):
+                         timeout=None, forks=None):
     """Simple wrapper for ansible-playbook.
 
     :param playbook: Playbook filename.
@@ -450,6 +450,9 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
     if output_callback not in callback_whitelist.split(','):
         callback_whitelist = ','.join([callback_whitelist, output_callback])
 
+    if not forks:
+        forks = min(multiprocessing.cpu_count() * 4, 100)
+
     env = dict()
     env['ANSIBLE_SSH_ARGS'] = (
         '-o UserKnownHostsFile={} '
@@ -467,7 +470,7 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
         '-T'
     ).format(os.devnull)
     env['ANSIBLE_DISPLAY_FAILED_STDERR'] = True
-    env['ANSIBLE_FORKS'] = multiprocessing.cpu_count() * 4
+    env['ANSIBLE_FORKS'] = forks
     env['ANSIBLE_TIMEOUT'] = ansible_timeout
     env['ANSIBLE_GATHER_TIMEOUT'] = 45
     env['ANSIBLE_SSH_RETRIES'] = 3
