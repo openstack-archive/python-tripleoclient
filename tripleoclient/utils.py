@@ -733,6 +733,33 @@ def get_stack(orchestration_client, stack_name):
         pass
 
 
+def check_ceph_fsid_matches_env_files(stack, environment):
+    """Check CephClusterFSID against proposed env files
+
+    There have been cases where operators inadvertenly changed the
+    CephClusterFSID on a stack update, which is unsupported by both
+    Ceph and openstack.
+    For this reason we need to check that the existing deployed Ceph
+    cluster ID present in the stack is consistent with the value of
+    the environment, raising an exception if they are different.
+    """
+    env_ceph_fsid = environment.get('parameter_defaults',
+                                    {}).get('CephClusterFSID', False)
+    stack_ceph_fsid = stack.environment().get('parameter_defaults',
+                                              {}).get('CephClusterFSID', False)
+
+    if bool(env_ceph_fsid) and env_ceph_fsid != stack_ceph_fsid:
+        raise exceptions.InvalidConfiguration('The CephFSID environment value '
+                                              ' ({}) does not match the stack '
+                                              ' configuration value ({}).'
+                                              ' Ensure the CephClusterFSID '
+                                              ' param is properly configured '
+                                              ' in the storage environment '
+                                              ' files.'
+                                              .format(env_ceph_fsid,
+                                                      stack_ceph_fsid))
+
+
 def check_stack_network_matches_env_files(stack, environment):
     """Check stack against proposed env files to ensure non-breaking change
 
