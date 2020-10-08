@@ -481,6 +481,16 @@ class DeployOvercloud(command.Command):
             if not parsed_args.disable_validations:
                 # note(aschultz): network validation goes here before we deploy
                 utils.check_stack_network_matches_env_files(stack, env)
+                ceph_deployed = env.get('resource_registry', {}).get(
+                    'OS::TripleO::Services::CephMon', 'OS::Heat::None')
+                ceph_external = env.get('resource_registry', {}).get(
+                    'OS::TripleO::Services::CephExternal', 'OS::Heat::None')
+                # note (fpantano) if ceph is not TripleO deployed and no
+                # external ceph cluster are present, there's no reason to
+                # make this check and we can simply ignore it
+                if (ceph_deployed != "OS::Heat::None"
+                        or ceph_external != "OS::Heat::None"):
+                    utils.check_ceph_fsid_matches_env_files(stack, env)
             bp_cleanup = self._create_breakpoint_cleanup_env(
                 tht_root, parsed_args.stack)
             template_utils.deep_update(env, bp_cleanup)

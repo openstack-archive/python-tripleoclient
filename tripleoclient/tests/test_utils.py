@@ -505,6 +505,49 @@ class TestWaitForStackUtil(TestCase):
         with self.assertRaises(exceptions.InvalidConfiguration):
             utils.check_stack_network_matches_env_files(mock_stack, env)
 
+    def test_check_ceph_fsid_matches_env_files(self):
+        stack_params = {
+            'CephClusterFSID': 'ceph_fsid_val',
+            'key1': 'val1',
+            'key2': 'val2',
+        }
+        mock_stack = mock.MagicMock()
+        mock_stack.environment = mock.MagicMock()
+        mock_stack.environment.return_value = {
+            'parameter_defaults': stack_params
+        }
+        provided_env = {
+            'parameter_defaults': {
+                'CephClusterFSID': mock_stack.environment()
+                                             .get('parameter_defaults', {})
+                                             .get('CephClusterFSID', False),
+                'key1': 'val1',
+                'key2': 'val2',
+            }
+        }
+        utils.check_ceph_fsid_matches_env_files(mock_stack, provided_env)
+
+    def test_check_ceph_fsid_matches_env_files_fail(self):
+        stack_params = {
+            'CephClusterFSID': 'ceph_fsid_val',
+            'key1': 'val1',
+            'key2': 'val2',
+        }
+        provided_env = {
+            'parameter_defaults': {
+                'CephClusterFSID': 'new_or_wrong_fsid_val',
+                'key1': 'val1',
+                'key2': 'val2',
+            }
+        }
+        mock_stack = mock.MagicMock()
+        mock_stack.environment = mock.MagicMock()
+        mock_stack.environment.return_value = {
+            'parameter_defaults': stack_params
+        }
+        with self.assertRaises(exceptions.InvalidConfiguration):
+            utils.check_ceph_fsid_matches_env_files(mock_stack, provided_env)
+
     @mock.patch('subprocess.check_call')
     @mock.patch('os.path.exists')
     def test_remove_known_hosts(self, mock_exists, mock_check_call):
