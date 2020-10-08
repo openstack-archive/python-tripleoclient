@@ -78,6 +78,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True)
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
                 autospec=True)
+    @mock.patch('tripleoclient.utils.check_ceph_fsid_matches_env_files')
     @mock.patch("heatclient.common.event_utils.get_events")
     @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env',
                 autospec=True)
@@ -106,6 +107,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                        mock_create_parameters_env,
                        mock_breakpoints_cleanupm,
                        mock_events, mock_tarball,
+                       mock_ceph_fsid,
                        mock_get_horizon_url,
                        mock_list_plans,
                        mock_config_download,
@@ -332,6 +334,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                          parameters_env.get('parameter_defaults'))
 
     @mock.patch('tripleoclient.utils.check_stack_network_matches_env_files')
+    @mock.patch('tripleoclient.utils.check_ceph_fsid_matches_env_files')
     @mock.patch('tripleoclient.workflows.deployment.get_overcloud_hosts')
     @mock.patch('tripleoclient.workflows.deployment.enable_ssh_admin')
     @mock.patch('tripleoclient.workflows.deployment.config_download')
@@ -381,7 +384,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mock_list_plans, mock_config_download,
             mock_enable_ssh_admin,
             mock_get_overcloud_hosts,
-            mock_stack_network_check):
+            mock_stack_network_check, mock_ceph_fsid):
 
         arglist = ['--templates', '-p', 'the-plan-environment.yaml']
         verifylist = [
@@ -489,6 +492,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         autospec=True)
     @mock.patch('tripleoclient.workflows.deployment.get_horizon_url',
                 autospec=True)
+    @mock.patch('tripleoclient.utils.check_ceph_fsid_matches_env_files')
     @mock.patch('tripleoclient.workflows.parameters.'
                 'check_deprecated_parameters', autospec=True)
     @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
@@ -527,7 +531,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mock_breakpoints_cleanup, mock_tarball,
             mock_postconfig, mock_get_overcloud_endpoint,
             mock_deprecated_params, mock_get_horizon_url,
-            mock_list_plans, mock_config_downlad,
+            mock_ceph_fsid, mock_list_plans, mock_config_downlad,
             mock_enable_ssh_admin,
             mock_get_overcloud_hosts,
             mock_stack_network_check):
@@ -598,6 +602,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True)
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
                 autospec=True)
+    @mock.patch('tripleoclient.utils.check_ceph_fsid_matches_env_files')
     @mock.patch("heatclient.common.event_utils.get_events", autospec=True)
     @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env',
                 autospec=True)
@@ -621,7 +626,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                      mock_deploy_postconfig,
                                      mock_breakpoints_cleanup,
                                      mock_events, mock_tarball,
-                                     mock_get_horizon_url,
+                                     mock_ceph_fsid, mock_get_horizon_url,
                                      mock_list_plans,
                                      mock_config_download,
                                      mock_enable_ssh_admin,
@@ -725,6 +730,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True)
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
                 autospec=True)
+    @mock.patch('tripleoclient.utils.check_ceph_fsid_matches_env_files')
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
     @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
@@ -740,8 +746,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                               mock_update_parameters, mock_post_config,
                               mock_utils_endpoint, mock_utils_createrc,
                               mock_utils_tempest, mock_tarball,
-                              mock_get_horizon_url, mock_list_plans,
-                              mock_config_download,
+                              mock_ceph_fsid, mock_get_horizon_url,
+                              mock_list_plans, mock_config_download,
                               mock_enable_ssh_admin,
                               mock_get_overcloud_hosts,
                               mock_stack_network_check):
@@ -799,6 +805,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True)
     @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
     @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
+    @mock.patch('tripleoclient.utils.check_ceph_fsid_matches_env_files')
     @mock.patch('tripleoclient.utils.get_stack', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig', autospec=True)
@@ -810,8 +817,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_environment_dirs_env(self, mock_copy, mock_deploy_heat,
                                   mock_update_parameters, mock_post_config,
                                   mock_utils_get_stack, mock_utils_endpoint,
-                                  mock_utils_createrc, mock_utils_tempest,
-                                  mock_tarball,
+                                  mock_ceph_fsid, mock_utils_createrc,
+                                  mock_utils_tempest, mock_tarball,
                                   mock_stack_network_check):
 
         clients = self.app.client_manager
@@ -1279,6 +1286,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True)
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
                 autospec=True)
+    @mock.patch('tripleoclient.utils.check_ceph_fsid_matches_env_files')
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
     @mock.patch('tripleoclient.utils.write_overcloudrc', autospec=True)
@@ -1293,7 +1301,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                           mock_oc_endpoint,
                           mock_create_ocrc,
                           mock_create_tempest_deployer_input,
-                          mock_tarball, mock_get_horizon_url,
+                          mock_tarball, mock_ceph_fsid,
+                          mock_get_horizon_url,
                           mock_list_plans,
                           mock_config_download,
                           mock_enable_ssh_admin,
@@ -1413,6 +1422,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.check_stack_network_matches_env_files')
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
                 autospec=True)
+    @mock.patch('tripleoclient.utils.check_ceph_fsid_matches_env_files')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_create_parameters_env', autospec=True)
     @mock.patch('tripleoclient.utils.write_overcloudrc')
@@ -1426,7 +1436,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                   mock_process_env,
                                   mock_write_overcloudrc,
                                   mock_create_parameters_env,
-                                  mock_tarball,
+                                  mock_tarball, mock_ceph_fsid,
                                   mock_stack_network_check):
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
@@ -1475,6 +1485,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         autospec=True)
     @mock.patch('tripleoclient.workflows.deployment.get_horizon_url',
                 autospec=True)
+    @mock.patch('tripleoclient.utils.check_ceph_fsid_matches_env_files')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig', autospec=True)
     @mock.patch('tripleoclient.workflows.plan_management.tarball',
@@ -1511,6 +1522,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                  mock_tarball,
                                  mock_deploy_post_config,
                                  mock_get_horizon_url,
+                                 mock_ceph_fsid,
                                  mock_list_plans,
                                  mock_config_download,
                                  mock_enable_ssh_admin,
