@@ -592,7 +592,7 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
     get_uid = int(os.getenv('SUDO_UID', os.getuid()))
     try:
         user_pwd = pwd.getpwuid(get_uid)
-    except TypeError:
+    except (KeyError, TypeError):
         home = constants.CLOUD_HOME_DIR
     else:
         home = user_pwd.pw_dir

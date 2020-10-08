@@ -163,7 +163,7 @@ class ValidateOvercloudNetenv(command.Command):
         try:
             with open(path, 'r') as nic_file:
                 nic_data = yaml.safe_load(nic_file)
-        except IOError:
+        except (IOError, OSError):
             self.log.error(
                 'The resource "%s" reference file does not exist: "%s"',
                 resource, path)
