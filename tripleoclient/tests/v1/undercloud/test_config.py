@@ -558,8 +558,8 @@ class TestNetworkSettings(TestBaseNetworkSettings):
         undercloud_config._process_network_args(env)
         expected = {
             'ControlPlaneStaticRoutes': [
-                {'ip_netmask': '192.168.10.0/24', 'next_hop': '192.168.24.1'},
-                {'ip_netmask': '192.168.20.0/24', 'next_hop': '192.168.24.1'}],
+                {'destination': '192.168.10.0/24', 'nexthop': '192.168.24.1'},
+                {'destination': '192.168.20.0/24', 'nexthop': '192.168.24.1'}],
             'IronicInspectorSubnets': [
                 {'gateway': '192.168.24.1',
                  'host_routes': [],
@@ -647,8 +647,8 @@ class TestNetworkSettings(TestBaseNetworkSettings):
         undercloud_config._process_network_args(env)
         expected = {
             'ControlPlaneStaticRoutes': [
-                {'ip_netmask': '192.168.10.0/24', 'next_hop': '192.168.24.1'},
-                {'ip_netmask': '192.168.20.0/24', 'next_hop': '192.168.24.1'}],
+                {'destination': '192.168.10.0/24', 'nexthop': '192.168.24.1'},
+                {'destination': '192.168.20.0/24', 'nexthop': '192.168.24.1'}],
             'IronicInspectorSubnets': [
                 {'gateway': '192.168.24.1',
                  'host_routes': [],
@@ -716,7 +716,7 @@ class TestNetworkSettings(TestBaseNetworkSettings):
         undercloud_config._process_network_args(env)
         expected = {
             'ControlPlaneStaticRoutes': [
-                {'ip_netmask': '192.168.10.0/24', 'next_hop': '192.168.24.1'}],
+                {'destination': '192.168.10.0/24', 'nexthop': '192.168.24.1'}],
             'IronicInspectorSubnets': [
                 {'gateway': '192.168.24.1',
                  'host_routes': [],
@@ -770,7 +770,7 @@ class TestNetworkSettings(TestBaseNetworkSettings):
         undercloud_config._process_network_args(env)
         expected = {
             'ControlPlaneStaticRoutes': [
-                {'ip_netmask': '192.168.10.0/24', 'next_hop': '192.168.24.1'}],
+                {'destination': '192.168.10.0/24', 'nexthop': '192.168.24.1'}],
             'IronicInspectorSubnets': [
                 {'gateway': '192.168.24.1',
                  'host_routes': [],
@@ -842,9 +842,9 @@ class TestNetworkSettings(TestBaseNetworkSettings):
         undercloud_config._process_network_args(env)
         expected = {
             'ControlPlaneStaticRoutes': [
-                {'ip_netmask': '192.168.10.0/24', 'next_hop': '192.168.24.1'},
-                {'ip_netmask': '192.168.20.0/24', 'next_hop': '192.168.24.1'},
-                {'ip_netmask': '10.10.10.254/32', 'next_hop': '192.168.24.1'}],
+                {'destination': '192.168.10.0/24', 'nexthop': '192.168.24.1'},
+                {'destination': '192.168.20.0/24', 'nexthop': '192.168.24.1'},
+                {'destination': '10.10.10.254/32', 'nexthop': '192.168.24.1'}],
             'IronicInspectorSubnets': [
                 {'gateway': '192.168.24.1',
                  'host_routes': [{'destination': '10.10.10.254/32',
@@ -945,6 +945,52 @@ class TestNetworkSettings(TestBaseNetworkSettings):
                                             '192.168.24.252'],
                         'gateway_ip': '192.168.24.254',
                         'host_routes': [{'destination': '10.10.10.254/32',
+                                         'nexthop': '192.168.24.1'}],
+                        'tags': []}}}}
+        self.assertEqual(expected, env)
+
+    def test__env_set_undercloud_ctlplane_networks_attribues_routed(self):
+        self.conf.config(subnets=['ctlplane-subnet', 'subnet1', 'subnet2'])
+        self.conf.config(host_routes=[{'destination': '10.10.10.254/32',
+                                       'nexthop': '192.168.24.1'}],
+                         group='ctlplane-subnet')
+        self.conf.register_opts(self.opts, group=self.grp1)
+        self.conf.register_opts(self.opts, group=self.grp2)
+        self.conf.config(cidr='192.168.10.0/24',
+                         dhcp_start='192.168.10.10',
+                         dhcp_end='192.168.10.99',
+                         dhcp_exclude=[],
+                         inspection_iprange='192.168.10.100,192.168.10.189',
+                         gateway='192.168.10.254',
+                         dns_nameservers=[],
+                         host_routes=[{'destination': '10.10.10.254/32',
+                                       'nexthop': '192.168.10.254'}],
+                         group='subnet1')
+        self.conf.config(cidr='192.168.20.0/24',
+                         dhcp_start='192.168.20.10',
+                         dhcp_end='192.168.20.99',
+                         dhcp_exclude=[],
+                         inspection_iprange='192.168.20.100,192.168.20.189',
+                         gateway='192.168.20.254',
+                         dns_nameservers=[],
+                         host_routes=[{'destination': '10.10.10.254/32',
+                                       'nexthop': '192.168.20.254'}],
+                         group='subnet2')
+        env = {}
+        undercloud_config._env_set_undercloud_ctlplane_networks_attribues(env)
+        expected = {
+            'CtlplaneNetworkAttributes': {
+                'network': {'mtu': 1500},
+                'subnets': {
+                    'ctlplane-subnet': {
+                        'cidr': '192.168.24.0/24',
+                        'dns_nameservers': ['10.10.10.10', '10.10.10.11'],
+                        'gateway_ip': '192.168.24.1',
+                        'host_routes': [{'destination': '192.168.10.0/24',
+                                         'nexthop': '192.168.24.1'},
+                                        {'destination': '192.168.20.0/24',
+                                         'nexthop': '192.168.24.1'},
+                                        {'destination': '10.10.10.254/32',
                                          'nexthop': '192.168.24.1'}],
                         'tags': []}}}}
         self.assertEqual(expected, env)

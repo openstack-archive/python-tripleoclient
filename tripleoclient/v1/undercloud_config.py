@@ -264,10 +264,10 @@ def _generate_subnets_static_routes():
         if subnet == str(CONF.local_subnet):
             continue
         s = CONF.get(subnet)
-        env_list.append({'ip_netmask': s.cidr, 'next_hop': local_router})
+        env_list.append({'destination': s.cidr, 'nexthop': local_router})
     for route in CONF.get(CONF.local_subnet).host_routes:
-        env_list.append({'ip_netmask': route['destination'],
-                         'next_hop': route['nexthop']})
+        env_list.append({'destination': route['destination'],
+                         'nexthop': route['nexthop']})
 
     return env_list
 
@@ -421,7 +421,7 @@ def _env_set_undercloud_ctlplane_networks_attribues(env):
         'cidr':  CONF.get(CONF.local_subnet).cidr,
         'gateway_ip': CONF.get(CONF.local_subnet).gateway,
         'dns_nameservers': CONF.undercloud_nameservers,
-        'host_routes': CONF.get(CONF.local_subnet).host_routes,
+        'host_routes': _generate_subnets_static_routes(),
         'tags': [],
     }
 
