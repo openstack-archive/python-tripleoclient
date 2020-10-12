@@ -354,36 +354,43 @@ class TripleOValidatorRun(command.Command):
         v_consts.DEFAULT_VALIDATIONS_BASEDIR = constants.\
             DEFAULT_VALIDATIONS_BASEDIR
         actions = ValidationActions()
-        results = actions.run_validations(
-            inventory=static_inventory,
-            limit_hosts=limit,
-            group=parsed_args.group,
-            extra_vars=extra_vars,
-            validations_dir=constants.ANSIBLE_VALIDATION_DIR,
-            validation_name=parsed_args.validation_name,
-            extra_env_vars=parsed_args.extra_env_vars,
-            quiet=True)
+        try:
+            results = actions.run_validations(
+                inventory=static_inventory,
+                limit_hosts=limit,
+                group=parsed_args.group,
+                extra_vars=extra_vars,
+                validations_dir=constants.ANSIBLE_VALIDATION_DIR,
+                validation_name=parsed_args.validation_name,
+                extra_env_vars=parsed_args.extra_env_vars,
+                quiet=True)
+        except RuntimeError as e:
+            raise exceptions.CommandError(e)
 
-        # Build output
-        t = PrettyTable(border=True, header=True, padding_width=1)
-        # Set Field name by getting the result dict keys
-        t.field_names = results[0].keys()
-        for r in results:
-            if r.get('Status_by_Host'):
-                h = []
-                for host in r['Status_by_Host'].split(', '):
-                    _name, _status = host.split(',')
-                    color = (GREEN if _status == 'PASSED' else RED)
-                    _name = '{}{}{}'.format(color, _name, RESET)
-                    h.append(_name)
-                r['Status_by_Host'] = ', '.join(h)
-            if r.get('status'):
-                status = r.get('status')
-                color = (CYAN if status in ['starting', 'running']
-                         else GREEN if status == 'PASSED' else RED)
-                r['status'] = '{}{}{}'.format(color, status, RESET)
-            t.add_row(r.values())
-        print(t)
+        if results:
+            # Build output
+            t = PrettyTable(border=True, header=True, padding_width=1)
+            # Set Field name by getting the result dict keys
+            t.field_names = results[0].keys()
+            for r in results:
+                if r.get('Status_by_Host'):
+                    h = []
+                    for host in r['Status_by_Host'].split(', '):
+                        _name, _status = host.split(',')
+                        color = (GREEN if _status == 'PASSED' else RED)
+                        _name = '{}{}{}'.format(color, _name, RESET)
+                        h.append(_name)
+                    r['Status_by_Host'] = ', '.join(h)
+                if r.get('status'):
+                    status = r.get('status')
+                    color = (CYAN if status in ['starting', 'running']
+                             else GREEN if status == 'PASSED' else RED)
+                    r['status'] = '{}{}{}'.format(color, status, RESET)
+                t.add_row(r.values())
+            print(t)
+        else:
+            msg = "No Validation has been run, please check your parameters."
+            raise exceptions.CommandError(msg)
 
         if not parsed_args.static_inventory:
             LOG.debug(_('Removing static tripleo ansible inventory file'))
