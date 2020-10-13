@@ -403,6 +403,7 @@ class TripleOValidatorRun(command.Command):
             # Set Field name by getting the result dict keys
             t.field_names = results[0].keys()
             t.align = 'l'
+            is_failed_validation = False
             for r in results:
                 if r.get('Status_by_Host'):
                     h = []
@@ -412,11 +413,13 @@ class TripleOValidatorRun(command.Command):
                         _name = '{}{}{}'.format(color, _name, RESET)
                         h.append(_name)
                     r['Status_by_Host'] = ', '.join(h)
-                if r.get('status'):
-                    status = r.get('status')
+                if r.get('Status'):
+                    status = r.get('Status')
+                    if status == 'FAILED':
+                        is_failed_validation = True
                     color = (CYAN if status in ['starting', 'running']
                              else GREEN if status == 'PASSED' else RED)
-                    r['status'] = '{}{}{}'.format(color, status, RESET)
+                    r['Status'] = '{}{}{}'.format(color, status, RESET)
                 t.add_row(r.values())
             print(t)
         else:
@@ -427,6 +430,10 @@ class TripleOValidatorRun(command.Command):
             LOG.debug(_('Removing static tripleo ansible inventory file'))
             oooutils.cleanup_tripleo_ansible_inventory_file(
                 static_inventory)
+
+        if is_failed_validation:
+            raise exceptions.CommandError(
+                _("One or more validations have failed."))
 
     def take_action(self, parsed_args):
         self._run_validator_run(parsed_args)
