@@ -237,15 +237,6 @@ class TripleOValidatorRun(command.Command):
         )
 
         parser.add_argument(
-            '--quiet',
-            action='store',
-            default=False,
-            help=_(
-                "Run Ansible in silent mode."
-            )
-        )
-
-        parser.add_argument(
             '--limit', action='store', required=False, help=_(
                 "A string that identifies a single node or comma-separated"
                 "list of nodes to be upgraded in parallel in this upgrade"
@@ -381,7 +372,7 @@ class TripleOValidatorRun(command.Command):
             validation_name=parsed_args.validation_name,
             extra_env_vars=parsed_args.extra_env_vars,
             python_interpreter=parsed_args.python_interpreter,
-            quiet=parsed_args.quiet)
+            quiet=True)
 
         # Build output
         t = PrettyTable(border=True, header=True, padding_width=1)
