@@ -1,35 +1,22 @@
 - project:
     templates:
       - check-requirements
-      - openstack-lower-constraints-jobs
       - openstackclient-plugin-jobs
       - openstack-python3-ussuri-jobs
       - publish-openstack-docs-pti
       - release-notes-jobs-python3
       - tripleo-buildimage-jobs
       - tripleo-build-containers-jobs
-      - tripleo-multinode-container-minimal
-      - tripleo-undercloud-jobs
-      - tripleo-standalone-scenarios-full
+      - tripleo-multinode-container-minimal-pipeline
+      - tripleo-undercloud-jobs-pipeline
+      - tripleo-standalone-scenarios-pipeline
     check:
       jobs:
-        - tripleo-ci-centos-8-containers-multinode:
+        - tripleo-ci-centos-8-containers-undercloud-minion:
             dependencies: &deps_unit_lint
               - openstack-tox-pep8
               - openstack-tox-py36
               - openstack-tox-py37
-        - tripleo-ci-centos-8-scenario000-multinode-oooq-container-updates:
-            dependencies: *deps_unit_lint
-        - tripleo-ci-centos-8-scenario001-standalone:
-            dependencies: *deps_unit_lint
-        - tripleo-ci-centos-8-scenario002-standalone:
-            dependencies: *deps_unit_lint
-        - tripleo-ci-centos-8-scenario003-standalone:
-            dependencies: *deps_unit_lint
-        - tripleo-ci-centos-8-scenario004-standalone:
-            dependencies: *deps_unit_lint
-        - tripleo-ci-centos-8-containers-undercloud-minion:
-            dependencies: *deps_unit_lint
             files:
               - ^config-generator/.*minion.*$
               - ^tripleoclient/config/.*minion.*$
