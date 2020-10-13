@@ -18,6 +18,7 @@ import copy
 from osc_lib.i18n import _
 from oslo_config import cfg
 from tripleoclient.config.base import BaseConfig
+from tripleoclient.constants import DEFAULT_HEAT_CONTAINER
 
 NETCONFIG_TAGS_EXAMPLE = """
 "network_config": [
@@ -167,10 +168,16 @@ class StandaloneConfig(BaseConfig):
                                'binaries be installed locally on this machine.'
                                ' This option is enabled by default which means'
                                ' heat-all is executed on the host OS '
-                               ' directly.')),
+                               ' directly If this is set to false, a '
+                               'containerized version of heat-all is used.')),
             cfg.StrOpt('heat_container_image',
                        default='',
-                       help=_('URL for the heat container image to use.')
+                       help=_('Custom URL for the heat-all container image to '
+                              'use as part of the undercloud deployment. If '
+                              'not specified, the default "%s" is used. '
+                              'If this location requires authentication, '
+                              'run podman login prior to running the '
+                              'undercloud install.' % DEFAULT_HEAT_CONTAINER)
                        ),
             cfg.StrOpt('container_images_file',
                        default='',
