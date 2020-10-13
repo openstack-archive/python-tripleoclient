@@ -36,9 +36,6 @@ class PlanManagementFixture(fixtures.Fixture):
 
     def _setUp(self):
         super(PlanManagementFixture, self)._setUp()
-        self.mock_tarball = self.useFixture(fixtures.MockPatch(
-            'tripleoclient.workflows.plan_management.tarball')
-        ).mock
 
 
 class UtilsOvercloudFixture(fixtures.Fixture):

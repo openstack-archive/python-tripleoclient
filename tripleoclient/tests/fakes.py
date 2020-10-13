@@ -88,21 +88,6 @@ class FakeClientWrapper(object):
     def __init__(self):
         self._instance = mock.Mock()
         self.object_store = FakeObjectClient()
-        self._mock_websocket = mock.Mock()
-        self._mock_websocket.__enter__ = mock.Mock(
-            return_value=self._mock_websocket)
-        # Return False to avoid silencing exceptions
-        self._mock_websocket.__exit__ = mock.Mock(return_value=False)
-        self._mock_websocket.wait_for_messages = mock.Mock(
-            return_value=iter([{
-                "status": "SUCCESS",
-                "message": "Success",
-                "execution_id": "IDID"
-            }])
-        )
-
-    def messaging_websocket(self):
-        return self._mock_websocket
 
 
 class FakeRunnerConfig(object):

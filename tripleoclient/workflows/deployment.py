@@ -18,8 +18,7 @@ import yaml
 from heatclient.common import event_utils
 from heatclient import exc as heat_exc
 from openstackclient import shell
-from swiftclient import exceptions as swiftexceptions
-from tripleo_common.utils import swift as swift_utils
+from tripleo_common.utils import swift as swiftutils
 
 from tripleoclient.constants import ANSIBLE_TRIPLEO_PLAYBOOKS
 from tripleoclient.constants import CLOUD_HOME_DIR
@@ -515,13 +514,13 @@ def get_deployment_status(clients, plan):
         return None
 
     try:
-        body = swift_utils.get_object_string(
+        body = swiftutils.get_object_string(
             clients.tripleoclient.object_store,
             '%s-messages' % plan,
             'deployment_status.yaml')
 
         return yaml.safe_load(body)['deployment_status']
-    except swiftexceptions.ClientException:
+    except Exception:
         return None
 
 

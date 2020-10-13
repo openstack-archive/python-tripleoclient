@@ -11,14 +11,12 @@
 # under the License.
 import logging
 import os
-import tempfile
 import yaml
 
-from swiftclient import exceptions as swift_exc
 from tripleo_common.actions import plan
 from tripleo_common.utils import plan as plan_utils
 from tripleo_common.utils import swift as swiftutils
-from tripleo_common.utils import tarball
+from tripleo_common.utils import template as temputils
 
 from tripleoclient import constants
 from tripleoclient import exceptions
@@ -39,10 +37,11 @@ def _upload_templates(swift_client, container_name, tht_root, roles_file=None,
                       plan_env_file=None, networks_file=None):
     """tarball up a given directory and upload it to Swift to be extracted"""
 
-    with tempfile.NamedTemporaryFile() as tmp_tarball:
-        tarball.create_tarball(tht_root, tmp_tarball.name)
-        tarball.tarball_extract_to_swift_container(
-            swift_client, tmp_tarball.name, container_name)
+    temputils.upload_templates_as_tarball(
+        swift=swift_client,
+        dir_to_upload=tht_root,
+        container=container_name
+    )
 
     # Optional override of the roles_data.yaml file
     if roles_file:
@@ -183,6 +182,19 @@ def create_plan_from_templates(clients, name, tht_root, roles_file=None,
                                generate_passwords=True, plan_env_file=None,
                                networks_file=None, verbosity_level=0,
                                disable_image_params_prepare=False):
+
+    with utils.TempDirs() as tmp:
+        utils.run_ansible_playbook(
+            "cli-undercloud-local-artifacts.yaml",
+            'undercloud,',
+            workdir=tmp,
+            playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            extra_vars={
+                "stack": name,
+            },
+            verbosity=verbosity_level
+        )
+
     swift_client = clients.tripleoclient.object_store
 
     print("Creating Swift container to store the plan")
@@ -210,6 +222,19 @@ def update_plan_from_templates(clients, name, tht_root, roles_file=None,
                                networks_file=None, keep_env=False,
                                verbosity_level=1,
                                disable_image_params_prepare=False):
+
+    with utils.TempDirs() as tmp:
+        utils.run_ansible_playbook(
+            "cli-undercloud-local-artifacts.yaml",
+            'undercloud,',
+            workdir=tmp,
+            playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            extra_vars={
+                "stack": name,
+            },
+            verbosity=verbosity_level
+        )
+
     swift_client = clients.tripleoclient.object_store
     passwords = None
     keep_file_contents = {}
@@ -308,13 +333,23 @@ def _list_plan_files(swift_client, container):
 
 def _upload_file(swift_client, container, filename, local_filename):
     with open(local_filename, 'rb') as file_content:
-        swift_client.put_object(container, filename, file_content)
+        swiftutils.put_object_string(
+            swift=swift_client,
+            container=container,
+            object_name=filename,
+            contents=file_content
+        )
 
 
 # short function, just alias for interface parity with _upload_plan_file
 def _upload_file_content(swift_client, container, filename, content):
     LOG.debug("Uploading {0} to plan".format(filename))
-    swift_client.put_object(container, filename, content)
+    swiftutils.put_object_string(
+        swift=swift_client,
+        container=container,
+        object_name=filename,
+        contents=content
+    )
 
 
 def _load_passwords(swift_client, name):
@@ -337,31 +372,41 @@ def _update_passwords(swift_client, name, passwords):
             env = yaml.safe_load(swift_client.get_object(
                 name, constants.PLAN_ENVIRONMENT)[1])
             env['passwords'] = passwords
-            swift_client.put_object(name,
-                                    constants.PLAN_ENVIRONMENT,
-                                    yaml.safe_dump(env,
-                                                   default_flow_style=False))
-        except swift_exc.ClientException:
+            swiftutils.put_object_string(
+                swift=swift_client,
+                container=name,
+                object_name=constants.PLAN_ENVIRONMENT,
+                contents=yaml.safe_dump(env, default_flow_style=False)
+            )
+        except Exception as exp:
             # The plan likely has not been migrated to using Swift yet.
-            LOG.debug("Could not find plan environment %s in %s",
-                      constants.PLAN_ENVIRONMENT, name)
+            LOG.debug("Could not find plan environment %s in %s - error: %s",
+                      constants.PLAN_ENVIRONMENT, name, exp)
 
 
 def export_deployment_plan(clients, plan_name):
 
-    export_container = "plan-exports"
-    delete_after = 3600
+    plan_path = os.path.join('/var/lib/tripleo/stacks', plan_name)
+    if os.path.exists(plan_path):
+        print("Plan information can be found here: {}".format(plan_path))
+        return plan_path
+    else:
+        # NOTE(cloudnull): When swift is no longer in service remove this.
+        export_container = "plan-exports"
+        delete_after = 3600
 
-    mistral_context = clients.tripleoclient.create_mistral_context()
-    action = plan.ExportPlanAction(plan_name, delete_after=delete_after,
-                                   exports_container=export_container)
-    result = action.run(mistral_context)
-    if result:
-        raise exceptions.WorkflowServiceError(
-            'Exception exporting plan: {}'.format(result.error))
+        mistral_context = clients.tripleoclient.create_mistral_context()
+        action = plan.ExportPlanAction(plan_name, delete_after=delete_after,
+                                       exports_container=export_container)
+        result = action.run(mistral_context)
+        if result:
+            raise exceptions.WorkflowServiceError(
+                'Exception exporting plan: {}'.format(result.error))
 
-    url = swiftutils.get_temp_url(clients.tripleoclient.object_store,
-                                  container=export_container,
-                                  object_name="{}.tar.gz".format(plan_name))
-    print(url)
-    return url
+        url = swiftutils.get_temp_url(
+            clients.tripleoclient.object_store,
+            container=export_container,
+            object_name="{}.tar.gz".format(plan_name)
+        )
+        print(url)
+        return url

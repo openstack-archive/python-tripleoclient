@@ -31,14 +31,7 @@ class Base(fakes.TestBaremetal):
                 {"name": "hyperthreading", "value": "on"}
             ]
         }
-        tripleoclient = self.app.client_manager.tripleoclient
         self.app.client_manager.baremetal.node.list.return_value = []
-        self.websocket = tripleoclient.messaging_websocket()
-        self.websocket.wait_for_messages.return_value = iter([{
-            'status': "SUCCESS",
-            'execution_id': 'fake id',
-            'root_execution_id': 'fake id',
-        }])
 
         self.execution = self.workflow.executions.create.return_value
         self.execution.id = 'fake id'

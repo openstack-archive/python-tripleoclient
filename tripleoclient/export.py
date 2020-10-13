@@ -18,12 +18,12 @@ import json
 import logging
 import os
 import re
-import sys
 import yaml
 
 from osc_lib.i18n import _
 
 from tripleo_common import constants as tripleo_common_constants
+from tripleo_common.utils import swift as swiftutils
 from tripleoclient import constants
 from tripleoclient import utils as oooutils
 
@@ -35,13 +35,11 @@ def export_passwords(swift, stack, excludes=True):
     # Export the passwords from swift
     obj = 'plan-environment.yaml'
     container = stack
-    try:
-        resp_headers, content = swift.get_object(container, obj)
-    except Exception as e:
-        LOG.error("An error happened while exporting the password "
-                  "file from swift: %s", str(e))
-        sys.exit(1)
-
+    content = swiftutils.get_object_string(
+        swift,
+        container=container,
+        object_name=obj
+    )
     data = yaml.safe_load(content)
     # The "passwords" key in plan-environment.yaml are generated passwords,
     # they are not necessarily the actual password values used during the

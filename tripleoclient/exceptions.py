@@ -25,10 +25,6 @@ class WorkflowServiceError(Base):
     """The service type is unknown"""
 
 
-class WebSocketTimeout(Base):
-    """Timed out waiting for messages on the websocket"""
-
-
 class WebSocketConnectionClosed(Base):
     """Websocket connection is closed before wait for messages"""
 

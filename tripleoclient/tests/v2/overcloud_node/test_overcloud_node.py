@@ -268,13 +268,6 @@ class TestIntrospectNode(fakes.TestOvercloudNode):
                           self.cmd, argslist, verifylist)
 
     def _check_introspect_all_manageable(self, parsed_args, provide=False):
-        self.websocket.wait_for_messages.return_value = iter([{
-            "status": "SUCCESS",
-            "message": "Success",
-            "introspected_nodes": {},
-            "execution_id": "IDID"
-        }] * 2)
-
         self.cmd.take_action(parsed_args)
 
         call_list = [mock.call(
@@ -293,12 +286,6 @@ class TestIntrospectNode(fakes.TestOvercloudNode):
                          2 if provide else 1)
 
     def _check_introspect_nodes(self, parsed_args, nodes, provide=False):
-        self.websocket.wait_for_messages.return_value = [{
-            "status": "SUCCESS",
-            "message": "Success",
-            "execution_id": "IDID",
-        }]
-
         self.cmd.take_action(parsed_args)
 
         call_list = [mock.call(

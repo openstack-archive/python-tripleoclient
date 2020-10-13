@@ -14,7 +14,6 @@
 import mock
 
 from osc_lib.tests import utils
-from swiftclient import exceptions as swift_exc
 
 from tripleoclient import constants
 from tripleoclient.tests import base
@@ -28,21 +27,27 @@ class TestPlanCreationWorkflows(utils.TestCommand):
         self.tripleoclient = mock.Mock()
         self.app.client_manager.tripleoclient = self.tripleoclient
         self.tripleoclient.object_store.get_account = mock.MagicMock()
+        self.mock_tar = mock.patch(
+            'tripleo_common.utils.tarball.create_tarball',
+            autospec=True
+        )
+        self.mock_tar.start()
+
+    def tearDown(self):
+        super(TestPlanCreationWorkflows, self).tearDown()
+        self.mock_tar.stop()
 
     @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
-    @mock.patch('tripleoclient.workflows.plan_management.tarball',
-                autospec=True)
     @mock.patch('os.chdir', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True)
     def test_create_plan_from_templates_success(self, mock_tmp, mock_cd,
-                                                mock_tarball,
                                                 mock_run_playbook):
         plan_management.create_plan_from_templates(
             self.app.client_manager,
             'test-overcloud',
             '/tht-root/')
 
-        mock_run_playbook.assert_called_once_with(
+        mock_run_playbook.assert_called_with(
             'cli-create-deployment-plan.yaml',
             'undercloud,',
             mock.ANY,
@@ -58,12 +63,9 @@ class TestPlanCreationWorkflows(utils.TestCommand):
 
     @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
     @mock.patch('tripleoclient.utils.rel_or_abs_path')
-    @mock.patch('tripleoclient.workflows.plan_management.tarball',
-                autospec=True)
     @mock.patch('os.chdir', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True)
     def test_create_plan_from_templates_roles_data(self, mock_tmp, mock_cd,
-                                                   mock_tarball,
                                                    mock_norm_path,
                                                    mock_run_playbook):
         mock_open_context = mock.mock_open()
@@ -74,7 +76,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
                 '/tht-root/',
                 'the_roles_file.yaml')
 
-        mock_run_playbook.assert_called_once_with(
+        mock_run_playbook.assert_called_with(
             'cli-create-deployment-plan.yaml',
             'undercloud,',
             mock.ANY,
@@ -91,16 +93,13 @@ class TestPlanCreationWorkflows(utils.TestCommand):
         self.assertIn(mock.call('the_roles_file.yaml', '/tht-root/'),
                       mock_norm_path.call_args_list)
 
-        self.tripleoclient.object_store.put_object.assert_called_once_with(
+        self.tripleoclient.object_store.put_object.assert_called_with(
             'test-overcloud', 'roles_data.yaml', mock_open_context())
 
     @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
-    @mock.patch('tripleoclient.workflows.plan_management.tarball',
-                autospec=True)
     @mock.patch('os.chdir', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True)
     def test_create_plan_from_templates_plan_env_data(self, mock_tmp, mock_cd,
-                                                      mock_tarball,
                                                       mock_run_playbook):
         mock_open_context = mock.mock_open()
         with mock.patch('six.moves.builtins.open', mock_open_context):
@@ -110,7 +109,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
                 '/tht-root/',
                 plan_env_file='the-plan-environment.yaml')
 
-        mock_run_playbook.assert_called_once_with(
+        mock_run_playbook.assert_called_with(
             'cli-create-deployment-plan.yaml',
             'undercloud,',
             mock.ANY,
@@ -127,16 +126,13 @@ class TestPlanCreationWorkflows(utils.TestCommand):
         mock_open_context.assert_has_calls(
             [mock.call('the-plan-environment.yaml', 'rb')])
 
-        self.tripleoclient.object_store.put_object.assert_called_once_with(
+        self.tripleoclient.object_store.put_object.assert_called_with(
             'test-overcloud', 'plan-environment.yaml', mock_open_context())
 
     @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
-    @mock.patch('tripleoclient.workflows.plan_management.tarball',
-                autospec=True)
     @mock.patch('os.chdir', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True)
     def test_create_plan_from_templates_networks_data(self, mock_tmp, mock_cd,
-                                                      mock_tarball,
                                                       mock_run_playbook):
         mock_open_context = mock.mock_open()
         with mock.patch('six.moves.builtins.open', mock_open_context):
@@ -146,7 +142,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
                 '/tht-root/',
                 networks_file='the-network-data.yaml')
 
-        mock_run_playbook.assert_called_once_with(
+        mock_run_playbook.assert_called_with(
             'cli-create-deployment-plan.yaml',
             'undercloud,',
             mock.ANY,
@@ -162,16 +158,13 @@ class TestPlanCreationWorkflows(utils.TestCommand):
         mock_open_context.assert_has_calls(
             [mock.call('the-network-data.yaml', 'rb')])
 
-        self.tripleoclient.object_store.put_object.assert_called_once_with(
+        self.tripleoclient.object_store.put_object.assert_called_with(
             'test-overcloud', 'network_data.yaml', mock_open_context())
 
     @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
-    @mock.patch('tripleoclient.workflows.plan_management.tarball',
-                autospec=True)
     @mock.patch('os.chdir', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True)
     def test_create_plan_with_password_gen_disabled(self, mock_tmp, mock_cd,
-                                                    mock_tarball,
                                                     mock_run_playbook):
         plan_management.create_plan_from_templates(
             self.app.client_manager,
@@ -180,7 +173,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
             generate_passwords=False,
             disable_image_params_prepare=True)
 
-        mock_run_playbook.assert_called_once_with(
+        mock_run_playbook.assert_called_with(
             'cli-create-deployment-plan.yaml',
             'undercloud,',
             mock.ANY,
@@ -226,16 +219,23 @@ class TestPlanUpdateWorkflows(base.TestCommand):
             # e.g. 'plan-environment.yaml: mock content'
             return {}, '{0}: mock content\n'.format(args[1])
         self.object_store.get_object.side_effect = get_object
+        self.mock_tar = mock.patch(
+            'tripleo_common.utils.tarball.create_tarball',
+            autospec=True
+        )
+        self.mock_tar.start()
+
+    def tearDown(self):
+        super(TestPlanUpdateWorkflows, self).tearDown()
+        self.mock_tar.stop()
 
     @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
-    @mock.patch('tripleoclient.workflows.plan_management.tarball',
-                autospec=True)
     @mock.patch('tripleo_common.utils.swift.empty_container',
                 autospec=True)
     @mock.patch('os.chdir', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True)
     def test_update_plan_from_templates_keep_env(
-            self, mock_tmp, mock_cd, mock_empty_container, mock_tarball,
+            self, mock_tmp, mock_cd, mock_empty_container,
             mock_run_playbook):
 
         plan_management.update_plan_from_templates(
@@ -266,7 +266,7 @@ class TestPlanUpdateWorkflows(base.TestCommand):
             ],
             any_order=True,
         )
-        mock_run_playbook.assert_called_once_with(
+        mock_run_playbook.assert_called_with(
             'cli-update-deployment-plan.yaml',
             'undercloud,',
             mock.ANY,
@@ -280,12 +280,10 @@ class TestPlanUpdateWorkflows(base.TestCommand):
         )
 
     @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
-    @mock.patch('tripleoclient.workflows.plan_management.tarball',
-                autospec=True)
     @mock.patch('tripleo_common.utils.swift.empty_container',
                 autospec=True)
     def test_update_plan_from_templates_recreate_env(
-            self, mock_empty_container, mock_tarball, mock_run_playbook):
+            self, mock_empty_container, mock_run_playbook):
 
         plan_management.update_plan_from_templates(
             self.app.client_manager,
@@ -302,7 +300,7 @@ class TestPlanUpdateWorkflows(base.TestCommand):
             'plan-environment.yaml: mock content\n'
         )
 
-        mock_run_playbook.assert_called_once_with(
+        mock_run_playbook.assert_called_with(
             'cli-update-deployment-plan.yaml',
             'undercloud,',
             mock.ANY,
@@ -320,14 +318,12 @@ class TestPlanUpdateWorkflows(base.TestCommand):
                 autospec=True)
     @mock.patch('yaml.safe_load',
                 autospec=True)
-    @mock.patch('tripleoclient.workflows.plan_management.tarball',
-                autospec=True)
     @mock.patch('tripleo_common.utils.swift.empty_container',
                 autospec=True)
     @mock.patch('os.chdir', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True)
     def test_update_plan_from_templates_recreate_env_missing_passwords(
-            self, mock_tmp, mock_cd, mock_empty_container, mock_tarball,
+            self, mock_tmp, mock_cd, mock_empty_container,
             mock_yaml_safe_load, mock_update_passwords, mock_run_playbook):
         plan_management.update_plan_from_templates(
             self.app.client_manager,
@@ -340,7 +336,7 @@ class TestPlanUpdateWorkflows(base.TestCommand):
         # Ensure that the passwords variable is passed with a value of None.
         mock_update_passwords.assert_called_with(
             mock.ANY, 'test-overcloud', None)
-        mock_run_playbook.assert_called_once_with(
+        mock_run_playbook.assert_called_with(
             'cli-update-deployment-plan.yaml',
             'undercloud,',
             mock.ANY,
@@ -375,7 +371,6 @@ parameter_defaults:
                                           self.plan_name,
                                           {'AdminPassword': "1234"})
 
-        self.swift_client.put_object.assert_called_once()
         result = self.swift_client.put_object.call_args_list[0][0][2]
 
         # Check new data is in
@@ -393,7 +388,7 @@ parameter_defaults:
 
     def test_no_plan_environment(self):
         self.swift_client.get_object.side_effect = (
-            swift_exc.ClientException("404"))
+            Exception("404"))
 
         plan_management._update_passwords(self.swift_client,
                                           self.plan_name,
