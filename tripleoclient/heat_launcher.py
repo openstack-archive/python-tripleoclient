@@ -163,21 +163,17 @@ class HeatBaseLauncher(object):
         self.sql_db = os.path.join(self.install_tmp, 'heat.sqlite')
         self.log_file = os.path.join(self.install_tmp, 'heat.log')
         self.config_file = os.path.join(self.install_tmp, 'heat.conf')
+        self.paste_file = os.path.join(self.install_tmp, 'api-paste.ini')
         self.token_file = os.path.join(self.install_tmp, 'token_file.json')
-        self._write_fake_keystone_token(api_port, self.token_file)
-        self._write_heat_config(self.config_file,
-                                self.sql_db,
-                                self.log_file,
-                                api_port,
-                                self.policy_file,
-                                self.token_file)
+        self._write_fake_keystone_token(self.api_port, self.token_file)
+        self._write_heat_config()
         uid = int(self.get_heat_uid())
         gid = int(self.get_heat_gid())
         os.chown(self.install_tmp, uid, gid)
         os.chown(self.config_file, uid, gid)
+        os.chown(self.paste_file, uid, gid)
 
-    def _write_heat_config(self, config_file, sqlite_db, log_file, api_port,
-                           policy_file, token_file):
+    def _write_heat_config(self):
         # TODO(ksambor) It will be nice to have possibilities to configure heat
         heat_config = '''
 [DEFAULT]
@@ -219,10 +215,10 @@ policy_file = %(policy_file)s
 [yaql]
 memory_quota=900000
 limit_iterators=9000
-        ''' % {'sqlite_db': sqlite_db, 'log_file': log_file,
-               'api_port': api_port, 'policy_file': policy_file,
-               'token_file': token_file}
-        with open(config_file, 'w') as temp_file:
+        ''' % {'sqlite_db': self.sql_db, 'log_file': self.log_file,
+               'api_port': self.api_port, 'policy_file': self.policy_file,
+               'token_file': self.token_file}
+        with open(self.config_file, 'w') as temp_file:
             temp_file.write(heat_config)
 
         heat_api_paste_config = '''
@@ -239,9 +235,7 @@ paste.filter_factory = heat.common.context:ContextMiddleware_filter_factory
 paste.filter_factory = heat.common.wsgi:filter_factory
 heat.filter_factory = heat.api.openstack:version_negotiation_filter
 '''
-        paste_file = os.path.join(
-                        os.path.dirname(config_file), 'api-paste.ini')
-        with open(paste_file, 'w') as temp_file:
+        with open(self.paste_file, 'w') as temp_file:
             temp_file.write(heat_api_paste_config)
 
     def _write_fake_keystone_token(self, heat_api_port, config_file):
@@ -255,17 +249,32 @@ class HeatContainerLauncher(HeatBaseLauncher):
 
     def __init__(self, api_port, container_image, user='heat',
                  heat_dir='/var/log/heat-launcher'):
+        self.container_image = container_image
+        self._fetch_container_image()
         super(HeatContainerLauncher, self).__init__(api_port, container_image,
                                                     user, heat_dir)
 
+    def _fetch_container_image(self):
+        # force pull of latest container image
+        cmd = ['podman', 'pull', self.container_image]
+        log.debug(' '.join(cmd))
+        try:
+            subprocess.check_output(cmd)
+        except subprocess.CalledProcessError as e:
+            raise Exception('Unable to fetch container image {}.'
+                            'Error: {}'.format(self.container_image, e))
+
     def launch_heat(self):
+        # run the heat-all process
         cmd = [
             'podman', 'run', '--rm',
             '--name', 'heat_all',
             '--user', self.user,
             '--net', 'host',
-            '--volume', '%(conf)s:/etc/heat/heat.conf:Z' % {'conf':
-                                                            self.config_file},
+            '--volume', '%(conf)s:/etc/heat/heat.conf:ro' % {'conf':
+                                                             self.config_file},
+            '--volume', '%(conf)s:/etc/heat/api-paste.ini:ro' % {
+                'conf': self.paste_file},
             '--volume', '%(inst_tmp)s:%(inst_tmp)s:Z' % {'inst_tmp':
                                                          self.install_tmp},
             '--volume', '%(pfile)s:%(pfile)s:ro' % {'pfile':
@@ -318,7 +327,7 @@ class HeatContainerLauncher(HeatBaseLauncher):
         raise Exception('Could not find heat gid')
 
     def kill_heat(self, pid):
-        cmd = ['podman', 'rm', '-f', 'heat_all']
+        cmd = ['podman', 'stop', 'heat_all']
         log.debug(' '.join(cmd))
         # We don't want to hear from this command..
         subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
