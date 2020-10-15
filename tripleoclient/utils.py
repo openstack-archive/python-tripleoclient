@@ -1057,6 +1057,42 @@ def check_ceph_fsid_matches_env_files(stack, environment):
                                                       stack_ceph_fsid))
 
 
+def check_nic_config_with_ansible(stack, environment):
+    registry = environment.get('resource_registry', {})
+    stack_registry = {}
+    is_ansible_config_stack = True
+    if stack:
+        stack_registry = stack.environment().get(
+            'resource_registry', {})
+        is_ansible_config_stack = stack.environment().get(
+            'parameter_defaults', {}).get(
+                'NetworkConfigWithAnsible', True)
+
+    is_ansible_config = environment.get(
+        'parameter_defaults', {}).get(
+            'NetworkConfigWithAnsible', is_ansible_config_stack)
+
+    nic_configs_in_update = set()
+    if is_ansible_config:
+        for k, v in registry.items():
+            if k.endswith('Net::SoftwareConfig'):
+                if v != 'OS::Heat::None':
+                    raise exceptions.InvalidConfiguration(
+                        "DEPRECATED: Old heat nic configs are used, "
+                        "Migrate to ansible jinja templates or use "
+                        "'NetworkConfigWithAnsible: false' "
+                        "in 'parameter_defaults'.")
+                nic_configs_in_update.add(k)
+        for k, v in stack_registry.items():
+            if (k.endswith('Net::SoftwareConfig') and v != 'OS::Heat::None'
+                    and k not in nic_configs_in_update):
+                raise exceptions.InvalidConfiguration(
+                        "DEPRECATED: Old heat nic configs are used, "
+                        "Migrate to ansible jinja templates or use "
+                        "'NetworkConfigWithAnsible: false' "
+                        "in 'parameter_defaults'.")
+
+
 def check_stack_network_matches_env_files(stack, environment):
     """Check stack against proposed env files to ensure non-breaking change
 
