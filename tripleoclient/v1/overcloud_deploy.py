@@ -492,6 +492,10 @@ class DeployOvercloud(command.Command):
         template_utils.deep_update(env, self._create_parameters_env(
             parameters, tht_root, parsed_args.stack))
 
+        if parsed_args.deployed_server:
+            created_env_files.append(
+                os.path.join(tht_root, constants.DEPLOYED_SERVER_ENVIRONMENT))
+
         if parsed_args.environment_files:
             created_env_files.extend(parsed_args.environment_files)
 
