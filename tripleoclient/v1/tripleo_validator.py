@@ -88,13 +88,15 @@ class TripleOValidatorShow(command.ShowOne):
 
     def take_action(self, parsed_args):
         LOG.debug(_('Show validation result'))
+        actions = ValidationActions(constants.ANSIBLE_VALIDATION_DIR)
+
         try:
-            actions = ValidationActions(constants.ANSIBLE_VALIDATION_DIR)
             data = actions.show_validations(parsed_args.validation_id)
-            return data.keys(), data.values()
         except Exception as e:
-            raise RuntimeError(_("Validations listing finished with errors\n"
-                                 "Output: {}").format(e))
+            raise exceptions.CommandError(e)
+
+        if data:
+            return data.keys(), data.values()
 
 
 class TripleOValidatorShowParameter(command.Command):
