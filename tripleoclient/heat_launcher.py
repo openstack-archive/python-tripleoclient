@@ -260,7 +260,7 @@ class HeatContainerLauncher(HeatBaseLauncher):
 
     def launch_heat(self):
         cmd = [
-            'podman', 'run',
+            'podman', 'run', '--rm',
             '--name', 'heat_all',
             '--user', self.user,
             '--net', 'host',
@@ -273,14 +273,7 @@ class HeatContainerLauncher(HeatBaseLauncher):
             self.container_image, 'heat-all'
         ]
         log.debug(' '.join(cmd))
-        try:
-            subprocess.check_output(cmd)
-        except subprocess.CalledProcessError as e:
-            # 137 means the container was killed by 'kill -9' which happens
-            # then we're done creating the Heat stack, so we consider it
-            # as successful.
-            if e.returncode != 137:
-                raise Exception('heat_all container did not run as expected.')
+        os.execvp('podman', cmd)
 
     def heat_db_sync(self):
 
