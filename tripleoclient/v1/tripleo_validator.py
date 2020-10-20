@@ -452,7 +452,6 @@ class TripleOValidatorShowRun(command.Command):
 
         parser.add_argument('--full',
                             action='store_true',
-                            default=True,
                             help='Show Full Details for the run')
 
         return parser
@@ -466,8 +465,10 @@ class TripleOValidatorShowRun(command.Command):
                     print(json.dumps(d, indent=4, sort_keys=True))
             else:
                 for d in data:
-                    for p in d['plays']:
-                        print(json.dumps(p['tasks'], indent=4, sort_keys=True))
+                    for p in d.get('validation_output', []):
+                        print(json.dumps(p['tasks'],
+                                         indent=4,
+                                         sort_keys=True))
         else:
             raise exceptions.CommandError(
                 "Could not find the log file linked to this UUID: %s" %
