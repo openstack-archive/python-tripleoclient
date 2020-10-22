@@ -444,6 +444,89 @@ class TestWaitForStackUtil(TestCase):
         result = utils.wait_for_stack_ready(self.mock_orchestration, 'stack')
         self.assertEqual(False, result)
 
+    def test_check_heat_network_config(self):
+        stack_reg = {
+            'OS::TripleO::Controller::Net::SoftwareConfig': 'val',
+            'OS::TripleO::Compute::Net::SoftwareConfig': 'val',
+        }
+        env_reg = {
+            'OS::TripleO::Controller::Net::SoftwareConfig': 'val',
+            'OS::TripleO::Compute::Net::SoftwareConfig': 'val',
+        }
+        mock_stack = mock.MagicMock()
+        mock_stack.environment = mock.MagicMock()
+        mock_stack.environment.return_value = {
+            'resource_registry':  stack_reg,
+        }
+        env = {
+            'resource_registry':  env_reg
+        }
+
+        self.assertRaises(exceptions.InvalidConfiguration,
+                          utils.check_nic_config_with_ansible,
+                          mock_stack, env)
+
+    def test_check_heat_missing_network_config(self):
+        stack_reg = {
+            'OS::TripleO::Controller::Net::SoftwareConfig': 'val',
+            'OS::TripleO::Compute::Net::SoftwareConfig': 'val',
+        }
+        env_reg = {
+            'OS::TripleO::Controller::Net::SoftwareConfig': 'OS::Heat::None',
+        }
+        mock_stack = mock.MagicMock()
+        mock_stack.environment = mock.MagicMock()
+        mock_stack.environment.return_value = {
+            'resource_registry':  stack_reg,
+        }
+        env = {
+            'resource_registry':  env_reg
+        }
+
+        self.assertRaises(exceptions.InvalidConfiguration,
+                          utils.check_nic_config_with_ansible,
+                          mock_stack, env)
+
+    def test_check_heat_none_network_config(self):
+        stack_reg = {
+            'OS::TripleO::Controller::Net::SoftwareConfig': 'val',
+            'OS::TripleO::Compute::Net::SoftwareConfig': 'val',
+        }
+        env_reg = {
+            'OS::TripleO::Controller::Net::SoftwareConfig': 'OS::Heat::None',
+            'OS::TripleO::Compute::Net::SoftwareConfig': 'OS::Heat::None',
+        }
+        mock_stack = mock.MagicMock()
+        mock_stack.environment = mock.MagicMock()
+        mock_stack.environment.return_value = {
+            'resource_registry':  stack_reg,
+        }
+        env = {
+            'resource_registry':  env_reg,
+            'parameter_defaults': {'NetworkConfigWithAnsible': True}
+        }
+        utils.check_nic_config_with_ansible(mock_stack, env)
+
+    def test_check_heat_network_config_no_ansible(self):
+        stack_reg = {
+            'OS::TripleO::Controller::Net::SoftwareConfig': 'val',
+            'OS::TripleO::Compute::Net::SoftwareConfig': 'val',
+        }
+        env_reg = {
+            'OS::TripleO::Controller::Net::SoftwareConfig': 'val',
+            'OS::TripleO::Compute::Net::SoftwareConfig': 'val',
+        }
+        mock_stack = mock.MagicMock()
+        mock_stack.environment = mock.MagicMock()
+        mock_stack.environment.return_value = {
+            'resource_registry':  stack_reg,
+        }
+        env = {
+            'resource_registry':  env_reg,
+            'parameter_defaults': {'NetworkConfigWithAnsible': False}
+        }
+        utils.check_nic_config_with_ansible(mock_stack, env)
+
     def test_check_stack_network_matches_env_files(self):
         stack_reg = {
             'OS::TripleO::Network': 'val',

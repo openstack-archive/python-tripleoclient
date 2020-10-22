@@ -533,6 +533,9 @@ class DeployOvercloud(command.Command):
                 tht_root, parsed_args.stack)
             template_utils.deep_update(env, bp_cleanup)
 
+        # check migration to new nic config with ansible
+        utils.check_nic_config_with_ansible(stack, env)
+
         # FIXME(shardy) It'd be better to validate this via mistral
         # e.g part of the plan create/update workflow
         number_controllers = int(parameters.get('ControllerCount', 0))
