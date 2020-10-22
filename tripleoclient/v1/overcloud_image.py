@@ -592,12 +592,17 @@ class UploadOvercloudImage(command.Command):
                 img_ramdisk_id = self.adapter.get_image_property(
                     overcloud_image, 'ramdisk_id')
                 # check overcloud image links
-                if (img_kernel_id != kernel.id or
-                        img_ramdisk_id != ramdisk.id):
-                    self.log.error('Link overcloud image to it\'s initrd and '
-                                   'kernel images is MISSING OR leads to OLD '
-                                   'image. You can keep it or fix it '
-                                   'manually.')
+                if img_kernel_id is None or img_ramdisk_id is None:
+                    self.log.error('Link of overcloud image %s to its initrd'
+                                   ' or kernel images is MISSING.'
+                                   'You can keep it or fix it manually.' %
+                                   overcloud_image.name)
+                elif (img_kernel_id != kernel.id or
+                      img_ramdisk_id != ramdisk.id):
+                    self.log.error('Link of overcloud image %s to its initrd'
+                                   ' or kernel images leads to OLD image.'
+                                   'You can keep it or fix it manually.' %
+                                   overcloud_image.name)
 
             else:
                 overcloud_image = self.adapter.update_or_upload(
