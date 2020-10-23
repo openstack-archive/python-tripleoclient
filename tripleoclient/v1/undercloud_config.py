@@ -68,7 +68,6 @@ PARAMETER_MAPPING = {
     'scheduler_max_attempts': 'NovaSchedulerMaxAttempts',
     'local_mtu': 'UndercloudLocalMtu',
     'clean_nodes': 'IronicAutomatedClean',
-    'upgrade_cleanup': 'UpgradeRemoveUnusedPackages',
     'container_healthcheck_disabled': 'ContainerHealthcheckDisabled',
     'local_subnet': 'UndercloudCtlplaneLocalSubnet',
     'enable_routed_networks': 'UndercloudEnableRoutedNetworks',

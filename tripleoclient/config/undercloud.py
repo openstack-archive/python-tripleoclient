@@ -309,12 +309,6 @@ class UndercloudConfig(StandaloneConfig):
                             'Whether to clean overcloud nodes (wipe the hard '
                             'drive) between deployments and after the '
                             'introspection.')),
-            cfg.BoolOpt('upgrade_cleanup',
-                        default=False,
-                        help=_(
-                            '(Experimental) Whether to clean undercloud rpms '
-                            'after an upgrade to a containerized '
-                            'undercloud.')),
             cfg.ListOpt('enabled_hardware_types',
                         default=['ipmi', 'redfish', 'ilo', 'idrac'],
                         help=_('List of enabled bare metal hardware types '
