@@ -1,0 +1,4 @@
+---
+upgrade:
+  - |
+    `docker_bip` has been removed from the undercloud.conf

@@ -531,10 +531,6 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
 
     env_data['ContainerCli'] = CONF['container_cli']
 
-    # NOTE(aschultz): deprecated in Stein
-    if CONF.get('docker_bip', None):
-        env_data['DockerNetworkOptions'] = CONF['docker_bip']
-
     if CONF.get('container_registry_mirror', None):
         env_data['DockerRegistryMirror'] = CONF['container_registry_mirror']
 
