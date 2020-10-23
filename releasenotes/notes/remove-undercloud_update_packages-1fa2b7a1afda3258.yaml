@@ -1,0 +1,4 @@
+---
+upgrade:
+  - |
+    Remove `undercloud_update_packages` option in undercloud.conf.

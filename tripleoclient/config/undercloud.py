@@ -276,13 +276,6 @@ class UndercloudConfig(StandaloneConfig):
                         default=True,
                         help=_('Enable or disable SELinux during the '
                                'deployment.')),
-            cfg.BoolOpt('undercloud_update_packages',
-                        default=False,
-                        help=_(
-                            'Whether to update packages during the Undercloud '
-                            'install. This is a no-op for containerized '
-                            'undercloud.')
-                        ),
             cfg.StrOpt('ipa_otp',
                        default='',
                        help=_(
