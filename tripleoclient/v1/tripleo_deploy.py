@@ -1016,10 +1016,10 @@ class Deploy(command.Command):
         parser.add_argument(
             '--heat-container-image', metavar='<HEAT_CONTAINER_IMAGE>',
             dest='heat_container_image',
-            default='tripleomaster/centos-binary-heat-all:current-tripleo',
+            default=constants.DEFAULT_HEAT_CONTAINER,
             help=_('The container image to use when launching the heat-all '
-                   'process. Defaults to: '
-                   'tripleomaster/centos-binary-heat-all:current-tripleo')
+                   'process. Defaults to: {}'.format(
+                       constants.DEFAULT_HEAT_CONTAINER))
         )
         parser.add_argument(
             '--heat-native',

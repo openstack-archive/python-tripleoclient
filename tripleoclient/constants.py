@@ -42,6 +42,15 @@ UNDERCLOUD_NETWORKS_FILE = "network_data_undercloud.yaml"
 ANSIBLE_HOSTS_FILENAME = "hosts.yaml"
 ANSIBLE_CWL = "tripleo_dense,tripleo_profile_tasks,tripleo_states"
 CONTAINER_IMAGE_PREPARE_LOG_FILE = "container_image_prepare.log"
+DEFAULT_CONTAINER_REGISTRY = "docker.io"
+DEFAULT_CONTAINER_NAMESPACE = "tripleomaster"
+DEFAULT_CONTAINER_TAG = "current-tripleo"
+DEFAULT_HEAT_CONTAINER = ('{}/{}/openstack-heat-all:{}'.format(
+    DEFAULT_CONTAINER_REGISTRY,
+    DEFAULT_CONTAINER_NAMESPACE,
+    DEFAULT_CONTAINER_TAG))
+
+
 # The name of the file which holds the plan environment contents
 PLAN_ENVIRONMENT = 'plan-environment.yaml'
 USER_ENVIRONMENT = 'user-environment.yaml'
