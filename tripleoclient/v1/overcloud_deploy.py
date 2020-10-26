@@ -29,6 +29,7 @@ import time
 import yaml
 
 from heatclient.common import template_utils
+from keystoneauth1.exceptions.catalog import EndpointNotFound
 import openstack
 from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
@@ -61,8 +62,13 @@ class DeployOvercloud(command.Command):
         self.object_client = self.clients.tripleoclient.object_store
         self.orchestration_client = self.clients.orchestration
         if not parsed_args.deployed_server:
-            self.compute_client = self.clients.compute
-            self.baremetal_client = self.clients.baremetal
+            try:
+                self.compute_client = self.clients.compute
+                self.baremetal_client = self.clients.baremetal
+            except EndpointNotFound:
+                self.log.warning('WARNING: Nova endpoint not available. '
+                                 'Assuming --deployed-server')
+                parsed_args.deployed_server = True
 
     def _update_parameters(self, args, stack):
         parameters = {}
