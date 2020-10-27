@@ -1,9 +1,9 @@
 
 - project:
     templates:
-      - tripleo-undercloud-jobs
+      - tripleo-undercloud-jobs-pipeline
       - tripleo-multinode-baremetal-minimal
-      - tripleo-multinode-container-minimal
+      - tripleo-multinode-container-minimal-pipeline
       - tripleo-buildimage-jobs
       - openstack-python-jobs
       - openstack-python35-jobs
