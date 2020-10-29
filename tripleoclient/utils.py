@@ -2064,7 +2064,7 @@ def copy_clouds_yaml(user):
     :param user: deployment user
     """
     clouds_etc_file = '/etc/openstack/clouds.yaml'
-    clouds_home_dir = os.path.join('/home', user)
+    clouds_home_dir = os.path.expanduser("~{}".format(user))
     clouds_config_dir = os.path.join(clouds_home_dir, '.config')
     clouds_openstack_config_dir = os.path.join(clouds_config_dir,
                                                'openstack')
