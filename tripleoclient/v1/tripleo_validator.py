@@ -320,11 +320,14 @@ class TripleOValidatorRun(command.Command):
         limit = parsed_args.limit
         extra_vars = parsed_args.extra_vars
         if parsed_args.extra_vars_file:
-            with open(parsed_args.extra_vars_file, 'r') as env_file:
-                if '.json' in parsed_args.extra_vars_file:
-                    extra_vars.update(json.load(env_file))
-                else:
-                    extra_vars.update(yaml.load(env_file))
+            try:
+                with open(parsed_args.extra_vars_file, 'r') as env_file:
+                    extra_vars.update(yaml.safe_load(env_file.read()))
+            except yaml.YAMLError as e:
+                error_msg = (
+                    "The request body must be properly formatted YAML/JSON. "
+                    "Details: %s." % e)
+                raise exceptions.CommandError(error_msg)
 
         # We don't check if the file exists in order to support
         # passing a string such as "localhost,", like we can do with
