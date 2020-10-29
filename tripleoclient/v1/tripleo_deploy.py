@@ -1410,6 +1410,12 @@ class Deploy(command.Command):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+        if parsed_args.deployment_user == 'root':
+            self.log.warning(
+                _("[WARNING] Deployment user is set to 'root'. This may cause "
+                  "some deployment files to be located in /root. Please use "
+                  "--deployment-user to specify the user you are deploying "
+                  "with."))
         try:
             if parsed_args.standalone:
                 self._standalone_deploy(parsed_args)
