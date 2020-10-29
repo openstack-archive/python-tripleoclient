@@ -64,6 +64,8 @@ class _CommaListAction(argparse.Action):
 class TripleOValidatorGroupInfo(command.Lister):
     """Display Information about Validation Groups"""
 
+    auth_required = False
+
     def get_parser(self, prog_name):
         parser = super(TripleOValidatorGroupInfo, self).get_parser(prog_name)
         return parser
@@ -75,6 +77,8 @@ class TripleOValidatorGroupInfo(command.Lister):
 
 class TripleOValidatorShow(command.ShowOne):
     """Display detailed information about a Validation"""
+
+    auth_required = False
 
     def get_parser(self, prog_name):
         parser = super(TripleOValidatorShow, self).get_parser(prog_name)
@@ -99,6 +103,8 @@ class TripleOValidatorShow(command.ShowOne):
 
 class TripleOValidatorShowParameter(command.Command):
     """Display Validations Parameters"""
+
+    auth_required = False
 
     def get_parser(self, prog_name):
         parser = argparse.ArgumentParser(
@@ -174,6 +180,8 @@ class TripleOValidatorShowParameter(command.Command):
 class TripleOValidatorList(command.Lister):
     """List the available validations"""
 
+    auth_required = False
+
     def get_parser(self, prog_name):
         parser = super(TripleOValidatorList, self).get_parser(prog_name)
 
@@ -206,6 +214,8 @@ class TripleOValidatorList(command.Lister):
 
 class TripleOValidatorRun(command.Command):
     """Run the available validations"""
+
+    auth_required = False
 
     def get_parser(self, prog_name):
         parser = argparse.ArgumentParser(
@@ -381,6 +391,8 @@ class TripleOValidatorRun(command.Command):
 class TripleOValidatorShowRun(command.Command):
     """Display details about a Validation execution"""
 
+    auth_required = False
+
     def get_parser(self, prog_name):
         parser = argparse.ArgumentParser(
             description=self.get_description(),
@@ -420,6 +432,8 @@ class TripleOValidatorShowRun(command.Command):
 
 class TripleOValidatorShowHistory(command.Lister):
     """Display Validations execution history"""
+
+    auth_required = False
 
     def get_parser(self, prog_name):
         parser = super(TripleOValidatorShowHistory, self).get_parser(prog_name)
