@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    `upgrade_cleanup` has been removed from the undercloud.conf as it hasn't
+    had any effect after the initial containerized undercloud back in Rocky
+    or FFU upgrade in Train.
