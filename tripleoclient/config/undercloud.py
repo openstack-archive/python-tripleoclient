@@ -224,12 +224,6 @@ class UndercloudConfig(StandaloneConfig):
                        default=1500,
                        help=_('MTU to use for the local_interface.')
                        ),
-            cfg.StrOpt('docker_bip',
-                       default='--bip=172.31.0.1/24',
-                       deprecated_for_removal=True,
-                       help=_('Docker bridge IP for the undercloud.')
-                       ),
-
             cfg.StrOpt('inspection_interface',
                        default='br-ctlplane',
                        deprecated_name='discovery_interface',
