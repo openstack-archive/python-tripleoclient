@@ -1,0 +1,26 @@
+---
+fixes:
+  - |
+    With adding UseTLSTransportForNbd feature in stein, UseTLSTransportForNbd
+    is enabled per default. If an environment gets upgraded where
+    UseTLSTransportForNbd was not enabled will make live migration to fail
+    as the required certs are not part of the env of the previously created
+    qemu process containers.
+    This change handles UseTLSTransportForNbd as:
+    * new environments it is enabled, which is the default in THT since
+    stein
+    * if it is an existing environment:
+    - global_config_settings get checked for use_tls_for_nbd key
+    - if the global_config_settings does not exist, e.g. update from
+    previous THT version or previous major release, the hieradata key
+    nova::compute::libvirt::qemu::nbd_tls gets evaluated that there is
+    no unnecessary disable of nbd_tls
+
+    In change I7f583d18e558b95922a66eb539cc91de74409c96 we move the certs
+    to be handled using bind mounts, so the upgrade path to enable nbd-tls
+    would be
+    1. deploy with this change + the puppet-tripleo and tht change to
+    use bind mounts for certs.
+    2. migrate all instances once that the containers running the qemu
+    processes have the correct cert bind mounts
+    3. run an overcloud deploy using UseTLSTransportForNbd=true

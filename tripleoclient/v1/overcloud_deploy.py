@@ -105,6 +105,29 @@ class DeployOvercloud(command.Command):
                 ('NovaComputeLibvirtType', 'libvirt_type'),
             )
             param_args = param_args + new_stack_args
+        else:
+            globalcfg = utils.get_stack_output_item(stack, 'GlobalConfig')
+
+            # verif if tls was enabled in previous deploy run
+            if globalcfg and 'use_tls_for_nbd' in globalcfg:
+                nbd_tls = globalcfg['use_tls_for_nbd']
+                self.log.debug("use_tls_for_nbd=%s" % nbd_tls)
+                parameters['UseTLSTransportForNbd'] = nbd_tls
+            else:
+                # in case of an update use_tls_for_nbd global config key
+                # won't exist, check the nbd_tls hiera key from the roledata.
+                roledata = utils.get_stack_output_item(stack, 'RoleData')
+                if roledata:
+                    nbd_tls_key = 'nova::compute::libvirt::qemu::nbd_tls'
+                    for key in roledata:
+                        if nbd_tls_key in roledata[key]['config_settings']:
+                            nbd_tls = roledata[key][
+                                'config_settings'][nbd_tls_key]
+                            self.log.debug("use_tls_for_nbd=%s" % nbd_tls)
+                            parameters['UseTLSTransportForNbd'] = nbd_tls
+                            break
+                        else:
+                            parameters['UseTLSTransportForNbd'] = False
 
         # Update parameters from commandline
         for param, arg in param_args:
