@@ -14,6 +14,7 @@
 #
 
 import os
+import sys
 
 from osc_lib.i18n import _
 from six.moves import configparser
@@ -24,7 +25,6 @@ try:
     FileNotFoundError = FileNotFoundError
 except NameError:
     FileNotFoundError = IOError
-
 
 TRIPLEO_HEAT_TEMPLATES = "/usr/share/openstack-tripleo-heat-templates/"
 OVERCLOUD_YAML_NAME = "overcloud.yaml"
@@ -117,8 +117,30 @@ ANSIBLE_VALIDATION_DIR = (
     else "/usr/share/ansible/validation-playbooks"
     )
 
-ANSIBLE_TRIPLEO_PLAYBOOKS = \
-    '/usr/share/ansible/tripleo-playbooks'
+# NOTE(mwhahaha): So if we pip install tripleoclient, we need to also
+# honor pulling some other files from a venv (e.g. cli playbooks,
+# and container image yaml for building). This logic will create a
+# constant for a venv share path which we can use to check to see if things
+# like tripleo-common or tripleo-ansible have also been pip installed.
+SHARE_BASE_PATH = os.path.join(sys.prefix, 'share')
+if sys.prefix != '/usr' and not os.path.isdir(SHARE_BASE_PATH):
+    SHARE_BASE_PATH = os.path.join('/usr', 'share')
+
+ANSIBLE_TRIPLEO_PLAYBOOKS = os.path.join(
+    SHARE_BASE_PATH, 'ansible', 'tripleo-playbooks'
+)
+if sys.prefix != '/usr' and not os.path.isdir(ANSIBLE_TRIPLEO_PLAYBOOKS):
+    ANSIBLE_TRIPLEO_PLAYBOOKS = os.path.join(
+        '/usr', 'share', 'ansible', 'tripleo-playbooks'
+    )
+CONTAINER_IMAGES_BASE_PATH = os.path.join(
+    SHARE_BASE_PATH, "tripleo-common", "container-images"
+)
+if sys.prefix != "/usr" and not os.path.isdir(CONTAINER_IMAGES_BASE_PATH):
+    CONTAINER_IMAGES_BASE_PATH = os.path.join(
+        "/usr", "share", "tripleo-common", "container-images"
+    )
+
 
 VALIDATION_GROUPS_INFO = (
         '/usr/share/ansible/groups.yaml'

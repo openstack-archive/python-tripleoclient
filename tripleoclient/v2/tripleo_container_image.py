@@ -17,7 +17,6 @@ import collections
 import logging
 import os
 import re
-import sys
 import uuid
 import yaml
 
@@ -29,17 +28,10 @@ from tripleo_common.exception import NotFound
 from tripleo_common.image.builder import buildah
 
 from tripleoclient import command
+from tripleoclient import constants
 from tripleoclient import utils
 
 
-BASE_PATH = os.path.join(
-    sys.prefix, "share", "tripleo-common", "container-images"
-)
-# NOTE(cloudnull): This will ensure functionality even when running in a venv.
-if sys.prefix != "/usr" and not os.path.isdir(BASE_PATH):
-    BASE_PATH = os.path.join(
-        "/usr", "share", "tripleo-common", "container-images"
-    )
 DEFAULT_AUTHFILE = "{}/containers/auth.json".format(
     os.environ.get("XDG_RUNTIME_DIR", os.path.expanduser("~"))
 )
@@ -95,7 +87,7 @@ class Build(command.Command):
             "--config-path",
             dest="config_path",
             metavar="<config-path>",
-            default=BASE_PATH,
+            default=constants.CONTAINER_IMAGES_BASE_PATH,
             help=_(
                 "Base configuration path. This is the base path for all "
                 "container-image files. The defined containers must reside "
