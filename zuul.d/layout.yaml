@@ -44,8 +44,6 @@
         - tripleo-ci-centos-8-scenario007-multinode-oooq-container:
             vars: *multi_consumer_vars
             dependencies: *deps_cprovider
-        - tripleo-ci-centos-7-standalone-upgrade:
-            dependencies: *deps_unit_lint
         - tripleo-ci-centos-8-scenario001-standalone:
             vars: &sa_consumer_vars
               consumer_job: true
