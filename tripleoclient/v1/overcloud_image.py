@@ -44,6 +44,13 @@ class BuildOvercloudImage(command.Command):
     IMAGE_YAML_PATH = "/usr/share/openstack-tripleo-common/image-yaml"
     DEFAULT_YAML = ['overcloud-images-python3.yaml',
                     'overcloud-images-centos8.yaml']
+    REQUIRED_PACKAGES = [
+        'openstack-tripleo-common',
+        'openstack-ironic-python-agent-builder',
+        'openstack-tripleo-image-elements',
+        'openstack-tripleo-puppet-elements',
+        'xfsprogs'
+    ]
 
     def get_parser(self, prog_name):
         parser = super(BuildOvercloudImage, self).get_parser(prog_name)
@@ -90,8 +97,16 @@ class BuildOvercloudImage(command.Command):
         )
         return parser
 
+    def _ensure_packages_installed(self):
+        cmd = ['sudo', 'dnf', 'install', '-y'] + self.REQUIRED_PACKAGES
+        output = plugin_utils.run_command(cmd,
+                                          name="Install required packages")
+        self.log.info(output)
+
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+
+        self._ensure_packages_installed()
 
         if not parsed_args.config_files:
             parsed_args.config_files = [os.path.join(self.IMAGE_YAML_PATH, f)

@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    A dnf installation of tripleo-common, tripleo-ironic-python-agent-builder,
+    openstack-tripleo-image-elements, openstack-tripleo-puppet-elements, and
+    xfsprogs has been included as part of the `openstack overcloud image build`
+    command. This allows us to drop these as always required dependencies for
+    tripleoclient.

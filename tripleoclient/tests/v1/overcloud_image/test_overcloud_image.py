@@ -31,6 +31,9 @@ class TestOvercloudImageBuild(TestPluginV1):
     def setUp(self):
         super(TestOvercloudImageBuild, self).setUp()
 
+        run_cmd = mock.patch('tripleoclient.utils.run_command')
+        self.mock_run_command = run_cmd.start()
+        self.addCleanup(run_cmd.stop)
         # Get the command object to test
         self.cmd = overcloud_image.BuildOvercloudImage(self.app, None)
 
@@ -51,6 +54,9 @@ class TestOvercloudImageBuild(TestPluginV1):
             output_directory='.',
             skip=True,
             images=None)
+        cmd = ['sudo', 'dnf', 'install', '-y'] + self.cmd.REQUIRED_PACKAGES
+        self.mock_run_command.assert_called_once_with(
+            cmd, name="Install required packages")
 
     @mock.patch('tripleo_common.image.build.ImageBuildManager', autospec=True)
     def test_overcloud_image_build_yaml(self, mock_manager):
