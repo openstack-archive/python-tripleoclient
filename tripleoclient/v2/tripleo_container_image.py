@@ -181,7 +181,7 @@ class Build(command.Command):
             dest="volumes",
             metavar="<volume-path>",
             default=[
-                "/etc/yum.repos.d:/etc/yum.repos.d:z",
+                "/etc/yum.repos.d:/etc/distro.repos.d:z",
                 "/etc/pki/rpm-gpg:/etc/pki/rpm-gpg:z",
             ],
             action="append",
