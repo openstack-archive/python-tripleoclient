@@ -33,10 +33,6 @@
                 - build
             dependencies: &deps_cprovider
               - tripleo-ci-centos-8-content-provider
-        - tripleo-build-containers-ubi-8:
-            dependencies: *deps_unit_lint
-            files:
-              - ^tripleoclient/v1/tripleo_container_image.py$
         - tripleo-ci-centos-7-scenario000-multinode-oooq-container-upgrades:
             dependencies: *deps_unit_lint
         - tripleo-ci-centos-8-scenario000-multinode-oooq-container-updates-train:
