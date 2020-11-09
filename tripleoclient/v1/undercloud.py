@@ -182,8 +182,11 @@ class UpgradeUndercloud(InstallUndercloud):
 
         if not packages:
             return
+        pkg_manager = 'yum'
+        if sys.version_info.major >= 3 and os.system('which dnf') == 0:
+            pkg_manager = 'dnf'
 
-        cmd = ['sudo', 'yum', 'upgrade', '-y'] + packages
+        cmd = ['sudo', pkg_manager, 'upgrade', '-y'] + packages
 
         if not dry_run:
             self.log.warning("Updating necessary packages: {}".format(
