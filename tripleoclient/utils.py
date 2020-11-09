@@ -439,10 +439,8 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
         )
     cwd = os.getcwd()
     ansible_fact_path = os.path.join(
-        os.path.join(
-            tempfile.gettempdir(),
-            'tripleo-ansible'
-        ),
+        os.path.expanduser('~'),
+        '.tripleo',
         'fact_cache'
     )
     makedirs(ansible_fact_path)
