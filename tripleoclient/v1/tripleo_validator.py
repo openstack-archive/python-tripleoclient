@@ -25,6 +25,7 @@ from prettytable import PrettyTable
 from tripleoclient import command
 from tripleoclient import constants
 from tripleoclient import utils as oooutils
+from tripleoclient.workflows import plan_management
 
 from validations_libs import constants as v_consts
 from validations_libs import utils as v_utils
@@ -317,6 +318,15 @@ class TripleOValidatorRun(command.Command):
 
     def _run_validator_run(self, parsed_args):
         LOG = logging.getLogger(__name__ + ".ValidationsRunAnsible")
+
+        clients = self.app.client_manager
+        plans = plan_management.list_deployment_plans(clients)
+
+        if parsed_args.plan and parsed_args.plan not in plans:
+            raise exceptions.CommandError(
+                _("The plan '{}' doesn't exist. "
+                  "Please use one of those {}".format(parsed_args, plans)))
+
         limit = parsed_args.limit
         extra_vars = parsed_args.extra_vars
         if parsed_args.extra_vars_file:
