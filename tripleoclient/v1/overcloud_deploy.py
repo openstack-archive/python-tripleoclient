@@ -607,26 +607,6 @@ class DeployOvercloud(command.Command):
         utils.remove_known_hosts(overcloud_ip_or_fqdn)
 
     def _validate_args(self, parsed_args):
-        # TODO(bcrochet): This should be removed after Rocky or 'S'.
-        if any(map(lambda x: getattr(parsed_args, x) is not None, [
-            'control_scale',
-            'compute_scale',
-            'ceph_storage_scale',
-            'block_storage_scale',
-            'swift_storage_scale',
-            'control_flavor',
-            'compute_flavor',
-            'ceph_storage_flavor',
-            'block_storage_flavor',
-            'swift_storage_flavor'
-        ])):
-            raise oscexc.CommandError(
-                "A scale or flavor argument was passed to the command line. "
-                "These arguments are no longer valid. They MUST be replaced "
-                "with an environment file that contains a valid "
-                "parameter_default. Failure to do so may cause possible data "
-                "loss or a decommisioning of nodes.")
-
         if parsed_args.templates is None and parsed_args.answers_file is None:
             raise oscexc.CommandError(
                 "You must specify either --templates or --answers-file")
@@ -788,7 +768,6 @@ class DeployOvercloud(command.Command):
         parser.add_argument('--timeout', '-t', metavar='<TIMEOUT>',
                             type=int, default=240,
                             help=_('Deployment timeout in minutes.'))
-        utils.add_deployment_plan_arguments(parser, mark_as_depr=True)
         parser.add_argument('--libvirt-type',
                             choices=['kvm', 'qemu'],
                             help=_('Libvirt domain type.'))
