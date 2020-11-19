@@ -134,6 +134,8 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
         self.mock_uuid4 = uuid4_patcher.start()
         self.addCleanup(self.mock_uuid4.stop)
 
+    @mock.patch('tripleoclient.utils.get_tripleo_ansible_inventory',
+                return_value='/home/fake/inventory.yaml')
     @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
                 return_value=True)
     @mock.patch('tripleoclient.workflows.package_update.update_ansible',
@@ -142,7 +144,7 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
     @mock.patch('oslo_concurrency.processutils.execute')
     def test_update_with_playbook_and_user(self, mock_execute,
                                            mock_expanduser, update_ansible,
-                                           mock_confirm):
+                                           mock_confirm, mock_inventory):
         mock_expanduser.return_value = '/home/fake/'
         argslist = ['--limit', 'Compute',
                     '--playbook', 'fake-playbook.yaml',
@@ -155,15 +157,14 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
         ]
 
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
-        with mock.patch('os.path.exists') as mock_exists, \
-                mock.patch('six.moves.builtins.open') as mock_open:
+        with mock.patch('os.path.exists') as mock_exists:
             mock_exists.return_value = True
             self.cmd.take_action(parsed_args)
             update_ansible.assert_called_once_with(
                 self.app.client_manager,
                 container='overcloud',
                 nodes='Compute',
-                inventory_file=mock_open().__enter__().read(),
+                inventory_file=mock_inventory.return_value,
                 playbook='fake-playbook.yaml',
                 node_user='tripleo-admin',
                 tags=None,
@@ -172,6 +173,8 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
                 extra_vars=None
             )
 
+    @mock.patch('tripleoclient.utils.get_tripleo_ansible_inventory',
+                return_value='/home/fake/inventory.yaml')
     @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
                 return_value=True)
     @mock.patch('tripleoclient.workflows.package_update.update_ansible',
@@ -180,7 +183,7 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
     @mock.patch('oslo_concurrency.processutils.execute')
     def test_update_limit_with_all_playbooks(self, mock_execute,
                                              mock_expanduser, update_ansible,
-                                             mock_confirm):
+                                             mock_confirm, mock_inventory):
         mock_expanduser.return_value = '/home/fake/'
         argslist = ['--limit', 'Compute', '--playbook', 'all']
         verifylist = [
@@ -190,8 +193,7 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
         ]
 
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
-        with mock.patch('os.path.exists') as mock_exists, \
-                mock.patch('six.moves.builtins.open') as mock_open:
+        with mock.patch('os.path.exists') as mock_exists:
             mock_exists.return_value = True
             self.cmd.take_action(parsed_args)
             for book in constants.MINOR_UPDATE_PLAYBOOKS:
@@ -199,7 +201,7 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
                     self.app.client_manager,
                     container='overcloud',
                     nodes='Compute',
-                    inventory_file=mock_open().__enter__().read(),
+                    inventory_file=mock_inventory.return_value,
                     playbook=book,
                     node_user='tripleo-admin',
                     tags=None,

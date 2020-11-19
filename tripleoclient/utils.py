@@ -1269,20 +1269,27 @@ def get_tripleo_ansible_inventory(inventory_file=None,
                                   undercloud_connection='ssh',
                                   return_inventory_file_path=False):
     if not inventory_file:
-        inventory_file = '%s/%s' % (os.path.expanduser('~'),
-                                    'tripleo-ansible-inventory.yaml')
-        try:
-            processutils.execute(
-                '/usr/bin/tripleo-ansible-inventory',
-                '--stack', stack,
-                '--ansible_ssh_user', ssh_user,
-                '--undercloud-connection', undercloud_connection,
-                '--undercloud-key-file',
-                '/var/lib/mistral/.ssh/tripleo-admin-rsa',
-                '--os-cloud', 'undercloud',
-                '--static-yaml-inventory', inventory_file)
-        except processutils.ProcessExecutionError as e:
-            message = _("Failed to generate inventory: %s") % str(e)
+        inventory_file = os.path.join(
+            constants.CLOUD_HOME_DIR,
+            'tripleo-ansible-inventory.yaml'
+        )
+
+        command = ['/usr/bin/tripleo-ansible-inventory',
+                   '--os-cloud', 'undercloud']
+        if stack:
+            command.extend(['--stack', stack])
+            command.extend(['--undercloud-key-file',
+                            '/var/lib/mistral/.ssh/tripleo-admin-rsa'])
+        if ssh_user:
+            command.extend(['--ansible_ssh_user', ssh_user])
+        if undercloud_connection:
+            command.extend(['--undercloud-connection',
+                           undercloud_connection])
+        if inventory_file:
+            command.extend(['--static-yaml-inventory', inventory_file])
+        rc = run_command_and_log(LOG, command)
+        if rc != 0:
+            message = "Failed to generate inventory"
             raise exceptions.InvalidConfiguration(message)
     if os.path.exists(inventory_file):
         if return_inventory_file_path:

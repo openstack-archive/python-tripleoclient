@@ -27,7 +27,7 @@ from prettytable import PrettyTable
 from tripleoclient import command
 from tripleoclient import constants
 from tripleoclient import utils as oooutils
-from tripleoclient.workflows import plan_management
+from tripleoclient.workflows import deployment
 
 from validations_libs import constants as v_consts
 from validations_libs import utils as v_utils
@@ -39,12 +39,15 @@ LOG = logging.getLogger(__name__ + ".TripleoValidator")
 RED = "\033[1;31m"
 GREEN = "\033[0;32m"
 CYAN = "\033[36m"
+YELLOW = "\033[0;33m"
 RESET = "\033[0;0m"
 
 FAILED_VALIDATION = "{}FAILED{}".format(RED, RESET)
 PASSED_VALIDATION = "{}PASSED{}".format(GREEN, RESET)
 
 GROUP_FILE = constants.VALIDATION_GROUPS_INFO
+
+NO_VALIDATION_STATE = ['DEPLOY_FAILED', 'DEPLOYING']
 
 
 class _CommaListGroupAction(argparse.Action):
@@ -233,8 +236,15 @@ class TripleOValidatorRun(command.Command):
         parser.add_argument(
             '--plan', '--stack',
             dest='plan',
-            default='overcloud',
+            default=None,
             help=_("Execute the validations using a custom plan name")
+        )
+
+        parser.add_argument(
+            '--ssh-user',
+            dest='ssh_user',
+            default='heat-admin',
+            help=_("Ssh User name for the Overcloud ssh connection.")
         )
 
         parser.add_argument(
@@ -328,6 +338,8 @@ class TripleOValidatorRun(command.Command):
 
     def _run_validator_run(self, parsed_args):
         LOG = logging.getLogger(__name__ + ".ValidationsRunAnsible")
+
+        plan = parsed_args.plan
         # Try to perform OpenStack authentication, if no authentication
         # and static inventory provided continue, else raise error.
         try:
@@ -335,18 +347,23 @@ class TripleOValidatorRun(command.Command):
             clients._auth_required = True
             clients.setup_auth()
         except os_exceptions.ConfigException:
-            LOG.warning("Running Validations without authentication.")
+            msg = "Running Validations without authentication."
+            LOG.warning("{}{}{}".format(YELLOW, msg, RESET))
             if not parsed_args.static_inventory:
                 raise exceptions.CommandError(
                     "No static inventory provided, please provide a valid"
                     "inventory or use authentication.")
         else:
-            plans = plan_management.list_deployment_plans(clients)
-            if parsed_args.plan and parsed_args.plan not in plans:
-                raise exceptions.CommandError(
-                    "The plan '{}' doesn't exist. "
-                    "Please use one of those {}".format(parsed_args,
-                                                        plans))
+            if plan:
+                status = deployment.get_deployment_status(clients, plan)
+                if not status or status in NO_VALIDATION_STATE:
+                    raise exceptions.CommandError(
+                        "The plan and the stack '{}' doesn't exist OR are "
+                        "in 'failed' or 'deploying' state."
+                        "Please use a valid plan".format(plan))
+            else:
+                msg = "Running Validations without Overcloud settings."
+                LOG.warning("{}{}{}".format(YELLOW, msg, RESET))
         limit = parsed_args.limit
         extra_vars = parsed_args.extra_vars
         if parsed_args.extra_vars_file:
@@ -366,7 +383,7 @@ class TripleOValidatorRun(command.Command):
             static_inventory = parsed_args.static_inventory
         else:
             static_inventory = oooutils.get_tripleo_ansible_inventory(
-                ssh_user='heat-admin',
+                ssh_user=parsed_args.ssh_user,
                 stack=parsed_args.plan,
                 undercloud_connection='local',
                 return_inventory_file_path=True)
