@@ -18,6 +18,7 @@ import json
 import logging
 import yaml
 
+from openstack import exceptions as os_exceptions
 from osc_lib import exceptions
 from osc_lib.i18n import _
 from prettytable import PrettyTable
@@ -320,15 +321,25 @@ class TripleOValidatorRun(command.Command):
 
     def _run_validator_run(self, parsed_args):
         LOG = logging.getLogger(__name__ + ".ValidationsRunAnsible")
-
-        clients = self.app.client_manager
-        plans = plan_management.list_deployment_plans(clients)
-
-        if parsed_args.plan and parsed_args.plan not in plans:
-            raise exceptions.CommandError(
-                _("The plan '{}' doesn't exist. "
-                  "Please use one of those {}".format(parsed_args, plans)))
-
+        # Try to perform OpenStack authentication, if no authentication
+        # and static inventory provided continue, else raise error.
+        try:
+            clients = self.app.client_manager
+            clients._auth_required = True
+            clients.setup_auth()
+        except os_exceptions.ConfigException:
+            LOG.warning("Running Validations without authentication.")
+            if not parsed_args.static_inventory:
+                raise exceptions.CommandError(
+                    _("No static inventory provided, please provide a valid"
+                      "inventory or use authentication."))
+        else:
+            plans = plan_management.list_deployment_plans(clients)
+            if parsed_args.plan and parsed_args.plan not in plans:
+                raise exceptions.CommandError(
+                    _("The plan '{}' doesn't exist. "
+                      "Please use one of those {}".format(parsed_args,
+                                                          plans)))
         limit = parsed_args.limit
         extra_vars = parsed_args.extra_vars
         if parsed_args.extra_vars_file:
