@@ -11,8 +11,6 @@
 #   WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #   License for the specific language governing permissions and limitations
 #   under the License.
-import os
-
 import mock
 
 from osc_lib.tests import utils
@@ -61,6 +59,6 @@ class TestOvercloudExportCeph(utils.TestCommand):
 
         with mock.patch('six.moves.builtins.open', self.mock_open):
             self.cmd.take_action(parsed_args)
-        path = os.path.join(os.environ.get('HOME'), 'config-download')
+        path = '/var/lib/mistral'
         mock_export_ceph.assert_called_once_with('dcn0', 'openstack', path)
         self.assertEqual(data, mock_safe_dump.call_args[0][0])

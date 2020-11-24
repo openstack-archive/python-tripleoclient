@@ -66,7 +66,7 @@ class ExportOvercloudCeph(command.Command):
                             action='store',
                             help=_('Directory to search for config-download '
                                    'export data. Defaults to '
-                                   '$HOME/config-download'))
+                                   '/var/lib/mistral'))
 
         return parser
 
@@ -91,8 +91,7 @@ class ExportOvercloudCeph(command.Command):
                 "File '%s' already exists, not exporting." % output_file)
 
         if not parsed_args.config_download_dir:
-            config_download_dir = os.path.join(os.environ.get('HOME'),
-                                               'config-download')
+            config_download_dir = '/var/lib/mistral'
         else:
             config_download_dir = parsed_args.config_download_dir
 
