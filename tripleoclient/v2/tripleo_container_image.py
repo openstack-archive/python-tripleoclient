@@ -666,6 +666,7 @@ class Build(command.Command):
                 self.log.error(
                     "Buildah failed with the following error: {}".format(exp)
                 )
+                raise SystemError(exp)
 
 
 class HotFix(command.Command):
