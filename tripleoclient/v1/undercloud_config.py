@@ -679,6 +679,11 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
         env_data['BarbicanSimpleCryptoGlobalDefault'] = True
         env_data['SwiftEncryptionEnabled'] = True
 
+    if CONF.get('enable_frr'):
+        deploy_args += ['-e', os.path.join(
+            tht_templates,
+            "environments/services/frr.yaml")]
+
     if CONF.get('undercloud_service_certificate'):
         # We assume that the certificate is trusted
         env_data['InternalTLSCAFile'] = ''
