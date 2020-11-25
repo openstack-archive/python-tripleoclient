@@ -1644,19 +1644,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_makedirs.assert_called_with(dirname)
         mock_open.assert_called()
 
-    def test_validate_args_deprecated(self):
-        arglist = ['--control-scale', '3', '--control-flavor', 'control']
-        verifylist = [
-            ('control_scale', 3),
-            ('control_flavor', 'control'),
-        ]
-
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-
-        self.assertRaises(oscexc.CommandError,
-                          self.cmd.take_action,
-                          parsed_args)
-
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_write_user_environment', autospec=True)
     def test_provision_baremetal(self, mock_write):
