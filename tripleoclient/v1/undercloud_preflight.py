@@ -30,6 +30,9 @@ from oslo_config import cfg
 from tripleoclient import constants
 from tripleoclient import utils
 
+from validations_libs import constants as v_consts
+from validations_libs.validation_actions import ValidationActions
+
 
 class FailedValidation(Exception):
     pass
@@ -76,7 +79,7 @@ def _run_live_command(args, env=None, name=None, cwd=None, wait=True):
         raise RuntimeError(message)
 
 
-def _check_diskspace(upgrade=False, verbose_level=0):
+def _check_diskspace(upgrade=False):
     """Check undercloud disk space
 
     This runs a simple ansible playbook located in tripleo-validations
@@ -92,15 +95,15 @@ def _check_diskspace(upgrade=False, verbose_level=0):
         playbook_args = constants.DEPLOY_ANSIBLE_ACTIONS['preflight-deploy']
 
     with utils.TempDirs() as tmp:
-        utils.run_ansible_playbook(
-            workdir=tmp,
+        # @matbu: todo: removed this when [1] will be merged
+        # [1] https://review.opendev.org/753845
+        v_consts.VALIDATION_ANSIBLE_ARTIFACT_PATH = "{}/artifacts".format(tmp)
+        actions = ValidationActions()
+        actions.run_validations(
             inventory='undercloud',
-            connection='local',
-            output_callback='validation_output',
-            playbook_dir=constants.ANSIBLE_VALIDATION_DIR,
-            verbosity=verbose_level,
-            **playbook_args
-        )
+            log_path=tmp,
+            validations_dir=constants.ANSIBLE_VALIDATION_DIR,
+            validation_name=playbook_args['playbook'])
 
 
 def _check_memory():
@@ -494,7 +497,7 @@ def check(verbose_level, upgrade=False):
         _checking_status('Memory')
         _check_memory()
         _checking_status('Disk space')
-        _check_diskspace(upgrade, verbose_level)
+        _check_diskspace(upgrade)
         _checking_status('Sysctl')
         _check_sysctl()
         _checking_status('Password file')
