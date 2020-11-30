@@ -361,7 +361,8 @@ class TestProvisionNode(fakes.TestOvercloudNode):
                 'ssh_public_keys': 'I am a key',
                 'ssh_user_name': 'heat-admin',
                 'node_timeout': 3600,
-                'concurrency': 20
+                'concurrency': 20,
+                'manage_network_ports': False,
             },
             inventory='localhost,',
             playbook='cli-overcloud-node-provision.yaml',
@@ -412,7 +413,8 @@ class TestUnprovisionNode(fakes.TestOvercloudNode):
                     ],
                     'all': True,
                     'prompt': True,
-                    'unprovision_confirm': unprovision_confirm
+                    'unprovision_confirm': unprovision_confirm,
+                    'manage_network_ports': False,
                 },
                 inventory='localhost,',
                 playbook='cli-overcloud-node-unprovision.yaml',
@@ -428,7 +430,8 @@ class TestUnprovisionNode(fakes.TestOvercloudNode):
                         {'name': 'Controller'}
                     ],
                     'all': True,
-                    'prompt': False
+                    'prompt': False,
+                    'manage_network_ports': False,
                 },
                 inventory='localhost,',
                 playbook='cli-overcloud-node-unprovision.yaml',
