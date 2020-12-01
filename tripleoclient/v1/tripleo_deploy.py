@@ -1211,13 +1211,7 @@ class Deploy(command.Command):
 
     def _standalone_deploy(self, parsed_args):
         extra_env_var = dict()
-        # NOTE(aschultz): the tripleo deploy interface is experimental but only
-        # when not being invoked via undercloud install. Print a warning...
-        if not self._is_undercloud_deploy(parsed_args):
-            self.log.warning('[EXPERIMENTAL] The tripleo deploy interface is '
-                             'an experimental interface. It may change in the '
-                             'next release.')
-        else:
+        if self._is_undercloud_deploy(parsed_args):
             extra_env_var['ANSIBLE_LOG_PATH'] = os.path.join(
                     parsed_args.output_dir, constants.UNDERCLOUD_LOG_FILE)
         if not parsed_args.local_ip:

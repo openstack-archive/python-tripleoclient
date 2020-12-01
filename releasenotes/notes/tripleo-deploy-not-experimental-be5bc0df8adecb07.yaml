@@ -1,0 +1,5 @@
+---
+other:
+  - |
+    Removed experimental designation from tripleo deploy since we've used it for
+    several releases now and we're unlikely to change how it works.
