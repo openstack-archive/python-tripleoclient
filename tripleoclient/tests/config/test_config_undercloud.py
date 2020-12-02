@@ -100,6 +100,7 @@ class TestUndercloudConfig(base.TestCase):
                     'enable_nova',
                     'enable_novajoin',
                     'enable_routed_networks',
+                    'enable_swift',
                     'enable_swift_encryption',
                     'enable_telemetry',
                     'enable_tempest',
@@ -169,6 +170,7 @@ class TestUndercloudConfig(base.TestCase):
                     'enable_nova': False,
                     'enable_novajoin': False,
                     'enable_telemetry': False,
+                    'enable_swift': True,
                     'enable_tempest': True,
                     'enable_validations': True,
                     'enable_zaqar': False}
