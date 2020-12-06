@@ -242,7 +242,8 @@ class BuildImage(command.Command):
                 utils.get_from_cfg(kolla_cfg, "namespace"),
                 utils.get_from_cfg(kolla_cfg, "registry"),
                 utils.getboolean_from_cfg(kolla_cfg, "push"),
-                build_timeout=parsed_args.build_timeout)
+                parsed_args.build_timeout,
+                self.app.options.debug)
             bb.build_all()
         elif parsed_args.list_dependencies:
             deps = json.loads(result)
