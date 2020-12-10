@@ -1,7 +1,6 @@
 - project:
     templates:
       - check-requirements
-      - openstack-lower-constraints-jobs
       - openstackclient-plugin-jobs
       - openstack-python36-jobs
       - openstack-python37-jobs
