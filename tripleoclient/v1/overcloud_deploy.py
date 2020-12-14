@@ -73,13 +73,7 @@ class DeployOvercloud(command.Command):
                                  'Assuming --deployed-server')
                 parsed_args.deployed_server = True
 
-    def _update_parameters(self, args, stack):
-        parameters = {}
-
-        stack_is_new = stack is None
-
-        parameters['StackAction'] = 'CREATE' if stack_is_new else 'UPDATE'
-
+    def _update_args_from_answers_file(self, args):
         # Update parameters from answers file:
         if args.answers_file is not None:
             with open(args.answers_file, 'r') as answers_file:
@@ -91,6 +85,19 @@ class DeployOvercloud(command.Command):
                 if args.environment_files is not None:
                     answers['environments'].extend(args.environment_files)
                 args.environment_files = answers['environments']
+
+    def _update_parameters(self, args, stack):
+        parameters = {}
+
+        stack_is_new = stack is None
+
+        parameters['RootStackName'] = args.stack
+        if not args.skip_deploy_identifier:
+            parameters['DeployIdentifier'] = int(time.time())
+        else:
+            parameters['DeployIdentifier'] = ''
+
+        parameters['StackAction'] = 'CREATE' if stack_is_new else 'UPDATE'
 
         param_args = (
             ('NtpServer', 'ntp_server'),
@@ -1062,10 +1069,8 @@ class DeployOvercloud(command.Command):
             utils.check_deprecated_service_is_enabled(
                 parsed_args.environment_files)
 
+        self._update_args_from_answers_file(parsed_args)
         stack = utils.get_stack(self.orchestration_client, parsed_args.stack)
-
-        self._update_parameters(parsed_args, stack)
-
         stack_create = stack is None
         if stack_create:
             self.log.info("No stack found, will be doing a stack create")
