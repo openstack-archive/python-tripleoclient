@@ -15,9 +15,11 @@ import os
 import re
 import yaml
 
+from heatclient.common import template_utils
 from tripleo_common.utils import stack_parameters as stk_parameters
 
 from tripleoclient.constants import ANSIBLE_TRIPLEO_PLAYBOOKS
+from tripleoclient.constants import OVERCLOUD_YAML_NAME
 from tripleoclient.constants import UNUSED_PARAMETER_EXCLUDES_RE
 from tripleoclient import exceptions
 from tripleoclient import utils
@@ -28,6 +30,8 @@ LOG = logging.getLogger(__name__)
 
 
 def invoke_plan_env_workflows(clients, stack_name, plan_env_file,
+                              stack_data, role_list,
+                              derived_environment_path,
                               verbosity=0):
     """Invokes the workflows in plan environment file"""
 
@@ -57,6 +61,9 @@ def invoke_plan_env_workflows(clients, stack_name, plan_env_file,
                     pb_vars
                 )
             )
+            pb_vars['tripleo_get_flatten_params'] = {'stack_data': stack_data}
+            pb_vars['tripleo_role_list'] = role_list
+            pb_vars['derived_environment_path'] = derived_environment_path
             playbook_dir = os.path.dirname(pb)
             if not playbook_dir:
                 playbook_dir = ANSIBLE_TRIPLEO_PLAYBOOKS
@@ -69,6 +76,39 @@ def invoke_plan_env_workflows(clients, stack_name, plan_env_file,
                 verbosity=verbosity,
                 extra_vars=pb_vars
             )
+
+
+def build_derived_params_environment(clients, stack_name,
+                                     tht_root, env_files,
+                                     env_files_tracker,
+                                     roles_file,
+                                     plan_env_file,
+                                     derived_env_file,
+                                     verbosity):
+    template_path = os.path.join(tht_root, OVERCLOUD_YAML_NAME)
+    template_files, template = template_utils.get_template_contents(
+        template_file=template_path)
+    files = dict(list(template_files.items()) + list(
+        env_files.items()))
+    # Build stack_data
+    stack_data = utils.build_stack_data(
+        clients, stack_name, template,
+        files, env_files_tracker)
+
+    # Get role list
+    role_list = roles.get_roles(
+        clients, roles_file, template, files,
+        env_files_tracker, detail=False, valid=True)
+
+    invoke_plan_env_workflows(
+            clients,
+            stack_name,
+            plan_env_file,
+            stack_data=stack_data,
+            role_list=role_list,
+            derived_environment_path=derived_env_file,
+            verbosity=verbosity
+        )
 
 
 def check_deprecated_parameters(clients, container):

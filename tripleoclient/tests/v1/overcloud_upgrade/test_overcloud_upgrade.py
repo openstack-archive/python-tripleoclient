@@ -133,7 +133,7 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
         check_mech.return_value = 'Wrong mech'
         mock_stack = mock.Mock(parameters={'DeployIdentifier': ''})
         argslist = (mock_stack, 'mock_stack', '/tmp', {},
-                    {}, 1, '/tmp', {}, True, False, False, None)
+                    {}, 1, '/tmp', {}, True, False, None)
         self.cmd.object_client = mock.Mock()
         self.assertRaises(oscexc.CommandError,
                           self.cmd._heat_deploy, *argslist)

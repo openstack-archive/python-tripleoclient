@@ -34,7 +34,9 @@ from keystoneauth1.exceptions.catalog import EndpointNotFound
 import openstack
 from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
+from tripleo_common.image import kolla_builder
 from tripleo_common import update
+from tripleo_common.utils import plan as plan_utils
 
 from tripleoclient import command
 from tripleoclient import constants
@@ -43,6 +45,7 @@ from tripleoclient import utils
 from tripleoclient.workflows import deployment
 from tripleoclient.workflows import parameters as workflow_params
 from tripleoclient.workflows import plan_management
+from tripleoclient.workflows import roles
 
 CONF = cfg.CONF
 
@@ -73,7 +76,6 @@ class DeployOvercloud(command.Command):
                 parsed_args.deployed_server = True
 
     def _update_args_from_answers_file(self, args):
-        # Update parameters from answers file:
         if args.answers_file is not None:
             with open(args.answers_file, 'r') as answers_file:
                 answers = yaml.safe_load(answers_file)
@@ -85,7 +87,7 @@ class DeployOvercloud(command.Command):
                     answers['environments'].extend(args.environment_files)
                 args.environment_files = answers['environments']
 
-    def _update_parameters(self, args, stack):
+    def _update_parameters(self, args, stack, tht_root, user_tht_root):
         parameters = {}
 
         stack_is_new = stack is None
@@ -97,6 +99,29 @@ class DeployOvercloud(command.Command):
             parameters['DeployIdentifier'] = ''
 
         parameters['StackAction'] = 'CREATE' if stack_is_new else 'UPDATE'
+
+        # We need the processed env for the image parameters atm
+        env_files = []
+        if args.environment_directories:
+            env_files.extend(utils.load_environment_directories(
+                args.environment_directories))
+        if args.environment_files:
+            env_files.extend(args.environment_files)
+
+        _, env = utils.process_multiple_environments(
+            env_files, tht_root, user_tht_root,
+            cleanup=(not args.no_cleanup))
+        image_params = kolla_builder.container_images_prepare_multi(
+            env, roles.get_roles_data(args.roles_file,
+                                      tht_root), dry_run=True)
+        if image_params:
+            parameters.update(image_params)
+
+        password_params = plan_utils.generate_passwords(
+            self.object_client, self.orchestration_client,
+            args.stack)
+
+        parameters.update(password_params)
 
         param_args = (
             ('NtpServer', 'ntp_server'),
@@ -186,21 +211,21 @@ class DeployOvercloud(command.Command):
     def _create_breakpoint_cleanup_env(self, tht_root, container_name):
         bp_env = {}
         update.add_breakpoints_cleanup_into_env(bp_env)
-        env_path, swift_path = self._write_user_environment(
+        env_path, _ = self._write_user_environment(
             bp_env,
             'tripleoclient-breakpoint-cleanup.yaml',
             tht_root,
             container_name)
-        return bp_env
+        return [env_path]
 
     def _create_parameters_env(self, parameters, tht_root, container_name):
         parameter_defaults = {"parameter_defaults": parameters}
-        env_path, swift_path = self._write_user_environment(
+        env_path, _ = self._write_user_environment(
             parameter_defaults,
             'tripleoclient-parameters.yaml',
             tht_root,
             container_name)
-        return parameter_defaults
+        return [env_path]
 
     def _check_limit_skiplist_warning(self, env):
         if env.get('parameter_defaults').get('DeploymentServerBlacklist'):
@@ -242,7 +267,8 @@ class DeployOvercloud(command.Command):
 
     def _heat_deploy(self, stack, stack_name, template_path, parameters,
                      env_files, timeout, tht_root, env,
-                     run_validations, skip_deploy_identifier, plan_env_file,
+                     run_validations,
+                     env_files_tracker=None,
                      deployment_options=None):
         """Verify the Baremetal nodes are available and do a stack update"""
 
@@ -256,162 +282,19 @@ class DeployOvercloud(command.Command):
                 raise oscexc.CommandError(msg)
 
         self.log.debug("Getting template contents from plan %s" % stack_name)
-        # We need to reference the plan here, not the local
-        # tht root, as we need template_object to refer to
-        # the rendered overcloud.yaml, not the tht_root overcloud.j2.yaml
-        # FIXME(shardy) we need to move more of this into mistral actions
-        plan_yaml_path = os.path.relpath(template_path, tht_root)
-
-        # heatclient template_utils needs a function that can
-        # retrieve objects from a container by name/path
-        def do_object_request(method='GET', object_path=None):
-            obj = self.object_client.get_object(stack_name, object_path)
-            return obj and obj[1]
 
         template_files, template = template_utils.get_template_contents(
-            template_object=plan_yaml_path,
-            object_request=do_object_request)
-
+            template_file=template_path)
         files = dict(list(template_files.items()) + list(env_files.items()))
-
-        moved_files = self._upload_missing_files(
-            stack_name, files, tht_root)
-        self._process_and_upload_environment(
-            stack_name, env, moved_files, tht_root)
-
-        # Invokes the workflows specified in plan environment file
-        if plan_env_file:
-            workflow_params.invoke_plan_env_workflows(
-                self.clients,
-                stack_name,
-                plan_env_file,
-                verbosity=utils.playbook_verbosity(self=self)
-            )
 
         workflow_params.check_deprecated_parameters(self.clients, stack_name)
 
         self.log.info("Deploying templates in the directory {0}".format(
             os.path.abspath(tht_root)))
-        deployment.deploy_and_wait(
-            log=self.log,
-            clients=self.clients,
-            stack=stack,
-            plan_name=stack_name,
-            verbose_level=utils.playbook_verbosity(self=self),
-            timeout=timeout,
-            run_validations=run_validations,
-            skip_deploy_identifier=skip_deploy_identifier,
-            deployment_options=deployment_options
-        )
-
-    def _process_and_upload_environment(self, container_name,
-                                        env, moved_files, tht_root):
-        """Process the environment and upload to Swift
-
-        The environment at this point should be the result of the merged
-        custom user environments. We need to look at the paths in the
-        environment and update any that changed when they were uploaded to
-        swift.
-        """
-
-        file_prefix = "file://"
-
-        if env.get('resource_registry'):
-            for name, path in env['resource_registry'].items():
-                if not isinstance(path, six.string_types):
-                    continue
-                if path in moved_files:
-                    new_path = moved_files[path]
-                    env['resource_registry'][name] = new_path
-                elif path.startswith(file_prefix):
-                    path = path[len(file_prefix):]
-                    if path.startswith(tht_root):
-                        path = path[len(tht_root):]
-                    # We want to make sure all the paths are relative.
-                    if path.startswith("/"):
-                        path = path[1:]
-                    env['resource_registry'][name] = path
-
-        # Parameters are removed from the environment
-        params = env.pop('parameter_defaults', None)
-
-        contents = yaml.safe_dump(env, default_flow_style=False)
-
-        # Until we have a well defined plan update workflow in tripleo-common
-        # we need to manually add an environment in swift and for users
-        # custom environments passed to the deploy command.
-        # See bug: https://bugs.launchpad.net/tripleo/+bug/1623431
-        # Update plan env.
-        swift_path = "user-environment.yaml"
-        self.object_client.put_object(container_name, swift_path, contents)
-
-        env = yaml.safe_load(self.object_client.get_object(
-            container_name, constants.PLAN_ENVIRONMENT)[1])
-
-        user_env = {'path': swift_path}
-        if user_env not in env['environments']:
-            env['environments'].append(user_env)
-            yaml_string = yaml.safe_dump(env, default_flow_style=False)
-            self.object_client.put_object(
-                container_name, constants.PLAN_ENVIRONMENT, yaml_string)
-
-        # Parameters are sent to the update parameters action, this stores them
-        # in the plan environment and means the UI can find them.
-        if params:
-            with utils.TempDirs() as tmp:
-                utils.run_ansible_playbook(
-                    playbook='cli-update-params.yaml',
-                    inventory='localhost,',
-                    workdir=tmp,
-                    playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
-                    verbosity=utils.playbook_verbosity(self=self),
-                    extra_vars={
-                        "container": container_name
-                    },
-                    extra_vars_file={
-                        "parameters": params
-                    }
-                )
-
-    def _upload_missing_files(self, container_name, files_dict, tht_root):
-        """Find the files referenced in custom environments and upload them
-
-        Heat environments can be passed to be included in the deployment, these
-        files can include references to other files anywhere on the local
-        file system. These need to be discovered and uploaded to Swift. When
-        they have been uploaded to Swift the path to them will be different,
-        the new paths are store din the file_relocation dict, which is returned
-        and used by _process_and_upload_environment which will merge the
-        environment and update paths to the relative Swift path.
-        """
-
-        file_relocation = {}
-        file_prefix = "file://"
-
-        # select files files for relocation & upload
-        for fullpath in files_dict.keys():
-
-            if not fullpath.startswith(file_prefix):
-                continue
-
-            path = fullpath[len(file_prefix):]
-
-            if path.startswith(tht_root):
-                # This should already be uploaded.
-                continue
-
-            file_relocation[fullpath] = "user-files/{}".format(
-                os.path.normpath(path[1:]))
-
-        # make sure links within files point to new locations, and upload them
-        for orig_path, reloc_path in file_relocation.items():
-            link_replacement = utils.relative_link_replacement(
-                file_relocation, os.path.dirname(reloc_path))
-            contents = utils.replace_links_in_template_contents(
-                files_dict[orig_path], link_replacement)
-            self.object_client.put_object(container_name, reloc_path, contents)
-
-        return file_relocation
+        deployment.deploy_without_plan(
+            self.clients, stack, stack_name,
+            template, files, env_files_tracker,
+            self.log)
 
     def _download_missing_files_from_plan(self, tht_dir, plan_name):
         # get and download missing files into tmp directory
@@ -486,27 +369,23 @@ class DeployOvercloud(command.Command):
             os.path.abspath(tht_root)))
 
         self.log.debug("Creating Environment files")
-        env = {}
         created_env_files = []
 
+        created_env_files.append(
+            os.path.join(tht_root, 'overcloud-resource-registry-puppet.yaml'))
         created_env_files.extend(
             self._provision_baremetal(parsed_args, tht_root))
 
         if parsed_args.environment_directories:
             created_env_files.extend(utils.load_environment_directories(
                 parsed_args.environment_directories))
+
         parameters = {}
-        if stack:
-            try:
-                # If user environment already exist then keep it
-                user_env = yaml.safe_load(self.object_client.get_object(
-                    parsed_args.stack, constants.USER_ENVIRONMENT)[1])
-                template_utils.deep_update(env, user_env)
-            except Exception:
-                pass
-        parameters.update(self._update_parameters(parsed_args, stack))
-        template_utils.deep_update(env, self._create_parameters_env(
-            parameters, tht_root, parsed_args.stack))
+        parameters.update(self._update_parameters(
+            parsed_args, stack, tht_root, user_tht_root))
+        param_env = self._create_parameters_env(
+            parameters, tht_root, parsed_args.stack)
+        created_env_files.extend(param_env)
 
         if parsed_args.deployed_server:
             created_env_files.append(
@@ -520,11 +399,34 @@ class DeployOvercloud(command.Command):
             deployment_options['ansible_python_interpreter'] = \
                 parsed_args.deployment_python_interpreter
 
+        if stack:
+            env_path = self._create_breakpoint_cleanup_env(
+                tht_root, parsed_args.stack)
+            created_env_files.extend(env_path)
+
         self.log.debug("Processing environment files %s" % created_env_files)
-        env_files, localenv = utils.process_multiple_environments(
+        env_files_tracker = []
+        env_files, env = utils.process_multiple_environments(
             created_env_files, tht_root, user_tht_root,
+            env_files_tracker=env_files_tracker,
             cleanup=(not parsed_args.no_cleanup))
-        template_utils.deep_update(env, localenv)
+
+        # Invokes the workflows specified in plan environment file
+        if parsed_args.plan_environment_file:
+            output_path = self._user_env_path(
+                'derived_parameters.yaml', tht_root)
+            workflow_params.build_derived_params_environment(
+                self.clients, parsed_args.stack, tht_root, env_files,
+                env_files_tracker, parsed_args.roles_file,
+                parsed_args.plan_environment_file,
+                output_path, utils.playbook_verbosity(self=self))
+
+            created_env_files.append(output_path)
+            env_files_tracker = []
+            env_files, env = utils.process_multiple_environments(
+                created_env_files, tht_root, user_tht_root,
+                env_files_tracker=env_files_tracker,
+                cleanup=(not parsed_args.no_cleanup))
 
         if parsed_args.limit:
             # check if skip list is defined while using --limit and throw a
@@ -545,10 +447,6 @@ class DeployOvercloud(command.Command):
                 if (ceph_deployed != "OS::Heat::None"
                         or ceph_external != "OS::Heat::None"):
                     utils.check_ceph_fsid_matches_env_files(stack, env)
-            bp_cleanup = self._create_breakpoint_cleanup_env(
-                tht_root, parsed_args.stack)
-            template_utils.deep_update(env, bp_cleanup)
-
         # check migration to new nic config with ansible
         utils.check_nic_config_with_ansible(stack, env)
 
@@ -563,10 +461,11 @@ class DeployOvercloud(command.Command):
                     '(with HA).')
 
         self._try_overcloud_deploy_with_compat_yaml(
-            tht_root, stack, parsed_args.stack, parameters, env_files,
+            tht_root, stack,
+            parsed_args.stack, parameters, env_files,
             parsed_args.timeout, env,
-            parsed_args.run_validations, parsed_args.skip_deploy_identifier,
-            parsed_args.plan_environment_file,
+            parsed_args.run_validations,
+            env_files_tracker=env_files_tracker,
             deployment_options=deployment_options)
 
         self._unprovision_baremetal(parsed_args)
@@ -575,16 +474,15 @@ class DeployOvercloud(command.Command):
                                                stack_name, parameters,
                                                env_files, timeout,
                                                env, run_validations,
-                                               skip_deploy_identifier,
-                                               plan_env_file,
+                                               env_files_tracker=None,
                                                deployment_options=None):
         overcloud_yaml = os.path.join(tht_root, constants.OVERCLOUD_YAML_NAME)
         try:
             self._heat_deploy(stack, stack_name, overcloud_yaml,
                               parameters, env_files, timeout,
                               tht_root, env,
-                              run_validations, skip_deploy_identifier,
-                              plan_env_file,
+                              run_validations,
+                              env_files_tracker=env_files_tracker,
                               deployment_options=deployment_options)
         except Exception as e:
             messages = 'Failed to deploy: %s' % str(e)

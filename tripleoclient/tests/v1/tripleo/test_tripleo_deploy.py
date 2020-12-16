@@ -385,12 +385,18 @@ class TestDeployUndercloud(TestPluginV1):
         self.cmd._deploy_tripleo_heat_templates(self.orc, parsed_args)
 
         mock_hc_process.assert_has_calls([
-            mock.call(env_path='./inside.yaml'),
-            mock.call(env_path='/twd/templates/abs.yaml'),
-            mock.call(env_path='/twd/templates/puppet/foo.yaml'),
-            mock.call(env_path='/twd/templates/environments/myenv.yaml'),
-            mock.call(env_path='/tmp/thtroot42/notouch.yaml'),
-            mock.call(env_path='../outside.yaml')])
+            mock.call(env_path='./inside.yaml',
+                      include_env_in_files=False),
+            mock.call(env_path='/twd/templates/abs.yaml',
+                      include_env_in_files=False),
+            mock.call(env_path='/twd/templates/puppet/foo.yaml',
+                      include_env_in_files=False),
+            mock.call(env_path='/twd/templates/environments/myenv.yaml',
+                      include_env_in_files=False),
+            mock.call(env_path='/tmp/thtroot42/notouch.yaml',
+                      include_env_in_files=False),
+            mock.call(env_path='../outside.yaml',
+                      include_env_in_files=False)])
 
     @mock.patch('tripleoclient.utils.rel_or_abs_path')
     @mock.patch('heatclient.common.template_utils.'

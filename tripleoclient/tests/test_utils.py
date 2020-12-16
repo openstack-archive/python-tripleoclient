@@ -1224,16 +1224,23 @@ class ProcessMultipleEnvironments(TestCase):
                                             self.user_tht_root)
 
         mock_hc_process.assert_has_calls([
-            mock.call(env_path='./inside.yaml'),
-            mock.call(env_path='/twd/templates/abs.yaml'),
-            mock.call(env_path='/twd/templates/puppet/foo.yaml'),
-            mock.call(env_path='/twd/templates/environments/myenv.yaml'),
-            mock.call(env_path='/tmp/thtroot42/notouch.yaml'),
-            mock.call(env_path='./tmp/thtroot/notouch2.yaml'),
-            mock.call(env_path='../outside.yaml')])
+            mock.call(env_path='./inside.yaml',
+                      include_env_in_files=False),
+            mock.call(env_path='/twd/templates/abs.yaml',
+                      include_env_in_files=False),
+            mock.call(env_path='/twd/templates/puppet/foo.yaml',
+                      include_env_in_files=False),
+            mock.call(env_path='/twd/templates/environments/myenv.yaml',
+                      include_env_in_files=False),
+            mock.call(env_path='/tmp/thtroot42/notouch.yaml',
+                      include_env_in_files=False),
+            mock.call(env_path='./tmp/thtroot/notouch2.yaml',
+                      include_env_in_files=False),
+            mock.call(env_path='../outside.yaml',
+                      include_env_in_files=False)])
 
     @mock.patch('heatclient.common.template_utils.'
-                'process_environment_and_files', return_value=({}, {}),
+                'process_environment_and_files',
                 autospec=True)
     @mock.patch('heatclient.common.template_utils.'
                 'get_template_contents', return_value=({}, {}),
@@ -1282,7 +1289,7 @@ class ProcessMultipleEnvironments(TestCase):
 
         utils.process_multiple_environments(self.created_env_files,
                                             self.tht_root,
-                                            self.user_tht_root, False)
+                                            self.user_tht_root, None, False)
 
         mock_yaml_dump.assert_has_calls([mock.call(rewritten_env,
                                         default_flow_style=False)])

@@ -95,7 +95,10 @@ class TestParameterWorkflows(utils.TestCommand):
         parameters.invoke_plan_env_workflows(
             self.app.client_manager,
             'overcloud',
-            'the-plan-environment.yaml'
+            'the-plan-environment.yaml',
+            stack_data=mock.Mock(),
+            role_list=mock.Mock(),
+            derived_environment_path=mock.Mock()
         )
         calls = [
             mock.call(
@@ -104,7 +107,11 @@ class TestParameterWorkflows(utils.TestCommand):
                 workdir=mock.ANY,
                 playbook_dir=mock.ANY,
                 verbosity=0,
-                extra_vars={'num_phy_cores_per_numa_node_for_pmd': 2}
+                extra_vars={'num_phy_cores_per_numa_node_for_pmd': 2,
+                            'tripleo_get_flatten_params': {
+                                'stack_data': mock.ANY},
+                            'tripleo_role_list': mock.ANY,
+                            'derived_environment_path': mock.ANY}
             )
         ]
         mock_playbook.assert_has_calls(calls, any_order=True)
@@ -134,7 +141,10 @@ class TestParameterWorkflows(utils.TestCommand):
         parameters.invoke_plan_env_workflows(
             self.app.client_manager,
             'overcloud',
-            'the-plan-environment.yaml'
+            'the-plan-environment.yaml',
+            stack_data=mock.Mock(),
+            role_list=mock.Mock(),
+            derived_environment_path=mock.Mock()
         )
         calls = [
             mock.call(
@@ -143,7 +153,11 @@ class TestParameterWorkflows(utils.TestCommand):
                 workdir=mock.ANY,
                 playbook_dir=mock.ANY,
                 verbosity=0,
-                extra_vars={'num_phy_cores_per_numa_node_for_pmd': 2}
+                extra_vars={'num_phy_cores_per_numa_node_for_pmd': 2,
+                            'tripleo_get_flatten_params': {
+                                'stack_data': mock.ANY},
+                            'tripleo_role_list': mock.ANY,
+                            'derived_environment_path': mock.ANY}
             ),
             mock.call(
                 playbook='sample-playbook-2.yaml',
@@ -151,7 +165,11 @@ class TestParameterWorkflows(utils.TestCommand):
                 workdir=mock.ANY,
                 playbook_dir='/playbook/dir-1',
                 verbosity=0,
-                extra_vars={'some_opt': 0}
+                extra_vars={'some_opt': 0,
+                            'tripleo_get_flatten_params': {
+                                'stack_data': mock.ANY},
+                            'tripleo_role_list': mock.ANY,
+                            'derived_environment_path': mock.ANY}
             )
         ]
         mock_playbook.assert_has_calls(calls, any_order=True)
