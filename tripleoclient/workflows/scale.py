@@ -37,7 +37,8 @@ def ansible_tear_down(clients, **workflow_input):
     if payload['status'] == 'SUCCESS':
         print("Scale-down configuration completed.")
     else:
-        raise exceptions.DeploymentError("Scale-down configuration failed.")
+        print("WARNING: Scale-down configuration error. Manual cleanup of "
+              "some actions may be necessary. Continuing with node removal.")
 
 
 def delete_node(clients, timeout, **workflow_input):

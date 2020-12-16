@@ -144,7 +144,8 @@ class TestDeleteNode(fakes.TestDeleteNode):
                 'timeout': 240
             })
 
-    def test_node_delete_wrong_instance(self):
+    @mock.patch('tripleoclient.workflows.scale.ansible_tear_down')
+    def test_node_delete_wrong_instance(self, mock_tear_down):
 
         argslist = ['wrong_instance', '--templates',
                     '--stack', 'overcloud', '--yes']
@@ -162,7 +163,7 @@ class TestDeleteNode(fakes.TestDeleteNode):
         }])
 
         # Verify
-        self.assertRaises(exceptions.DeploymentError,
+        self.assertRaises(exceptions.InvalidConfiguration,
                           self.cmd.take_action, parsed_args)
 
     @mock.patch('tripleoclient.workflows.baremetal.expand_roles',
