@@ -51,6 +51,11 @@ class ExportCell(command.Command):
         parser.add_argument('--output-file', '-o', metavar='<output file>',
                             help=_('Name of the output file for the cell data '
                                    'export. It will default to "<name>.yaml"'))
+        parser.add_argument('--config-download-dir',
+                            action='store',
+                            help=_('Directory to search for config-download '
+                                   'export data. Defaults to '
+                                   '$HOME/config-download'))
         parser.add_argument('--force-overwrite', '-f', action='store_true',
                             default=False,
                             help=_('Overwrite output file if it exists.'))
@@ -85,8 +90,13 @@ class ExportCell(command.Command):
             stack_to_export = cell_stack
             should_filter = False
 
-        config_download_dir = os.path.join(constants.DEFAULT_WORK_DIR,
-                                           stack_to_export)
+        if not parsed_args.config_download_dir:
+            download_dir = constants.DEFAULT_WORK_DIR
+        else:
+            download_dir = parsed_args.config_download_dir
+
+        config_download_dir = os.path.join(download_dir, stack_to_export)
+
         data.update(export.export_stack(
             clients.orchestration, stack_to_export, should_filter,
             config_download_dir))
