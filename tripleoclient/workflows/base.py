@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 import json
+import keystoneauth1
 import logging
 
 from tripleoclient import exceptions
@@ -78,7 +79,13 @@ def wait_for_messages(mistral, websocket, execution, timeout=None):
             # Workflows should end with SUCCESS or ERROR statuses.
             if payload.get('status', 'RUNNING') != "RUNNING":
                 return
-            execution = mistral.executions.get(execution.id)
+            try:
+                execution = mistral.executions.get(execution.id)
+            except keystoneauth1.exceptions.connection.ConnectFailure as e:
+                LOG.warning("Connection failure while fetching execution ID."
+                            "Retrying: %s" % e)
+                continue
+
             if execution.state != "RUNNING":
                 # yield the output as the last payload which was missed
                 yield json.loads(execution.output)
