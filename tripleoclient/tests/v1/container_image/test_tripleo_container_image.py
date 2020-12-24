@@ -180,7 +180,7 @@ class TestContainerImages(deploy_fakes.TestDeployOvercloud):
             (
                 "volumes",
                 [
-                    "/etc/yum.repos.d:/etc/yum.repos.d:z",
+                    "/etc/yum.repos.d:/etc/distro.repos.d:z",
                     "/etc/pki/rpm-gpg:/etc/pki/rpm-gpg:z",
                     "bind/mount",
                 ],
