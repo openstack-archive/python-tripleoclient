@@ -57,24 +57,6 @@ class DeleteNode(command.Command):
                                    '(default=Env: OVERCLOUD_STACK_NAME)'),
                             default=utils.env('OVERCLOUD_STACK_NAME',
                                               default='overcloud'))
-        parser.add_argument(
-            '--templates', nargs='?', const=constants.TRIPLEO_HEAT_TEMPLATES,
-            help=_("The directory containing the Heat templates to deploy. "
-                   "This argument is deprecated. The command now utilizes "
-                   "a deployment plan, which should be updated prior to "
-                   "running this command, should that be required. Otherwise "
-                   "this argument will be silently ignored."),
-        )
-        parser.add_argument(
-            '-e', '--environment-file', metavar='<HEAT ENVIRONMENT FILE>',
-            action='append', dest='environment_files',
-            help=_("Environment files to be passed to the heat stack-create "
-                   "or heat stack-update command. (Can be specified more than "
-                   "once.) This argument is deprecated. The command now "
-                   "utilizes a deployment plan, which should be updated prior "
-                   "to running this command, should that be required. "
-                   "Otherwise this argument will be silently ignored."),
-        )
 
         parser.add_argument(
             '--timeout', metavar='<TIMEOUT>',

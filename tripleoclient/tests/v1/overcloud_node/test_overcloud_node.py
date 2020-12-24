@@ -72,8 +72,8 @@ class TestDeleteNode(fakes.TestDeleteNode):
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
     def test_node_delete(self, mock_playbook, mock_get_events):
-        argslist = ['instance1', 'instance2', '--templates',
-                    '--stack', 'overcast', '--timeout', '90', '--yes']
+        argslist = ['instance1', 'instance2', '--stack', 'overcast',
+                    '--timeout', '90', '--yes']
         verifylist = [
             ('stack', 'overcast'),
             ('nodes', ['instance1', 'instance2'])
@@ -84,8 +84,8 @@ class TestDeleteNode(fakes.TestDeleteNode):
     @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
                 return_value=False)
     def test_node_delete_no_confirm(self, confirm_mock):
-        argslist = ['instance1', 'instance2', '--templates',
-                    '--stack', 'overcast', '--timeout', '90']
+        argslist = ['instance1', 'instance2', '--stack', 'overcast',
+                    '--timeout', '90']
         verifylist = [
             ('stack', 'overcast'),
             ('nodes', ['instance1', 'instance2'])
@@ -100,8 +100,7 @@ class TestDeleteNode(fakes.TestDeleteNode):
                 autospec=True,
                 side_effect=exceptions.InvalidConfiguration)
     def test_node_wrong_stack(self, mock_playbook):
-        argslist = ['instance1', '--templates',
-                    '--stack', 'overcast', '--yes']
+        argslist = ['instance1', '--stack', 'overcast', '--yes']
         verifylist = [
             ('stack', 'overcast'),
             ('nodes', ['instance1', ])
@@ -184,9 +183,9 @@ class TestDeleteNode(fakes.TestDeleteNode):
             yaml.dump(bm_yaml, inp, encoding='utf-8')
             inp.flush()
 
-            argslist = ['--baremetal-deployment', inp.name, '--templates',
-                        '--stack', 'overcast', '--overcloud-ssh-port-timeout',
-                        '42', '--timeout', '90', '--yes']
+            argslist = ['--baremetal-deployment', inp.name, '--stack',
+                        'overcast', '--overcloud-ssh-port-timeout', '42',
+                        '--timeout', '90', '--yes']
             verifylist = [
                 ('stack', 'overcast'),
                 ('overcloud_ssh_port_timeout', 42),

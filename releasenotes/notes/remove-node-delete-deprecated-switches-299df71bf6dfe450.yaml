@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Removing the deprecated ``-e`` and ``--templates`` switches to
+    `overcloud node delete`. This is causing confusion to the operators.
