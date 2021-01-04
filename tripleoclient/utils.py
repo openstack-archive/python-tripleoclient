@@ -872,7 +872,7 @@ def create_tempest_deployer_input(config_name='tempest-deployer-input.conf'):
 
     # Create required sections
     for section in ('auth', 'compute', 'compute-feature-enabled', 'identity',
-                    'image', 'network', 'object-storage', 'orchestration',
+                    'image', 'network', 'object-storage',
                     'volume', 'volume-feature-enabled'):
         config.add_section(section)
 
@@ -886,11 +886,6 @@ def create_tempest_deployer_input(config_name='tempest-deployer-input.conf'):
     # set in [nova.serial_console]->enabled
     config.set('compute-feature-enabled', 'console_output', 'false')
 
-    # Role required for users to be able to manage stacks
-    # (default: 'heat_stack_owner')
-    # keystone role-list returns this role
-    config.set('orchestration', 'stack_owner_role', 'swiftoperator')
-
     # Name of the backend1 (must be declared in cinder.conf)
     # (default: 'BACKEND_1')
     # set in [cinder]->enabled_backends
@@ -903,7 +898,7 @@ def create_tempest_deployer_input(config_name='tempest-deployer-input.conf'):
 
     # Fix region value because TripleO is using non-standard value
     for section in ('compute', 'identity', 'image', 'network',
-                    'object-storage', 'orchestration', 'volume'):
+                    'object-storage', 'volume'):
         config.set(section, 'region', 'regionOne')
 
     with open(config_name, 'w+') as config_file:
