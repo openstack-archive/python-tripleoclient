@@ -157,7 +157,38 @@ DEPRECATED_SERVICES = {"OS::TripleO::Services::OpenDaylightApi":
                        "there is no upgrade or migration path from "
                        "OpenDaylight to another networking backend. We "
                        "recommend you understand other networking "
-                       "alternatives such as OVS or OVN. "}
+                       "alternatives such as OVS or OVN. ",
+                       "OS::TripleO::Services::NovaPlacement":
+                       "Deprecated in favor of"
+                       " OS::TripleO::Services::PlacementApi",
+                       "OS::TripleO::Services::RabbitMQ":
+                       "This service has been replaced by"
+                       " OS::TripleO::Services::OsloMessagingRpc and"
+                       " OS::TripleO::Services::OsloMessagingNotify",
+                       "OS::TripleO::Services::Congress":
+                       "Congress is no longer supported.",
+                       "OS::TripleO::Services::GlanceRegistry":
+                       "This service has been merged into"
+                       " OS::TripleO::Services::GlanceApi",
+                       "OS::TripleO::Services::NovaConsoleauth":
+                       "Deprecated service.",
+                       "OS::TripleO::Services::SkydiveAgent":
+                       "Skydive is no longer supported.",
+                       "OS::TripleO::Services::Tacker":
+                       "Tacker is no longer supported.",
+                       "OS::TripleO::Services::Docker":
+                       "Replaced with Podman.",
+                       "OS::TripleO::Services::Fluentd":
+                       "Deprecated in favour of"
+                       " OS::TripleO::Services::Rsyslog",
+                       "OS::TripleO::Services::Ntp":
+                       "Deprecated in favour of "
+                       " OS::TripleO::Services::Timesync",
+                       "OS::TripleO::Services::SensuClient":
+                       "Deprecated service.",
+                       "OS::TripleO::Services::Ptp":
+                       "Deprecated in favour of"
+                       " OS::TripleO::Services::Timesync"}
 
 # clouds_yaml related constants
 CLOUD_HOME_DIR = os.path.expanduser("~")
