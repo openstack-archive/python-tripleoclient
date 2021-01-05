@@ -1273,6 +1273,7 @@ def get_tripleo_ansible_inventory(inventory_file=None,
                 '--undercloud-connection', undercloud_connection,
                 '--undercloud-key-file',
                 '/var/lib/mistral/.ssh/tripleo-admin-rsa',
+                '--os-cloud', 'undercloud',
                 '--static-yaml-inventory', inventory_file)
         except processutils.ProcessExecutionError as e:
             message = _("Failed to generate inventory: %s") % str(e)
