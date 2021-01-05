@@ -188,12 +188,12 @@ class FileImageClientAdapter(BaseClientAdapter):
     def get_image_property(self, image, prop):
         if prop == 'kernel_id':
             path = os.path.splitext(image.id)[0] + '.vmlinuz'
-            if os.path.exists(path):
+            if os.path.exists(path.replace("file://", "")):
                 return path
             return None
         elif prop == 'ramdisk_id':
             path = os.path.splitext(image.id)[0] + '.initrd'
-            if os.path.exists(path):
+            if os.path.exists(path.replace("file://", "")):
                 return path
             return None
         raise ValueError('Unsupported property %s' % prop)
