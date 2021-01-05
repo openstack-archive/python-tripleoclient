@@ -25,7 +25,6 @@ from tripleoclient import constants
 from tripleoclient import utils as oooutils
 from tripleoclient.v1.overcloud_deploy import DeployOvercloud
 from tripleoclient.workflows import deployment
-from tripleoclient.workflows import package_update
 
 
 CONF = cfg.CONF
@@ -62,17 +61,10 @@ class UpdatePrepare(DeployOvercloud):
                     constants.UPDATE_PROMPT, self.log)):
             raise OvercloudUpdateNotConfirmed(constants.UPDATE_NO)
 
-        clients = self.app.client_manager
-
-        stack = oooutils.get_stack(clients.orchestration,
-                                   parsed_args.stack)
-
-        stack_name = stack.stack_name
-
         # In case of update and upgrade we need to force the
-        # update_plan_only. The heat stack update is done by the
-        # packag_update mistral action
-        parsed_args.update_plan_only = True
+        # config_download to false. The heat stack update will be performed
+        # by DeployOvercloud class but skipping the config download part.
+        parsed_args.config_download = False
 
         # Add the update-prepare.yaml environment to set noops etc
         templates_dir = (parsed_args.templates or
@@ -88,7 +80,6 @@ class UpdatePrepare(DeployOvercloud):
                 parsed_args.environment_files)
 
         super(UpdatePrepare, self).take_action(parsed_args)
-        package_update.update(clients, container=stack_name)
         self.log.info("Update init on stack {0} complete.".format(
                       parsed_args.stack))
 
