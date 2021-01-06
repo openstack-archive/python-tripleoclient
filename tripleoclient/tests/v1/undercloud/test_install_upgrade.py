@@ -56,7 +56,6 @@ class TestUndercloudInstall(TestPluginV1):
 
     # TODO(cjeanner) drop once we have proper oslo.privsep
     @mock.patch('getpass.getuser', return_value='stack')
-    @mock.patch('six.moves.builtins.open')
     @mock.patch('shutil.copy')
     @mock.patch('os.mkdir')
     @mock.patch('tripleoclient.utils.write_env_file', autospec=True)
@@ -64,13 +63,15 @@ class TestUndercloudInstall(TestPluginV1):
     def test_undercloud_install_default(self, mock_subprocess,
                                         mock_wr,
                                         mock_os, mock_copy,
-                                        mock_open, mock_user):
+                                        mock_user):
         arglist = ['--no-validations']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         # DisplayCommandBase.take_action() returns two tuples
-        self.cmd.take_action(parsed_args)
+
+        with mock.patch('six.moves.builtins.open'):
+            self.cmd.take_action(parsed_args)
 
         mock_subprocess.assert_called_with(
             ['sudo', '--preserve-env', 'openstack', 'tripleo', 'deploy',
@@ -350,7 +351,6 @@ class TestUndercloudInstall(TestPluginV1):
 
     # TODO(cjeanner) drop once we have proper oslo.privsep
     @mock.patch('getpass.getuser', return_value='stack')
-    @mock.patch('six.moves.builtins.open')
     @mock.patch('shutil.copy')
     @mock.patch('os.mkdir')
     @mock.patch('tripleoclient.utils.write_env_file', autospec=True)
@@ -358,7 +358,7 @@ class TestUndercloudInstall(TestPluginV1):
     def test_undercloud_install_with_heat_and_debug(self, mock_subprocess,
                                                     mock_wr,
                                                     mock_os, mock_copy,
-                                                    mock_open, mock_user):
+                                                    mock_user):
         self.conf.config(undercloud_log_file='/foo/bar')
         arglist = ['--no-validations']
         verifylist = []
@@ -367,7 +367,8 @@ class TestUndercloudInstall(TestPluginV1):
         # DisplayCommandBase.take_action() returns two tuples
         old_verbose = self.cmd.app_args.verbose_level
         self.cmd.app_args.verbose_level = 2
-        self.cmd.take_action(parsed_args)
+        with mock.patch('six.moves.builtins.open'):
+            self.cmd.take_action(parsed_args)
         self.cmd.app_args.verbose_level = old_verbose
 
         mock_subprocess.assert_called_with(
@@ -418,7 +419,6 @@ class TestUndercloudInstall(TestPluginV1):
 
     # TODO(cjeanner) drop once we have proper oslo.privsep
     @mock.patch('getpass.getuser', return_value='stack')
-    @mock.patch('six.moves.builtins.open')
     @mock.patch('shutil.copy')
     @mock.patch('os.mkdir')
     @mock.patch('tripleoclient.utils.write_env_file', autospec=True)
@@ -426,14 +426,15 @@ class TestUndercloudInstall(TestPluginV1):
     def test_undercloud_install_with_heat_true(self, mock_subprocess,
                                                mock_wr,
                                                mock_os, mock_copy,
-                                               mock_open, mock_user):
+                                               mock_user):
         self.conf.config(undercloud_log_file='/foo/bar')
         arglist = ['--no-validations']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         # DisplayCommandBase.take_action() returns two tuples
-        self.cmd.take_action(parsed_args)
+        with mock.patch('six.moves.builtins.open'):
+            self.cmd.take_action(parsed_args)
 
         mock_subprocess.assert_called_with(
             ['sudo', '--preserve-env', 'openstack', 'tripleo', 'deploy',

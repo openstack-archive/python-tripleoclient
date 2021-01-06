@@ -40,8 +40,7 @@ class TestOvercloudExternalUpdateRun(fakes.TestOvercloudExternalUpdateRun):
                 autospec=True)
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
-    @mock.patch('six.moves.builtins.open')
-    def test_update_with_user_and_tags(self, mock_open, mock_execute,
+    def test_update_with_user_and_tags(self, mock_execute,
                                        mock_expanduser, update_ansible,
                                        mock_confirm):
         mock_expanduser.return_value = '/home/fake/'
@@ -53,7 +52,8 @@ class TestOvercloudExternalUpdateRun(fakes.TestOvercloudExternalUpdateRun):
         ]
 
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
-        with mock.patch('os.path.exists') as mock_exists:
+        with mock.patch('os.path.exists') as mock_exists, \
+                mock.patch('six.moves.builtins.open') as mock_open:
             mock_exists.return_value = True
             self.cmd.take_action(parsed_args)
             update_ansible.assert_called_once_with(
@@ -75,8 +75,7 @@ class TestOvercloudExternalUpdateRun(fakes.TestOvercloudExternalUpdateRun):
                 autospec=True)
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
-    @mock.patch('six.moves.builtins.open')
-    def test_update_with_user_and_extra_vars(self, mock_open, mock_execute,
+    def test_update_with_user_and_extra_vars(self, mock_execute,
                                              mock_expanduser, update_ansible,
                                              mock_confirm):
         mock_expanduser.return_value = '/home/fake/'
@@ -89,7 +88,8 @@ class TestOvercloudExternalUpdateRun(fakes.TestOvercloudExternalUpdateRun):
         ]
 
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
-        with mock.patch('os.path.exists') as mock_exists:
+        with mock.patch('os.path.exists') as mock_exists, \
+                mock.patch('six.moves.builtins.open') as mock_open:
             mock_exists.return_value = True
             self.cmd.take_action(parsed_args)
             update_ansible.assert_called_once_with(

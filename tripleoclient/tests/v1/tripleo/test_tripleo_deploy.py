@@ -405,13 +405,12 @@ class TestDeployUndercloud(TestPluginV1):
                 '_setup_heat_environments', autospec=True)
     @mock.patch('yaml.safe_dump', autospec=True)
     @mock.patch('yaml.safe_load', autospec=True)
-    @mock.patch('six.moves.builtins.open')
     @mock.patch('tempfile.NamedTemporaryFile', autospec=True)
     @mock.patch('tripleo_common.image.kolla_builder.'
                 'container_images_prepare_multi')
     def test_deploy_tripleo_heat_templates_rewrite(self,
                                                    mock_cipm,
-                                                   mock_temp, mock_open,
+                                                   mock_temp,
                                                    mock_yaml_load,
                                                    mock_yaml_dump,
                                                    mock_setup_heat_envs,
@@ -458,7 +457,8 @@ class TestDeployUndercloud(TestPluginV1):
             '/tmp/thtroot/environments/myenv.yaml',
             '../outside.yaml']
 
-        self.cmd._deploy_tripleo_heat_templates(self.orc, parsed_args)
+        with mock.patch('six.moves.builtins.open'):
+            self.cmd._deploy_tripleo_heat_templates(self.orc, parsed_args)
 
         mock_yaml_dump.assert_has_calls([mock.call(rewritten_env,
                                         default_flow_style=False)])
@@ -481,13 +481,12 @@ class TestDeployUndercloud(TestPluginV1):
                 '_setup_heat_environments', autospec=True)
     @mock.patch('yaml.safe_dump', autospec=True)
     @mock.patch('yaml.safe_load', autospec=True)
-    @mock.patch('six.moves.builtins.open')
     @mock.patch('tempfile.NamedTemporaryFile', autospec=True)
     @mock.patch('tripleo_common.image.kolla_builder.'
                 'container_images_prepare_multi')
     def test_deploy_tripleo_heat_templates_remove(self,
                                                   mock_cipm,
-                                                  mock_temp, mock_open,
+                                                  mock_temp,
                                                   mock_yaml_load,
                                                   mock_yaml_dump,
                                                   mock_setup_heat_envs,
@@ -545,7 +544,8 @@ class TestDeployUndercloud(TestPluginV1):
             '/tmp/thtroot/environments/myenv.yaml',
             '../outside.yaml']
 
-        self.cmd._deploy_tripleo_heat_templates(self.orc, parsed_args)
+        with mock.patch('six.moves.builtins.open'):
+            self.cmd._deploy_tripleo_heat_templates(self.orc, parsed_args)
 
         mock_yaml_dump.assert_has_calls([mock.call(rewritten_role)])
 
@@ -607,7 +607,6 @@ class TestDeployUndercloud(TestPluginV1):
     @mock.patch('yaml.safe_load', return_value={}, autospec=True)
     @mock.patch('yaml.safe_dump', autospec=True)
     @mock.patch('os.path.isfile', return_value=True)
-    @mock.patch('six.moves.builtins.open')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_process_hieradata_overrides', autospec=True)
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
@@ -620,7 +619,7 @@ class TestDeployUndercloud(TestPluginV1):
                 autospec=True)
     def test_setup_heat_environments_dropin(
             self, mock_run, mock_paths, mock_norm, mock_update_pass_env,
-            mock_process_hiera, mock_open, mock_os, mock_yaml_dump,
+            mock_process_hiera, mock_os, mock_yaml_dump,
             mock_yaml_load, mock_time):
 
         parsed_args = self.check_parser(self.cmd,
@@ -631,11 +630,12 @@ class TestDeployUndercloud(TestPluginV1):
         self.cmd.output_dir = 'tht_to'
         self.cmd.tht_render = 'tht_from'
         self.cmd.stack_action = 'UPDATE'
-        environment = self.cmd._setup_heat_environments(
-            parsed_args.roles_file, parsed_args.networks_file, parsed_args)
+        with mock.patch('six.moves.builtins.open') as mock_open:
+            environment = self.cmd._setup_heat_environments(
+                parsed_args.roles_file, parsed_args.networks_file, parsed_args)
+            mock_open.assert_has_calls([mock.call(dropin, 'w')])
 
         self.assertIn(dropin, environment)
-        mock_open.assert_has_calls([mock.call(dropin, 'w')])
 
         # unpack the dump yaml calls to verify if the produced stack update
         # dropin matches our expectations
@@ -899,7 +899,6 @@ class TestDeployUndercloud(TestPluginV1):
     # TODO(cjeanner) drop once we have proper oslo.privsep
     @mock.patch('getpass.getuser', return_value='stack')
     @mock.patch('os.mkdir')
-    @mock.patch('six.moves.builtins.open')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_populate_templates_dir')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
@@ -937,7 +936,7 @@ class TestDeployUndercloud(TestPluginV1):
                                     mock_wait_for_port, mock_createdirs,
                                     mock_cleanupdirs, mock_launchansible,
                                     mock_tarball, mock_templates_dir,
-                                    mock_open, mock_os, mock_user, mock_cc,
+                                    mock_os, mock_user, mock_cc,
                                     mock_chmod, mock_ac, mock_outputs,
                                     mock_copy, mock_cmdline):
         mock_slink.side_effect = 'fake-cmd'
@@ -959,7 +958,9 @@ class TestDeployUndercloud(TestPluginV1):
                                          '--standalone'], [])
 
         fake_orchestration = mock_launchheat(parsed_args)
-        self.cmd.take_action(parsed_args)
+
+        with mock.patch('six.moves.builtins.open'):
+            self.cmd.take_action(parsed_args)
         mock_createdirs.assert_called_once()
         mock_puppet.assert_called_once()
         mock_launchheat.assert_called_with(parsed_args)

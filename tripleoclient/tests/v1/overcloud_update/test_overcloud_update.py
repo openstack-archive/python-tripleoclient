@@ -52,10 +52,9 @@ class TestOvercloudUpdatePrepare(fakes.TestOvercloudUpdatePrepare):
     @mock.patch('os.path.abspath')
     @mock.patch('yaml.safe_load')
     @mock.patch('shutil.copytree', autospec=True)
-    @mock.patch('six.moves.builtins.open')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_tripleo_heat_templates_tmpdir', autospec=True)
-    def test_update_out(self, mock_deploy, mock_open, mock_copy, mock_yaml,
+    def test_update_out(self, mock_deploy, mock_copy, mock_yaml,
                         mock_abspath, mock_update, mock_logger,
                         mock_get_stack, mock_get_undercloud_host_entry,
                         mock_confirm, mock_get_stack_output_item):
@@ -73,7 +72,8 @@ class TestOvercloudUpdatePrepare(fakes.TestOvercloudUpdatePrepare):
 
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
         with mock.patch('os.path.exists') as mock_exists, \
-                mock.patch('os.path.isfile') as mock_isfile:
+                mock.patch('os.path.isfile') as mock_isfile, \
+                mock.patch('six.moves.builtins.open'):
             mock_exists.return_value = True
             mock_isfile.return_value = True
             self.cmd.take_action(parsed_args)
@@ -90,14 +90,13 @@ class TestOvercloudUpdatePrepare(fakes.TestOvercloudUpdatePrepare):
                 autospec=True)
     @mock.patch('tripleoclient.workflows.package_update.update',
                 autospec=True)
-    @mock.patch('six.moves.builtins.open')
     @mock.patch('os.path.abspath')
     @mock.patch('yaml.safe_load')
     @mock.patch('shutil.copytree', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_tripleo_heat_templates', autospec=True)
     def test_update_failed(self, mock_deploy, mock_copy, mock_yaml,
-                           mock_abspath, mock_open, mock_update,
+                           mock_abspath, mock_update,
                            mock_get_stack, mock_confirm,
                            mock_get_stack_output_item):
         mock_stack = mock.Mock(parameters={'DeployIdentifier': ''})
@@ -113,7 +112,8 @@ class TestOvercloudUpdatePrepare(fakes.TestOvercloudUpdatePrepare):
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
 
         with mock.patch('os.path.exists') as mock_exists, \
-                mock.patch('os.path.isfile') as mock_isfile:
+                mock.patch('os.path.isfile') as mock_isfile, \
+                mock.patch('six.moves.builtins.open'):
             mock_exists.return_value = True
             mock_isfile.return_value = True
             self.assertRaises(exceptions.DeploymentError,
@@ -140,8 +140,7 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
                 autospec=True)
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
-    @mock.patch('six.moves.builtins.open')
-    def test_update_with_playbook_and_user(self, mock_open, mock_execute,
+    def test_update_with_playbook_and_user(self, mock_execute,
                                            mock_expanduser, update_ansible,
                                            mock_confirm):
         mock_expanduser.return_value = '/home/fake/'
@@ -156,7 +155,8 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
         ]
 
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
-        with mock.patch('os.path.exists') as mock_exists:
+        with mock.patch('os.path.exists') as mock_exists, \
+                mock.patch('six.moves.builtins.open') as mock_open:
             mock_exists.return_value = True
             self.cmd.take_action(parsed_args)
             update_ansible.assert_called_once_with(
@@ -178,8 +178,7 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
                 autospec=True)
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
-    @mock.patch('six.moves.builtins.open')
-    def test_update_limit_with_all_playbooks(self, mock_open, mock_execute,
+    def test_update_limit_with_all_playbooks(self, mock_execute,
                                              mock_expanduser, update_ansible,
                                              mock_confirm):
         mock_expanduser.return_value = '/home/fake/'
@@ -191,7 +190,8 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
         ]
 
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
-        with mock.patch('os.path.exists') as mock_exists:
+        with mock.patch('os.path.exists') as mock_exists, \
+                mock.patch('six.moves.builtins.open') as mock_open:
             mock_exists.return_value = True
             self.cmd.take_action(parsed_args)
             for book in constants.MINOR_UPDATE_PLAYBOOKS:
@@ -214,9 +214,8 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
                 autospec=True)
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
-    @mock.patch('six.moves.builtins.open')
     def test_update_with_no_limit(
-            self, mock_open, mock_execute, mock_expanduser, update_ansible,
+            self, mock_execute, mock_expanduser, update_ansible,
             mock_confirm):
         mock_expanduser.return_value = '/home/fake/'
         argslist = []
