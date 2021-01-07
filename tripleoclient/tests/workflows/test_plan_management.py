@@ -51,6 +51,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
                 "container": "test-overcloud",
                 "generate_passwords": True,
                 "use_default_templates": False,
+                "disable_image_params_prepare": False,
             },
             verbosity=0,
         )
@@ -82,6 +83,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
                 "container": "test-overcloud",
                 "generate_passwords": True,
                 "use_default_templates": False,
+                "disable_image_params_prepare": False,
             },
             verbosity=0,
         )
@@ -118,6 +120,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
                 "generate_passwords": True,
                 "plan_environment": "the-plan-environment.yaml",
                 "use_default_templates": False,
+                "disable_image_params_prepare": False,
             },
             verbosity=0,
         )
@@ -152,6 +155,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
                 "container": "test-overcloud",
                 "generate_passwords": True,
                 "use_default_templates": False,
+                "disable_image_params_prepare": False,
             },
             verbosity=0,
         )
@@ -173,7 +177,8 @@ class TestPlanCreationWorkflows(utils.TestCommand):
             self.app.client_manager,
             'test-overcloud',
             '/tht-root/',
-            generate_passwords=False)
+            generate_passwords=False,
+            disable_image_params_prepare=True)
 
         mock_run_playbook.assert_called_once_with(
             'cli-create-deployment-plan.yaml',
@@ -184,6 +189,7 @@ class TestPlanCreationWorkflows(utils.TestCommand):
                 "container": "test-overcloud",
                 "generate_passwords": False,
                 "use_default_templates": False,
+                "disable_image_params_prepare": True,
             },
             verbosity=0,
         )
@@ -268,6 +274,7 @@ class TestPlanUpdateWorkflows(base.TestCommand):
             extra_vars={
                 "container": "test-overcloud",
                 "generate_passwords": True,
+                "disable_image_params_prepare": False,
             },
             verbosity=1,
         )
@@ -303,6 +310,7 @@ class TestPlanUpdateWorkflows(base.TestCommand):
             extra_vars={
                 "container": "test-overcloud",
                 "generate_passwords": True,
+                "disable_image_params_prepare": False,
             },
             verbosity=1,
         )
@@ -324,7 +332,8 @@ class TestPlanUpdateWorkflows(base.TestCommand):
         plan_management.update_plan_from_templates(
             self.app.client_manager,
             'test-overcloud',
-            '/tht-root/')
+            '/tht-root/',
+            disable_image_params_prepare=True)
         # A dictionary without the "passwords" key is provided in
         # the _load_passwords method.
         mock_yaml_safe_load.return_value = {}
@@ -339,6 +348,7 @@ class TestPlanUpdateWorkflows(base.TestCommand):
             extra_vars={
                 "container": "test-overcloud",
                 "generate_passwords": True,
+                "disable_image_params_prepare": True,
             },
             verbosity=1,
         )

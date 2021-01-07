@@ -460,7 +460,8 @@ class DeployOvercloud(command.Command):
                 parsed_args.plan_environment_file,
                 parsed_args.networks_file,
                 type(self)._keep_env_on_update,
-                verbosity_level=utils.playbook_verbosity(self=self)
+                utils.playbook_verbosity(self=self),
+                parsed_args.disable_container_prepare
             )
         else:
             plan_management.create_plan_from_templates(
@@ -468,7 +469,8 @@ class DeployOvercloud(command.Command):
                 parsed_args.roles_file, generate_passwords,
                 parsed_args.plan_environment_file,
                 parsed_args.networks_file,
-                verbosity_level=utils.playbook_verbosity(self=self)
+                utils.playbook_verbosity(self=self),
+                parsed_args.disable_container_prepare
             )
 
         # Get any missing (e.g j2 rendered) files from the plan to tht_root
@@ -706,7 +708,7 @@ class DeployOvercloud(command.Command):
             "baremetal_deployment": roles,
             "baremetal_deployed_path": output_path,
             "ssh_public_keys": ssh_key,
-            "ssh_user_name": parsed_args.overcloud_ssh_user,
+            "ssh_user_name": parsed_args.overcloud_ssh_user
         }
 
         with utils.TempDirs() as tmp:
@@ -1035,6 +1037,16 @@ class DeployOvercloud(command.Command):
             type=int,
             help=_('The number of Ansible forks to use for the'
                    ' config-download ansible-playbook command.')
+        )
+        parser.add_argument(
+            '--disable-container-prepare',
+            action='store_true',
+            default=False,
+            help=_('Disable the container preparation actions to prevent '
+                   'container tags from being updated and new containers '
+                   'from being fetched. If you skip this but do not have '
+                   'the container parameters configured, the deployment '
+                   'action may fail.')
         )
         return parser
 

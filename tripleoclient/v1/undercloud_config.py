@@ -437,7 +437,8 @@ def _process_chrony_acls(env):
 def prepare_undercloud_deploy(upgrade=False, no_validations=True,
                               verbose_level=1, yes=False,
                               force_stack_update=False, dry_run=False,
-                              inflight=False):
+                              inflight=False,
+                              disable_container_prepare=False):
     """Prepare Undercloud deploy command based on undercloud.conf"""
 
     if CONF.get('undercloud_hostname'):
@@ -839,6 +840,9 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
 
     if inflight:
         deploy_args.append('--inflight-validations')
+
+    if disable_container_prepare:
+        deploy_args.append('--disable-container-prepare')
 
     if CONF.get('custom_env_files'):
         for custom_file in CONF['custom_env_files']:
