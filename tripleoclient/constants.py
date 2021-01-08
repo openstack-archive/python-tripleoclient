@@ -19,13 +19,6 @@ import sys
 from osc_lib.i18n import _
 from six.moves import configparser
 
-# NOTE(cloudnull): Condition exceptions to support PY2, When we drop py2 this
-#                  should be simplified.
-try:
-    FileNotFoundError = FileNotFoundError
-except NameError:
-    FileNotFoundError = IOError
-
 TRIPLEO_HEAT_TEMPLATES = "/usr/share/openstack-tripleo-heat-templates/"
 OVERCLOUD_YAML_NAME = "overcloud.yaml"
 OVERCLOUD_ROLES_FILE = "roles_data.yaml"

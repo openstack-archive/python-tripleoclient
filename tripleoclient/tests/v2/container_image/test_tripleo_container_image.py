@@ -14,7 +14,6 @@
 #
 
 import mock
-import sys
 
 from tripleoclient.tests import fakes
 from tripleoclient.tests.v1.overcloud_deploy import fakes as deploy_fakes
@@ -42,11 +41,6 @@ MOCK_WALK = [
     ("/base/openstack/neutron/api", [], ["neutron-api.yml"],),
     ("/base/openstack/nova", [], [],),
 ]
-
-if sys.version_info >= (3, 0):
-    MOCK_OPEN_PATH = "builtins.open"
-else:
-    MOCK_OPEN_PATH = "tripleoclient.v2.tripleo_container_image.open"
 
 
 class TestContainerImages(deploy_fakes.TestDeployOvercloud):
@@ -83,7 +77,7 @@ class TestContainerImages(deploy_fakes.TestDeployOvercloud):
             mock_isfile.return_value = True
             with mock.patch("os.path.isdir", autospec=True) as mock_isdir:
                 mock_isdir.return_value = True
-                with mock.patch(MOCK_OPEN_PATH, mock_open):
+                with mock.patch('six.moves.builtins.open', mock_open):
                     with mock.patch(
                         "tripleoclient.v2.tripleo_container_image.Build"
                         ".find_image",
@@ -94,7 +88,7 @@ class TestContainerImages(deploy_fakes.TestDeployOvercloud):
 
     def test_find_image(self):
         mock_open = mock.mock_open(read_data='---\ntcib_option: "data"')
-        with mock.patch(MOCK_OPEN_PATH, mock_open):
+        with mock.patch('six.moves.builtins.open', mock_open):
             image = self.cmd.find_image("keystone", "some/path", "base-image")
         self.assertEqual(image, {"tcib_option": "data"})
 
