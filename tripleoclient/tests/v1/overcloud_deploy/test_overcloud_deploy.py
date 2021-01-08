@@ -246,6 +246,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'NeutronPublicInterface': 'nic1',
             'NtpServer': '',
             'SnmpdReadonlyUserPassword': 'PASSWORD',
+            'DeployIdentifier': 12345678,
+            'RootStackName': 'overcloud',
             'StackAction': 'UPDATE',
             'UndercloudHostsEntries': [
                 '192.168.0.1 uc.ctlplane.localhost uc.ctlplane'],
@@ -346,6 +348,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         parameters_env = {
             'parameter_defaults': {
                 'StackAction': 'CREATE',
+                'DeployIdentifier': 12345678,
+                'RootStackName': 'overcloud',
                 'UndercloudHostsEntries':
                     ['192.168.0.1 uc.ctlplane.localhost uc.ctlplane'],
                 'CtlplaneNetworkAttributes': {}}}
@@ -481,6 +485,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'NtpServer': '',
             'SnmpdReadonlyUserPassword': 'PASSWORD',
             'StackAction': 'CREATE',
+            'DeployIdentifier': 12345678,
+            'RootStackName': 'overcloud',
             'UndercloudHostsEntries': [
                 '192.168.0.1 uc.ctlplane.localhost uc.ctlplane'
             ],
@@ -1238,6 +1244,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'NeutronTunnelTypes': 'gre',
             'SnmpdReadonlyUserPassword': 'PASSWORD',
             'StackAction': 'CREATE',
+            'DeployIdentifier': 12345678,
+            'RootStackName': 'overcloud',
             'NtpServer': 'ntp',
             'UndercloudHostsEntries': [
                 '192.168.0.1 uc.ctlplane.localhost uc.ctlplane'
@@ -1552,11 +1560,15 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         # assuming heat deploy consumed a 3m out of total 451m timeout
         with mock.patch('time.time', side_effect=[0, 1585820346,
-                                                  0, 0, 1585820526]):
+                                                  0, 12345678, 0,
+                                                  1585820526]):
             self.cmd.take_action(parsed_args)
         self.assertIn(
             [mock.call(mock.ANY, mock.ANY, 'overcloud', mock.ANY,
-                       {'StackAction': 'UPDATE', 'UndercloudHostsEntries':
+                       {'StackAction': 'UPDATE',
+                        'DeployIdentifier': 12345678,
+                        'RootStackName': 'overcloud',
+                        'UndercloudHostsEntries':
                            ['192.168.0.1 uc.ctlplane.localhost uc.ctlplane'],
                         'CtlplaneNetworkAttributes': {}}, {}, 451, mock.ANY,
                        {}, False, False, False, None, deployment_options={})],
