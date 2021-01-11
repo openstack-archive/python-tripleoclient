@@ -1020,6 +1020,21 @@ def get_stack(orchestration_client, stack_name):
         pass
 
 
+def get_rc_params(orchestration_client, stack_name):
+    env = orchestration_client.stacks.environment(stack_name)
+    rc_params = {}
+    try:
+        rc_params['password'] = env[
+            'parameter_defaults']['AdminPassword']
+    except KeyError as ex:
+        error = ("Unable to find %s in the stack "
+                 "environment." % ex.args[0])
+        raise RuntimeError(error)
+    rc_params['region'] = env[
+        'parameter_defaults'].get('KeystoneRegion')
+    return rc_params
+
+
 def check_ceph_fsid_matches_env_files(stack, environment):
     """Check CephClusterFSID against proposed env files
 

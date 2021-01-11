@@ -175,6 +175,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         shutil.rmtree = self.real_shutil
         self.mock_tar.stop()
 
+    @mock.patch('tripleoclient.utils.get_rc_params',
+                autospec=True)
     @mock.patch('tripleoclient.utils.check_nic_config_with_ansible')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_get_ctlplane_attrs', autospec=True, return_value={})
@@ -200,7 +202,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                        mock_events, mock_stack_network_check,
                        mock_ceph_fsid,
                        mock_get_undercloud_host_entry, mock_copy,
-                       mock_get_ctlplane_attrs, mock_nic_ansible):
+                       mock_get_ctlplane_attrs, mock_nic_ansiblei,
+                       mock_rc_params):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         clients = self.app.client_manager
@@ -267,6 +270,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_create_parameters_env.side_effect = _custom_create_params_env
 
+        mock_rc_params.return_value = {'password': 'password',
+                                       'region': 'region1'}
         self.cmd.take_action(parsed_args)
 
         self.assertFalse(orchestration_client.stacks.update.called)
@@ -280,6 +285,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         object_client.put_container.assert_called_once_with(
             'overcloud', headers={'x-container-meta-usage-tripleo': 'plan'})
 
+    @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_get_ctlplane_attrs', autospec=True, return_value={})
     @mock.patch('tripleoclient.workflows.deployment.create_overcloudrc',
@@ -306,8 +312,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                         mock_breakpoints_cleanup, mock_postconfig,
                         mock_invoke_plan_env_wf,
                         mock_get_undercloud_host_entry,
-                        mock_copy, mock_overcloudrc, mock_get_ctlplane_attrs):
-
+                        mock_copy, mock_overcloudrc,
+                        mock_get_ctlplane_attrs, mock_rc_params):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         plane_management_fixture = deployment.PlanManagementFixture()
@@ -326,7 +332,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
         mock_stack = fakes.create_tht_stack()
-        orchestration_client.stacks.get.side_effect = [None, mock.Mock()]
+        orchestration_client.stacks.get.side_effect = [None, mock_stack]
 
         object_client = clients.tripleoclient.object_store
         object_client.get_object = mock.Mock()
@@ -348,6 +354,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         baremetal = clients.baremetal
         baremetal.node.list.return_value = range(10)
+        mock_rc_params.return_value = {'password': 'password',
+                                       'region': 'region1'}
 
         parameters_env = {
             'parameter_defaults': {
@@ -391,6 +399,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         object_client = clients.tripleoclient.object_store
         object_client.put_object.assert_has_calls(calls)
 
+    @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
     @mock.patch('tripleoclient.workflows.deployment.create_overcloudrc',
                 autospec=True)
     @mock.patch('os.chdir')
@@ -421,7 +430,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mock_breakpoints_cleanup,
             mock_postconfig, mock_deprecated_params, mock_stack_network_check,
             mock_ceph_fsid, mock_get_undercloud_host_entry, mock_copy,
-            mock_chdir, mock_overcloudrc):
+            mock_chdir, mock_overcloudrc,
+            mock_rc_params):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         plane_management_fixture = deployment.PlanManagementFixture()
@@ -442,7 +452,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
         mock_stack = fakes.create_tht_stack()
-        orchestration_client.stacks.get.side_effect = [None, mock.Mock()]
+        orchestration_client.stacks.get.side_effect = [None, mock_stack]
 
         def _orch_clt_create(**kwargs):
             orchestration_client.stacks.get.return_value = mock_stack
@@ -464,12 +474,15 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         baremetal = clients.baremetal
         baremetal.node.list.return_value = range(10)
+        mock_rc_params.return_value = {'password': 'password',
+                                       'region': 'region1'}
 
         self.cmd.take_action(parsed_args)
         mock_copy.assert_called_once()
         object_client.put_container.assert_called_once_with(
             'overcloud', headers={'x-container-meta-usage-tripleo': 'plan'})
 
+    @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
     @mock.patch('tripleoclient.utils.check_nic_config_with_ansible')
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
@@ -493,7 +506,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                      mock_events, mock_stack_network_check,
                                      mock_ceph_fsid,
                                      mock_get_undercloud_host_entry,
-                                     mock_copy, mock_nic_ansible):
+                                     mock_copy, mock_nic_ansible,
+                                     mock_rc_params):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         plane_management_fixture = deployment.PlanManagementFixture()
@@ -520,6 +534,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         baremetal = clients.baremetal
         baremetal.node.list.return_value = range(10)
+        mock_rc_params.return_value = {'password': 'password',
+                                       'region': 'region1'}
 
         object_client = clients.tripleoclient.object_store
         object_client.get_object = mock.Mock()
@@ -561,6 +577,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             self.cmd.take_action, parsed_args)
         self.assertFalse(mock_deploy_tht.called)
 
+    @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
     @mock.patch('tripleoclient.utils.check_nic_config_with_ansible')
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
     @mock.patch('tripleoclient.utils.check_stack_network_matches_env_files')
@@ -574,7 +591,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_environment_dirs(self, mock_deploy_heat,
                               mock_update_parameters, mock_post_config,
                               mock_stack_network_check, mock_ceph_fsid,
-                              mock_copy, mock_nic_ansible):
+                              mock_copy, mock_nic_ansible,
+                              mock_rc_params):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         plane_management_fixture = deployment.PlanManagementFixture()
@@ -583,7 +601,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.useFixture(utils_overcloud_fixture)
 
         clients = self.app.client_manager
-
+        clients = self.app.client_manager
+        orchestration_client = clients.orchestration
+        orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
         mock_update_parameters.return_value = {}
         utils_overcloud_fixture.mock_utils_endpoint.return_value = 'foo.bar'
 
@@ -616,6 +636,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                      'resources': {'*': {'*': {
                          'UpdateDeployment': {'hooks': []}}}}}}, env)
 
+        mock_rc_params.return_value = {'password': 'password',
+                                       'region': 'region1'}
         mock_deploy_heat.side_effect = _fake_heat_deploy
         object_client = clients.tripleoclient.object_store
         object_client.get_object = mock.Mock()
@@ -866,6 +888,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertFalse(utils_fixture.mock_deploy_tht.called)
         self.assertFalse(mock_create_tempest_deployer_input.called)
 
+    @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
     @mock.patch('tripleoclient.utils.check_nic_config_with_ansible')
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
@@ -880,7 +903,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_answers_file(self, mock_rmtree, mock_tmpdir,
                           mock_heat_deploy, mock_stack_network_check,
                           mock_ceph_fsid, mock_get_undercloud_host_entry,
-                          mock_copy, mock_nic_ansible):
+                          mock_copy, mock_nic_ansible,
+                          mock_rc_params):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         clients = self.app.client_manager
@@ -934,6 +958,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_env = yaml.safe_dump({'parameter_defaults':
                                   {'NovaComputeLibvirtType': 'qemu'}})
         object_client.get_object.return_value = ({}, mock_env)
+        mock_rc_params.return_value = {'password': 'password',
+                                       'region': 'region1'}
 
         self.cmd.take_action(parsed_args)
 
@@ -955,6 +981,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         object_client.put_container.assert_called_once_with(
             'overcloud', headers={'x-container-meta-usage-tripleo': 'plan'})
 
+    @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
     @mock.patch('tripleoclient.utils.check_nic_config_with_ansible')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_get_undercloud_host_entry', autospec=True,
@@ -973,7 +1000,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                   mock_stack_network_check,
                                   mock_ceph_fsid,
                                   mock_get_undercloud_host_entry,
-                                  mock_nic_ansible):
+                                  mock_nic_ansible,
+                                  mock_rc_params):
         plane_management_fixture = deployment.PlanManagementFixture()
         self.useFixture(plane_management_fixture)
         clients = self.app.client_manager
@@ -1005,6 +1033,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_get_template_contents.return_value = [{}, "template"]
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        mock_rc_params.return_value = {'password': 'password',
+                                       'region': 'region1'}
 
         self.assertRaises(exceptions.InvalidConfiguration,
                           self.cmd.take_action,
@@ -1012,6 +1042,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         object_client.put_container.assert_called_once_with(
             'overcloud', headers={'x-container-meta-usage-tripleo': 'plan'})
 
+    @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_get_ctlplane_attrs', autospec=True, return_value={})
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
@@ -1043,7 +1074,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                  mock_stack_network_check,
                                  mock_ceph_fsid,
                                  mock_get_undercloud_host_entry, mock_copy,
-                                 mock_get_ctlplane_attrs):
+                                 mock_get_ctlplane_attrs,
+                                 mock_rc_params):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         plane_management_fixture = deployment.PlanManagementFixture()
@@ -1061,7 +1093,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_stack = fakes.create_tht_stack()
         orchestration_client.stacks.get.side_effect = [
             None,
-            mock.MagicMock()
+            mock_stack
         ]
 
         def _orch_clt_create(**kwargs):
@@ -1083,6 +1115,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_get_template_contents.return_value = [{}, "template"]
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        mock_rc_params.return_value = {'password': 'password',
+                                       'region': 'region1'}
 
         baremetal = clients.baremetal
         baremetal.node.list.return_value = range(10)
@@ -1177,16 +1211,16 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         self.assertFalse(mock_deploy_and_wait.called)
 
+    @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_get_undercloud_host_entry', autospec=True,
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
-    @mock.patch('tripleoclient.workflows.deployment.create_overcloudrc',
-                autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_tripleo_heat_templates_tmpdir', autospec=True)
-    def test_deployed_server(self, mock_deploy_tmpdir, mock_overcloudrc,
-                             mock_get_undercloud_host_entry, mock_copy):
+    def test_deployed_server(self, mock_deploy_tmpdir,
+                             mock_get_undercloud_host_entry,
+                             mock_copy, mock_rc_params):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         utils_fixture = deployment.UtilsOvercloudFixture()
@@ -1198,6 +1232,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             ('disable_validations', True),
         ]
 
+        mock_rc_params.return_value = {'password': 'password',
+                                       'region': 'region1'}
         clients = self.app.client_manager
         clients.baremetal = mock.Mock()
         clients.compute = mock.Mock()
@@ -1211,17 +1247,17 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertTrue(utils_fixture.mock_deploy_tht.called)
         mock_copy.assert_called_once()
 
+    @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_get_undercloud_host_entry', autospec=True,
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
-    @mock.patch('tripleoclient.workflows.deployment.create_overcloudrc',
-                autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_tripleo_heat_templates_tmpdir', autospec=True)
     def test_config_download(
             self, mock_deploy_tmpdir,
-            mock_overcloudrc, mock_get_undercloud_host_entry, mock_copy):
+            mock_get_undercloud_host_entry,
+            mock_copy, mock_rc_params):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         utils_fixture = deployment.UtilsOvercloudFixture()
@@ -1236,7 +1272,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             ('config_download', True),
         ]
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-
+        mock_rc_params.return_value = {'password': 'password',
+                                       'region': 'region1'}
         self.cmd.take_action(parsed_args)
         self.assertTrue(mock_deploy_tmpdir.called)
         self.assertTrue(fixture.mock_get_hosts_and_enable_ssh_admin.called)
@@ -1248,17 +1285,17 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         )
         mock_copy.assert_called_once()
 
+    @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_get_undercloud_host_entry', autospec=True,
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
-    @mock.patch('tripleoclient.workflows.deployment.create_overcloudrc',
-                autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_tripleo_heat_templates_tmpdir', autospec=True)
     def test_config_download_only(
             self, mock_deploy_tmpdir,
-            mock_overcloudrc, mock_get_undercloud_host_entry, mock_copy):
+            mock_get_undercloud_host_entry,
+            mock_copy, mock_rc_params):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         utils_fixture = deployment.UtilsOvercloudFixture()
@@ -1273,6 +1310,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             ('config_download_only', True),
         ]
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        mock_rc_params.return_value = {'password': 'password',
+                                       'region': 'region1'}
 
         self.cmd.take_action(parsed_args)
         self.assertFalse(mock_deploy_tmpdir.called)
@@ -1284,6 +1323,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             fixture.mock_set_deployment_status.call_args[-1]['status'])
         mock_copy.assert_called_once()
 
+    @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_get_undercloud_host_entry', autospec=True,
@@ -1291,17 +1331,14 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
     @mock.patch('tripleoclient.utils.get_overcloud_endpoint', autospec=True)
-    @mock.patch('tripleoclient.workflows.deployment.create_overcloudrc',
-                autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_tripleo_heat_templates_tmpdir', autospec=True)
     def test_config_download_fails(
             self, mock_deploy_tmpdir,
-            mock_overcloudrc,
             mock_overcloud_endpoint,
             mock_create_tempest_deployer_input,
             mock_get_undercloud_host_entry,
-            mock_copy):
+            mock_copy, mock_rc_params):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         clients = self.app.client_manager
@@ -1314,6 +1351,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             ('config_download_only', True),
         ]
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        mock_rc_params.return_value = {'password': 'password',
+                                       'region': 'region1'}
 
         fixture.mock_config_download.side_effect = \
             exceptions.DeploymentError('fails')
@@ -1328,17 +1367,17 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'DEPLOY_FAILED',
             fixture.mock_set_deployment_status.call_args[-1]['status'])
 
+    @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_get_undercloud_host_entry', autospec=True,
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
-    @mock.patch('tripleoclient.workflows.deployment.create_overcloudrc',
-                autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_tripleo_heat_templates_tmpdir', autospec=True)
     def test_override_ansible_cfg(
             self, mock_deploy_tmpdir,
-            mock_overcloudrc, mock_get_undercloud_host_entry, mock_copy):
+            mock_get_undercloud_host_entry,
+            mock_copy, mock_rc_params):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         utils_fixture = deployment.UtilsOvercloudFixture()
@@ -1354,12 +1393,15 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             ('override_ansible_cfg', 'ansible.cfg')
         ]
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        mock_rc_params.return_value = {'password': 'password',
+                                       'region': 'region1'}
 
         self.cmd.take_action(parsed_args)
         self.assertTrue(fixture.mock_get_hosts_and_enable_ssh_admin.called)
         self.assertTrue(fixture.mock_config_download.called)
         mock_copy.assert_called_once()
 
+    @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
     @mock.patch('tripleoclient.utils.check_nic_config_with_ansible')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_get_ctlplane_attrs', autospec=True, return_value={})
@@ -1367,8 +1409,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_get_undercloud_host_entry', autospec=True,
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
-    @mock.patch('tripleoclient.workflows.deployment.create_overcloudrc',
-                autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_heat_deploy', autospec=True)
     @mock.patch('tripleoclient.utils.check_stack_network_matches_env_files')
@@ -1378,9 +1418,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 'create_plan_from_templates', autospec=True)
     def test_config_download_timeout(
             self, mock_plan_man, mock_hc, mock_stack_network_check,
-            mock_ceph_fsid, mock_hd, mock_overcloudrc,
+            mock_ceph_fsid, mock_hd,
             mock_get_undercloud_host_entry, mock_copy,
-            mock_get_ctlplane_attrs, mock_nic_ansible):
+            mock_get_ctlplane_attrs, mock_nic_ansible,
+            mock_rc_params):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         utils_fixture = deployment.UtilsOvercloudFixture()
@@ -1397,6 +1438,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         ]
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
+        mock_rc_params.return_value = {'password': 'password',
+                                       'region': 'region1'}
         # assuming heat deploy consumed a 3m out of total 451m timeout
         with mock.patch('time.time', side_effect=[0, 1585820346,
                                                   0, 12345678, 0,
@@ -1423,26 +1466,25 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         fixture.mock_config_download.assert_called()
         mock_copy.assert_called_once()
 
+    @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_update_parameters')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_get_undercloud_host_entry', autospec=True,
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
-    @mock.patch('tripleoclient.workflows.deployment.create_overcloudrc',
-                autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_tripleo_heat_templates_tmpdir', autospec=True)
     def test_config_download_only_timeout(
             self, mock_deploy_tmpdir,
-            mock_overcloudrc, mock_get_undercloud_host_entry, mock_update,
-            mock_copy):
+            mock_get_undercloud_host_entry, mock_update,
+            mock_copyi, mock_rc_params):
         utils_fixture = deployment.UtilsOvercloudFixture()
         self.useFixture(utils_fixture)
         utils_fixture2 = deployment.UtilsFixture()
         self.useFixture(utils_fixture2)
         clients = self.app.client_manager
-        stack = mock.Mock()
+        stack = fakes.create_tht_stack()
         stack.stack_name = 'overcloud'
         stack.output_show.return_value = {'output': {'output_value': []}}
         orchestration_client = clients.orchestration
@@ -1458,6 +1500,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             ('overcloud_ssh_port_timeout', 42)
         ]
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        mock_rc_params.return_value = {'password': 'password',
+                                       'region': 'region1'}
 
         self.cmd.take_action(parsed_args)
         playbook = os.path.join(os.environ.get(
