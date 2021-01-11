@@ -36,8 +36,6 @@
             dependencies: *deps_unit_lint
             files:
               - ^tripleoclient/v1/tripleo_container_image.py$
-        - tripleo-ci-centos-7-scenario000-multinode-oooq-container-upgrades:
-            dependencies: *deps_unit_lint
         - tripleo-ci-centos-8-containers-undercloud-minion:
             vars: &sa_consumer_vars
               consumer_job: true
