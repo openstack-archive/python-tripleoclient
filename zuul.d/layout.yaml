@@ -12,6 +12,7 @@
       - tripleo-multinode-container-minimal-pipeline
       - tripleo-undercloud-jobs-pipeline
       - tripleo-standalone-scenarios-pipeline
+      - tripleo-upgrades-train-pipeline
     check:
       jobs:
         - openstack-tox-pep8
