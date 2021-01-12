@@ -762,8 +762,8 @@ def is_loopback(host):
     Return False if not.
     """
     loopbacks = ['127', '::1']
-    for l in loopbacks:
-        if host.startswith(l):
+    for item in loopbacks:
+        if host.startswith(item):
             return True
     return False
 

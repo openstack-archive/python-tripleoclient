@@ -375,7 +375,7 @@ class Build(command.Command):
             os.path.abspath(parsed_args.config_path))
         for image in expected_images:
             if (image != config_path_base and image not in image_configs):
-                self.log.debug("processing image configs".format(image))
+                self.log.debug("processing image config %s", image)
                 image_config = self.find_image(
                     image,
                     self.tcib_config_path,
