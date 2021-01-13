@@ -19,7 +19,6 @@ import fixtures
 import json
 import mock
 import os
-import sys
 import tempfile
 
 from osc_lib import exceptions as oscexc
@@ -542,12 +541,7 @@ class TestImportNodeMultiArch(fakes.TestOvercloudNode):
             }
         ]
         mock_open = mock.mock_open(read_data=json.dumps(file_return_nodes))
-        # TODO(cloudnull): Remove this when py27 is dropped
-        if sys.version_info >= (3, 0):
-            mock_open_path = 'builtins.open'
-        else:
-            mock_open_path = 'tripleoclient.v1.overcloud_node.open'
-        with mock.patch(mock_open_path, mock_open):
+        with mock.patch('six.moves.builtins.open', mock_open):
             self.cmd.take_action(parsed_args)
 
         nodes_list = copy.deepcopy(self.nodes_list)

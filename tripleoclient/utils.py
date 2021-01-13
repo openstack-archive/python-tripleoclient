@@ -66,15 +66,6 @@ from tripleoclient import exceptions
 LOG = logging.getLogger(__name__ + ".utils")
 
 
-# NOTE(cloudnull): This is setting the FileExistsError for py2 environments.
-#                  When we no longer support py2 (centos7) this should be
-#                  removed.
-try:
-    FileExistsError = FileExistsError
-except NameError:
-    FileExistsError = OSError
-
-
 class Pushd(object):
     """Simple context manager to change directories and then return."""
 
