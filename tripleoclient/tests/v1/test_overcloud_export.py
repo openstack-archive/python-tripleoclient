@@ -55,7 +55,8 @@ class TestOvercloudExport(utils.TestCommand):
             False,
             '/var/lib/mistral/overcloud')
         self.assertEqual(
-            {'parameter_defaults': {'key': 'value',
+            {'parameter_defaults': {'AddVipsToEtcHosts': False,
+                                    'key': 'value',
                                     'key0': 'value0'}},
             mock_safe_dump.call_args[0][0])
 
