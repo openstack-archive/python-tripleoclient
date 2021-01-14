@@ -44,25 +44,19 @@ class TestOvercloudUpdatePrepare(fakes.TestOvercloudUpdatePrepare):
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_get_undercloud_host_entry', autospec=True,
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
-    @mock.patch('tripleoclient.utils.get_stack',
-                autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_update.UpdatePrepare.log',
-                autospec=True)
-    @mock.patch('tripleoclient.workflows.package_update.update',
                 autospec=True)
     @mock.patch('os.path.abspath')
     @mock.patch('yaml.safe_load')
     @mock.patch('shutil.copytree', autospec=True)
     @mock.patch('six.moves.builtins.open')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_deploy_tripleo_heat_templates_tmpdir', autospec=True)
+                'take_action', autospec=True)
     def test_update_out(self, mock_deploy, mock_open, mock_copy, mock_yaml,
-                        mock_abspath, mock_update, mock_logger,
-                        mock_get_stack, mock_get_undercloud_host_entry,
-                        mock_confirm, mock_usercheck, mock_get_ctlplane_attrs):
-        mock_stack = mock.Mock(parameters={'DeployIdentifier': ''})
-        mock_stack.stack_name = 'overcloud'
-        mock_get_stack.return_value = mock_stack
+                        mock_abspath, mock_logger,
+                        mock_get_undercloud_host_entry,
+                        mock_confirm, mock_usercheck,
+                        mock_get_ctlplane_attrs):
         mock_yaml.return_value = {'fake_container': 'fake_value'}
 
         argslist = ['--stack', 'overcloud', '--templates']
@@ -79,31 +73,21 @@ class TestOvercloudUpdatePrepare(fakes.TestOvercloudUpdatePrepare):
             mock_isfile.return_value = True
             self.cmd.take_action(parsed_args)
             mock_usercheck.assert_called_once()
-            mock_update.assert_called_once_with(
-                self.app.client_manager,
-                container='overcloud',
-            )
+            mock_deploy.assert_called_once()
 
     @mock.patch('tripleoclient.utils.ensure_run_as_normal_user')
     @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
                 return_value=True)
-    @mock.patch('tripleoclient.utils.get_stack',
-                autospec=True)
-    @mock.patch('tripleoclient.workflows.package_update.update',
-                autospec=True)
     @mock.patch('six.moves.builtins.open')
     @mock.patch('os.path.abspath')
     @mock.patch('yaml.safe_load')
     @mock.patch('shutil.copytree', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_deploy_tripleo_heat_templates', autospec=True)
+                'take_action', autospec=True)
     def test_update_failed(self, mock_deploy, mock_copy, mock_yaml,
-                           mock_abspath, mock_open, mock_update,
-                           mock_get_stack, mock_confirm, mock_usercheck):
-        mock_stack = mock.Mock(parameters={'DeployIdentifier': ''})
-        mock_stack.stack_name = 'overcloud'
-        mock_get_stack.return_value = mock_stack
-        mock_update.side_effect = exceptions.DeploymentError()
+                           mock_abspath, mock_open,
+                           mock_confirm, mock_usercheck):
+        mock_deploy.side_effect = exceptions.DeploymentError()
         mock_yaml.return_value = {'fake_container': 'fake_value'}
         argslist = ['--stack', 'overcloud', '--templates', ]
         verifylist = [
