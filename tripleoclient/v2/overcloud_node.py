@@ -252,6 +252,10 @@ class ProvisionNode(command.Command):
                             default=3600,
                             help=_('Number of seconds to wait for the node '
                                    'provision to complete. (default=3600)'))
+        parser.add_argument('--network-ports',
+                            help=_('Enable provisioning of network ports'),
+                            default=False,
+                            action="store_true")
         return parser
 
     def take_action(self, parsed_args):
@@ -273,7 +277,8 @@ class ProvisionNode(command.Command):
             "ssh_public_keys": ssh_key,
             "ssh_user_name": parsed_args.overcloud_ssh_user,
             "node_timeout": parsed_args.timeout,
-            "concurrency": parsed_args.concurrency
+            "concurrency": parsed_args.concurrency,
+            "manage_network_ports": parsed_args.network_ports
         }
 
         with oooutils.TempDirs() as tmp:
@@ -315,6 +320,10 @@ class UnprovisionNode(command.Command):
                             metavar='<baremetal_deployment.yaml>',
                             help=_('Configuration file describing the '
                                    'baremetal deployment'))
+        parser.add_argument('--network-ports',
+                            help=_('Enable unprovisioning of network ports'),
+                            default=False,
+                            action="store_true")
         return parser
 
     def take_action(self, parsed_args):
@@ -338,7 +347,8 @@ class UnprovisionNode(command.Command):
                         "baremetal_deployment": roles,
                         "all": parsed_args.all,
                         "prompt": True,
-                        "unprovision_confirm": unprovision_confirm
+                        "unprovision_confirm": unprovision_confirm,
+                        "manage_network_ports": parsed_args.network_ports,
                     }
                 )
                 with open(unprovision_confirm) as f:
@@ -366,6 +376,7 @@ class UnprovisionNode(command.Command):
                     "baremetal_deployment": roles,
                     "all": parsed_args.all,
                     "prompt": False,
+                    "manage_network_ports": parsed_args.network_ports,
                 }
             )
 
