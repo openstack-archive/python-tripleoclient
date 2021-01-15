@@ -13,7 +13,11 @@
       - tripleo-upgrades-victoria-pipeline
     check:
       jobs:
-        - tripleo-ci-centos-8-content-provider
+        - tripleo-ci-centos-8-content-provider:
+            dependencies:
+              - openstack-tox-pep8
+              - openstack-tox-py36
+              - openstack-tox-py38
         - tripleo-ci-centos-8-containers-multinode:
             vars: &multi_consumer_vars
               consumer_job: true
@@ -30,10 +34,7 @@
                 - overcloud-deploy
                 - overcloud-post-deploy
                 - overcloud-validate
-            dependencies: &deps_unit_lint_cprovider
-              - openstack-tox-pep8
-              - openstack-tox-py36
-              - openstack-tox-py38
+            dependencies: &cprovider
               - tripleo-ci-centos-8-content-provider
         - tripleo-ci-centos-8-standalone:
             vars: &sa_consumer_vars
@@ -41,22 +42,22 @@
               build_container_images: false
               tags:
                 - standalone
-            dependencies: *deps_unit_lint_cprovider
+            dependencies: *cprovider
         - tripleo-ci-centos-8-scenario000-multinode-oooq-container-updates:
             vars: *multi_consumer_vars
-            dependencies: *deps_unit_lint_cprovider
+            dependencies: *cprovider
         - tripleo-ci-centos-8-scenario001-standalone:
             vars: *sa_consumer_vars
-            dependencies: *deps_unit_lint_cprovider
+            dependencies: *cprovider
         - tripleo-ci-centos-8-scenario002-standalone:
             vars: *sa_consumer_vars
-            dependencies: *deps_unit_lint_cprovider
+            dependencies: *cprovider
         - tripleo-ci-centos-8-scenario003-standalone:
             vars: *sa_consumer_vars
-            dependencies: *deps_unit_lint_cprovider
+            dependencies: *cprovider
         - tripleo-ci-centos-8-scenario004-standalone:
             vars: *sa_consumer_vars
-            dependencies: *deps_unit_lint_cprovider
+            dependencies: *cprovider
         - tripleo-ci-centos-8-containers-undercloud-minion:
             vars: &undercloud_consumer_vars
               consumer_job: true
@@ -65,7 +66,7 @@
               - undercloud-scripts
               - undercloud-install
               - undercloud-validate
-            dependencies: *deps_unit_lint_cprovider
+            dependencies: *cprovider
             files:
               - ^config-generator/.*minion.*$
               - ^tripleoclient/config/.*minion.*$
