@@ -256,6 +256,13 @@ class ProvisionNode(command.Command):
                             help=_('Enable provisioning of network ports'),
                             default=False,
                             action="store_true")
+        parser.add_argument('--output-dir',
+                            help=_('Directory to use for saved output. '
+                                   'When not specified, '
+                                   '$HOME/config-download/node-config will be '
+                                   'used.'),
+                            action='store',
+                            default=None)
         return parser
 
     def take_action(self, parsed_args):
@@ -269,16 +276,23 @@ class ProvisionNode(command.Command):
             ssh_key = fp.read()
 
         output_path = os.path.abspath(parsed_args.output)
+        if parsed_args.output_dir:
+            output_dir = os.path.abspath(parsed_args.output_dir)
+        else:
+            output_dir = os.path.join(constants.DEFAULT_WORK_DIR,
+                                      'node-config')
 
         extra_vars = {
             "stack_name": parsed_args.stack,
             "baremetal_deployment": roles,
             "baremetal_deployed_path": output_path,
             "ssh_public_keys": ssh_key,
+            "ssh_private_key_file": key,
             "ssh_user_name": parsed_args.overcloud_ssh_user,
             "node_timeout": parsed_args.timeout,
             "concurrency": parsed_args.concurrency,
-            "manage_network_ports": parsed_args.network_ports
+            "manage_network_ports": parsed_args.network_ports,
+            "output_dir": output_dir
         }
 
         with oooutils.TempDirs() as tmp:
