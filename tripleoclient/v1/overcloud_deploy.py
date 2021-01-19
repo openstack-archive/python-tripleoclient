@@ -241,7 +241,7 @@ class DeployOvercloud(command.Command):
         return user_env_path, swift_path
 
     def _heat_deploy(self, stack, stack_name, template_path, parameters,
-                     env_files, timeout, tht_root, env, update_plan_only,
+                     env_files, timeout, tht_root, env,
                      run_validations, skip_deploy_identifier, plan_env_file,
                      deployment_options=None):
         """Verify the Baremetal nodes are available and do a stack update"""
@@ -290,20 +290,19 @@ class DeployOvercloud(command.Command):
 
         workflow_params.check_deprecated_parameters(self.clients, stack_name)
 
-        if not update_plan_only:
-            self.log.info("Deploying templates in the directory {0}".format(
-                os.path.abspath(tht_root)))
-            deployment.deploy_and_wait(
-                log=self.log,
-                clients=self.clients,
-                stack=stack,
-                plan_name=stack_name,
-                verbose_level=utils.playbook_verbosity(self=self),
-                timeout=timeout,
-                run_validations=run_validations,
-                skip_deploy_identifier=skip_deploy_identifier,
-                deployment_options=deployment_options
-            )
+        self.log.info("Deploying templates in the directory {0}".format(
+            os.path.abspath(tht_root)))
+        deployment.deploy_and_wait(
+            log=self.log,
+            clients=self.clients,
+            stack=stack,
+            plan_name=stack_name,
+            verbose_level=utils.playbook_verbosity(self=self),
+            timeout=timeout,
+            run_validations=run_validations,
+            skip_deploy_identifier=skip_deploy_identifier,
+            deployment_options=deployment_options
+        )
 
     def _process_and_upload_environment(self, container_name,
                                         env, moved_files, tht_root):
@@ -565,7 +564,7 @@ class DeployOvercloud(command.Command):
 
         self._try_overcloud_deploy_with_compat_yaml(
             tht_root, stack, parsed_args.stack, parameters, env_files,
-            parsed_args.timeout, env, parsed_args.update_plan_only,
+            parsed_args.timeout, env,
             parsed_args.run_validations, parsed_args.skip_deploy_identifier,
             parsed_args.plan_environment_file,
             deployment_options=deployment_options)
@@ -575,8 +574,7 @@ class DeployOvercloud(command.Command):
     def _try_overcloud_deploy_with_compat_yaml(self, tht_root, stack,
                                                stack_name, parameters,
                                                env_files, timeout,
-                                               env, update_plan_only,
-                                               run_validations,
+                                               env, run_validations,
                                                skip_deploy_identifier,
                                                plan_env_file,
                                                deployment_options=None):
@@ -584,7 +582,7 @@ class DeployOvercloud(command.Command):
         try:
             self._heat_deploy(stack, stack_name, overcloud_yaml,
                               parameters, env_files, timeout,
-                              tht_root, env, update_plan_only,
+                              tht_root, env,
                               run_validations, skip_deploy_identifier,
                               plan_env_file,
                               deployment_options=deployment_options)
@@ -851,9 +849,9 @@ class DeployOvercloud(command.Command):
         parser.add_argument(
             '--update-plan-only',
             action='store_true',
-            help=_('Only update the plan. Do not perform the actual '
-                   'deployment. NOTE: Will move to a discrete command  in a '
-                   'future release.')
+            help=_('DEPRECATED: Only update the plan. Do not perform the '
+                   'actual deployment. NOTE: Will move to a discrete command  '
+                   'in a future release. Not supported anymore.')
         )
         parser.add_argument(
             '--validation-errors-nonfatal',
@@ -1054,6 +1052,11 @@ class DeployOvercloud(command.Command):
         logging.register_options(CONF)
         logging.setup(CONF, '')
         self.log.debug("take_action(%s)" % parsed_args)
+
+        if parsed_args.update_plan_only:
+            raise exceptions.DeploymentError(
+                'Only plan update is not supported.')
+
         deploy_status = 'DEPLOY_SUCCESS'
         deploy_message = 'without error'
 
@@ -1094,12 +1097,6 @@ class DeployOvercloud(command.Command):
         # Get a new copy of the stack after stack update/create. If it was
         # a create then the previous stack object would be None.
         stack = utils.get_stack(self.orchestration_client, parsed_args.stack)
-
-        if parsed_args.update_plan_only:
-            # If we are only updating the plan, then we either wont have a
-            # stack yet or there wont be any changes and the following code
-            # wont do anything.
-            return
 
         try:
             # Force fetching of attributes
