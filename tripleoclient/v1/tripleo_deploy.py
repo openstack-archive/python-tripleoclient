@@ -1384,6 +1384,7 @@ class Deploy(command.Command):
             else:
                 # We only get here if no errors
                 if parsed_args.output_only:
+                    rc = 0
                     success_messaging = OUTPUT_ONLY_COMPLETION_MESSAGE
                 else:
                     success_messaging = DEPLOY_COMPLETION_MESSAGE
