@@ -187,7 +187,8 @@ htmlhelp_basename = 'python-tripleoclientReleaseNotesdoc'
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  ('index', 'python-tripleoclientReleaseNotes.tex', u'python-tripleoclient Release Notes Documentation',
+  ('index', 'python-tripleoclientReleaseNotes.tex',
+   u'python-tripleoclient Release Notes Documentation',
    u'2016, TripleO Developers', 'manual'),
 ]
 
