@@ -1356,22 +1356,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertTrue(utils_fixture.mock_deploy_tht.called)
         mock_copy.assert_called_once()
 
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_deploy_tripleo_heat_templates', autospec=True)
-    def test_fail_overcloud_deploy_with_deployed_server_and_validations(
-            self, mock_deploy_tmpdir):
-        arglist = ['--templates', '--deployed-server']
-        verifylist = [
-            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
-            ('deployed_server', True),
-        ]
-
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-        self.assertRaises(oscexc.CommandError,
-                          self.cmd.take_action,
-                          parsed_args)
-        self.assertFalse(mock_deploy_tmpdir.called)
-
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_get_undercloud_host_entry', autospec=True,
