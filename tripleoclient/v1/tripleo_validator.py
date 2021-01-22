@@ -423,7 +423,7 @@ class TripleOValidatorShowRun(command.Command):
             else:
                 for d in data:
                     for p in d.get('validation_output', []):
-                        print(json.dumps(p['tasks'],
+                        print(json.dumps(p['task'],
                                          indent=4,
                                          sort_keys=True))
         else:
