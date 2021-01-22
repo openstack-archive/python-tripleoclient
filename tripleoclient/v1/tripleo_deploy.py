@@ -613,6 +613,24 @@ class Deploy(command.Command):
                 environments.append(target_dest)
         return environments
 
+    def _load_user_params(self, user_environments):
+        user_params = {}
+        for env_file in user_environments:
+            # undercloud heat stack virtual state tracking is'nt available yet
+            if env_file.endswith('undercloud-stack-vstate-dropin.yaml'):
+                continue
+
+            with open(env_file, 'r') as f:
+                data = yaml.safe_load(f.read())
+
+            if data is None or data.get('parameter_defaults') is None:
+                continue
+
+            for k, v in data.get('parameter_defaults', {}).items():
+                user_params[k] = v
+
+        return user_params
+
     def _setup_heat_environments(self, roles_file_path, networks_file_path,
                                  parsed_args):
         """Process tripleo heat templates with jinja and deploy into work dir
@@ -703,13 +721,20 @@ class Deploy(command.Command):
             stack_name=parsed_args.stack,
             role_name=self._get_primary_role_name(
                 roles_file_path, parsed_args.templates)))
+
+        user_params = self._load_user_params(user_environments)
+        host_routes = user_params.get('ControlPlaneStaticRoutes', [])
+        mtu = user_params.get('InterfaceLocalMtu', 1500)
         tmp_env.update(
             {
                 'CtlplaneNetworkAttributes': {
+                    'network': {
+                        'mtu': mtu,
+                    },
                     'subnets': {
                         'ctlplane-subnet': {
                             'cidr': str(ip_nw.cidr),
-                            'host_routes': []
+                            'host_routes': host_routes,
                         }
                     }
                 }
