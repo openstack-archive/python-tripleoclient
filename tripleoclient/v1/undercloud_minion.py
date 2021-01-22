@@ -97,6 +97,9 @@ class InstallUndercloudMinion(command.Command):
         return parser
 
     def take_action(self, parsed_args):
+        self.log.warning("[DEPRECATED] This command has been deprecated. "
+                         "The minion functionality is no longer as necessary "
+                         "with the move to nova-less provisioning.")
         # Fetch configuration used to add logging to a file
         utils.load_config(self.osloconfig, constants.MINION_CONF_PATH)
         utils.configure_logging(self.log, self.app_args.verbose_level,
@@ -130,6 +133,9 @@ class UpgradeUndercloudMinion(InstallUndercloudMinion):
     osloconfig = cfg.CONF
 
     def take_action(self, parsed_args):
+        self.log.warning("[DEPRECATED] This command has been deprecated. "
+                         "The minion functionality is no longer as necessary "
+                         "with the move to nova-less provisioning.")
         # Fetch configuration used to add logging to a file
         utils.load_config(self.osloconfig, constants.MINION_CONF_PATH)
         utils.configure_logging(self.log, self.app_args.verbose_level,
