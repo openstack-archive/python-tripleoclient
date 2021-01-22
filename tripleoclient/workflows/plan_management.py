@@ -324,8 +324,8 @@ def _load_passwords(swift_client, name):
     if "passwords" in plan_env:
         return plan_env['passwords']
     else:
-        LOG.warn("No passwords found in existing plan {}. "
-                 "Updating plan with passwords.".format(name))
+        LOG.warning("No passwords found in existing plan {}. "
+                    "Updating plan with passwords.".format(name))
 
 
 def _update_passwords(swift_client, name, passwords):
