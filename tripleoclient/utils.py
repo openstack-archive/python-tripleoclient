@@ -59,6 +59,7 @@ from heatclient import exc as hc_exc
 from six.moves.urllib import error as url_error
 from six.moves.urllib import request
 
+from tripleo_common.utils import swift as swiftutils
 from tripleoclient import constants
 from tripleoclient import exceptions
 
@@ -2361,12 +2362,12 @@ def update_deployment_status(clients, plan, status):
 
     # create {plan}-messages container if not there
     swift = clients.tripleoclient.object_store
-    swift.put_container(container)
-
-    swift.put_object(
-        container,
-        'deployment_status.yaml',
-        yaml.safe_dump(
+    swiftutils.create_container(swiftclient=swift, container=container)
+    swiftutils.put_object_string(
+        swift=swift,
+        container=container,
+        object_name='deployment_status.yaml',
+        contents=yaml.safe_dump(
             {
                 'deployment_status': status,
                 'workflow_status': {

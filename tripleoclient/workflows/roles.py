@@ -15,6 +15,8 @@ import logging
 import yaml
 
 from tripleo_common.actions import plan
+# TODO(cloudnull): Convert to a swiftutils in tripleo-common
+# from tripleo_common.utils import swift as swiftutils
 
 
 LOG = logging.getLogger(__name__)
@@ -36,6 +38,7 @@ def list_available_roles(clients, container='overcloud'):
     obj_client = clients.tripleoclient.object_store
     available_yaml_roles = list()
     LOG.info('Indexing roles from: {}'.format(container))
+    # TODO(cloudnull): Convert to a swiftutils in tripleo-common
     for obj in obj_client.get_container(container)[-1]:
         name = obj['name']
         if name.startswith('roles/') and name.endswith(('yml', 'yaml')):

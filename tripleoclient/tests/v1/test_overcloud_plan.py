@@ -105,6 +105,15 @@ class TestOvercloudCreatePlan(utils.TestCommand):
 
         self.swift = self.app.client_manager.tripleoclient.object_store
         self.swift.get_account = mock.MagicMock()
+        self.mock_tar = mock.patch(
+            'tripleo_common.utils.tarball.create_tarball',
+            autospec=True
+        )
+        self.mock_tar.start()
+
+    def tearDown(self):
+        super(TestOvercloudCreatePlan, self).tearDown()
+        self.mock_tar.stop()
 
     @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
     @mock.patch('os.chdir', autospec=True)
@@ -123,7 +132,7 @@ class TestOvercloudCreatePlan(utils.TestCommand):
         self.cmd.take_action(parsed_args)
 
         # Verify
-        mock_run_playbook.assert_called_once_with(
+        mock_run_playbook.assert_called_with(
             'cli-create-deployment-plan.yaml',
             'undercloud,',
             mock.ANY,
@@ -138,10 +147,9 @@ class TestOvercloudCreatePlan(utils.TestCommand):
         )
 
     @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
-    @mock.patch("tripleoclient.workflows.plan_management.tarball")
     @mock.patch('os.chdir', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True)
-    def test_create_custom_plan(self, mock_tmp, mock_cd, mock_tarball,
+    def test_create_custom_plan(self, mock_tmp, mock_cd,
                                 mock_run_playbook):
 
         # Setup
@@ -156,7 +164,7 @@ class TestOvercloudCreatePlan(utils.TestCommand):
         self.cmd.take_action(parsed_args)
 
         # Verify
-        mock_run_playbook.assert_called_once_with(
+        mock_run_playbook.assert_called_with(
             'cli-create-deployment-plan.yaml',
             'undercloud,',
             mock.ANY,
@@ -172,11 +180,10 @@ class TestOvercloudCreatePlan(utils.TestCommand):
         self.swift.get_account.assert_called_once()
 
     @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
-    @mock.patch("tripleoclient.workflows.plan_management.tarball")
     @mock.patch('os.chdir', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True)
     def test_create_custom_plan_plan_environment_file(
-            self, mock_tmp, mock_cd, mock_tarball, mock_run_playbook):
+            self, mock_tmp, mock_cd, mock_run_playbook):
         # Setup
         arglist = ['overcast', '--templates', '/fake/path',
                    '-p', 'the_plan_environment.yaml']
@@ -197,7 +204,7 @@ class TestOvercloudCreatePlan(utils.TestCommand):
             [mock.call('the_plan_environment.yaml', 'rb')])
 
         # Verify
-        mock_run_playbook.assert_called_once_with(
+        mock_run_playbook.assert_called_with(
             'cli-create-deployment-plan.yaml',
             'undercloud,',
             mock.ANY,
@@ -234,7 +241,7 @@ class TestOvercloudCreatePlan(utils.TestCommand):
         self.app.options = fakes.FakeOptions()
         self.cmd.take_action(parsed_args)
         # Verify
-        mock_run_playbook.assert_called_once_with(
+        mock_run_playbook.assert_called_with(
             'cli-create-deployment-plan.yaml',
             'undercloud,',
             mock.ANY,
@@ -267,7 +274,7 @@ class TestOvercloudCreatePlan(utils.TestCommand):
         self.cmd.take_action(parsed_args)
 
         # Verify
-        mock_run_playbook.assert_called_once_with(
+        mock_run_playbook.assert_called_with(
             'cli-create-deployment-plan.yaml',
             'undercloud,',
             mock.ANY,
@@ -325,7 +332,7 @@ class TestOvercloudDeployPlan(utils.TestCommand):
         # Run
         self.cmd.take_action(parsed_args)
 
-        mock_run_playbook.assert_called_once_with(
+        mock_run_playbook.assert_called_with(
             'cli-deploy-deployment-plan.yaml',
             'undercloud,',
             mock.ANY,

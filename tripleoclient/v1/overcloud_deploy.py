@@ -34,7 +34,6 @@ from keystoneauth1.exceptions.catalog import EndpointNotFound
 import openstack
 from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
-from swiftclient.exceptions import ClientException
 from tripleo_common import update
 
 from tripleoclient import command
@@ -504,7 +503,7 @@ class DeployOvercloud(command.Command):
                 user_env = yaml.safe_load(self.object_client.get_object(
                     parsed_args.stack, constants.USER_ENVIRONMENT)[1])
                 template_utils.deep_update(env, user_env)
-            except ClientException:
+            except Exception:
                 pass
         parameters.update(self._update_parameters(parsed_args, stack))
         template_utils.deep_update(env, self._create_parameters_env(
@@ -589,7 +588,7 @@ class DeployOvercloud(command.Command):
                               run_validations, skip_deploy_identifier,
                               plan_env_file,
                               deployment_options=deployment_options)
-        except ClientException as e:
+        except Exception as e:
             messages = 'Failed to deploy: %s' % str(e)
             raise ValueError(messages)
 

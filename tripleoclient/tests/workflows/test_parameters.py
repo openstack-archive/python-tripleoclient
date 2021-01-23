@@ -16,7 +16,6 @@ import mock
 
 from osc_lib.tests import utils
 
-from tripleoclient import exceptions
 from tripleoclient.workflows import parameters
 
 
@@ -39,10 +38,6 @@ class TestParameterWorkflows(utils.TestCommand):
         self.orchestration = mock.Mock()
         self.tripleoclient = mock.Mock()
         self.tripleoclient.object_store = mock.MagicMock()
-        self.websocket = mock.Mock()
-        self.websocket.__enter__ = lambda s: self.websocket
-        self.websocket.__exit__ = lambda s, *exc: None
-        self.tripleoclient.messaging_websocket.return_value = self.websocket
         self.app.client_manager.tripleoclient = self.tripleoclient
         self.app.client_manager.orchestration = self.orchestration
         self.app.client_manager.baremetal = mock.Mock()
@@ -77,39 +72,6 @@ class TestParameterWorkflows(utils.TestCommand):
         )
         flatten.start()
         self.addCleanup(flatten.stop)
-
-    @mock.patch('yaml.safe_load')
-    @mock.patch("six.moves.builtins.open")
-    def test_invoke_plan_env_workflows(self, mock_open,
-                                       mock_safe_load):
-        plan_env_data = {
-            'name': 'overcloud',
-            'workflow_parameters': {
-                'tripleo.derive_params.v1.derive_parameters': {
-                    'num_phy_cores_per_numa_node_for_pmd': 2
-                }
-            }
-        }
-        mock_safe_load.return_value = plan_env_data
-
-        self.websocket.wait_for_messages.return_value = iter([{
-            "execution_id": "IDID",
-            "status": "SUCCESS",
-            "message": "",
-            "result": {}
-        }])
-
-        parameters.invoke_plan_env_workflows(
-            self.app.client_manager,
-            'overcloud',
-            'the-plan-environment.yaml')
-
-        self.workflow.executions.create.assert_called_once_with(
-            'tripleo.derive_params.v1.derive_parameters',
-            workflow_input={
-                'plan': 'overcloud',
-                'user_inputs': {
-                    'num_phy_cores_per_numa_node_for_pmd': 2}})
 
     @mock.patch('yaml.safe_load')
     @mock.patch("six.moves.builtins.open")
@@ -193,67 +155,6 @@ class TestParameterWorkflows(utils.TestCommand):
             )
         ]
         mock_playbook.assert_has_calls(calls, any_order=True)
-
-    @mock.patch('yaml.safe_load')
-    @mock.patch("six.moves.builtins.open")
-    def test_invoke_plan_env_workflow_failed(self, mock_open,
-                                             mock_safe_load):
-        plan_env_data = {
-            'name': 'overcloud',
-            'workflow_parameters': {
-                'tripleo.derive_params.v1.derive_parameters': {
-                    'num_phy_cores_per_numa_node_for_pmd': 2
-                }
-            }
-        }
-        mock_safe_load.return_value = plan_env_data
-
-        self.websocket.wait_for_messages.return_value = iter([{
-            "execution_id": "IDID",
-            "status": "FAILED",
-            "message": "workflow failure",
-            "result": ""
-        }])
-
-        self.assertRaises(exceptions.PlanEnvWorkflowError,
-                          parameters.invoke_plan_env_workflows,
-                          self.app.client_manager, 'overcloud',
-                          'the-plan-environment.yaml')
-
-        self.workflow.executions.create.assert_called_once_with(
-            'tripleo.derive_params.v1.derive_parameters',
-            workflow_input={
-                'plan': 'overcloud',
-                'user_inputs': {
-                    'num_phy_cores_per_numa_node_for_pmd': 2}})
-
-    @mock.patch('yaml.safe_load')
-    @mock.patch("six.moves.builtins.open")
-    def test_invoke_plan_env_workflows_no_workflow_params(
-            self, mock_open, mock_safe_load):
-        plan_env_data = {'name': 'overcloud'}
-        mock_safe_load.return_value = plan_env_data
-
-        parameters.invoke_plan_env_workflows(
-            self.app.client_manager,
-            'overcloud',
-            'the-plan-environment.yaml')
-
-        self.workflow.executions.create.assert_not_called()
-
-    @mock.patch('yaml.safe_load')
-    @mock.patch("six.moves.builtins.open")
-    def test_invoke_plan_env_workflows_no_plan_env_file(
-            self, mock_open, mock_safe_load):
-
-        mock_open.side_effect = IOError('')
-
-        self.assertRaises(exceptions.PlanEnvWorkflowError,
-                          parameters.invoke_plan_env_workflows,
-                          self.app.client_manager, 'overcloud',
-                          'the-plan-environment.yaml')
-
-        self.workflow.executions.create.assert_not_called()
 
     def test_check_deprecated_params_no_output(self):
         parameters.check_deprecated_parameters(
