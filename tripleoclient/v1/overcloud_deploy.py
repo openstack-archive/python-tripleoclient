@@ -671,12 +671,6 @@ class DeployOvercloud(command.Command):
                 "Error: --deployed-server must be used when using "
                 "--baremetal-deployment")
 
-        if parsed_args.deployed_server and (parsed_args.run_validations
-           or not parsed_args.disable_validations):
-            raise oscexc.CommandError(
-                    "Error: The --deployed-server cannot be used without "
-                    "the --disable-validations")
-
         if parsed_args.environment_directories:
             self._validate_args_environment_directory(
                 parsed_args.environment_directories)
