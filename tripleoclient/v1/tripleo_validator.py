@@ -355,7 +355,7 @@ class TripleOValidatorRun(command.Command):
                     "inventory or use authentication.")
         else:
             if plan:
-                status = deployment.get_deployment_status(clients, plan)
+                status = deployment.get_deployment_status(clients, plan=plan)
                 if not status or status in NO_VALIDATION_STATE:
                     raise exceptions.CommandError(
                         "The plan and the stack '{}' doesn't exist OR are "
