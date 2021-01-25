@@ -1651,6 +1651,37 @@ def build_stack_data(clients, stack_name, template,
     return stack_data
 
 
+def jinja_render_files(log, templates, working_dir,
+                       roles_file=None, networks_file=None,
+                       base_path=None, output_dir=None):
+    python_version = sys.version_info[0]
+    python_cmd = "python{}".format(python_version)
+    process_templates = os.path.join(
+        templates, 'tools/process-templates.py')
+    args = [python_cmd, process_templates]
+
+    if roles_file:
+        roles_file_path = get_roles_file_path(
+            roles_file, base_path)
+        args.extend(['--roles-data', roles_file_path])
+
+    if networks_file:
+        networks_file_path = get_networks_file_path(
+            networks_file, base_path)
+        args.extend(['--network-data', networks_file_path])
+
+    if base_path:
+        args.extend(['-p', base_path])
+
+    if output_dir:
+        args.extend(['-o', output_dir])
+
+    if run_command_and_log(log, args, working_dir) != 0:
+        msg = _("Problems generating templates.")
+        log.error(msg)
+        raise exceptions.DeploymentError(msg)
+
+
 def process_multiple_environments(created_env_files, tht_root,
                                   user_tht_root,
                                   env_files_tracker=None,
