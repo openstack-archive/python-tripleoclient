@@ -348,11 +348,11 @@ class TripleOValidatorRun(command.Command):
                       "inventory or use authentication."))
         else:
             if plan:
-                status = deployment.get_deployment_status(clients, plan)
+                status = deployment.get_deployment_status(clients, plan=plan)
                 if not status or status in NO_VALIDATION_STATE:
                     raise exceptions.CommandError(
                         _("The plan and the stack '{}' doesn't exist OR are "
-                          "in 'failed' or 'deploying' state."
+                          "in 'failed' or 'deploying' state. "
                           "Please use a valid plan".format(plan)))
             else:
                 msg = "Running Validations without Overcloud settings."
