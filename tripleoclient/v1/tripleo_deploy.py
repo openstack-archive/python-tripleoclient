@@ -616,8 +616,9 @@ class Deploy(command.Command):
     def _load_user_params(self, user_environments):
         user_params = {}
         for env_file in user_environments:
-            # undercloud heat stack virtual state tracking is'nt available yet
-            if env_file.endswith('undercloud-stack-vstate-dropin.yaml'):
+            # undercloud and minion heat stack virtual state tracking is not
+            # available yet
+            if env_file.endswith('-stack-vstate-dropin.yaml'):
                 continue
 
             with open(env_file, 'r') as f:
