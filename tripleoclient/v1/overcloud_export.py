@@ -89,6 +89,9 @@ class ExportOvercloud(command.Command):
                                        not parsed_args.no_password_excludes)
         data.update(export.export_stack(
             clients.orchestration, stack, False, config_download_dir))
+        # do not add extra host entries for VIPs for stacks deployed off that
+        # exported data, since it already contains those entries
+        data.update({'AddVipsToEtcHosts': False})
         data = dict(parameter_defaults=data)
 
         # write the exported data
