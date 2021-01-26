@@ -1104,15 +1104,15 @@ class DeployOvercloud(command.Command):
         try:
             # Force fetching of attributes
             stack.get()
-
-            rcpath = deployment.create_overcloudrc(
-                container=stack.stack_name,
-                no_proxy=parsed_args.no_proxy)
-
             overcloud_endpoint = utils.get_overcloud_endpoint(stack)
-
             horizon_url = deployment.get_horizon_url(
                 stack=stack.stack_name)
+            rc_params = utils.get_rc_params(
+                self.orchestration_client,
+                parsed_args.stack)
+
+            rcpath = deployment.create_overcloudrc(
+                stack, rc_params, parsed_args.no_proxy)
 
             if parsed_args.config_download:
                 self.log.info("Deploying overcloud configuration")
