@@ -40,6 +40,7 @@ import six
 import socket
 import subprocess
 import sys
+import tarfile
 import tempfile
 import time
 import yaml
@@ -1649,6 +1650,39 @@ def build_stack_data(clients, stack_name, template,
         stack_data['heat_resource_tree'] = flattened
 
     return stack_data
+
+
+def archive_deploy_artifacts(log, stack_name, tht_dir,
+                             ansible_dir=None, output_dir=None):
+    """Create a tarball of the temporary folders used"""
+    log.debug(_("Preserving deployment artifacts"))
+
+    if not output_dir:
+        output_dir = tht_dir
+
+    def get_tar_filename():
+        return '%s/%s-install-%s.tar.bzip2' % \
+           (constants.CLOUD_HOME_DIR, stack_name,
+            datetime.datetime.utcnow().strftime('%Y%m%d%H%M%S'))
+
+    def remove_leading_path(info):
+        """Tar filter to remove output dir from path"""
+        leading_path = output_dir[1:] + '/'
+        info.name = info.name.replace(leading_path, '')
+        return info
+
+    tar_filename = get_tar_filename()
+    try:
+        tf = tarfile.open(tar_filename, 'w:bz2')
+        tf.add(tht_dir, recursive=True, filter=remove_leading_path)
+        if ansible_dir:
+            tf.add(ansible_dir, recursive=True,
+                   filter=remove_leading_path)
+        tf.close()
+    except Exception as ex:
+        msg = _("Unable to create artifact tarball, %s") % str(ex)
+        log.warning(msg)
+    return tar_filename
 
 
 def jinja_render_files(log, templates, working_dir,

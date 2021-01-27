@@ -301,6 +301,8 @@ class DeployOvercloud(command.Command):
             self._deploy_tripleo_heat_templates(stack, parsed_args,
                                                 new_tht_root, tht_root)
         finally:
+            utils.archive_deploy_artifacts(self.log, parsed_args.stack,
+                                           new_tht_root)
             if parsed_args.no_cleanup:
                 self.log.warning("Not cleaning temporary directory %s"
                                  % tht_tmp)

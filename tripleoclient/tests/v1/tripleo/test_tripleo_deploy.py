@@ -891,8 +891,8 @@ class TestDeployUndercloud(TestPluginV1):
     @mock.patch('six.moves.builtins.open')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_populate_templates_dir')
-    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
-                '_create_install_artifact', return_value='/tmp/foo.tar.bzip2')
+    @mock.patch('tripleoclient.utils.archive_deploy_artifacts',
+                return_value='/tmp/foo.tar.bzip2')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_cleanup_working_dirs')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
@@ -989,8 +989,8 @@ class TestDeployUndercloud(TestPluginV1):
     @mock.patch('six.moves.builtins.open')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_populate_templates_dir')
-    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
-                '_create_install_artifact', return_value='/tmp/foo.tar.bzip2')
+    @mock.patch('tripleoclient.utils.archive_deploy_artifacts',
+                return_value='/tmp/foo.tar.bzip2')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_cleanup_working_dirs')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
@@ -1077,8 +1077,8 @@ class TestDeployUndercloud(TestPluginV1):
     @mock.patch('six.moves.builtins.open')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_populate_templates_dir')
-    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
-                '_create_install_artifact', return_value='/tmp/foo.tar.bzip2')
+    @mock.patch('tripleoclient.utils.archive_deploy_artifacts',
+                return_value='/tmp/foo.tar.bzip2')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_cleanup_working_dirs')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
@@ -1236,8 +1236,8 @@ class TestDeployUndercloud(TestPluginV1):
     @mock.patch('six.moves.builtins.open')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_populate_templates_dir')
-    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
-                '_create_install_artifact', return_value='/tmp/foo.tar.bzip2')
+    @mock.patch('tripleoclient.utils.archive_deploy_artifacts',
+                return_value='/tmp/foo.tar.bzip2')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_cleanup_working_dirs')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
@@ -1298,8 +1298,8 @@ class TestDeployUndercloud(TestPluginV1):
     @mock.patch('six.moves.builtins.open')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_populate_templates_dir')
-    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
-                '_create_install_artifact', return_value='/tmp/foo.tar.bzip2')
+    @mock.patch('tripleoclient.utils.archive_deploy_artifacts',
+                return_value='/tmp/foo.tar.bzip2')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_cleanup_working_dirs')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'

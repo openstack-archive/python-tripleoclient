@@ -24,14 +24,12 @@ import shutil
 import six
 import subprocess
 import sys
-import tarfile
 import tempfile
 import time
 import traceback
 import yaml
 
 from cliff import command
-from datetime import datetime
 from heatclient.common import template_utils
 from osc_lib.i18n import _
 from six.moves import configparser
@@ -217,41 +215,6 @@ class Deploy(command.Command):
         self.log.warning('No primary role found in roles_data, using '
                          'first defined role')
         return roles_data[0]['name']
-
-    def _get_tar_filename(self, stack_name='undercloud'):
-        """Return tarball name for the install artifacts"""
-        return '%s/%s-install-%s.tar.bzip2' % \
-               (self.output_dir, stack_name,
-                datetime.utcnow().strftime('%Y%m%d%H%M%S'))
-
-    def _create_install_artifact(self, user, stack_name='undercloud'):
-        """Create a tarball of the temporary folders used"""
-        self.log.debug(_("Preserving deployment artifacts"))
-
-        def remove_output_dir(info):
-            """Tar filter to remove output dir from path"""
-            # leading path to tar is home/stack/ rather than /home/stack
-            leading_path = self.output_dir[1:] + '/'
-            info.name = info.name.replace(leading_path, '')
-            return info
-
-        # tar up working data and put in
-        # output_dir/undercloud-install-TS.tar.bzip2
-        # if the stack name is "undercloud".
-        tar_filename = self._get_tar_filename(stack_name)
-        try:
-            tf = tarfile.open(tar_filename, 'w:bz2')
-            tf.add(self.tht_render, recursive=True, filter=remove_output_dir)
-            tf.add(self.tmp_ansible_dir, recursive=True,
-                   filter=remove_output_dir)
-            tf.close()
-        except Exception as ex:
-            msg = _("Unable to create artifact tarball, %s") % ex.message
-            self.log.error(msg)
-            raise exceptions.DeploymentError(msg)
-        # TODO(cjeanner) drop that once using oslo.privsep
-        self._set_data_rights(tar_filename, user=user)
-        return tar_filename
 
     def _create_persistent_dirs(self):
         """Creates temporary working directories"""
@@ -1389,8 +1352,13 @@ class Deploy(command.Command):
             if not parsed_args.keep_running:
                 self._kill_heat(parsed_args)
             tar_filename = \
-                self._create_install_artifact(parsed_args.deployment_user,
-                                              parsed_args.stack.lower())
+                utils.archive_deploy_artifacts(
+                    self.log,
+                    parsed_args.stack.lower(),
+                    self.tht_render,
+                    self.tmp_ansible_dir,
+                    self.output_dir)
+
             if self.ansible_dir:
                 self._dump_ansible_errors(
                     os.path.join(self.ansible_dir,
