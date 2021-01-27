@@ -666,7 +666,7 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
 
         if reproduce_command:
             command_path = os.path.join(
-                playbook_dir,
+                workdir,
                 "ansible-playbook-command.sh"
             )
             with open(command_path, 'w') as f:
