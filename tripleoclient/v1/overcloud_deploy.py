@@ -275,9 +275,6 @@ class DeployOvercloud(command.Command):
             template_file=template_path)
         files = dict(list(template_files.items()) + list(env_files.items()))
 
-        # Fix if required
-        # workflow_params.check_deprecated_parameters(self.clients, stack_name)
-
         self.log.info("Deploying templates in the directory {0}".format(
             os.path.abspath(tht_root)))
         deployment.deploy_without_plan(
@@ -1055,18 +1052,18 @@ class GetDeploymentStatus(command.Command):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
-        plan = parsed_args.plan
+        stack = parsed_args.plan
 
         status = deployment.get_deployment_status(
             self.app.client_manager,
-            plan
+            stack
         )
 
         if not status:
-            self.log.info('No deployment was found for %s' % plan)
+            self.log.info('No deployment was found for %s' % stack)
             return
 
         table = PrettyTable(
-            ['Plan Name', 'Deployment Status'])
-        table.add_row([plan, status])
+            ['Stack Name', 'Deployment Status'])
+        table.add_row([stack, status])
         print(table, file=self.app.stdout)

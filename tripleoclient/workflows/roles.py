@@ -14,10 +14,6 @@ import logging
 
 import yaml
 
-from tripleo_common.actions import plan
-# TODO(cloudnull): Convert to a swiftutils in tripleo-common
-# from tripleo_common.utils import swift as swiftutils
-
 from tripleoclient import utils
 
 LOG = logging.getLogger(__name__)
@@ -60,54 +56,3 @@ def get_roles(clients, roles_file, tht_root,
             valid_roles.append(name)
 
     return valid_roles
-
-
-def list_available_roles(clients, container='overcloud'):
-    """Return a list of available roles.
-
-    :param clients: openstack clients
-    :type clients: Object
-
-    :param container: Name of swift object container
-    :type container: String
-
-    :returns: List
-    """
-
-    LOG.info('Pulling role list from: {}'.format(container))
-    obj_client = clients.tripleoclient.object_store
-    available_yaml_roles = list()
-    LOG.info('Indexing roles from: {}'.format(container))
-    # TODO(cloudnull): Convert to a swiftutils in tripleo-common
-    for obj in obj_client.get_container(container)[-1]:
-        name = obj['name']
-        if name.startswith('roles/') and name.endswith(('yml', 'yaml')):
-            role_data = yaml.safe_load(
-                obj_client.get_object(container, name)[-1]
-            )
-            available_yaml_roles.append(role_data[0])
-
-    return available_yaml_roles
-
-
-def list_roles(clients, container, detail=False):
-    """Return a list of roles.
-
-    :param clients: openstack clients
-    :type clients: Object
-
-    :param container: Name of swift object container
-    :type container: String
-
-    :param detail: Enable or disable extra detail
-    :type detail: Boolean
-
-    :returns: List
-    """
-
-    context = clients.tripleoclient.create_mistral_context()
-    LOG.info('Pulling roles from: {}'.format(container))
-    return plan.ListRolesAction(
-        container=container,
-        detail=detail
-    ).run(context=context)

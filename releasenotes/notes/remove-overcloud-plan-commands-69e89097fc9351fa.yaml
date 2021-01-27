@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    ``openstack overcloud plan *`` commands have been removed.
+    These commands are irrelevant as overcloud deploy/update/upgrade
+    does not create/update swift plan anymore. Also, some of the
+    ``openstack overcloud role`` commands that use swift plan have
+    been removed.
