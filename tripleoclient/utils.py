@@ -253,7 +253,7 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
                          parallel_run=False,
                          callback_whitelist=constants.ANSIBLE_CWL,
                          ansible_cfg=None, ansible_timeout=30,
-                         reproduce_command=False,
+                         reproduce_command=True,
                          timeout=None, forks=None):
     """Simple wrapper for ansible-playbook.
 

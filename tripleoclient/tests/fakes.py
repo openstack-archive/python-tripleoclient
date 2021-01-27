@@ -220,6 +220,9 @@ class FakeRunnerConfig(object):
     env = dict()  # noqa
     artifact_dir = ''
 
+    def __init__(self):
+        self.command = []
+
     def prepare(self):
         pass
 

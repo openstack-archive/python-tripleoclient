@@ -205,10 +205,12 @@ class TestRunAnsiblePlaybook(TestCase):
             extra_vars=arglist
         )
 
+    @mock.patch('os.chmod')
     @mock.patch('six.moves.builtins.open')
     @mock.patch('tripleoclient.utils.makedirs')
     @mock.patch('os.path.exists', side_effect=(False, True, True))
-    def test_run_with_timeout(self, mock_exists, mock_mkdir, mock_open):
+    def test_run_with_timeout(self, mock_exists, mock_mkdir, mock_open,
+                              mock_chmod):
         ansible_runner.ArtifactLoader = mock.MagicMock()
         ansible_runner.Runner.run = mock.MagicMock(return_value=('', 0))
         ansible_runner.runner_config = mock.MagicMock()
