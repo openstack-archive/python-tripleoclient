@@ -1,0 +1,5 @@
+---
+features:
+  - The --setup-only option has been added to facilitate the generation
+    of ansible content and ensure the environment is accessible via the
+    current stack.
