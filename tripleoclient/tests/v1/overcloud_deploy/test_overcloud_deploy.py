@@ -626,7 +626,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         def _fake_heat_deploy(self, stack, stack_name, template_path,
                               parameters, environments, timeout, tht_root,
-                              env, update_plan_only, run_validations,
+                              env, run_validations,
                               skip_deploy_identifier, plan_env_file,
                               deployment_options=None):
             assertEqual(
@@ -649,66 +649,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         self.cmd.take_action(parsed_args)
         mock_copy.assert_called_once()
-        object_client.put_container.assert_called_once_with(
-            'overcloud', headers={'x-container-meta-usage-tripleo': 'plan'})
-
-    @mock.patch('tripleoclient.utils.check_stack_network_matches_env_files')
-    @mock.patch('tripleoclient.utils.check_ceph_fsid_matches_env_files')
-    @mock.patch('tripleoclient.utils.get_stack', autospec=True)
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_deploy_postconfig', autospec=True)
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_update_parameters', autospec=True)
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_heat_deploy', autospec=True)
-    def test_environment_dirs_env(self, mock_deploy_heat,
-                                  mock_update_parameters, mock_post_config,
-                                  mock_utils_get_stack,
-                                  mock_stack_network_check,
-                                  mock_ceph_fsid):
-
-        plane_management_fixture = deployment.PlanManagementFixture()
-        self.useFixture(plane_management_fixture)
-        utils_fixture = deployment.UtilsOvercloudFixture()
-        self.useFixture(utils_fixture)
-        clients = self.app.client_manager
-
-        mock_update_parameters.return_value = {}
-        mock_utils_get_stack.return_value = None
-        utils_fixture.mock_utils_endpoint.return_value = 'foo.bar'
-
-        test_env = self.tmp_dir.join('foo2.yaml')
-
-        with open(test_env, 'w') as temp_file:
-            temp_file.write('resource_registry:\n  Test: OS::Heat::None')
-
-        arglist = ['--templates', '--update-plan-only']
-        verifylist = [
-            ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
-        ]
-        self.useFixture(
-            fixtures.EnvironmentVariable('TRIPLEO_ENVIRONMENT_DIRECTORY',
-                                         self.tmp_dir.path))
-
-        def assertEqual(*args):
-            self.assertEqual(*args)
-
-        def _fake_heat_deploy(self, stack, stack_name, template_path,
-                              parameters, environments, timeout, tht_root,
-                              env, update_plan_only, run_validations,
-                              skip_deploy_identifier, plan_env_file,
-                              deployment_options=None):
-            # Should be no breakpoint cleanup because utils.get_stack = None
-            assertEqual(
-                {'parameter_defaults': {},
-                 'resource_registry': {'Test': u'OS::Heat::None'}}, env)
-
-        mock_deploy_heat.side_effect = _fake_heat_deploy
-        object_client = clients.tripleoclient.object_store
-        object_client.put_container = mock.Mock()
-
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-        self.cmd.take_action(parsed_args)
         object_client.put_container.assert_called_once_with(
             'overcloud', headers={'x-container-meta-usage-tripleo': 'plan'})
 
@@ -836,8 +776,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_heat_deploy_func.assert_called_once_with(
             self.cmd, {}, 'overcloud',
             '/fake/path/' + constants.OVERCLOUD_YAML_NAME, {},
-            ['~/overcloud-env.json'], 1, '/fake/path', {}, False, True, False,
-            None, deployment_options=None)
+            ['~/overcloud-env.json'], 1, '/fake/path', {}, False, True,
+            False, deployment_options=None)
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_heat_deploy', autospec=True)
@@ -1164,53 +1104,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         object_client.put_container.assert_called_once_with(
             'overcloud', headers={'x-container-meta-usage-tripleo': 'plan'})
 
-    @mock.patch('tripleoclient.workflows.parameters.'
-                'check_deprecated_parameters', autospec=True)
-    @mock.patch('tripleoclient.workflows.deployment.deploy_and_wait',
-                autospec=True)
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_process_and_upload_environment', autospec=True)
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_upload_missing_files', autospec=True)
-    @mock.patch('heatclient.common.template_utils.get_template_contents',
-                autospec=True)
-    @mock.patch('os.path.relpath', autospec=True)
-    @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env',
-                autospec=True)
-    @mock.patch('tripleo_common.update.check_neutron_mechanism_drivers')
-    def test_heat_deploy_update_plan_only(self, check_mech,
-                                          mock_breakpoints_cleanup,
-                                          mock_relpath,
-                                          mock_get_template_contents,
-                                          mock_upload_missing_files,
-                                          mock_process_and_upload_env,
-                                          mock_deploy_and_wait,
-                                          mock_deprecated_params):
-        clients = self.app.client_manager
-        check_mech.return_value = None
-        orchestration_client = clients.orchestration
-        mock_stack = fakes.create_tht_stack()
-        orchestration_client.stacks.get.side_effect = [
-            None,
-            mock.MagicMock()
-        ]
-
-        object_client = clients.tripleoclient.object_store
-        object_client.get_object = mock.Mock()
-        mock_env = yaml.safe_dump({'environments': []})
-        object_client.get_object.return_value = ({}, mock_env)
-
-        mock_relpath.return_value = './'
-
-        mock_get_template_contents.return_value = [{}, {}]
-
-        self.cmd.clients = {}
-        self.cmd.object_client = object_client
-        self.cmd._heat_deploy(mock_stack, 'mock_stack', '/tmp', {},
-                              {}, 1, '/tmp', {}, True, False, False, None)
-
-        self.assertFalse(mock_deploy_and_wait.called)
-
     @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
@@ -1453,7 +1346,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                         'UndercloudHostsEntries':
                            ['192.168.0.1 uc.ctlplane.localhost uc.ctlplane'],
                         'CtlplaneNetworkAttributes': {}}, {}, 451, mock.ANY,
-                       {}, False, False, False, None, deployment_options={})],
+                       {}, False, False, None, deployment_options={})],
             mock_hd.mock_calls)
         self.assertIn(
             [mock.call(mock.ANY, mock.ANY, mock.ANY, 'ctlplane', None, None,
