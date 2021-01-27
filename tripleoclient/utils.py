@@ -61,7 +61,6 @@ from six.moves.urllib import error as url_error
 from six.moves.urllib import request
 
 from tripleo_common.utils import stack as stack_utils
-from tripleo_common.utils import swift as swiftutils
 from tripleoclient import constants
 from tripleoclient import exceptions
 
@@ -2469,39 +2468,18 @@ def copy_clouds_yaml(user):
         raise exceptions.DeploymentError(msg)
 
 
-def update_deployment_status(clients, plan, status):
-    """Update the deployment status object in swift.
+def get_status_yaml(stack_name):
+    status_yaml = os.path.join(
+        constants.CLOUD_HOME_DIR,
+        '%s-deployment_status.yaml' % stack_name)
+    return status_yaml
 
-    :param clients: application client object.
-    :type clients: Object
 
-    :param plan: Plan name.
-    :type plan: String
+def update_deployment_status(stack_name, status):
+    """Update the deployment status."""
 
-    :param status: Status information.
-    :type status: Dictionary
-    """
+    contents = yaml.safe_dump(
+        {'deployment_status': status},
+        default_flow_style=False)
 
-    container = '{}-messages'.format(plan)
-
-    # create {plan}-messages container if not there
-    swift = clients.tripleoclient.object_store
-    swiftutils.create_container(swiftclient=swift, container=container)
-    swiftutils.put_object_string(
-        swift=swift,
-        container=container,
-        object_name='deployment_status.yaml',
-        contents=yaml.safe_dump(
-            {
-                'deployment_status': status,
-                'workflow_status': {
-                    'payload': {
-                        'deployment_status': status,
-                        'plan_name': plan,
-                    },
-                    'type': 'tripleoclient'
-                }
-            },
-            default_flow_style=False
-        )
-    )
+    safe_write(get_status_yaml(stack_name), contents)

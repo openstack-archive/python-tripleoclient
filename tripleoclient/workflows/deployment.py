@@ -19,7 +19,6 @@ from heatclient.common import event_utils
 from heatclient import exc as heat_exc
 from openstackclient import shell
 from tripleo_common.utils import overcloudrc as rc_utils
-from tripleo_common.utils import swift as swiftutils
 
 from tripleoclient.constants import ANSIBLE_TRIPLEO_PLAYBOOKS
 from tripleoclient.constants import CLOUD_HOME_DIR
@@ -90,8 +89,7 @@ def deploy_and_wait(log, clients, stack, plan_name, verbose_level,
         marker = events[0].id if events else None
         action = 'UPDATE'
 
-    set_deployment_status(clients=clients,
-                          plan=plan_name,
+    set_deployment_status(plan_name,
                           status='DEPLOYING')
 
     try:
@@ -102,8 +100,7 @@ def deploy_and_wait(log, clients, stack, plan_name, verbose_level,
             timeout=timeout,
             verbosity=verbose_level)
     except Exception:
-        set_deployment_status(clients=clients,
-                              plan=plan_name,
+        set_deployment_status(plan_name,
                               status='DEPLOY_FAILED')
         raise
 
@@ -114,8 +111,7 @@ def deploy_and_wait(log, clients, stack, plan_name, verbose_level,
     if not create_result:
         shell.OpenStackShell().run(["stack", "failures", "list", plan_name])
         set_deployment_status(
-            clients=clients,
-            plan=plan_name,
+            plan_name,
             status='DEPLOY_FAILED'
         )
         if stack is None:
@@ -156,8 +152,7 @@ def deploy_without_plan(clients, stack, stack_name, template,
         marker = events[0].id if events else None
         action = 'UPDATE'
 
-    set_deployment_status(clients=clients,
-                          plan=stack_name,
+    set_deployment_status(stack_name,
                           status='DEPLOYING')
     stack_args = {
         'stack_name': stack_name,
@@ -173,8 +168,7 @@ def deploy_without_plan(clients, stack, stack_name, template,
 
         print("Success.")
     except Exception:
-        set_deployment_status(clients=clients,
-                              plan=stack_name,
+        set_deployment_status(stack_name,
                               status='DEPLOY_FAILED')
         raise
 
@@ -183,8 +177,7 @@ def deploy_without_plan(clients, stack, stack_name, template,
     if not create_result:
         shell.OpenStackShell().run(["stack", "failures", "list", stack_name])
         set_deployment_status(
-            clients=clients,
-            plan=stack_name,
+            stack_name,
             status='DEPLOY_FAILED'
         )
         if stack is None:
@@ -548,46 +541,22 @@ def get_horizon_url(stack, verbosity=0):
             return f.read().strip()
 
 
-def get_deployment_status(clients, plan):
-    """Return current deployment status.
+def get_deployment_status(clients, stack_name):
+    """Return current deployment status."""
 
-    :param clients: application client object.
-    :type clients: Object
-
-    :param plan: Plan name.
-    :type plan: String
-
-    :returns: string
-    """
     try:
-        clients.orchestration.stacks.get(plan)
+        clients.orchestration.stacks.get(stack_name)
     except heat_exc.HTTPNotFound:
         return None
 
     try:
-        body = swiftutils.get_object_string(
-            clients.tripleoclient.object_store,
-            '%s-messages' % plan,
-            'deployment_status.yaml')
-
-        return yaml.safe_load(body)['deployment_status']
+        status_yaml = utils.get_status_yaml(stack_name)
+        return yaml.safe_load(status_yaml)['deployment_status']
     except Exception:
         return None
 
 
-def set_deployment_status(clients, plan, status):
-    """Update a given deployment status.
-
-    :param clients: application client object.
-    :type clients: Object
-
-    :param plan: Plan name.
-    :type plan: String
-
-    :param status: Current status of the deployment.
-    :type status: String
-    """
+def set_deployment_status(stack_name, status):
     utils.update_deployment_status(
-        clients=clients,
-        plan=plan,
+        stack_name=stack_name,
         status=status)

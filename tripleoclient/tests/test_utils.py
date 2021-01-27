@@ -1792,23 +1792,17 @@ class TestGeneralUtils(base.TestCommand):
 
     def setUp(self):
         super(TestGeneralUtils, self).setUp()
-        self.tc = self.app.client_manager.tripleoclient = mock.Mock()
-        obj = self.tc.object_store = mock.Mock()
-        obj.put_object = mock.Mock()
-        obj.put_container = mock.Mock()
 
-    def test_update_deployment_status(self):
+    @mock.patch('tripleoclient.utils.safe_write')
+    def test_update_deployment_status(self, mock_write):
         mock_status = {
-            'status_update': 'TESTING',
             'deployment_status': 'TESTING'
         }
         utils.update_deployment_status(
-            self.app.client_manager,
             'overcloud',
             mock_status
         )
-        self.tc.object_store.put_object.assert_called()
-        self.tc.object_store.put_container.assert_called()
+        mock_write.assert_called()
 
     def test_playbook_limit_parse(self):
         limit_nodes = 'controller0, compute0:compute1,!compute2'

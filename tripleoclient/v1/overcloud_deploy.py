@@ -960,8 +960,7 @@ class DeployOvercloud(command.Command):
             if parsed_args.config_download:
                 self.log.info("Deploying overcloud configuration")
                 deployment.set_deployment_status(
-                    clients=self.clients,
-                    plan=stack.stack_name,
+                    stack.stack_name,
                     status='DEPLOYING'
                 )
 
@@ -1009,16 +1008,14 @@ class DeployOvercloud(command.Command):
                     forks=parsed_args.ansible_forks
                 )
                 deployment.set_deployment_status(
-                    clients=self.clients,
-                    plan=stack.stack_name,
+                    stack.stack_name,
                     status=deploy_status)
         except Exception as deploy_e:
             deploy_status = 'DEPLOY_FAILED'
             deploy_message = 'with error'
             deploy_trace = deploy_e
             deployment.set_deployment_status(
-                clients=self.clients,
-                plan=stack.stack_name,
+                stack.stack_name,
                 status=deploy_status
             )
         finally:
@@ -1062,7 +1059,7 @@ class GetDeploymentStatus(command.Command):
 
         status = deployment.get_deployment_status(
             self.app.client_manager,
-            plan=plan
+            plan
         )
 
         if not status:
