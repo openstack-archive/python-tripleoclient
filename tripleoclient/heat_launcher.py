@@ -223,7 +223,7 @@ limit_iterators=9000
 
         heat_api_paste_config = '''
 [pipeline:heat-api-noauth]
-pipeline = noauth context versionnegotiation apiv1app
+pipeline = faultwrap noauth context versionnegotiation apiv1app
 [app:apiv1app]
 paste.app_factory = heat.common.wsgi:app_factory
 heat.app_factory = heat.api.openstack.v1:API
@@ -234,6 +234,9 @@ paste.filter_factory = heat.common.context:ContextMiddleware_filter_factory
 [filter:versionnegotiation]
 paste.filter_factory = heat.common.wsgi:filter_factory
 heat.filter_factory = heat.api.openstack:version_negotiation_filter
+[filter:faultwrap]
+paste.filter_factory = heat.common.wsgi:filter_factory
+heat.filter_factory = heat.api.openstack:faultwrap_filter
 '''
         with open(self.paste_file, 'w') as temp_file:
             temp_file.write(heat_api_paste_config)
