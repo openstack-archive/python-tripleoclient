@@ -77,6 +77,7 @@ class TestRunAnsiblePlaybook(TestCase):
         self.env['ANSIBLE_HOST_KEY_CHECKING'] = 'False'
         self.env['ANSIBLE_LOG_PATH'] = '/tmp/ansible.log'
         self.env['TRIPLEO_PLAN_NAME'] = 'overcloud'
+        self.env['ANSIBLE_FORKS'] = '16'
 
     @mock.patch('os.path.exists', return_value=False)
     @mock.patch('tripleoclient.utils.run_command_and_log')
@@ -91,10 +92,12 @@ class TestRunAnsiblePlaybook(TestCase):
         mock_exists.assert_called_once_with('/tmp/non-existing.yaml')
         mock_run.assert_not_called()
 
+    @mock.patch('multiprocessing.cpu_count', return_value=4)
     @mock.patch('tempfile.mkstemp', return_value=('foo', '/tmp/fooBar.cfg'))
     @mock.patch('os.path.exists', return_value=True)
     @mock.patch('tripleoclient.utils.run_command_and_log')
-    def test_subprocess_error(self, mock_run, mock_exists, mock_mkstemp):
+    def test_subprocess_error(self, mock_run, mock_exists, mock_mkstemp,
+                              mock_cpu_count):
         mock_process = mock.Mock()
         mock_process.returncode = 1
         mock_process.stdout.read.side_effect = ["Error\n"]
@@ -128,10 +131,12 @@ class TestRunAnsiblePlaybook(TestCase):
         mock_isabs.assert_called_with('/tmp/foo.cfg')
         mock_run.assert_not_called()
 
+    @mock.patch('multiprocessing.cpu_count', return_value=4)
     @mock.patch('tempfile.mkstemp', return_value=('foo', '/tmp/fooBar.cfg'))
     @mock.patch('os.path.exists', return_value=True)
     @mock.patch('tripleoclient.utils.run_command_and_log')
-    def test_run_success_default(self, mock_run, mock_exists, mock_mkstemp):
+    def test_run_success_default(self, mock_run, mock_exists, mock_mkstemp,
+                                 mock_cpu_count):
         mock_run.return_value = 0
 
         utils.run_ansible_playbook(
@@ -146,10 +151,12 @@ class TestRunAnsiblePlaybook(TestCase):
                                           '/tmp/existing.yaml'],
                                          env=self.env)
 
+    @mock.patch('multiprocessing.cpu_count', return_value=4)
     @mock.patch('os.path.isabs')
     @mock.patch('os.path.exists', return_value=True)
     @mock.patch('tripleoclient.utils.run_command_and_log')
-    def test_run_success_ansible_cfg(self, mock_run, mock_exists, mock_isabs):
+    def test_run_success_ansible_cfg(self, mock_run, mock_exists, mock_isabs,
+                                     mock_cpu_count):
         mock_run.return_value = 0
 
         utils.run_ansible_playbook(
@@ -173,11 +180,12 @@ class TestRunAnsiblePlaybook(TestCase):
                                           '/tmp/existing.yaml'],
                                          env=self.env)
 
+    @mock.patch('multiprocessing.cpu_count', return_value=4)
     @mock.patch('tempfile.mkstemp', return_value=('foo', '/tmp/fooBar.cfg'))
     @mock.patch('os.path.exists', return_value=True)
     @mock.patch('tripleoclient.utils.run_command_and_log')
     def test_run_success_connection_local(self, mock_run, mock_exists,
-                                          mok_mkstemp):
+                                          mok_mkstemp, mock_cpu_count):
         mock_run.return_value = 0
 
         utils.run_ansible_playbook(
@@ -196,11 +204,12 @@ class TestRunAnsiblePlaybook(TestCase):
                                           '/tmp/existing.yaml'],
                                          env=self.env)
 
+    @mock.patch('multiprocessing.cpu_count', return_value=4)
     @mock.patch('tempfile.mkstemp', return_value=('foo', '/tmp/fooBar.cfg'))
     @mock.patch('os.path.exists', return_value=True)
     @mock.patch('tripleoclient.utils.run_command_and_log')
     def test_run_success_gathering_policy(self, mock_run, mock_exists,
-                                          mok_mkstemp):
+                                          mok_mkstemp, mock_cpu_count):
         mock_run.return_value = 0
 
         utils.run_ansible_playbook(
@@ -221,10 +230,12 @@ class TestRunAnsiblePlaybook(TestCase):
                                           '/tmp/existing.yaml'],
                                          env=self.env)
 
+    @mock.patch('multiprocessing.cpu_count', return_value=4)
     @mock.patch('tempfile.mkstemp', return_value=('foo', '/tmp/fooBar.cfg'))
     @mock.patch('os.path.exists', return_value=True)
     @mock.patch('tripleoclient.utils.run_command_and_log')
-    def test_run_success_extra_vars(self, mock_run, mock_exists, mock_mkstemp):
+    def test_run_success_extra_vars(self, mock_run, mock_exists, mock_mkstemp,
+                                    mock_cpu_count):
         mock_run.return_value = 0
 
         arglist = {

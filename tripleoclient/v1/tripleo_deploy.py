@@ -1110,6 +1110,14 @@ class Deploy(command.Command):
                    'deployed services are running right after their '
                    'activation. Defaults to False.')
         )
+        parser.add_argument(
+            '--ansible-forks',
+            action='store',
+            default=None,
+            type=int,
+            help=_('The number of Ansible forks to use for the'
+                   ' config-download ansible-playbook command.')
+        )
 
         stack_action_group = parser.add_mutually_exclusive_group()
 
@@ -1309,8 +1317,13 @@ class Deploy(command.Command):
                 shutil.copy(ansible_config, self.ansible_dir)
 
             extra_args = []
+
             if not parsed_args.inflight:
                 extra_args = ['--skip-tags', 'opendev-validation']
+
+            if parsed_args.ansible_forks:
+                extra_args.append('--forks', str(parsed_args.ansible_forks))
+
             # Kill heat, we're done with it now.
             if not parsed_args.keep_running:
                 self._kill_heat(parsed_args)

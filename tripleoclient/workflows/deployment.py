@@ -337,7 +337,8 @@ def config_download(log, clients, stack, templates,
                     deployment_timeout=None,
                     skip_tags=None,
                     tags=None,
-                    limit_hosts=None):
+                    limit_hosts=None,
+                    forks=None):
     workflow_client = clients.workflow_engine
     tripleoclients = clients.tripleoclient
 
@@ -356,7 +357,8 @@ def config_download(log, clients, stack, templates,
         'deployment_options': deployment_options,
         'skip_tags': skip_tags,
         'tags': tags,
-        'limit_hosts': utils.playbook_limit_parse(limit_hosts)
+        'limit_hosts': utils.playbook_limit_parse(limit_hosts),
+        'forks': forks
     }
     if output_dir:
         workflow_input.update(dict(work_dir=output_dir))

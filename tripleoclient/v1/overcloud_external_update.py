@@ -108,6 +108,14 @@ class ExternalUpdateRun(command.Command):
                    "execution will be limited to. For example: --limit"
                    " \"compute-0,compute-1,compute-5\".")
         )
+        parser.add_argument(
+            '--ansible-forks',
+            action='store',
+            default=None,
+            type=int,
+            help=_('The number of Ansible forks to use for the'
+                   ' config-download ansible-playbook command.')
+        )
 
         return parser
 
@@ -146,6 +154,6 @@ class ExternalUpdateRun(command.Command):
             (None if parsed_args.no_workflow else package_update),
             tags=parsed_args.tags, skip_tags=parsed_args.skip_tags,
             verbosity=verbosity, extra_vars=extra_vars, workdir=ansible_dir,
-            priv_key=key)
+            priv_key=key, forks=parsed_args.ansible_forks)
 
         self.log.info("Completed Overcloud External Update Run.")
