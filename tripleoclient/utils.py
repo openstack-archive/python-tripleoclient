@@ -59,6 +59,7 @@ from heatclient import exc as hc_exc
 from six.moves.urllib import error as url_error
 from six.moves.urllib import request
 
+from tripleo_common.utils import stack as stack_utils
 from tripleo_common.utils import swift as swiftutils
 from tripleoclient import constants
 from tripleoclient import exceptions
@@ -1616,11 +1617,48 @@ def cleanup_tripleo_ansible_inventory_file(path):
         processutils.execute('/usr/bin/rm', '-f', path)
 
 
+def get_roles_file_path(roles_file, tht_root):
+    roles_file = roles_file or os.path.join(
+        tht_root, constants.OVERCLOUD_ROLES_FILE)
+    return os.path.abspath(roles_file)
+
+
+def get_networks_file_path(networks_file, tht_root):
+    networks_file = networks_file or os.path.join(
+        tht_root, constants.OVERCLOUD_NETWORKS_FILE)
+    return os.path.abspath(networks_file)
+
+
+def build_stack_data(clients, stack_name, template,
+                     files, env_files):
+    orchestration_client = clients.orchestration
+    fields = {
+        'template': template,
+        'files': files,
+        'environment_files': env_files,
+        'show_nested': True
+    }
+    stack_data = {}
+    result = orchestration_client.stacks.validate(**fields)
+
+    if result:
+        stack_data['environment_parameters'] = result.get(
+            'Environment', {}).get('parameter_defaults')
+        flattened = {'resources': {}, 'parameters': {}}
+        stack_utils._flat_it(flattened, 'Root', result)
+        stack_data['heat_resource_tree'] = flattened
+
+    return stack_data
+
+
 def process_multiple_environments(created_env_files, tht_root,
-                                  user_tht_root, cleanup=True):
+                                  user_tht_root,
+                                  env_files_tracker=None,
+                                  cleanup=True):
     log = logging.getLogger(__name__ + ".process_multiple_environments")
     env_files = {}
     localenv = {}
+    include_env_in_files = env_files_tracker is not None
     # Normalize paths for full match checks
     user_tht_root = os.path.normpath(user_tht_root)
     tht_root = os.path.normpath(tht_root)
@@ -1639,7 +1677,10 @@ def process_multiple_environments(created_env_files, tht_root,
             env_path = new_env_path
         try:
             files, env = template_utils.process_environment_and_files(
-                env_path=env_path)
+                env_path=env_path, include_env_in_files=include_env_in_files)
+            if env_files_tracker is not None:
+                env_files_tracker.append(
+                    heat_utils.normalise_file_path_to_url(env_path))
         except hc_exc.CommandError as ex:
             # This provides fallback logic so that we can reference files
             # inside the resource_registry values that may be rendered via
@@ -1687,7 +1728,10 @@ def process_multiple_environments(created_env_files, tht_root,
                 f.write(yaml.safe_dump(env_map, default_flow_style=False))
                 f.flush()
                 files, env = template_utils.process_environment_and_files(
-                    env_path=f.name)
+                    env_path=f.name, include_env_in_files=include_env_in_files)
+                if env_files_tracker is not None:
+                    env_files_tracker.append(
+                        heat_utils.normalise_file_path_to_url(f.name))
         if files:
             log.debug("Adding files %s for %s" % (files, env_path))
             env_files.update(files)

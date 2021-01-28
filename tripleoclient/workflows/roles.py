@@ -18,8 +18,48 @@ from tripleo_common.actions import plan
 # TODO(cloudnull): Convert to a swiftutils in tripleo-common
 # from tripleo_common.utils import swift as swiftutils
 
+from tripleoclient import utils
 
 LOG = logging.getLogger(__name__)
+
+
+def get_roles_data(roles_file, tht_root):
+    abs_roles_file = utils.get_roles_file_path(
+        roles_file, tht_root)
+    roles_data = None
+    with open(abs_roles_file, 'r') as fp:
+        roles_data = yaml.safe_load(fp)
+    return roles_data
+
+
+def get_roles(clients, roles_file, tht_root,
+              stack_name,
+              template,
+              files,
+              env_files,
+              detail=False, valid=False):
+    roles_data = get_roles_data(roles_file, tht_root)
+
+    if detail:
+        return roles_data
+
+    role_names = [role['name'] for role in roles_data]
+
+    if not valid:
+        return role_names
+
+    stack_data = utils.build_stack_data(
+        clients, stack_name, template,
+        files, env_files)
+
+    valid_roles = []
+    for name in role_names:
+        role_count = stack_data['parameters'].get(
+            name + 'Count', {}).get('default', 0)
+        if role_count > 0:
+            valid_roles.append(name)
+
+    return valid_roles
 
 
 def list_available_roles(clients, container='overcloud'):
