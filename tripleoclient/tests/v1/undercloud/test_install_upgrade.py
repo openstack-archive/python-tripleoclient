@@ -89,12 +89,13 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'podman.yaml', '-e', '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/ironic.yaml',
-             '-e',
+             'services/ironic.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic-inspector.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-remove-novajoin.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'disable-swift.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'disable-telemetry.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -162,6 +163,8 @@ class TestUndercloudInstall(TestPluginV1):
              '/usertht/environments/services/ironic-inspector.yaml', '-e',
              '/usertht/environments/services/'
              'undercloud-remove-novajoin.yaml', '-e',
+             '/usertht/environments/'
+             'disable-swift.yaml', '-e',
              '/usertht/environments/'
              'disable-telemetry.yaml', '-e',
              '/usertht/environments/services/tempest.yaml', '-e',
@@ -321,12 +324,13 @@ class TestUndercloudInstall(TestPluginV1):
              'environments/services/masquerade-networks.yaml',
              '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/ironic.yaml',
-             '-e',
+             'services/ironic.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic-inspector.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-remove-novajoin.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'disable-swift.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'disable-telemetry.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -391,12 +395,13 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'podman.yaml', '-e', '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/ironic.yaml',
-             '-e',
+             'services/ironic.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic-inspector.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-remove-novajoin.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'disable-swift.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'disable-telemetry.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -457,12 +462,13 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'podman.yaml', '-e', '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/ironic.yaml',
-             '-e',
+             'services/ironic.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic-inspector.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-remove-novajoin.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'disable-swift.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'disable-telemetry.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -520,12 +526,13 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'podman.yaml', '-e', '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/ironic.yaml',
-             '-e',
+             'services/ironic.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic-inspector.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-remove-novajoin.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'disable-swift.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'disable-telemetry.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -679,6 +686,8 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-remove-novajoin.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'disable-swift.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
              'disable-telemetry.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/tempest.yaml', '-e',
@@ -742,12 +751,13 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'podman.yaml', '-e', '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/ironic.yaml',
-             '-e',
+             'services/ironic.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic-inspector.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-remove-novajoin.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'disable-swift.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'disable-telemetry.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -811,12 +821,13 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'podman.yaml', '-e', '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/ironic.yaml',
-             '-e',
+             'services/ironic.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic-inspector.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-remove-novajoin.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'disable-swift.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'disable-telemetry.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -878,12 +889,13 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'podman.yaml', '-e', '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/ironic.yaml',
-             '-e',
+             'services/ironic.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic-inspector.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-remove-novajoin.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'disable-swift.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'disable-telemetry.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -951,12 +963,13 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'podman.yaml', '-e', '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/ironic.yaml',
-             '-e',
+             'services/ironic.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic-inspector.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-remove-novajoin.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'disable-swift.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'disable-telemetry.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
