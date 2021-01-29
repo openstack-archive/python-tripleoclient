@@ -356,6 +356,13 @@ class UndercloudConfig(StandaloneConfig):
                        help=(_('Ironic network interface implementation to '
                                'use by default.'))
                        ),
+            cfg.StrOpt('auth_token_lifetime',
+                       default=14400,
+                       help=(_(
+                             'Authentication token expiration time in '
+                             'seconds. Note reducing this can have impacts on '
+                             'long running undercloud processes.'))
+                       ),
         ]
         return self.sort_opts(_base_opts + _opts)
 
