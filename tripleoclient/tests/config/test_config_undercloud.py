@@ -26,6 +26,7 @@ class TestUndercloudConfig(base.TestCase):
     def test_get_base_opts(self):
         ret = self.config.get_base_opts()
         expected = ['additional_architectures',
+                    'auth_token_lifetime',
                     'certificate_generation_ca',
                     'clean_nodes',
                     'cleanup',
@@ -84,6 +85,7 @@ class TestUndercloudConfig(base.TestCase):
     def test_get_opts(self):
         ret = self.config.get_opts()
         expected = ['additional_architectures',
+                    'auth_token_lifetime',
                     'certificate_generation_ca',
                     'clean_nodes',
                     'cleanup',

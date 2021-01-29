@@ -73,6 +73,7 @@ PARAMETER_MAPPING = {
     'local_subnet': 'UndercloudCtlplaneLocalSubnet',
     'enable_routed_networks': 'UndercloudEnableRoutedNetworks',
     'local_interface': 'NeutronPublicInterface',
+    'auth_token_lifetime': 'TokenExpiration',
 }
 
 SUBNET_PARAMETER_MAPPING = {
