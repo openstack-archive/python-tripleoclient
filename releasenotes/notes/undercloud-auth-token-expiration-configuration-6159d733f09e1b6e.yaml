@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Adds `auth_token_lifetime` to undercloud.conf with a default of 14400. This
+    configuration option exposes the keystone token expirataion as a top level
+    configuration since it may need to be increased to handle larger clouds.
