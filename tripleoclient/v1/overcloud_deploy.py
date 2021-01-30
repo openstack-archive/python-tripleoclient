@@ -25,6 +25,7 @@ import re
 import shutil
 import six
 import subprocess
+import sys
 import tempfile
 import time
 import yaml
@@ -44,7 +45,6 @@ from tripleoclient import exceptions
 from tripleoclient import utils
 from tripleoclient.workflows import deployment
 from tripleoclient.workflows import parameters as workflow_params
-from tripleoclient.workflows import plan_management
 from tripleoclient.workflows import roles
 
 CONF = cfg.CONF
@@ -211,7 +211,7 @@ class DeployOvercloud(command.Command):
     def _create_breakpoint_cleanup_env(self, tht_root, container_name):
         bp_env = {}
         update.add_breakpoints_cleanup_into_env(bp_env)
-        env_path, _ = self._write_user_environment(
+        env_path = self._write_user_environment(
             bp_env,
             'tripleoclient-breakpoint-cleanup.yaml',
             tht_root,
@@ -220,7 +220,7 @@ class DeployOvercloud(command.Command):
 
     def _create_parameters_env(self, parameters, tht_root, container_name):
         parameter_defaults = {"parameter_defaults": parameters}
-        env_path, _ = self._write_user_environment(
+        env_path = self._write_user_environment(
             parameter_defaults,
             'tripleoclient-parameters.yaml',
             tht_root,
@@ -252,18 +252,7 @@ class DeployOvercloud(command.Command):
         with open(user_env_path, 'w') as f:
             self.log.debug("Writing user environment %s" % user_env_path)
             f.write(contents)
-
-        # Upload to swift
-        if abs_env_path.startswith("/"):
-            swift_path = "user-environments/{}".format(abs_env_path[1:])
-        else:
-            swift_path = "user-environments/{}".format(abs_env_path)
-        contents = yaml.safe_dump(env_map, default_flow_style=False)
-        self.log.debug("Uploading %s to swift at %s"
-                       % (abs_env_path, swift_path))
-        self.object_client.put_object(container_name, swift_path, contents)
-
-        return user_env_path, swift_path
+        return user_env_path
 
     def _heat_deploy(self, stack, stack_name, template_path, parameters,
                      env_files, timeout, tht_root, env,
@@ -287,7 +276,8 @@ class DeployOvercloud(command.Command):
             template_file=template_path)
         files = dict(list(template_files.items()) + list(env_files.items()))
 
-        workflow_params.check_deprecated_parameters(self.clients, stack_name)
+        # Fix if required
+        # workflow_params.check_deprecated_parameters(self.clients, stack_name)
 
         self.log.info("Deploying templates in the directory {0}".format(
             os.path.abspath(tht_root)))
@@ -295,21 +285,6 @@ class DeployOvercloud(command.Command):
             self.clients, stack, stack_name,
             template, files, env_files_tracker,
             self.log)
-
-    def _download_missing_files_from_plan(self, tht_dir, plan_name):
-        # get and download missing files into tmp directory
-        plan_list = self.object_client.get_container(plan_name)
-        plan_filenames = [f['name'] for f in plan_list[1]]
-        for pf in plan_filenames:
-            file_path = os.path.join(tht_dir, pf)
-            if not os.path.isfile(file_path):
-                self.log.debug("Missing in templates directory, downloading \
-                               %s from swift into %s" % (pf, file_path))
-                utils.makedirs(os.path.dirname(file_path))
-                # open in binary as the swiftclient get/put error under
-                # python3 if opened as Text I/O
-                with open(file_path, 'wb') as f:
-                    f.write(self.object_client.get_object(plan_name, pf)[1])
 
     def _deploy_tripleo_heat_templates_tmpdir(self, stack, parsed_args):
         # copy tht_root to temporary directory because we need to
@@ -319,8 +294,26 @@ class DeployOvercloud(command.Command):
         new_tht_root = "%s/tripleo-heat-templates" % tht_tmp
         self.log.debug("Creating temporary templates tree in %s"
                        % new_tht_root)
+        python_version = sys.version_info[0]
+        python_cmd = "python{}".format(python_version)
+
         try:
             shutil.copytree(tht_root, new_tht_root, symlinks=True)
+            process_templates = os.path.join(
+                parsed_args.templates, 'tools/process-templates.py')
+            roles_file_path = utils.get_roles_file_path(
+                parsed_args.roles_file, new_tht_root)
+            networks_file_path = utils.get_networks_file_path(
+                parsed_args.networks_file, new_tht_root)
+            args = [python_cmd, process_templates, '--roles-data',
+                    roles_file_path, '--network-data', networks_file_path,
+                    '-p', new_tht_root]
+
+            if utils.run_command_and_log(
+                    self.log, args, new_tht_root) != 0:
+                msg = _("Problems generating templates.")
+                self.log.error(msg)
+                raise exceptions.DeploymentError(msg)
             self._deploy_tripleo_heat_templates(stack, parsed_args,
                                                 new_tht_root, tht_root)
         finally:
@@ -333,37 +326,6 @@ class DeployOvercloud(command.Command):
     def _deploy_tripleo_heat_templates(self, stack, parsed_args,
                                        tht_root, user_tht_root):
         """Deploy the fixed templates in TripleO Heat Templates"""
-
-        plans = plan_management.list_deployment_plans(self.clients)
-        generate_passwords = not parsed_args.disable_password_generation
-
-        # TODO(d0ugal): We need to put a more robust strategy in place here to
-        #               handle updating plans.
-        if parsed_args.stack in plans:
-            # Upload the new plan templates to swift to replace the existing
-            # templates.
-            plan_management.update_plan_from_templates(
-                self.clients, parsed_args.stack, tht_root,
-                parsed_args.roles_file, generate_passwords,
-                parsed_args.plan_environment_file,
-                parsed_args.networks_file,
-                type(self)._keep_env_on_update,
-                utils.playbook_verbosity(self=self),
-                parsed_args.disable_container_prepare
-            )
-        else:
-            plan_management.create_plan_from_templates(
-                self.clients, parsed_args.stack, tht_root,
-                parsed_args.roles_file, generate_passwords,
-                parsed_args.plan_environment_file,
-                parsed_args.networks_file,
-                utils.playbook_verbosity(self=self),
-                parsed_args.disable_container_prepare
-            )
-
-        # Get any missing (e.g j2 rendered) files from the plan to tht_root
-        self._download_missing_files_from_plan(
-            tht_root, parsed_args.stack)
 
         self.log.info("Processing templates in the directory {0}".format(
             os.path.abspath(tht_root)))
