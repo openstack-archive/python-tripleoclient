@@ -659,16 +659,11 @@ class Deploy(command.Command):
 
         # generate jinja templates by its work dir location
         self.log.debug(_("Using roles file %s") % roles_file_path)
-        process_templates = os.path.join(parsed_args.templates,
-                                         'tools/process-templates.py')
-        args = [self.python_cmd, process_templates, '--roles-data',
-                roles_file_path, '--network-data', networks_file_path,
-                '--output-dir', self.tht_render]
-        if utils.run_command_and_log(self.log, args, cwd=self.tht_render) != 0:
-            # TODO(aschultz): improve error messaging
-            msg = _("Problems generating templates.")
-            self.log.error(msg)
-            raise exceptions.DeploymentError(msg)
+        utils.jinja_render_files(self.log, parsed_args.templates,
+                                 working_dir=self.tht_render,
+                                 roles_file=roles_file_path,
+                                 networks_file=networks_file_path,
+                                 output_dir=self.tht_render)
 
         # NOTE(aschultz): the next set of environment files are system included
         # so we have to include them at the front of our environment list so a

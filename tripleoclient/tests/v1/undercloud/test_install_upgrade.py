@@ -79,7 +79,8 @@ class TestUndercloudInstall(TestPluginV1):
              'undercloud', '--local-domain=localdomain',
              '--local-ip=192.168.24.1/24',
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
-             '--networks-file=network_data_undercloud.yaml',
+             '--networks-file=/usr/share/openstack-tripleo-heat-templates/'
+             'network_data_undercloud.yaml',
              '--heat-native', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'undercloud.yaml', '-e',
@@ -151,7 +152,7 @@ class TestUndercloudInstall(TestPluginV1):
              '--local-ip=192.168.24.1/24',
              '--templates=/usertht',
              '--roles-file=foo/roles.yaml',
-             '--networks-file=network_data_undercloud.yaml',
+             '--networks-file=/usertht/network_data_undercloud.yaml',
              '--heat-native=False', '-e',
              '/usertht/environments/undercloud.yaml', '-e',
              '/usertht/environments/use-dns-for-vips.yaml', '-e',
@@ -307,7 +308,8 @@ class TestUndercloudInstall(TestPluginV1):
              'undercloud', '--local-domain=localdomain',
              '--local-ip=192.168.24.1/24',
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
-             '--networks-file=network_data_undercloud.yaml',
+             '--networks-file=/usr/share/openstack-tripleo-heat-templates/'
+             'network_data_undercloud.yaml',
              '--heat-native', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'undercloud.yaml', '-e',
@@ -379,7 +381,8 @@ class TestUndercloudInstall(TestPluginV1):
              'undercloud', '--local-domain=localdomain',
              '--local-ip=192.168.24.1/24',
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
-             '--networks-file=network_data_undercloud.yaml',
+             '--networks-file=/usr/share/openstack-tripleo-heat-templates/'
+             'network_data_undercloud.yaml',
              '--heat-native', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'undercloud.yaml', '-e',
@@ -444,7 +447,8 @@ class TestUndercloudInstall(TestPluginV1):
              'undercloud', '--local-domain=localdomain',
              '--local-ip=192.168.24.1/24',
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
-             '--networks-file=network_data_undercloud.yaml',
+             '--networks-file=/usr/share/openstack-tripleo-heat-templates/'
+             'network_data_undercloud.yaml',
              '--heat-native', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'undercloud.yaml', '-e',
@@ -506,7 +510,8 @@ class TestUndercloudInstall(TestPluginV1):
              'undercloud', '--local-domain=localdomain',
              '--local-ip=192.168.24.1/24',
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
-             '--networks-file=network_data_undercloud.yaml',
+             '--networks-file=/usr/share/openstack-tripleo-heat-templates/'
+             'network_data_undercloud.yaml',
              '--heat-native', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'undercloud.yaml', '-e',
@@ -655,7 +660,8 @@ class TestUndercloudUpgrade(TestPluginV1):
              'undercloud', '--local-domain=localdomain',
              '--local-ip=192.168.24.1/24',
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
-             '--networks-file=network_data_undercloud.yaml',
+             '--networks-file=/usr/share/openstack-tripleo-heat-templates/'
+             'network_data_undercloud.yaml',
              '--upgrade', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'lifecycle/undercloud-upgrade-prepare.yaml',
@@ -723,7 +729,8 @@ class TestUndercloudUpgrade(TestPluginV1):
              'undercloud', '--local-domain=localdomain',
              '--local-ip=192.168.24.1/24',
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
-             '--networks-file=network_data_undercloud.yaml',
+             '--networks-file=/usr/share/openstack-tripleo-heat-templates/'
+             'network_data_undercloud.yaml',
              '--upgrade', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'lifecycle/undercloud-upgrade-prepare.yaml',
@@ -791,7 +798,8 @@ class TestUndercloudUpgrade(TestPluginV1):
              'undercloud', '--local-domain=localdomain',
              '--local-ip=192.168.24.1/24',
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
-             '--networks-file=network_data_undercloud.yaml',
+             '--networks-file=/usr/share/openstack-tripleo-heat-templates/'
+             'network_data_undercloud.yaml',
              '--upgrade', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'lifecycle/undercloud-upgrade-prepare.yaml',
@@ -857,7 +865,8 @@ class TestUndercloudUpgrade(TestPluginV1):
              'undercloud', '--local-domain=localdomain',
              '--local-ip=192.168.24.1/24',
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
-             '--networks-file=network_data_undercloud.yaml',
+             '--networks-file=/usr/share/openstack-tripleo-heat-templates/'
+             'network_data_undercloud.yaml',
              '-y', '--upgrade', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'lifecycle/undercloud-upgrade-prepare.yaml',
@@ -929,7 +938,8 @@ class TestUndercloudUpgrade(TestPluginV1):
              'undercloud', '--local-domain=localdomain',
              '--local-ip=192.168.24.1/24',
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
-             '--networks-file=network_data_undercloud.yaml',
+             '--networks-file=/usr/share/openstack-tripleo-heat-templates/'
+             'network_data_undercloud.yaml',
              '--upgrade', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'lifecycle/undercloud-upgrade-prepare.yaml',

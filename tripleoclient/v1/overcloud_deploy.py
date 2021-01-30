@@ -25,7 +25,6 @@ import re
 import shutil
 import six
 import subprocess
-import sys
 import tempfile
 import time
 import yaml
@@ -287,33 +286,18 @@ class DeployOvercloud(command.Command):
             self.log)
 
     def _deploy_tripleo_heat_templates_tmpdir(self, stack, parsed_args):
-        # copy tht_root to temporary directory because we need to
-        # download any missing (e.g j2 rendered) files from the plan
         tht_root = os.path.abspath(parsed_args.templates)
         tht_tmp = tempfile.mkdtemp(prefix='tripleoclient-')
         new_tht_root = "%s/tripleo-heat-templates" % tht_tmp
         self.log.debug("Creating temporary templates tree in %s"
                        % new_tht_root)
-        python_version = sys.version_info[0]
-        python_cmd = "python{}".format(python_version)
-
         try:
             shutil.copytree(tht_root, new_tht_root, symlinks=True)
-            process_templates = os.path.join(
-                parsed_args.templates, 'tools/process-templates.py')
-            roles_file_path = utils.get_roles_file_path(
-                parsed_args.roles_file, new_tht_root)
-            networks_file_path = utils.get_networks_file_path(
-                parsed_args.networks_file, new_tht_root)
-            args = [python_cmd, process_templates, '--roles-data',
-                    roles_file_path, '--network-data', networks_file_path,
-                    '-p', new_tht_root]
-
-            if utils.run_command_and_log(
-                    self.log, args, new_tht_root) != 0:
-                msg = _("Problems generating templates.")
-                self.log.error(msg)
-                raise exceptions.DeploymentError(msg)
+            utils.jinja_render_files(self.log, parsed_args.templates,
+                                     new_tht_root,
+                                     parsed_args.roles_file,
+                                     parsed_args.networks_file,
+                                     new_tht_root)
             self._deploy_tripleo_heat_templates(stack, parsed_args,
                                                 new_tht_root, tht_root)
         finally:
