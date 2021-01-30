@@ -1,0 +1,6 @@
+---
+deprecations:
+  - |
+    With the move to Nova-less provisioning and Neutron network management
+    being removed from being managed via Heat, the undercloud minion
+    functionality is now deprecated.
