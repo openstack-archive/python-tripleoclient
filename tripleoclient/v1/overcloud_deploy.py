@@ -260,6 +260,7 @@ class DeployOvercloud(command.Command):
     def _heat_deploy(self, stack, stack_name, template_path, parameters,
                      env_files, timeout, tht_root, env,
                      run_validations,
+                     roles_file,
                      env_files_tracker=None,
                      deployment_options=None):
         """Verify the Baremetal nodes are available and do a stack update"""
@@ -278,6 +279,10 @@ class DeployOvercloud(command.Command):
         template_files, template = template_utils.get_template_contents(
             template_file=template_path)
         files = dict(list(template_files.items()) + list(env_files.items()))
+
+        workflow_params.check_deprecated_parameters(
+            self.clients, stack_name, tht_root, template,
+            roles_file, files, env_files_tracker)
 
         self.log.info("Deploying templates in the directory {0}".format(
             os.path.abspath(tht_root)))
@@ -417,6 +422,7 @@ class DeployOvercloud(command.Command):
             parsed_args.stack, parameters, env_files,
             parsed_args.timeout, env,
             parsed_args.run_validations,
+            parsed_args.roles_file,
             env_files_tracker=env_files_tracker,
             deployment_options=deployment_options)
 
@@ -444,6 +450,7 @@ class DeployOvercloud(command.Command):
                                                stack_name, parameters,
                                                env_files, timeout,
                                                env, run_validations,
+                                               roles_file,
                                                env_files_tracker=None,
                                                deployment_options=None):
         overcloud_yaml = os.path.join(tht_root, constants.OVERCLOUD_YAML_NAME)
@@ -452,6 +459,7 @@ class DeployOvercloud(command.Command):
                               parameters, env_files, timeout,
                               tht_root, env,
                               run_validations,
+                              roles_file,
                               env_files_tracker=env_files_tracker,
                               deployment_options=deployment_options)
         except Exception as e:
