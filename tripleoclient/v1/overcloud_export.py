@@ -83,12 +83,11 @@ class ExportOvercloud(command.Command):
 
         # prepare clients to access the environment
         clients = self.app.client_manager
-        swift_client = clients.tripleoclient.object_store
-
-        data = export.export_passwords(swift_client, stack,
+        heat = clients.orchestration
+        data = export.export_passwords(heat, stack,
                                        not parsed_args.no_password_excludes)
         data.update(export.export_stack(
-            clients.orchestration, stack, False, config_download_dir))
+            heat, stack, False, config_download_dir))
         # do not add extra host entries for VIPs for stacks deployed off that
         # exported data, since it already contains those entries
         data.update({'AddVipsToEtcHosts': False})

@@ -80,9 +80,9 @@ class ExportCell(command.Command):
 
         # prepare clients to access the environment
         clients = self.app.client_manager
-        swift_client = clients.tripleoclient.object_store
+        heat = clients.tripleoclient.orchestration
 
-        data = export.export_passwords(swift_client, control_plane_stack)
+        data = export.export_passwords(heat, control_plane_stack)
 
         stack_to_export = control_plane_stack
         should_filter = True
@@ -98,7 +98,7 @@ class ExportCell(command.Command):
         config_download_dir = os.path.join(download_dir, stack_to_export)
 
         data.update(export.export_stack(
-            clients.orchestration, stack_to_export, should_filter,
+            heat, stack_to_export, should_filter,
             config_download_dir))
         data = dict(parameter_defaults=data)
 

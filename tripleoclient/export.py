@@ -23,7 +23,7 @@ import yaml
 from osc_lib.i18n import _
 
 from tripleo_common import constants as tripleo_common_constants
-from tripleo_common.utils import swift as swiftutils
+from tripleo_common.utils import plan as plan_utils
 from tripleoclient import constants
 from tripleoclient import utils as oooutils
 
@@ -31,24 +31,7 @@ from tripleoclient import utils as oooutils
 LOG = logging.getLogger(__name__ + ".utils")
 
 
-def export_passwords(swift, stack, excludes=True):
-    # Export the passwords from swift
-    obj = 'plan-environment.yaml'
-    container = stack
-    content = swiftutils.get_object_string(
-        swift,
-        container=container,
-        object_name=obj
-    )
-    data = yaml.safe_load(content)
-    # The "passwords" key in plan-environment.yaml are generated passwords,
-    # they are not necessarily the actual password values used during the
-    # deployment.
-    generated_passwords = data["passwords"]
-    # parameter_defaults will contain any user defined password values
-    parameters = data["parameter_defaults"]
-
-    passwords = {}
+def export_passwords(heat, stack, excludes=True):
 
     # For each password, check if it's excluded, then check if there's a user
     # defined value from parameter_defaults, and if not use the value from the
@@ -57,17 +40,15 @@ def export_passwords(swift, stack, excludes=True):
         for pattern in constants.EXPORT_PASSWORD_EXCLUDE_PATTERNS:
             return re.match(pattern, password, re.I)
 
+    generated_passwords = plan_utils.generate_passwords(
+        heat=heat, container=stack)
     for password in tripleo_common_constants.PASSWORD_PARAMETER_NAMES:
         if exclude_password(password):
             continue
-        if password in parameters:
-            passwords[password] = parameters[password]
-        elif password in generated_passwords:
-            passwords[password] = generated_passwords[password]
-        else:
+        if password not in generated_passwords:
             LOG.warning("No password value found for %s", password)
 
-    return passwords
+    return generated_passwords
 
 
 def export_stack(heat, stack, should_filter=False,
