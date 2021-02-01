@@ -205,7 +205,8 @@ def prepare_minion_deploy(upgrade=False, no_validations=False,
         deploy_args.append('--networks-file=%s' % CONF['networks_file'])
     else:
         deploy_args.append('--networks-file=%s' %
-                           constants.UNDERCLOUD_NETWORKS_FILE)
+                           os.path.join(tht_templates,
+                                        constants.UNDERCLOUD_NETWORKS_FILE))
 
     if yes:
         deploy_args += ['-y']

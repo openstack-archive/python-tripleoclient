@@ -59,7 +59,9 @@ class TestMinionDeploy(base.TestCase):
                         '--local-ip=192.168.24.50/24',
                         '--templates='
                         '/usr/share/openstack-tripleo-heat-templates/',
-                        '--networks-file=network_data_undercloud.yaml',
+                        '--networks-file='
+                        '/usr/share/openstack-tripleo-heat-templates/'
+                        'network_data_undercloud.yaml',
                         '-e', 'output.yaml',
                         '--heat-native',
                         '-e', '/usr/share/openstack-tripleo-heat-templates/'
