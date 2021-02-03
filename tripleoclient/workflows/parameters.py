@@ -61,8 +61,9 @@ def invoke_plan_env_workflows(clients, stack_name, plan_env_file,
                     pb_vars
                 )
             )
-            pb_vars['tripleo_get_flatten_params'] = {'stack_data': stack_data}
-            pb_vars['tripleo_role_list'] = role_list
+            pb_vars_file = {'tripleo_get_flatten_params': {
+               'stack_data': stack_data}, 'tripleo_role_list': {
+                   'roles': role_list}}
             pb_vars['derived_environment_path'] = derived_environment_path
             playbook_dir = os.path.dirname(pb)
             if not playbook_dir:
@@ -74,7 +75,8 @@ def invoke_plan_env_workflows(clients, stack_name, plan_env_file,
                 workdir=tmp,
                 playbook_dir=playbook_dir,
                 verbosity=verbosity,
-                extra_vars=pb_vars
+                extra_vars=pb_vars,
+                extra_vars_file=pb_vars_file
             )
 
 
