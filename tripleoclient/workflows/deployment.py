@@ -551,7 +551,8 @@ def get_deployment_status(clients, stack_name):
 
     try:
         status_yaml = utils.get_status_yaml(stack_name)
-        return yaml.safe_load(status_yaml)['deployment_status']
+        with open(status_yaml, 'r') as status_stream:
+            return yaml.safe_load(status_stream)['deployment_status']
     except Exception:
         return None
 
