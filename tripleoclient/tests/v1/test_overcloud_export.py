@@ -49,7 +49,7 @@ class TestOvercloudExport(utils.TestCommand):
         with mock.patch('six.moves.builtins.open', self.mock_open):
             self.cmd.take_action(parsed_args)
         mock_export_passwords.assert_called_once_with(
-            self.app.client_manager.tripleoclient.object_store,
+            self.app.client_manager.orchestration,
             'overcloud', True)
         path = os.path.join(os.environ.get('HOME'),
                             'config-download')
@@ -79,7 +79,7 @@ class TestOvercloudExport(utils.TestCommand):
         with mock.patch('six.moves.builtins.open', self.mock_open):
             self.cmd.take_action(parsed_args)
         mock_export_passwords.assert_called_once_with(
-            self.app.client_manager.tripleoclient.object_store,
+            self.app.client_manager.orchestration,
             'foo', True)
         path = os.path.join(os.environ.get('HOME'),
                             'config-download')
@@ -105,7 +105,7 @@ class TestOvercloudExport(utils.TestCommand):
         with mock.patch('six.moves.builtins.open', self.mock_open):
             self.cmd.take_action(parsed_args)
         mock_export_passwords.assert_called_once_with(
-            self.app.client_manager.tripleoclient.object_store,
+            self.app.client_manager.orchestration,
             'foo', True)
         mock_export_stack.assert_called_once_with(
             self.app.client_manager.orchestration,
@@ -131,7 +131,7 @@ class TestOvercloudExport(utils.TestCommand):
         with mock.patch('six.moves.builtins.open', self.mock_open):
             self.cmd.take_action(parsed_args)
         mock_export_passwords.assert_called_once_with(
-            self.app.client_manager.tripleoclient.object_store,
+            self.app.client_manager.orchestration,
             'foo', False)
         mock_export_stack.assert_called_once_with(
             self.app.client_manager.orchestration,

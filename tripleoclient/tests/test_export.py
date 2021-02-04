@@ -14,11 +14,8 @@
 #
 import os
 
-from io import StringIO
 import mock
-import six
 from unittest import TestCase
-import yaml
 
 from tripleoclient import export
 
@@ -127,55 +124,36 @@ class TestExport(TestCase):
             export.export_stack(heat, "control")
         mock_get_stack.assert_called_once_with(heat, 'control')
 
-    def test_export_passwords(self):
-        swift = mock.Mock()
+    @mock.patch('tripleo_common.utils.plan.generate_passwords')
+    def test_export_passwords(self, mock_gen_pass):
+        heat = mock.Mock()
         mock_passwords = {
-            'parameter_defaults': {
-                'AdminPassword': 'a_user'
-            },
-            'passwords': {
-                'AdminPassword': 'A',
-                'RpcPassword': 'B'
-            }
-        }
-        sio = StringIO()
-        sio.write(six.text_type(yaml.dump(mock_passwords)))
-        sio.seek(0)
-        swift.get_object.return_value = ("", sio)
-        data = export.export_passwords(swift, 'overcloud')
-
-        swift.get_object.assert_called_once_with(
-            'overcloud', 'plan-environment.yaml')
+            'AdminPassword': 'a_user',
+            'RpcPassword': 'B'}
+        mock_gen_pass.return_value = mock_passwords
+        data = export.export_passwords(heat, 'overcloud')
 
         self.assertEqual(dict(AdminPassword='a_user',
                               RpcPassword='B'),
                          data)
 
-    def test_export_passwords_excludes(self):
-        swift = mock.Mock()
+    @mock.patch('tripleo_common.utils.plan.generate_passwords')
+    def test_export_passwords_excludes(self, mock_gen_pass):
+        heat = mock.Mock()
         mock_passwords = {
-            'parameter_defaults': {
-                'CephClientKey': 'cephkey'
-            },
-            'passwords': {
-                'AdminPassword': 'A',
-                'RpcPassword': 'B',
-                'CephClientKey': 'cephkey',
-                'CephClusterFSID': 'cephkey',
-                'CephRgwKey': 'cephkey'
-            }
-        }
-        sio = StringIO()
-        sio.write(six.text_type(yaml.dump(mock_passwords)))
-        sio.seek(0)
-        swift.get_object.return_value = ("", sio)
-        data = export.export_passwords(swift, 'overcloud')
+            'AdminPassword': 'A',
+            'RpcPassword': 'B',
+            'CephClientKey': 'cephkey',
+            'CephClusterFSID': 'cephkey',
+            'CephRgwKey': 'cephkey'}
+        mock_gen_pass.return_value = mock_passwords
+        data = export.export_passwords(heat, 'overcloud')
 
-        mock_passwords['passwords'].pop('CephClientKey')
-        mock_passwords['passwords'].pop('CephClusterFSID')
-        mock_passwords['passwords'].pop('CephRgwKey')
+        mock_passwords.pop('CephClientKey')
+        mock_passwords.pop('CephClusterFSID')
+        mock_passwords.pop('CephRgwKey')
 
-        self.assertEqual(mock_passwords['passwords'], data)
+        self.assertEqual(mock_passwords, data)
 
     def test_export_storage_ips(self):
         with mock.patch('six.moves.builtins.open', self.mock_open_ceph_inv):
