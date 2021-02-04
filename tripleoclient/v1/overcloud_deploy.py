@@ -63,7 +63,6 @@ class DeployOvercloud(command.Command):
 
     def _setup_clients(self, parsed_args):
         self.clients = self.app.client_manager
-        self.object_client = self.clients.tripleoclient.object_store
         self.orchestration_client = self.clients.orchestration
         if not parsed_args.deployed_server:
             try:
@@ -122,7 +121,7 @@ class DeployOvercloud(command.Command):
         parameters.update(default_image_params)
 
         password_params = plan_utils.generate_passwords(
-            self.object_client, self.orchestration_client,
+            None, self.orchestration_client,
             args.stack)
 
         parameters.update(password_params)
@@ -270,7 +269,7 @@ class DeployOvercloud(command.Command):
                 "Checking compatibilities of neutron drivers for {0}".format(
                     stack_name))
             msg = update.check_neutron_mechanism_drivers(
-                env, stack, self.object_client, stack_name)
+                env, stack, None, stack_name)
             if msg:
                 raise oscexc.CommandError(msg)
 
@@ -591,8 +590,6 @@ class DeployOvercloud(command.Command):
         with open(output_path, 'r') as fp:
             parameter_defaults = yaml.safe_load(fp)
 
-        # TODO(sbaker) Remove this call when it is no longer necessary
-        # to write to a swift object
         self._write_user_environment(
             parameter_defaults,
             'baremetal-deployed.yaml',
