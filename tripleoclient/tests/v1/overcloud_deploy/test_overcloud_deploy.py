@@ -27,8 +27,6 @@ from osc_lib.tests import utils
 
 from tripleoclient import constants
 from tripleoclient import exceptions
-from tripleoclient import plugin
-from tripleoclient.tests import fakes as ooofakes
 from tripleoclient.tests.fixture_data import deployment
 from tripleoclient.tests.v1.overcloud_deploy import fakes
 from tripleoclient.v1 import overcloud_deploy
@@ -90,53 +88,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             return_value=0)
         mock_run_command.start()
         self.addCleanup(mock_run_command.stop)
-
-        plan_list = mock.patch(
-            "tripleoclient.workflows.plan_management.list_deployment_plans",
-            autospec=True
-        )
-        plan_list.start()
-        plan_list.return_value = ([
-            "test-plan-1",
-            "test-plan-2",
-        ])
-        self.addCleanup(plan_list.stop)
-        roles = mock.patch(
-            'tripleoclient.workflows.roles.list_available_roles',
-            autospec=True,
-            return_value=[
-                {
-                    'TestRole1': {
-                        'TestParameter1': {}
-                    }
-                }
-            ]
-        )
-        roles.start()
-        self.addCleanup(roles.stop)
-        flatten = mock.patch(
-            'tripleo_common.utils.stack_parameters.get_flattened_parameters',
-            autospec=True,
-            return_value={
-                'environment_parameters': {
-                    'TestParameter1': {},
-                    'TestRole1': 'TestParameter2'
-                },
-                'heat_resource_tree': {
-                    'parameters': {
-                        'TestParameter2': {
-                            'name': 'TestParameter2',
-                            'tags': [
-                                'role_specific'
-                            ]
-                        }
-                    },
-                    'resources': {}
-                }
-            }
-        )
-        flatten.start()
-        self.addCleanup(flatten.stop)
 
         # Mock playbook runner
         playbook_runner = mock.patch(
@@ -404,8 +355,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
     @mock.patch('tripleoclient.utils.check_stack_network_matches_env_files')
     @mock.patch('tripleoclient.utils.check_ceph_fsid_matches_env_files')
-    @mock.patch('tripleoclient.workflows.parameters.'
-                'check_deprecated_parameters', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig', autospec=True)
     @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env',
@@ -423,7 +372,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mock_get_template_contents,
             mock_create_parameters_env, mock_validate_args,
             mock_breakpoints_cleanup,
-            mock_postconfig, mock_deprecated_params, mock_stack_network_check,
+            mock_postconfig, mock_stack_network_check,
             mock_ceph_fsid, mock_get_undercloud_host_entry, mock_copy,
             mock_chdir, mock_overcloudrc,
             mock_process_env, mock_roles_data,
@@ -1274,10 +1223,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.check_stack_network_matches_env_files')
     @mock.patch('tripleoclient.utils.check_ceph_fsid_matches_env_files')
     @mock.patch('heatclient.common.template_utils.deep_update', autospec=True)
-    @mock.patch('tripleoclient.workflows.plan_management.'
-                'create_plan_from_templates', autospec=True)
     def test_config_download_timeout(
-            self, mock_plan_man, mock_hc, mock_stack_network_check,
+            self, mock_hc, mock_stack_network_check,
             mock_ceph_fsid, mock_hd,
             mock_get_undercloud_host_entry, mock_copy,
             mock_get_ctlplane_attrs, mock_nic_ansible,
@@ -1633,14 +1580,6 @@ class TestGetDeploymentStatus(utils.TestCommand):
         super(TestGetDeploymentStatus, self).setUp()
         self.cmd = overcloud_deploy.GetDeploymentStatus(self.app, None)
         self.app.client_manager = mock.Mock()
-        clients = self.clients = self.app.client_manager
-        tc = clients.tripleoclient = ooofakes.FakeClientWrapper()
-        tc.create_mistral_context = plugin.ClientWrapper(
-            instance=ooofakes.FakeInstanceData
-        ).create_mistral_context
-        obj = tc.object_store = mock.Mock()
-        obj.put_object = mock.Mock()
-        obj.put_container = mock.Mock()
 
     @mock.patch("tripleoclient.workflows.deployment.get_deployment_status")
     def test_get_deployment_status(self, mock_get_deployment_status):
@@ -1652,10 +1591,10 @@ class TestGetDeploymentStatus(utils.TestCommand):
         self.cmd.take_action(parsed_args)
 
         expected = (
-            '+-----------+-------------------+\n'
-            '| Plan Name | Deployment Status |\n'
-            '+-----------+-------------------+\n'
-            '| overcloud |   DEPLOY_SUCCESS  |\n'
-            '+-----------+-------------------+\n')
+            '+------------+-------------------+\n'
+            '| Stack Name | Deployment Status |\n'
+            '+------------+-------------------+\n'
+            '| overcloud  |   DEPLOY_SUCCESS  |\n'
+            '+------------+-------------------+\n')
 
         self.assertEqual(expected, self.cmd.app.stdout.getvalue())

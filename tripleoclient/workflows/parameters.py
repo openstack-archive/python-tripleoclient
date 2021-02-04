@@ -12,7 +12,6 @@
 
 import logging
 import os
-import re
 import yaml
 
 from heatclient.common import template_utils
@@ -20,7 +19,6 @@ from tripleo_common.utils import stack_parameters as stk_parameters
 
 from tripleoclient.constants import ANSIBLE_TRIPLEO_PLAYBOOKS
 from tripleoclient.constants import OVERCLOUD_YAML_NAME
-from tripleoclient.constants import UNUSED_PARAMETER_EXCLUDES_RE
 from tripleoclient import exceptions
 from tripleoclient import utils
 from tripleoclient.workflows import roles
@@ -108,118 +106,6 @@ def build_derived_params_environment(clients, stack_name,
             role_list=role_list,
             derived_environment_path=derived_env_file,
             verbosity=verbosity
-        )
-
-
-def check_deprecated_parameters(clients, container):
-    """Checks for deprecated parameters in plan and adds warning if present.
-
-    :param clients: application client object.
-    :type clients: Object
-
-    :param container: Name of the stack container.
-    :type container: String
-    """
-    role_name_list = roles.list_available_roles(
-        clients=clients,
-        container=container
-    )
-    flattened_parms = stk_parameters.get_flattened_parameters(
-        clients.tripleoclient.object_store,
-        clients.orchestration, container=container)
-    user_params = flattened_parms.get('environment_parameters', {})
-    heat_resource_tree = flattened_parms.get('heat_resource_tree', {})
-    heat_resource_tree_params = heat_resource_tree.get('parameters', {})
-    heat_resource_tree_resources = heat_resource_tree.get('resources', {})
-    plan_params = heat_resource_tree_params.keys()
-    parameter_groups = [
-        i.get('parameter_groups')
-        for i in heat_resource_tree_resources.values()
-        if i.get('parameter_groups')
-    ]
-    params_role_specific_tag = [
-        i.get('name')
-        for i in heat_resource_tree_params.values()
-        if 'tags' in i and 'role_specific' in i['tags']
-    ]
-
-    r = re.compile(".*Count")
-    filtered_names = list(filter(r.match, plan_params))
-    valid_role_name_list = list()
-    for name in filtered_names:
-        default = heat_resource_tree_params[name].get('default', 0)
-        if default and int(default) > 0:
-            role_name = name.rstrip('Count')
-            if [i for i in role_name_list if i.get('name') == role_name]:
-                valid_role_name_list.append(role_name)
-
-    deprecated_params = [
-        i[0] for i in parameter_groups
-        if i[0].get('label') == 'deprecated'
-    ]
-    # We are setting a frozenset here because python 3 complains that dict is
-    # a unhashable type.
-    # On user_defined, we check if the size is higher than 0 because an empty
-    # frozenset still is a subset of a frozenset, so we can't use issubset
-    # here.
-    user_params_keys = frozenset(user_params.keys())
-    deprecated_result = [
-        {
-            'parameter': i,
-            'deprecated': True,
-            'user_defined': len(
-                [x for x in frozenset(i) if x in user_params_keys]) > 0
-        }
-        for i in deprecated_params
-    ]
-    unused_params = [i for i in user_params.keys() if i not in plan_params]
-    user_provided_role_specific = [
-        v for i in role_name_list
-        for k, v in user_params.items()
-        if k in i
-    ]
-    invalid_role_specific_params = [
-        i for i in user_provided_role_specific
-        if i in params_role_specific_tag
-    ]
-    deprecated_parameters = [
-        param['parameter'] for param in deprecated_result
-        if param.get('user_defined')
-    ]
-
-    if deprecated_parameters:
-        deprecated_join = ', '.join(deprecated_parameters)
-        LOG.warning(
-            'WARNING: Following parameter(s) are deprecated and still '
-            'defined. Deprecated parameters will be removed soon!'
-            ' {deprecated_join}'.format(
-                deprecated_join=deprecated_join
-            )
-        )
-
-    # exclude our known params that may not be used
-    ignore_re = re.compile('|'.join(UNUSED_PARAMETER_EXCLUDES_RE))
-    unused_params = [p for p in unused_params if not ignore_re.search(p)]
-
-    if unused_params:
-        unused_join = ', '.join(unused_params)
-        LOG.warning(
-            'WARNING: Following parameter(s) are defined but not '
-            'currently used in the deployment plan. These parameters '
-            'may be valid but not in use due to the service or '
-            'deployment configuration.'
-            ' {unused_join}'.format(
-                unused_join=unused_join
-            )
-        )
-
-    if invalid_role_specific_params:
-        invalid_join = ', '.join(invalid_role_specific_params)
-        LOG.warning(
-            'WARNING: Following parameter(s) are not supported as '
-            'role-specific inputs. {invalid_join}'.format(
-                invalid_join=invalid_join
-            )
         )
 
 

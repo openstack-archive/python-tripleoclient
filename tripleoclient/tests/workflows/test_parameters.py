@@ -174,46 +174,6 @@ class TestParameterWorkflows(utils.TestCommand):
         ]
         mock_playbook.assert_has_calls(calls, any_order=True)
 
-    def test_check_deprecated_params_no_output(self):
-        parameters.check_deprecated_parameters(
-            self.app.client_manager,
-            container='container-name')
-
-    def test_check_deprecated_params_user_defined(self):
-        with mock.patch('tripleoclient.workflows.parameters.LOG') as mock_log:
-            parameters.check_deprecated_parameters(
-                self.app.client_manager,
-                container='container-name')
-            self.assertTrue(mock_log.warning.called)
-
-    def test_check_deprecated_params_user_not_defined(self):
-        with mock.patch('tripleoclient.workflows.parameters.LOG') as mock_log:
-            parameters.check_deprecated_parameters(
-                self.app.client_manager,
-                container='container-name')
-            self.assertFalse(mock_log.log.warning.called)
-
-    def test_check_deprecated_multiple_parameters(self):
-        with mock.patch('tripleoclient.workflows.parameters.LOG') as mock_log:
-            parameters.check_deprecated_parameters(
-                self.app.client_manager,
-                container='container-name')
-            self.assertTrue(mock_log.warning.called)
-
-    def test_check_unused_multiple_parameters(self):
-        with mock.patch('tripleoclient.workflows.parameters.LOG') as mock_log:
-            parameters.check_deprecated_parameters(
-                self.app.client_manager,
-                container='container-name')
-            self.assertTrue(mock_log.warning.called)
-
-    def test_check_invalid_role_specific_parameters(self):
-        with mock.patch('tripleoclient.workflows.parameters.LOG') as mock_log:
-            parameters.check_deprecated_parameters(
-                self.app.client_manager,
-                container='container-name')
-            self.assertTrue(mock_log.warning.called)
-
     @mock.patch(
         'tripleo_common.utils.stack_parameters.generate_fencing_parameters',
         return_value={})
