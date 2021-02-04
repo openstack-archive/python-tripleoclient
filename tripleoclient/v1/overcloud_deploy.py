@@ -101,6 +101,8 @@ class DeployOvercloud(command.Command):
 
         # We need the processed env for the image parameters atm
         env_files = []
+        env_files.append(
+            os.path.join(tht_root, constants.DEFAULT_RESOURCE_REGISTRY))
         if args.environment_directories:
             env_files.extend(utils.load_environment_directories(
                 args.environment_directories))
@@ -110,11 +112,14 @@ class DeployOvercloud(command.Command):
         _, env = utils.process_multiple_environments(
             env_files, tht_root, user_tht_root,
             cleanup=(not args.no_cleanup))
+
+        default_image_params = plan_utils.default_image_params()
         image_params = kolla_builder.container_images_prepare_multi(
             env, roles.get_roles_data(args.roles_file,
                                       tht_root), dry_run=True)
         if image_params:
-            parameters.update(image_params)
+            default_image_params.update(image_params)
+        parameters.update(default_image_params)
 
         password_params = plan_utils.generate_passwords(
             self.object_client, self.orchestration_client,
@@ -320,7 +325,7 @@ class DeployOvercloud(command.Command):
         created_env_files = []
 
         created_env_files.append(
-            os.path.join(tht_root, 'overcloud-resource-registry-puppet.yaml'))
+            os.path.join(tht_root, constants.DEFAULT_RESOURCE_REGISTRY))
         created_env_files.extend(
             self._provision_baremetal(parsed_args, tht_root))
 

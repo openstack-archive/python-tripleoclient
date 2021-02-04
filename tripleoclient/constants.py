@@ -38,6 +38,7 @@ CONTAINER_IMAGE_PREPARE_LOG_FILE = "container_image_prepare.log"
 DEFAULT_CONTAINER_REGISTRY = "docker.io"
 DEFAULT_CONTAINER_NAMESPACE = "tripleomaster"
 DEFAULT_CONTAINER_TAG = "current-tripleo"
+DEFAULT_RESOURCE_REGISTRY = 'overcloud-resource-registry-puppet.yaml'
 DEFAULT_HEAT_CONTAINER = ('{}/{}/openstack-heat-all:{}'.format(
     DEFAULT_CONTAINER_REGISTRY,
     DEFAULT_CONTAINER_NAMESPACE,

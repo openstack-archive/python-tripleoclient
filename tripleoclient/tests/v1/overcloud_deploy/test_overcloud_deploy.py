@@ -167,6 +167,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         shutil.rmtree = self.real_shutil
         self.mock_tar.stop()
 
+    @mock.patch('tripleo_common.utils.plan.default_image_params',
+                autospec=True)
     @mock.patch('tripleoclient.utils.get_rc_params',
                 autospec=True)
     @mock.patch('tripleo_common.utils.plan.generate_passwords',
@@ -206,7 +208,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                        mock_get_ctlplane_attrs, mock_nic_ansiblei,
                        mock_process_env, mock_roles_data,
                        mock_container_prepare, mock_generate_password,
-                       mock_rc_params):
+                       mock_rc_params, mock_default_image_params):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         clients = self.app.client_manager
@@ -280,6 +282,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_create_tempest_deployer_input.assert_called_with()
         mock_copy.assert_called_once()
 
+    @mock.patch('tripleo_common.utils.plan.default_image_params',
+                autospec=True)
     @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
     @mock.patch('tripleo_common.utils.plan.generate_passwords',
                 return_value={})
@@ -320,7 +324,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                         mock_get_ctlplane_attrs,
                         mock_process_env, mock_roles_data,
                         mock_container_prepare, mock_generate_password,
-                        mock_rc_params):
+                        mock_rc_params, mock_default_image_params):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         plane_management_fixture = deployment.PlanManagementFixture()
@@ -930,6 +934,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                           self.cmd.take_action,
                           parsed_args)
 
+    @mock.patch('tripleo_common.utils.plan.default_image_params',
+                autospec=True)
     @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
     @mock.patch('tripleo_common.utils.plan.generate_passwords',
                 return_value={})
@@ -973,7 +979,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                  mock_roles_data,
                                  mock_image_prepare,
                                  mock_generate_password,
-                                 mock_rc_params):
+                                 mock_rc_params,
+                                 mock_default_image_params):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         plane_management_fixture = deployment.PlanManagementFixture()
@@ -1243,6 +1250,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertTrue(fixture.mock_config_download.called)
         mock_copy.assert_called_once()
 
+    @mock.patch('tripleo_common.utils.plan.default_image_params',
+                autospec=True)
     @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
     @mock.patch('tripleo_common.utils.plan.generate_passwords',
                 return_value={})
@@ -1274,7 +1283,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mock_get_ctlplane_attrs, mock_nic_ansible,
             mock_process_env, mock_roles_data,
             mock_container_prepare, mock_generate_password,
-            mock_rc_params):
+            mock_rc_params, mock_default_image_params):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         utils_fixture = deployment.UtilsOvercloudFixture()
