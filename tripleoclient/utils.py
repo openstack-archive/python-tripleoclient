@@ -676,7 +676,7 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
                 for key, value in r_opts['envvars'].items():
                     f.write('export {}="{}"\n'.format(key, value))
                 f.write('echo -e "Running Ansible command"\n')
-                f.write('{} $@\n'.format(' '.join(runner_config.command)))
+                f.write('{} "$@"\n'.format(' '.join(runner_config.command)))
             os.chmod(command_path, 0o750)
 
         try:
