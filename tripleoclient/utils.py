@@ -52,6 +52,7 @@ from heatclient.common import template_utils
 from heatclient.common import utils as heat_utils
 from heatclient.exc import HTTPNotFound
 from osc_lib import exceptions as oscexc
+from osc_lib import utils as osc_lib_utils
 from osc_lib.i18n import _
 from oslo_concurrency import processutils
 from six.moves import configparser
@@ -60,13 +61,20 @@ from heatclient import exc as hc_exc
 from six.moves.urllib import error as url_error
 from six.moves.urllib import request
 
+from tenacity import retry
+from tenacity.stop import stop_after_attempt, stop_after_delay
+from tenacity.wait import wait_fixed
+
 from tripleo_common.utils import stack as stack_utils
 from tripleo_common import update
 from tripleoclient import constants
 from tripleoclient import exceptions
+from tripleoclient import heat_launcher
 
 
 LOG = logging.getLogger(__name__ + ".utils")
+_local_orchestration_client = None
+_heat_pid = None
 
 
 class Pushd(object):
@@ -2541,3 +2549,94 @@ def write_user_environment(env_map, abs_env_path, tht_root,
         LOG.debug("Writing user environment %s" % user_env_path)
         f.write(contents)
     return user_env_path
+
+
+def launch_heat(launcher=None, restore_db=False):
+
+    global _local_orchestration_client
+    global _heat_pid
+
+    if _local_orchestration_client:
+        print("returning cached")
+        return _local_orchestration_client
+
+    if not launcher:
+        launcher = get_heat_launcher()
+
+    _heat_pid = 0
+    if launcher.heat_type == 'native':
+        _heat_pid = os.fork()
+    if _heat_pid == 0:
+        launcher.check_database()
+        launcher.check_message_bus()
+        launcher.heat_db_sync(restore_db)
+        launcher.launch_heat()
+
+    # Wait for the API to be listening
+    heat_api_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    test_heat_api_port(heat_api_socket, launcher.host, int(launcher.api_port))
+
+    _local_orchestration_client = local_orchestration_client(
+        launcher.host, launcher.api_port)
+    return _local_orchestration_client
+
+
+@retry(stop=(stop_after_delay(10) | stop_after_attempt(10)),
+       wait=wait_fixed(0.5))
+def test_heat_api_port(heat_api_socket, host, port):
+    heat_api_socket.connect((host, port))
+
+
+def get_heat_launcher(heat_type, *args, **kwargs):
+    if heat_type == 'native':
+        return heat_launcher.HeatNativeLauncher(*args, **kwargs)
+    elif heat_type == 'container':
+        return heat_launcher.HeatContainerLauncher(*args, **kwargs)
+    else:
+        return heat_launcher.HeatPodLauncher(*args, **kwargs)
+
+
+def local_orchestration_client(host="127.0.0.1", api_port=8006):
+    """Returns a local orchestration service client"""
+
+    API_VERSIONS = {
+        '1': 'heatclient.v1.client.Client',
+    }
+
+    heat_client = osc_lib_utils.get_client_class(
+        'tripleoclient',
+        '1',
+        API_VERSIONS)
+    LOG.debug('Instantiating local_orchestration client for '
+              'host %s, port %s: %s',
+              host, api_port, heat_client)
+
+    endpoint = 'http://%s:%s/v1/admin' % (host, api_port)
+    client = heat_client(
+        endpoint=endpoint,
+        username='admin',
+        password='fake',
+        region_name='regionOne',
+        token='fake',
+    )
+
+    for v in ('OS_USER_DOMAIN_NAME',
+              'OS_PROJECT_DOMAIN_NAME',
+              'OS_PROJECT_NAME'):
+        os.environ.pop(v, None)
+
+    os.environ['OS_AUTH_TYPE'] = "none"
+    os.environ['OS_ENDPOINT'] = endpoint
+
+    return client
+
+
+def kill_heat(launcher, backup_db=True):
+    global _heat_pid
+    if _heat_pid:
+        LOG.debug("Attempting to kill heat pid %s" % _heat_pid)
+    launcher.kill_heat(_heat_pid, backup_db)
+
+
+def rm_heat(launcher, backup_db=False):
+    launcher.rm_heat(backup_db)

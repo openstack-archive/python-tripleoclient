@@ -21,13 +21,15 @@ import os
 from cliff import command
 from osc_lib.i18n import _
 
-from tripleoclient.constants import DEFAULT_HEAT_CONTAINER
+from tripleoclient.constants import (DEFAULT_HEAT_CONTAINER,
+                                     DEFAULT_HEAT_API_CONTAINER,
+                                     DEFAULT_HEAT_ENGINE_CONTAINER)
 from tripleoclient import exceptions
-from tripleoclient import heat_launcher
+from tripleoclient import utils
 
 
 class LaunchHeat(command.Command):
-    """Launch all-in-one Heat process and run in the foreground."""
+    """Launch ephemeral Heat process."""
 
     log = logging.getLogger(__name__ + ".Deploy")
     auth_required = False
@@ -41,32 +43,23 @@ class LaunchHeat(command.Command):
         when cleanup is requested.
 
         """
-        if self.heat_pid:
-            self.heat_launch.kill_heat(self.heat_pid)
-            pid, ret = os.waitpid(self.heat_pid, 0)
-            self.heat_pid = None
+        self.log.info("Attempting to kill ephemeral heat")
+        if parsed_args.heat_type == "native":
+            if self.heat_pid:
+                self.log.info("Using heat pid: %s" % self.heat_pid)
+                self.heat_launcher.kill_heat(self.heat_pid)
+                pid, ret = os.waitpid(self.heat_pid, 0)
+                self.heat_pid = None
+            else:
+                self.log.info("No heat pid set, can't kill.")
+        else:
+            self.heat_launcher.kill_heat(None, backup_db=True)
 
         return 0
 
     def _launch_heat(self, parsed_args):
-        # we do this as root to chown config files properly for docker, etc.
-        if parsed_args.heat_native is not None and \
-                parsed_args.heat_native.lower() == "false":
-            self.heat_launch = heat_launcher.HeatContainerLauncher(
-                parsed_args.heat_api_port,
-                parsed_args.heat_container_image,
-                parsed_args.heat_user,
-                parsed_args.heat_dir)
-        else:
-            self.heat_launch = heat_launcher.HeatNativeLauncher(
-                parsed_args.heat_api_port,
-                parsed_args.heat_container_image,
-                parsed_args.heat_user,
-                parsed_args.heat_dir)
-
-        self.heat_launch.heat_db_sync()
-        self.heat_launch.launch_heat()
-
+        self.log.info("Launching Heat %s" % parsed_args.heat_type)
+        utils.launch_heat(self.heat_launcher, parsed_args.restore_db)
         return 0
 
     def get_parser(self, prog_name):
@@ -90,7 +83,9 @@ class LaunchHeat(command.Command):
                    'Defaults to current user. '
                    'If the configuration files /etc/heat/heat.conf or '
                    '/usr/share/heat/heat-dist.conf exist, the user '
-                   'must have read access to those files.')
+                   'must have read access to those files.\n'
+                   'This option is ignored when using --heat-type=container '
+                   'or --heat-type=pod')
         )
         parser.add_argument(
             '--heat-container-image', metavar='<HEAT_CONTAINER_IMAGE>',
@@ -100,16 +95,22 @@ class LaunchHeat(command.Command):
                    'process. Defaults to: {}'.format(DEFAULT_HEAT_CONTAINER))
         )
         parser.add_argument(
-            '--heat-native',
-            dest='heat_native',
-            nargs='?',
-            default=None,
-            const="true",
-            help=_('Execute the heat-all process natively on this host. '
-                   'This option requires that the heat-all binaries '
-                   'be installed locally on this machine. '
-                   'This option is enabled by default which means heat-all is '
-                   'executed on the host OS directly.')
+            '--heat-container-api-image',
+            metavar='<HEAT_CONTAINER_API_IMAGE>',
+            dest='heat_container_api_image',
+            default=DEFAULT_HEAT_API_CONTAINER,
+            help=_('The container image to use when launching the heat-api '
+                   'process. Only used when --heat-type=pod. '
+                   'Defaults to: {}'.format(DEFAULT_HEAT_API_CONTAINER))
+        )
+        parser.add_argument(
+            '--heat-container-engine-image',
+            metavar='<HEAT_CONTAINER_ENGINE_IMAGE>',
+            dest='heat_container_engine_image',
+            default=DEFAULT_HEAT_ENGINE_CONTAINER,
+            help=_('The container image to use when launching the heat-engine '
+                   'process. Only used when --heat-type=pod. '
+                   'Defaults to: {}'.format(DEFAULT_HEAT_ENGINE_CONTAINER))
         )
         parser.add_argument(
             '--kill', '-k',
@@ -125,12 +126,82 @@ class LaunchHeat(command.Command):
             default=os.path.join(os.getcwd(), 'heat-launcher'),
             help=_("Directory to use for file storage and logs of the "
                    "running heat process. Defaults to 'heat-launcher' "
-                   "in the current directory.")
+                   "in the current directory. Can be set to an already "
+                   "existing directory to reuse the environment from a "
+                   "previos Heat process.")
+        )
+        parser.add_argument(
+            '--rm-heat',
+            action='store_true',
+            default=False,
+            help=_('If specified and --heat-type is container or pod '
+                   'any existing container or pod of a previous '
+                   'ephemeral Heat process will be deleted first. '
+                   'Ignored if --heat-type is native.')
+        )
+        parser.add_argument(
+            '--skip-heat-pull',
+            action='store_true',
+            default=False,
+            help=_('When --heat-type is pod or container, assume '
+                   'the container image has already been pulled ')
+        )
+        parser.add_argument(
+            '--restore-db',
+            action='store_true',
+            default=False,
+            help=_('Restore a database dump if it exists '
+                   'within the directory specified by --heat-dir')
+        )
+        heat_type_group = parser.add_mutually_exclusive_group()
+        heat_type_group.add_argument(
+            '--heat-native',
+            dest='heat_native',
+            action='store_true',
+            default=False,
+            help=_('(DEPRECATED): Execute the heat-all process natively on '
+                   'this host. '
+                   'This option requires that the heat-all binaries '
+                   'be installed locally on this machine. '
+                   'This option is enabled by default which means heat-all is '
+                   'executed on the host OS directly.\n'
+                   'Conflicts with --heat-type, which deprecates '
+                   '--heat-native.')
+        )
+        heat_type_group.add_argument(
+            '--heat-type',
+            dest='heat_type',
+            default='native',
+            choices=['native', 'container', 'pod'],
+            help=_('Type of ephemeral Heat process to launch. One of:\n'
+                   'native: Execute heat-all directly on the host.\n'
+                   'container: Execute heat-all in a container.\n'
+                   'pod: Execute separate heat api and engine processes in '
+                   'a podman pod.')
         )
         return parser
 
     def take_action(self, parsed_args):
+        self._configure_logging(parsed_args)
         self.log.debug("take_action(%s)" % parsed_args)
+
+        if parsed_args.heat_native:
+            heat_type = "native"
+        else:
+            heat_type = parsed_args.heat_type
+
+        self.heat_launcher = utils.get_heat_launcher(
+            heat_type, parsed_args.heat_api_port,
+            parsed_args.heat_container_image,
+            parsed_args.heat_container_api_image,
+            parsed_args.heat_container_engine_image,
+            parsed_args.heat_user,
+            parsed_args.heat_dir,
+            False,
+            False,
+            parsed_args.rm_heat,
+            parsed_args.skip_heat_pull)
+
         if parsed_args.kill:
             if self._kill_heat(parsed_args) != 0:
                 msg = _('Heat kill failed.')
@@ -141,3 +212,14 @@ class LaunchHeat(command.Command):
                 msg = _('Heat launch failed.')
                 self.log.error(msg)
                 raise exceptions.DeploymentError(msg)
+
+    def _configure_logging(self, parsed_args):
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        handler = logging.StreamHandler()
+        handler.setFormatter(formatter)
+        self.log.addHandler(handler)
+        if self.app_args.verbose_level >= 2:
+            handler.setLevel(logging.DEBUG)
+        else:
+            handler.setLevel(logging.INFO)

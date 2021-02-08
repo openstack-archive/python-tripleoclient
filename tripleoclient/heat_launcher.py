@@ -27,7 +27,10 @@ import tempfile
 import jinja2
 from oslo_utils import timeutils
 
-from tripleoclient import constants
+from tripleoclient.constants import (DEFAULT_HEAT_CONTAINER,
+                                     DEFAULT_HEAT_API_CONTAINER,
+                                     DEFAULT_HEAT_ENGINE_CONTAINER,
+                                     DEFAULT_TEMPLATES_DIR)
 
 log = logging.getLogger(__name__)
 
@@ -115,13 +118,15 @@ class HeatBaseLauncher(object):
 
     # The init function will need permission to touch these files
     # and chown them accordingly for the heat user
-    def __init__(
-            self, api_port=8006,
-            all_container_image=constants.DEFAULT_HEAT_CONTAINER,
-            api_container_image=constants.DEFAULT_HEAT_API_CONTAINER,
-            engine_container_image=constants.DEFAULT_HEAT_ENGINE_CONTAINER,
-            user='heat', heat_dir='/var/log/heat-launcher', use_tmp_dir=True):
-
+    def __init__(self, api_port=8006,
+                 all_container_image=DEFAULT_HEAT_CONTAINER,
+                 api_container_image=DEFAULT_HEAT_API_CONTAINER,
+                 engine_container_image=DEFAULT_HEAT_ENGINE_CONTAINER,
+                 user='heat',
+                 heat_dir='/var/log/heat-launcher',
+                 use_tmp_dir=True,
+                 rm_heat=False,
+                 skip_heat_pull=False):
         self.api_port = api_port
         self.all_container_image = all_container_image
         self.api_container_image = api_container_image
@@ -130,6 +135,11 @@ class HeatBaseLauncher(object):
         self.host = "127.0.0.1"
         self.db_dump_path = os.path.join(
             self.heat_dir, 'heat-db-dump.sql')
+        self.skip_heat_pull = skip_heat_pull
+
+        if rm_heat:
+            self.kill_heat(None)
+            self.rm_heat()
 
         if os.path.isdir(self.heat_dir):
             # This one may fail but it's just cleanup.
@@ -293,6 +303,9 @@ class HeatContainerLauncher(HeatBaseLauncher):
         self.host = "127.0.0.1"
 
     def _fetch_container_image(self):
+        if self.skip_heat_pull:
+            log.info("Skipping container image pull.")
+            return
         # force pull of latest container image
         cmd = ['podman', 'pull', self.all_container_image]
         log.debug(' '.join(cmd))
@@ -370,6 +383,12 @@ class HeatContainerLauncher(HeatBaseLauncher):
         # We don't want to hear from this command..
         subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
+    def rm_heat(self, pid):
+        cmd = ['podman', 'rm', 'heat_all']
+        log.debug(' '.join(cmd))
+        # We don't want to hear from this command..
+        subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
 
 class HeatNativeLauncher(HeatBaseLauncher):
 
@@ -408,6 +427,9 @@ class HeatPodLauncher(HeatContainerLauncher):
              '-l', 's0', self.heat_dir])
 
     def _fetch_container_image(self):
+        if self.skip_heat_pull:
+            log.info("Skipping container image pull.")
+            return
         # force pull of latest container image
         for image in self.api_container_image, self.engine_container_image:
             log.info("Pulling conatiner image {}.".format(image))
@@ -584,7 +606,7 @@ class HeatPodLauncher(HeatContainerLauncher):
         return int(multiprocessing.cpu_count() / 2)
 
     def _write_heat_config(self):
-        heat_config_tmpl_path = os.path.join(constants.DEFAULT_TEMPLATES_DIR,
+        heat_config_tmpl_path = os.path.join(DEFAULT_TEMPLATES_DIR,
                                              "ephemeral-heat",
                                              "heat.conf.j2")
         with open(heat_config_tmpl_path) as tmpl:
@@ -602,7 +624,7 @@ class HeatPodLauncher(HeatContainerLauncher):
             conf.write(heat_config)
 
     def _write_heat_pod(self):
-        heat_pod_tmpl_path = os.path.join(constants.DEFAULT_TEMPLATES_DIR,
+        heat_pod_tmpl_path = os.path.join(DEFAULT_TEMPLATES_DIR,
                                           "ephemeral-heat",
                                           "heat-pod.yaml.j2")
         with open(heat_pod_tmpl_path) as tmpl:
