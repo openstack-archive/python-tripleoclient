@@ -112,13 +112,14 @@ class HeatBaseLauncher(object):
     # The init function will need permission to touch these files
     # and chown them accordingly for the heat user
     def __init__(self, api_port, container_image, user='heat',
-                 heat_dir='/var/log/heat-launcher'):
+                 heat_dir='/var/log/heat-launcher',
+                 use_tmp_dir=True):
         self.api_port = api_port
-        heatdir = heat_dir
+        self.heat_dir = heat_dir
 
-        if os.path.isdir(heatdir):
+        if os.path.isdir(self.heat_dir):
             # This one may fail but it's just cleanup.
-            p = subprocess.Popen(['umount', heatdir],
+            p = subprocess.Popen(['umount', self.heat_dir],
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE,
                                  universal_newlines=True)
@@ -126,23 +127,24 @@ class HeatBaseLauncher(object):
             retval = p.returncode
             if retval != 0:
                 log.info('Cleanup unmount of %s failed (probably because '
-                         'it was not mounted): %s' % (heatdir, cmd_stderr))
+                         'it was not mounted): %s' %
+                         (self.heat_dir, cmd_stderr))
             else:
-                log.info('umount of %s success' % (heatdir))
+                log.info('umount of %s success' % (self.heat_dir))
         else:
             # Create the directory if it doesn't exist.
             try:
-                os.makedirs(heatdir, mode=0o700)
+                os.makedirs(self.heat_dir, mode=0o700)
             except Exception as e:
                 log.error('Creating temp directory "%s" failed: %s' %
-                          (heatdir, e))
+                          (self.heat_dir, e))
                 raise Exception('Could not create temp directory %s: %s' %
-                                (heatdir, e))
+                                (self.heat_dir, e))
         # As an optimization we mount the tmp directory in a tmpfs (in memory)
         # filesystem.  Depending on your system this can cut the heat
         # deployment times by half.
         p = subprocess.Popen(['mount', '-t', 'tmpfs', '-o', 'size=500M',
-                              'tmpfs', heatdir],
+                              'tmpfs', self.heat_dir],
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE,
                              universal_newlines=True)
@@ -152,24 +154,27 @@ class HeatBaseLauncher(object):
             # It's ok if this fails, it will still work.  It just won't
             # be on tmpfs.
             log.warning('Unable to mount tmpfs for logs and database %s: %s' %
-                        (heatdir, cmd_stderr))
+                        (self.heat_dir, cmd_stderr))
 
         self.policy_file = os.path.join(os.path.dirname(__file__),
                                         'noauth_policy.json')
-        self.install_tmp = tempfile.mkdtemp(prefix='%s/undercloud_deploy-' %
-                                            heatdir)
+        if use_tmp_dir:
+            self.install_dir = tempfile.mkdtemp(
+                prefix='%s/undercloud_deploy-' % self.heat_dir)
+        else:
+            self.install_dir = self.heat_dir
         self.container_image = container_image
         self.user = user
-        self.sql_db = os.path.join(self.install_tmp, 'heat.sqlite')
-        self.log_file = os.path.join(self.install_tmp, 'heat.log')
-        self.config_file = os.path.join(self.install_tmp, 'heat.conf')
-        self.paste_file = os.path.join(self.install_tmp, 'api-paste.ini')
-        self.token_file = os.path.join(self.install_tmp, 'token_file.json')
+        self.sql_db = os.path.join(self.install_dir, 'heat.sqlite')
+        self.log_file = os.path.join(self.install_dir, 'heat.log')
+        self.config_file = os.path.join(self.install_dir, 'heat.conf')
+        self.paste_file = os.path.join(self.install_dir, 'api-paste.ini')
+        self.token_file = os.path.join(self.install_dir, 'token_file.json')
         self._write_fake_keystone_token(self.api_port, self.token_file)
         self._write_heat_config()
         uid = int(self.get_heat_uid())
         gid = int(self.get_heat_gid())
-        os.chown(self.install_tmp, uid, gid)
+        os.chown(self.install_dir, uid, gid)
         os.chown(self.config_file, uid, gid)
         os.chown(self.paste_file, uid, gid)
 
@@ -257,11 +262,13 @@ heat.filter_factory = heat.api.openstack:faultwrap_filter
 class HeatContainerLauncher(HeatBaseLauncher):
 
     def __init__(self, api_port, container_image, user='heat',
-                 heat_dir='/var/log/heat-launcher'):
+                 heat_dir='/var/log/heat-launcher',
+                 use_tmp_dir=True):
         self.container_image = container_image
         self._fetch_container_image()
         super(HeatContainerLauncher, self).__init__(api_port, container_image,
-                                                    user, heat_dir)
+                                                    user, heat_dir,
+                                                    use_tmp_dir)
 
     def _fetch_container_image(self):
         # force pull of latest container image
@@ -285,7 +292,7 @@ class HeatContainerLauncher(HeatBaseLauncher):
             '--volume', '%(conf)s:/etc/heat/api-paste.ini:ro' % {
                 'conf': self.paste_file},
             '--volume', '%(inst_tmp)s:%(inst_tmp)s:Z' % {'inst_tmp':
-                                                         self.install_tmp},
+                                                         self.install_dir},
             '--volume', '%(pfile)s:%(pfile)s:ro' % {'pfile':
                                                     self.policy_file},
             self.container_image, 'heat-all'
@@ -301,7 +308,7 @@ class HeatContainerLauncher(HeatBaseLauncher):
             '--volume', '%(conf)s:/etc/heat/heat.conf:Z' % {'conf':
                                                             self.config_file},
             '--volume', '%(inst_tmp)s:%(inst_tmp)s:Z' % {'inst_tmp':
-                                                         self.install_tmp},
+                                                         self.install_dir},
             self.container_image,
             'heat-manage', 'db_sync']
         log.debug(' '.join(cmd))
