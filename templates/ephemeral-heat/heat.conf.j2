@@ -1,0 +1,43 @@
+[DEFAULT]
+client_retry_limit=2
+convergence_engine = true
+debug = true
+default_deployment_signal_transport = HEAT_SIGNAL
+deferred_auth_method = password
+keystone_backend = heat.engine.clients.os.keystone.fake_keystoneclient.FakeKeystoneClient
+log_dir = /var/log/heat
+max_json_body_size = 8388608
+max_nested_stack_depth = 10
+max_resources_per_stack=-1
+num_engine_workers = {{ num_engine_workers }}
+rpc_poll_timeout = 60
+rpc_response_timeout = 600
+transport_url={{ transport_url }}
+
+[oslo_messaging_notifications]
+driver = noop
+
+[oslo_messaging_rabbit]
+heatbeat_timeout_threshold=60
+
+[noauth]
+token_response = /token_file.json
+
+[heat_api]
+bind_host = 0.0.0.0
+bind_port = {{ api_port }}
+workers = 1
+
+[database]
+connection = {{ db_connection }}
+
+[paste_deploy]
+api_paste_config = /etc/heat/api-paste.ini
+flavor = noauth
+
+[oslo_policy]
+policy_file = /etc/heat/noauth_policy.json
+
+[yaql]
+limit_iterators=9000
+memory_quota=900000

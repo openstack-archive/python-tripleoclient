@@ -17,13 +17,17 @@ import datetime
 import grp
 import json
 import logging
+import multiprocessing
 import os
 import pwd
 import signal
 import subprocess
 import tempfile
 
+import jinja2
 from oslo_utils import timeutils
+
+from tripleoclient import constants
 
 log = logging.getLogger(__name__)
 
@@ -111,11 +115,21 @@ class HeatBaseLauncher(object):
 
     # The init function will need permission to touch these files
     # and chown them accordingly for the heat user
-    def __init__(self, api_port, container_image, user='heat',
-                 heat_dir='/var/log/heat-launcher',
-                 use_tmp_dir=True):
+    def __init__(
+            self, api_port=8006,
+            all_container_image=constants.DEFAULT_HEAT_CONTAINER,
+            api_container_image=constants.DEFAULT_HEAT_API_CONTAINER,
+            engine_container_image=constants.DEFAULT_HEAT_ENGINE_CONTAINER,
+            user='heat', heat_dir='/var/log/heat-launcher', use_tmp_dir=True):
+
         self.api_port = api_port
-        self.heat_dir = heat_dir
+        self.all_container_image = all_container_image
+        self.api_container_image = api_container_image
+        self.engine_container_image = engine_container_image
+        self.heat_dir = os.path.abspath(heat_dir)
+        self.host = "127.0.0.1"
+        self.db_dump_path = os.path.join(
+            self.heat_dir, 'heat-db-dump.sql')
 
         if os.path.isdir(self.heat_dir):
             # This one may fail but it's just cleanup.
@@ -153,7 +167,8 @@ class HeatBaseLauncher(object):
         if retval != 0:
             # It's ok if this fails, it will still work.  It just won't
             # be on tmpfs.
-            log.warning('Unable to mount tmpfs for logs and database %s: %s' %
+            log.warning('Unable to mount tmpfs for logs and '
+                        'database %s: %s' %
                         (self.heat_dir, cmd_stderr))
 
         self.policy_file = os.path.join(os.path.dirname(__file__),
@@ -163,7 +178,6 @@ class HeatBaseLauncher(object):
                 prefix='%s/undercloud_deploy-' % self.heat_dir)
         else:
             self.install_dir = self.heat_dir
-        self.container_image = container_image
         self.user = user
         self.sql_db = os.path.join(self.install_dir, 'heat.sqlite')
         self.log_file = os.path.join(self.install_dir, 'heat.log')
@@ -172,6 +186,7 @@ class HeatBaseLauncher(object):
         self.token_file = os.path.join(self.install_dir, 'token_file.json')
         self._write_fake_keystone_token(self.api_port, self.token_file)
         self._write_heat_config()
+        self._write_api_paste_config()
         uid = int(self.get_heat_uid())
         gid = int(self.get_heat_gid())
         os.chown(self.install_dir, uid, gid)
@@ -223,8 +238,11 @@ limit_iterators=9000
         ''' % {'sqlite_db': self.sql_db, 'log_file': self.log_file,
                'api_port': self.api_port, 'policy_file': self.policy_file,
                'token_file': self.token_file}
+
         with open(self.config_file, 'w') as temp_file:
             temp_file.write(heat_config)
+
+    def _write_api_paste_config(self):
 
         heat_api_paste_config = '''
 [pipeline:heat-api-noauth]
@@ -258,27 +276,31 @@ heat.filter_factory = heat.api.openstack:faultwrap_filter
     def get_heat_gid(self):
         return grp.getgrnam(self.user).gr_gid
 
+    def check_database(self):
+        return True
+
+    def check_message_bus(self):
+        return True
+
 
 class HeatContainerLauncher(HeatBaseLauncher):
 
-    def __init__(self, api_port, container_image, user='heat',
-                 heat_dir='/var/log/heat-launcher',
-                 use_tmp_dir=True):
-        self.container_image = container_image
+    heat_type = 'container'
+
+    def __init__(self, *args, **kwargs):
+        super(HeatContainerLauncher, self).__init__(*args, **kwargs)
         self._fetch_container_image()
-        super(HeatContainerLauncher, self).__init__(api_port, container_image,
-                                                    user, heat_dir,
-                                                    use_tmp_dir)
+        self.host = "127.0.0.1"
 
     def _fetch_container_image(self):
         # force pull of latest container image
-        cmd = ['podman', 'pull', self.container_image]
+        cmd = ['podman', 'pull', self.all_container_image]
         log.debug(' '.join(cmd))
         try:
             subprocess.check_output(cmd)
         except subprocess.CalledProcessError as e:
             raise Exception('Unable to fetch container image {}.'
-                            'Error: {}'.format(self.container_image, e))
+                            'Error: {}'.format(self.all_container_image, e))
 
     def launch_heat(self):
         # run the heat-all process
@@ -295,7 +317,7 @@ class HeatContainerLauncher(HeatBaseLauncher):
                                                          self.install_dir},
             '--volume', '%(pfile)s:%(pfile)s:ro' % {'pfile':
                                                     self.policy_file},
-            self.container_image, 'heat-all'
+            self.all_container_image, 'heat-all'
         ]
         log.debug(' '.join(cmd))
         os.execvp('podman', cmd)
@@ -309,7 +331,7 @@ class HeatContainerLauncher(HeatBaseLauncher):
                                                             self.config_file},
             '--volume', '%(inst_tmp)s:%(inst_tmp)s:Z' % {'inst_tmp':
                                                          self.install_dir},
-            self.container_image,
+            self.all_container_image,
             'heat-manage', 'db_sync']
         log.debug(' '.join(cmd))
         subprocess.check_call(cmd)
@@ -317,7 +339,7 @@ class HeatContainerLauncher(HeatBaseLauncher):
     def get_heat_uid(self):
         cmd = [
             'podman', 'run', '--rm',
-            self.container_image,
+            self.all_container_image,
             'getent', 'passwd', self.user
         ]
         log.debug(' '.join(cmd))
@@ -331,7 +353,7 @@ class HeatContainerLauncher(HeatBaseLauncher):
     def get_heat_gid(self):
         cmd = [
             'podman', 'run', '--rm',
-            self.container_image,
+            self.all_container_image,
             'getent', 'group', self.user
         ]
         log.debug(' '.join(cmd))
@@ -342,7 +364,7 @@ class HeatContainerLauncher(HeatBaseLauncher):
             return result.split(':')[2]
         raise Exception('Could not find heat gid')
 
-    def kill_heat(self, pid):
+    def kill_heat(self, pid, backup_db=False):
         cmd = ['podman', 'stop', 'heat_all']
         log.debug(' '.join(cmd))
         # We don't want to hear from this command..
@@ -351,10 +373,11 @@ class HeatContainerLauncher(HeatBaseLauncher):
 
 class HeatNativeLauncher(HeatBaseLauncher):
 
-    def __init__(self, api_port, container_image, user='heat',
-                 heat_dir='/var/log/heat-launcher'):
-        super(HeatNativeLauncher, self).__init__(api_port, container_image,
-                                                 user, heat_dir)
+    heat_type = 'native'
+
+    def __init__(self, *args, **kwargs):
+        super(HeatNativeLauncher, self).__init__(*args, **kwargs)
+        self.host = "127.0.0.1"
 
     def launch_heat(self):
         os.execvp('heat-all', ['heat-all', '--config-file', self.config_file])
@@ -363,5 +386,239 @@ class HeatNativeLauncher(HeatBaseLauncher):
         subprocess.check_call(['heat-manage', '--config-file',
                                self.config_file, 'db_sync'])
 
-    def kill_heat(self, pid):
+    def kill_heat(self, pid, backup_db=False):
         os.kill(pid, signal.SIGKILL)
+
+
+class HeatPodLauncher(HeatContainerLauncher):
+
+    heat_type = 'pod'
+
+    def __init__(self, *args, **kwargs):
+        super(HeatPodLauncher, self).__init__(*args, **kwargs)
+        log_dir = os.path.join(self.heat_dir, 'log')
+        if not os.path.isdir(log_dir):
+            os.makedirs(log_dir)
+        self.host = self._get_ctlplane_ip()
+        self._chcon()
+
+    def _chcon(self):
+        subprocess.check_call(
+            ['chcon', '-R', '-t', 'container_file_t',
+             '-l', 's0', self.heat_dir])
+
+    def _fetch_container_image(self):
+        # force pull of latest container image
+        for image in self.api_container_image, self.engine_container_image:
+            log.info("Pulling conatiner image {}.".format(image))
+            cmd = ['sudo', 'podman', 'pull', image]
+            log.debug(' '.join(cmd))
+            try:
+                subprocess.check_output(cmd)
+            except subprocess.CalledProcessError as e:
+                raise Exception('Unable to fetch container image {}.'
+                                'Error: {}'.format(image, e))
+
+    def launch_heat(self):
+        inspect = subprocess.run([
+            'sudo', 'podman', 'pod', 'inspect', '--format',
+            '"{{.State}}"', 'ephemeral-heat'],
+            check=False,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT)
+        if "Running" in self._decode(inspect.stdout):
+            log.info("ephemeral-heat pod already running, skipping launch")
+            return
+        self._write_heat_pod()
+        subprocess.check_call([
+            'sudo', 'podman', 'play', 'kube',
+            os.path.join(self.heat_dir, 'heat-pod.yaml')
+        ])
+
+    def heat_db_sync(self, restore_db=False):
+        if not self.database_exists():
+            subprocess.check_call([
+                'sudo', 'podman', 'exec', '-it', '-u', 'root',
+                'mysql', 'mysql', '-e', 'create database heat'
+            ])
+            subprocess.check_call([
+                'sudo', 'podman', 'exec', '-it', '-u', 'root',
+                'mysql', 'mysql', '-e',
+                'create user if not exists '
+                '\'heat\'@\'%\' identified by \'heat\''
+            ])
+            subprocess.check_call([
+                'sudo', 'podman', 'exec', '-it', '-u', 'root',
+                'mysql', 'mysql', 'heat', '-e',
+                'grant all privileges on heat.* to \'heat\'@\'%\''
+            ])
+        cmd = [
+            'sudo', 'podman', 'run', '--rm',
+            '--user', 'heat',
+            '--volume', '%(conf)s:/etc/heat/heat.conf:z' % {'conf':
+                                                            self.config_file},
+            '--volume', '%(inst_tmp)s:%(inst_tmp)s:z' % {'inst_tmp':
+                                                         self.install_dir},
+            self.api_container_image,
+            'heat-manage', 'db_sync']
+        log.debug(' '.join(cmd))
+        subprocess.check_call(cmd)
+        if restore_db:
+            self.do_restore_db()
+
+    def do_restore_db(self, db_dump_path=None):
+        if not db_dump_path:
+            db_dump_path = self.db_dump_path
+        subprocess.run([
+            'sudo', 'podman', 'exec', '-i', '-u', 'root',
+            'mysql', 'mysql', 'heat'], stdin=open(db_dump_path),
+            check=True)
+
+    def rm_heat(self, backup_db=False):
+        if self.database_exists():
+            if backup_db:
+                try:
+                    with open(self.db_dump_path, 'w') as out:
+                        subprocess.run([
+                            'sudo', 'podman', 'exec', '-it', '-u', 'root',
+                            'mysql', 'mysqldump', 'heat'], stdout=out,
+                            check=True)
+                        subprocess.check_call([
+                            'sudo', 'podman', 'exec', '-it', '-u', 'root',
+                            'mysql', 'mysql', 'heat', '-e',
+                            'drop database heat'])
+                        subprocess.check_call([
+                            'sudo', 'podman', 'exec', '-it', '-u', 'root',
+                            'mysql', 'mysql', 'heat', '-e',
+                            'drop user \'heat\'@\'%\''])
+                except subprocess.CalledProcessError:
+                    pass
+        subprocess.call([
+            'sudo', 'podman', 'pod', 'rm', '-f', 'ephemeral-heat'
+        ])
+
+    def stop_heat(self):
+        subprocess.check_call([
+            'sudo', 'podman', 'pod', 'stop', 'ephemeral-heat'
+        ])
+
+    def check_message_bus(self):
+        log.info("Checking that message bus (rabbitmq) is up")
+        try:
+            subprocess.check_call([
+                'sudo', 'podman', 'exec', '-u', 'root', 'rabbitmq',
+                'rabbitmqctl', 'list_queues'],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL)
+            return True
+        except subprocess.CalledProcessError as cpe:
+            log.error("The message bus (rabbitmq) does not seem "
+                      "to be available")
+            log.error(cpe)
+            raise
+
+    def check_database(self):
+        log.info("Checking that database is up")
+        try:
+            subprocess.check_call([
+                'sudo', 'podman', 'exec', '-u', 'root', 'mysql',
+                'mysql', '-h', self._get_ctlplane_ip(), '-e',
+                'show databases;'],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL)
+            return True
+        except subprocess.CalledProcessError as cpe:
+            log.error("The database does not seem to be available")
+            log.error(cpe)
+            raise
+
+    def database_exists(self):
+        output = subprocess.check_output([
+            'sudo', 'podman', 'exec', '-it', '-u', 'root', 'mysql',
+            'mysql', '-e', 'show databases like "heat"'
+        ])
+        return 'heat' in str(output)
+
+    def kill_heat(self, pid, backup_db=False):
+        subprocess.call([
+            'sudo', 'podman', 'pod', 'kill', 'ephemeral-heat'
+        ])
+
+    def _decode(self, encoded):
+        if not encoded:
+            return ""
+        decoded = encoded.decode('utf-8')
+        if decoded.endswith('\n'):
+            decoded = decoded[:-1]
+        return decoded
+
+    def _get_transport_url(self):
+        user = self._decode(subprocess.check_output(
+            ['sudo', 'hiera', 'rabbitmq::default_user']))
+        password = self._decode(subprocess.check_output(
+            ['sudo', 'hiera', 'rabbitmq::default_pass']))
+        fqdn_ctlplane = self._decode(subprocess.check_output(
+            ['sudo', 'hiera', 'fqdn_ctlplane']))
+        port = self._decode(subprocess.check_output(
+            ['sudo', 'hiera', 'rabbitmq::port']))
+
+        transport_url = "rabbit://%s:%s@%s:%s/?ssl=0" % \
+            (user, password, fqdn_ctlplane, port)
+        return transport_url
+
+    def _get_db_connection(self):
+        return ('mysql+pymysql://'
+                'heat:heat@{}/heat?read_default_file='
+                '/etc/my.cnf.d/tripleo.cnf&read_default_group=tripleo'.format(
+                    self._get_ctlplane_vip()))
+
+    def _get_ctlplane_vip(self):
+        return self._decode(subprocess.check_output(
+            ['sudo', 'hiera', 'controller_virtual_ip']))
+
+    def _get_ctlplane_ip(self):
+        return self._decode(subprocess.check_output(
+            ['sudo', 'hiera', 'ctlplane']))
+
+    def _get_num_engine_workers(self):
+        return int(multiprocessing.cpu_count() / 2)
+
+    def _write_heat_config(self):
+        heat_config_tmpl_path = os.path.join(constants.DEFAULT_TEMPLATES_DIR,
+                                             "ephemeral-heat",
+                                             "heat.conf.j2")
+        with open(heat_config_tmpl_path) as tmpl:
+            heat_config_tmpl = jinja2.Template(tmpl.read())
+
+        config_vars = {
+            "transport_url": self._get_transport_url(),
+            "db_connection": self._get_db_connection(),
+            "api_port": self.api_port,
+            "num_engine_workers": self._get_num_engine_workers(),
+        }
+        heat_config = heat_config_tmpl.render(**config_vars)
+
+        with open(self.config_file, 'w') as conf:
+            conf.write(heat_config)
+
+    def _write_heat_pod(self):
+        heat_pod_tmpl_path = os.path.join(constants.DEFAULT_TEMPLATES_DIR,
+                                          "ephemeral-heat",
+                                          "heat-pod.yaml.j2")
+        with open(heat_pod_tmpl_path) as tmpl:
+            heat_pod_tmpl = jinja2.Template(tmpl.read())
+
+        pod_vars = {
+            "install_dir": self.install_dir,
+            "heat_dir": self.heat_dir,
+            "policy_file": self.policy_file,
+            "ctlplane_ip": self.host,
+            "api_port": self.api_port,
+            "api_image": self.api_container_image,
+            "engine_image": self.engine_container_image,
+        }
+        heat_pod = heat_pod_tmpl.render(**pod_vars)
+
+        heat_pod_path = os.path.join(self.heat_dir, "heat-pod.yaml")
+        with open(heat_pod_path, 'w') as conf:
+            conf.write(heat_pod)

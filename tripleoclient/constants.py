@@ -43,6 +43,14 @@ DEFAULT_HEAT_CONTAINER = ('{}/{}/openstack-heat-all:{}'.format(
     DEFAULT_CONTAINER_REGISTRY,
     DEFAULT_CONTAINER_NAMESPACE,
     DEFAULT_CONTAINER_TAG))
+DEFAULT_HEAT_API_CONTAINER = ('{}/{}/openstack-heat-api:{}'.format(
+    DEFAULT_CONTAINER_REGISTRY,
+    DEFAULT_CONTAINER_NAMESPACE,
+    DEFAULT_CONTAINER_TAG))
+DEFAULT_HEAT_ENGINE_CONTAINER = ('{}/{}/openstack-heat-engine:{}'.format(
+    DEFAULT_CONTAINER_REGISTRY,
+    DEFAULT_CONTAINER_NAMESPACE,
+    DEFAULT_CONTAINER_TAG))
 
 
 USER_PARAMETERS = 'user-environments/tripleoclient-parameters.yaml'
@@ -98,8 +106,9 @@ VALIDATIONS_LOG_BASEDIR = '/var/log/validations'
 DEFAULT_WORK_DIR = os.path.join(os.environ.get('HOME', '~/'),
                                 'config-download')
 
-TRIPLEO_STATIC_INVENTORY = 'tripleo-ansible-inventory.yaml'
+DEFAULT_TEMPLATES_DIR = "/usr/share/python-tripleoclient/templates"
 
+TRIPLEO_STATIC_INVENTORY = 'tripleo-ansible-inventory.yaml'
 ANSIBLE_INVENTORY = os.path.join(DEFAULT_WORK_DIR,
                                  '{}/', TRIPLEO_STATIC_INVENTORY)
 ANSIBLE_VALIDATION_DIR = (
