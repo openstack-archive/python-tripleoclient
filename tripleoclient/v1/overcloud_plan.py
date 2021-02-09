@@ -106,7 +106,16 @@ class CreatePlan(command.Command):
                    'to deploy. If this or --templates isn\'t provided, the '
                    'templates packaged on the Undercloud will be used.')
         )
-
+        parser.add_argument(
+            '--disable-container-prepare',
+            action='store_true',
+            default=False,
+            help=_('Disable the container preparation actions to prevent '
+                   'container tags from being updated and new containers '
+                   'from being fetched. If you skip this but do not have '
+                   'the container parameters configured, the deployment '
+                   'action may fail.')
+        )
         return parser
 
     def take_action(self, parsed_args):
@@ -122,13 +131,17 @@ class CreatePlan(command.Command):
         if not parsed_args.templates and not parsed_args.source_url:
             use_default_templates = True
 
+        # Needs this to avoid too long lines
+        disable_container_prepare = parsed_args.disable_container_prepare
+
         if parsed_args.templates:
             plan_management.create_plan_from_templates(
                 clients, name, parsed_args.templates,
                 generate_passwords=generate_passwords,
                 plan_env_file=parsed_args.plan_environment_file,
                 validate_stack=False,
-                verbosity_level=utils.playbook_verbosity(self=self)
+                verbosity_level=utils.playbook_verbosity(self=self),
+                disable_image_params_prepare=disable_container_prepare
             )
         else:
             plan_management.create_deployment_plan(
@@ -137,7 +150,8 @@ class CreatePlan(command.Command):
                 source_url=source_url,
                 use_default_templates=use_default_templates,
                 validate_stack=False,
-                verbosity_level=utils.playbook_verbosity(self=self)
+                verbosity_level=utils.playbook_verbosity(self=self),
+                disable_image_params_prepare=disable_container_prepare
             )
 
 
