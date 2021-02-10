@@ -2011,12 +2011,19 @@ def check_file_for_enabled_service(env_file):
         with open(env_file, "r") as f:
             content = yaml.safe_load(f)
         deprecated_services_enabled = []
-        for service in constants.DEPRECATED_SERVICES.keys():
+        deprecated_services = constants.DEPRECATED_SERVICES
+        python_version = sys.version_info[0]
+        # handle train special case of docker still being supported on centos7
+        if python_version == 3:
+            deprecated_services.update({
+                "OS::TripleO::Services::Docker": "Replaced with Podman."})
+
+        for service in deprecated_services.keys():
             try:
                 if content["resource_registry"][service] != "OS::Heat::None":
                     LOG.warning("service " + service + " is enabled in "
                                 + str(env_file) + ". " +
-                                constants.DEPRECATED_SERVICES[service])
+                                deprecated_services[service])
                     deprecated_services_enabled.append(service)
             except (KeyError, TypeError):
                 # ignore if content["resource_registry"] is empty
