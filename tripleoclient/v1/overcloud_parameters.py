@@ -12,62 +12,13 @@
 
 import argparse
 import logging
-import simplejson
 import yaml
 
 from osc_lib.i18n import _
 
 from tripleoclient import command
-from tripleoclient import constants
-from tripleoclient import exceptions
 from tripleoclient import utils
 from tripleoclient.workflows import parameters
-
-
-class SetParameters(command.Command):
-    """Set a parameters for a plan"""
-
-    log = logging.getLogger(__name__ + ".CreatePlan")
-
-    def get_parser(self, prog_name):
-        parser = super(SetParameters, self).get_parser(prog_name)
-        parser.add_argument(
-            'name',
-            help=_('The name of the plan, which is used for the Swift '
-                   'container, Mistral environment and Heat stack names.'))
-        parser.add_argument('file_in', type=argparse.FileType('r'))
-
-        return parser
-
-    def take_action(self, parsed_args):
-        self.log.debug("take_action(%s)" % parsed_args)
-
-        if parsed_args.file_in.name.endswith('.json'):
-            params = simplejson.load(parsed_args.file_in)
-        elif parsed_args.file_in.name.endswith('.yaml'):
-            params = yaml.safe_load(parsed_args.file_in)
-        else:
-            raise exceptions.InvalidConfiguration(
-                _("Invalid file extension for %s, must be json or yaml") %
-                parsed_args.file_in.name)
-
-        if 'parameter_defaults' in params:
-            params = params['parameter_defaults']
-
-        with utils.TempDirs() as tmp:
-            utils.run_ansible_playbook(
-                playbook='cli-update-params.yaml',
-                inventory='localhost,',
-                workdir=tmp,
-                playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
-                verbosity=utils.playbook_verbosity(self=self),
-                extra_vars={
-                    "container": parsed_args.name
-                },
-                extra_vars_file={
-                    "parameters": params
-                }
-            )
 
 
 class GenerateFencingParameters(command.Command):
