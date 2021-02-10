@@ -1258,9 +1258,17 @@ class GetTripleoAnsibleInventory(TestCase):
         self.ssh_user = 'heat_admin'
         self.stack = 'foo-overcloud'
 
+    @mock.patch('tripleoclient.utils.run_command_and_log')
     @mock.patch('tripleoclient.utils.get_tripleo_ansible_inventory',
                 autospec=True)
-    def test_get_tripleo_ansible_inventory(self, mock_inventory):
+    def test_get_tripleo_ansible_inventory(self,
+                                           mock_inventory,
+                                           mock_run_cmd):
+
+        mock_run_cmd.command = ['/usr/bin/tripleo-ansible-inventory',
+                                '--os-cloud', 'undercloud',
+                                '--stack', self.stack,
+                                '--ansible_ssh_user', self.ssh_user]
 
         with mock.patch('os.path.exists') as mock_exists:
             mock_exists.return_value = True
