@@ -176,8 +176,6 @@ DEPRECATED_SERVICES = {"OS::TripleO::Services::OpenDaylightApi":
                        "Skydive is no longer supported.",
                        "OS::TripleO::Services::Tacker":
                        "Tacker is no longer supported.",
-                       "OS::TripleO::Services::Docker":
-                       "Replaced with Podman.",
                        "OS::TripleO::Services::Fluentd":
                        "Deprecated in favour of"
                        " OS::TripleO::Services::Rsyslog",
