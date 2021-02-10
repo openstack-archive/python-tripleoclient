@@ -107,10 +107,11 @@ class TestParameterWorkflows(utils.TestCommand):
                 workdir=mock.ANY,
                 playbook_dir=mock.ANY,
                 verbosity=0,
+                extra_vars_file={
+                    'tripleo_get_flatten_params': {
+                        'stack_data': mock.ANY},
+                    'tripleo_role_list': {'roles': mock.ANY}},
                 extra_vars={'num_phy_cores_per_numa_node_for_pmd': 2,
-                            'tripleo_get_flatten_params': {
-                                'stack_data': mock.ANY},
-                            'tripleo_role_list': mock.ANY,
                             'derived_environment_path': mock.ANY}
             )
         ]
@@ -153,10 +154,11 @@ class TestParameterWorkflows(utils.TestCommand):
                 workdir=mock.ANY,
                 playbook_dir=mock.ANY,
                 verbosity=0,
+                extra_vars_file={
+                    'tripleo_get_flatten_params': {
+                        'stack_data': mock.ANY},
+                    'tripleo_role_list': {'roles': mock.ANY}},
                 extra_vars={'num_phy_cores_per_numa_node_for_pmd': 2,
-                            'tripleo_get_flatten_params': {
-                                'stack_data': mock.ANY},
-                            'tripleo_role_list': mock.ANY,
                             'derived_environment_path': mock.ANY}
             ),
             mock.call(
@@ -165,10 +167,11 @@ class TestParameterWorkflows(utils.TestCommand):
                 workdir=mock.ANY,
                 playbook_dir='/playbook/dir-1',
                 verbosity=0,
+                extra_vars_file={
+                    'tripleo_get_flatten_params': {
+                        'stack_data': mock.ANY},
+                    'tripleo_role_list': {'roles': mock.ANY}},
                 extra_vars={'some_opt': 0,
-                            'tripleo_get_flatten_params': {
-                                'stack_data': mock.ANY},
-                            'tripleo_role_list': mock.ANY,
                             'derived_environment_path': mock.ANY}
             )
         ]
