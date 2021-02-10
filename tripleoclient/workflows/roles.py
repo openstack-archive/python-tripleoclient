@@ -50,8 +50,9 @@ def get_roles(clients, roles_file, tht_root,
 
     valid_roles = []
     for name in role_names:
-        role_count = stack_data['parameters'].get(
-            name + 'Count', {}).get('default', 0)
+        role_count = stack_data['heat_resource_tree'][
+            'parameters'].get(name + 'Count', {}).get(
+                'default', 0)
         if role_count > 0:
             valid_roles.append(name)
 

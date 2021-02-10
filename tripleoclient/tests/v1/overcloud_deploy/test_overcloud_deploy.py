@@ -118,6 +118,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         shutil.rmtree = self.real_shutil
         self.mock_tar.stop()
 
+    @mock.patch('tripleoclient.utils.build_stack_data', autospec=True)
     @mock.patch('tripleo_common.utils.plan.default_image_params',
                 autospec=True)
     @mock.patch('tripleoclient.utils.get_rc_params',
@@ -159,7 +160,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                        mock_get_ctlplane_attrs, mock_nic_ansiblei,
                        mock_process_env, mock_roles_data,
                        mock_container_prepare, mock_generate_password,
-                       mock_rc_params, mock_default_image_params):
+                       mock_rc_params, mock_default_image_params,
+                       mock_stack_data):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         clients = self.app.client_manager
@@ -186,7 +188,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             "id": "network id"
         }
         mock_get_template_contents.return_value = [{}, "template"]
-
+        mock_stack_data.return_value = {'environment_parameters': {},
+                                        'heat_resource_tree': {}}
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         baremetal = clients.baremetal
@@ -233,6 +236,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_create_tempest_deployer_input.assert_called_with()
         mock_copy.assert_called_once()
 
+    @mock.patch('tripleoclient.utils.build_stack_data', autospec=True)
     @mock.patch('tripleo_common.utils.plan.default_image_params',
                 autospec=True)
     @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
@@ -275,7 +279,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                         mock_get_ctlplane_attrs,
                         mock_process_env, mock_roles_data,
                         mock_container_prepare, mock_generate_password,
-                        mock_rc_params, mock_default_image_params):
+                        mock_rc_params, mock_default_image_params,
+                        mock_stack_data):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         plane_management_fixture = deployment.PlanManagementFixture()
@@ -288,7 +293,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         verifylist = [
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
         ]
-
+        mock_stack_data.return_value = {'environment_parameters': {},
+                                        'heat_resource_tree': {}}
         mock_tmpdir.return_value = self.tmp_dir.path
 
         clients = self.app.client_manager
@@ -336,6 +342,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_validate_args.assert_called_once_with(parsed_args)
         self.assertFalse(mock_invoke_plan_env_wf.called)
 
+    @mock.patch('tripleoclient.utils.build_stack_data', autospec=True)
     @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
     @mock.patch('tripleo_common.utils.plan.generate_passwords',
                 return_value={})
@@ -377,7 +384,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mock_chdir, mock_overcloudrc,
             mock_process_env, mock_roles_data,
             mock_image_prepare, mock_generate_password,
-            mock_rc_params):
+            mock_rc_params, mock_stack_data):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         plane_management_fixture = deployment.PlanManagementFixture()
@@ -392,7 +399,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
             ('skip_deploy_identifier', True)
         ]
-
+        mock_stack_data.return_value = {'environment_parameters': {},
+                                        'heat_resource_tree': {}}
         mock_tmpdir.return_value = "/tmp/tht"
 
         clients = self.app.client_manager
@@ -421,6 +429,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.cmd.take_action(parsed_args)
         mock_copy.assert_called_once()
 
+    @mock.patch('tripleoclient.utils.build_stack_data', autospec=True)
     @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
     @mock.patch('tripleo_common.utils.plan.generate_passwords',
                 return_value={})
@@ -459,7 +468,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                      mock_roles_data,
                                      mock_image_prepare,
                                      mock_generate_password,
-                                     mock_rc_params):
+                                     mock_rc_params,
+                                     mock_stack_data):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         plane_management_fixture = deployment.PlanManagementFixture()
@@ -481,7 +491,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             "id": "network id"
         }
         mock_get_template_contents.return_value = [{}, "template"]
-
+        mock_stack_data.return_value = {'environment_parameters': {},
+                                        'heat_resource_tree': {}}
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         baremetal = clients.baremetal
@@ -582,6 +593,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         def _fake_heat_deploy(self, stack, stack_name, template_path,
                               parameters, environments, timeout, tht_root,
                               env, run_validations,
+                              roles_file,
                               env_files_tracker=None,
                               deployment_options=None):
             assertEqual(
@@ -670,7 +682,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             self.cmd, {}, 'overcloud',
             '/fake/path/' + constants.OVERCLOUD_YAML_NAME, {},
             ['~/overcloud-env.json'], 1, '/fake/path', {}, False,
-            deployment_options=None, env_files_tracker=None)
+            None, deployment_options=None, env_files_tracker=None)
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_heat_deploy', autospec=True)
@@ -883,6 +895,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                           self.cmd.take_action,
                           parsed_args)
 
+    @mock.patch('tripleoclient.utils.build_stack_data', autospec=True)
     @mock.patch('tripleo_common.utils.plan.default_image_params',
                 autospec=True)
     @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
@@ -929,7 +942,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                  mock_image_prepare,
                                  mock_generate_password,
                                  mock_rc_params,
-                                 mock_default_image_params):
+                                 mock_default_image_params,
+                                 mock_stack_data):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         plane_management_fixture = deployment.PlanManagementFixture()
@@ -937,6 +951,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         utils_fixture = deployment.UtilsFixture()
         self.useFixture(utils_fixture)
 
+        mock_stack_data.return_value = {'environment_parameters': {},
+                                        'heat_resource_tree': {}}
         arglist = ['--templates', '--ntp-server', 'ntp']
         verifylist = [
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
@@ -1263,7 +1279,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                         'UndercloudHostsEntries':
                            ['192.168.0.1 uc.ctlplane.localhost uc.ctlplane'],
                         'CtlplaneNetworkAttributes': {}}, mock.ANY,
-                       451, mock.ANY, mock.ANY, False,
+                       451, mock.ANY, mock.ANY, False, None,
                        deployment_options={}, env_files_tracker=mock.ANY)],
             mock_hd.mock_calls)
         self.assertIn(
