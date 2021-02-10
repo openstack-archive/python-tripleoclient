@@ -20,6 +20,7 @@ from osc_lib.tests import utils
 from tripleoclient import constants
 from tripleoclient.tests import fakes
 from tripleoclient.v1 import undercloud_backup
+from unittest.mock import call
 
 
 class TestUndercloudBackup(utils.TestCommand):
@@ -53,6 +54,7 @@ class TestUndercloudBackup(utils.TestCommand):
             workdir=mock.ANY,
             playbook=mock.ANY,
             inventory=mock.ANY,
+            tags=None,
             skip_tags=None,
             playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             verbosity=3,
@@ -81,6 +83,7 @@ class TestUndercloudBackup(utils.TestCommand):
             workdir=mock.ANY,
             playbook=mock.ANY,
             inventory=mock.ANY,
+            tags=None,
             skip_tags=None,
             verbosity=3,
             playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
@@ -109,6 +112,7 @@ class TestUndercloudBackup(utils.TestCommand):
             workdir=mock.ANY,
             playbook=mock.ANY,
             inventory=mock.ANY,
+            tags=None,
             skip_tags=None,
             playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             verbosity=3,
@@ -133,6 +137,7 @@ class TestUndercloudBackup(utils.TestCommand):
             workdir=mock.ANY,
             playbook=mock.ANY,
             inventory=mock.ANY,
+            tags=None,
             skip_tags=None,
             playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             verbosity=3,
@@ -152,6 +157,7 @@ class TestUndercloudBackup(utils.TestCommand):
             workdir=mock.ANY,
             playbook='cli-undercloud-backup.yaml',
             inventory=parsed_args.inventory,
+            tags='bar_create_recover_image',
             skip_tags=None,
             playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             verbosity=3,
@@ -173,7 +179,53 @@ class TestUndercloudBackup(utils.TestCommand):
             workdir=mock.ANY,
             playbook='prepare-undercloud-backup.yaml',
             inventory=parsed_args.inventory,
-            skip_tags='bar_create_recover_image',
+            tags='bar_setup_rear',
+            skip_tags=None,
+            playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            verbosity=3,
+            extra_vars=None
+        )
+
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
+                autospec=True)
+    def test_undercloud_backup_init_nfs(self, mock_playbook):
+        arglist = [
+            '--init',
+            'nfs'
+        ]
+        verifylist = []
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
+        mock_playbook.assert_called_once_with(
+            workdir=mock.ANY,
+            playbook='prepare-nfs-backup.yaml',
+            inventory=parsed_args.inventory,
+            tags='bar_setup_nfs_server',
+            skip_tags=None,
+            playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            verbosity=3,
+            extra_vars=None
+        )
+
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
+                autospec=True)
+    def test_undercloud_backup_setup_nfs(self, mock_playbook):
+        arglist = [
+            '--setup-nfs'
+        ]
+        verifylist = []
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
+        mock_playbook.assert_called_once_with(
+            workdir=mock.ANY,
+            playbook='prepare-nfs-backup.yaml',
+            inventory=parsed_args.inventory,
+            tags='bar_setup_nfs_server',
+            skip_tags=None,
             playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             verbosity=3,
             extra_vars=None
@@ -181,11 +233,9 @@ class TestUndercloudBackup(utils.TestCommand):
 
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
-    def test_undercloud_backup_init_with_inventory(self, mock_playbook):
+    def test_undercloud_backup_setup_rear(self, mock_playbook):
         arglist = [
-            '--init',
-            '--inventory',
-            '/tmp/test_inventory.yaml'
+            '--setup-rear'
         ]
         verifylist = []
 
@@ -196,10 +246,97 @@ class TestUndercloudBackup(utils.TestCommand):
             workdir=mock.ANY,
             playbook='prepare-undercloud-backup.yaml',
             inventory=parsed_args.inventory,
-            skip_tags='bar_create_recover_image',
+            tags='bar_setup_rear',
+            skip_tags=None,
             playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             verbosity=3,
             extra_vars=None
+            )
+
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
+                autospec=True)
+    def test_undercloud_backup_setup_rear_extra_vars_inline(self,
+                                                            mock_playbook):
+        arglist = [
+            '--setup-rear',
+            '--extra-vars',
+            '{"tripleo_backup_and_restore_nfs_server": "192.168.24.1"}'
+        ]
+        verifylist = []
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        extra_vars_dict = {
+            'tripleo_backup_and_restore_nfs_server': '192.168.24.1'
+        }
+
+        self.cmd.take_action(parsed_args)
+        mock_playbook.assert_called_once_with(
+            workdir=mock.ANY,
+            playbook='prepare-undercloud-backup.yaml',
+            inventory=parsed_args.inventory,
+            tags='bar_setup_rear',
+            skip_tags=None,
+            playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            verbosity=3,
+            extra_vars=extra_vars_dict
+            )
+
+    @mock.patch('tripleoclient.utils.run_ansible_playbook', autospec=True)
+    def test_undercloud_backup_setup_nfs_rear_with_inventory(self,
+                                                             mock_playbook):
+        arglist = [
+            '--setup-nfs',
+            '--setup-rear',
+            '--inventory',
+            '/tmp/test_inventory.yaml'
+        ]
+        verifylist = []
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
+
+        calls = [call(workdir=mock.ANY,
+                      playbook='prepare-nfs-backup.yaml',
+                      inventory=parsed_args.inventory,
+                      tags='bar_setup_nfs_server',
+                      skip_tags=None,
+                      playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                      verbosity=3,
+                      extra_vars=None),
+                 call(workdir=mock.ANY,
+                      playbook='prepare-undercloud-backup.yaml',
+                      inventory=parsed_args.inventory,
+                      tags='bar_setup_rear',
+                      skip_tags=None,
+                      playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                      verbosity=3,
+                      extra_vars=None)]
+
+        mock_playbook.assert_has_calls(calls)
+
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
+                autospec=True)
+    def test_undercloud_backup_setup_nfs_with_extra_vars(self, mock_playbook):
+        arglist = [
+            '--setup-nfs',
+            '--extra-vars',
+            '/tmp/test_vars.yaml'
+        ]
+        verifylist = []
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
+        mock_playbook.assert_called_once_with(
+            workdir=mock.ANY,
+            playbook='prepare-nfs-backup.yaml',
+            inventory=parsed_args.inventory,
+            tags='bar_setup_nfs_server',
+            skip_tags=None,
+            playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            verbosity=3,
+            extra_vars='/tmp/test_vars.yaml'
         )
 
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
@@ -218,6 +355,7 @@ class TestUndercloudBackup(utils.TestCommand):
             workdir=mock.ANY,
             playbook='cli-undercloud-backup.yaml',
             inventory=parsed_args.inventory,
+            tags='bar_create_recover_image',
             skip_tags=None,
             playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             verbosity=3,
