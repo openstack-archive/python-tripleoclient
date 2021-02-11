@@ -2403,6 +2403,11 @@ def safe_write(path, data):
         )
 
     try:
+        data = data.decode('utf-8', 'ignore')
+    except (UnicodeDecodeError, AttributeError):
+        pass
+
+    try:
         with os.fdopen(os.open(path,
                        os.O_CREAT | os.O_TRUNC | os.O_WRONLY, 0o666),
                        'w') as f:
