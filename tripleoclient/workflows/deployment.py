@@ -46,7 +46,8 @@ def create_overcloudrc(stack, rc_params, no_proxy='',
 
 def deploy_without_plan(clients, stack, stack_name, template,
                         files, env_files,
-                        log):
+                        log,
+                        working_dir):
     orchestration_client = clients.orchestration
     if stack is None:
         log.info("Performing Heat stack create")
@@ -64,7 +65,8 @@ def deploy_without_plan(clients, stack, stack_name, template,
         action = 'UPDATE'
 
     set_deployment_status(stack_name,
-                          status='DEPLOYING')
+                          status='DEPLOYING',
+                          working_dir=working_dir)
     stack_args = {
         'stack_name': stack_name,
         'template': template,
@@ -80,7 +82,8 @@ def deploy_without_plan(clients, stack, stack_name, template,
         print("Success.")
     except Exception:
         set_deployment_status(stack_name,
-                              status='DEPLOY_FAILED')
+                              status='DEPLOY_FAILED',
+                              working_dir=working_dir)
         raise
 
     create_result = utils.wait_for_stack_ready(
@@ -89,7 +92,8 @@ def deploy_without_plan(clients, stack, stack_name, template,
         shell.OpenStackShell().run(["stack", "failures", "list", stack_name])
         set_deployment_status(
             stack_name,
-            status='DEPLOY_FAILED'
+            status='DEPLOY_FAILED',
+            working_dir=working_dir
         )
         if stack is None:
             raise exceptions.DeploymentError("Heat Stack create failed.")
@@ -394,28 +398,27 @@ def config_download(log, clients, stack, ssh_network='ctlplane',
     else:
         playbooks = os.path.join(stack_work_dir, ansible_playbook_name)
 
-    with utils.TempDirs() as tmp:
-        utils.run_ansible_playbook(
-            playbook=playbooks,
-            inventory=inventory_path,
-            workdir=tmp,
-            playbook_dir=stack_work_dir,
-            skip_tags=skip_tags,
-            tags=tags,
-            ansible_cfg=override_ansible_cfg,
-            verbosity=verbosity,
-            ssh_user=ssh_user,
-            key=key_file,
-            limit_hosts=limit_hosts,
-            ansible_timeout=timeout,
-            reproduce_command=True,
-            extra_env_variables={
-                'ANSIBLE_BECOME': True,
-            },
-            extra_vars=extra_vars,
-            timeout=deployment_timeout,
-            forks=forks
-        )
+    utils.run_ansible_playbook(
+        playbook=playbooks,
+        inventory=inventory_path,
+        workdir=output_dir,
+        playbook_dir=stack_work_dir,
+        skip_tags=skip_tags,
+        tags=tags,
+        ansible_cfg=override_ansible_cfg,
+        verbosity=verbosity,
+        ssh_user=ssh_user,
+        key=key_file,
+        limit_hosts=limit_hosts,
+        ansible_timeout=timeout,
+        reproduce_command=True,
+        extra_env_variables={
+            'ANSIBLE_BECOME': True,
+        },
+        extra_vars=extra_vars,
+        timeout=deployment_timeout,
+        forks=forks
+    )
 
     _log_and_print(
         message='Overcloud configuration completed for stack: {}'.format(
@@ -486,7 +489,22 @@ def get_deployment_status(clients, stack_name):
         return None
 
 
-def set_deployment_status(stack_name, status):
+def set_deployment_status(stack_name, status, working_dir):
     utils.update_deployment_status(
         stack_name=stack_name,
-        status=status)
+        status=status,
+        working_dir=working_dir)
+
+
+def make_config_download_dir(config_download_dir, stack):
+    utils.makedirs(config_download_dir)
+    utils.makedirs(DEFAULT_WORK_DIR)
+    # Symlink for the previous default config-download dir to the
+    # new consistent location.
+    # This will create the following symlink:
+    # ~/config-download ->
+    # ~/overcloud-deploy/<stack>/config-download
+    config_download_stack_dir = \
+        os.path.join(DEFAULT_WORK_DIR, stack)
+    if not os.path.exists(config_download_stack_dir):
+        os.symlink(config_download_dir, config_download_stack_dir)

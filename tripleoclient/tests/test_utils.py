@@ -1800,7 +1800,8 @@ class TestGeneralUtils(base.TestCommand):
         }
         utils.update_deployment_status(
             'overcloud',
-            mock_status
+            mock_status,
+            ''
         )
         mock_write.assert_called()
 

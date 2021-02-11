@@ -607,9 +607,7 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
             env.update(extra_env_variables)
 
     if 'ANSIBLE_CONFIG' not in env and not ansible_cfg:
-        config_download = os.path.join(constants.DEFAULT_WORK_DIR, plan)
-        makedirs(config_download)
-        ansible_cfg = os.path.join(config_download, 'ansible.cfg')
+        ansible_cfg = os.path.join(workdir, 'ansible.cfg')
         config = configparser.ConfigParser()
         if os.path.isfile(ansible_cfg):
             config.read(ansible_cfg)
@@ -861,7 +859,8 @@ def store_cli_param(command_name, parsed_args):
                                                 "directory") % history_path)
 
 
-def create_tempest_deployer_input(config_name='tempest-deployer-input.conf'):
+def create_tempest_deployer_input(config_name='tempest-deployer-input.conf',
+                                  output_dir=None):
     config = configparser.ConfigParser()
 
     # Create required sections
@@ -895,7 +894,11 @@ def create_tempest_deployer_input(config_name='tempest-deployer-input.conf'):
                     'object-storage', 'volume'):
         config.set(section, 'region', 'regionOne')
 
-    with open(config_name, 'w+') as config_file:
+    if output_dir:
+        config_path = os.path.join(output_dir, config_name)
+    else:
+        config_path = config_name
+    with open(config_path, 'w+') as config_file:
         config.write(config_file)
 
 
@@ -1647,21 +1650,24 @@ def build_stack_data(clients, stack_name, template,
     return stack_data
 
 
-def archive_deploy_artifacts(log, stack_name, tht_dir,
+def archive_deploy_artifacts(log, stack_name, working_dir,
                              ansible_dir=None, output_dir=None):
     """Create a tarball of the temporary folders used"""
     log.debug(_("Preserving deployment artifacts"))
 
     if not output_dir:
-        output_dir = tht_dir
+        output_dir = working_dir
 
     def get_tar_filename():
-        return '%s/%s-install-%s.tar.bzip2' % \
-           (constants.CLOUD_HOME_DIR, stack_name,
-            datetime.datetime.utcnow().strftime('%Y%m%d%H%M%S'))
+        return os.path.join(
+            working_dir, '%s-install-%s.tar.bzip2' %
+            (stack_name,
+             datetime.datetime.utcnow().strftime('%Y%m%d%H%M%S')))
 
-    def remove_leading_path(info):
+    def tar_filter(info):
         """Tar filter to remove output dir from path"""
+        if info.name.endswith('.bzip2'):
+            return None
         leading_path = output_dir[1:] + '/'
         info.name = info.name.replace(leading_path, '')
         return info
@@ -1669,10 +1675,10 @@ def archive_deploy_artifacts(log, stack_name, tht_dir,
     tar_filename = get_tar_filename()
     try:
         tf = tarfile.open(tar_filename, 'w:bz2')
-        tf.add(tht_dir, recursive=True, filter=remove_leading_path)
+        tf.add(working_dir, recursive=True, filter=tar_filter)
         if ansible_dir:
             tf.add(ansible_dir, recursive=True,
-                   filter=remove_leading_path)
+                   filter=tar_filter)
         tf.close()
     except Exception as ex:
         msg = _("Unable to create artifact tarball, %s") % str(ex)
@@ -2469,21 +2475,22 @@ def copy_clouds_yaml(user):
         raise exceptions.DeploymentError(msg)
 
 
-def get_status_yaml(stack_name):
+def get_status_yaml(stack_name, working_dir):
     status_yaml = os.path.join(
-        constants.CLOUD_HOME_DIR,
+        working_dir,
         '%s-deployment_status.yaml' % stack_name)
     return status_yaml
 
 
-def update_deployment_status(stack_name, status):
+def update_deployment_status(stack_name, status, working_dir):
     """Update the deployment status."""
 
     contents = yaml.safe_dump(
         {'deployment_status': status},
         default_flow_style=False)
 
-    safe_write(get_status_yaml(stack_name), contents)
+    safe_write(get_status_yaml(stack_name, working_dir),
+               contents)
 
 
 def create_breakpoint_cleanup_env(tht_root, stack):

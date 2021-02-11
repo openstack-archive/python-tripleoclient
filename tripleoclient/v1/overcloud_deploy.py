@@ -25,7 +25,6 @@ import re
 import shutil
 import six
 import subprocess
-import tempfile
 import time
 import yaml
 
@@ -242,31 +241,22 @@ class DeployOvercloud(command.Command):
         deployment.deploy_without_plan(
             self.clients, stack, stack_name,
             template, files, env_files_tracker,
-            self.log)
+            self.log, self.working_dir)
 
     def _deploy_tripleo_heat_templates_tmpdir(self, stack, parsed_args):
         tht_root = os.path.abspath(parsed_args.templates)
-        tht_tmp = tempfile.mkdtemp(prefix='tripleoclient-')
-        new_tht_root = "%s/tripleo-heat-templates" % tht_tmp
-        self.log.debug("Creating temporary templates tree in %s"
+        new_tht_root = "%s/tripleo-heat-templates" % self.working_dir
+        self.log.debug("Creating working templates tree in %s"
                        % new_tht_root)
-        try:
-            shutil.copytree(tht_root, new_tht_root, symlinks=True)
-            utils.jinja_render_files(self.log, parsed_args.templates,
-                                     new_tht_root,
-                                     parsed_args.roles_file,
-                                     parsed_args.networks_file,
-                                     new_tht_root)
-            self._deploy_tripleo_heat_templates(stack, parsed_args,
-                                                new_tht_root, tht_root)
-        finally:
-            utils.archive_deploy_artifacts(self.log, parsed_args.stack,
-                                           new_tht_root)
-            if parsed_args.no_cleanup:
-                self.log.warning("Not cleaning temporary directory %s"
-                                 % tht_tmp)
-            else:
-                shutil.rmtree(tht_tmp)
+        shutil.rmtree(new_tht_root, ignore_errors=True)
+        shutil.copytree(tht_root, new_tht_root, symlinks=True)
+        utils.jinja_render_files(self.log, parsed_args.templates,
+                                 new_tht_root,
+                                 parsed_args.roles_file,
+                                 parsed_args.networks_file,
+                                 new_tht_root)
+        self._deploy_tripleo_heat_templates(stack, parsed_args,
+                                            new_tht_root, tht_root)
 
     def _deploy_tripleo_heat_templates(self, stack, parsed_args,
                                        tht_root, user_tht_root):
@@ -804,7 +794,7 @@ class DeployOvercloud(command.Command):
             default=None,
             help=_('Directory to use for saved output when using '
                    '--config-download. When not '
-                   'specified, $HOME/config-download will be used.')
+                   'specified, <working-dir>/config-download will be used.')
         )
         parser.add_argument(
             '--override-ansible-cfg',
@@ -873,12 +863,27 @@ class DeployOvercloud(command.Command):
                    'the container parameters configured, the deployment '
                    'action may fail.')
         )
+        parser.add_argument(
+            '--working-dir',
+            action='store',
+            help=_('The working directory for the deployment where all '
+                   'input, output, and generated files will be stored.\n'
+                   'Defaults to "$HOME/overcloud-deploy-<stack>"')
+        )
         return parser
 
     def take_action(self, parsed_args):
         logging.register_options(CONF)
         logging.setup(CONF, '')
         self.log.debug("take_action(%s)" % parsed_args)
+
+        if not parsed_args.working_dir:
+            self.working_dir = os.path.join(
+                os.path.expanduser('~'),
+                "overcloud-deploy-%s" % parsed_args.stack)
+        else:
+            self.working_dir = parsed_args.working_dir
+        utils.makedirs(self.working_dir)
 
         if parsed_args.update_plan_only:
             raise exceptions.DeploymentError(
@@ -925,6 +930,12 @@ class DeployOvercloud(command.Command):
         # a create then the previous stack object would be None.
         stack = utils.get_stack(self.orchestration_client, parsed_args.stack)
 
+        overcloud_endpoint = None
+        old_rcpath = None
+        rcpath = None
+        horizon_url = None
+        deploy_message = None
+
         try:
             # Force fetching of attributes
             stack.get()
@@ -935,14 +946,20 @@ class DeployOvercloud(command.Command):
                 self.orchestration_client,
                 parsed_args.stack)
 
-            rcpath = deployment.create_overcloudrc(
+            # For backwards compatibility, we will also write overcloudrc to
+            # $HOME and then self.working_dir.
+            old_rcpath = deployment.create_overcloudrc(
                 stack, rc_params, parsed_args.no_proxy)
+            rcpath = deployment.create_overcloudrc(
+                stack, rc_params, parsed_args.no_proxy,
+                self.working_dir)
 
             if parsed_args.config_download:
                 self.log.info("Deploying overcloud configuration")
                 deployment.set_deployment_status(
                     stack.stack_name,
-                    status='DEPLOYING'
+                    status='DEPLOYING',
+                    working_dir=self.working_dir
                 )
 
                 if not parsed_args.config_download_only:
@@ -969,12 +986,17 @@ class DeployOvercloud(command.Command):
                     deployment_options['ansible_python_interpreter'] = \
                         parsed_args.deployment_python_interpreter
 
+                config_download_dir = parsed_args.output_dir or \
+                    os.path.join(self.working_dir, "config-download")
+                deployment.make_config_download_dir(config_download_dir,
+                                                    parsed_args.stack)
+
                 deployment.config_download(
                     self.log,
                     self.clients,
                     stack,
                     parsed_args.overcloud_ssh_network,
-                    parsed_args.output_dir,
+                    config_download_dir,
                     parsed_args.override_ansible_cfg,
                     timeout=parsed_args.overcloud_ssh_port_timeout,
                     verbosity=utils.playbook_verbosity(self=self),
@@ -990,14 +1012,16 @@ class DeployOvercloud(command.Command):
                 )
                 deployment.set_deployment_status(
                     stack.stack_name,
-                    status=deploy_status)
+                    status=deploy_status,
+                    working_dir=self.working_dir)
         except Exception as deploy_e:
             deploy_status = 'DEPLOY_FAILED'
             deploy_message = 'with error'
             deploy_trace = deploy_e
             deployment.set_deployment_status(
                 stack.stack_name,
-                status=deploy_status
+                status=deploy_status,
+                working_dir=self.working_dir
             )
         finally:
             # Run postconfig on create or force. Use force to makes sure
@@ -1010,12 +1034,20 @@ class DeployOvercloud(command.Command):
             user = \
                 getpwuid(os.stat(constants.CLOUD_HOME_DIR).st_uid).pw_name
             utils.copy_clouds_yaml(user)
-            utils.create_tempest_deployer_input()
+            utils.create_tempest_deployer_input(output_dir=self.working_dir)
 
             print("Overcloud Endpoint: {0}".format(overcloud_endpoint))
             print("Overcloud Horizon Dashboard URL: {0}".format(horizon_url))
-            print("Overcloud rc file: {0}".format(rcpath))
+            print("Overcloud rc file: {} and {}".format(
+                rcpath, old_rcpath))
             print("Overcloud Deployed {0}".format(deploy_message))
+
+            if parsed_args.output_dir:
+                ansible_dir = config_download_dir
+            else:
+                ansible_dir = None
+            utils.archive_deploy_artifacts(self.log, parsed_args.stack,
+                                           self.working_dir, ansible_dir)
 
             if deploy_status == 'DEPLOY_FAILED':
                 raise(deploy_trace)
