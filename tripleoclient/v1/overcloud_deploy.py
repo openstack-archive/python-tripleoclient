@@ -54,13 +54,6 @@ class DeployOvercloud(command.Command):
 
     log = logging.getLogger(__name__ + ".DeployOvercloud")
 
-    # This may be switched on by default in the future, but for now
-    # we'll want this behavior only in `overcloud update stack` and
-    # `overcloud upgrade stack`, as enabling it here by default might
-    # mean e.g. it might mean never deleting files under user-files/
-    # directory in the plan.
-    _keep_env_on_update = False
-
     def _setup_clients(self, parsed_args):
         self.clients = self.app.client_manager
         self.orchestration_client = self.clients.orchestration
