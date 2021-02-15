@@ -19,6 +19,7 @@ from heatclient.common import event_utils
 from heatclient import exc as heat_exc
 from openstackclient import shell
 from tripleo_common.utils import overcloudrc as rc_utils
+from tripleo_common.utils.safe_import import git
 
 from tripleoclient.constants import ANSIBLE_TRIPLEO_PLAYBOOKS
 from tripleoclient.constants import CLOUD_HOME_DIR
@@ -423,6 +424,24 @@ def config_download(log, clients, stack, ssh_network='ctlplane',
         logger=log,
         print_msg=(verbosity == 0)
     )
+
+    if os.path.exists(stack_work_dir):
+        # Object to the git repository
+        repo = git.Repo(stack_work_dir)
+
+        # Configure git user.name and user.email
+        git_config_user = "mistral"
+        git_config_email = git_config_user + '@' + os.uname().nodename.strip()
+        repo.config_writer().set_value(
+            "user", "name", git_config_user
+        ).release()
+        repo.config_writer().set_value(
+            "user", "email", git_config_email
+        ).release()
+
+        # Add and commit all files to the git repository
+        repo.git.add(".")
+        repo.git.commit("--amend", "--no-edit")
 
 
 def get_horizon_url(stack, verbosity=0):
