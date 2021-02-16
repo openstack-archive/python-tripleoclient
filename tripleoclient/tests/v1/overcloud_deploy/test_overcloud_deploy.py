@@ -144,8 +144,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch("heatclient.common.event_utils.get_events")
     @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env',
                 autospec=True)
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_create_parameters_env', autospec=True)
+    @mock.patch('tripleoclient.utils.create_parameters_env', autospec=True)
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
@@ -214,8 +213,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'CtlplaneNetworkAttributes': {},
         }
 
-        def _custom_create_params_env(_self, parameters, tht_root,
-                                      container_name):
+        def _custom_create_params_env(parameters, tht_root,
+                                      stack):
             for key, value in six.iteritems(parameters):
                 self.assertEqual(value, expected_parameters[key])
             parameter_defaults = {"parameter_defaults": parameters}
@@ -368,8 +367,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_validate_args')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_create_parameters_env', autospec=True)
+    @mock.patch('tripleoclient.utils.create_parameters_env', autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
     @mock.patch('shutil.rmtree', autospec=True)
@@ -846,8 +844,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
     @mock.patch('tripleoclient.utils.check_stack_network_matches_env_files')
     @mock.patch('tripleoclient.utils.check_ceph_fsid_matches_env_files')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_create_parameters_env', autospec=True)
+    @mock.patch('tripleoclient.utils.create_parameters_env', autospec=True)
     @mock.patch('heatclient.common.template_utils.'
                 'process_environment_and_files', autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
@@ -875,8 +872,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
         ]
 
-        def _custom_create_params_env(_self, parameters, tht_root,
-                                      container_name):
+        def _custom_create_params_env(parameters, tht_root,
+                                      stack):
             parameters.update({"ControllerCount": 3})
             parameter_defaults = {"parameter_defaults": parameters}
             return parameter_defaults
@@ -919,8 +916,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_validate_args')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_create_parameters_env', autospec=True)
+    @mock.patch('tripleoclient.utils.create_parameters_env', autospec=True)
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
     @mock.patch('heatclient.common.template_utils.'
@@ -1006,8 +1002,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'CtlplaneNetworkAttributes': {},
         }
 
-        def _custom_create_params_env(_self, parameters, tht_root,
-                                      container_name):
+        def _custom_create_params_env(parameters, tht_root,
+                                      stack):
             for key, value in six.iteritems(parameters):
                 self.assertEqual(value, expected_parameters[key])
             parameter_defaults = {"parameter_defaults": parameters}
@@ -1345,8 +1341,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 verbosity=3, workdir=mock.ANY, forks=None)],
             utils_fixture2.mock_run_ansible_playbook.mock_calls)
 
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_write_user_environment', autospec=True)
+    @mock.patch('tripleoclient.utils.write_user_environment', autospec=True)
     def test_provision_baremetal(self, mock_write):
         mock_write.return_value = (
             '/tmp/tht/user-environments/baremetal-deployed.yaml',
@@ -1427,7 +1422,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             )
         ])
         mock_write.assert_called_once_with(
-            self.cmd,
             {'parameter_defaults': {'foo': 'bar'}},
             'baremetal-deployed.yaml',
             tht_root,

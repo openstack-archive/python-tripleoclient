@@ -61,6 +61,7 @@ from six.moves.urllib import error as url_error
 from six.moves.urllib import request
 
 from tripleo_common.utils import stack as stack_utils
+from tripleo_common import update
 from tripleoclient import constants
 from tripleoclient import exceptions
 
@@ -2483,3 +2484,48 @@ def update_deployment_status(stack_name, status):
         default_flow_style=False)
 
     safe_write(get_status_yaml(stack_name), contents)
+
+
+def create_breakpoint_cleanup_env(tht_root, stack):
+    bp_env = {}
+    update.add_breakpoints_cleanup_into_env(bp_env)
+    env_path = write_user_environment(
+        bp_env,
+        'tripleoclient-breakpoint-cleanup.yaml',
+        tht_root,
+        stack)
+    return [env_path]
+
+
+def create_parameters_env(parameters, tht_root, stack,
+                          env_file='tripleoclient-parameters.yaml'):
+    parameter_defaults = {"parameter_defaults": parameters}
+    env_path = write_user_environment(
+        parameter_defaults,
+        env_file,
+        tht_root,
+        stack)
+    return [env_path]
+
+
+def build_user_env_path(abs_env_path, tht_root):
+    env_dirname = os.path.dirname(abs_env_path)
+    user_env_dir = os.path.join(
+        tht_root, 'user-environments', env_dirname[1:])
+    user_env_path = os.path.join(
+        user_env_dir, os.path.basename(abs_env_path))
+    makedirs(user_env_dir)
+    return user_env_path
+
+
+def write_user_environment(env_map, abs_env_path, tht_root,
+                           stack):
+    # We write the env_map to the local /tmp tht_root and also
+    # to the swift plan container.
+    contents = yaml.safe_dump(env_map, default_flow_style=False)
+    user_env_path = build_user_env_path(abs_env_path, tht_root)
+    LOG.debug("user_env_path=%s" % user_env_path)
+    with open(user_env_path, 'w') as f:
+        LOG.debug("Writing user environment %s" % user_env_path)
+        f.write(contents)
+    return user_env_path
