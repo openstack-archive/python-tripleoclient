@@ -49,14 +49,6 @@ class TestDeleteNode(fakes.TestDeleteNode):
         )
         stack.output_show.return_value = {'output': {'output_value': []}}
 
-        delete_node = mock.patch(
-            'tripleo_common.actions.scale.ScaleDownAction.run',
-            autospec=True
-        )
-        delete_node.start()
-        delete_node.return_value = None
-        self.addCleanup(delete_node.stop)
-
         wait_stack = mock.patch(
             'tripleoclient.utils.wait_for_stack_ready',
             autospec=True
@@ -66,11 +58,15 @@ class TestDeleteNode(fakes.TestDeleteNode):
         self.addCleanup(wait_stack.stop)
         self.app.client_manager.compute.servers.get.return_value = None
 
+    @mock.patch('tripleoclient.workflows.scale.remove_node_from_stack',
+                autospec=True)
     @mock.patch('heatclient.common.event_utils.get_events',
                 autospec=True)
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
-    def test_node_delete(self, mock_playbook, mock_get_events):
+    def test_node_delete(self, mock_playbook,
+                         mock_get_events,
+                         mock_remove_stack):
         argslist = ['instance1', 'instance2', '--stack', 'overcast',
                     '--timeout', '90', '--yes']
         verifylist = [
@@ -112,12 +108,15 @@ class TestDeleteNode(fakes.TestDeleteNode):
                           self.cmd.take_action,
                           parsed_args)
 
+    @mock.patch('tripleoclient.workflows.scale.remove_node_from_stack',
+                autospec=True)
     @mock.patch('heatclient.common.event_utils.get_events',
                 autospec=True)
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
     def test_node_delete_without_stack(self, mock_playbook,
-                                       mock_get_events):
+                                       mock_get_events,
+                                       mock_remove_stack):
         arglist = ['instance1', '--yes']
 
         verifylist = [
@@ -127,6 +126,8 @@ class TestDeleteNode(fakes.TestDeleteNode):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         self.cmd.take_action(parsed_args)
 
+    @mock.patch('tripleoclient.workflows.scale.remove_node_from_stack',
+                autospec=True)
     @mock.patch('heatclient.common.event_utils.get_events',
                 autospec=True)
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
@@ -135,7 +136,8 @@ class TestDeleteNode(fakes.TestDeleteNode):
     def test_node_delete_baremetal_deployment(self,
                                               mock_tempfile,
                                               mock_playbook,
-                                              mock_get_events):
+                                              mock_get_events,
+                                              mock_remove_from_stack):
 
         bm_yaml = [{
             'name': 'Compute',

@@ -204,51 +204,11 @@ class DeployOvercloud(command.Command):
                                              % ctlplane_hostname)
         return self._cleanup_host_entry(out)
 
-    def _create_breakpoint_cleanup_env(self, tht_root, container_name):
-        bp_env = {}
-        update.add_breakpoints_cleanup_into_env(bp_env)
-        env_path = self._write_user_environment(
-            bp_env,
-            'tripleoclient-breakpoint-cleanup.yaml',
-            tht_root,
-            container_name)
-        return [env_path]
-
-    def _create_parameters_env(self, parameters, tht_root, container_name):
-        parameter_defaults = {"parameter_defaults": parameters}
-        env_path = self._write_user_environment(
-            parameter_defaults,
-            'tripleoclient-parameters.yaml',
-            tht_root,
-            container_name)
-        return [env_path]
-
     def _check_limit_skiplist_warning(self, env):
         if env.get('parameter_defaults').get('DeploymentServerBlacklist'):
             msg = _('[WARNING] DeploymentServerBlacklist is defined and will '
                     'be ignored because --limit has been specified.')
             self.log.warning(msg)
-
-    def _user_env_path(self, abs_env_path, tht_root):
-        env_dirname = os.path.dirname(abs_env_path)
-        user_env_dir = os.path.join(
-            tht_root, 'user-environments', env_dirname[1:])
-        user_env_path = os.path.join(
-            user_env_dir, os.path.basename(abs_env_path))
-        utils.makedirs(user_env_dir)
-        return user_env_path
-
-    def _write_user_environment(self, env_map, abs_env_path, tht_root,
-                                container_name):
-        # We write the env_map to the local /tmp tht_root and also
-        # to the swift plan container.
-        contents = yaml.safe_dump(env_map, default_flow_style=False)
-        user_env_path = self._user_env_path(abs_env_path, tht_root)
-        self.log.debug("user_env_path=%s" % user_env_path)
-        with open(user_env_path, 'w') as f:
-            self.log.debug("Writing user environment %s" % user_env_path)
-            f.write(contents)
-        return user_env_path
 
     def _heat_deploy(self, stack, stack_name, template_path, parameters,
                      env_files, timeout, tht_root, env,
@@ -330,7 +290,7 @@ class DeployOvercloud(command.Command):
         parameters = {}
         parameters.update(self._update_parameters(
             parsed_args, stack, tht_root, user_tht_root))
-        param_env = self._create_parameters_env(
+        param_env = utils.create_parameters_env(
             parameters, tht_root, parsed_args.stack)
         created_env_files.extend(param_env)
 
@@ -347,7 +307,7 @@ class DeployOvercloud(command.Command):
                 parsed_args.deployment_python_interpreter
 
         if stack:
-            env_path = self._create_breakpoint_cleanup_env(
+            env_path = utils.create_breakpoint_cleanup_env(
                 tht_root, parsed_args.stack)
             created_env_files.extend(env_path)
 
@@ -360,7 +320,7 @@ class DeployOvercloud(command.Command):
 
         # Invokes the workflows specified in plan environment file
         if parsed_args.plan_environment_file:
-            output_path = self._user_env_path(
+            output_path = utils.build_user_env_path(
                 'derived_parameters.yaml', tht_root)
             workflow_params.build_derived_params_environment(
                 self.clients, parsed_args.stack, tht_root, env_files,
@@ -566,7 +526,7 @@ class DeployOvercloud(command.Command):
         with open('{}.pub'.format(key), 'rt') as fp:
             ssh_key = fp.read()
 
-        output_path = self._user_env_path(
+        output_path = utils.build_user_env_path(
             'baremetal-deployed.yaml',
             tht_root
         )
@@ -591,7 +551,7 @@ class DeployOvercloud(command.Command):
         with open(output_path, 'r') as fp:
             parameter_defaults = yaml.safe_load(fp)
 
-        self._write_user_environment(
+        utils.write_user_environment(
             parameter_defaults,
             'baremetal-deployed.yaml',
             tht_root,
