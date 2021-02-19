@@ -102,7 +102,7 @@ class WebsocketClient(object):
         self.send('queue_create', {'queue_name': queue_name})
         self.send('subscription_create', {
             'queue_name': queue_name,
-            'ttl': 10000
+            'ttl': 43200
         })
 
     def cleanup(self):
