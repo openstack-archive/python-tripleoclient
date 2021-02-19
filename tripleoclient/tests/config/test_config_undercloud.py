@@ -105,7 +105,6 @@ class TestUndercloudConfig(base.TestCase):
                     'enable_swift',
                     'enable_swift_encryption',
                     'enable_telemetry',
-                    'enable_tempest',
                     'enable_validations',
                     'enable_zaqar',
                     'enabled_hardware_types',
@@ -173,7 +172,6 @@ class TestUndercloudConfig(base.TestCase):
                     'enable_novajoin': False,
                     'enable_telemetry': False,
                     'enable_swift': False,
-                    'enable_tempest': True,
                     'enable_validations': True,
                     'enable_zaqar': False}
         self.assertEqual(sorted(expected.keys()), [x.name for x in ret])

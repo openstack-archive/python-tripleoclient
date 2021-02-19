@@ -53,7 +53,6 @@ class TestStandaloneConfig(base.TestCase):
                     'enable_novajoin',
                     'enable_swift',
                     'enable_telemetry',
-                    'enable_tempest',
                     'enable_validations',
                     'enable_zaqar']
         self.assertEqual(expected, [x.name for x in ret])
@@ -69,7 +68,6 @@ class TestStandaloneConfig(base.TestCase):
                                                   novajoin=True,
                                                   swift=True,
                                                   telemetry=True,
-                                                  tempest=True,
                                                   validations=True,
                                                   zaqar=True)
         expected = ['enable_cinder',
@@ -80,7 +78,6 @@ class TestStandaloneConfig(base.TestCase):
                     'enable_novajoin',
                     'enable_swift',
                     'enable_telemetry',
-                    'enable_tempest',
                     'enable_validations',
                     'enable_zaqar']
         self.assertEqual(expected, [x.name for x in ret])
@@ -105,7 +102,6 @@ class TestStandaloneConfig(base.TestCase):
                     'enable_novajoin',
                     'enable_swift',
                     'enable_telemetry',
-                    'enable_tempest',
                     'enable_validations',
                     'enable_zaqar',
                     'heat_container_image',

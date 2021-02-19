@@ -97,8 +97,6 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'disable-telemetry.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/tempest.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
              'public-tls-undercloud.yaml',
              '--public-virtual-ip', '192.168.24.2',
              '--control-virtual-ip', '192.168.24.3', '-e',
@@ -163,7 +161,6 @@ class TestUndercloudInstall(TestPluginV1):
              'undercloud-remove-novajoin.yaml', '-e',
              '/usertht/environments/'
              'disable-telemetry.yaml', '-e',
-             '/usertht/environments/services/tempest.yaml', '-e',
              '/usertht/environments/public-tls-undercloud.yaml',
              '--public-virtual-ip', '192.168.24.2',
              '--control-virtual-ip', '192.168.24.3', '-e',
@@ -328,8 +325,6 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'disable-telemetry.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/tempest.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
              'public-tls-undercloud.yaml',
              '--public-virtual-ip', '4.3.2.1',
              '--control-virtual-ip', '192.168.24.3', '-e',
@@ -397,8 +392,6 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'disable-telemetry.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/tempest.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
              'public-tls-undercloud.yaml',
              '--public-virtual-ip', '192.168.24.2',
              '--control-virtual-ip', '192.168.24.3', '-e',
@@ -462,8 +455,6 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'disable-telemetry.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/tempest.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
              'public-tls-undercloud.yaml',
              '--public-virtual-ip', '192.168.24.2',
              '--control-virtual-ip', '192.168.24.3', '-e',
@@ -523,8 +514,6 @@ class TestUndercloudInstall(TestPluginV1):
              'services/undercloud-remove-novajoin.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'disable-telemetry.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/tempest.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/barbican.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -676,8 +665,6 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'disable-telemetry.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/tempest.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
              'public-tls-undercloud.yaml',
              '--public-virtual-ip', '192.168.24.2',
              '--control-virtual-ip', '192.168.24.3', '-e',
@@ -745,8 +732,6 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'disable-telemetry.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/tempest.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
              'public-tls-undercloud.yaml',
              '--public-virtual-ip', '192.168.24.2',
              '--control-virtual-ip', '192.168.24.3', '-e',
@@ -813,8 +798,6 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'disable-telemetry.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/tempest.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
              'public-tls-undercloud.yaml',
              '--public-virtual-ip', '192.168.24.2',
              '--control-virtual-ip', '192.168.24.3', '-e',
@@ -878,8 +861,6 @@ class TestUndercloudUpgrade(TestPluginV1):
              'services/undercloud-remove-novajoin.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'disable-telemetry.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/tempest.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'public-tls-undercloud.yaml',
              '--public-virtual-ip', '192.168.24.2',
@@ -950,8 +931,6 @@ class TestUndercloudUpgrade(TestPluginV1):
              'services/undercloud-remove-novajoin.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'disable-telemetry.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/tempest.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'public-tls-undercloud.yaml',
              '--public-virtual-ip', '192.168.24.2',

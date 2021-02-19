@@ -665,11 +665,6 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
             tht_templates,
             "environments/services/undercloud-cinder.yaml")]
 
-    if CONF.get('enable_tempest'):
-        deploy_args += ['-e', os.path.join(
-            tht_templates,
-            "environments/services/tempest.yaml")]
-
     if CONF.get('enable_swift_encryption'):
         deploy_args += [
             '-e', os.path.join(tht_templates,

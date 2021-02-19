@@ -54,7 +54,7 @@ class StandaloneConfig(BaseConfig):
     def get_enable_service_opts(self, cinder=False, ironic=False,
                                 ironic_inspector=False, mistral=False,
                                 nova=False, novajoin=False, swift=False,
-                                tempest=False, telemetry=False,
+                                telemetry=False,
                                 validations=False, zaqar=False):
         _opts = [
             # service enablement
@@ -86,11 +86,6 @@ class StandaloneConfig(BaseConfig):
                         default=swift,
                         help=_('Whether to install Swift services in the '
                                'Undercloud.')
-                        ),
-            cfg.BoolOpt('enable_tempest',
-                        default=tempest,
-                        help=_('Whether to install Tempest in the Undercloud.'
-                               'This is a no-op for containerized undercloud.')
                         ),
             cfg.BoolOpt('enable_telemetry',
                         default=telemetry,
