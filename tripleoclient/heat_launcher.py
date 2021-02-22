@@ -244,6 +244,12 @@ heat.filter_factory = heat.api.openstack:version_negotiation_filter
         with open(config_file, 'w') as temp_file:
             temp_file.write(ks_token)
 
+    def get_heat_uid(self):
+        return pwd.getpwnam(self.user).pw_uid
+
+    def get_heat_gid(self):
+        return grp.getgrnam(self.user).gr_gid
+
 
 class HeatContainerLauncher(HeatBaseLauncher):
 
@@ -346,12 +352,6 @@ class HeatNativeLauncher(HeatBaseLauncher):
     def heat_db_sync(self):
         subprocess.check_call(['heat-manage', '--config-file',
                                self.config_file, 'db_sync'])
-
-    def get_heat_uid(self):
-        return pwd.getpwnam(self.user).pw_uid
-
-    def get_heat_gid(self):
-        return grp.getgrnam(self.user).gr_gid
 
     def kill_heat(self, pid):
         os.kill(pid, signal.SIGKILL)
