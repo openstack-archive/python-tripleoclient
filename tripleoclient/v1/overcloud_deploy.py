@@ -133,6 +133,9 @@ class DeployOvercloud(command.Command):
         except openstack.exceptions.ConfigException:
             return dict()
 
+        if not conn.endpoint_for('network'):
+            return dict()
+
         network = conn.network.find_network('ctlplane')
         if network is None:
             return dict()
