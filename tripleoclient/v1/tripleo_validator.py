@@ -410,6 +410,7 @@ class TripleOValidatorRun(command.Command):
             t = PrettyTable(border=True, header=True, padding_width=1)
             # Set Field name by getting the result dict keys
             t.field_names = results[0].keys()
+            t.align = 'l'
             is_failed_validation = False
             for r in results:
                 if r.get('Status_by_Host'):
