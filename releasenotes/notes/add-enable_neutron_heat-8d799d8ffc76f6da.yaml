@@ -1,0 +1,5 @@
+---
+features:
+  - New configuration options for enable_neutron and enable_heat are added to
+    the standalone and undercloud installers. These options default to true,
+    and can be used to selectively disable these services.

@@ -635,6 +635,14 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
                     'undercloud.conf.  TLS Everywhere is now implemented '
                     'using an ansible module instead.')
 
+    if not CONF.get('enable_neutron'):
+        deploy_args += ['-e', os.path.join(
+            tht_templates, "environments/disable-neutron.yaml")]
+
+    if not CONF.get('enable_heat'):
+        deploy_args += ['-e', os.path.join(
+            tht_templates, "environments/disable-heat.yaml")]
+
     if CONF.get('ipa_otp'):
         deploy_args += ['-e', os.path.join(
             tht_templates, "environments/services/undercloud-tls.yaml")]
