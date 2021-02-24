@@ -16,10 +16,10 @@ import os.path
 import yaml
 
 from osc_lib.i18n import _
-from osc_lib import utils
+from osc_lib import utils as osc_utils
 
 from tripleoclient import command
-from tripleoclient import export
+from tripleoclient import utils
 
 
 class ExportOvercloud(command.Command):
@@ -36,8 +36,9 @@ class ExportOvercloud(command.Command):
                             help=_('Name of the environment main Heat stack '
                                    'to export information from. '
                                    '(default=Env: OVERCLOUD_STACK_NAME)'),
-                            default=utils.env('OVERCLOUD_STACK_NAME',
-                                              default='overcloud'))
+                            default=osc_utils.env(
+                                'OVERCLOUD_STACK_NAME',
+                                default='overcloud'))
         parser.add_argument('--output-file', '-o', metavar='<output file>',
                             help=_('Name of the output file for the stack '
                                    'data export. It will default to '
@@ -86,15 +87,9 @@ class ExportOvercloud(command.Command):
         # prepare clients to access the environment
         clients = self.app.client_manager
         heat = clients.orchestration
-        data = export.export_passwords(heat, stack,
-                                       not parsed_args.no_password_excludes)
-        data.update(export.export_stack(
-            heat, stack, False, config_download_dir))
-        # do not add extra host entries for VIPs for stacks deployed off that
-        # exported data, since it already contains those entries
-        data.update({'AddVipsToEtcHosts': False})
-        data = dict(parameter_defaults=data)
-
+        data = utils.export_overcloud(
+            heat, stack, excludes=not parsed_args.no_password_excludes,
+            should_filter=False, config_download_dir=config_download_dir)
         # write the exported data
         with open(output_file, 'w') as f:
             yaml.safe_dump(data, f, default_flow_style=False)
