@@ -91,6 +91,9 @@ def export_stack(heat, stack, should_filter=False,
             file = os.path.join(config_download_dir,
                                 stack,
                                 export_param["file"])
+            if not os.path.exists(file):
+                LOG.warning('File %s was not found during export' %
+                            file)
             with open(file, 'r') as ff:
                 try:
                     export_data = json.load(ff)

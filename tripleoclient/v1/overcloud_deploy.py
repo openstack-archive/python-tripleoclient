@@ -1200,6 +1200,24 @@ class DeployOvercloud(command.Command):
             utils.copy_clouds_yaml(user)
             utils.create_tempest_deployer_input(output_dir=self.working_dir)
 
+            try:
+                if (parsed_args.heat_type != 'installed' and
+                        parsed_args.config_download):
+                    # Create overcloud export
+                    data = utils.export_overcloud(
+                        self.orchestration_client,
+                        parsed_args.stack, True, False,
+                        config_download_dir)
+                    export_file = os.path.join(
+                        self.working_dir, "%s-export.yaml" % parsed_args.stack)
+                    # write the exported data
+                    with open(export_file, 'w') as f:
+                        yaml.safe_dump(data, f, default_flow_style=False)
+                        os.chmod(export_file, 0o600)
+            except Exception as e:
+                self.log.error('Exception creating overcloud export.')
+                self.log.error(e)
+
             print("Overcloud Endpoint: {0}".format(overcloud_endpoint))
             print("Overcloud Horizon Dashboard URL: {0}".format(horizon_url))
             print("Overcloud rc file: {} and {}".format(
