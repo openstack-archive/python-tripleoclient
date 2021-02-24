@@ -325,6 +325,7 @@ class TestProvisionNode(fakes.TestOvercloudNode):
                     keyf.flush()
                     with open('{}.pub'.format(keyf.name), 'w') as f:
                         f.write('I am a key')
+                        key_file_name = keyf.name
 
                     argslist = ['--output', outp.name,
                                 '--overcloud-ssh-key', keyf.name,
@@ -347,9 +348,11 @@ class TestProvisionNode(fakes.TestOvercloudNode):
                 'baremetal_deployed_path': mock.ANY,
                 'ssh_public_keys': 'I am a key',
                 'ssh_user_name': 'heat-admin',
+                'ssh_private_key_file': key_file_name,
                 'node_timeout': 3600,
                 'concurrency': 20,
                 'manage_network_ports': False,
+                'output_dir': mock.ANY,
             },
             inventory='localhost,',
             playbook='cli-overcloud-node-provision.yaml',
