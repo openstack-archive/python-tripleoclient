@@ -167,8 +167,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         orchestration_client = clients.orchestration
         mock_stack = fakes.create_tht_stack()
         orchestration_client.stacks.get.return_value = mock_stack
-        plane_management_fixture = deployment.PlanManagementFixture()
-        self.useFixture(plane_management_fixture)
         utils_fixture = deployment.UtilsFixture()
         self.useFixture(utils_fixture)
         arglist = ['--templates']
@@ -282,8 +280,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                         mock_stack_data):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
-        plane_management_fixture = deployment.PlanManagementFixture()
-        self.useFixture(plane_management_fixture)
         utils_fixture = deployment.UtilsFixture()
         self.useFixture(utils_fixture)
         utils_overcloud_fixture = deployment.UtilsOvercloudFixture()
@@ -385,8 +381,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mock_rc_params, mock_stack_data):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
-        plane_management_fixture = deployment.PlanManagementFixture()
-        self.useFixture(plane_management_fixture)
         utils_fixture = deployment.UtilsFixture()
         self.useFixture(utils_fixture)
         utils_overcloud_fixture = deployment.UtilsOvercloudFixture()
@@ -470,8 +464,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                      mock_stack_data):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
-        plane_management_fixture = deployment.PlanManagementFixture()
-        self.useFixture(plane_management_fixture)
         utils_fixture = deployment.UtilsFixture()
         self.useFixture(utils_fixture)
 
@@ -552,8 +544,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                               mock_process_env, mock_rc_params):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
-        plane_management_fixture = deployment.PlanManagementFixture()
-        self.useFixture(plane_management_fixture)
         utils_overcloud_fixture = deployment.UtilsOvercloudFixture()
         self.useFixture(utils_overcloud_fixture)
 
@@ -762,8 +752,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         orchestration_client = clients.orchestration
         mock_stack = fakes.create_tht_stack()
         orchestration_client.stacks.get.return_value = mock_stack
-        plane_management_fixture = deployment.PlanManagementFixture()
-        self.useFixture(plane_management_fixture)
         utils_fixture = deployment.UtilsOvercloudFixture()
         self.useFixture(utils_fixture)
 
@@ -860,8 +848,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                   mock_image_prepare,
                                   mock_generate_password,
                                   mock_rc_params):
-        plane_management_fixture = deployment.PlanManagementFixture()
-        self.useFixture(plane_management_fixture)
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
         mock_stack = fakes.create_tht_stack()
@@ -942,8 +928,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                  mock_stack_data):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
-        plane_management_fixture = deployment.PlanManagementFixture()
-        self.useFixture(plane_management_fixture)
         utils_fixture = deployment.UtilsFixture()
         self.useFixture(utils_fixture)
 

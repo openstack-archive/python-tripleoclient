@@ -13,7 +13,6 @@
 #   under the License.
 #
 
-import fixtures
 import mock
 import os
 import sys
@@ -148,34 +147,6 @@ class TestDeployUndercloud(TestPluginV1):
 
         networks_file = self.cmd._get_networks_file_path(parsed_args)
         self.assertEqual('/dev/null', networks_file)
-
-    def test_get_plan_env_file_path(self):
-        parsed_args = self.check_parser(self.cmd,
-                                        ['--local-ip', '127.0.0.1/8'], [])
-
-        plan_env_file = self.cmd._get_plan_env_file_path(parsed_args)
-        self.assertEqual(plan_env_file,
-                         '/usr/share/openstack-tripleo-heat-templates/'
-                         'plan-environment.yaml')
-
-    def test_get_plan_env_file_path_custom_file(self):
-        parsed_args = self.check_parser(self.cmd,
-                                        ['--local-ip', '127.0.0.1/8',
-                                         '--templates', '/tmp/thtroot',
-                                         '--plan-environment-file',
-                                         'foobar.yaml'], [])
-
-        plan_env_file = self.cmd._get_plan_env_file_path(parsed_args)
-        self.assertEqual(plan_env_file, 'foobar.yaml')
-
-    def test_get_plan_env_file_path_custom_templates(self):
-        parsed_args = self.check_parser(self.cmd,
-                                        ['--local-ip', '127.0.0.1/8',
-                                         '--templates', '/tmp/thtroot'], [])
-
-        plan_env_file = self.cmd._get_plan_env_file_path(parsed_args)
-        self.assertEqual(plan_env_file,
-                         '/tmp/thtroot/plan-environment.yaml')
 
     @mock.patch('os.path.exists')
     @mock.patch('tripleoclient.utils.fetch_roles_file')
@@ -666,83 +637,10 @@ class TestDeployUndercloud(TestPluginV1):
         self.assertTrue(found_dropin)
         self.assertTrue(found_identifier)
 
-    @mock.patch('heatclient.common.template_utils.'
-                'process_environment_and_files', return_value=({}, {}),
-                autospec=True)
-    @mock.patch('heatclient.common.template_utils.'
-                'get_template_contents', return_value=({}, {}),
-                autospec=True)
-    @mock.patch('tripleoclient.utils.'
-                'process_multiple_environments', autospec=True)
-    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
-                '_process_hieradata_overrides', return_value='hiera_or.yaml',
-                autospec=True)
-    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
-                '_update_passwords_env', autospec=True)
-    @mock.patch('tripleoclient.utils.'
-                'run_command_and_log', autospec=True)
-    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
-                '_get_primary_role_name', autospec=True)
-    def test_setup_heat_environments_default_plan_env(
-            self, mock_prim, mock_run, mock_update_pass_env,
-            mock_process_hiera, mock_process_multiple_environments,
-            mock_hc_get_templ_cont, mock_hc_process):
-
-        tmpdir = self.useFixture(fixtures.TempDir()).path
-        tht_from = os.path.join(tmpdir, 'tht-from')
-        os.mkdir(tht_from)
-        plan_env_path = os.path.join(tht_from, 'plan-environment.yaml')
-        with open(plan_env_path, mode='w') as plan_file:
-            yaml.dump({'environments': [{'path': 'env.yaml'}]}, plan_file)
-        self.assertTrue(os.path.exists(plan_env_path))
-        self._setup_heat_environments(tmpdir, tht_from, plan_env_path,
-                                      mock_update_pass_env, mock_run)
-
-    @mock.patch('heatclient.common.template_utils.'
-                'process_environment_and_files', return_value=({}, {}),
-                autospec=True)
-    @mock.patch('heatclient.common.template_utils.'
-                'get_template_contents', return_value=({}, {}),
-                autospec=True)
-    @mock.patch('tripleoclient.utils.'
-                'process_multiple_environments', autospec=True)
-    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
-                '_process_hieradata_overrides', return_value='hiera_or.yaml',
-                autospec=True)
-    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
-                '_update_passwords_env', autospec=True)
-    @mock.patch('tripleoclient.utils.'
-                'run_command_and_log', autospec=True)
-    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
-                '_get_primary_role_name', autospec=True)
-    def test_setup_heat_environments_non_default_plan_env(
-            self, mock_prim, mock_run, mock_update_pass_env,
-            mock_process_hiera, mock_process_multiple_environments,
-            mock_hc_get_templ_cont, mock_hc_process):
-
-        tmpdir = self.useFixture(fixtures.TempDir()).path
-        tht_from = os.path.join(tmpdir, 'tht-from')
-        os.mkdir(tht_from)
-        default_plan_env_path = os.path.join(tht_from, 'plan-environment.yaml')
-        with open(default_plan_env_path, mode='w') as plan_file:
-            yaml.dump({'environments': [{'path': 'env.yaml'}]}, plan_file)
-        plan_env_path = os.path.join(tmpdir, 'plan-environment.yaml')
-        with open(plan_env_path, mode='w') as plan_file:
-            yaml.dump({'environments': [{'path': 'notenv.yaml'}]}, plan_file)
-        self.assertTrue(os.path.exists(plan_env_path))
-        with open(os.path.join(tht_from, 'notenv.yaml'),
-                  mode='w') as env_file:
-            yaml.dump({}, env_file)
-        cmd_extra = ['-p', plan_env_path]
-        self._setup_heat_environments(tmpdir, tht_from, plan_env_path,
-                                      mock_update_pass_env, mock_run,
-                                      cmd_extra, 'notenv.yaml')
-
-    def _setup_heat_environments(self, tmpdir, tht_from, plan_env_path,
+    def _setup_heat_environments(self, tmpdir, tht_from,
                                  mock_update_pass_env, mock_run,
-                                 extra_cmd=None, plan_env_env=None):
+                                 extra_cmd=None):
         cmd_extra = extra_cmd or []
-        plan_env_env_name = plan_env_env or 'env.yaml'
 
         tht_outside = os.path.join(tmpdir, 'tht-outside')
         os.mkdir(tht_outside)
@@ -764,11 +662,8 @@ class TestDeployUndercloud(TestPluginV1):
         mock_run.return_value = 0
         original_abs = os.path.abspath
 
-        # Stub abspath for default plan and envs to return the tht_render base
         def abs_path_stub(*args, **kwargs):
-            if 'plan-environment.yaml' in args:
-                return plan_env_path
-            elif 'notenv.yaml' in args:
+            if 'notenv.yaml' in args:
                 return os.path.join(tht_render, 'notenv.yaml')
             elif 'env.yaml' in args:
                 return os.path.join(tht_render, 'env.yaml')
@@ -794,7 +689,8 @@ class TestDeployUndercloud(TestPluginV1):
                                                       'outside.yaml'),
                                          ] + cmd_extra, [])
         expected_env = [
-            os.path.join(tht_render, plan_env_env_name),
+            os.path.join(tht_render,
+                         'overcloud-resource-registry-puppet.yaml'),
             os.path.join(tht_render, 'passwords.yaml'),
             os.path.join(tht_render,
                          'environments/deployed-server-noop-ctlplane.yaml'),
@@ -914,12 +810,9 @@ class TestDeployUndercloud(TestPluginV1):
     @mock.patch('os.geteuid', return_value=0)
     @mock.patch('os.environ', return_value='CREATE_COMPLETE')
     @mock.patch('tripleoclient.utils.wait_for_stack_ready', return_value=True)
-    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
-                '_set_default_plan')
     @mock.patch('ansible_runner.utils.dump_artifact', autospec=True,
                 return_value="/foo/inventory.yaml")
-    def test_take_action_standalone(self, mock_dump_artifact,
-                                    mock_def_plan, mock_poll,
+    def test_take_action_standalone(self, mock_dump_artifact, mock_poll,
                                     mock_environ, mock_geteuid, mock_puppet,
                                     mock_killheat, mock_launchheat,
                                     mock_download, mock_tht,
@@ -1012,12 +905,9 @@ class TestDeployUndercloud(TestPluginV1):
     @mock.patch('os.geteuid', return_value=0)
     @mock.patch('os.environ', return_value='CREATE_COMPLETE')
     @mock.patch('tripleoclient.utils.wait_for_stack_ready', return_value=True)
-    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
-                '_set_default_plan')
     @mock.patch('ansible_runner.utils.dump_artifact', autospec=True,
                 return_value="/foo/inventory.yaml")
-    def test_take_action_ansible_err(self, mock_dump_artifact,
-                                     mock_def_plan, mock_poll,
+    def test_take_action_ansible_err(self, mock_dump_artifact, mock_poll,
                                      mock_environ, mock_geteuid, mock_puppet,
                                      mock_killheat, mock_launchheat,
                                      mock_download, mock_tht,
@@ -1099,10 +989,7 @@ class TestDeployUndercloud(TestPluginV1):
     @mock.patch('os.geteuid', return_value=0)
     @mock.patch('os.environ', return_value='CREATE_COMPLETE')
     @mock.patch('tripleoclient.utils.wait_for_stack_ready', return_value=True)
-    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
-                '_set_default_plan')
-    def test_take_action_other_err(self,
-                                   mock_def_plan, mock_poll,
+    def test_take_action_other_err(self, mock_poll,
                                    mock_environ, mock_geteuid, mock_puppet,
                                    mock_killheat, mock_launchheat,
                                    mock_download, mock_tht,
@@ -1259,11 +1146,8 @@ class TestDeployUndercloud(TestPluginV1):
     @mock.patch('os.geteuid', return_value=0)
     @mock.patch('os.environ', return_value='CREATE_COMPLETE')
     @mock.patch('tripleoclient.utils.wait_for_stack_ready', return_value=True)
-    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
-                '_set_default_plan')
     def test_standalone_deploy_rc_output_only(
-            self,
-            mock_def_plan, mock_poll,
+            self, mock_poll,
             mock_environ, mock_geteuid, mock_puppet,
             mock_killheat, mock_launchheat,
             mock_download, mock_tht,
@@ -1321,11 +1205,8 @@ class TestDeployUndercloud(TestPluginV1):
     @mock.patch('os.geteuid', return_value=0)
     @mock.patch('os.environ', return_value='CREATE_COMPLETE')
     @mock.patch('tripleoclient.utils.wait_for_stack_ready', return_value=True)
-    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
-                '_set_default_plan')
     def test_standalone_deploy_transport(
-            self,
-            mock_def_plan, mock_poll,
+            self, mock_poll,
             mock_environ, mock_geteuid, mock_puppet,
             mock_killheat, mock_launchheat,
             mock_download, mock_tht,

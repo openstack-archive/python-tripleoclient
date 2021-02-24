@@ -192,15 +192,6 @@ class Deploy(command.Command):
         else:
             return parsed_args.networks_file
 
-    def _get_plan_env_file_path(self, parsed_args):
-        """Return plan_environment_file for the deployment"""
-        if not parsed_args.plan_environment_file:
-            plan_env = os.path.join(parsed_args.templates,
-                                    constants.PLAN_ENVIRONMENT)
-        else:
-            plan_env = parsed_args.plan_environment_file
-        return plan_env
-
     def _get_primary_role_name(self, roles_file_path, templates):
         """Return the primary role name"""
         roles_data = utils.fetch_roles_file(
@@ -254,13 +245,6 @@ class Deploy(command.Command):
         if not os.path.exists(self.tht_render):
             shutil.copytree(source_templates_dir, self.tht_render,
                             symlinks=True)
-
-    def _set_default_plan(self):
-        """Populate default plan-environment.yaml."""
-        if not os.path.isfile(os.path.join(self.tht_render,
-                              'plan-environment.yaml')):
-            shutil.copy(os.path.join(self.tht_render, 'plan-samples',
-                        'openstack', 'plan-environment.yaml'), self.tht_render)
 
     def _cleanup_working_dirs(self, cleanup=False, user=None):
         """Cleanup temporary working directories
@@ -632,13 +616,8 @@ class Deploy(command.Command):
         # so we have to include them at the front of our environment list so a
         # user can override anything in them.
 
-        # Include any environments from the plan-environment.yaml
-        plan_env_path = utils.rel_or_abs_path(
-            self._get_plan_env_file_path(parsed_args), self.tht_render)
-        with open(plan_env_path, 'r') as f:
-            plan_env_data = yaml.safe_load(f)
-        environments = [utils.rel_or_abs_path(e.get('path'), self.tht_render)
-                        for e in plan_env_data.get('environments', {})]
+        environments = [os.path.join(self.tht_render,
+                                     constants.DEFAULT_RESOURCE_REGISTRY)]
 
         # this will allow the user to overwrite passwords with custom envs
         # or pick instack legacy passwords as is, if upgrading from instack
@@ -965,8 +944,7 @@ class Deploy(command.Command):
         )
         parser.add_argument(
             '--plan-environment-file', '-p',
-            help=_('Plan Environment file, overrides the default %s in the '
-                   '--templates directory') % constants.PLAN_ENVIRONMENT
+            help=_('DEPRECATED: Plan Environment file, Not supported')
         )
         parser.add_argument(
             '--heat-api-port', metavar='<HEAT_API_PORT>',
@@ -1241,9 +1219,6 @@ class Deploy(command.Command):
         # copy the templates dir in place
         self._populate_templates_dir(parsed_args.templates,
                                      parsed_args.stack.lower())
-
-        # Set default plan if not specified by user
-        self._set_default_plan()
 
         is_complete = False
         try:
