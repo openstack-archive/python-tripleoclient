@@ -760,18 +760,35 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
         self.baremetal = mock.Mock()
         self.app.client_manager.baremetal = self.baremetal
 
+        self.network = mock.Mock()
+        self.app.client_manager.network = self.network
+
         self.cmd = overcloud_node.ExtractProvisionedNode(self.app, None)
 
         self.extract_file = tempfile.NamedTemporaryFile(
             mode='w', delete=False, suffix='.yaml')
         self.extract_file.close()
+
+        roles_data = [
+            {'name': 'Controller',
+             'default_route_networks': ['External'],
+             'networks_skip_config': ['Tenant']},
+            {'name': 'Compute'}
+        ]
+        self.roles_file = tempfile.NamedTemporaryFile(
+            mode='w', delete=False, suffix='.yaml')
+        self.roles_file.write(yaml.safe_dump(roles_data))
+        self.roles_file.close()
         self.addCleanup(os.unlink, self.extract_file.name)
+        self.addCleanup(os.unlink, self.roles_file.name)
 
     def test_extract(self):
         stack_dict = {
             'parameters': {
                 'ComputeHostnameFormat': '%stackname%-novacompute-%index%',
-                'ControllerHostnameFormat': '%stackname%-controller-%index%'
+                'ControllerHostnameFormat': '%stackname%-controller-%index%',
+                'ComputeNetworkConfigTemplate': 'templates/compute.j2',
+                'ControllerNetworkConfigTemplate': 'templates/controller.j2'
             },
             'outputs': [{
                 'output_key': 'AnsibleHostVarsMap',
@@ -784,6 +801,25 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
                         'overcloud-controller-1',
                         'overcloud-controller-2'
                     ],
+                }
+            }, {
+                'output_key': 'RoleNetIpMap',
+                'output_value': {
+                    'Compute': {
+                        'ctlplane': ['192.168.26.11'],
+                        'internal_api': ['172.17.1.23'],
+                    },
+                    'Controller': {
+                        'ctlplane': ['192.168.25.21',
+                                     '192.168.25.25',
+                                     '192.168.25.28'],
+                        'external': ['10.0.0.199',
+                                     '10.0.0.197',
+                                     '10.0.0.191'],
+                        'internal_api': ['172.17.0.37',
+                                         '172.17.0.33',
+                                         '172.17.0.39'],
+                    }
                 }
             }]
         }
@@ -809,9 +845,78 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
 
         self.baremetal.node.list.return_value = nodes
 
-        argslist = ['--output', self.extract_file.name, '--yes']
+        networks = [
+            mock.Mock(),  # ctlplane
+            mock.Mock(),  # external
+            mock.Mock(),  # internal_api
+        ]
+        ctlplane_net = networks[0]
+        external_net = networks[1]
+        internal_api_net = networks[2]
+
+        ctlplane_net.id = 'ctlplane_id'
+        ctlplane_net.name = 'ctlplane'
+        ctlplane_net.subnet_ids = ['ctlplane_a_id',
+                                   'ctlplane_b_id']
+        external_net.id = 'external_id'
+        external_net.name = 'external'
+        external_net.subnet_ids = ['external_a_id']
+        internal_api_net.id = 'internal_api_id'
+        internal_api_net.name = 'internal_api'
+        internal_api_net.subnet_ids = ['internal_api_a_id',
+                                       'internal_api_b_id']
+
+        subnets = [
+            mock.Mock(),  # ctlplane_a
+            mock.Mock(),  # ctlplane_b
+            mock.Mock(),  # external_a
+            mock.Mock(),  # internal_api_a
+            mock.Mock(),  # internal_api_b
+        ]
+        ctlplane_a = subnets[0]
+        ctlplane_b = subnets[1]
+        external_a = subnets[2]
+        int_api_a = subnets[3]
+        int_api_b = subnets[4]
+
+        ctlplane_a.id = 'ctlplane_a_id'
+        ctlplane_a.name = 'ctlplane_a'
+        ctlplane_a.cidr = '192.168.25.0/24'
+        ctlplane_b.id = 'ctlplane_b_id'
+        ctlplane_b.name = 'ctlplane_b'
+        ctlplane_b.cidr = '192.168.26.0/24'
+
+        external_a.id = 'external_a_id'
+        external_a.name = 'external_a'
+        external_a.cidr = '10.0.0.0/24'
+
+        int_api_a.id = 'internal_api_a_id'
+        int_api_a.name = 'internal_api_a'
+        int_api_a.cidr = '172.17.0.0/24'
+        int_api_b.id = 'internal_api_b_id'
+        int_api_b.name = 'internal_api_b'
+        int_api_b.cidr = '172.17.1.0/24'
+
+        self.network.find_network.side_effect = [
+            ctlplane_net, internal_api_net,  # compute-0
+            ctlplane_net, external_net, internal_api_net,  # controller-0
+            ctlplane_net, external_net, internal_api_net,  # controller-1
+            ctlplane_net, external_net, internal_api_net,  # controller-2
+        ]
+        self.network.get_subnet.side_effect = [
+            ctlplane_a, ctlplane_b, int_api_a, int_api_b,  # compute-0
+            ctlplane_a, external_a, int_api_a,  # controller-0,
+            ctlplane_a, external_a, int_api_a,  # controller-1,
+            ctlplane_a, external_a, int_api_a,  # controller-2,
+        ]
+
+        argslist = ['--roles-file', self.roles_file.name,
+                    '--output', self.extract_file.name,
+                    '--yes']
         self.app.command_options = argslist
-        verifylist = [('output', self.extract_file.name), ('yes', True)]
+        verifylist = [('roles_file', self.roles_file.name),
+                      ('output', self.extract_file.name),
+                      ('yes', True)]
 
         parsed_args = self.check_parser(self.cmd,
                                         argslist, verifylist)
@@ -822,6 +927,17 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
             'name': 'Compute',
             'count': 1,
             'hostname_format': '%stackname%-novacompute-%index%',
+            'defaults': {
+                'network_config': {'network_deployment_actions': ['CREATE'],
+                                   'physical_bridge_name': 'br-ex',
+                                   'public_interface_name': 'nic1',
+                                   'template': 'templates/compute.j2'},
+                'networks': [{'network': 'ctlplane',
+                              'subnet': 'ctlplane_b',
+                              'vif': True},
+                             {'network': 'internal_api',
+                              'subnet': 'internal_api_b'}]
+            },
             'instances': [{
                 'hostname': 'overcloud-novacompute-0',
                 'name': 'bm-3'
@@ -830,6 +946,21 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
             'name': 'Controller',
             'count': 3,
             'hostname_format': '%stackname%-controller-%index%',
+            'defaults': {
+                'network_config': {'default_route_network': ['External'],
+                                   'network_deployment_actions': ['CREATE'],
+                                   'networks_skip_config': ['Tenant'],
+                                   'physical_bridge_name': 'br-ex',
+                                   'public_interface_name': 'nic1',
+                                   'template': 'templates/controller.j2'},
+                'networks': [{'network': 'ctlplane',
+                              'subnet': 'ctlplane_a',
+                              'vif': True},
+                             {'network': 'external',
+                              'subnet': 'external_a'},
+                             {'network': 'internal_api',
+                              'subnet': 'internal_api_a'}]
+            },
             'instances': [{
                 'hostname': 'overcloud-controller-0',
                 'name': 'bm-0'
@@ -858,9 +989,9 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
 
         self.baremetal.node.list.return_value = nodes
 
-        argslist = []
+        argslist = ['--roles-file', self.roles_file.name]
         self.app.command_options = argslist
-        verifylist = []
+        verifylist = [('roles_file', self.roles_file.name)]
 
         parsed_args = self.check_parser(self.cmd,
                                         argslist, verifylist)
