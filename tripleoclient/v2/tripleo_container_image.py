@@ -182,6 +182,18 @@ class Build(command.Command):
             ),
         )
         parser.add_argument(
+            "--label",
+            dest="labels",
+            metavar="<label-data>",
+            default=[],
+            action="append",
+            help=_(
+                "Add labels to the containers. This option can be "
+                "specified multiple times. Each label is a key=value "
+                "pair."
+            ),
+        )
+        parser.add_argument(
             "--volume",
             dest="volumes",
             metavar="<volume-path>",
@@ -568,6 +580,26 @@ class Build(command.Command):
                                                       SUPPORTED_RHEL_MODULES))
                     rhel_modules.update({name: version})
                 image_config['tcib_rhel_modules'] = rhel_modules
+
+            if parsed_args.labels:
+                _desc = "OpenStack Platform {}".format(image_parsed_name)
+                label_data = image_config['tcib_labels'] = {
+                    "tcib_managed": True,
+                    "maintainer": "OpenStack TripleO Team",
+                    "description": _desc,
+                    "summary": _desc,
+                    "io.k8s.display-name": _desc,
+                }
+                for item in parsed_args.labels:
+                    key, value = item.split("=", 1)
+                    label_data[key] = value % dict(
+                        registry=parsed_args.registry,
+                        namespace=parsed_args.namespace,
+                        prefix=parsed_args.prefix,
+                        image=image_name,
+                        tag=parsed_args.tag,
+                        name=image_parsed_name,
+                    )
 
             # NOTE(cloudnull): Check if the reference config has a valid
             #                  "from" option. If the reference "from"
