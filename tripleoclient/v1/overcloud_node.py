@@ -15,12 +15,14 @@
 
 import collections
 import datetime
+import ipaddress
 import json
 import logging
 import os
 import sys
 
 from cliff.formatters import table
+from openstack import exceptions as openstack_exc
 from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
 from osc_lib import utils
@@ -458,6 +460,7 @@ class ExtractProvisionedNode(command.Command):
         self.clients = self.app.client_manager
         self.orchestration_client = self.clients.orchestration
         self.baremetal_client = self.clients.baremetal
+        self.network_client = self.clients.network
 
     def get_parser(self, prog_name):
         parser = super(ExtractProvisionedNode, self).get_parser(prog_name)
@@ -473,15 +476,51 @@ class ExtractProvisionedNode(command.Command):
         parser.add_argument('-y', '--yes', default=False, action='store_true',
                             help=_('Skip yes/no prompt for existing files '
                                    '(assume yes).'))
+        parser.add_argument('--roles-file', '-r', dest='roles_file',
+                            required=True,
+                            help=_('Role data definition file'))
         return parser
+
+    def _get_subnet_from_net_name_and_ip(self, net_name, ip_addr):
+        try:
+            network = self.network_client.find_network(net_name)
+        except openstack_exc.DuplicateResource:
+            raise oscexc.CommandError(
+                "Unable to extract role networks. Duplicate network resources "
+                "with name %s detected." % net_name)
+
+        if network is None:
+            raise oscexc.CommandError("Unable to extract role networks. "
+                                      "Network %s not found." % net_name)
+
+        for subnet_id in network.subnet_ids:
+            subnet = self.network_client.get_subnet(subnet_id)
+            if (ipaddress.ip_address(ip_addr)
+                    in ipaddress.ip_network(subnet.cidr)):
+                subnet_name = subnet.name
+                return subnet_name
+
+        raise oscexc.CommandError("Unable to extract role networks. Could not "
+                                  "find subnet for IP address %(ip)s on "
+                                  "network %(net)s." % {'ip': ip_addr,
+                                                        'net': net_name})
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+
+        roles_file = os.path.abspath(parsed_args.roles_file)
+        with open(roles_file, 'r') as fd:
+            role_data = yaml.safe_load(fd.read())
+        # Convert role_data to a dict
+        role_data = {x['name']: x for x in role_data}
+
         self._setup_clients()
         stack = oooutils.get_stack(self.orchestration_client,
                                    parsed_args.stack)
         host_vars = oooutils.get_stack_output_item(
             stack, 'AnsibleHostVarsMap') or {}
+        role_net_ip_map = oooutils.get_stack_output_item(
+            stack, 'RoleNetIpMap') or {}
         parameters = stack.to_dict().get('parameters', {})
 
         # list all baremetal nodes and map hostname to node name
@@ -492,32 +531,102 @@ class ExtractProvisionedNode(command.Command):
             if hostname and node.name:
                 hostname_node_map[hostname] = node.name
 
-        role_data = six.StringIO()
-        role_data.write('# Generated with the following on %s\n#\n' %
-                        datetime.datetime.now().isoformat())
-        role_data.write('#   openstack %s\n#\n\n' %
-                        ' '.join(self.app.command_options))
-        for role, entries in host_vars.items():
+        data = []
+        for role_name, entries in host_vars.items():
             role_count = len(entries)
 
             # skip zero count roles
             if not role_count:
                 continue
 
-            role_data.write('- name: %s\n' % role)
-            role_data.write('  count: %s\n' % role_count)
+            if role_name not in role_data:
+                raise oscexc.CommandError(
+                    "Unable to extract. Invalid role file. Role {} is not "
+                    "defined in roles file {}".format(role_name, roles_file))
 
-            hostname_format = parameters.get('%sHostnameFormat' % role)
+            role = collections.OrderedDict()
+            role['name'] = role_name
+            role['count'] = role_count
+
+            hostname_format = parameters.get('%sHostnameFormat' % role_name)
             if hostname_format:
-                role_data.write('  hostname_format: "%s"\n' % hostname_format)
+                role['hostname_format'] = hostname_format
 
-            role_data.write('  instances:\n')
+            defaults = role['defaults'] = {}
 
+            # Add networks to the role default section
+            role_networks = defaults['networks'] = []
+            for net_name, ips in role_net_ip_map[role_name].items():
+                subnet_name = self._get_subnet_from_net_name_and_ip(net_name,
+                                                                    ips[0])
+                if net_name == constants.CTLPLANE_NET_NAME:
+                    role_networks.append({'network': net_name,
+                                          'subnet': subnet_name,
+                                          'vif': True})
+                else:
+                    role_networks.append({'network': net_name,
+                                          'subnet': subnet_name})
+
+            # Add network config to role defaults section
+            net_conf = defaults['network_config'] = {}
+            net_conf['template'] = parameters.get(
+                role_name + 'NetworkConfigTemplate')
+
+            if parameters.get(role_name + 'NetworkDeploymentActions'):
+                net_conf['network_deployment_actions'] = parameters.get(
+                    role_name + 'NetworkDeploymentActions')
+            else:
+                net_conf['network_deployment_actions'] = parameters.get(
+                    'NetworkDeploymentActions', ['CREATE'])
+
+            if isinstance(net_conf['network_deployment_actions'], str):
+                net_conf['network_deployment_actions'] = net_conf[
+                    'network_deployment_actions'].split(',')
+
+            # The NetConfigDataLookup parameter is of type: json, but when
+            # not set it returns as string '{}'
+            ncdl = parameters.get('NetConfigDataLookup')
+            if isinstance(ncdl, str):
+                ncdl = json.loads(ncdl)
+            if ncdl:
+                net_conf['net_config_data_lookup'] = ncdl
+
+            if parameters.get('DnsSearchDomains'):
+                net_conf['dns_search_domains'] = parameters.get(
+                    'DnsSearchDomains')
+
+            net_conf['physical_bridge_name'] = parameters.get(
+                'NeutronPhysicalBridge', 'br-ex')
+            net_conf['public_interface_name'] = parameters.get(
+                'NeutronPublicInterface', 'nic1')
+
+            if role_data[role_name].get('default_route_networks'):
+                net_conf['default_route_network'] = role_data[role_name].get(
+                    'default_route_networks')
+            if role_data[role_name].get('networks_skip_config'):
+                net_conf['networks_skip_config'] = role_data[role_name].get(
+                    'networks_skip_config')
+
+            # Add individual instances
+            instances = role['instances'] = []
             for entry in sorted(entries):
-                role_data.write('  - hostname: %s\n' % entry)
+                instance = {'hostname': entry}
                 if entry in hostname_node_map:
-                    role_data.write('    name: %s\n' %
-                                    hostname_node_map[entry])
+                    instance['name'] = hostname_node_map[entry]
+                instances.append(instance)
+
+            data.append(role)
+
+        # Write the file header
+        file_data = six.StringIO()
+        file_data.write('# Generated with the following on %s\n#\n' %
+                        datetime.datetime.now().isoformat())
+        file_data.write('#   openstack %s\n#\n\n' %
+                        ' '.join(self.app.command_options))
+        # Write the data
+        if data:
+            yaml.dump(data, file_data, RoleDataDumper, width=120,
+                      default_flow_style=False)
 
         if parsed_args.output:
             if (os.path.exists(parsed_args.output)
@@ -530,5 +639,14 @@ class ExtractProvisionedNode(command.Command):
                         "Will not overwrite existing file:"
                         " %s" % parsed_args.output)
             with open(parsed_args.output, 'w+') as fp:
-                fp.write(role_data.getvalue())
-        self.app.stdout.write(role_data.getvalue())
+                fp.write(file_data.getvalue())
+        self.app.stdout.write(file_data.getvalue())
+
+
+class RoleDataDumper(yaml.SafeDumper):
+    def represent_ordered_dict(self, data):
+        return self.represent_dict(data.items())
+
+
+RoleDataDumper.add_representer(collections.OrderedDict,
+                               RoleDataDumper.represent_ordered_dict)
