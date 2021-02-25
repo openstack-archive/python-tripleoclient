@@ -101,9 +101,10 @@ VALIDATIONS_LOG_BASEDIR = '/var/log/validations'
 DEFAULT_WORK_DIR = os.path.join(os.environ.get('HOME', '~/'),
                                 'config-download')
 
-ANSIBLE_INVENTORY = os.path.join(DEFAULT_WORK_DIR,
-                                 '{}/tripleo-ansible-inventory.yaml')
+TRIPLEO_STATIC_INVENTORY = 'tripleo-ansible-inventory.yaml'
 
+ANSIBLE_INVENTORY = os.path.join(DEFAULT_WORK_DIR,
+                                 '{}/', TRIPLEO_STATIC_INVENTORY)
 ANSIBLE_VALIDATION_DIR = (
     os.path.join(DEFAULT_VALIDATIONS_LEGACY_BASEDIR, 'playbooks')
     if os.path.exists(os.path.join(DEFAULT_VALIDATIONS_LEGACY_BASEDIR,
