@@ -862,6 +862,10 @@ class Deploy(command.Command):
             }
 
         inventory.write_static_inventory(inv_path, extra_vars)
+        # Move inventory in output_dir in order to be reusable by users:
+        shutil.copyfile(inv_path,
+                        os.path.join(self.output_dir,
+                                     constants.TRIPLEO_STATIC_INVENTORY))
 
         self.log.info(_('** Downloaded {0} ansible to {1} **').format(
                       stack_name, self.tmp_ansible_dir))

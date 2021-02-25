@@ -98,8 +98,10 @@ VALIDATIONS_LOG_BASEDIR = '/var/log/validations'
 
 DEFAULT_WORK_DIR = '/var/lib/mistral'
 
+
+TRIPLEO_STATIC_INVENTORY = 'tripleo-ansible-inventory.yaml'
 ANSIBLE_INVENTORY = \
-    '/var/lib/mistral/overcloud/tripleo-ansible-inventory.yaml'
+    '/var/lib/mistral/overcloud/{}'.format(TRIPLEO_STATIC_INVENTORY)
 
 ANSIBLE_VALIDATION_DIR = (
     os.path.join(DEFAULT_VALIDATIONS_LEGACY_BASEDIR, 'playbooks')
