@@ -60,6 +60,10 @@ class RootUserExecution(Base):
     """Command was executed by a root user"""
 
 
+class RootDeviceDetectionError(Base):
+    """Failed to detect the root device"""
+
+
 class InvalidConfiguration(Base, ValueError):
     """Invalid parameters were specified for the deployment"""
 
