@@ -30,6 +30,14 @@ class DeploymentWorkflowFixture(fixtures.Fixture):
         self.mock_set_deployment_status = self.useFixture(fixtures.MockPatch(
             'tripleoclient.workflows.deployment.set_deployment_status')
         ).mock
+        self.mock_create_overcloudrc = self.useFixture(fixtures.MockPatch(
+            'tripleoclient.workflows.deployment.create_overcloudrc')
+        ).mock
+        make_config_download_dir = \
+            'tripleoclient.workflows.deployment.make_config_download_dir'
+        self.mock_make_config_download_dir = self.useFixture(
+            fixtures.MockPatch(make_config_download_dir)
+        ).mock
 
 
 class PlanManagementFixture(fixtures.Fixture):
