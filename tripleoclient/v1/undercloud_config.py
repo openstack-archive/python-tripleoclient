@@ -691,6 +691,9 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
         deploy_args += ['-e', os.path.join(
             tht_templates,
             "environments/public-tls-undercloud.yaml")]
+        if CONF.get('certificate_generation_ca') == 'IPA':
+            env_data['InternalTLSCAFile'] = '/etc/ipa/ca.crt'
+            env_data['PublicTLSCAFile'] = '/etc/ipa/ca.crt'
     else:
         deploy_args += ['-e', os.path.join(
             tht_templates,
