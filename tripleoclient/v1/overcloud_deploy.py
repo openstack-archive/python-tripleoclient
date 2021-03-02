@@ -656,8 +656,7 @@ class DeployOvercloud(command.Command):
         )
         parser.add_argument(
             '--plan-environment-file', '-p',
-            help=_('Plan Environment file, overrides the default %s in the '
-                   '--templates directory') % constants.PLAN_ENVIRONMENT
+            help=_('Plan Environment file for derived parameters.')
         )
         parser.add_argument(
             '--no-cleanup', action='store_true',

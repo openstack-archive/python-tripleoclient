@@ -1,0 +1,5 @@
+---
+deprecations:
+  - |
+    The --plan-environment-file option of openstack tripleo deploy command
+    is now deprecated and not used.

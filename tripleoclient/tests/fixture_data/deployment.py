@@ -40,12 +40,6 @@ class DeploymentWorkflowFixture(fixtures.Fixture):
         ).mock
 
 
-class PlanManagementFixture(fixtures.Fixture):
-
-    def _setUp(self):
-        super(PlanManagementFixture, self)._setUp()
-
-
 class UtilsOvercloudFixture(fixtures.Fixture):
 
     def _setUp(self):
