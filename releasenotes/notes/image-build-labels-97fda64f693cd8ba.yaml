@@ -1,0 +1,12 @@
+---
+features:
+  - The container image build command now has the ability to inject labels
+    into various images being constructed. To add labels into a container,
+    the argument `--label` can be specified multiple times. The value is
+    always a key=value pair and each key must be unique.
+other:
+  - The container image build label agument has the ability to do simple
+    string replacements following the python standard. Available options
+    for string replacement are `registry`, `namespace`, `prefix`,
+    `image`, `tag`, and `name`. Example usage
+    `--label component="%(prefix)s-%(name)s-container"`.
