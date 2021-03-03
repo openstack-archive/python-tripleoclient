@@ -1362,7 +1362,7 @@ class Deploy(command.Command):
                     os.remove(self.stack_update_mark)
 
                 self.log.error(DEPLOY_FAILURE_MESSAGE.format(
-                    self.heat_launch.install_tmp
+                    self.heat_launch.install_dir
                     ))
             else:
                 # We only get here if no errors
