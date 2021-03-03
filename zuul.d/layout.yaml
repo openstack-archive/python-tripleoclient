@@ -13,11 +13,14 @@
       - tripleo-upgrades-ussuri-pipeline
     check:
       jobs:
-        - tripleo-ci-centos-8-containers-undercloud-minion:
-            dependencies: &deps_unit_lint
+        - tripleo-ci-centos-8-content-provider:
+            dependencies:
               - openstack-tox-pep8
               - openstack-tox-py36
               - openstack-tox-py37
+        - tripleo-ci-centos-8-containers-undercloud-minion:
+            dependencies:
+              - tripleo-ci-centos-8-content-provider
             files:
               - ^config-generator/.*minion.*$
               - ^tripleoclient/config/.*minion.*$
