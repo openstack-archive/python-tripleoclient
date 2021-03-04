@@ -788,6 +788,44 @@ class DeployOvercloud(command.Command):
                    'configuration.')
         )
         parser.add_argument(
+            '--setup-only',
+            action='store_true',
+            default=False,
+            help=_('option will automate the setup and download steps '
+                   'required to prepare the environment for manual '
+                   'ansible execution.')
+        )
+        parser.add_argument(
+            '--config-dir',
+            dest='config_dir',
+            default=os.path.join(
+                constants.CLOUD_HOME_DIR,
+                'tripleo-config'
+            ),
+            help=_('The directory where the configuration files will be '
+                   'pushed'),
+        )
+        parser.add_argument(
+            '--config-type',
+            dest='config_type',
+            type=list,
+            default=None,
+            help=_('Only used when "--setup-only" is invoked. '
+                   'Type of object config to be extract from the deployment, '
+                   'defaults to all keys available'),
+        )
+        parser.add_argument(
+            '--no-preserve-config',
+            dest='preserve_config_dir',
+            action='store_false',
+            default=True,
+            help=('Only used when "--setup-only" is invoked. '
+                  'If specified, will delete and recreate the --config-dir '
+                  'if it already exists. Default is to use the existing dir '
+                  'location and overwrite files. Files in --config-dir not '
+                  'from the stack will be preserved by default.')
+        )
+        parser.add_argument(
             '--output-dir',
             action='store',
             default=None,
@@ -953,7 +991,7 @@ class DeployOvercloud(command.Command):
                 stack, rc_params, parsed_args.no_proxy,
                 self.working_dir)
 
-            if parsed_args.config_download:
+            if parsed_args.config_download or parsed_args.setup_only:
                 self.log.info("Deploying overcloud configuration")
                 deployment.set_deployment_status(
                     stack.stack_name,
@@ -961,7 +999,8 @@ class DeployOvercloud(command.Command):
                     working_dir=self.working_dir
                 )
 
-                if not parsed_args.config_download_only:
+                if not parsed_args.config_download_only and \
+                   not parsed_args.setup_only:
                     deployment.get_hosts_and_enable_ssh_admin(
                         stack,
                         parsed_args.overcloud_ssh_network,
@@ -1007,8 +1046,43 @@ class DeployOvercloud(command.Command):
                     limit_hosts=utils.playbook_limit_parse(
                         limit_nodes=parsed_args.limit
                     ),
-                    forks=parsed_args.ansible_forks
+                    forks=parsed_args.ansible_forks,
+                    setup_only=parsed_args.setup_only
                 )
+
+                if parsed_args.setup_only:
+                    # Download config
+                    config_dir = os.path.abspath(parsed_args.config_dir)
+                    config_type = parsed_args.config_type
+                    preserve_config_dir = parsed_args.preserve_config_dir
+                    extra_vars = {
+                        'plan': stack.stack_name,
+                        'config_dir': config_dir,
+                        'preserve_config': preserve_config_dir
+                    }
+                    if parsed_args.config_type:
+                        extra_vars['config_type'] = config_type
+
+                    with utils.TempDirs() as tmp:
+                        utils.run_ansible_playbook(
+                            playbook='cli-config-download-export.yaml',
+                            inventory='localhost,',
+                            workdir=tmp,
+                            playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                            verbosity=utils.playbook_verbosity(self=self),
+                            extra_vars=extra_vars
+                        )
+
+                    # Run admin authorize
+                    deployment.get_hosts_and_enable_ssh_admin(
+                        stack,
+                        parsed_args.overcloud_ssh_network,
+                        parsed_args.overcloud_ssh_user,
+                        self.get_key_pair(parsed_args),
+                        parsed_args.overcloud_ssh_port_timeout,
+                        verbosity=utils.playbook_verbosity(self=self)
+                    )
+
                 deployment.set_deployment_status(
                     stack.stack_name,
                     status=deploy_status,
