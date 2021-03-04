@@ -302,6 +302,11 @@ def run_ansible_playbook(logger,
     else:
         env['ANSIBLE_LOG_PATH'] = os.path.join(log_path_dir, 'ansible.log')
 
+    # Set var handling for better performance
+    env['ANSIBLE_INJECT_FACT_VARS'] = 'False'
+    env['ANSIBLE_VARS_PLUGIN_STAGE'] = 'inventory'
+    env['ANSIBLE_GATHER_SUBSET'] = '!all,min'
+
     env['ANSIBLE_HOST_KEY_CHECKING'] = 'False'
 
     if gathering_policy in ['smart', 'explicit', 'implicit']:
