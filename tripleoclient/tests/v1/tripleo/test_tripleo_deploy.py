@@ -718,7 +718,9 @@ class TestDeployUndercloud(TestPluginV1):
     @mock.patch('tripleo_common.utils.config.Config',
                 autospec=True)
     @mock.patch('os.path.join', return_value='/twd/inventory.yaml')
-    def test_download_ansible_playbooks(self, mock_join, mock_stack_config,
+    @mock.patch('shutil.copyfile')
+    def test_download_ansible_playbooks(self, mock_shutil, mock_join,
+                                        mock_stack_config,
                                         mock_launch_heat, mock_importInv,
                                         createdir_mock):
 
