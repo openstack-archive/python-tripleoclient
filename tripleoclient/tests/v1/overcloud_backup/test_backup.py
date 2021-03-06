@@ -18,105 +18,26 @@ import mock
 from osc_lib.tests import utils
 
 from tripleoclient import constants
-from tripleoclient.v1 import undercloud_backup
+# from tripleoclient.tests import fakes
+from tripleoclient.v1 import overcloud_backup
 from unittest.mock import call
 
 
-class TestUndercloudBackup(utils.TestCommand):
+class TestOvercloudBackup(utils.TestCommand):
 
     def setUp(self):
-        super(TestUndercloudBackup, self).setUp()
+        super(TestOvercloudBackup, self).setUp()
 
         # Get the command object to test
         app_args = mock.Mock()
         app_args.verbose_level = 1
-        self.cmd = undercloud_backup.BackupUndercloud(self.app, app_args)
+        self.cmd = overcloud_backup.BackupOvercloud(self.app, app_args)
         self.app.client_manager.workflow_engine = mock.Mock()
         self.workflow = self.app.client_manager.workflow_engine
 
-    @mock.patch('tripleoclient.workflows.undercloud_backup.backup',
-                autospec=True)
-    def test_undercloud_backup_withargs(self, plan_mock):
-        arglist = [
-            '--add-path',
-            '/tmp/foo.yaml',
-            '--add-path',
-            '/tmp/bar.yaml'
-        ]
-        verifylist = []
-
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-
-        self.cmd.take_action(parsed_args)
-        plan_mock.assert_called_once_with(
-            mock.ANY,
-            {'sources_path': '/home/stack/,/tmp/bar.yaml,/tmp/foo.yaml'})
-
-    @mock.patch('tripleoclient.workflows.undercloud_backup.backup',
-                autospec=True)
-    def test_undercloud_backup_withargs_remove(self, plan_mock):
-        arglist = [
-            '--add-path',
-            '/tmp/foo.yaml',
-            '--exclude-path',
-            '/tmp/bar.yaml',
-            '--exclude-path',
-            '/home/stack/',
-            '--add-path',
-            '/tmp/bar.yaml'
-        ]
-        verifylist = []
-
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-
-        self.cmd.take_action(parsed_args)
-        plan_mock.assert_called_once_with(
-            mock.ANY,
-            {'sources_path': '/tmp/foo.yaml'})
-
-    @mock.patch('tripleoclient.workflows.undercloud_backup.backup',
-                autospec=True)
-    def test_undercloud_backup_withargs_remove_double(self, plan_mock):
-        arglist = [
-            '--add-path',
-            '/tmp/foo.yaml',
-            '--add-path',
-            '/tmp/bar.yaml',
-            '--exclude-path',
-            '/tmp/foo.yaml',
-            '--exclude-path',
-            '/tmp/foo.yaml'
-        ]
-        verifylist = []
-
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-
-        self.cmd.take_action(parsed_args)
-        plan_mock.assert_called_once_with(
-            mock.ANY,
-            {'sources_path': '/home/stack/,/tmp/bar.yaml'})
-
-    @mock.patch('tripleoclient.workflows.undercloud_backup.backup',
-                autospec=True)
-    def test_undercloud_backup_withargs_remove_unex(self, plan_mock):
-        arglist = [
-            '--add-path',
-            '/tmp/foo.yaml',
-            '--exclude-path',
-            '/tmp/non-existing-path.yaml'
-        ]
-        verifylist = []
-
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-
-        self.cmd.take_action(parsed_args)
-        plan_mock.assert_called_once_with(
-            mock.ANY,
-            {'sources_path': '/home/stack/,/tmp/foo.yaml'})
-
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
-    def test_undercloud_backup_noargs(self, mock_playbook):
+    def test_overcloud_backup_noargs(self, mock_playbook):
         arglist = []
         verifylist = []
 
@@ -126,17 +47,17 @@ class TestUndercloudBackup(utils.TestCommand):
         mock_playbook.assert_called_once_with(
             logger=mock.ANY,
             workdir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
-            playbook='cli-undercloud-backup.yaml',
-            inventory=mock.ANY,
+            playbook='cli-overcloud-backup.yaml',
+            inventory=parsed_args.inventory,
             tags='bar_create_recover_image',
             skip_tags=None,
             verbosity=1,
-            extra_vars=None
+            extra_vars={}
         )
 
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
-    def test_undercloud_backup_init(self, mock_playbook):
+    def test_overcloud_backup_init(self, mock_playbook):
         arglist = [
             '--init'
         ]
@@ -148,17 +69,17 @@ class TestUndercloudBackup(utils.TestCommand):
         mock_playbook.assert_called_once_with(
             logger=mock.ANY,
             workdir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
-            playbook='prepare-undercloud-backup.yaml',
-            inventory=mock.ANY,
+            playbook='prepare-overcloud-backup.yaml',
+            inventory=parsed_args.inventory,
             tags='bar_setup_rear',
             skip_tags=None,
             verbosity=1,
-            extra_vars=None
+            extra_vars={}
         )
 
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
-    def test_undercloud_backup_init_nfs(self, mock_playbook):
+    def test_overcloud_backup_init_nfs(self, mock_playbook):
         arglist = [
             '--init',
             'nfs'
@@ -172,16 +93,16 @@ class TestUndercloudBackup(utils.TestCommand):
             logger=mock.ANY,
             workdir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             playbook='prepare-nfs-backup.yaml',
-            inventory=mock.ANY,
+            inventory=parsed_args.inventory,
             tags='bar_setup_nfs_server',
             skip_tags=None,
             verbosity=1,
-            extra_vars=None
+            extra_vars={}
         )
 
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
-    def test_undercloud_backup_setup_nfs(self, mock_playbook):
+    def test_overcloud_backup_setup_nfs(self, mock_playbook):
         arglist = [
             '--setup-nfs'
         ]
@@ -194,18 +115,18 @@ class TestUndercloudBackup(utils.TestCommand):
             logger=mock.ANY,
             workdir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             playbook='prepare-nfs-backup.yaml',
-            inventory=mock.ANY,
+            inventory=parsed_args.inventory,
             tags='bar_setup_nfs_server',
             skip_tags=None,
             verbosity=1,
-            extra_vars=None
-            )
+            extra_vars={}
+        )
 
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
-    def test_undercloud_backup_setup_rear(self, mock_playbook):
+    def test_overcloud_backup_setup_rear(self, mock_playbook):
         arglist = [
-            '--setup-rear'
+            '--setup-rear',
         ]
         verifylist = []
 
@@ -215,18 +136,52 @@ class TestUndercloudBackup(utils.TestCommand):
         mock_playbook.assert_called_once_with(
             logger=mock.ANY,
             workdir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
-            playbook='prepare-undercloud-backup.yaml',
-            inventory=mock.ANY,
+            playbook='prepare-overcloud-backup.yaml',
+            inventory=parsed_args.inventory,
             tags='bar_setup_rear',
             skip_tags=None,
             verbosity=1,
-            extra_vars=None
-            )
+            extra_vars={}
+        )
+
+    @mock.patch('tripleoclient.utils.run_ansible_playbook', autospec=True)
+    def test_overcloud_backup_setup_nfs_rear_with_inventory(self,
+                                                            mock_playbook):
+        arglist = [
+            '--setup-nfs',
+            '--setup-rear',
+            '--inventory',
+            '/tmp/test_inventory.yaml'
+        ]
+        verifylist = []
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
+
+        calls = [call(logger=mock.ANY,
+                      workdir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                      playbook='prepare-nfs-backup.yaml',
+                      inventory=parsed_args.inventory,
+                      tags='bar_setup_nfs_server',
+                      skip_tags=None,
+                      verbosity=1,
+                      extra_vars={}),
+                 call(logger=mock.ANY,
+                      workdir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                      playbook='prepare-overcloud-backup.yaml',
+                      inventory=parsed_args.inventory,
+                      tags='bar_setup_rear',
+                      skip_tags=None,
+                      verbosity=1,
+                      extra_vars={})]
+
+        mock_playbook.assert_has_calls(calls)
 
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
-    def test_undercloud_backup_setup_rear_extra_vars_inline(self,
-                                                            mock_playbook):
+    def test_overcloud_backup_setup_rear_extra_vars_inline(self,
+                                                           mock_playbook):
         arglist = [
             '--setup-rear',
             '--extra-vars',
@@ -243,53 +198,19 @@ class TestUndercloudBackup(utils.TestCommand):
         mock_playbook.assert_called_once_with(
             logger=mock.ANY,
             workdir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
-            playbook='prepare-undercloud-backup.yaml',
-            inventory=mock.ANY,
+            playbook='prepare-overcloud-backup.yaml',
+            inventory=parsed_args.inventory,
             tags='bar_setup_rear',
             skip_tags=None,
             verbosity=1,
             extra_vars=extra_vars_dict
             )
 
-    @mock.patch('tripleoclient.utils.run_ansible_playbook', autospec=True)
-    def test_undercloud_backup_setup_nfs_rear_with_inventory(self,
-                                                             mock_playbook):
-        arglist = [
-            '--setup-nfs',
-            '--setup-rear',
-            '--inventory',
-            '/tmp/test_inventory.yaml'
-        ]
-        verifylist = []
-
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-
-        self.cmd.take_action(parsed_args)
-
-        calls = [call(logger=mock.ANY,
-                      workdir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
-                      playbook='prepare-nfs-backup.yaml',
-                      inventory=mock.ANY,
-                      tags='bar_setup_nfs_server',
-                      skip_tags=None,
-                      verbosity=1,
-                      extra_vars=None),
-                 call(logger=mock.ANY,
-                      workdir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
-                      playbook='prepare-undercloud-backup.yaml',
-                      inventory=mock.ANY,
-                      tags='bar_setup_rear',
-                      skip_tags=None,
-                      verbosity=1,
-                      extra_vars=None)]
-
-        mock_playbook.assert_has_calls(calls)
-
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
-    def test_undercloud_backup_setup_nfs_with_extra_vars(self, mock_playbook):
+    def test_overcloud_backup_setup_rear_with_extra_vars(self, mock_playbook):
         arglist = [
-            '--setup-nfs',
+            '--setup-rear',
             '--extra-vars',
             '/tmp/test_vars.yaml'
         ]
@@ -301,9 +222,9 @@ class TestUndercloudBackup(utils.TestCommand):
         mock_playbook.assert_called_once_with(
             logger=mock.ANY,
             workdir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
-            playbook='prepare-nfs-backup.yaml',
-            inventory=mock.ANY,
-            tags='bar_setup_nfs_server',
+            playbook='prepare-overcloud-backup.yaml',
+            inventory=parsed_args.inventory,
+            tags='bar_setup_rear',
             skip_tags=None,
             verbosity=1,
             extra_vars='/tmp/test_vars.yaml'
@@ -311,7 +232,7 @@ class TestUndercloudBackup(utils.TestCommand):
 
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
-    def test_undercloud_backup_inventory(self, mock_playbook):
+    def test_overcloud_backup_inventory(self, mock_playbook):
         arglist = [
             '--inventory',
             '/tmp/test_inventory.yaml'
@@ -324,10 +245,10 @@ class TestUndercloudBackup(utils.TestCommand):
         mock_playbook.assert_called_once_with(
             logger=mock.ANY,
             workdir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
-            playbook='cli-undercloud-backup.yaml',
-            inventory=mock.ANY,
+            playbook='cli-overcloud-backup.yaml',
+            inventory=parsed_args.inventory,
             tags='bar_create_recover_image',
             skip_tags=None,
             verbosity=1,
-            extra_vars=None
+            extra_vars={}
         )
