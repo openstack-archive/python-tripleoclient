@@ -105,6 +105,11 @@ def get_overcloud_hosts(stack, ssh_network):
     ips = []
     role_net_ip_map = utils.get_role_net_ip_map(stack)
     blacklisted_ips = utils.get_blacklisted_ip_addresses(stack)
+    if not role_net_ip_map:
+        raise exceptions.DeploymentError(
+            'No overcloud hosts were found in the current stack.'
+            ' Check the stack name and try again.'
+        )
     for net_ip_map in role_net_ip_map.values():
         # get a copy of the lists of ssh_network and ctlplane ips
         # as blacklisted_ips will only be the ctlplane ips, we need
