@@ -602,7 +602,6 @@ class TestConfigureNode(fakes.TestOvercloudNode):
         self.cmd = overcloud_node.ConfigureNode(self.app, None)
 
         self.http_boot = '/var/lib/ironic/httpboot'
-
         self.workflow_input = {
             'kernel_name': 'file://%s/agent.kernel' % self.http_boot,
             'ramdisk_name': 'file://%s/agent.ramdisk' % self.http_boot,
@@ -666,7 +665,10 @@ class TestConfigureNode(fakes.TestOvercloudNode):
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
         self.cmd.take_action(parsed_args)
 
-    def test_configure_specified_node_with_all_arguments(self):
+    @mock.patch('tripleoclient.workflows.baremetal.'
+                '_apply_root_device_strategy')
+    def test_configure_specified_node_with_all_arguments(
+            self, mock_root_device):
         argslist = ['node_id',
                     '--deploy-kernel', 'test_kernel',
                     '--deploy-ramdisk', 'test_ramdisk',
@@ -699,7 +701,7 @@ class TestDiscoverNode(fakes.TestOvercloudNode):
         self.cmd = overcloud_node.DiscoverNode(self.app, None)
 
         self.gcn = mock.patch(
-            'tripleo_common.actions.baremetal.GetCandidateNodes',
+            'tripleoclient.workflows.baremetal._get_candidate_nodes',
             autospec=True
         )
         self.gcn.start()
