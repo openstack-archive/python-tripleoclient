@@ -568,6 +568,11 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
     env['ANSIBLE_TRANSPORT'] = connection
     env['ANSIBLE_CACHE_PLUGIN_TIMEOUT'] = 7200
 
+    # Set var handling for better performance
+    env['ANSIBLE_INJECT_FACT_VARS'] = False
+    env['ANSIBLE_VARS_PLUGIN_STAGE'] = 'inventory'
+    env['ANSIBLE_GATHER_SUBSET'] = '!all,min'
+
     if connection == 'local':
         env['ANSIBLE_PYTHON_INTERPRETER'] = sys.executable
 
