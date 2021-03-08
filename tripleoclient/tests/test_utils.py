@@ -466,6 +466,28 @@ class TestWaitForStackUtil(TestCase):
                           utils.check_nic_config_with_ansible,
                           mock_stack, env)
 
+    def test_check_service_vips_migrated_to_service(self):
+        stack_reg = {
+            'OS::TripleO::Network::Ports::RedisVipPort': 'val',
+            'OS::TripleO::Network::Ports::OVNDBsVipPort': 'val',
+        }
+        env_reg = {
+            'OS::TripleO::Network::Ports::RedisVipPort': 'val',
+            'OS::TripleO::Network::Ports::OVNDBsVipPort': 'val',
+        }
+        mock_stack = mock.MagicMock()
+        mock_stack.environment = mock.MagicMock()
+        mock_stack.environment.return_value = {
+            'resource_registry':  stack_reg,
+        }
+        env = {
+            'resource_registry':  env_reg
+        }
+
+        self.assertRaises(exceptions.InvalidConfiguration,
+                          utils.check_service_vips_migrated_to_service,
+                          mock_stack, env)
+
     def test_check_heat_missing_network_config(self):
         stack_reg = {
             'OS::TripleO::Controller::Net::SoftwareConfig': 'val',
