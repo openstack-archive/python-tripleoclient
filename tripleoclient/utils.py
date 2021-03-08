@@ -1098,6 +1098,27 @@ def check_nic_config_with_ansible(stack, environment):
                         "in 'parameter_defaults'.")
 
 
+def check_service_vips_migrated_to_service(stack, environment):
+    registry = environment.get('resource_registry', {})
+    stack_registry = {}
+    if stack:
+        stack_registry = stack.environment().get(
+            'resource_registry', {})
+    removed_resources = {'OS::TripleO::Network::Ports::RedisVipPort',
+                         'OS::TripleO::Network::Ports::OVNDBsVipPort'}
+    msg = ("Resources 'OS::TripleO::Network::Ports::RedisVipPort' and "
+           "'OS::TripleO::Network::Ports::OVNDBsVipPort' can no longer be "
+           "used. Service VIPs has been moved to the service definition "
+           "template. To configure a specific IP address use the parameters "
+           "'RedisVirtualFixedIPs' and/or 'OVNDBsVirtualFixedIPs'. To control"
+           "the network or subnet for VIP allocation set up the "
+           "'ServiceNetMap' and/or 'VipSubnetMap' parameters with the desired "
+           "network and/or subnet for the service.")
+    for resource in removed_resources:
+        if resource in registry or resource in stack_registry:
+            raise exceptions.InvalidConfiguration(msg)
+
+
 def check_stack_network_matches_env_files(stack, environment):
     """Check stack against proposed env files to ensure non-breaking change
 
