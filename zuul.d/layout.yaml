@@ -21,29 +21,18 @@
         - openstack-tox-py36
         - openstack-tox-py37
         - tripleo-ci-centos-8-content-provider:
-            dependencies: &deps_unit_lint
+            dependencies:
               - openstack-tox-pep8
               - openstack-tox-py36
               - openstack-tox-py37
-        - tripleo-ci-centos-8-containers-multinode:
-            vars: &multi_consumer_vars
-              consumer_job: true
-              build_container_images: false
-              remove_tags:
-                - build
-            dependencies: &deps_cprovider
-              - tripleo-ci-centos-8-content-provider
-        - tripleo-build-containers-ubi-8:
-            dependencies: *deps_unit_lint
-            files:
-              - ^tripleoclient/v1/tripleo_container_image.py$
         - tripleo-ci-centos-8-containers-undercloud-minion:
-            vars: &sa_consumer_vars
+            vars:
               consumer_job: true
               build_container_images: false
               remove_tags:
                 - build
-            dependencies: *deps_cprovider
+            dependencies:
+              - tripleo-ci-centos-8-content-provider
             files:
               - ^config-generator/.*minion.*$
               - ^tripleoclient/config/.*minion.*$
@@ -53,7 +42,3 @@
       queue: tripleo
       jobs:
         - openstack-tox-pep8
-        - tripleo-build-containers-ubi-8:
-            dependencies: *deps_unit_lint
-            files:
-              - ^tripleoclient/v1/tripleo_container_image.py$
