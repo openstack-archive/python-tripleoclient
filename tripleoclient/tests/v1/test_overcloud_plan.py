@@ -132,6 +132,7 @@ class TestOvercloudCreatePlan(utils.TestCommand):
                 "container": "overcast",
                 "generate_passwords": True,
                 "use_default_templates": True,
+                "disable_image_params_prepare": False,
             },
             verbosity=3,
         )
@@ -164,6 +165,7 @@ class TestOvercloudCreatePlan(utils.TestCommand):
                 "container": "overcast",
                 "generate_passwords": True,
                 "use_default_templates": False,
+                "disable_image_params_prepare": False,
             },
             verbosity=3,
         )
@@ -205,6 +207,7 @@ class TestOvercloudCreatePlan(utils.TestCommand):
                 "generate_passwords": True,
                 "plan_environment": "the_plan_environment.yaml",
                 "use_default_templates": False,
+                "disable_image_params_prepare": False,
             },
             verbosity=3,
         )
@@ -217,11 +220,13 @@ class TestOvercloudCreatePlan(utils.TestCommand):
             self, mock_tmp, mock_cd, mock_run_playbook):
 
         # Setup
-        arglist = ['overcast', '--disable-password-generation']
+        arglist = ['overcast', '--disable-password-generation',
+                   '--disable-container-prepare']
         verifylist = [
             ('name', 'overcast'),
             ('templates', None),
-            ('disable_password_generation', True)
+            ('disable_password_generation', True),
+            ('disable_container_prepare', True)
         ]
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
@@ -238,6 +243,7 @@ class TestOvercloudCreatePlan(utils.TestCommand):
                 "container": "overcast",
                 "generate_passwords": False,
                 "use_default_templates": True,
+                "disable_image_params_prepare": True,
             },
             verbosity=3,
         )
@@ -271,6 +277,7 @@ class TestOvercloudCreatePlan(utils.TestCommand):
                 "generate_passwords": True,
                 "use_default_templates": False,
                 "source_url": "http://tripleo.org/templates",
+                "disable_image_params_prepare": False,
             },
             verbosity=3,
         )
