@@ -106,17 +106,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         horizon_url.return_value = 'fake://url:12345'
         self.addCleanup(horizon_url.stop)
 
-        self.mock_tar = mock.patch(
-            'tripleo_common.utils.tarball.create_tarball',
-            autospec=True
-        )
-        self.mock_tar.start()
-
     def tearDown(self):
         super(TestDeployOvercloud, self).tearDown()
         os.unlink(self.parameter_defaults_env_file)
         shutil.rmtree = self.real_shutil
-        self.mock_tar.stop()
 
     @mock.patch('tripleoclient.utils.build_stack_data', autospec=True)
     @mock.patch('tripleo_common.utils.plan.default_image_params',

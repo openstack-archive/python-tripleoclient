@@ -34,44 +34,7 @@ class TestParameterWorkflows(utils.TestCommand):
 
     def setUp(self):
         super(TestParameterWorkflows, self).setUp()
-        self.app.client_manager.workflow_engine = self.workflow = mock.Mock()
-        self.orchestration = mock.Mock()
-        self.tripleoclient = mock.Mock()
-        self.tripleoclient.object_store = mock.MagicMock()
-        self.app.client_manager.tripleoclient = self.tripleoclient
-        self.app.client_manager.orchestration = self.orchestration
         self.app.client_manager.baremetal = mock.Mock()
-        self.app.client_manager.compute = mock.Mock()
-        execution = mock.Mock()
-        execution.id = "IDID"
-        self.workflow.executions.create.return_value = execution
-        get_container = self.tripleoclient.object_store.get_container \
-            = mock.MagicMock()
-        get_container.return_value = ('container', [{'name': 'f1'}])
-
-        flatten = mock.patch(
-            'tripleo_common.utils.stack_parameters.get_flattened_parameters',
-            autospec=True,
-            return_value={
-                'environment_parameters': {
-                    'TestParameter1': {},
-                    'TestRole1': 'TestParameter2'
-                },
-                'heat_resource_tree': {
-                    'parameters': {
-                        'TestParameter2': {
-                            'name': 'TestParameter2',
-                            'tags': [
-                                'role_specific'
-                            ]
-                        }
-                    },
-                    'resources': {}
-                }
-            }
-        )
-        flatten.start()
-        self.addCleanup(flatten.stop)
 
     @mock.patch('yaml.safe_load')
     @mock.patch("six.moves.builtins.open")
