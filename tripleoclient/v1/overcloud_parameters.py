@@ -58,7 +58,6 @@ class GenerateFencingParameters(command.Command):
         nodes_config = utils.parse_env_file(parsed_args.instackenv)
         parsed_args.instackenv.close()
         result = parameters.generate_fencing_parameters(
-            clients=self.app.client_manager,
             nodes_json=nodes_config,
             delay=parsed_args.delay,
             ipmi_level=parsed_args.ipmi_level,

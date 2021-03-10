@@ -154,7 +154,6 @@ class TestParameterWorkflows(utils.TestCommand):
             'ipmi_lanplus': True
         }
         params = parameters.generate_fencing_parameters(
-            self.app.client_manager,
             **workflow_input
         )
         self.assertEqual(params, {"parameter_defaults": {}})

@@ -231,12 +231,9 @@ def check_deprecated_parameters(clients, stack_name, tht_root, template,
         )
 
 
-def generate_fencing_parameters(clients, nodes_json, delay, ipmi_level,
+def generate_fencing_parameters(nodes_json, delay, ipmi_level,
                                 ipmi_cipher, ipmi_lanplus):
     """Generate and return fencing parameters.
-
-    :param clients: application client object.
-    :type clients: Object
 
     :param nodes_json: list of nodes & attributes in json format
     :type nodes_json: List
@@ -256,8 +253,6 @@ def generate_fencing_parameters(clients, nodes_json, delay, ipmi_level,
     :returns: Dictionary
     """
     return stk_parameters.generate_fencing_parameters(
-        clients.baremetal,
-        clients.compute,
         nodes_json=nodes_json,
         delay=delay,
         ipmi_level=ipmi_level,
