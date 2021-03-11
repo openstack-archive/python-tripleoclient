@@ -18,55 +18,14 @@
               - openstack-tox-pep8
               - openstack-tox-py36
               - openstack-tox-py37
-        - tripleo-ci-centos-8-containers-multinode:
-            vars: &multi_consumer_vars
-              consumer_job: true
-              build_container_images: false
-              tags:
-                - undercloud-setup
-                - undercloud-scripts
-                - undercloud-install
-                - undercloud-post-install
-                - tripleo-validations
-                - overcloud-scripts
-                - overcloud-prep-config
-                - overcloud-prep-containers
-                - overcloud-deploy
-                - overcloud-post-deploy
-                - overcloud-validate
-            dependencies: &cprovider
-              - tripleo-ci-centos-8-content-provider
-        - tripleo-ci-centos-8-standalone:
-            vars: &sa_consumer_vars
-              consumer_job: true
-              build_container_images: false
-              tags:
-                - standalone
-            dependencies: *cprovider
-        - tripleo-ci-centos-8-scenario000-multinode-oooq-container-updates:
-            vars: *multi_consumer_vars
-            dependencies: *cprovider
-        - tripleo-ci-centos-8-scenario001-standalone:
-            vars: *sa_consumer_vars
-            dependencies: *cprovider
-        - tripleo-ci-centos-8-scenario002-standalone:
-            vars: *sa_consumer_vars
-            dependencies: *cprovider
-        - tripleo-ci-centos-8-scenario003-standalone:
-            vars: *sa_consumer_vars
-            dependencies: *cprovider
-        - tripleo-ci-centos-8-scenario004-standalone:
-            vars: *sa_consumer_vars
-            dependencies: *cprovider
         - tripleo-ci-centos-8-containers-undercloud-minion:
-            vars: &undercloud_consumer_vars
+            vars:
               consumer_job: true
-              tags:
-              - undercloud-setup
-              - undercloud-scripts
-              - undercloud-install
-              - undercloud-validate
-            dependencies: *cprovider
+              build_container_images: false
+              remove_tags:
+                - build
+            dependencies:
+              - tripleo-ci-centos-8-content-provider
             files:
               - ^config-generator/.*minion.*$
               - ^tripleoclient/config/.*minion.*$
