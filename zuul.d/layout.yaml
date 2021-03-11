@@ -19,6 +19,11 @@
               - openstack-tox-py36
               - openstack-tox-py37
         - tripleo-ci-centos-8-containers-undercloud-minion:
+            vars:
+              consumer_job: true
+              build_container_images: false
+              remove_tags:
+                - build
             dependencies:
               - tripleo-ci-centos-8-content-provider
             files:
