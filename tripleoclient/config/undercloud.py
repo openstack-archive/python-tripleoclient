@@ -78,7 +78,6 @@ class UndercloudConfig(StandaloneConfig):
             nova=False,
             novajoin=False,
             swift=False,
-            tempest=True,
             telemetry=False,
             validations=True,
             zaqar=False)
