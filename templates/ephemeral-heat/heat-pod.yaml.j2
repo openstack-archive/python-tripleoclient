@@ -1,0 +1,105 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: ephemeral-heat
+  name: ephemeral-heat
+spec:
+  containers:
+  - command:
+    - heat-engine
+    - --config-file
+    - /etc/heat/heat.conf
+    env:
+    - name: PATH
+      value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    - name: TERM
+      value: xterm
+    - name: container
+      value: oci
+    - name: LANG
+      value: en_US.UTF-8
+    image: {{ engine_image }}
+    name: engine
+    resources: {}
+    securityContext:
+      allowPrivilegeEscalation: true
+      capabilities: {}
+      privileged: false
+      readOnlyRootFilesystem: false
+      runAsGroup: 0
+      runAsUser: 0
+      seLinuxOptions: {}
+    volumeMounts:
+    - mountPath: /var/log/heat
+      name: heat-log
+    - mountPath: /etc/heat/heat.conf
+      name: heat-config
+      readOnly: true
+    workingDir: /
+  - command:
+    - heat-api
+    - --config-file
+    - /etc/heat/heat.conf
+    ports:
+    - containerPort: {{ api_port }}
+      hostPort: {{ api_port }}
+      hostIP: {{ ctlplane_ip }}
+    env:
+    - name: PATH
+      value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    - name: TERM
+      value: xterm
+    - name: container
+      value: oci
+    - name: LANG
+      value: en_US.UTF-8
+    image: {{ api_image }}
+    name: api
+    resources: {}
+    securityContext:
+      allowPrivilegeEscalation: true
+      capabilities: {}
+      privileged: false
+      readOnlyRootFilesystem: false
+      runAsGroup: 0
+      runAsUser: 0
+      seLinuxOptions: {}
+    volumeMounts:
+    - mountPath: /var/log/heat
+      name: heat-log
+    - mountPath: /etc/heat/heat.conf
+      name: heat-config
+      readOnly: true
+    - mountPath: /etc/heat/api-paste.ini
+      name: heat-api-paste
+      readOnly: true
+    - mountPath: /token_file.json
+      name: heat-token-file
+      readOnly: true
+    - mountPath: /etc/heat/noauth_policy.json
+      name: heat-noauth-policy
+      readOnly: true
+    workingDir: /
+  volumes:
+  - hostPath:
+      path: {{ heat_dir}}/log
+      type: Directory
+    name: heat-log
+  - hostPath:
+      path: {{ install_dir }}/heat.conf
+      type: File
+    name: heat-config
+  - hostPath:
+      path: {{ heat_dir }}/api-paste.ini
+      type: File
+    name: heat-api-paste
+  - hostPath:
+      path: {{ heat_dir }}/token_file.json
+      type: File
+    name: heat-token-file
+  - hostPath:
+      path: {{ policy_file }}
+      type: File
+    name: heat-noauth-policy
+status: {}
