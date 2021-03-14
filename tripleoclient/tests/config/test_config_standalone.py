@@ -46,6 +46,7 @@ class TestStandaloneConfig(base.TestCase):
     def test_get_service_opts(self):
         ret = self.config.get_enable_service_opts()
         expected = ['enable_cinder',
+                    'enable_frr',
                     'enable_ironic',
                     'enable_ironic_inspector',
                     'enable_mistral',
@@ -61,6 +62,7 @@ class TestStandaloneConfig(base.TestCase):
 
     def test_get_service_opts_enabled(self):
         ret = self.config.get_enable_service_opts(cinder=True,
+                                                  frr=True,
                                                   ironic=True,
                                                   ironic_inspector=True,
                                                   mistral=True,
@@ -71,6 +73,7 @@ class TestStandaloneConfig(base.TestCase):
                                                   validations=True,
                                                   zaqar=True)
         expected = ['enable_cinder',
+                    'enable_frr',
                     'enable_ironic',
                     'enable_ironic_inspector',
                     'enable_mistral',
@@ -95,6 +98,7 @@ class TestStandaloneConfig(base.TestCase):
                     'custom_env_files',
                     'deployment_user',
                     'enable_cinder',
+                    'enable_frr',
                     'enable_ironic',
                     'enable_ironic_inspector',
                     'enable_mistral',

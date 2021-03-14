@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Added option ``enable_frr`` to enable the TripleO FRR service in standalone
+    and undercloud deployments.

@@ -51,7 +51,7 @@ NETCONFIG_TAGS_EXAMPLE = """
 
 class StandaloneConfig(BaseConfig):
 
-    def get_enable_service_opts(self, cinder=False, ironic=False,
+    def get_enable_service_opts(self, cinder=False, frr=False, ironic=False,
                                 ironic_inspector=False, mistral=False,
                                 nova=False, novajoin=False, swift=False,
                                 telemetry=False,
@@ -63,6 +63,9 @@ class StandaloneConfig(BaseConfig):
                         help=_(
                             'Whether to install the Volume service. It is not '
                             'currently used in the undercloud.')),
+            cfg.BoolOpt('enable_frr',
+                        default=frr,
+                        help=_('Whether to enable the frr service.')),
             cfg.BoolOpt('enable_ironic',
                         default=ironic,
                         help=_('Whether to enable the ironic service.')),

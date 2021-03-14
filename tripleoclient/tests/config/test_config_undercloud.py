@@ -95,6 +95,7 @@ class TestUndercloudConfig(base.TestCase):
                     'deployment_user',
                     'discovery_default_driver',
                     'enable_cinder',
+                    'enable_frr',
                     'enable_ironic',
                     'enable_ironic_inspector',
                     'enable_mistral',
@@ -165,6 +166,7 @@ class TestUndercloudConfig(base.TestCase):
     def test_get_undercloud_service_opts(self):
         ret = self.config.get_undercloud_service_opts()
         expected = {'enable_cinder': False,
+                    'enable_frr': False,
                     'enable_ironic': True,
                     'enable_ironic_inspector': True,
                     'enable_mistral': False,
