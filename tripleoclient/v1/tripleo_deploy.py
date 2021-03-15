@@ -1436,6 +1436,12 @@ class Deploy(command.Command):
         self.log.debug("take_action(%s)" % parsed_args)
         utils.ansible_symlink()
 
+        if parsed_args.deployment_user == 'root':
+            self.log.warning(
+                _("[WARNING] Deployment user is set to 'root'. This may cause "
+                  "some deployment files to be located in /root. Please use "
+                  "--deployment-user to specify the user you are deploying "
+                  "with."))
         try:
             if parsed_args.standalone:
                 if self._standalone_deploy(parsed_args) != 0:
