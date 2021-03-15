@@ -2347,10 +2347,6 @@ def check_file_for_enabled_service(env_file):
     enabled, throw a warning about its deprecation and ask the user
     whether to proceed with deployment despite deprecation.
     For ODL as an example:
-    If "OS::TripleO::Services::OpenDaylightApi" service is included
-    in any of the parsed env_files, then check its value.
-    OS::TripleO::Services::OpenDaylightApi NOT OS::Heat::None
-    ODL is enabled.
 
     :param env_file: The path of the environment file
     :type env_file: String

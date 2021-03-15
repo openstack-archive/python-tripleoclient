@@ -178,14 +178,7 @@ DEPLOY_ANSIBLE_ACTIONS = {
 }
 
 # Key-value pair of deprecated service and its warning message
-DEPRECATED_SERVICES = {"OS::TripleO::Services::OpenDaylightApi":
-                       "You are using OpenDaylight as your networking"
-                       " driver for OpenStack. OpenDaylight is deprecated"
-                       " starting from Rocky and removed since Stein and "
-                       "there is no upgrade or migration path from "
-                       "OpenDaylight to another networking backend. We "
-                       "recommend you understand other networking "
-                       "alternatives such as OVS or OVN. "}
+DEPRECATED_SERVICES = {}
 
 # clouds_yaml related constants
 CLOUD_HOME_DIR = os.path.expanduser('~' + os.environ.get('SUDO_USER', ''))
