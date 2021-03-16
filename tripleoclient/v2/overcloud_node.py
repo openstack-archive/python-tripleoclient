@@ -256,6 +256,8 @@ class ProvisionNode(command.Command):
                             help=_('Enable provisioning of network ports'),
                             default=False,
                             action="store_true")
+        # TODO(hjensas): Remove 'output-dir' use common 'workdir' instead.
+        # See: https://review.opendev.org/775302
         parser.add_argument('--output-dir',
                             help=_('Directory to use for saved output. '
                                    'When not specified, '
@@ -263,10 +265,25 @@ class ProvisionNode(command.Command):
                                    'used.'),
                             action='store',
                             default=None)
+        parser.add_argument(
+            '--working-dir', action='store',
+            help=_('The working directory for the deployment where all '
+                   'input, output, and generated files will be stored.\n'
+                   'Defaults to "$HOME/overcloud-deploy-<stack>"')
+        )
+
         return parser
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+
+        if not parsed_args.working_dir:
+            working_dir = os.path.join(
+                os.path.expanduser('~'),
+                "overcloud-deploy-%s" % parsed_args.stack)
+        else:
+            working_dir = os.path.abspath(parsed_args.working_dir)
+        oooutils.makedirs(working_dir)
 
         with open(parsed_args.input, 'r') as fp:
             roles = yaml.safe_load(fp)
@@ -292,7 +309,8 @@ class ProvisionNode(command.Command):
             "node_timeout": parsed_args.timeout,
             "concurrency": parsed_args.concurrency,
             "manage_network_ports": parsed_args.network_ports,
-            "output_dir": output_dir
+            "output_dir": output_dir,
+            "working_dir": working_dir
         }
 
         with oooutils.TempDirs() as tmp:
