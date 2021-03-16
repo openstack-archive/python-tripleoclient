@@ -773,22 +773,22 @@ def is_loopback(host):
     return False
 
 
-def get_host_ips(host, type=None):
+def get_host_ips(host, socket_type=None):
     """Lookup an host to return a list of IPs.
 
     :param host: Host to lookup
     :type  host: string
 
-    :param type: Type of socket (e.g. socket.AF_INET, socket.AF_INET6)
-    :type  type: string
+    :param socket_type: Type of a socket (e.g. socket.AF_INET, socket.AF_INET6)
+    :type  socket_type: string
     """
 
     ips = set()
-    if type:
-        types = (type,)
+    if socket_type:
+        socket_types = (socket_type,)
     else:
-        types = (socket.AF_INET, socket.AF_INET6)
-    for t in types:
+        socket_types = (socket.AF_INET, socket.AF_INET6)
+    for t in socket_types:
         try:
             res = socket.getaddrinfo(host, None, t, socket.SOCK_STREAM)
         except socket.error:
@@ -813,8 +813,8 @@ def get_single_ip(host, allow_loopback=False, ip_version=4):
 
     ip = host
     if not is_valid_ip(host):
-        type = socket.AF_INET6 if ip_version == 6 else socket.AF_INET
-        ips = get_host_ips(host, type=type)
+        socket_type = socket.AF_INET6 if ip_version == 6 else socket.AF_INET
+        ips = get_host_ips(host, socket_type=socket_type)
         if not ips:
             raise exceptions.LookupError('No IP was found for the host: '
                                          '%s' % host)
