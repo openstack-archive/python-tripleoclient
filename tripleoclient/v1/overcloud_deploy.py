@@ -915,9 +915,8 @@ class DeployOvercloud(command.Command):
         self.log.debug("take_action(%s)" % parsed_args)
 
         if not parsed_args.working_dir:
-            self.working_dir = os.path.join(
-                os.path.expanduser('~'),
-                "overcloud-deploy-%s" % parsed_args.stack)
+            self.working_dir = utils.get_default_working_dir(
+                parsed_args.stack)
         else:
             self.working_dir = parsed_args.working_dir
         utils.makedirs(self.working_dir)
@@ -1137,15 +1136,27 @@ class GetDeploymentStatus(command.Command):
                             help=_('Name of the stack/plan. '
                                    '(default: overcloud)'),
                             default='overcloud')
+        parser.add_argument(
+            '--working-dir',
+            action='store',
+            help=_('The working directory for the deployment where all '
+                   'input, output, and generated files are stored.\n'
+                   'Defaults to "$HOME/overcloud-deploy-<stack>"'))
+
         return parser
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
         stack = parsed_args.plan
+        if not parsed_args.working_dir:
+            working_dir = utils.get_default_working_dir(stack)
+        else:
+            working_dir = parsed_args.working_dir
 
         status = deployment.get_deployment_status(
             self.app.client_manager,
-            stack
+            stack,
+            working_dir
         )
 
         if not status:

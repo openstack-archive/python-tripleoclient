@@ -492,7 +492,7 @@ def get_horizon_url(stack, verbosity=0):
             return f.read().strip()
 
 
-def get_deployment_status(clients, stack_name):
+def get_deployment_status(clients, stack_name, working_dir):
     """Return current deployment status."""
 
     try:
@@ -501,7 +501,7 @@ def get_deployment_status(clients, stack_name):
         return None
 
     try:
-        status_yaml = utils.get_status_yaml(stack_name)
+        status_yaml = utils.get_status_yaml(stack_name, working_dir)
         with open(status_yaml, 'r') as status_stream:
             return yaml.safe_load(status_stream)['deployment_status']
     except Exception:
