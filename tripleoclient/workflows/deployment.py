@@ -521,9 +521,13 @@ def make_config_download_dir(config_download_dir, stack):
     # Symlink for the previous default config-download dir to the
     # new consistent location.
     # This will create the following symlink:
-    # ~/config-download ->
-    # ~/overcloud-deploy/<stack>/config-download
-    config_download_stack_dir = \
+    # ~/config-download/<stack> ->
+    # ~/overcloud-deploy-<stack>/config-download/<stack>
+    old_config_download_stack_dir = \
         os.path.join(DEFAULT_WORK_DIR, stack)
-    if not os.path.exists(config_download_stack_dir):
-        os.symlink(config_download_dir, config_download_stack_dir)
+    config_download_stack_dir = \
+        os.path.join(config_download_dir, stack)
+    if (not os.path.exists(config_download_stack_dir) and
+            os.path.exists(old_config_download_stack_dir)):
+        os.symlink(old_config_download_stack_dir,
+                   config_download_stack_dir)
