@@ -68,7 +68,6 @@ class TestGenerateFencingParameters(utils.TestCommand):
             self.cmd.take_action(parsed_args)
 
         mock_gen_fence.assert_called_once_with(
-            self.app.client_manager,
             **{
                 'nodes_json': [
                     {
