@@ -353,6 +353,7 @@ class TestProvisionNode(fakes.TestOvercloudNode):
                 'concurrency': 20,
                 'manage_network_ports': False,
                 'output_dir': mock.ANY,
+                'working_dir': mock.ANY,
             },
             inventory='localhost,',
             playbook='cli-overcloud-node-provision.yaml',
