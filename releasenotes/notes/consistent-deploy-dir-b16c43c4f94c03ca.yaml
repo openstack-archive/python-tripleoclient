@@ -1,0 +1,9 @@
+---
+features:
+  - A consistent working directory is now used by the openstack overcloud
+    deploy command. The directory contains input files, generated files, and
+    log files, among others. The directory defaults to
+    ~/overcloud-deploy/<stack>. The old default config-download directory
+    at ~/config-download/<stack> is now a symlink to the new location at
+    ~/overcloud-deploy/<stack>/config-download/<stack> for backwards
+    compatibility.

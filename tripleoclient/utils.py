@@ -2645,4 +2645,4 @@ def rm_heat(launcher, backup_db=False):
 def get_default_working_dir(stack):
     return os.path.join(
         os.path.expanduser('~'),
-        "overcloud-deploy-%s" % stack)
+        "overcloud-deploy", stack)
