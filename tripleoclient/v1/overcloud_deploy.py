@@ -970,7 +970,6 @@ class DeployOvercloud(command.Command):
         old_rcpath = None
         rcpath = None
         horizon_url = None
-        deploy_message = None
 
         try:
             # Force fetching of attributes
