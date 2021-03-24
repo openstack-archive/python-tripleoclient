@@ -255,7 +255,8 @@ def config_download(log, clients, stack, ssh_network='ctlplane',
                     ansible_playbook_name='deploy_steps_playbook.yaml',
                     limit_hosts=None, extra_vars=None, inventory_path=None,
                     ssh_user='tripleo-admin', tags=None, skip_tags=None,
-                    deployment_timeout=None, forks=None, setup_only=False):
+                    deployment_timeout=None, forks=None, setup_only=False,
+                    working_dir=None):
     """Run config download.
 
     :param log: Logging object
@@ -317,6 +318,10 @@ def config_download(log, clients, stack, ssh_network='ctlplane',
     :param setup_only: Only generates the config-download directory
                        without executing the actual playbooks.
     :type setup_only: Boolean
+
+    :param working_dir: Consistent working directory used for generated
+                        ansible files.
+    :type working_dir: String
     """
 
     def _log_and_print(message, logger, level='info', print_msg=True):
@@ -343,6 +348,9 @@ def config_download(log, clients, stack, ssh_network='ctlplane',
 
     if not output_dir:
         output_dir = DEFAULT_WORK_DIR
+
+    if not working_dir:
+        working_dir = utils.get_default_working_dir(stack.stack_name)
 
     if not deployment_options:
         deployment_options = dict()
@@ -386,23 +394,26 @@ def config_download(log, clients, stack, ssh_network='ctlplane',
     key_file = utils.get_key(stack.stack_name)
     python_interpreter = deployment_options.get('ansible_python_interpreter')
 
-    with utils.TempDirs() as tmp:
-        utils.run_ansible_playbook(
-            playbook='cli-config-download.yaml',
-            inventory='localhost,',
-            workdir=tmp,
-            playbook_dir=ANSIBLE_TRIPLEO_PLAYBOOKS,
-            verbosity=verbosity,
-            extra_vars={
-                'plan': stack.stack_name,
-                'output_dir': output_dir,
-                'ansible_ssh_user': ssh_user,
-                'ansible_ssh_private_key_file': key_file,
-                'ssh_network': ssh_network,
-                'python_interpreter': python_interpreter,
-                'inventory_path': inventory_path
-            }
-        )
+    playbook = 'cli-config-download.yaml'
+    ansible_work_dir = os.path.join(
+        working_dir, os.path.splitext(playbook)[0])
+    utils.run_ansible_playbook(
+        playbook='cli-config-download.yaml',
+        inventory='localhost,',
+        workdir=ansible_work_dir,
+        playbook_dir=ANSIBLE_TRIPLEO_PLAYBOOKS,
+        verbosity=verbosity,
+        reproduce_command=True,
+        extra_vars={
+            'plan': stack.stack_name,
+            'output_dir': output_dir,
+            'ansible_ssh_user': ssh_user,
+            'ansible_ssh_private_key_file': key_file,
+            'ssh_network': ssh_network,
+            'python_interpreter': python_interpreter,
+            'inventory_path': inventory_path
+        }
+    )
 
     # If we only want to generate config-download directory, we can quit here.
     if setup_only:
@@ -484,7 +495,8 @@ def config_download(log, clients, stack, ssh_network='ctlplane',
 
 
 def get_horizon_url(stack, verbosity=0,
-                    heat_type='installed'):
+                    heat_type='installed',
+                    working_dir=None):
     """Return horizon URL string.
 
     :params stack: Stack name
@@ -495,25 +507,28 @@ def get_horizon_url(stack, verbosity=0,
     try:
         if heat_type != 'installed' and tc_heat_utils.heatclient:
             tc_heat_utils.heatclient.save_environment()
-        with utils.TempDirs() as tmp:
-            horizon_tmp_file = os.path.join(tmp, 'horizon_url')
-            utils.run_ansible_playbook(
-                playbook='cli-undercloud-get-horizon-url.yaml',
-                inventory='localhost,',
-                workdir=tmp,
-                playbook_dir=ANSIBLE_TRIPLEO_PLAYBOOKS,
-                verbosity=verbosity,
-                extra_vars={
-                    'stack_name': stack,
-                    'horizon_url_output_file': horizon_tmp_file
-                }
-            )
-
-            with open(horizon_tmp_file) as f:
-                return f.read().strip()
+        playbook = 'cli-undercloud-get-horizon-url.yaml'
+        ansible_work_dir = os.path.join(
+            working_dir, os.path.splitext(playbook)[0])
+        horizon_file = os.path.join(ansible_work_dir, 'horizon_url')
+        utils.run_ansible_playbook(
+            playbook=playbook,
+            inventory='localhost,',
+            workdir=ansible_work_dir,
+            playbook_dir=ANSIBLE_TRIPLEO_PLAYBOOKS,
+            verbosity=verbosity,
+            reproduce_command=True,
+            extra_vars={
+                'stack_name': stack,
+                'horizon_url_output_file': horizon_file
+            }
+        )
     finally:
         if heat_type != 'installed' and tc_heat_utils.heatclient:
             tc_heat_utils.heatclient.restore_environment()
+
+    with open(horizon_file) as f:
+        return f.read().strip()
 
 
 def get_deployment_status(clients, stack_name, working_dir):
