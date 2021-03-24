@@ -244,6 +244,7 @@ class TestDeleteNode(fakes.TestDeleteNode):
                 playbook_dir='/usr/share/ansible/tripleo-playbooks',
                 verbosity=mock.ANY,
                 extra_vars=mock.ANY,
+                reproduce_command=True,
             ),
             mock.call(
                 playbook=mock.ANY,
