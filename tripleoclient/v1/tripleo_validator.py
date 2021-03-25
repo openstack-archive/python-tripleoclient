@@ -20,6 +20,7 @@ import sys
 import yaml
 
 from openstack import exceptions as os_exceptions
+from osc_lib.cli import parseractions
 from osc_lib import exceptions
 from osc_lib.i18n import _
 from prettytable import PrettyTable
@@ -264,12 +265,13 @@ class TripleOValidatorRun(command.Command):
 
         extra_vars_group.add_argument(
             '--extra-vars',
-            action='store',
-            default={},
-            type=json.loads,
+            metavar="key1=<val1>[,key2=val2 --extra-vars key3=<val3>]",
+            action=parseractions.MultiKeyValueAction,
             help=_(
-                "Add a dictionary as extra variable to a validation: "
-                "--extra-vars '{\"min_undercloud_ram_gb\": 24}'")
+                "Add Ansible extra variables to the validation(s) execution "
+                "as KEY=VALUE pair(s). Note that if you pass the same "
+                "KEY multiple times, the last given VALUE for that same KEY "
+                "will override the other(s)")
         )
 
         extra_vars_group.add_argument(
@@ -287,13 +289,14 @@ class TripleOValidatorRun(command.Command):
 
         extra_vars_group.add_argument(
             '--extra-env-vars',
-            action='store',
-            default={},
-            type=json.loads,
+            metavar="key1=<val1>[,key2=val2 --extra-env-vars key3=<val3>]",
+            action=parseractions.MultiKeyValueAction,
             help=_(
-                "A dictionary as extra environment variables you may need "
-                "to provide to your Ansible execution example:"
-                "ANSIBLE_STDOUT_CALLBACK=default")
+                "Add extra environment variables you may need "
+                "to provide to your Ansible execution "
+                "as KEY=VALUE pairs. Note that if you pass the same "
+                "KEY multiple times, the last given VALUE for that same KEY "
+                "will override the other(s)")
         )
 
         extra_vars_group.add_argument(
@@ -365,7 +368,14 @@ class TripleOValidatorRun(command.Command):
                 msg = "Running Validations without Overcloud settings."
                 LOG.warning("{}{}{}".format(YELLOW, msg, RESET))
         limit = parsed_args.limit
-        extra_vars = parsed_args.extra_vars
+
+        extra_vars = dict()
+        if parsed_args.extra_vars:
+            # if using multiple --extra-vars argument in the command-line
+            # we will get a list of multiple dictionaries.
+            for keypair in parsed_args.extra_vars:
+                extra_vars.update(keypair)
+
         if parsed_args.extra_vars_file:
             try:
                 with open(parsed_args.extra_vars_file, 'r') as env_file:
@@ -375,6 +385,19 @@ class TripleOValidatorRun(command.Command):
                     "The request body must be properly formatted YAML/JSON. "
                     "Details: %s." % e)
                 raise exceptions.CommandError(error_msg)
+
+        # Ansible execution should be quiet while using the validations_json
+        # default callback and be verbose while passing ANSIBLE_SDTOUT_CALLBACK
+        # environment variable to Ansible through the --extra-env-vars argument
+        quiet_mode = True
+        extra_env_vars = dict()
+        if parsed_args.extra_env_vars:
+            # if using multiple --extra-env-vars argument in the command-line
+            # we will get a list of multiple dictionaries.
+            for keypair in parsed_args.extra_env_vars:
+                if "ANSIBLE_STDOUT_CALLBACK" in keypair.keys():
+                    quiet_mode = False
+                extra_env_vars.update(keypair)
 
         # We don't check if the file exists in order to support
         # passing a string such as "localhost,", like we can do with
@@ -399,9 +422,9 @@ class TripleOValidatorRun(command.Command):
                 extra_vars=extra_vars,
                 validations_dir=constants.ANSIBLE_VALIDATION_DIR,
                 validation_name=parsed_args.validation_name,
-                extra_env_vars=parsed_args.extra_env_vars,
+                extra_env_vars=extra_env_vars,
                 python_interpreter=parsed_args.python_interpreter,
-                quiet=True)
+                quiet=quiet_mode)
         except RuntimeError as e:
             raise exceptions.CommandError(e)
 
