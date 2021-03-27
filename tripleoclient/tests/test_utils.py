@@ -76,6 +76,9 @@ class TestRunAnsiblePlaybook(TestCase):
         self.env['ANSIBLE_CONFIG'] = '/tmp/fooBar.cfg'
         self.env['ANSIBLE_HOST_KEY_CHECKING'] = 'False'
         self.env['ANSIBLE_LOG_PATH'] = '/tmp/ansible.log'
+        self.env['ANSIBLE_INJECT_FACT_VARS'] = 'False'
+        self.env['ANSIBLE_VARS_PLUGIN_STAGE'] = 'inventory'
+        self.env['ANSIBLE_GATHER_SUBSET'] = '!all,min'
         self.env['TRIPLEO_PLAN_NAME'] = 'overcloud'
         self.env['ANSIBLE_FORKS'] = '16'
 
