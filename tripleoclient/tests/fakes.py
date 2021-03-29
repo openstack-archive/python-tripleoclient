@@ -13,6 +13,7 @@
 #   under the License.
 #
 
+import logging
 import mock
 import sys
 
@@ -158,6 +159,7 @@ class FakeOptions(object):
 class FakeApp(object):
     def __init__(self):
         _stdout = None
+        self.LOG = logging.getLogger('FakeApp')
         self.client_manager = None
         self.stdin = sys.stdin
         self.stdout = _stdout or sys.stdout
