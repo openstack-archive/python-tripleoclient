@@ -255,12 +255,25 @@ class TripleOValidatorRun(command.Command):
                 " run invocation. For example: --limit \"compute-0,"
                 " compute-1, compute-5\".")
         )
+
         parser.add_argument(
             '--python-interpreter',
             action='store',
             default="/usr/bin/python{}".format(sys.version_info[0]),
             help=_("Python interpreter for Ansible execution. ")
         )
+
+        parser.add_argument(
+            '--static-inventory',
+            action='store',
+            default='',
+            help=_(
+                "Provide your own static inventory file. You can generate "
+                "such an inventory calling tripleo-ansible-inventory command. "
+                "Especially useful when heat service isn't available."
+            )
+        )
+
         extra_vars_group = parser.add_mutually_exclusive_group(required=False)
 
         extra_vars_group.add_argument(
@@ -297,17 +310,6 @@ class TripleOValidatorRun(command.Command):
                 "as KEY=VALUE pairs. Note that if you pass the same "
                 "KEY multiple times, the last given VALUE for that same KEY "
                 "will override the other(s)")
-        )
-
-        extra_vars_group.add_argument(
-            '--static-inventory',
-            action='store',
-            default='',
-            help=_(
-                "Provide your own static inventory file. You can generate "
-                "such an inventory calling tripleo-ansible-inventory command. "
-                "Especially useful when heat service isn't available."
-            )
         )
 
         ex_group = parser.add_mutually_exclusive_group(required=True)
