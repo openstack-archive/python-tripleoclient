@@ -13,6 +13,7 @@
 import copy
 import getpass
 import os
+import shutil
 import yaml
 
 from heatclient.common import event_utils
@@ -522,12 +523,26 @@ def make_config_download_dir(config_download_dir, stack):
     # new consistent location.
     # This will create the following symlink:
     # ~/config-download/<stack> ->
-    # ~/overcloud-deploy-<stack>/config-download/<stack>
+    # ~/overcloud-deploy/<stack>/config-download/<stack>
     old_config_download_stack_dir = \
         os.path.join(DEFAULT_WORK_DIR, stack)
-    config_download_stack_dir = \
+    new_config_download_stack_dir = \
         os.path.join(config_download_dir, stack)
-    if (not os.path.exists(config_download_stack_dir) and
-            os.path.exists(old_config_download_stack_dir)):
-        os.symlink(old_config_download_stack_dir,
-                   config_download_stack_dir)
+
+    if os.path.islink(old_config_download_stack_dir):
+        return
+
+    # Migrate the old directory to the new, if the new does not yet exist
+    if (os.path.isdir(old_config_download_stack_dir) and
+            not os.path.exists(new_config_download_stack_dir)):
+        shutil.move(old_config_download_stack_dir,
+                    new_config_download_stack_dir)
+
+    # Remove everything at the old path
+    if os.path.exists(old_config_download_stack_dir):
+        shutil.rmtree(old_config_download_stack_dir,
+                      ignore_errors=True)
+
+    # Symlink the old path to the new tree for backwards compatibility
+    os.symlink(new_config_download_stack_dir,
+               old_config_download_stack_dir)

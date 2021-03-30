@@ -13,6 +13,9 @@
 # under the License.
 
 import mock
+import os
+import shutil
+import tempfile
 
 from osc_lib.tests import utils
 
@@ -25,6 +28,13 @@ class TestDeploymentWorkflows(utils.TestCommand):
     def setUp(self):
         super(TestDeploymentWorkflows, self).setUp()
         self.tripleoclient = mock.Mock()
+        self.orig_workdir = deployment.DEFAULT_WORK_DIR
+        deployment.DEFAULT_WORK_DIR = tempfile.mkdtemp()
+
+    def tearDown(self):
+        super(TestDeploymentWorkflows, self).tearDown()
+        shutil.rmtree(deployment.DEFAULT_WORK_DIR)
+        deployment.DEFAULT_WORK_DIR = self.orig_workdir
 
     @mock.patch('shutil.rmtree')
     @mock.patch('os.chdir')
@@ -122,3 +132,59 @@ class TestDeploymentWorkflows(utils.TestCommand):
             'timeout')
 
         self.assertEqual(3, mock_playbook.call_count)
+
+    def test_config_download_dirs(self):
+        stack = 'teststack'
+        old_cd_dir = os.path.join(
+            deployment.DEFAULT_WORK_DIR, stack)
+
+        with tempfile.TemporaryDirectory() as new:
+            deployment.make_config_download_dir(new, 'teststack')
+            # Verify the old config-download dir is a symlink
+            self.assertTrue(os.path.islink(old_cd_dir))
+            # Verify old config-download dir symlink points to new dir
+            self.assertEquals(os.path.join(new, stack),
+                              os.path.realpath(old_cd_dir))
+
+    def test_config_download_migrate_dirs(self):
+        stack = 'teststack'
+        old_cd_dir = os.path.join(
+            deployment.DEFAULT_WORK_DIR, stack)
+
+        with tempfile.TemporaryDirectory() as new:
+            os.makedirs(old_cd_dir)
+            with open(os.path.join(old_cd_dir, 'testfile'), 'w') as old_file:
+                old_file.write('foo')
+
+            deployment.make_config_download_dir(new, stack)
+            # Verify the old cd dir was copied to the new dir
+            self.assertTrue(os.path.exists(
+                os.path.join(new, stack, old_file.name)))
+            # Verify the old config-download dir is a symlink
+            self.assertTrue(os.path.islink(old_cd_dir))
+            # Verify old config-download dir symlink points to new dir
+            self.assertEquals(os.path.join(new, stack),
+                              os.path.realpath(old_cd_dir))
+
+    def test_config_download_no_migrate_dirs(self):
+        stack = 'teststack'
+        old_cd_dir = os.path.join(
+            deployment.DEFAULT_WORK_DIR, stack)
+
+        with tempfile.TemporaryDirectory() as new:
+            new_cd_dir = os.path.join(new, stack)
+            os.makedirs(new_cd_dir)
+            os.makedirs(old_cd_dir)
+            with open(os.path.join(old_cd_dir, 'testfile'), 'w') as old_file:
+                old_file.write('foo')
+
+            deployment.make_config_download_dir(new, stack)
+            # Verify the old cd dir was not copied to the new dir as it already
+            # exists
+            self.assertFalse(os.path.exists(
+                os.path.join(new, stack, old_file.name)))
+            # Verify the old config-download dir is a symlink
+            self.assertTrue(os.path.islink(old_cd_dir))
+            # Verify old config-download dir symlink points to new dir
+            self.assertEquals(os.path.join(new, stack),
+                              os.path.realpath(old_cd_dir))

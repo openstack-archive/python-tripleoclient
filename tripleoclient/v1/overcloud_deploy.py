@@ -905,7 +905,7 @@ class DeployOvercloud(command.Command):
             action='store',
             help=_('The working directory for the deployment where all '
                    'input, output, and generated files will be stored.\n'
-                   'Defaults to "$HOME/overcloud-deploy-<stack>"')
+                   'Defaults to "$HOME/overcloud-deploy/<stack>"')
         )
         return parser
 
@@ -1140,7 +1140,7 @@ class GetDeploymentStatus(command.Command):
             action='store',
             help=_('The working directory for the deployment where all '
                    'input, output, and generated files are stored.\n'
-                   'Defaults to "$HOME/overcloud-deploy-<stack>"'))
+                   'Defaults to "$HOME/overcloud-deploy/<stack>"'))
 
         return parser
 
