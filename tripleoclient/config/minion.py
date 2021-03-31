@@ -98,9 +98,8 @@ class MinionConfig(StandaloneConfig):
                        help=_(
                            'The name of the file to look for the passwords '
                            'used to connect to the Undercloud. We assume '
-                           'this file is in the folder where the command '
-                           'is executed if a fully qualified path is not '
-                           'provided.')
+                           'this file is in output_dir if a fully qualified '
+                           'path is not provided.')
                        ),
             cfg.StrOpt('minion_undercloud_output_file',
                        default='tripleo-undercloud-outputs.yaml',

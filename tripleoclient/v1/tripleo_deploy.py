@@ -915,8 +915,8 @@ class Deploy(command.Command):
         parser.add_argument('--output-dir',
                             dest='output_dir',
                             help=_("Directory to output state, processed heat "
-                                   "templates, ansible deployment files."),
-                            default=constants.UNDERCLOUD_OUTPUT_DIR)
+                                   "templates, ansible deployment files.\n"
+                                   "Defaults to ~/tripleo-deploy/<stack>"))
         parser.add_argument('--output-only',
                             dest='output_only',
                             action='store_true',
@@ -1219,7 +1219,13 @@ class Deploy(command.Command):
         self._run_preflight_checks(parsed_args)
 
         # prepare working spaces
-        self.output_dir = os.path.abspath(parsed_args.output_dir)
+        if not parsed_args.output_dir:
+            output_dir = os.path.join(constants.UNDERCLOUD_OUTPUT_DIR,
+                                      'tripleo-deploy',
+                                      parsed_args.stack)
+        else:
+            output_dir = parsed_args.output_dir
+        self.output_dir = os.path.abspath(output_dir)
         self._create_working_dirs(parsed_args.stack.lower())
         # The state that needs to be persisted between serial deployments
         # and cannot be contained in ephemeral heat stacks or working dirs
@@ -1342,8 +1348,6 @@ class Deploy(command.Command):
                 utils.archive_deploy_artifacts(
                     self.log,
                     parsed_args.stack.lower(),
-                    self.tht_render,
-                    self.tmp_ansible_dir,
                     self.output_dir)
 
             if self.ansible_dir:

@@ -453,11 +453,17 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
     utils.configure_logging(LOG, verbose_level, CONF['undercloud_log_file'])
     _load_subnets_config_groups()
 
+    if not CONF.get('output_dir'):
+        output_dir = os.path.join(constants.UNDERCLOUD_OUTPUT_DIR,
+                                  'tripleo-deploy',
+                                  'undercloud')
+    else:
+        output_dir = CONF['output_dir']
     # NOTE(bogdando): the generated env files are stored another path then
     # picked up later.
     # NOTE(aschultz): We copy this into the tht root that we save because
     # we move any user provided environment files into this root later.
-    tempdir = os.path.join(os.path.abspath(CONF['output_dir']),
+    tempdir = os.path.join(os.path.abspath(output_dir),
                            'tripleo-config-generated-env-files')
     utils.makedirs(tempdir)
 
@@ -762,8 +768,8 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
     # TODO(cjeanner) drop that once using oslo.privsep
     deploy_args += ['--deployment-user', u]
 
-    deploy_args += ['--output-dir=%s' % CONF['output_dir']]
-    utils.makedirs(CONF['output_dir'])
+    deploy_args += ['--output-dir=%s' % output_dir]
+    utils.makedirs(output_dir)
 
     if CONF.get('cleanup'):
         deploy_args.append('--cleanup')
