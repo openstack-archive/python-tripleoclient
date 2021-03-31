@@ -146,7 +146,13 @@ def prepare_minion_deploy(upgrade=False, no_validations=False,
     # picked up later.
     # NOTE(aschultz): We copy this into the tht root that we save because
     # we move any user provided environment files into this root later.
-    tempdir = os.path.join(os.path.abspath(CONF['output_dir']),
+    if not CONF.get('output_dir'):
+        output_dir = os.path.join(constants.MINION_OUTPUT_DIR,
+                                  'tripleo-deploy',
+                                  'minion')
+    else:
+        output_dir = CONF['output_dir']
+    tempdir = os.path.join(os.path.abspath(output_dir),
                            'tripleo-config-generated-env-files')
     utils.makedirs(tempdir)
 
@@ -219,8 +225,10 @@ def prepare_minion_deploy(upgrade=False, no_validations=False,
     # copy undercloud password file (the configuration is minion_password_file
     # to the place that triple deploy looks for it
     # tripleo-<stack name>-passwords.yaml)
-    _process_undercloud_passwords(CONF['minion_password_file'],
-                                  'tripleo-minion-passwords.yaml')
+    _process_undercloud_passwords(
+        CONF['minion_password_file'],
+        os.path.join(output_dir, 'tripleo-minion-passwords.yaml'))
+
     if upgrade:
         # TODO(aschultz): validate minion upgrade, should be the same as the
         # undercloud one.
@@ -269,8 +277,8 @@ def prepare_minion_deploy(upgrade=False, no_validations=False,
     # TODO(cjeanner) drop that once using oslo.privsep
     deploy_args += ['--deployment-user', u]
 
-    deploy_args += ['--output-dir=%s' % CONF['output_dir']]
-    utils.makedirs(CONF['output_dir'])
+    deploy_args += ['--output-dir=%s' % output_dir]
+    utils.makedirs(output_dir)
 
     # TODO(aschultz): move this to a central class
     if CONF.get('net_config_override', None):
