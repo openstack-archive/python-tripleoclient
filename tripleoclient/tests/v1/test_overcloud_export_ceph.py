@@ -61,6 +61,7 @@ class TestOvercloudExportCeph(utils.TestCommand):
 
         with mock.patch('six.moves.builtins.open', self.mock_open):
             self.cmd.take_action(parsed_args)
-        path = os.path.join(os.environ.get('HOME'), 'config-download')
+        path = os.path.join(os.environ.get('HOME'),
+                            'overcloud-deploy', 'dcn0', 'config-download')
         mock_export_ceph.assert_called_once_with('dcn0', 'openstack', path)
         self.assertEqual(data, mock_safe_dump.call_args[0][0])
