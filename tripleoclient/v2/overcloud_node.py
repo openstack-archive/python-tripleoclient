@@ -256,6 +256,11 @@ class ProvisionNode(command.Command):
                             help=_('Enable provisioning of network ports'),
                             default=False,
                             action="store_true")
+        parser.add_argument('--network-config',
+                            help=_('Apply network config to provisioned '
+                                   'nodes. (Implies "--network-ports")'),
+                            default=False,
+                            action="store_true")
         parser.add_argument(
             '--working-dir', action='store',
             help=_('The working directory for the deployment where all '
@@ -293,7 +298,8 @@ class ProvisionNode(command.Command):
             "ssh_user_name": parsed_args.overcloud_ssh_user,
             "node_timeout": parsed_args.timeout,
             "concurrency": parsed_args.concurrency,
-            "manage_network_ports": parsed_args.network_ports,
+            "manage_network_ports": (parsed_args.network_ports
+                                     or parsed_args.network_config),
             "working_dir": working_dir
         }
 
@@ -306,6 +312,22 @@ class ProvisionNode(command.Command):
                 verbosity=oooutils.playbook_verbosity(self=self),
                 extra_vars=extra_vars,
             )
+
+        if parsed_args.network_config:
+            inventory_file = os.path.join(working_dir,
+                                          'tripleo-ansible-inventory.yaml')
+
+            with open(inventory_file, 'r') as f:
+                inventory = yaml.safe_load(f.read())
+
+            with oooutils.TempDirs() as tmp:
+                oooutils.run_ansible_playbook(
+                    playbook='cli-overcloud-node-network-config.yaml',
+                    inventory=inventory,
+                    workdir=tmp,
+                    playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                    verbosity=oooutils.playbook_verbosity(self=self),
+                )
 
         print('Nodes deployed successfully, add %s to your deployment '
               'environment' % parsed_args.output)
