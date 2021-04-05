@@ -1085,7 +1085,8 @@ class TripleOImagePrepare(command.Command):
             extra_vars["debug"] = True
 
         if parsed_args.output_env_file:
-            extra_vars["output_env_file"] = parsed_args.output_env_file
+            extra_vars["output_env_file"] = os.path.abspath(
+                parsed_args.output_env_file)
 
         with oooutils.TempDirs() as tmp:
             oooutils.run_ansible_playbook(
