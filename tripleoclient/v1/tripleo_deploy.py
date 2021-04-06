@@ -663,8 +663,16 @@ class Deploy(command.Command):
         user_params = self._load_user_params(user_environments)
         host_routes = user_params.get('ControlPlaneStaticRoutes', [])
         mtu = user_params.get('InterfaceLocalMtu', 1500)
+        redis_vip = user_params.get(
+            'RedisVirtualFixedIPs',
+            [{'ip_address': c_ip, 'use_neutron': False}])
+        ovn_dbs_vip = user_params.get(
+            'OVNDBsVirtualFixedIPs',
+            [{'ip_address': c_ip, 'use_neutron': False}])
         tmp_env.update(
             {
+                'RedisVirtualFixedIPs': redis_vip,
+                'OVNDBsVirtualFixedIPs': ovn_dbs_vip,
                 'CtlplaneNetworkAttributes': {
                     'network': {
                         'mtu': mtu,
