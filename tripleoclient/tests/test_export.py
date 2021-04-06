@@ -43,7 +43,10 @@ class TestExport(TestCase):
             'DistributedComputeHCI': {
                 'hosts': {
                     'dcn0-distributedcomputehci-0': {
-                        'storage_ip': '192.168.24.42'
+                        'foo_ip': '192.168.24.42'
+                    },
+                    'dcn0-distributedcomputehci-1': {
+                        'foo_ip': '192.168.8.8'
                     }
                 }
             },
@@ -54,6 +57,13 @@ class TestExport(TestCase):
             }
         }
         self.mock_open_ceph_inv = mock.mock_open(read_data=str(ceph_inv))
+
+        ceph_global = {
+            'service_net_map': {
+                'ceph_mon_network': 'storage'
+            }
+        }
+        self.mock_open_ceph_global = mock.mock_open(read_data=str(ceph_global))
 
         ceph_all = {
             'cluster': 'dcn0',
@@ -155,11 +165,20 @@ class TestExport(TestCase):
 
         self.assertEqual(mock_passwords, data)
 
+    def test_export_ceph_net_key(self):
+        with mock.patch('six.moves.builtins.open', self.mock_open_ceph_global):
+            mon_key = export.export_ceph_net_key('dcn0',
+                                                 config_download_dir='/foo')
+        self.assertEqual(mon_key, 'storage_ip')
+        self.mock_open_ceph_global.assert_called_once_with(
+            '/foo/dcn0/global_vars.yaml', 'r')
+
     def test_export_storage_ips(self):
         with mock.patch('six.moves.builtins.open', self.mock_open_ceph_inv):
             storage_ips = export.export_storage_ips('dcn0',
-                                                    config_download_dir='/foo')
-        self.assertEqual(storage_ips, ['192.168.24.42'])
+                                                    config_download_dir='/foo',
+                                                    ceph_net_key='foo_ip')
+        self.assertEqual(storage_ips, ['192.168.24.42', '192.168.8.8'])
         self.mock_open_ceph_inv.assert_called_once_with(
             '/foo/dcn0/ceph-ansible/inventory.yml', 'r')
 
