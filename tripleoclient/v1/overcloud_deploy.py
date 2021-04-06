@@ -105,9 +105,11 @@ class DeployOvercloud(command.Command):
             cleanup=(not args.no_cleanup))
 
         default_image_params = plan_utils.default_image_params()
-        image_params = kolla_builder.container_images_prepare_multi(
-            env, roles.get_roles_data(args.roles_file,
-                                      tht_root), dry_run=True)
+        image_params = {}
+        if not args.disable_container_prepare:
+            image_params = kolla_builder.container_images_prepare_multi(
+                env, roles.get_roles_data(args.roles_file,
+                                          tht_root), dry_run=True)
         if image_params:
             default_image_params.update(image_params)
         parameters.update(default_image_params)
