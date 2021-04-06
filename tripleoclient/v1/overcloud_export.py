@@ -48,8 +48,8 @@ class ExportOvercloud(command.Command):
         parser.add_argument('--config-download-dir',
                             action='store',
                             help=_('Directory to search for config-download '
-                                   'export data. Defaults to '
-                                   '$HOME/config-download'))
+                                   'export data. Defaults to $HOME/'
+                                   'overcloud-deploy/<stack>/config-download'))
         parser.add_argument('--no-password-excludes',
                             action='store_true',
                             dest='no_password_excludes',
@@ -77,6 +77,8 @@ class ExportOvercloud(command.Command):
 
         if not parsed_args.config_download_dir:
             config_download_dir = os.path.join(os.environ.get('HOME'),
+                                               "overcloud-deploy",
+                                               parsed_args.stack,
                                                'config-download')
         else:
             config_download_dir = parsed_args.config_download_dir

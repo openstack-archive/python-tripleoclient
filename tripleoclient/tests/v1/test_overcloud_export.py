@@ -52,6 +52,8 @@ class TestOvercloudExport(utils.TestCommand):
             self.app.client_manager.orchestration,
             'overcloud', True)
         path = os.path.join(os.environ.get('HOME'),
+                            'overcloud-deploy',
+                            'overcloud',
                             'config-download')
         mock_export_stack.assert_called_once_with(
             self.app.client_manager.orchestration,
@@ -82,6 +84,8 @@ class TestOvercloudExport(utils.TestCommand):
             self.app.client_manager.orchestration,
             'foo', True)
         path = os.path.join(os.environ.get('HOME'),
+                            'overcloud-deploy',
+                            'foo',
                             'config-download')
         mock_export_stack.assert_called_once_with(
             self.app.client_manager.orchestration,
