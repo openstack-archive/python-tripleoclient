@@ -143,7 +143,22 @@ def export_stack(heat, stack, should_filter=False,
     return data
 
 
-def export_storage_ips(stack, config_download_dir=constants.DEFAULT_WORK_DIR):
+def export_ceph_net_key(stack, config_download_dir=constants.DEFAULT_WORK_DIR):
+    file = os.path.join(config_download_dir, stack, "global_vars.yaml")
+    with open(file, 'r') as ff:
+        try:
+            global_data = yaml.safe_load(ff)
+        except Exception as e:
+            LOG.error(
+                _('Could not read file %s') % file)
+            LOG.error(e)
+    return str(global_data['service_net_map']['ceph_mon_network']) + '_ip'
+
+
+def export_storage_ips(stack, config_download_dir=constants.DEFAULT_WORK_DIR,
+                       ceph_net_key=''):
+    if len(ceph_net_key) == 0:
+        ceph_net_key = export_ceph_net_key(stack, config_download_dir)
     inventory_file = "ceph-ansible/inventory.yml"
     file = os.path.join(config_download_dir, stack, inventory_file)
     with open(file, 'r') as ff:
@@ -156,7 +171,7 @@ def export_storage_ips(stack, config_download_dir=constants.DEFAULT_WORK_DIR):
     mon_ips = []
     for mon_role in inventory_data['mons']['children'].keys():
         for hostname in inventory_data[mon_role]['hosts']:
-            ip = inventory_data[mon_role]['hosts'][hostname]['storage_ip']
+            ip = inventory_data[mon_role]['hosts'][hostname][ceph_net_key]
             mon_ips.append(ip)
 
     return mon_ips
