@@ -417,7 +417,8 @@ class TripleOValidatorRun(command.Command):
                 validations_dir=constants.ANSIBLE_VALIDATION_DIR,
                 validation_name=parsed_args.validation_name,
                 extra_env_vars=extra_env_vars,
-                quiet=quiet_mode)
+                quiet=quiet_mode,
+                ssh_user=parsed_args.ssh_user)
         except RuntimeError as e:
             raise exceptions.CommandError(e)
 
