@@ -90,17 +90,16 @@ class ExportOvercloudCeph(command.Command):
             raise Exception(
                 "File '%s' already exists, not exporting." % output_file)
 
-        if not parsed_args.config_download_dir:
-            config_download_dir = os.path.join(os.environ.get('HOME'),
-                                               "overcloud-deploy",
-                                               parsed_args.stack,
-                                               'config-download')
-        else:
-            config_download_dir = parsed_args.config_download_dir
-
         # extract ceph data for each stack into the cephs list
         cephs = []
         for stack in stacks:
+            if not parsed_args.config_download_dir:
+                config_download_dir = os.path.join(os.environ.get('HOME'),
+                                                   "overcloud-deploy",
+                                                   stack,
+                                                   'config-download')
+            else:
+                config_download_dir = parsed_args.config_download_dir
             self.log.info('Exporting Ceph data from stack %s at %s',
                           stack, self.now)
             cephs.append(export.export_ceph(stack,
