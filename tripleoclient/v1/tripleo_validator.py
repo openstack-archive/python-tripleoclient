@@ -266,6 +266,13 @@ class TripleOValidatorRun(command.Command):
             )
         )
 
+        parser.add_argument(
+            '--python-interpreter',
+            action='store',
+            default="/usr/libexec/platform-python",
+            help=_("Python interpreter for Ansible execution. ")
+        )
+
         extra_vars_group = parser.add_mutually_exclusive_group(required=False)
 
         extra_vars_group.add_argument(
@@ -417,6 +424,7 @@ class TripleOValidatorRun(command.Command):
                 validations_dir=constants.ANSIBLE_VALIDATION_DIR,
                 validation_name=parsed_args.validation_name,
                 extra_env_vars=extra_env_vars,
+                python_interpreter=parsed_args.python_interpreter,
                 quiet=quiet_mode)
         except RuntimeError as e:
             raise exceptions.CommandError(e)
