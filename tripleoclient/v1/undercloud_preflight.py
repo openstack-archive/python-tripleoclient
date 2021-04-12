@@ -30,7 +30,6 @@ from oslo_config import cfg
 from tripleoclient import constants
 from tripleoclient import utils
 
-from validations_libs import constants as v_consts
 from validations_libs.validation_actions import ValidationActions
 
 
@@ -95,9 +94,6 @@ def _check_diskspace(upgrade=False):
         playbook_args = constants.DEPLOY_ANSIBLE_ACTIONS['preflight-deploy']
 
     with utils.TempDirs() as tmp:
-        # @matbu: todo: removed this when [1] will be merged
-        # [1] https://review.opendev.org/753845
-        v_consts.VALIDATION_ANSIBLE_ARTIFACT_PATH = "{}/artifacts".format(tmp)
         actions = ValidationActions()
         actions.run_validations(
             inventory='undercloud',
