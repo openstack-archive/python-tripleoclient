@@ -14,8 +14,8 @@
 #
 
 from datetime import datetime
-import mock
 import os
+from unittest import mock
 
 from osc_lib import exceptions
 import tripleo_common.arch

@@ -15,8 +15,8 @@
 
 import fixtures
 import json
-import mock
 import os
+from unittest import mock
 
 from jinja2 import Template
 

@@ -13,9 +13,9 @@
 #   under the License.
 #
 
-import mock
 import os
 import tempfile
+from unittest import mock
 
 import yaml
 

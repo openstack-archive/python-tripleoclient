@@ -13,8 +13,8 @@
 #   under the License.
 #
 
-import mock
 import os
+from unittest import mock
 
 from osc_lib.tests import utils
 

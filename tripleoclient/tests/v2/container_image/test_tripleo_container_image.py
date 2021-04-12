@@ -13,7 +13,7 @@
 #   under the License.
 #
 
-import mock
+from unittest import mock
 
 from tripleoclient.tests import fakes
 from tripleoclient.tests.v1.overcloud_deploy import fakes as deploy_fakes

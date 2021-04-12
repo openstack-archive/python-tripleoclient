@@ -13,7 +13,7 @@
 #   under the License.
 import os
 
-import mock
+from unittest import mock
 
 from osc_lib.tests import utils
 

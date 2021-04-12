@@ -17,9 +17,9 @@ import collections
 import copy
 import fixtures
 import json
-import mock
 import os
 import tempfile
+from unittest import mock
 
 from osc_lib import exceptions as oscexc
 from osc_lib.tests import utils as test_utils

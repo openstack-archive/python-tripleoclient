@@ -18,10 +18,7 @@ Tests basic parser behavior, with both default and user supplied
 values of arguments.
 Further assertions are placed on results of the parser.
 """
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+from unittest import mock
 
 from tripleoclient.tests import base
 

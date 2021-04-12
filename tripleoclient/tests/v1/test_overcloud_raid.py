@@ -11,8 +11,8 @@
 #   under the License.
 
 import json
-import mock
 import tempfile
+from unittest import mock
 
 from osc_lib.tests import utils as test_utils
 
@@ -49,7 +49,6 @@ class TestCreateRAID(fakes.TestBaremetal):
             autospec=True
         )
         playbook_runner.start()
-        self.addCleanup(playbook_runner.stop)
 
     def test_ok(self):
         conf = json.dumps(self.conf)
