@@ -246,11 +246,6 @@ def prepare_minion_deploy(upgrade=False, no_validations=False,
         '-e', os.path.join(tht_templates, 'environments/use-dns-for-vips.yaml')
         ]
 
-    # TODO(aschultz): remove when podman is actual default
-    deploy_args += [
-        '-e', os.path.join(tht_templates, 'environments/podman.yaml')
-        ]
-
     # If a container images file is used, copy it into the tempdir to make it
     # later into other deployment artifacts and user-provided files.
     _container_images_config(CONF, deploy_args, env_data, tempdir)

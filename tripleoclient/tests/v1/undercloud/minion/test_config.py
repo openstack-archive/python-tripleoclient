@@ -69,8 +69,6 @@ class TestMinionDeploy(base.TestCase):
                         '-e', '/usr/share/openstack-tripleo-heat-templates/'
                         'environments/use-dns-for-vips.yaml',
                         '-e', '/usr/share/openstack-tripleo-heat-templates/'
-                        'environments/podman.yaml',
-                        '-e', '/usr/share/openstack-tripleo-heat-templates/'
                         'environments/services/heat-engine.yaml',
                         '--deployment-user', 'foo',
                         '--output-dir=/home/stack',
@@ -141,7 +139,6 @@ class TestMinionDeploy(base.TestCase):
                         '-e', '/foo/environments/undercloud/'
                         'undercloud-minion.yaml',
                         '-e', '/foo/environments/use-dns-for-vips.yaml',
-                        '-e', '/foo/environments/podman.yaml',
                         '-e', '/foo/environments/services/'
                         'ironic-conductor.yaml',
                         '--deployment-user', 'bar',
