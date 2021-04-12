@@ -86,8 +86,7 @@ class TestUndercloudInstall(TestPluginV1):
              'undercloud.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'use-dns-for-vips.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'podman.yaml', '-e', '/home/stack/foo.yaml', '-e',
+             '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -153,7 +152,6 @@ class TestUndercloudInstall(TestPluginV1):
              '--heat-native=False', '-e',
              '/usertht/environments/undercloud.yaml', '-e',
              '/usertht/environments/use-dns-for-vips.yaml', '-e',
-             '/usertht/environments/podman.yaml', '-e',
              '/home/stack/foo.yaml', '-e',
              '/usertht/environments/services/ironic.yaml', '-e',
              '/usertht/environments/services/ironic-inspector.yaml', '-e',
@@ -311,8 +309,7 @@ class TestUndercloudInstall(TestPluginV1):
              'undercloud.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'use-dns-for-vips.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'podman.yaml', '-e', '/home/stack/foo.yaml', '-e',
+             '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/'
              'environments/services/masquerade-networks.yaml',
              '-e',
@@ -381,8 +378,7 @@ class TestUndercloudInstall(TestPluginV1):
              'undercloud.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'use-dns-for-vips.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'podman.yaml', '-e', '/home/stack/foo.yaml', '-e',
+             '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -444,8 +440,7 @@ class TestUndercloudInstall(TestPluginV1):
              'undercloud.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'use-dns-for-vips.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'podman.yaml', '-e', '/home/stack/foo.yaml', '-e',
+             '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -504,8 +499,7 @@ class TestUndercloudInstall(TestPluginV1):
              'undercloud.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'use-dns-for-vips.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'podman.yaml', '-e', '/home/stack/foo.yaml', '-e',
+             '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -654,8 +648,7 @@ class TestUndercloudUpgrade(TestPluginV1):
              'undercloud.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'use-dns-for-vips.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'podman.yaml', '-e', '/home/stack/foo.yaml', '-e',
+             '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -721,8 +714,7 @@ class TestUndercloudUpgrade(TestPluginV1):
              'undercloud.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'use-dns-for-vips.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'podman.yaml', '-e', '/home/stack/foo.yaml', '-e',
+             '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -787,8 +779,7 @@ class TestUndercloudUpgrade(TestPluginV1):
              'undercloud.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'use-dns-for-vips.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'podman.yaml', '-e', '/home/stack/foo.yaml', '-e',
+             '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -851,8 +842,7 @@ class TestUndercloudUpgrade(TestPluginV1):
              'undercloud.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'use-dns-for-vips.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'podman.yaml', '-e', '/home/stack/foo.yaml', '-e',
+             '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -921,8 +911,7 @@ class TestUndercloudUpgrade(TestPluginV1):
              'undercloud.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'use-dns-for-vips.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'podman.yaml', '-e', '/home/stack/foo.yaml', '-e',
+             '/home/stack/foo.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
