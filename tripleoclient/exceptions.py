@@ -139,3 +139,7 @@ class BannedParameters(Base):
 
 class HeatPodMessageQueueException(Base):
     """Heat messaging queue not created"""
+
+
+class InvalidPlaybook(Base):
+    """Invalid playbook path specified"""
