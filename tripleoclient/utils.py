@@ -1663,13 +1663,9 @@ def build_stack_data(clients, stack_name, template,
     return stack_data
 
 
-def archive_deploy_artifacts(log, stack_name, working_dir,
-                             ansible_dir=None, output_dir=None):
+def archive_deploy_artifacts(log, stack_name, working_dir, ansible_dir=None):
     """Create a tarball of the temporary folders used"""
     log.debug(_("Preserving deployment artifacts"))
-
-    if not output_dir:
-        output_dir = working_dir
 
     def get_tar_filename():
         return os.path.join(
@@ -1681,7 +1677,7 @@ def archive_deploy_artifacts(log, stack_name, working_dir,
         """Tar filter to remove output dir from path"""
         if info.name.endswith('.bzip2'):
             return None
-        leading_path = output_dir[1:] + '/'
+        leading_path = working_dir[1:] + '/'
         info.name = info.name.replace(leading_path, '')
         return info
 

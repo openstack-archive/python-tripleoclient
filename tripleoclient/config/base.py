@@ -14,7 +14,6 @@
 #
 
 from oslo_config import cfg
-from tripleoclient import constants
 
 
 class BaseConfig(object):
@@ -33,11 +32,10 @@ class BaseConfig(object):
         _opts = [
             # TODO(aschultz): rename undercloud_output_dir
             cfg.StrOpt('output_dir',
-                       default=constants.UNDERCLOUD_OUTPUT_DIR,
                        help=(
                            'Directory to output state, processed heat '
-                           'templates, ansible deployment files.'),
-                       ),
+                           'templates, ansible deployment files.'
+                           'Defaults to ~/tripleo-deploy/<stack>')),
             cfg.BoolOpt('cleanup',
                         default=True,
                         help=('Cleanup temporary files. Setting this to '

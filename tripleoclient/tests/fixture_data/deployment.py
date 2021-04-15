@@ -54,6 +54,11 @@ class UtilsOvercloudFixture(fixtures.Fixture):
             fixtures.MockPatch(
                 'tripleoclient.utils.update_deployment_status')
         ).mock
+        self.mock_get_default_working_dir = self.useFixture(fixtures.MockPatch(
+            'tripleoclient.utils.get_default_working_dir')
+        ).mock
+        self.mock_get_default_working_dir.return_value = \
+            self.useFixture(fixtures.TempDir()).path
 
 
 class UtilsFixture(fixtures.Fixture):

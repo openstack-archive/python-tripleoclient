@@ -1,0 +1,8 @@
+---
+features:
+  - The "openstack tripleo deploy" and "openstack undercloud install" commands
+    now save their generated artifacts from the deployment under a single
+    consistent directory, which by default is located at
+    ~/tripleo-deploy/<stack>. For the undercloud, this location is
+    ~/tripleo-deploy/undercloud. The directory can be overridden with the
+    --output-dir option.
