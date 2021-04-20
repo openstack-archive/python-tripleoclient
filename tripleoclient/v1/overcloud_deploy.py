@@ -1009,6 +1009,8 @@ class DeployOvercloud(command.Command):
             api_container_image = parameters['ContainerHeatApiImage']
             engine_container_image = \
                 parameters['ContainerHeatEngineImage']
+            restore_db = (parsed_args.setup_only or
+                          parsed_args.config_download_only)
             self.heat_launcher = utils.get_heat_launcher(
                 parsed_args.heat_type,
                 api_container_image=api_container_image,
@@ -1019,7 +1021,7 @@ class DeployOvercloud(command.Command):
                 rm_heat=parsed_args.rm_heat,
                 skip_heat_pull=parsed_args.skip_heat_pull)
             self.orchestration_client = \
-                utils.launch_heat(self.heat_launcher)
+                utils.launch_heat(self.heat_launcher, restore_db=restore_db)
             self.clients.orchestration = self.orchestration_client
 
         try:
@@ -1043,7 +1045,7 @@ class DeployOvercloud(command.Command):
             if parsed_args.heat_type != 'installed' and self.heat_launcher:
                 self.log.info("Stopping ephemeral heat.")
                 utils.kill_heat(self.heat_launcher)
-                utils.rm_heat(self.heat_launcher)
+                utils.rm_heat(self.heat_launcher, backup_db=True)
             raise
 
         # Get a new copy of the stack after stack update/create. If it was
@@ -1204,7 +1206,7 @@ class DeployOvercloud(command.Command):
             if parsed_args.heat_type != 'installed':
                 self.log.info("Stopping ephemeral heat.")
                 utils.kill_heat(self.heat_launcher)
-                utils.rm_heat(self.heat_launcher)
+                utils.rm_heat(self.heat_launcher, backup_db=True)
 
             if parsed_args.output_dir:
                 ansible_dir = config_download_dir

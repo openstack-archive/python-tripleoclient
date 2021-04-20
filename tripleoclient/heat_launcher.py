@@ -14,6 +14,7 @@
 #
 
 import datetime
+import glob
 import grp
 import json
 import logging
@@ -135,7 +136,8 @@ class HeatBaseLauncher(object):
         self.heat_dir = os.path.abspath(heat_dir)
         self.host = "127.0.0.1"
         self.db_dump_path = os.path.join(
-            self.heat_dir, 'heat-db-dump.sql')
+            self.heat_dir, 'heat-db-dump-{}.sql'.format(
+                datetime.datetime.utcnow().isoformat()))
         self.skip_heat_pull = skip_heat_pull
 
         if rm_heat:
@@ -476,6 +478,10 @@ class HeatPodLauncher(HeatContainerLauncher):
                 'mysql', 'mysql', 'heat', '-e',
                 'grant all privileges on heat.* to \'heat\'@\'%\''
             ])
+            subprocess.check_call([
+                'sudo', 'podman', 'exec', '-it', '-u', 'root',
+                'mysql', 'mysql', '-e', 'flush privileges;'
+            ])
         cmd = [
             'sudo', 'podman', 'run', '--rm',
             '--user', 'heat',
@@ -492,31 +498,45 @@ class HeatPodLauncher(HeatContainerLauncher):
 
     def do_restore_db(self, db_dump_path=None):
         if not db_dump_path:
-            db_dump_path = self.db_dump_path
+            # Find the latest dump from self.heat_dir
+            db_dumps = glob.glob('{}/heat-db-dump*'.format(self.heat_dir))
+            if not db_dumps:
+                raise Exception('No db backups found to restore in %s' %
+                                self.heat_dir)
+            db_dump_path = max(db_dumps, key=os.path.getmtime)
+            log.info("Restoring db from {}".format(db_dump_path))
         subprocess.run([
             'sudo', 'podman', 'exec', '-i', '-u', 'root',
             'mysql', 'mysql', 'heat'], stdin=open(db_dump_path),
             check=True)
 
+    def do_backup_db(self, db_dump_path=None):
+        if not db_dump_path:
+            db_dump_path = self.db_dump_path
+        if os.path.exists(db_dump_path):
+            raise Exception("Won't overwrite existing db dump at %s. "
+                            "Remove it first." % db_dump_path)
+        with open(db_dump_path, 'w') as out:
+            subprocess.run([
+                'sudo', 'podman', 'exec', '-it', '-u', 'root',
+                'mysql', 'mysqldump', 'heat'], stdout=out,
+                check=True)
+
     def rm_heat(self, backup_db=False):
         if self.database_exists():
             if backup_db:
-                try:
-                    with open(self.db_dump_path, 'w') as out:
-                        subprocess.run([
-                            'sudo', 'podman', 'exec', '-it', '-u', 'root',
-                            'mysql', 'mysqldump', 'heat'], stdout=out,
-                            check=True)
-                        subprocess.check_call([
-                            'sudo', 'podman', 'exec', '-it', '-u', 'root',
-                            'mysql', 'mysql', 'heat', '-e',
-                            'drop database heat'])
-                        subprocess.check_call([
-                            'sudo', 'podman', 'exec', '-it', '-u', 'root',
-                            'mysql', 'mysql', 'heat', '-e',
-                            'drop user \'heat\'@\'%\''])
-                except subprocess.CalledProcessError:
-                    pass
+                self.do_backup_db()
+            try:
+                subprocess.check_call([
+                    'sudo', 'podman', 'exec', '-it', '-u', 'root',
+                    'mysql', 'mysql', 'heat', '-e',
+                    'drop database heat'])
+                subprocess.check_call([
+                    'sudo', 'podman', 'exec', '-it', '-u', 'root',
+                    'mysql', 'mysql', '-e',
+                    'drop user \'heat\'@\'%\''])
+            except subprocess.CalledProcessError:
+                pass
         subprocess.call([
             'sudo', 'podman', 'pod', 'rm', '-f', 'ephemeral-heat'
         ])
