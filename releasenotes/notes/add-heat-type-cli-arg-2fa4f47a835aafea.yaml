@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    A new cli argument, --heat-type is added to openstack overcloud deploy.
+    Available options are "installed", "pod", "container", and "native". The
+    default is "installed". The argument specifies the type of Heat process to
+    use for the deployment.

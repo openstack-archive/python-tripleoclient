@@ -54,6 +54,7 @@ DEFAULT_HEAT_ENGINE_CONTAINER = ('{}/{}/openstack-heat-engine:{}'.format(
 
 
 USER_PARAMETERS = 'user-environments/tripleoclient-parameters.yaml'
+PASSWORDS_ENV_FORMAT = '{}-passwords.yaml'
 
 # This directory may contain additional environments to use during deploy
 DEFAULT_ENV_DIRECTORY = os.path.join(os.environ.get('HOME', '~/'),

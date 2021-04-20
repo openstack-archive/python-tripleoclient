@@ -477,7 +477,8 @@ class Deploy(command.Command):
             self.heat_launch = heat_launcher.HeatNativeLauncher(
                 parsed_args.heat_api_port,
                 parsed_args.heat_container_image,
-                parsed_args.heat_user)
+                parsed_args.heat_user,
+                use_root=True)
 
         # NOTE(dprince): we launch heat with fork exec because
         # we don't want it to inherit our args. Launching heat

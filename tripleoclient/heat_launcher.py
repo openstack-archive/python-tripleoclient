@@ -125,6 +125,7 @@ class HeatBaseLauncher(object):
                  user='heat',
                  heat_dir='/var/log/heat-launcher',
                  use_tmp_dir=True,
+                 use_root=False,
                  rm_heat=False,
                  skip_heat_pull=False):
         self.api_port = api_port
@@ -197,11 +198,12 @@ class HeatBaseLauncher(object):
         self._write_fake_keystone_token(self.api_port, self.token_file)
         self._write_heat_config()
         self._write_api_paste_config()
-        uid = int(self.get_heat_uid())
-        gid = int(self.get_heat_gid())
-        os.chown(self.install_dir, uid, gid)
-        os.chown(self.config_file, uid, gid)
-        os.chown(self.paste_file, uid, gid)
+        if use_root:
+            uid = int(self.get_heat_uid())
+            gid = int(self.get_heat_gid())
+            os.chown(self.install_dir, uid, gid)
+            os.chown(self.config_file, uid, gid)
+            os.chown(self.paste_file, uid, gid)
 
     def _write_heat_config(self):
         # TODO(ksambor) It will be nice to have possibilities to configure heat

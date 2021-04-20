@@ -77,58 +77,43 @@ class DeployOvercloud(command.Command):
                     answers['environments'].extend(args.environment_files)
                 args.environment_files = answers['environments']
 
-    def _update_parameters(self, args, stack, tht_root, user_tht_root):
-        parameters = {}
-
-        stack_is_new = stack is None
-
+    def _update_parameters(self, args, parameters,
+                           tht_root, user_tht_root):
         parameters['RootStackName'] = args.stack
         if not args.skip_deploy_identifier:
             parameters['DeployIdentifier'] = int(time.time())
         else:
             parameters['DeployIdentifier'] = ''
 
-        parameters['StackAction'] = 'CREATE' if stack_is_new else 'UPDATE'
+        if args.heat_type != 'installed':
+            heat = None
+        else:
+            heat = self.orchestration_client
 
-        # We need the processed env for the image parameters atm
-        env_files = []
-        env_files.append(
-            os.path.join(tht_root, constants.DEFAULT_RESOURCE_REGISTRY))
-        if args.environment_directories:
-            env_files.extend(utils.load_environment_directories(
-                args.environment_directories))
-        if args.environment_files:
-            env_files.extend(args.environment_files)
-
-        _, env = utils.process_multiple_environments(
-            env_files, tht_root, user_tht_root,
-            cleanup=(not args.no_cleanup))
-
-        default_image_params = plan_utils.default_image_params()
-        image_params = {}
-        if not args.disable_container_prepare:
-            image_params = kolla_builder.container_images_prepare_multi(
-                env, roles.get_roles_data(args.roles_file,
-                                          tht_root), dry_run=True)
-        if image_params:
-            default_image_params.update(image_params)
-        parameters.update(default_image_params)
+        # Check for existing passwords file
+        password_params_path = os.path.join(
+            self.working_dir,
+            constants.PASSWORDS_ENV_FORMAT.format(args.stack))
+        if os.path.exists(password_params_path):
+            with open(password_params_path, 'r') as f:
+                passwords_env = yaml.safe_load(f.read())
+        else:
+            passwords_env = None
 
         password_params = plan_utils.generate_passwords(
-            None, self.orchestration_client,
-            args.stack)
+            None, heat, args.stack, passwords_env=passwords_env)
+
+        # Save generated passwords file
+        with open(password_params_path, 'w') as f:
+            f.write(yaml.safe_dump(dict(parameter_defaults=password_params)))
+        os.chmod(password_params_path, 0o600)
 
         parameters.update(password_params)
 
         param_args = (
             ('NtpServer', 'ntp_server'),
+            ('NovaComputeLibvirtType', 'libvirt_type'),
         )
-
-        if stack_is_new:
-            new_stack_args = (
-                ('NovaComputeLibvirtType', 'libvirt_type'),
-            )
-            param_args = param_args + new_stack_args
 
         # Update parameters from commandline
         for param, arg in param_args:
@@ -245,7 +230,7 @@ class DeployOvercloud(command.Command):
             template, files, env_files_tracker,
             self.log, self.working_dir)
 
-    def _deploy_tripleo_heat_templates_tmpdir(self, stack, parsed_args):
+    def create_template_dirs(self, parsed_args):
         tht_root = os.path.abspath(parsed_args.templates)
         new_tht_root = "%s/tripleo-heat-templates" % self.working_dir
         self.log.debug("Creating working templates tree in %s"
@@ -257,38 +242,61 @@ class DeployOvercloud(command.Command):
                                  parsed_args.roles_file,
                                  parsed_args.networks_file,
                                  new_tht_root)
-        self._deploy_tripleo_heat_templates(stack, parsed_args,
-                                            new_tht_root, tht_root)
+        return new_tht_root, tht_root
 
-    def _deploy_tripleo_heat_templates(self, stack, parsed_args,
-                                       tht_root, user_tht_root):
-        """Deploy the fixed templates in TripleO Heat Templates"""
-
-        self.log.info("Processing templates in the directory {0}".format(
-            os.path.abspath(tht_root)))
-
+    def create_params_and_env_files(self, new_tht_root, user_tht_root,
+                                    parsed_args):
         self.log.debug("Creating Environment files")
         created_env_files = []
-
         created_env_files.append(
-            os.path.join(tht_root, constants.DEFAULT_RESOURCE_REGISTRY))
-        created_env_files.extend(
-            self._provision_baremetal(parsed_args, tht_root))
-
+            os.path.join(new_tht_root, constants.DEFAULT_RESOURCE_REGISTRY))
         if parsed_args.environment_directories:
             created_env_files.extend(utils.load_environment_directories(
                 parsed_args.environment_directories))
+        created_env_files.extend(
+            self._provision_baremetal(parsed_args, new_tht_root))
+
+        _, env = utils.process_multiple_environments(
+            created_env_files, new_tht_root, user_tht_root,
+            cleanup=(not parsed_args.no_cleanup))
+
+        default_image_params = plan_utils.default_image_params()
+        image_params = {}
+        if not parsed_args.disable_container_prepare:
+            image_params = kolla_builder.container_images_prepare_multi(
+                env, roles.get_roles_data(parsed_args.roles_file,
+                                          new_tht_root), dry_run=True)
 
         parameters = {}
-        parameters.update(self._update_parameters(
-            parsed_args, stack, tht_root, user_tht_root))
+        if image_params:
+            default_image_params.update(image_params)
+        parameters.update(default_image_params)
+
+        self._update_parameters(
+            parsed_args, parameters, new_tht_root, user_tht_root)
+
+        return parameters, created_env_files
+
+    def deploy_tripleo_heat_templates(self, stack, parsed_args,
+                                      new_tht_root, user_tht_root,
+                                      parameters, created_env_files):
+        """Deploy the fixed templates in TripleO Heat Templates"""
+
+        self.log.info("Processing templates in the directory {0}".format(
+            os.path.abspath(new_tht_root)))
+
+        stack_is_new = stack is None
+        parameters['StackAction'] = 'CREATE' if stack_is_new else 'UPDATE'
+
         param_env = utils.create_parameters_env(
-            parameters, tht_root, parsed_args.stack)
+            parameters, new_tht_root, parsed_args.stack)
         created_env_files.extend(param_env)
 
         if parsed_args.deployed_server:
             created_env_files.append(
-                os.path.join(tht_root, constants.DEPLOYED_SERVER_ENVIRONMENT))
+                os.path.join(
+                    new_tht_root,
+                    constants.DEPLOYED_SERVER_ENVIRONMENT))
 
         if parsed_args.environment_files:
             created_env_files.extend(parsed_args.environment_files)
@@ -300,22 +308,22 @@ class DeployOvercloud(command.Command):
 
         if stack:
             env_path = utils.create_breakpoint_cleanup_env(
-                tht_root, parsed_args.stack)
+                new_tht_root, parsed_args.stack)
             created_env_files.extend(env_path)
 
         self.log.debug("Processing environment files %s" % created_env_files)
         env_files_tracker = []
         env_files, env = utils.process_multiple_environments(
-            created_env_files, tht_root, user_tht_root,
+            created_env_files, new_tht_root, user_tht_root,
             env_files_tracker=env_files_tracker,
             cleanup=(not parsed_args.no_cleanup))
 
         # Invokes the workflows specified in plan environment file
         if parsed_args.plan_environment_file:
             output_path = utils.build_user_env_path(
-                'derived_parameters.yaml', tht_root)
+                'derived_parameters.yaml', new_tht_root)
             workflow_params.build_derived_params_environment(
-                self.clients, parsed_args.stack, tht_root, env_files,
+                self.clients, parsed_args.stack, new_tht_root, env_files,
                 env_files_tracker, parsed_args.roles_file,
                 parsed_args.plan_environment_file,
                 output_path, utils.playbook_verbosity(self=self))
@@ -323,12 +331,12 @@ class DeployOvercloud(command.Command):
             created_env_files.append(output_path)
             env_files_tracker = []
             env_files, env = utils.process_multiple_environments(
-                created_env_files, tht_root, user_tht_root,
+                created_env_files, new_tht_root, user_tht_root,
                 env_files_tracker=env_files_tracker,
                 cleanup=(not parsed_args.no_cleanup))
 
         # Copy the env_files to tmp folder for archiving
-        self._copy_env_files(env_files, tht_root)
+        self._copy_env_files(env_files, new_tht_root)
 
         if parsed_args.limit:
             # check if skip list is defined while using --limit and throw a
@@ -365,7 +373,7 @@ class DeployOvercloud(command.Command):
                     '(with HA).')
 
         self._try_overcloud_deploy_with_compat_yaml(
-            tht_root, stack,
+            new_tht_root, stack,
             parsed_args.stack, parameters, env_files,
             parsed_args.timeout, env,
             parsed_args.run_validations,
@@ -911,6 +919,35 @@ class DeployOvercloud(command.Command):
                    'input, output, and generated files will be stored.\n'
                    'Defaults to "$HOME/overcloud-deploy/<stack>"')
         )
+        parser.add_argument(
+            '--heat-type',
+            action='store',
+            default='installed',
+            choices=['system', 'pod', 'container', 'native'],
+            help=_('The type of Heat process to use to execute '
+                   'the deployment.\n'
+                   'installed (Default): Use the system installed '
+                   'Heat.\n'
+                   'pod: Use an ephemeral Heat pod.\n'
+                   'container: Use an ephemeral Heat container.\n'
+                   'native: Use an ephemeral Heat process.')
+        )
+        parser.add_argument(
+            '--rm-heat',
+            action='store_true',
+            default=False,
+            help=_('If specified and --heat-type is container or pod '
+                   'any existing container or pod of a previous '
+                   'ephemeral Heat process will be deleted first. '
+                   'Ignored if --heat-type is native.')
+        )
+        parser.add_argument(
+            '--skip-heat-pull',
+            action='store_true',
+            default=False,
+            help=_('When --heat-type is pod or container, assume '
+                   'the container image has already been pulled ')
+        )
         return parser
 
     def take_action(self, parsed_args):
@@ -950,21 +987,64 @@ class DeployOvercloud(command.Command):
                 parsed_args.environment_files)
 
         self._update_args_from_answers_file(parsed_args)
-        stack = utils.get_stack(self.orchestration_client, parsed_args.stack)
-        stack_create = stack is None
-        if stack_create:
-            self.log.info("No stack found, will be doing a stack create")
-        else:
-            self.log.info("Stack found, will be doing a stack update")
 
         if parsed_args.dry_run:
             self.log.info("Validation Finished")
             return
 
+        self.heat_launcher = None
+        stack = None
+        stack_create = None
         start = time.time()
 
-        if not parsed_args.config_download_only:
-            self._deploy_tripleo_heat_templates_tmpdir(stack, parsed_args)
+        new_tht_root, user_tht_root = \
+            self.create_template_dirs(parsed_args)
+        parameters, created_env_files = \
+            self.create_params_and_env_files(
+                new_tht_root, user_tht_root, parsed_args)
+
+        if parsed_args.heat_type != 'installed':
+            self.log.info("Using tripleo-deploy with "
+                          "ephemeral heat-all for stack operation")
+            api_container_image = parameters['ContainerHeatApiImage']
+            engine_container_image = \
+                parameters['ContainerHeatEngineImage']
+            self.heat_launcher = utils.get_heat_launcher(
+                parsed_args.heat_type,
+                api_container_image=api_container_image,
+                engine_container_image=engine_container_image,
+                heat_dir=os.path.join(self.working_dir,
+                                      'heat-launcher'),
+                use_tmp_dir=False,
+                rm_heat=parsed_args.rm_heat,
+                skip_heat_pull=parsed_args.skip_heat_pull)
+            self.orchestration_client = \
+                utils.launch_heat(self.heat_launcher)
+            self.clients.orchestration = self.orchestration_client
+
+        try:
+            if parsed_args.heat_type == 'installed':
+                stack = utils.get_stack(self.orchestration_client,
+                                        parsed_args.stack)
+
+                stack_create = stack is None
+                if stack_create:
+                    self.log.info("No stack found, "
+                                  "will be doing a stack create")
+                else:
+                    self.log.info("Stack found, "
+                                  "will be doing a stack update")
+            if not (parsed_args.config_download_only or
+                    parsed_args.setup_only):
+                self.deploy_tripleo_heat_templates(
+                    stack, parsed_args, new_tht_root, user_tht_root,
+                    parameters, created_env_files)
+        except Exception:
+            if parsed_args.heat_type != 'installed' and self.heat_launcher:
+                self.log.info("Stopping ephemeral heat.")
+                utils.kill_heat(self.heat_launcher)
+                utils.rm_heat(self.heat_launcher)
+            raise
 
         # Get a new copy of the stack after stack update/create. If it was
         # a create then the previous stack object would be None.
@@ -980,7 +1060,8 @@ class DeployOvercloud(command.Command):
             stack.get()
             overcloud_endpoint = utils.get_overcloud_endpoint(stack)
             horizon_url = deployment.get_horizon_url(
-                stack=stack.stack_name)
+                stack=stack.stack_name,
+                heat_type=parsed_args.heat_type)
             rc_params = utils.get_rc_params(
                 self.orchestration_client,
                 parsed_args.stack)
@@ -992,6 +1073,9 @@ class DeployOvercloud(command.Command):
             rcpath = deployment.create_overcloudrc(
                 stack, rc_params, parsed_args.no_proxy,
                 self.working_dir)
+
+            config_download_dir = parsed_args.output_dir or \
+                os.path.join(self.working_dir, "config-download")
 
             if parsed_args.config_download or parsed_args.setup_only:
                 self.log.info("Deploying overcloud configuration")
@@ -1009,7 +1093,8 @@ class DeployOvercloud(command.Command):
                         parsed_args.overcloud_ssh_user,
                         self.get_key_pair(parsed_args),
                         parsed_args.overcloud_ssh_port_timeout,
-                        verbosity=utils.playbook_verbosity(self=self)
+                        verbosity=utils.playbook_verbosity(self=self),
+                        heat_type=parsed_args.heat_type
                     )
 
                 if parsed_args.config_download_timeout:
@@ -1026,8 +1111,6 @@ class DeployOvercloud(command.Command):
                     deployment_options['ansible_python_interpreter'] = \
                         parsed_args.deployment_python_interpreter
 
-                config_download_dir = parsed_args.output_dir or \
-                    os.path.join(self.working_dir, "config-download")
                 deployment.make_config_download_dir(config_download_dir,
                                                     parsed_args.stack)
 
@@ -1082,7 +1165,8 @@ class DeployOvercloud(command.Command):
                         parsed_args.overcloud_ssh_user,
                         self.get_key_pair(parsed_args),
                         parsed_args.overcloud_ssh_port_timeout,
-                        verbosity=utils.playbook_verbosity(self=self)
+                        verbosity=utils.playbook_verbosity(self=self),
+                        heat_type=parsed_args.heat_type
                     )
 
                 deployment.set_deployment_status(
@@ -1116,6 +1200,11 @@ class DeployOvercloud(command.Command):
             print("Overcloud rc file: {} and {}".format(
                 rcpath, old_rcpath))
             print("Overcloud Deployed {0}".format(deploy_message))
+
+            if parsed_args.heat_type != 'installed':
+                self.log.info("Stopping ephemeral heat.")
+                utils.kill_heat(self.heat_launcher)
+                utils.rm_heat(self.heat_launcher)
 
             if parsed_args.output_dir:
                 ansible_dir = config_download_dir
