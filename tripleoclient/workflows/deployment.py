@@ -28,6 +28,13 @@ from tripleoclient.constants import DEFAULT_WORK_DIR
 from tripleoclient import exceptions
 from tripleoclient import utils
 
+try:
+    # TODO(slagle): the try/except can be removed once tripleo_common is
+    # released with
+    # https://review.opendev.org/c/openstack/tripleo-common/+/787819
+    from tripleo_common.utils import heat as tc_heat_utils
+except ImportError:
+    tc_heat_utils = None
 
 _WORKFLOW_TIMEOUT = 360  # 6 * 60 seconds
 
@@ -136,7 +143,7 @@ def get_overcloud_hosts(stack, ssh_network):
 def get_hosts_and_enable_ssh_admin(stack, overcloud_ssh_network,
                                    overcloud_ssh_user, overcloud_ssh_key,
                                    overcloud_ssh_port_timeout,
-                                   verbosity=0):
+                                   verbosity=0, heat_type='installed'):
     """Enable ssh admin access.
 
     Get a list of hosts from a given stack and enable admin ssh across all of
@@ -169,7 +176,8 @@ def get_hosts_and_enable_ssh_admin(stack, overcloud_ssh_network,
             overcloud_ssh_user,
             overcloud_ssh_key,
             overcloud_ssh_port_timeout,
-            verbosity=verbosity
+            verbosity=verbosity,
+            heat_type=heat_type
         )
     else:
         raise exceptions.DeploymentError(
@@ -181,7 +189,7 @@ def get_hosts_and_enable_ssh_admin(stack, overcloud_ssh_network,
 
 
 def enable_ssh_admin(stack, hosts, ssh_user, ssh_key, timeout,
-                     verbosity=0):
+                     verbosity=0, heat_type='installed'):
     """Run enable ssh admin access playbook.
 
     :param stack: Stack data.
@@ -213,22 +221,28 @@ def enable_ssh_admin(stack, hosts, ssh_user, ssh_key, timeout,
             ssh_key
         )
     )
-    with utils.TempDirs() as tmp:
-        utils.run_ansible_playbook(
-            playbook='cli-enable-ssh-admin.yaml',
-            inventory=','.join(hosts),
-            workdir=tmp,
-            playbook_dir=ANSIBLE_TRIPLEO_PLAYBOOKS,
-            key=ssh_key,
-            ssh_user=ssh_user,
-            verbosity=verbosity,
-            extra_vars={
-                "ssh_user": ssh_user,
-                "ssh_servers": hosts,
-                'tripleo_cloud_name': stack.stack_name
-            },
-            ansible_timeout=timeout
-        )
+    try:
+        if heat_type != 'installed' and tc_heat_utils.heatclient:
+            tc_heat_utils.heatclient.save_environment()
+        with utils.TempDirs() as tmp:
+            utils.run_ansible_playbook(
+                playbook='cli-enable-ssh-admin.yaml',
+                inventory=','.join(hosts),
+                workdir=tmp,
+                playbook_dir=ANSIBLE_TRIPLEO_PLAYBOOKS,
+                key=ssh_key,
+                ssh_user=ssh_user,
+                verbosity=verbosity,
+                extra_vars={
+                    "ssh_user": ssh_user,
+                    "ssh_servers": hosts,
+                    'tripleo_cloud_name': stack.stack_name
+                },
+                ansible_timeout=timeout
+            )
+    finally:
+        if heat_type != 'installed' and tc_heat_utils.heatclient:
+            tc_heat_utils.heatclient.restore_environment()
     print("Enabling ssh admin - COMPLETE.")
 
 
@@ -467,7 +481,8 @@ def config_download(log, clients, stack, ssh_network='ctlplane',
         repo.git.commit("--amend", "--no-edit")
 
 
-def get_horizon_url(stack, verbosity=0):
+def get_horizon_url(stack, verbosity=0,
+                    heat_type='installed'):
     """Return horizon URL string.
 
     :params stack: Stack name
@@ -475,22 +490,28 @@ def get_horizon_url(stack, verbosity=0):
     :returns: string
     """
 
-    with utils.TempDirs() as tmp:
-        horizon_tmp_file = os.path.join(tmp, 'horizon_url')
-        utils.run_ansible_playbook(
-            playbook='cli-undercloud-get-horizon-url.yaml',
-            inventory='localhost,',
-            workdir=tmp,
-            playbook_dir=ANSIBLE_TRIPLEO_PLAYBOOKS,
-            verbosity=verbosity,
-            extra_vars={
-                'stack_name': stack,
-                'horizon_url_output_file': horizon_tmp_file
-            }
-        )
+    try:
+        if heat_type != 'installed' and tc_heat_utils.heatclient:
+            tc_heat_utils.heatclient.save_environment()
+        with utils.TempDirs() as tmp:
+            horizon_tmp_file = os.path.join(tmp, 'horizon_url')
+            utils.run_ansible_playbook(
+                playbook='cli-undercloud-get-horizon-url.yaml',
+                inventory='localhost,',
+                workdir=tmp,
+                playbook_dir=ANSIBLE_TRIPLEO_PLAYBOOKS,
+                verbosity=verbosity,
+                extra_vars={
+                    'stack_name': stack,
+                    'horizon_url_output_file': horizon_tmp_file
+                }
+            )
 
-        with open(horizon_tmp_file) as f:
-            return f.read().strip()
+            with open(horizon_tmp_file) as f:
+                return f.read().strip()
+    finally:
+        if heat_type != 'installed' and tc_heat_utils.heatclient:
+            tc_heat_utils.heatclient.restore_environment()
 
 
 def get_deployment_status(clients, stack_name, working_dir):

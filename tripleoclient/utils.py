@@ -52,7 +52,6 @@ from heatclient.common import template_utils
 from heatclient.common import utils as heat_utils
 from heatclient.exc import HTTPNotFound
 from osc_lib import exceptions as oscexc
-from osc_lib import utils as osc_lib_utils
 from osc_lib.i18n import _
 from oslo_concurrency import processutils
 from six.moves import configparser
@@ -70,6 +69,14 @@ from tripleo_common import update
 from tripleoclient import constants
 from tripleoclient import exceptions
 from tripleoclient import heat_launcher
+
+try:
+    # TODO(slagle): the try/except can be removed once tripleo_common is
+    # released with
+    # https://review.opendev.org/c/openstack/tripleo-common/+/787819
+    from tripleo_common.utils import heat as tc_heat_utils
+except ImportError:
+    tc_heat_utils = None
 
 
 LOG = logging.getLogger(__name__ + ".utils")
@@ -2566,6 +2573,11 @@ def write_user_environment(env_map, abs_env_path, tht_root,
 
 def launch_heat(launcher=None, restore_db=False):
 
+    if not tc_heat_utils:
+        msg = "tripleo-common too old to use ephemeral Heat"
+        LOG.error(msg)
+        raise Exception(msg)
+
     global _local_orchestration_client
     global _heat_pid
 
@@ -2589,7 +2601,7 @@ def launch_heat(launcher=None, restore_db=False):
     heat_api_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     test_heat_api_port(heat_api_socket, launcher.host, int(launcher.api_port))
 
-    _local_orchestration_client = local_orchestration_client(
+    _local_orchestration_client = tc_heat_utils.local_orchestration_client(
         launcher.host, launcher.api_port)
     return _local_orchestration_client
 
@@ -2607,41 +2619,6 @@ def get_heat_launcher(heat_type, *args, **kwargs):
         return heat_launcher.HeatContainerLauncher(*args, **kwargs)
     else:
         return heat_launcher.HeatPodLauncher(*args, **kwargs)
-
-
-def local_orchestration_client(host="127.0.0.1", api_port=8006):
-    """Returns a local orchestration service client"""
-
-    API_VERSIONS = {
-        '1': 'heatclient.v1.client.Client',
-    }
-
-    heat_client = osc_lib_utils.get_client_class(
-        'tripleoclient',
-        '1',
-        API_VERSIONS)
-    LOG.debug('Instantiating local_orchestration client for '
-              'host %s, port %s: %s',
-              host, api_port, heat_client)
-
-    endpoint = 'http://%s:%s/v1/admin' % (host, api_port)
-    client = heat_client(
-        endpoint=endpoint,
-        username='admin',
-        password='fake',
-        region_name='regionOne',
-        token='fake',
-    )
-
-    for v in ('OS_USER_DOMAIN_NAME',
-              'OS_PROJECT_DOMAIN_NAME',
-              'OS_PROJECT_NAME'):
-        os.environ.pop(v, None)
-
-    os.environ['OS_AUTH_TYPE'] = "none"
-    os.environ['OS_ENDPOINT'] = endpoint
-
-    return client
 
 
 def kill_heat(launcher, backup_db=True):
