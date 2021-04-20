@@ -567,10 +567,47 @@ class TestUndercloudUpgrade(TestPluginV1):
              'tripleo-ansible'],
             name='Update extra packages'
         )
-
-        mock_subprocess.assert_called_with([
-            'openstack', 'undercloud', 'upgrade', '--skip-package-updates',
-            '--no-validations'])
+        mock_subprocess.assert_called_with(
+            ['sudo', '--preserve-env', 'openstack', 'tripleo', 'deploy',
+             '--standalone', '--standalone-role', 'Undercloud', '--stack',
+             'undercloud', '--local-domain=localdomain',
+             '--local-ip=192.168.24.1/24',
+             '--templates=/usr/share/openstack-tripleo-heat-templates/',
+             '--networks-file=/usr/share/openstack-tripleo-heat-templates/'
+             'network_data_undercloud.yaml',
+             '--upgrade', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'lifecycle/undercloud-upgrade-prepare.yaml',
+             '--heat-native', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'undercloud.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'use-dns-for-vips.yaml', '-e',
+             '/home/stack/foo.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'services/ironic.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'services/ironic-inspector.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'services/undercloud-remove-novajoin.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'disable-telemetry.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'public-tls-undercloud.yaml',
+             '--public-virtual-ip', '192.168.24.2',
+             '--control-virtual-ip', '192.168.24.3', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'ssl/tls-endpoints-public-ip.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'services/undercloud-haproxy.yaml',
+             # TODO(cjeanner) drop once we have proper oslo.privsep
+             '--deployment-user', 'stack',
+             '--output-dir=/home/stack', '--cleanup',
+             '-e', '/home/stack/tripleo-config-generated-env-files/'
+             'undercloud_parameters.yaml',
+             '--log-file=install-undercloud.log', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/'
+             'undercloud-stack-vstate-dropin.yaml'])
 
     @mock.patch.object(sys, 'executable', 'python3')
     # TODO(cjeanner) drop once we have proper oslo.privsep
@@ -595,10 +632,7 @@ class TestUndercloudUpgrade(TestPluginV1):
         # DisplayCommandBase.take_action() returns two tuples
         self.cmd.take_action(parsed_args)
         mock_run_command.assert_not_called()
-        mock_subprocess.assert_called_with([
-            'openstack', 'undercloud', 'upgrade', '--skip-package-updates',
-            '--force-stack-update', '--no-validations',
-            '--inflight-validations', '--dry-run', '--yes', '--debug'])
+        mock_subprocess.assert_not_called()
 
     @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
                 return_value=True)
