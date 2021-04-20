@@ -131,6 +131,8 @@ def get_overcloud_hosts(stack, ssh_network):
         # for each blacklisted ctlplane ip, remove the corresponding
         # ssh_network ip at that same index in the net_ips list
         for bcip in blacklisted_ctlplane_ips:
+            if not bcip:
+                continue
             index = ctlplane_ips.index(bcip)
             ctlplane_ips.pop(index)
             net_ips.pop(index)
