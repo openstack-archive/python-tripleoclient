@@ -135,3 +135,122 @@ class OvercloudNetworkProvision(command.Command):
                 verbosity=oooutils.playbook_verbosity(self=self),
                 extra_vars=extra_vars,
             )
+
+
+class OvercloudVirtualIPsExtract(command.Command):
+
+    log = logging.getLogger(__name__ + ".OvercloudVirtualIPsExtract")
+
+    def get_parser(self, prog_name):
+        parser = super(OvercloudVirtualIPsExtract, self).get_parser(prog_name)
+        parser.add_argument('--stack', dest='stack', required=True,
+                            help=_('Name of heat stack '
+                                   '(default=Env: OVERCLOUD_STACK_NAME)'),
+                            default=utils.env('OVERCLOUD_STACK_NAME',
+                                              default='overcloud'))
+        parser.add_argument('-o', '--output', required=True,
+                            metavar='<vip_data.yaml>',
+                            help=_('The output file path describing the '
+                                   'Virtual IP deployment'))
+        parser.add_argument('-y', '--yes', default=False, action='store_true',
+                            help=_('Skip yes/no prompt for existing files '
+                                   '(assume yes).'))
+
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)" % parsed_args)
+
+        output_path = os.path.abspath(parsed_args.output)
+
+        overwrite = parsed_args.yes
+        if (os.path.exists(output_path) and not overwrite
+                and not oooutils.prompt_user_for_confirmation(
+                    'Overwrite existing file %s [y/N]?' % parsed_args.output,
+                    self.log)):
+            raise oscexc.CommandError("Will not overwrite existing file:"
+                                      " %s" % parsed_args.output)
+        else:
+            overwrite = True
+
+        extra_vars = {
+            "stack_name": parsed_args.stack,
+            "output": output_path,
+            "overwrite": overwrite
+        }
+
+        with oooutils.TempDirs() as tmp:
+            oooutils.run_ansible_playbook(
+                playbook='cli-overcloud-network-vip-extract.yaml',
+                inventory='localhost,',
+                workdir=tmp,
+                playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                verbosity=oooutils.playbook_verbosity(self=self),
+                extra_vars=extra_vars,
+            )
+
+
+class OvercloudVirtualIPsProvision(command.Command):
+
+    log = logging.getLogger(__name__ + ".OvercloudVirtualIPsProvision")
+
+    def get_parser(self, prog_name):
+        parser = super(OvercloudVirtualIPsProvision, self).get_parser(
+            prog_name)
+
+        parser.add_argument('vip_file',
+                            metavar='<vip_data.yaml>',
+                            help=_('Configuration file describing the network '
+                                   'deployment.'))
+        parser.add_argument('--stack', dest='stack', required=True,
+                            help=_('Name of heat stack '
+                                   '(default=Env: OVERCLOUD_STACK_NAME)'),
+                            default=utils.env('OVERCLOUD_STACK_NAME',
+                                              default='overcloud'))
+        parser.add_argument('-o', '--output', required=True,
+                            metavar='<vip_environment.yaml>',
+                            help=_('The output Virtual IP environment file '
+                                   'path.'))
+        parser.add_argument('-y', '--yes', default=False, action='store_true',
+                            help=_('Skip yes/no prompt for existing files '
+                                   '(assume yes).'))
+
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)" % parsed_args)
+
+        vip_file_path = os.path.abspath(parsed_args.vip_file)
+        output_path = os.path.abspath(parsed_args.output)
+
+        if not os.path.exists(vip_file_path):
+            raise oscexc.CommandError(
+                "Virtual IPs configuration file does not exist:"
+                " %s" % parsed_args.networks_file)
+
+        overwrite = parsed_args.yes
+        if (os.path.exists(output_path) and not overwrite
+                and not oooutils.prompt_user_for_confirmation(
+                    'Overwrite existing file %s [y/N]?' % parsed_args.output,
+                    self.log)):
+            raise oscexc.CommandError("Will not overwrite existing file:"
+                                      " %s" % parsed_args.output)
+        else:
+            overwrite = True
+
+        extra_vars = {
+            "stack_name": parsed_args.stack,
+            "vip_data_path": vip_file_path,
+            "vip_deployed_path": output_path,
+            "overwrite": overwrite
+        }
+
+        with oooutils.TempDirs() as tmp:
+            oooutils.run_ansible_playbook(
+                playbook='cli-overcloud-network-vip-provision.yaml',
+                inventory='localhost,',
+                workdir=tmp,
+                playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                verbosity=oooutils.playbook_verbosity(self=self),
+                extra_vars=extra_vars,
+            )
