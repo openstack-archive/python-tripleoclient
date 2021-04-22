@@ -1188,17 +1188,30 @@ class DeployOvercloud(command.Command):
                 working_dir=self.working_dir
             )
         finally:
-            # Run postconfig on create or force. Use force to makes sure
-            # endpoints are created with deploy reruns and upgrades
-            if (stack_create or parsed_args.force_postconfig
-                    and not parsed_args.skip_postconfig):
-                self._deploy_postconfig(stack, parsed_args)
+            try:
+                # Run postconfig on create or force
+                if (stack_create or parsed_args.force_postconfig
+                        and not parsed_args.skip_postconfig):
+                    self._deploy_postconfig(stack, parsed_args)
+            except Exception as e:
+                self.log.error('Exception during postconfig')
+                self.log.error(e)
 
-            # Copy clouds.yaml to the cloud user directory
-            user = \
-                getpwuid(os.stat(constants.CLOUD_HOME_DIR).st_uid).pw_name
-            utils.copy_clouds_yaml(user)
-            utils.create_tempest_deployer_input(output_dir=self.working_dir)
+            try:
+                # Copy clouds.yaml to the cloud user directory
+                user = \
+                    getpwuid(os.stat(constants.CLOUD_HOME_DIR).st_uid).pw_name
+                utils.copy_clouds_yaml(user)
+            except Exception as e:
+                self.log.error('Exception creating clouds.yaml')
+                self.log.error(e)
+
+            try:
+                utils.create_tempest_deployer_input(
+                    output_dir=self.working_dir)
+            except Exception as e:
+                self.log.error('Exception creating tempest configuration.')
+                self.log.error(e)
 
             try:
                 if (parsed_args.heat_type != 'installed' and
@@ -1224,17 +1237,25 @@ class DeployOvercloud(command.Command):
                 rcpath, old_rcpath))
             print("Overcloud Deployed {0}".format(deploy_message))
 
-            if parsed_args.heat_type != 'installed':
-                self.log.info("Stopping ephemeral heat.")
-                utils.kill_heat(self.heat_launcher)
-                utils.rm_heat(self.heat_launcher, backup_db=True)
+            try:
+                if parsed_args.heat_type != 'installed':
+                    self.log.info("Stopping ephemeral heat.")
+                    utils.kill_heat(self.heat_launcher)
+                    utils.rm_heat(self.heat_launcher, backup_db=True)
+            except Exception as e:
+                self.log.error('Exception stopping ephemeral Heat')
+                self.log.error(e)
 
-            if parsed_args.output_dir:
-                ansible_dir = config_download_dir
-            else:
-                ansible_dir = None
-            utils.archive_deploy_artifacts(self.log, parsed_args.stack,
-                                           self.working_dir, ansible_dir)
+            try:
+                if parsed_args.output_dir:
+                    ansible_dir = config_download_dir
+                else:
+                    ansible_dir = None
+                utils.archive_deploy_artifacts(self.log, parsed_args.stack,
+                                               self.working_dir, ansible_dir)
+            except Exception as e:
+                self.log.error('Exception archiving deploy artifacts')
+                self.log.error(e)
 
             if deploy_status == 'DEPLOY_FAILED':
                 raise(deploy_trace)
