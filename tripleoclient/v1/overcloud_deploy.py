@@ -120,14 +120,18 @@ class DeployOvercloud(command.Command):
                 if roledata:
                     nbd_tls_key = 'nova::compute::libvirt::qemu::nbd_tls'
                     for key in roledata:
-                        if nbd_tls_key in roledata[key]['config_settings']:
-                            nbd_tls = roledata[key][
-                                'config_settings'][nbd_tls_key]
-                            self.log.debug("use_tls_for_nbd=%s" % nbd_tls)
-                            parameters['UseTLSTransportForNbd'] = nbd_tls
-                            break
-                        else:
-                            parameters['UseTLSTransportForNbd'] = False
+                        if not roledata[key]:
+                            # Probably an incomplete stack, ignore it.
+                            continue
+                        config_settings = roledata[key].get('config_settings')
+                        if config_settings:
+                            nbd_tls = config_settings.get(nbd_tls_key)
+                            if nbd_tls:
+                                self.log.debug("use_tls_for_nbd=%s" % nbd_tls)
+                                parameters['UseTLSTransportForNbd'] = nbd_tls
+                                break
+                            else:
+                                parameters['UseTLSTransportForNbd'] = False
 
         # Update parameters from commandline
         for param, arg in param_args:
