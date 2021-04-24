@@ -456,8 +456,8 @@ class TripleOValidatorRun(command.Command):
                 t.add_row(r.values())
             print(t)
         else:
-            msg = "No Validation has been run, please check your parameters."
-            raise exceptions.CommandError(msg)
+            LOG.info(
+                _("No Validation has been run, please check your parameters."))
 
         if not parsed_args.static_inventory:
             LOG.debug(_('Removing static tripleo ansible inventory file'))
