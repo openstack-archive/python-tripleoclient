@@ -360,6 +360,9 @@ class DeployOvercloud(command.Command):
                 if (ceph_deployed != "OS::Heat::None"
                         or ceph_external != "OS::Heat::None"):
                     utils.check_ceph_fsid_matches_env_files(stack, env)
+                    # upgrades: check if swift is deployed
+                    utils.check_swift_and_rgw(stack, env,
+                                              self.__class__.__name__)
         # check migration to new nic config with ansible
         utils.check_nic_config_with_ansible(stack, env)
         # check migration to service vips managed by servce

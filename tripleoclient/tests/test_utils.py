@@ -655,6 +655,42 @@ class TestWaitForStackUtil(TestCase):
         with self.assertRaises(exceptions.InvalidConfiguration):
             utils.check_ceph_fsid_matches_env_files(mock_stack, provided_env)
 
+    def test_check_swift_and_rgw(self):
+        stack_reg = {
+            'OS::TripleO::Services::SwiftProxy': 'OS::Heat::None',
+        }
+        env_reg = {
+            'OS::TripleO::Services::CephRgw': 'val',
+        }
+        mock_stack = mock.MagicMock()
+        mock_stack.environment = mock.MagicMock()
+        mock_stack.environment.return_value = {
+            'resource_registry': stack_reg,
+        }
+        env = {
+            'resource_registry': env_reg,
+        }
+
+        utils.check_swift_and_rgw(mock_stack, env, 'UpgradePrepare')
+
+    def test_check_swift_and_rgw_fail(self):
+        stack_reg = {
+            'OS::TripleO::Services::SwiftProxy': 'val',
+        }
+        env_reg = {
+            'OS::TripleO::Services::CephRgw': 'val',
+        }
+        mock_stack = mock.MagicMock()
+        mock_stack.environment = mock.MagicMock()
+        mock_stack.environment.return_value = {
+            'resource_registry': stack_reg,
+        }
+        env = {
+            'resource_registry': env_reg,
+        }
+        with self.assertRaises(exceptions.InvalidConfiguration):
+            utils.check_swift_and_rgw(mock_stack, env, 'UpgradePrepare')
+
     @mock.patch('subprocess.check_call')
     @mock.patch('os.path.exists')
     def test_remove_known_hosts(self, mock_exists, mock_check_call):

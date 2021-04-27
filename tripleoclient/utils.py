@@ -1094,6 +1094,43 @@ def check_ceph_fsid_matches_env_files(stack, environment):
                                                       stack_ceph_fsid))
 
 
+def check_swift_and_rgw(stack, env, stage):
+    """Check that Swift and RGW aren't both enabled in the overcloud
+
+    When Ceph is deployed by TripleO using the default cephadm environment
+    file, the RGW component is included by default and deployed on both
+    greenfield and brownfield deployments.
+    However, if an overcloud upgrade is run and Swift was already deployed,
+    the RGW resource shouldn't replace Swift and -e cephadm-rbd-only.yaml
+    should be passed.
+    For this reason we need to check if Swift was previously enabled, and
+    fail if the RGW resource is passed.
+    """
+    rgw_env = env.get('resource_registry',
+                      {}).get('OS::TripleO::Services::CephRgw',
+                              'OS::Heat::None')
+
+    allowed_stage = re.compile("(Upgrade|Update)Prepare", re.I)
+    # if the RGW resource isn't passed or we're not in the upgrade context
+    # there's no need to run this check
+    if not re.match(allowed_stage, stage) or rgw_env == 'OS::Heat::None':
+        return
+
+    sw = stack.environment().get('resource_registry',
+                                 {}).get('OS::TripleO::Services::SwiftProxy',
+                                         'OS::Heat::None')
+
+    # RGW is present in the env list and swift was previously deployed
+    if sw != "OS::Heat::None":
+        raise exceptions.InvalidConfiguration('Both Swift and RGW resources '
+                                              'detected. '
+                                              'Ensure you have only one of '
+                                              'them enabled (or provide the '
+                                              'cephadm-rbd-only.yaml '
+                                              'environment file to exclude '
+                                              'RGW)')
+
+
 def check_nic_config_with_ansible(stack, environment):
     registry = environment.get('resource_registry', {})
     stack_registry = {}
