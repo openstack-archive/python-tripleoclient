@@ -721,41 +721,17 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
         admin_ip = netaddr.IPAddress(admin_host)
         deploy_args += ['--control-virtual-ip', admin_host]
 
-        if CONF.get('net_config_override', None):
-            if (admin_ip not in local_net.cidr):
-                LOG.warning('You may need to specify a custom '
-                            'ControlVirtualInterface in a custom env file to '
-                            'correctly assign the ip address to an interface '
-                            'for undercloud_admin_host. By default it will be '
-                            'set to br-ctlplane.')
-            if (public_ip not in local_net.cidr):
-                LOG.warning('You may need to specify a custom '
-                            'PublicVirtualInterface in a custom env file to '
-                            'correctly assign the ip address to an interface '
-                            'for undercloud_public_host. By default it will be'
-                            ' set to br-ctlplane.')
-        else:
+        if not CONF.get('net_config_override', None):
             if (admin_ip not in local_net.cidr or
                     public_ip not in local_net.cidr):
                 LOG.warning('undercloud_admin_host or undercloud_public_host '
                             'is not in the same cidr as local_ip.')
 
-        # Define the *VirtualInterfaces for keepalived. These are used when
-        # configuring the undercloud_*_host addresses. If these adddesses are
-        # not in the default cidr for the ctlplane, it will not be defined
-        # and leads to general sadness during the deployment. Our default
-        # net_config uses br-ctlplane. See rhbz#1737150
-        env_data['ControlVirtualInterface'] = 'br-ctlplane'
-        env_data['PublicVirtualInterface'] = 'br-ctlplane'
-
         deploy_args += [
             '-e', endpoint_environment,
             '-e', os.path.join(
                 tht_templates,
-                'environments/services/undercloud-haproxy.yaml'),
-            '-e', os.path.join(
-                tht_templates,
-                'environments/services/undercloud-keepalived.yaml')]
+                'environments/services/undercloud-haproxy.yaml')]
 
     u = CONF.get('deployment_user') or utils.get_deployment_user()
     env_data['DeploymentUser'] = u

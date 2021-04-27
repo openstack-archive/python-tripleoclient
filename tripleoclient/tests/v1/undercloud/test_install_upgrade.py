@@ -103,9 +103,7 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'ssl/tls-endpoints-public-ip.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/undercloud-haproxy.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/undercloud-keepalived.yaml',
+             'services/undercloud-haproxy.yaml',
              # TODO(cjeanner) drop once we have proper oslo.privsep
              '--deployment-user', 'stack',
              '--output-dir=/home/stack', '--cleanup',
@@ -165,8 +163,7 @@ class TestUndercloudInstall(TestPluginV1):
              '--public-virtual-ip', '192.168.24.2',
              '--control-virtual-ip', '192.168.24.3', '-e',
              '/usertht/environments/ssl/tls-endpoints-public-ip.yaml', '-e',
-             '/usertht/environments/services/undercloud-haproxy.yaml', '-e',
-             '/usertht/environments/services/undercloud-keepalived.yaml',
+             '/usertht/environments/services/undercloud-haproxy.yaml',
              # TODO(cjeanner) drop once we have proper oslo.privsep
              '--deployment-user', 'stack',
              '--output-dir=/foo', '--cleanup', '-e',
@@ -331,9 +328,7 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'ssl/tls-endpoints-public-ip.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/undercloud-haproxy.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/undercloud-keepalived.yaml',
+             'services/undercloud-haproxy.yaml',
              # TODO(cjeanner) drop once we have proper oslo.privsep
              '--deployment-user', 'stack',
              '--output-dir=/home/stack',
@@ -398,9 +393,7 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'ssl/tls-endpoints-public-ip.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/undercloud-haproxy.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/undercloud-keepalived.yaml',
+             'services/undercloud-haproxy.yaml',
              # TODO(cjeanner) drop once we have proper oslo.privsep
              '--deployment-user', 'stack',
              '--output-dir=/home/stack', '--cleanup',
@@ -461,9 +454,7 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'ssl/tls-endpoints-public-ip.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/undercloud-haproxy.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/undercloud-keepalived.yaml',
+             'services/undercloud-haproxy.yaml',
              # TODO(cjeanner) drop once we have proper oslo.privsep
              '--deployment-user', 'stack',
              '--output-dir=/home/stack', '--cleanup',
@@ -525,9 +516,7 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'ssl/tls-endpoints-public-ip.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/undercloud-haproxy.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/undercloud-keepalived.yaml',
+             'services/undercloud-haproxy.yaml',
              '--deployment-user', 'stack',
              '--output-dir=/home/stack', '--cleanup',
              '-e', '/home/stack/tripleo-config-generated-env-files/'
@@ -671,9 +660,7 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'ssl/tls-endpoints-public-ip.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/undercloud-haproxy.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/undercloud-keepalived.yaml',
+             'services/undercloud-haproxy.yaml',
              # TODO(cjeanner) drop once we have proper oslo.privsep
              '--deployment-user', 'stack',
              '--output-dir=/home/stack', '--cleanup',
@@ -738,9 +725,7 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'ssl/tls-endpoints-public-ip.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/undercloud-haproxy.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/undercloud-keepalived.yaml',
+             'services/undercloud-haproxy.yaml',
              '--deployment-user', 'stack',
              '--output-dir=/home/stack', '--cleanup',
              '-e', '/home/stack/tripleo-config-generated-env-files/'
@@ -804,9 +789,7 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'ssl/tls-endpoints-public-ip.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/undercloud-haproxy.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/undercloud-keepalived.yaml',
+             'services/undercloud-haproxy.yaml',
              # TODO(cjeanner) drop once we have proper oslo.privsep
              '--deployment-user', 'stack',
              '--output-dir=/home/stack', '--cleanup',
@@ -868,9 +851,7 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'ssl/tls-endpoints-public-ip.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/undercloud-haproxy.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/undercloud-keepalived.yaml',
+             'services/undercloud-haproxy.yaml',
              # TODO(cjeanner) drop once we have proper oslo.privsep
              '--deployment-user', 'stack',
              '--output-dir=/home/stack', '--cleanup',
@@ -938,9 +919,7 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'ssl/tls-endpoints-public-ip.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/undercloud-haproxy.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'services/undercloud-keepalived.yaml',
+             'services/undercloud-haproxy.yaml',
              '--deployment-user', 'stack',
              '--output-dir=/home/stack', '--cleanup',
              '-e', '/home/stack/tripleo-config-generated-env-files/'
