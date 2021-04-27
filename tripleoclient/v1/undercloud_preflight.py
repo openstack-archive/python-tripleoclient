@@ -30,6 +30,9 @@ from oslo_config import cfg
 from tripleoclient import constants
 from tripleoclient import utils
 
+from validations_libs import constants as v_consts
+from validations_libs.validation_actions import ValidationActions
+
 
 class FailedValidation(Exception):
     pass
@@ -90,15 +93,16 @@ def _check_diskspace(upgrade=False):
     else:
         playbook = 'undercloud-disk-space.yaml'
 
-    python_interpreter = "/usr/bin/python{}".format(sys.version_info[0])
-    utils.run_ansible_playbook(logger=LOG,
-                               workdir=constants.ANSIBLE_VALIDATION_DIR,
-                               playbook=playbook,
-                               inventory='undercloud,',
-                               retries=False,
-                               connection='local',
-                               output_callback='validation_output',
-                               python_interpreter=python_interpreter)
+    with utils.TempDirs() as tmp:
+        # @matbu: todo: removed this when [1] will be merged
+        # [1] https://review.opendev.org/753845
+        v_consts.VALIDATION_ANSIBLE_ARTIFACT_PATH = "{}/artifacts".format(tmp)
+        actions = ValidationActions()
+        actions.run_validations(
+            inventory='undercloud',
+            log_path=tmp,
+            validations_dir=constants.ANSIBLE_VALIDATION_DIR,
+            validation_name=playbook)
 
 
 def _check_memory():
