@@ -351,6 +351,8 @@ class DeployOvercloud(command.Command):
                     utils.check_ceph_fsid_matches_env_files(stack, env)
         # check migration to new nic config with ansible
         utils.check_nic_config_with_ansible(stack, env)
+        # check migration to service vips managed by servce
+        utils.check_service_vips_migrated_to_service(stack, env)
 
         # FIXME(shardy) It'd be better to validate this via mistral
         # e.g part of the plan create/update workflow
