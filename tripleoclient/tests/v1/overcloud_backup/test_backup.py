@@ -50,6 +50,7 @@ class TestOvercloudBackup(utils.TestCommand):
             playbook='cli-overcloud-backup.yaml',
             inventory=parsed_args.inventory,
             tags='bar_create_recover_image',
+            output_callback='tripleo',
             skip_tags=None,
             verbosity=1,
             extra_vars={}
@@ -72,6 +73,7 @@ class TestOvercloudBackup(utils.TestCommand):
             playbook='prepare-overcloud-backup.yaml',
             inventory=parsed_args.inventory,
             tags='bar_setup_rear',
+            output_callback='tripleo',
             skip_tags=None,
             verbosity=1,
             extra_vars={}
@@ -95,6 +97,7 @@ class TestOvercloudBackup(utils.TestCommand):
             playbook='prepare-nfs-backup.yaml',
             inventory=parsed_args.inventory,
             tags='bar_setup_nfs_server',
+            output_callback='tripleo',
             skip_tags=None,
             verbosity=1,
             extra_vars={}
@@ -117,6 +120,7 @@ class TestOvercloudBackup(utils.TestCommand):
             playbook='prepare-nfs-backup.yaml',
             inventory=parsed_args.inventory,
             tags='bar_setup_nfs_server',
+            output_callback='tripleo',
             skip_tags=None,
             verbosity=1,
             extra_vars={}
@@ -139,6 +143,7 @@ class TestOvercloudBackup(utils.TestCommand):
             playbook='prepare-overcloud-backup.yaml',
             inventory=parsed_args.inventory,
             tags='bar_setup_rear',
+            output_callback='tripleo',
             skip_tags=None,
             verbosity=1,
             extra_vars={}
@@ -164,6 +169,7 @@ class TestOvercloudBackup(utils.TestCommand):
                       playbook='prepare-nfs-backup.yaml',
                       inventory=parsed_args.inventory,
                       tags='bar_setup_nfs_server',
+                      output_callback='tripleo',
                       skip_tags=None,
                       verbosity=1,
                       extra_vars={}),
@@ -171,6 +177,7 @@ class TestOvercloudBackup(utils.TestCommand):
                       workdir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
                       playbook='prepare-overcloud-backup.yaml',
                       inventory=parsed_args.inventory,
+                      output_callback='tripleo',
                       tags='bar_setup_rear',
                       skip_tags=None,
                       verbosity=1,
@@ -201,6 +208,7 @@ class TestOvercloudBackup(utils.TestCommand):
             playbook='prepare-overcloud-backup.yaml',
             inventory=parsed_args.inventory,
             tags='bar_setup_rear',
+            output_callback='tripleo',
             skip_tags=None,
             verbosity=1,
             extra_vars=extra_vars_dict
@@ -225,6 +233,7 @@ class TestOvercloudBackup(utils.TestCommand):
             playbook='prepare-overcloud-backup.yaml',
             inventory=parsed_args.inventory,
             tags='bar_setup_rear',
+            output_callback='tripleo',
             skip_tags=None,
             verbosity=1,
             extra_vars='/tmp/test_vars.yaml'
@@ -249,6 +258,7 @@ class TestOvercloudBackup(utils.TestCommand):
             inventory=parsed_args.inventory,
             tags='bar_create_recover_image',
             skip_tags=None,
+            output_callback='tripleo',
             verbosity=1,
             extra_vars={}
         )

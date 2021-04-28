@@ -130,6 +130,7 @@ class TestUndercloudBackup(utils.TestCommand):
             inventory=mock.ANY,
             tags='bar_create_recover_image',
             skip_tags=None,
+            output_callback='tripleo',
             verbosity=1,
             extra_vars=None
         )
@@ -152,6 +153,7 @@ class TestUndercloudBackup(utils.TestCommand):
             inventory=mock.ANY,
             tags='bar_setup_rear',
             skip_tags=None,
+            output_callback='tripleo',
             verbosity=1,
             extra_vars=None
         )
@@ -174,6 +176,7 @@ class TestUndercloudBackup(utils.TestCommand):
             playbook='prepare-nfs-backup.yaml',
             inventory=mock.ANY,
             tags='bar_setup_nfs_server',
+            output_callback='tripleo',
             skip_tags=None,
             verbosity=1,
             extra_vars=None
@@ -195,6 +198,7 @@ class TestUndercloudBackup(utils.TestCommand):
             workdir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             playbook='prepare-nfs-backup.yaml',
             inventory=mock.ANY,
+            output_callback='tripleo',
             tags='bar_setup_nfs_server',
             skip_tags=None,
             verbosity=1,
@@ -218,6 +222,7 @@ class TestUndercloudBackup(utils.TestCommand):
             playbook='prepare-undercloud-backup.yaml',
             inventory=mock.ANY,
             tags='bar_setup_rear',
+            output_callback='tripleo',
             skip_tags=None,
             verbosity=1,
             extra_vars=None
@@ -248,6 +253,7 @@ class TestUndercloudBackup(utils.TestCommand):
             tags='bar_setup_rear',
             skip_tags=None,
             verbosity=1,
+            output_callback='tripleo',
             extra_vars=extra_vars_dict
             )
 
@@ -272,6 +278,7 @@ class TestUndercloudBackup(utils.TestCommand):
                       inventory=mock.ANY,
                       tags='bar_setup_nfs_server',
                       skip_tags=None,
+                      output_callback='tripleo',
                       verbosity=1,
                       extra_vars=None),
                  call(logger=mock.ANY,
@@ -280,6 +287,7 @@ class TestUndercloudBackup(utils.TestCommand):
                       inventory=mock.ANY,
                       tags='bar_setup_rear',
                       skip_tags=None,
+                      output_callback='tripleo',
                       verbosity=1,
                       extra_vars=None)]
 
@@ -306,6 +314,7 @@ class TestUndercloudBackup(utils.TestCommand):
             tags='bar_setup_nfs_server',
             skip_tags=None,
             verbosity=1,
+            output_callback='tripleo',
             extra_vars='/tmp/test_vars.yaml'
         )
 
@@ -327,6 +336,7 @@ class TestUndercloudBackup(utils.TestCommand):
             playbook='cli-undercloud-backup.yaml',
             inventory=mock.ANY,
             tags='bar_create_recover_image',
+            output_callback='tripleo',
             skip_tags=None,
             verbosity=1,
             extra_vars=None

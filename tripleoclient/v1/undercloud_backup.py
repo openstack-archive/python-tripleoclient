@@ -191,6 +191,7 @@ class BackupUndercloud(command.Command):
              tags=tags,
              skip_tags=skip_tags,
              verbosity=self.app_args.verbose_level,
+             output_callback='tripleo',
              extra_vars=extra_vars
         )
 
