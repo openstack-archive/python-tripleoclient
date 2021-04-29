@@ -54,8 +54,8 @@ class StandaloneConfig(BaseConfig):
     def get_enable_service_opts(self, cinder=False, frr=False, ironic=False,
                                 ironic_inspector=False, mistral=False,
                                 nova=False, novajoin=False, swift=False,
-                                telemetry=False,
-                                validations=False, zaqar=False):
+                                telemetry=False, validations=False,
+                                zaqar=False, neutron=False, heat=False):
         _opts = [
             # service enablement
             cfg.BoolOpt('enable_cinder',
@@ -105,6 +105,13 @@ class StandaloneConfig(BaseConfig):
             cfg.BoolOpt('enable_zaqar',
                         default=zaqar,
                         help=_('Whether to enable the zaqar service.')),
+            cfg.BoolOpt('enable_neutron',
+                        default=neutron,
+                        help=_('Whether to enable the neutron service.')),
+            cfg.BoolOpt('enable_heat',
+                        default=heat,
+                        help=_('Whether to enable the heat service.')),
+
         ]
         return self.sort_opts(_opts)
 
