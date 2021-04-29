@@ -64,20 +64,13 @@ from tenacity import retry
 from tenacity.stop import stop_after_attempt, stop_after_delay
 from tenacity.wait import wait_fixed
 
+from tripleo_common.utils import heat as tc_heat_utils
 from tripleo_common.utils import stack as stack_utils
 from tripleo_common import update
 from tripleoclient import constants
 from tripleoclient import exceptions
 from tripleoclient import export
 from tripleoclient import heat_launcher
-
-try:
-    # TODO(slagle): the try/except can be removed once tripleo_common is
-    # released with
-    # https://review.opendev.org/c/openstack/tripleo-common/+/787819
-    from tripleo_common.utils import heat as tc_heat_utils
-except ImportError:
-    tc_heat_utils = None
 
 
 LOG = logging.getLogger(__name__ + ".utils")
@@ -2584,11 +2577,6 @@ def write_user_environment(env_map, abs_env_path, tht_root,
 
 
 def launch_heat(launcher=None, restore_db=False):
-
-    if not tc_heat_utils:
-        msg = "tripleo-common too old to use ephemeral Heat"
-        LOG.error(msg)
-        raise Exception(msg)
 
     global _local_orchestration_client
     global _heat_pid
