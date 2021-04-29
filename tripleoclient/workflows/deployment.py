@@ -19,6 +19,7 @@ import yaml
 from heatclient.common import event_utils
 from heatclient import exc as heat_exc
 from openstackclient import shell
+from tripleo_common.utils import heat as tc_heat_utils
 from tripleo_common.utils import overcloudrc as rc_utils
 from tripleo_common.utils.safe_import import git
 
@@ -28,13 +29,6 @@ from tripleoclient.constants import DEFAULT_WORK_DIR
 from tripleoclient import exceptions
 from tripleoclient import utils
 
-try:
-    # TODO(slagle): the try/except can be removed once tripleo_common is
-    # released with
-    # https://review.opendev.org/c/openstack/tripleo-common/+/787819
-    from tripleo_common.utils import heat as tc_heat_utils
-except ImportError:
-    tc_heat_utils = None
 
 _WORKFLOW_TIMEOUT = 360  # 6 * 60 seconds
 
