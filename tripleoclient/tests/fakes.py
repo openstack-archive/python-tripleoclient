@@ -216,6 +216,7 @@ class FakeClientWrapper(object):
 
 class FakeRunnerConfig(object):
     env = dict()  # noqa
+    artifact_dir = ''
 
     def prepare(self):
         pass

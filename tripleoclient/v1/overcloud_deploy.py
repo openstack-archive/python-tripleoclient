@@ -1066,7 +1066,8 @@ class DeployOvercloud(command.Command):
             overcloud_endpoint = utils.get_overcloud_endpoint(stack)
             horizon_url = deployment.get_horizon_url(
                 stack=stack.stack_name,
-                heat_type=parsed_args.heat_type)
+                heat_type=parsed_args.heat_type,
+                working_dir=self.working_dir)
             rc_params = utils.get_rc_params(
                 self.orchestration_client,
                 parsed_args.stack)

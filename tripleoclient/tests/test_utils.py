@@ -63,6 +63,8 @@ class TestRunAnsiblePlaybook(TestCase):
                 'overcloud'
             )
         )
+        ansible_runner.Runner.stdout = mock.MagicMock()
+        ansible_runner.Runner.stdout.read = mock.MagicMock(return_value='')
 
     def tearDown(self):
         utils.constants.DEFAULT_WORK_DIR = self.orig_workdir

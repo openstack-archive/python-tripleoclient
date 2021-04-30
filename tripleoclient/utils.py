@@ -373,7 +373,7 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
                 )
             return ansible_runner.utils.dump_artifact(
                 inventory,
-                ansible_artifact_path,
+                workdir,
                 constants.ANSIBLE_HOSTS_FILENAME
             )
 
@@ -708,6 +708,14 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
             _log_path = r_opts['envvars']['ANSIBLE_LOG_PATH']
             if os.path.isfile(_log_path):
                 os.chown(_log_path, get_uid, -1)
+            # Save files we care about
+            with open(os.path.join(workdir, 'stdout'), 'w') as f:
+                f.write(runner.stdout.read())
+            for output in 'status', 'rc':
+                val = getattr(runner, output)
+                if val:
+                    with open(os.path.join(workdir, output), 'w') as f:
+                        f.write(str(val))
 
     if rc != 0:
         err_msg = (
