@@ -3,6 +3,7 @@
 
 xfsprogs [platform:rpm test]
 qemu-img [platform:rpm test]
+dosfstools [platform:rpm test]
 libffi-dev [platform:dpkg]
 libffi-devel [platform:rpm]
 libssl-dev [platform:dpkg test]
