@@ -1060,7 +1060,7 @@ class Deploy(command.Command):
                    'The ephemeral Heat can be used by openstackclient with:\n'
                    'OS_AUTH_TYPE=none '
                    'OS_ENDPOINT=http://127.0.0.1:8006/v1/admin '
-                   'openstack stack list\n '
+                   'openstack stack list\n'
                    'where 8006 is the port specified by --heat-api-port.')
         )
         parser.add_argument(
