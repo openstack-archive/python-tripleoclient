@@ -175,7 +175,7 @@ class ValidateOvercloudNetenv(command.Command):
         # no bonds.
         for item in nic_data['resources']:
             bridges = nic_data['resources'][item]['properties']['config'][
-                'os_net_config']['network_config']
+                'str_replace']['params']['$network_config']['network_config']
             for bridge in bridges:
                 if bridge['type'] == 'ovs_bridge':
                     bond_count = 0
