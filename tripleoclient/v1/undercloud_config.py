@@ -15,12 +15,12 @@
 
 """Plugin action implementation"""
 
-import json
 import logging
 import netaddr
 import os
 import shutil
 import sys
+import yaml
 
 from cryptography import x509
 
@@ -782,9 +782,9 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
             os.path.split(data_file)[-1]).render(context).replace(
                 "'", '"').replace('&quot;', '"')
         try:
-            net_config_json = json.loads(net_config_str)
+            net_config_json = yaml.safe_load(net_config_str)
         except ValueError:
-            net_config_json = json.loads("{%s}" % net_config_str)
+            net_config_json = yaml.safe_load("{%s}" % net_config_str)
 
         if 'network_config' not in net_config_json:
             msg = ('Unsupported data format in net_config_override '
