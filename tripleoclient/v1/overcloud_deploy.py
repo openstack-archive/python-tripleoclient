@@ -253,9 +253,20 @@ class DeployOvercloud(command.Command):
         created_env_files = []
         created_env_files.append(
             os.path.join(new_tht_root, constants.DEFAULT_RESOURCE_REGISTRY))
+
         if parsed_args.environment_directories:
             created_env_files.extend(utils.load_environment_directories(
                 parsed_args.environment_directories))
+
+        if parsed_args.deployed_server:
+            created_env_files.append(
+                os.path.join(
+                    new_tht_root,
+                    constants.DEPLOYED_SERVER_ENVIRONMENT))
+
+        if parsed_args.environment_files:
+            created_env_files.extend(parsed_args.environment_files)
+
         created_env_files.extend(
             self._provision_baremetal(parsed_args, new_tht_root))
 
@@ -269,7 +280,6 @@ class DeployOvercloud(command.Command):
             image_params = kolla_builder.container_images_prepare_multi(
                 env, roles.get_roles_data(parsed_args.roles_file,
                                           new_tht_root), dry_run=True)
-
         parameters = {}
         if image_params:
             default_image_params.update(image_params)
@@ -294,15 +304,6 @@ class DeployOvercloud(command.Command):
         param_env = utils.create_parameters_env(
             parameters, new_tht_root, parsed_args.stack)
         created_env_files.extend(param_env)
-
-        if parsed_args.deployed_server:
-            created_env_files.append(
-                os.path.join(
-                    new_tht_root,
-                    constants.DEPLOYED_SERVER_ENVIRONMENT))
-
-        if parsed_args.environment_files:
-            created_env_files.extend(parsed_args.environment_files)
 
         deployment_options = {}
         if parsed_args.deployment_python_interpreter:
