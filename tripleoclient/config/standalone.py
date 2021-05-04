@@ -147,7 +147,7 @@ class StandaloneConfig(BaseConfig):
                        help=_(
                            'Path to network config override template. '
                            'Relative paths get computed inside of $HOME. '
-                           'Must be in the json format. '
+                           'Must be in the json or yaml format. '
                            'Its content overrides anything in '
                            '<role>NetConfigOverride. The processed '
                            'template is then passed in Heat via the '
