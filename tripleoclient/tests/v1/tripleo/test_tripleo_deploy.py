@@ -20,6 +20,8 @@ import tempfile
 import yaml
 
 from heatclient import exc as hc_exc
+
+from tripleoclient import constants
 from tripleoclient import exceptions
 from tripleoclient.tests import fakes
 from tripleoclient.tests.v1.test_plugin import TestPluginV1
@@ -231,7 +233,14 @@ class TestDeployUndercloud(TestPluginV1):
             self.temp_homedir, 'tripleo-undercloud-passwords.yaml')
 
         mock_pw.return_value = pw_dict
-        mock_exists.return_value = True
+
+        old_pw_file = os.path.join(constants.CLOUD_HOME_DIR,
+                                   'tripleo-undercloud-passwords.yaml')
+
+        def mock_file_exists(file_name):
+            return not file_name == old_pw_file
+        mock_exists.side_effect = mock_file_exists
+
         with open(t_pw_conf_path, 'w') as t_pw:
             t_pw.write('parameter_defaults: {ExistingKey: xyz, '
                        'LegacyPass: pick-me-legacy-tht, '
@@ -276,8 +285,12 @@ class TestDeployUndercloud(TestPluginV1):
 
         mock_pw.return_value = pw_dict
 
+        old_pw_file = os.path.join(constants.CLOUD_HOME_DIR,
+                                   'tripleo-undercloud-passwords.yaml')
+
         def mock_file_exists(file_name):
-            return not file_name.startswith('/etc/keystone')
+            return not (file_name.startswith('/etc/keystone') or
+                        file_name == old_pw_file)
         mock_exists.side_effect = mock_file_exists
         with open(t_pw_conf_path, 'w') as t_pw:
             t_pw.write('parameter_defaults: {ExistingKey: xyz, '
