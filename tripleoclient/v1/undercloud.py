@@ -205,26 +205,6 @@ class UpgradeUndercloud(InstallUndercloud):
             self.log.warning("Would update necessary packages: {}".format(
                 " ".join(cmd)))
 
-    def _invoke_self(self, parsed_args):
-        cmd = ['openstack', 'undercloud', 'upgrade', '--skip-package-updates']
-        opts = {'force_stack_update': '--force-stack-update',
-                'no_validations': '--no-validations',
-                'inflight': '--inflight-validations',
-                'dry_run': '--dry-run',
-                'yes': '--yes'}
-        args = vars(parsed_args)
-        for k, v in opts.items():
-            if args[k]:
-                cmd.append(v)
-        # handle --debug
-        if self.app_args.verbose_level > 1:
-            cmd.append('--debug')
-        try:
-            subprocess.check_call(cmd)
-        except Exception as e:
-            self.log.error(e)
-            raise exceptions.DeploymentError(e)
-
     def _run_upgrade(self, parsed_args):
         cmd = undercloud_config.\
             prepare_undercloud_deploy(
@@ -235,21 +215,19 @@ class UpgradeUndercloud(InstallUndercloud):
                 verbose_level=self.app_args.verbose_level,
                 force_stack_update=parsed_args.force_stack_update)
         self.log.warning("Running: %s" % ' '.join(cmd))
-
-        if not parsed_args.dry_run:
-            try:
-                subprocess.check_call(cmd)
-                self.log.warning(
-                    UNDERCLOUD_UPGRADE_COMPLETION_MESSAGE.format(
-                        os.path.join(
-                            constants.UNDERCLOUD_OUTPUT_DIR,
-                            'undercloud-passwords.conf'
-                        ),
-                        '~/stackrc'))
-            except Exception as e:
-                self.log.error(UNDERCLOUD_FAILURE_MESSAGE)
-                self.log.error(e)
-                raise exceptions.DeploymentError(e)
+        try:
+            subprocess.check_call(cmd)
+            self.log.warning(
+                UNDERCLOUD_UPGRADE_COMPLETION_MESSAGE.format(
+                    os.path.join(
+                        constants.UNDERCLOUD_OUTPUT_DIR,
+                        'undercloud-passwords.conf'
+                    ),
+                    '~/stackrc'))
+        except Exception as e:
+            self.log.error(UNDERCLOUD_FAILURE_MESSAGE)
+            self.log.error(e)
+            raise exceptions.DeploymentError(e)
 
     def take_action(self, parsed_args):
         # Fetch configuration used to add logging to a file
@@ -276,6 +254,6 @@ class UpgradeUndercloud(InstallUndercloud):
             ]
             pkgs = client_pkgs + constants.UNDERCLOUD_EXTRA_PACKAGES
             self._update_extra_packages(pkgs, parsed_args.dry_run)
-            self._invoke_self(parsed_args)
-        else:
+
+        if not parsed_args.dry_run:
             self._run_upgrade(parsed_args)
