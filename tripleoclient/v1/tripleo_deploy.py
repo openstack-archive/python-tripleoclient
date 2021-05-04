@@ -277,6 +277,8 @@ class Deploy(command.Command):
 
     def _update_passwords_env(self, output_dir, user, upgrade=None,
                               passwords=None, stack_name='undercloud'):
+        old_pw_file = os.path.join(constants.CLOUD_HOME_DIR,
+                                   'tripleo-' + stack_name + '-passwords.yaml')
         pw_file = os.path.join(output_dir,
                                'tripleo-' + stack_name + '-passwords.yaml')
         undercloud_pw_file = os.path.join(output_dir,
@@ -287,10 +289,22 @@ class Deploy(command.Command):
         stack_env = {'parameter_defaults': {}}
         stack_env['parameter_defaults'] = password_utils.generate_passwords(
             stack_env=stack_env)
+        # Check for the existence of a passwords file in the old location.
+        if os.path.exists(old_pw_file):
+            self.log.warning("Migrating {} to {}.".format(
+                old_pw_file, pw_file))
+            try:
+                os.rename(old_pw_file, pw_file)
+            except Exception as e:
+                self.log.error("Error moving {} to {}".format(
+                    old_pw_file, pw_file))
+                self.log.error(e)
+                raise e
         if os.path.exists(pw_file):
             with open(pw_file) as pf:
                 stack_env['parameter_defaults'].update(
                     yaml.safe_load(pf.read())['parameter_defaults'])
+            self.log.warning("Reading passwords from %s" % pw_file)
 
         if upgrade:
             # Getting passwords that were managed by instack-undercloud so
