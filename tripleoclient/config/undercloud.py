@@ -72,7 +72,7 @@ class UndercloudConfig(StandaloneConfig):
     def get_undercloud_service_opts(self):
         return super(UndercloudConfig, self).get_enable_service_opts(
             cinder=False,
-            heat=True,
+            heat=False,
             ironic=True,
             ironic_inspector=True,
             mistral=False,

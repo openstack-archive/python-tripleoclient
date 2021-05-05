@@ -91,7 +91,8 @@ def deploy_without_plan(clients, stack, stack_name, template,
     create_result = utils.wait_for_stack_ready(
         orchestration_client, stack_name, marker, action)
     if not create_result:
-        shell.OpenStackShell().run(["stack", "failures", "list", stack_name])
+        shell.OpenStackShell().run(
+            ["stack", "failures", "list", '--long', stack_name])
         set_deployment_status(
             stack_name,
             status='DEPLOY_FAILED',
