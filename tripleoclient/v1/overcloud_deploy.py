@@ -199,7 +199,7 @@ class DeployOvercloud(command.Command):
                     'be ignored because --limit has been specified.')
             self.log.warning(msg)
 
-    def _heat_deploy(self, stack, stack_name, template_path, parameters,
+    def _heat_deploy(self, stack, stack_name, template_path,
                      env_files, timeout, tht_root, env,
                      run_validations,
                      roles_file,
@@ -247,56 +247,42 @@ class DeployOvercloud(command.Command):
                                  new_tht_root)
         return new_tht_root, tht_root
 
-    def create_params_and_env_files(self, new_tht_root, user_tht_root,
-                                    parsed_args):
+    def build_image_params(self, env_files, parsed_args,
+                           new_tht_root, user_tht_root):
+        image_params = plan_utils.default_image_params()
+        if not parsed_args.disable_container_prepare:
+            if parsed_args.environment_directories:
+                env_files.extend(utils.load_environment_directories(
+                    parsed_args.environment_directories))
+
+            if parsed_args.environment_files:
+                env_files.extend(parsed_args.environment_files)
+
+            _, env = utils.process_multiple_environments(
+                env_files, new_tht_root, user_tht_root,
+                cleanup=(not parsed_args.no_cleanup))
+
+            updated_params = kolla_builder.container_images_prepare_multi(
+                env, roles.get_roles_data(parsed_args.roles_file,
+                                          new_tht_root), dry_run=True)
+            if updated_params:
+                image_params.update(updated_params)
+
+        return image_params
+
+    def create_env_files(self, stack, parsed_args,
+                         new_tht_root, user_tht_root):
         self.log.debug("Creating Environment files")
         created_env_files = []
+
         created_env_files.append(
             os.path.join(new_tht_root, constants.DEFAULT_RESOURCE_REGISTRY))
 
-        if parsed_args.environment_directories:
-            created_env_files.extend(utils.load_environment_directories(
-                parsed_args.environment_directories))
-
-        if parsed_args.deployed_server:
-            created_env_files.append(
-                os.path.join(
-                    new_tht_root,
-                    constants.DEPLOYED_SERVER_ENVIRONMENT))
-
-        if parsed_args.environment_files:
-            created_env_files.extend(parsed_args.environment_files)
-
-        created_env_files.extend(
-            self._provision_baremetal(parsed_args, new_tht_root))
-
-        _, env = utils.process_multiple_environments(
-            created_env_files, new_tht_root, user_tht_root,
-            cleanup=(not parsed_args.no_cleanup))
-
-        default_image_params = plan_utils.default_image_params()
-        image_params = {}
-        if not parsed_args.disable_container_prepare:
-            image_params = kolla_builder.container_images_prepare_multi(
-                env, roles.get_roles_data(parsed_args.roles_file,
-                                          new_tht_root), dry_run=True)
-        parameters = {}
-        if image_params:
-            default_image_params.update(image_params)
-        parameters.update(default_image_params)
+        parameters = self.build_image_params(
+            created_env_files, parsed_args, new_tht_root, user_tht_root)
 
         self._update_parameters(
             parsed_args, parameters, new_tht_root, user_tht_root)
-
-        return parameters, created_env_files
-
-    def deploy_tripleo_heat_templates(self, stack, parsed_args,
-                                      new_tht_root, user_tht_root,
-                                      parameters, created_env_files):
-        """Deploy the fixed templates in TripleO Heat Templates"""
-
-        self.log.info("Processing templates in the directory {0}".format(
-            os.path.abspath(new_tht_root)))
 
         stack_is_new = stack is None
         parameters['StackAction'] = 'CREATE' if stack_is_new else 'UPDATE'
@@ -305,15 +291,41 @@ class DeployOvercloud(command.Command):
             parameters, new_tht_root, parsed_args.stack)
         created_env_files.extend(param_env)
 
-        deployment_options = {}
-        if parsed_args.deployment_python_interpreter:
-            deployment_options['ansible_python_interpreter'] = \
-                parsed_args.deployment_python_interpreter
-
         if stack:
             env_path = utils.create_breakpoint_cleanup_env(
                 new_tht_root, parsed_args.stack)
             created_env_files.extend(env_path)
+
+        if parsed_args.deployed_server:
+            created_env_files.append(
+                os.path.join(
+                    new_tht_root,
+                    constants.DEPLOYED_SERVER_ENVIRONMENT))
+
+        created_env_files.extend(
+            self._provision_baremetal(parsed_args, new_tht_root))
+
+        if parsed_args.environment_directories:
+            created_env_files.extend(utils.load_environment_directories(
+                parsed_args.environment_directories))
+
+        if parsed_args.environment_files:
+            created_env_files.extend(parsed_args.environment_files)
+
+        return created_env_files
+
+    def deploy_tripleo_heat_templates(self, stack, parsed_args,
+                                      new_tht_root, user_tht_root,
+                                      created_env_files):
+        """Deploy the fixed templates in TripleO Heat Templates"""
+
+        self.log.info("Processing templates in the directory {0}".format(
+            os.path.abspath(new_tht_root)))
+
+        deployment_options = {}
+        if parsed_args.deployment_python_interpreter:
+            deployment_options['ansible_python_interpreter'] = \
+                parsed_args.deployment_python_interpreter
 
         self.log.debug("Processing environment files %s" % created_env_files)
         env_files_tracker = []
@@ -369,19 +381,13 @@ class DeployOvercloud(command.Command):
         # check migration to service vips managed by servce
         utils.check_service_vips_migrated_to_service(stack, env)
 
-        # FIXME(shardy) It'd be better to validate this via mistral
-        # e.g part of the plan create/update workflow
-        number_controllers = int(parameters.get('ControllerCount', 0))
-        if number_controllers > 1:
-            if not env.get('parameter_defaults').get('NtpServer'):
-                raise exceptions.InvalidConfiguration(
-                    'Specify --ntp-server as parameter or NtpServer in '
-                    'environments when using multiple controllers '
-                    '(with HA).')
+        if parsed_args.heat_type != 'installed':
+            self.setup_ephemeral_heat(
+                parsed_args, env.get('parameter_defaults'))
 
         self._try_overcloud_deploy_with_compat_yaml(
             new_tht_root, stack,
-            parsed_args.stack, parameters, env_files,
+            parsed_args.stack, env_files,
             parsed_args.timeout, env,
             parsed_args.run_validations,
             parsed_args.roles_file,
@@ -409,7 +415,7 @@ class DeployOvercloud(command.Command):
             utils.safe_write(reloc_path, files_dict[fullpath])
 
     def _try_overcloud_deploy_with_compat_yaml(self, tht_root, stack,
-                                               stack_name, parameters,
+                                               stack_name,
                                                env_files, timeout,
                                                env, run_validations,
                                                roles_file,
@@ -418,7 +424,7 @@ class DeployOvercloud(command.Command):
         overcloud_yaml = os.path.join(tht_root, constants.OVERCLOUD_YAML_NAME)
         try:
             self._heat_deploy(stack, stack_name, overcloud_yaml,
-                              parameters, env_files, timeout,
+                              env_files, timeout,
                               tht_root, env,
                               run_validations,
                               roles_file,
@@ -589,6 +595,27 @@ class DeployOvercloud(command.Command):
                     "prompt": False,
                 }
             )
+
+    def setup_ephemeral_heat(self, parsed_args, parameters):
+        self.log.info("Using tripleo-deploy with "
+                      "ephemeral heat-all for stack operation")
+        api_container_image = parameters['ContainerHeatApiImage']
+        engine_container_image = \
+            parameters['ContainerHeatEngineImage']
+        restore_db = (parsed_args.setup_only or
+                      parsed_args.config_download_only)
+        self.heat_launcher = utils.get_heat_launcher(
+            parsed_args.heat_type,
+            api_container_image=api_container_image,
+            engine_container_image=engine_container_image,
+            heat_dir=os.path.join(self.working_dir,
+                                  'heat-launcher'),
+            use_tmp_dir=False,
+            rm_heat=parsed_args.rm_heat,
+            skip_heat_pull=parsed_args.skip_heat_pull)
+        self.orchestration_client = \
+            utils.launch_heat(self.heat_launcher, restore_db=restore_db)
+        self.clients.orchestration = self.orchestration_client
 
     def get_parser(self, prog_name):
         # add_help doesn't work properly, set it to False:
@@ -1004,50 +1031,29 @@ class DeployOvercloud(command.Command):
         stack_create = None
         start = time.time()
 
+        if parsed_args.heat_type == 'installed':
+            stack = utils.get_stack(self.orchestration_client,
+                                    parsed_args.stack)
+
+            stack_create = stack is None
+            if stack_create:
+                self.log.info("No stack found, "
+                              "will be doing a stack create")
+            else:
+                self.log.info("Stack found, "
+                              "will be doing a stack update")
+
         new_tht_root, user_tht_root = \
             self.create_template_dirs(parsed_args)
-        parameters, created_env_files = \
-            self.create_params_and_env_files(
-                new_tht_root, user_tht_root, parsed_args)
-
-        if parsed_args.heat_type != 'installed':
-            self.log.info("Using tripleo-deploy with "
-                          "ephemeral heat-all for stack operation")
-            api_container_image = parameters['ContainerHeatApiImage']
-            engine_container_image = \
-                parameters['ContainerHeatEngineImage']
-            restore_db = (parsed_args.setup_only or
-                          parsed_args.config_download_only)
-            self.heat_launcher = utils.get_heat_launcher(
-                parsed_args.heat_type,
-                api_container_image=api_container_image,
-                engine_container_image=engine_container_image,
-                heat_dir=os.path.join(self.working_dir,
-                                      'heat-launcher'),
-                use_tmp_dir=False,
-                rm_heat=parsed_args.rm_heat,
-                skip_heat_pull=parsed_args.skip_heat_pull)
-            self.orchestration_client = \
-                utils.launch_heat(self.heat_launcher, restore_db=restore_db)
-            self.clients.orchestration = self.orchestration_client
+        created_env_files = self.create_env_files(
+                stack, parsed_args, new_tht_root, user_tht_root)
 
         try:
-            if parsed_args.heat_type == 'installed':
-                stack = utils.get_stack(self.orchestration_client,
-                                        parsed_args.stack)
-
-                stack_create = stack is None
-                if stack_create:
-                    self.log.info("No stack found, "
-                                  "will be doing a stack create")
-                else:
-                    self.log.info("Stack found, "
-                                  "will be doing a stack update")
             if not (parsed_args.config_download_only or
                     parsed_args.setup_only):
                 self.deploy_tripleo_heat_templates(
-                    stack, parsed_args, new_tht_root, user_tht_root,
-                    parameters, created_env_files)
+                    stack, parsed_args, new_tht_root,
+                    user_tht_root, created_env_files)
         except Exception:
             if parsed_args.heat_type != 'installed' and self.heat_launcher:
                 self.log.info("Stopping ephemeral heat.")
