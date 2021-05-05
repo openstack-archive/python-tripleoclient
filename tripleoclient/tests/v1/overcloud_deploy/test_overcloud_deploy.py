@@ -115,7 +115,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.check_service_vips_migrated_to_service')
     @mock.patch('tripleoclient.utils.build_stack_data', autospec=True)
     @mock.patch('tripleo_common.utils.plan.default_image_params',
-                autospec=True)
+                autospec=True, return_value={})
     @mock.patch('tripleoclient.utils.get_rc_params',
                 autospec=True)
     @mock.patch('tripleo_common.utils.plan.generate_passwords',
@@ -165,9 +165,11 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         orchestration_client.stacks.get.return_value = mock_stack
         utils_fixture = deployment.UtilsFixture()
         self.useFixture(utils_fixture)
-        arglist = ['--templates']
+        arglist = ['--templates',
+                   '--heat-type', 'installed']
         verifylist = [
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
+            ('heat_type', 'installed'),
         ]
 
         clients = self.app.client_manager
@@ -283,9 +285,11 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.useFixture(utils_fixture)
         utils_overcloud_fixture = deployment.UtilsOvercloudFixture()
         self.useFixture(utils_overcloud_fixture)
-        arglist = ['--templates', '--no-cleanup']
+        arglist = ['--templates', '--no-cleanup',
+                   '--heat-type', 'installed']
         verifylist = [
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
+            ('heat_type', 'installed'),
         ]
         mock_stack_data.return_value = {'environment_parameters': {},
                                         'heat_resource_tree': {}}
@@ -412,7 +416,13 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         }
         mock_get_template_contents.return_value = [{}, "template"]
 
-        mock_process_env.return_value = {}, {}
+        mock_env = {}
+        mock_env['parameter_defaults'] = {}
+        mock_env['parameter_defaults']['ContainerHeatApiImage'] = \
+            'container-heat-api-image'
+        mock_env['parameter_defaults']['ContainerHeatEngineImage'] = \
+            'container-heat-engine-image'
+        mock_process_env.return_value = {}, mock_env
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         baremetal = clients.baremetal
@@ -474,9 +484,11 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         utils_fixture = deployment.UtilsFixture()
         self.useFixture(utils_fixture)
 
-        arglist = ['--templates', '/home/stack/tripleo-heat-templates']
+        arglist = ['--templates', '/home/stack/tripleo-heat-templates',
+                   '--heat-type', 'installed']
         verifylist = [
             ('templates', '/home/stack/tripleo-heat-templates'),
+            ('heat_type', 'installed'),
         ]
 
         clients = self.app.client_manager
@@ -561,6 +573,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.useFixture(fixture)
         utils_overcloud_fixture = deployment.UtilsOvercloudFixture()
         self.useFixture(utils_overcloud_fixture)
+        utils_fixture = deployment.UtilsFixture()
+        self.useFixture(utils_fixture)
 
         clients = self.app.client_manager
         clients = self.app.client_manager
@@ -579,6 +593,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                    'Test': 'OS::Heat::None',
                    'resources': {'*': {'*': {
                        'UpdateDeployment': {'hooks': []}}}}}}
+        env['parameter_defaults']['ContainerHeatApiImage'] = \
+            'container-heat-api-image'
+        env['parameter_defaults']['ContainerHeatEngineImage'] = \
+            'container-heat-engine-image'
 
         mock_process_env.return_value = {}, env
         with open(test_env, 'w') as temp_file:
@@ -600,7 +618,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                               env_files_tracker=None,
                               deployment_options=None):
             assertEqual(
-                {'parameter_defaults': {},
+                {'parameter_defaults': {
+                     'ContainerHeatApiImage': 'container-heat-api-image',
+                     'ContainerHeatEngineImage': 'container-heat-engine-image',
+                  },
                  'resource_registry': {
                      'Test': 'OS::Heat::None',
                      'resources': {'*': {'*': {
@@ -609,7 +630,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_rc_params.return_value = {'password': 'password',
                                        'region': 'region1'}
         mock_deploy_heat.side_effect = _fake_heat_deploy
-        mock_create_env.return_value = []
+        mock_create_env.return_value = {}
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         self.cmd.take_action(parsed_args)
         mock_copy.assert_called_once()
@@ -776,7 +797,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         orchestration_client = clients.orchestration
         mock_stack = fakes.create_tht_stack()
         orchestration_client.stacks.get.return_value = mock_stack
-        utils_fixture = deployment.UtilsOvercloudFixture()
+        utils_oc_fixture = deployment.UtilsOvercloudFixture()
+        self.useFixture(utils_oc_fixture)
+        utils_fixture = deployment.UtilsFixture()
         self.useFixture(utils_fixture)
 
         clients = self.app.client_manager
@@ -828,7 +851,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.cmd.take_action(parsed_args)
 
         self.assertTrue(mock_heat_deploy.called)
-        self.assertTrue(utils_fixture.mock_deploy_tht.called)
+        self.assertTrue(utils_oc_fixture.mock_deploy_tht.called)
 
         # Check that Heat was called with correct parameters:
         call_args = mock_heat_deploy.call_args[0]
@@ -840,7 +863,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertIn('Test', call_args[7]['resource_registry'])
         self.assertIn('Test2', call_args[7]['resource_registry'])
 
-        utils_fixture.mock_deploy_tht.assert_called_with(
+        utils_oc_fixture.mock_deploy_tht.assert_called_with(
             output_dir=self.cmd.working_dir)
         mock_copy.assert_called_once()
 
@@ -848,7 +871,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 '_provision_networks', autospec=True)
     @mock.patch('tripleoclient.utils.build_stack_data', autospec=True)
     @mock.patch('tripleo_common.utils.plan.default_image_params',
-                autospec=True)
+                autospec=True,
+                return_value=dict(
+                    ContainerHeatApiImage='container-heat-api-image',
+                    ContainerHeatEngineImage='container-heat-engine-image'))
     @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
     @mock.patch('tripleo_common.utils.plan.generate_passwords',
                 return_value={})
@@ -924,6 +950,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             "id": "network id"
         }
         mock_env = fakes.create_env_with_ntp()
+        mock_env['parameter_defaults']['ContainerHeatApiImage'] = \
+            'container-heat-api-image'
+        mock_env['parameter_defaults']['ContainerHeatEngineImage'] = \
+            'container-heat-engine-image'
         mock_process_env.return_value = [{}, mock_env]
         mock_get_template_contents.return_value = [{}, "template"]
 
@@ -953,6 +983,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 '192.168.0.1 uc.ctlplane.localhost uc.ctlplane'
             ],
             'CtlplaneNetworkAttributes': {},
+            'ContainerHeatApiImage': 'container-heat-api-image',
+            'ContainerHeatEngineImage': 'container-heat-engine-image',
         }
 
         def _custom_create_params_env(parameters, tht_root,
@@ -988,7 +1020,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                              mock_copy, mock_rc_params):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
-        utils_fixture = deployment.UtilsOvercloudFixture()
+        utils_oc_fixture = deployment.UtilsOvercloudFixture()
+        self.useFixture(utils_oc_fixture)
+        utils_fixture = deployment.UtilsFixture()
         self.useFixture(utils_fixture)
         arglist = ['--templates', '--deployed-server', '--disable-validations']
         verifylist = [
@@ -1004,13 +1038,16 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         clients.compute = mock.Mock()
         orchestration_client = clients.orchestration
         orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
-        mock_create_env.return_value = ({}, [])
+        mock_create_env.return_value = (
+            dict(ContainerHeatApiImage='container-heat-api-image',
+                 ContainerHeatEngineImage='container-heat-engine-image'),
+            [])
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         self.cmd.take_action(parsed_args)
         self.assertTrue(mock_deploy.called)
         self.assertNotCalled(clients.baremetal)
         self.assertNotCalled(clients.compute)
-        self.assertTrue(utils_fixture.mock_deploy_tht.called)
+        self.assertTrue(utils_oc_fixture.mock_deploy_tht.called)
         mock_copy.assert_called_once()
 
     @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
@@ -1027,7 +1064,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mock_copy, mock_rc_params):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
-        utils_fixture = deployment.UtilsOvercloudFixture()
+        utils_oc_fixture = deployment.UtilsOvercloudFixture()
+        self.useFixture(utils_oc_fixture)
+        utils_fixture = deployment.UtilsFixture()
         self.useFixture(utils_fixture)
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
@@ -1041,7 +1080,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         mock_rc_params.return_value = {'password': 'password',
                                        'region': 'region1'}
-        mock_create_env.return_value = ({}, [])
+        mock_create_env.return_value = (
+            dict(ContainerHeatApiImage='container-heat-api-image',
+                 ContainerHeatEngineImage='container-heat-engine-image'),
+            [])
         self.cmd.take_action(parsed_args)
         self.assertTrue(mock_deploy.called)
         self.assertTrue(fixture.mock_get_hosts_and_enable_ssh_admin.called)
@@ -1067,12 +1109,18 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mock_copy, mock_rc_params):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
-        utils_fixture = deployment.UtilsOvercloudFixture()
+        utils_oc_fixture = deployment.UtilsOvercloudFixture()
+        self.useFixture(utils_oc_fixture)
+        utils_fixture = deployment.UtilsFixture()
         self.useFixture(utils_fixture)
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
         orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
         mock_create_env.return_value = ({}, [])
+        mock_create_env.return_value = (
+            dict(ContainerHeatApiImage='container-heat-api-image',
+                 ContainerHeatEngineImage='container-heat-engine-image'),
+            [])
 
         arglist = ['--templates', '--config-download', '--setup-only']
         verifylist = [
@@ -1107,12 +1155,17 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mock_create_parameters_env):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
-        utils_fixture = deployment.UtilsOvercloudFixture()
+        utils_oc_fixture = deployment.UtilsOvercloudFixture()
+        self.useFixture(utils_oc_fixture)
+        utils_fixture = deployment.UtilsFixture()
         self.useFixture(utils_fixture)
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
         orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
-        mock_create_parameters_env.return_value = (mock.Mock(), mock.Mock())
+        mock_create_parameters_env.return_value = (
+            dict(ContainerHeatApiImage='container-heat-api-image',
+                 ContainerHeatEngineImage='container-heat-engine-image'),
+            [])
 
         arglist = ['--templates', '--config-download-only']
         verifylist = [
@@ -1153,10 +1206,15 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mock_create_parameters_env):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
+        utils_fixture = deployment.UtilsFixture()
+        self.useFixture(utils_fixture)
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
         orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
-        mock_create_parameters_env.return_value = (mock.Mock(), mock.Mock())
+        mock_create_parameters_env.return_value = (
+            dict(ContainerHeatApiImage='container-heat-api-image',
+                 ContainerHeatEngineImage='container-heat-engine-image'),
+            [])
 
         arglist = ['--templates', '--config-download-only']
         verifylist = [
@@ -1194,7 +1252,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mock_copy, mock_rc_params):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
-        utils_fixture = deployment.UtilsOvercloudFixture()
+        utils_oc_fixture = deployment.UtilsOvercloudFixture()
+        self.useFixture(utils_oc_fixture)
+        utils_fixture = deployment.UtilsFixture()
         self.useFixture(utils_fixture)
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
@@ -1210,7 +1270,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_rc_params.return_value = {'password': 'password',
                                        'region': 'region1'}
 
-        mock_create_env.return_value = ({}, [])
+        mock_create_env.return_value = (
+            dict(ContainerHeatApiImage='container-heat-api-image',
+                 ContainerHeatEngineImage='container-heat-engine-image'),
+            [])
         self.cmd.take_action(parsed_args)
         self.assertTrue(fixture.mock_get_hosts_and_enable_ssh_admin.called)
         self.assertTrue(fixture.mock_config_download.called)
@@ -1255,7 +1318,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mock_create_parameters_env):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
-        utils_fixture = deployment.UtilsOvercloudFixture()
+        utils_oc_fixture = deployment.UtilsOvercloudFixture()
+        self.useFixture(utils_oc_fixture)
+        utils_fixture = deployment.UtilsFixture()
         self.useFixture(utils_fixture)
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
@@ -1268,7 +1333,14 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
             ('overcloud_ssh_port_timeout', 42), ('timeout', 451)
         ]
-        mock_process_env.return_value = {}, {}
+
+        mock_env = {}
+        mock_env['parameter_defaults'] = {}
+        mock_env['parameter_defaults']['ContainerHeatApiImage'] = \
+            'container-heat-api-image'
+        mock_env['parameter_defaults']['ContainerHeatEngineImage'] = \
+            'container-heat-engine-image'
+        mock_process_env.return_value = {}, mock_env
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         mock_rc_params.return_value = {'password': 'password',
@@ -1276,12 +1348,19 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         # assuming heat deploy consumed a 3m out of total 451m timeout
         with mock.patch('time.time', side_effect=[1585820346,
                                                   12345678, 0, 0,
-                                                  1585820526]):
+                                                  1585820526, 0]):
             self.cmd.take_action(parsed_args)
-        self.assertIn(
-            [mock.call(mock.ANY, mock.ANY, 'overcloud', mock.ANY,
-                       mock.ANY, 451, mock.ANY, mock.ANY, False, None,
-                       deployment_options={}, env_files_tracker=mock.ANY)],
+        self.assertIn([
+            mock.call(
+                mock.ANY, mock.ANY, 'overcloud', mock.ANY,
+                mock.ANY, 451, mock.ANY,
+                {'parameter_defaults': {
+                    'ContainerHeatApiImage': 'container-heat-api-image',
+                    'ContainerHeatEngineImage':
+                        'container-heat-engine-image'}},
+                False, None,
+                env_files_tracker=mock.ANY,
+                deployment_options={})],
             mock_hd.mock_calls)
         self.assertIn(
             [mock.call(mock.ANY, mock.ANY, mock.ANY, 'ctlplane',
@@ -1298,6 +1377,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         fixture.mock_config_download.assert_called()
         mock_copy.assert_called_once()
 
+    @mock.patch('tripleoclient.workflows.deployment.create_overcloudrc',
+                autospec=True)
     @mock.patch('tripleoclient.workflows.deployment.make_config_download_dir')
     @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
@@ -1312,7 +1393,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_config_download_only_timeout(
             self, mock_deploy, mock_create_env,
             mock_get_undercloud_host_entry, mock_update,
-            mock_copyi, mock_rc_params, mock_cd_dir):
+            mock_copyi, mock_rc_params, mock_cd_dir,
+            mock_create_overcloudrc):
         utils_fixture = deployment.UtilsOvercloudFixture()
         self.useFixture(utils_fixture)
         utils_fixture2 = deployment.UtilsFixture()
@@ -1323,6 +1405,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         stack.output_show.return_value = {'output': {'output_value': []}}
         orchestration_client = clients.orchestration
         orchestration_client.stacks.get.return_value = stack
+        utils_fixture2.mock_launch_heat.return_value = orchestration_client
 
         arglist = ['--templates', '--config-download-only',
                    '--overcloud-ssh-port-timeout', '42',
@@ -1337,7 +1420,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_rc_params.return_value = {'password': 'password',
                                        'region': 'region1'}
 
-        mock_create_env.return_value = ({}, [])
+        mock_create_env.return_value = (
+            dict(ContainerHeatApiImage='container-heat-api-image',
+                 ContainerHeatEngineImage='container-heat-engine-image'),
+            [])
         self.cmd.take_action(parsed_args)
         playbook = os.path.join(os.environ.get(
             'HOME'), self.cmd.working_dir,

@@ -169,7 +169,7 @@ class TestUndercloudConfig(base.TestCase):
         ret = self.config.get_undercloud_service_opts()
         expected = {'enable_cinder': False,
                     'enable_frr': False,
-                    'enable_heat': True,
+                    'enable_heat': False,
                     'enable_ironic': True,
                     'enable_ironic_inspector': True,
                     'enable_mistral': False,
