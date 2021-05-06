@@ -253,3 +253,6 @@ UPDATE_PROMPT = _('You are about to run a UPDATE command. '
 UPDATE_NO = _('User did not confirm update, so exiting. '
               'Consider using the --yes/-y parameter if you '
               'prefer to skip this warning in the future')
+
+DEFAULT_PARTITION_IMAGE = 'overcloud-full.qcow2'
+DEFAULT_WHOLE_DISK_IMAGE = 'overcloud-hardened-uefi-full.qcow2'

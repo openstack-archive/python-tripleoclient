@@ -519,6 +519,23 @@ class TestUploadOvercloudImage(TestPluginV1):
                                                        'default-value',
                                                        deprecated=['OLD_KEY']))
 
+    @mock.patch('os.path.exists')
+    def test_get_image_filename(self, mock_exists):
+        mock_exists.return_value = False
+
+        parsed_args = self.check_parser(self.cmd, [], [])
+        self.assertEqual('overcloud-full.qcow2',
+                         self.cmd._get_image_filename(parsed_args))
+
+        mock_exists.return_value = True
+        self.assertEqual('overcloud-hardened-uefi-full.qcow2',
+                         self.cmd._get_image_filename(parsed_args))
+
+        parsed_args = self.check_parser(
+            self.cmd, ['--os-image-name', 'overcloud-custom.qcow2'], [])
+        self.assertEqual('overcloud-custom.qcow2',
+                         self.cmd._get_image_filename(parsed_args))
+
     def test_platform_without_architecture_fail(self):
         parsed_args = self.check_parser(self.cmd, ['--platform', 'SNB'], [])
         self.assertRaises(exceptions.CommandError,
@@ -1218,6 +1235,43 @@ class TestUploadOnlyExisting(TestPluginV1):
             self.cmd.adapter,
             'overcloud-full',
             './overcloud-full.raw'
+        )
+
+    @mock.patch('subprocess.check_call', autospec=True)
+    @mock.patch('os.path.isfile', autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_image.'
+                'GlanceClientAdapter._image_try_update', autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_image.'
+                'GlanceClientAdapter._image_changed', autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_image.'
+                'BaseClientAdapter._files_changed', autospec=True)
+    def test_overcloud_upload_os_wholedisk_default(self,
+                                                   mock_files_changed,
+                                                   mock_image_changed,
+                                                   mock_image_try_update,
+                                                   mock_isfile_call,
+                                                   mock_subprocess_call):
+        mock_image_changed.return_value = True
+        mock_image_try_update.return_value = None
+
+        parsed_args = self.check_parser(
+            self.cmd, ['--image-type=os',
+                       '--no-local',
+                       '--os-image-name',
+                       'overcloud-hardened-uefi-full.qcow2'], [])
+
+        mock_files_changed.return_value = True
+        self.cmd.take_action(parsed_args)
+
+        # ensure check_file_exists has been called just with ipa
+        self.cmd.adapter.check_file_exists.assert_called_once_with(
+            self.cmd.adapter, './overcloud-hardened-uefi-full.qcow2')
+
+        # ensure try_update has been called just with ipa
+        mock_image_try_update.assert_called_once_with(
+            self.cmd.adapter,
+            'overcloud-hardened-uefi-full',
+            './overcloud-hardened-uefi-full.raw'
         )
 
     @mock.patch('subprocess.check_call', autospec=True)
