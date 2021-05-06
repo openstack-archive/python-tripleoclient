@@ -426,6 +426,14 @@ class UploadOvercloudImage(command.Command):
                 return os.environ.get(env_key)
         return os.environ.get(envvar, default)
 
+    def _get_image_filename(self, parsed_args):
+        if parsed_args.os_image_name:
+            return parsed_args.os_image_name
+        if os.path.exists(os.path.join(parsed_args.image_path,
+                                       constants.DEFAULT_WHOLE_DISK_IMAGE)):
+            return constants.DEFAULT_WHOLE_DISK_IMAGE
+        return constants.DEFAULT_PARTITION_IMAGE
+
     def get_parser(self, prog_name):
         parser = super(UploadOvercloudImage, self).get_parser(prog_name)
         parser.add_argument(
@@ -435,8 +443,7 @@ class UploadOvercloudImage(command.Command):
         )
         parser.add_argument(
             "--os-image-name",
-            default=self._get_environment_var('OS_IMAGE_NAME',
-                                              'overcloud-full.qcow2'),
+            default=self._get_environment_var('OS_IMAGE_NAME', None),
             help=_("OpenStack disk image filename"),
         )
         parser.add_argument(
@@ -537,20 +544,24 @@ class UploadOvercloudImage(command.Command):
         self.log.debug("checking if image files exist")
 
         image_files = []
+        image_filename = self._get_image_filename(parsed_args)
+        image_name = os.path.splitext(image_filename)[0]
+
+        if image_filename == constants.DEFAULT_WHOLE_DISK_IMAGE:
+            parsed_args.whole_disk = True
+
         if parsed_args.image_type is None or \
                 parsed_args.image_type == 'ironic-python-agent':
             image_files.append('%s.initramfs' % parsed_args.ipa_name)
             image_files.append('%s.kernel' % parsed_args.ipa_name)
 
         if parsed_args.image_type is None or parsed_args.image_type == 'os':
-            image_files.append(parsed_args.os_image_name)
+            image_files.append(image_filename)
 
         if parsed_args.whole_disk:
             overcloud_image_type = 'whole disk'
         else:
             overcloud_image_type = 'partition'
-
-        image_name = parsed_args.os_image_name.split('.')[0]
 
         for image in image_files:
             extension = image.split('.')[-1]
@@ -561,8 +572,6 @@ class UploadOvercloudImage(command.Command):
                 self.adapter._convert_image(
                     image_path,
                     os.path.join(parsed_args.image_path, image_name + '.raw'))
-
-        image_name = parsed_args.os_image_name.split('.')[0]
 
         self.log.debug("uploading %s overcloud images " %
                        overcloud_image_type)

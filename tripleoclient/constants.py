@@ -282,3 +282,5 @@ KIND_TEMPLATES = {'roles': WD_DEFAULT_ROLES_FILE_NAME,
                   'networks': WD_DEFAULT_NETWORKS_FILE_NAME,
                   'baremetal': WD_DEFAULT_BAREMETAL_FILE_NAME,
                   'vips': WD_DEFAULT_VIP_FILE_NAME}
+DEFAULT_PARTITION_IMAGE = 'overcloud-full.qcow2'
+DEFAULT_WHOLE_DISK_IMAGE = 'overcloud-hardened-uefi-full.qcow2'
