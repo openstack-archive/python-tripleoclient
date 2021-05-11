@@ -135,3 +135,7 @@ class CellExportError(Base):
 
 class BannedParameters(Base):
     """Some of the environment parameters provided should be removed"""
+
+
+class HeatPodMessageQueueException(Base):
+    """Heat messaging queue not created"""

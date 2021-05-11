@@ -957,7 +957,7 @@ class DeployOvercloud(command.Command):
             '--heat-type',
             action='store',
             default='installed',
-            choices=['system', 'pod', 'container', 'native'],
+            choices=['installed', 'pod', 'container', 'native'],
             help=_('The type of Heat process to use to execute '
                    'the deployment.\n'
                    'installed (Default): Use the system installed '

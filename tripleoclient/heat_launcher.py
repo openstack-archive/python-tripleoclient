@@ -27,11 +27,15 @@ import tempfile
 
 import jinja2
 from oslo_utils import timeutils
+from tenacity import retry, retry_if_exception_type
+from tenacity.stop import stop_after_attempt, stop_after_delay
+from tenacity.wait import wait_fixed
 
 from tripleoclient.constants import (DEFAULT_HEAT_CONTAINER,
                                      DEFAULT_HEAT_API_CONTAINER,
                                      DEFAULT_HEAT_ENGINE_CONTAINER,
                                      DEFAULT_TEMPLATES_DIR)
+from tripleoclient.exceptions import HeatPodMessageQueueException
 
 log = logging.getLogger(__name__)
 
@@ -626,6 +630,19 @@ class HeatPodLauncher(HeatContainerLauncher):
 
     def _get_num_engine_workers(self):
         return int(multiprocessing.cpu_count() / 2)
+
+    @retry(retry=retry_if_exception_type(HeatPodMessageQueueException),
+           reraise=True,
+           stop=(stop_after_delay(10) | stop_after_attempt(10)),
+           wait=wait_fixed(0.5))
+    def wait_for_message_queue(self):
+        output = subprocess.check_output([
+            'sudo', 'podman', 'exec', '-it', 'rabbitmq',
+            'rabbitmqctl', 'list_queues'
+        ])
+        if 'heat' not in str(output):
+            msg = "Message queue for ephemeral heat not created in time."
+            raise HeatPodMessageQueueException(msg)
 
     def _write_heat_config(self):
         heat_config_tmpl_path = os.path.join(DEFAULT_TEMPLATES_DIR,
