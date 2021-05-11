@@ -2659,11 +2659,11 @@ def get_heat_launcher(heat_type, *args, **kwargs):
         return heat_launcher.HeatPodLauncher(*args, **kwargs)
 
 
-def kill_heat(launcher, backup_db=True):
+def kill_heat(launcher):
     global _heat_pid
     if _heat_pid:
         LOG.debug("Attempting to kill heat pid %s" % _heat_pid)
-    launcher.kill_heat(_heat_pid, backup_db)
+    launcher.kill_heat(_heat_pid)
 
 
 def rm_heat(launcher, backup_db=False):

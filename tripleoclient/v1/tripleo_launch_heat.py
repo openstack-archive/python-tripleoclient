@@ -31,7 +31,7 @@ from tripleoclient import utils
 class LaunchHeat(command.Command):
     """Launch ephemeral Heat process."""
 
-    log = logging.getLogger(__name__ + ".Deploy")
+    log = logging.getLogger("tripleoclient")
     auth_required = False
     heat_pid = None
 
@@ -43,8 +43,8 @@ class LaunchHeat(command.Command):
         when cleanup is requested.
 
         """
-        self.log.info("Attempting to kill ephemeral heat")
         if parsed_args.heat_type == "native":
+            self.log.info("Attempting to kill ephemeral heat")
             if self.heat_pid:
                 self.log.info("Using heat pid: %s" % self.heat_pid)
                 self.heat_launcher.kill_heat(self.heat_pid)
@@ -52,8 +52,6 @@ class LaunchHeat(command.Command):
                 self.heat_pid = None
             else:
                 self.log.info("No heat pid set, can't kill.")
-        else:
-            self.heat_launcher.kill_heat(None, backup_db=True)
 
         return 0
 
@@ -137,7 +135,7 @@ class LaunchHeat(command.Command):
             help=_('If specified and --heat-type is container or pod '
                    'any existing container or pod of a previous '
                    'ephemeral Heat process will be deleted first. '
-                   'Ignored if --heat-type is native.')
+                   'Ignored if --heat-type is native or --kill.')
         )
         parser.add_argument(
             '--skip-heat-pull',
@@ -190,6 +188,11 @@ class LaunchHeat(command.Command):
         else:
             heat_type = parsed_args.heat_type
 
+        if parsed_args.kill:
+            rm_heat = True
+        else:
+            rm_heat = parsed_args.rm_heat
+
         self.heat_launcher = utils.get_heat_launcher(
             heat_type, parsed_args.heat_api_port,
             parsed_args.heat_container_image,
@@ -199,7 +202,7 @@ class LaunchHeat(command.Command):
             parsed_args.heat_dir,
             False,
             False,
-            parsed_args.rm_heat,
+            rm_heat,
             parsed_args.skip_heat_pull)
 
         if parsed_args.kill:

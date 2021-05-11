@@ -6,6 +6,7 @@ default_deployment_signal_transport = HEAT_SIGNAL
 deferred_auth_method = password
 keystone_backend = heat.engine.clients.os.keystone.fake_keystoneclient.FakeKeystoneClient
 log_dir = /var/log/heat
+log_file = {{ log_file }}
 max_json_body_size = 8388608
 max_nested_stack_depth = 10
 max_resources_per_stack=-1
