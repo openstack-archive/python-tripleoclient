@@ -13,6 +13,7 @@
 #   under the License.
 #
 
+import configparser
 import datetime
 import glob
 import grp
@@ -23,7 +24,9 @@ import os
 import pwd
 import signal
 import subprocess
+import tarfile
 import tempfile
+import time
 
 import jinja2
 from oslo_utils import timeutils
@@ -139,29 +142,27 @@ class HeatBaseLauncher(object):
         self.engine_container_image = engine_container_image
         self.heat_dir = os.path.abspath(heat_dir)
         self.host = "127.0.0.1"
-        self.db_dump_path = os.path.join(
-            self.heat_dir, 'heat-db-dump-{}.sql'.format(
-                datetime.datetime.utcnow().isoformat()))
+        self.timestamp = time.time()
+        self.db_dump_path = os.path.join(self.heat_dir, 'heat-db.sql')
         self.skip_heat_pull = skip_heat_pull
-
-        if rm_heat:
-            self.kill_heat(None)
-            self.rm_heat()
+        self.zipped_db_suffix = '.tar.bzip2'
+        self.log_dir = os.path.join(self.heat_dir, 'log')
 
         if os.path.isdir(self.heat_dir):
-            # This one may fail but it's just cleanup.
-            p = subprocess.Popen(['umount', self.heat_dir],
-                                 stdout=subprocess.PIPE,
-                                 stderr=subprocess.PIPE,
-                                 universal_newlines=True)
-            cmd_stdout, cmd_stderr = p.communicate()
-            retval = p.returncode
-            if retval != 0:
-                log.info('Cleanup unmount of %s failed (probably because '
-                         'it was not mounted): %s' %
-                         (self.heat_dir, cmd_stderr))
-            else:
-                log.info('umount of %s success' % (self.heat_dir))
+            if use_root:
+                # This one may fail but it's just cleanup.
+                p = subprocess.Popen(['umount', self.heat_dir],
+                                     stdout=subprocess.PIPE,
+                                     stderr=subprocess.PIPE,
+                                     universal_newlines=True)
+                cmd_stdout, cmd_stderr = p.communicate()
+                retval = p.returncode
+                if retval != 0:
+                    log.info('Cleanup unmount of %s failed (probably because '
+                             'it was not mounted): %s' %
+                             (self.heat_dir, cmd_stderr))
+                else:
+                    log.info('umount of %s success' % (self.heat_dir))
         else:
             # Create the directory if it doesn't exist.
             try:
@@ -171,36 +172,40 @@ class HeatBaseLauncher(object):
                           (self.heat_dir, e))
                 raise Exception('Could not create temp directory %s: %s' %
                                 (self.heat_dir, e))
-        # As an optimization we mount the tmp directory in a tmpfs (in memory)
-        # filesystem.  Depending on your system this can cut the heat
-        # deployment times by half.
-        p = subprocess.Popen(['mount', '-t', 'tmpfs', '-o', 'size=500M',
-                              'tmpfs', self.heat_dir],
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE,
-                             universal_newlines=True)
-        cmd_stdout, cmd_stderr = p.communicate()
-        retval = p.returncode
-        if retval != 0:
-            # It's ok if this fails, it will still work.  It just won't
-            # be on tmpfs.
-            log.warning('Unable to mount tmpfs for logs and '
-                        'database %s: %s' %
-                        (self.heat_dir, cmd_stderr))
 
-        self.policy_file = os.path.join(os.path.dirname(__file__),
-                                        'noauth_policy.json')
+        if use_root:
+            # As an optimization we mount the tmp directory in a tmpfs (in
+            # memory) filesystem.  Depending on your system this can cut the
+            # heat deployment times by half.
+            p = subprocess.Popen(['mount', '-t', 'tmpfs', '-o', 'size=500M',
+                                  'tmpfs', self.heat_dir],
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE,
+                                 universal_newlines=True)
+            cmd_stdout, cmd_stderr = p.communicate()
+            retval = p.returncode
+            if retval != 0:
+                # It's ok if this fails, it will still work.  It just won't
+                # be on tmpfs.
+                log.warning('Unable to mount tmpfs for logs and '
+                            'database %s: %s' %
+                            (self.heat_dir, cmd_stderr))
+
         if use_tmp_dir:
             self.install_dir = tempfile.mkdtemp(
                 prefix='%s/undercloud_deploy-' % self.heat_dir)
         else:
             self.install_dir = self.heat_dir
-        self.user = user
+
+        self.log_file = self._get_log_file_path()
         self.sql_db = os.path.join(self.install_dir, 'heat.sqlite')
-        self.log_file = os.path.join(self.install_dir, 'heat.log')
         self.config_file = os.path.join(self.install_dir, 'heat.conf')
         self.paste_file = os.path.join(self.install_dir, 'api-paste.ini')
         self.token_file = os.path.join(self.install_dir, 'token_file.json')
+
+        self.policy_file = os.path.join(os.path.dirname(__file__),
+                                        'noauth_policy.json')
+        self.user = user
         self._write_fake_keystone_token(self.api_port, self.token_file)
         self._write_heat_config()
         self._write_api_paste_config()
@@ -210,6 +215,13 @@ class HeatBaseLauncher(object):
             os.chown(self.install_dir, uid, gid)
             os.chown(self.config_file, uid, gid)
             os.chown(self.paste_file, uid, gid)
+
+        if rm_heat:
+            self.kill_heat(None)
+            self.rm_heat()
+
+    def _get_log_file_path(self):
+        return os.path.join(self.install_dir, 'heat.log')
 
     def _write_heat_config(self):
         # TODO(ksambor) It will be nice to have possibilities to configure heat
@@ -300,6 +312,20 @@ heat.filter_factory = heat.api.openstack:faultwrap_filter
     def check_message_bus(self):
         return True
 
+    def tar_file(self, file_path, cleanup=True):
+        tf_name = '{}-{}.tar.bzip2'.format(file_path, self.timestamp)
+        tf = tarfile.open(tf_name, 'w:bz2')
+        tf.add(file_path, os.path.basename(file_path))
+        tf.close()
+        log.info("Created tarfile {}".format(tf_name))
+        if cleanup:
+            log.info("Deleting {}".format(file_path))
+            os.unlink(file_path)
+
+    def untar_file(self, tar_path, extract_dir):
+        tf = tarfile.open(tar_path, 'r:bz2')
+        tf.extractall(extract_dir)
+
 
 class HeatContainerLauncher(HeatBaseLauncher):
 
@@ -385,7 +411,7 @@ class HeatContainerLauncher(HeatBaseLauncher):
             return result.split(':')[2]
         raise Exception('Could not find heat gid')
 
-    def kill_heat(self, pid, backup_db=False):
+    def kill_heat(self, pid):
         cmd = ['podman', 'stop', 'heat_all']
         log.debug(' '.join(cmd))
         # We don't want to hear from this command..
@@ -413,7 +439,7 @@ class HeatNativeLauncher(HeatBaseLauncher):
         subprocess.check_call(['heat-manage', '--config-file',
                                self.config_file, 'db_sync'])
 
-    def kill_heat(self, pid, backup_db=False):
+    def kill_heat(self, pid):
         os.kill(pid, signal.SIGKILL)
 
 
@@ -423,9 +449,8 @@ class HeatPodLauncher(HeatContainerLauncher):
 
     def __init__(self, *args, **kwargs):
         super(HeatPodLauncher, self).__init__(*args, **kwargs)
-        log_dir = os.path.join(self.heat_dir, 'log')
-        if not os.path.isdir(log_dir):
-            os.makedirs(log_dir)
+        if not os.path.isdir(self.log_dir):
+            os.makedirs(self.log_dir)
         self.host = self._get_ctlplane_ip()
         self._chcon()
 
@@ -449,14 +474,17 @@ class HeatPodLauncher(HeatContainerLauncher):
                 raise Exception('Unable to fetch container image {}.'
                                 'Error: {}'.format(image, e))
 
-    def launch_heat(self):
+    def get_pod_state(self):
         inspect = subprocess.run([
             'sudo', 'podman', 'pod', 'inspect', '--format',
             '"{{.State}}"', 'ephemeral-heat'],
             check=False,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT)
-        if "Running" in self._decode(inspect.stdout):
+        return self._decode(inspect.stdout)
+
+    def launch_heat(self):
+        if "Running" in self.get_pod_state():
             log.info("ephemeral-heat pod already running, skipping launch")
             return
         self._write_heat_pod()
@@ -503,16 +531,25 @@ class HeatPodLauncher(HeatContainerLauncher):
     def do_restore_db(self, db_dump_path=None):
         if not db_dump_path:
             # Find the latest dump from self.heat_dir
-            db_dumps = glob.glob('{}/heat-db-dump*'.format(self.heat_dir))
+            db_dumps = glob.glob(
+                '{}/heat-db-dump*{}'.format
+                (self.heat_dir,
+                 self.zipped_db_suffix))
             if not db_dumps:
                 raise Exception('No db backups found to restore in %s' %
                                 self.heat_dir)
             db_dump_path = max(db_dumps, key=os.path.getmtime)
+            self.untar_file(db_dump_path, self.heat_dir)
+            db_dump_path = db_dump_path.rstrip(self.zipped_db_suffix)
             log.info("Restoring db from {}".format(db_dump_path))
-        subprocess.run([
-            'sudo', 'podman', 'exec', '-u', 'root',
-            'mysql', 'mysql', 'heat'], stdin=open(db_dump_path),
-            check=True)
+        try:
+            with open(db_dump_path) as f:
+                subprocess.run([
+                    'sudo', 'podman', 'exec', '-u', 'root',
+                    'mysql', 'mysql', 'heat'], stdin=f,
+                    check=True)
+        finally:
+            os.unlink(db_dump_path)
 
     def do_backup_db(self, db_dump_path=None):
         if not db_dump_path:
@@ -520,13 +557,26 @@ class HeatPodLauncher(HeatContainerLauncher):
         if os.path.exists(db_dump_path):
             raise Exception("Won't overwrite existing db dump at %s. "
                             "Remove it first." % db_dump_path)
+        log.info("Starting back up of heat db")
         with open(db_dump_path, 'w') as out:
             subprocess.run([
                 'sudo', 'podman', 'exec', '-u', 'root',
                 'mysql', 'mysqldump', 'heat'], stdout=out,
                 check=True)
 
-    def rm_heat(self, backup_db=False):
+        self.tar_file(db_dump_path)
+
+    def pod_exists(self):
+        try:
+            subprocess.check_call(
+                ['sudo', 'podman', 'pod', 'inspect', 'ephemeral-heat'],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL)
+            return True
+        except subprocess.CalledProcessError:
+            return False
+
+    def rm_heat(self, backup_db=True):
         if self.database_exists():
             if backup_db:
                 self.do_backup_db()
@@ -541,14 +591,24 @@ class HeatPodLauncher(HeatContainerLauncher):
                     'drop user \'heat\'@\'%\''])
             except subprocess.CalledProcessError:
                 pass
-        subprocess.call([
-            'sudo', 'podman', 'pod', 'rm', '-f', 'ephemeral-heat'
-        ])
+        if self.pod_exists():
+            log.info("Removing pod: ephemeral-heat")
+            subprocess.call([
+                'sudo', 'podman', 'pod', 'rm', '-f', 'ephemeral-heat'
+            ])
+        config = self._read_heat_config()
+        log_file_path = os.path.join(self.log_dir,
+                                     config['DEFAULT']['log_file'])
+        if os.path.exists(log_file_path):
+            self.tar_file(log_file_path)
 
     def stop_heat(self):
-        subprocess.check_call([
-            'sudo', 'podman', 'pod', 'stop', 'ephemeral-heat'
-        ])
+        if self.pod_exists() and self.get_pod_state() != 'Exited':
+            log.info("Stopping pod: ephemeral-heat")
+            subprocess.check_call([
+                'sudo', 'podman', 'pod', 'stop', 'ephemeral-heat'
+            ])
+            log.info("Stopped pod: ephemeral-heat")
 
     def check_message_bus(self):
         log.info("Checking that message bus (rabbitmq) is up")
@@ -587,10 +647,15 @@ class HeatPodLauncher(HeatContainerLauncher):
         ])
         return 'heat' in str(output)
 
-    def kill_heat(self, pid, backup_db=False):
-        subprocess.call([
-            'sudo', 'podman', 'pod', 'kill', 'ephemeral-heat'
-        ])
+    def kill_heat(self, pid):
+        if self.pod_exists():
+            log.info("Killing pod: ephemeral-heat")
+            subprocess.call([
+                'sudo', 'podman', 'pod', 'kill', 'ephemeral-heat'
+            ])
+            log.info("Killed pod: ephemeral-heat")
+        else:
+            log.info("Pod does not exist: ephemeral-heat")
 
     def _decode(self, encoded):
         if not encoded:
@@ -644,6 +709,14 @@ class HeatPodLauncher(HeatContainerLauncher):
             msg = "Message queue for ephemeral heat not created in time."
             raise HeatPodMessageQueueException(msg)
 
+    def _get_log_file_path(self):
+        return 'heat-{}.log'.format(self.timestamp)
+
+    def _read_heat_config(self):
+        config = configparser.ConfigParser()
+        config.read(self.config_file)
+        return config
+
     def _write_heat_config(self):
         heat_config_tmpl_path = os.path.join(DEFAULT_TEMPLATES_DIR,
                                              "ephemeral-heat",
@@ -656,6 +729,7 @@ class HeatPodLauncher(HeatContainerLauncher):
             "db_connection": self._get_db_connection(),
             "api_port": self.api_port,
             "num_engine_workers": self._get_num_engine_workers(),
+            "log_file": self.log_file,
         }
         heat_config = heat_config_tmpl.render(**config_vars)
 
