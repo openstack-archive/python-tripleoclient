@@ -212,9 +212,10 @@ class TripleOValidatorList(command.Lister):
         try:
             v_consts.DEFAULT_VALIDATIONS_BASEDIR = constants.\
                 DEFAULT_VALIDATIONS_BASEDIR
-            actions = ValidationActions(constants.ANSIBLE_VALIDATION_DIR,
-                                        parsed_args.group)
-            return actions.list_validations()
+            actions = ValidationActions(
+                validation_path=constants.ANSIBLE_VALIDATION_DIR
+            )
+            return actions.list_validations(parsed_args.group)
         except Exception as e:
             raise RuntimeError(_("Validations listing finished with errors\n"
                                  "Output: {}").format(e))
