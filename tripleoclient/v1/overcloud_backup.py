@@ -137,6 +137,12 @@ class BackupOvercloud(command.Command):
                 'tripleo_backup_and_restore_nfs_server'
             ] = storage_ip
 
+        if not (os.path.isfile(parsed_args.inventory) and
+                os.access(parsed_args.inventory, os.R_OK)):
+            raise RuntimeError(
+               _('The inventory file %s does not exist or is not '
+                 'readable') % (parsed_args.inventory,))
+
         if parsed_args.setup_nfs is True or parsed_args.init == 'nfs':
 
             LOG.debug(_('Setting up NFS Backup node'))
