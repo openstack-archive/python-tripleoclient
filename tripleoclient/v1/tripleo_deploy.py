@@ -670,10 +670,25 @@ class Deploy(command.Command):
         ovn_dbs_vip = user_params.get(
             'OVNDBsVirtualFixedIPs',
             [{'ip_address': c_ip, 'use_neutron': False}])
+
+        ovn_static_bridge_mac_map = user_params.get(
+            'OVNStaticBridgeMacMappings', {})
+        if not ovn_static_bridge_mac_map:
+            ovn_bridge_macs = ovn_static_bridge_mac_map.setdefault(
+                utils.get_short_hostname(), {})
+            # NOTE: Hard coding the THT default for NeutronBridgeMappings
+            # unless user provided an override.
+            bridge_mappings = user_params.get('NeutronBridgeMappings',
+                                              ['datacentre:br-ex'])
+            physnets = [bridge.split(':')[0] for bridge in bridge_mappings]
+            for idx, physnet in enumerate(physnets):
+                ovn_bridge_macs[physnet] = 'fa:16:3a:00:53:{:02X}'.format(idx)
+
         tmp_env.update(
             {
                 'RedisVirtualFixedIPs': redis_vip,
                 'OVNDBsVirtualFixedIPs': ovn_dbs_vip,
+                'OVNStaticBridgeMacMappings': ovn_static_bridge_mac_map,
                 'CtlplaneNetworkAttributes': {
                     'network': {
                         'mtu': mtu,
