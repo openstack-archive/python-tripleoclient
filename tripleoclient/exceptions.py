@@ -147,3 +147,7 @@ class CellExportError(Base):
 
 class BannedParameters(Base):
     """Some of the environment parameters provided should be removed"""
+
+
+class PostStackValidationError(Base):
+    """Stack validation failed"""

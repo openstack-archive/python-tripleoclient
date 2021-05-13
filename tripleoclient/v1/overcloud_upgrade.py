@@ -102,6 +102,13 @@ class UpgradePrepare(DeployOvercloud):
         # DeployOvercloud.
         package_update.get_config(clients, container=stack_name)
 
+        # "Mandatory" validation to make sure kernelargs contains
+        # a TSX flag
+        if not parsed_args.disable_validations:
+            stack = oooutils.get_stack(clients.orchestration,
+                                       parsed_args.stack)
+            self._post_stack_validation(stack)
+
         # enable ssh admin for Ansible-via-Mistral as that's done only
         # when config_download is true
         deployment.get_hosts_and_enable_ssh_admin(
