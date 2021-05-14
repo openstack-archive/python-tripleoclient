@@ -226,7 +226,7 @@ class OvercloudVirtualIPsProvision(command.Command):
         if not os.path.exists(vip_file_path):
             raise oscexc.CommandError(
                 "Virtual IPs configuration file does not exist:"
-                " %s" % parsed_args.networks_file)
+                " %s" % parsed_args.vip_file)
 
         overwrite = parsed_args.yes
         if (os.path.exists(output_path) and not overwrite
