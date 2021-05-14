@@ -2637,6 +2637,7 @@ def launch_heat(launcher=None, restore_db=False):
     # Wait for the API to be listening
     heat_api_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     test_heat_api_port(heat_api_socket, launcher.host, int(launcher.api_port))
+    launcher.wait_for_message_queue()
 
     _local_orchestration_client = tc_heat_utils.local_orchestration_client(
         launcher.host, launcher.api_port)
