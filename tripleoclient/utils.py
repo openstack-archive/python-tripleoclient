@@ -1759,7 +1759,7 @@ def archive_deploy_artifacts(log, stack_name, working_dir, ansible_dir=None):
             tf.add(ansible_dir, recursive=True,
                    filter=tar_filter)
         tf.close()
-    except Exception as ex:
+    except tarfile.TarError as ex:
         msg = _("Unable to create artifact tarball, %s") % str(ex)
         log.warning(msg)
     return tar_filename
@@ -2391,7 +2391,7 @@ def _get_from_cfg(cfg, accessor, param, section):
     """Return a parameter from Kolla config"""
     try:
         val = accessor(section, param)
-    except Exception:
+    except (ValueError, configparser.Error):
         raise exceptions.NotFound(_("Unable to find {section}/{option} in "
                                     "{config}").format(section=param,
                                                        option=section,
@@ -2408,7 +2408,7 @@ def get_local_timezone():
     # The line returned is "[whitespace]Time zone: [timezone] ([tz], [offset])"
     try:
         timezone = timezoneline[0].strip().split(' ')[2]
-    except Exception:
+    except IndexError:
         LOG.error('Unable to parse timezone from timedatectl, using UTC')
         timezone = 'UTC'
     return timezone

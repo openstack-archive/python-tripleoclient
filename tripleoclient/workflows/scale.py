@@ -195,7 +195,7 @@ def scale_down(log, clients, stack, nodes, timeout=None, verbosity=0,
         try:
             _node = clients.compute.servers.get(node)
             limit_list.append(_node.name)
-        except Exception:
+        except (KeyError, ValueError, AttributeError):
             limit_list.append(node)
 
     if limit_list:

@@ -430,7 +430,7 @@ class DeployOvercloud(command.Command):
                               roles_file,
                               env_files_tracker=env_files_tracker,
                               deployment_options=deployment_options)
-        except Exception as e:
+        except oscexc.CommandError as e:
             messages = 'Failed to deploy: %s' % str(e)
             raise ValueError(messages)
 

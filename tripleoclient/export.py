@@ -97,7 +97,7 @@ def export_stack(heat, stack, should_filter=False,
             with open(file, 'r') as ff:
                 try:
                     export_data = json.load(ff)
-                except Exception as e:
+                except (TypeError, json.JSONDecodeError) as e:
                     LOG.error(
                         _('Could not read file %s') % file)
                     LOG.error(e)
@@ -130,7 +130,7 @@ def export_ceph_net_key(stack, config_download_dir=constants.DEFAULT_WORK_DIR):
     with open(file, 'r') as ff:
         try:
             global_data = yaml.safe_load(ff)
-        except Exception as e:
+        except yaml.MarkedYAMLError as e:
             LOG.error(
                 _('Could not read file %s') % file)
             LOG.error(e)
@@ -146,7 +146,7 @@ def export_storage_ips(stack, config_download_dir=constants.DEFAULT_WORK_DIR,
     with open(file, 'r') as ff:
         try:
             inventory_data = yaml.safe_load(ff)
-        except Exception as e:
+        except yaml.MarkedYAMLError as e:
             LOG.error(
                 _('Could not read file %s') % file)
             LOG.error(e)
@@ -174,7 +174,7 @@ def export_ceph(stack, cephx,
     with open(file, 'r') as ff:
         try:
             ceph_data = yaml.safe_load(ff)
-        except Exception as e:
+        except yaml.MarkedYAMLError as e:
             LOG.error(
                 _('Could not read file %s') % file)
             LOG.error(e)

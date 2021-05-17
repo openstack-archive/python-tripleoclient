@@ -686,7 +686,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 '_heat_deploy', autospec=True)
     def test_try_overcloud_deploy_with_no_templates_existing(
             self, mock_heat_deploy_func):
-        mock_heat_deploy_func.side_effect = Exception('error')
+        mock_heat_deploy_func.side_effect = oscexc.CommandError('error')
         self.assertRaises(ValueError,
                           self.cmd._try_overcloud_deploy_with_compat_yaml,
                           '/fake/path', mock.ANY, mock.ANY,
@@ -698,7 +698,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_try_overcloud_deploy_show_missing_file(
             self, mock_heat_deploy_func):
         mock_heat_deploy_func.side_effect = \
-            Exception('/fake/path not found')
+            oscexc.CommandError('/fake/path not found')
         try:
             self.cmd._try_overcloud_deploy_with_compat_yaml(
                 '/fake/path', mock.ANY, mock.ANY,

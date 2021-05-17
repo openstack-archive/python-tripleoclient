@@ -124,9 +124,15 @@ class ValidateOvercloudNetenv(command.Command):
                 try:
                     pool_objs.append(list(
                         ipaddress.summarize_address_range(ip_start, ip_end)))
-                except Exception:
-                    self.log.error('Invalid address pool: %s, %s' %
-                                   (ip_start, ip_end))
+                except (TypeError, ValueError) as ex:
+                    self.log.error(
+                        (
+                            'Encountered exception `{}` while working with\n'
+                            'the address pool: {}, {}').format(
+                                ex,
+                                ip_start,
+                                ip_end))
+
                     self.error_count += 1
 
             subnet_item = poolitem.split('AllocationPools')[0] + 'NetCidr'

@@ -315,7 +315,7 @@ class Deploy(command.Command):
                             # we'll end up rewriting the passwords later and
                             # causing problems.
                             config.get('auth', 'undercloud_rpc_password')
-                        except Exception:
+                        except configparser.Error:
                             legacy_env['RpcPassword'] = v
                         k = 'RabbitPassword'
                     elif k == 'undercloud_rabbit_cookie':
@@ -1199,9 +1199,12 @@ class Deploy(command.Command):
         with open(f, 'r') as ff:
             try:
                 failures = json.load(ff)
-            except Exception:
-                self.log.error(
-                    _('Could not read ansible errors from file %s') % f)
+            except (json.JSONDecodeError, TypeError) as ex:
+                self.log.error(_(
+                    'Could not read ansible errors from file {}.\n'
+                    'Encountered {}').format(
+                        ex,
+                        ff))
 
         if not failures or not failures.get(name, {}):
             return
