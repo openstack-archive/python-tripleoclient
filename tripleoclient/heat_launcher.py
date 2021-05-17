@@ -468,22 +468,22 @@ class HeatPodLauncher(HeatContainerLauncher):
     def heat_db_sync(self, restore_db=False):
         if not self.database_exists():
             subprocess.check_call([
-                'sudo', 'podman', 'exec', '-it', '-u', 'root',
+                'sudo', 'podman', 'exec', '-u', 'root',
                 'mysql', 'mysql', '-e', 'create database heat'
             ])
             subprocess.check_call([
-                'sudo', 'podman', 'exec', '-it', '-u', 'root',
+                'sudo', 'podman', 'exec', '-u', 'root',
                 'mysql', 'mysql', '-e',
                 'create user if not exists '
                 '\'heat\'@\'%\' identified by \'heat\''
             ])
             subprocess.check_call([
-                'sudo', 'podman', 'exec', '-it', '-u', 'root',
+                'sudo', 'podman', 'exec', '-u', 'root',
                 'mysql', 'mysql', 'heat', '-e',
                 'grant all privileges on heat.* to \'heat\'@\'%\''
             ])
             subprocess.check_call([
-                'sudo', 'podman', 'exec', '-it', '-u', 'root',
+                'sudo', 'podman', 'exec', '-u', 'root',
                 'mysql', 'mysql', '-e', 'flush privileges;'
             ])
         cmd = [
@@ -510,7 +510,7 @@ class HeatPodLauncher(HeatContainerLauncher):
             db_dump_path = max(db_dumps, key=os.path.getmtime)
             log.info("Restoring db from {}".format(db_dump_path))
         subprocess.run([
-            'sudo', 'podman', 'exec', '-i', '-u', 'root',
+            'sudo', 'podman', 'exec', '-u', 'root',
             'mysql', 'mysql', 'heat'], stdin=open(db_dump_path),
             check=True)
 
@@ -522,7 +522,7 @@ class HeatPodLauncher(HeatContainerLauncher):
                             "Remove it first." % db_dump_path)
         with open(db_dump_path, 'w') as out:
             subprocess.run([
-                'sudo', 'podman', 'exec', '-it', '-u', 'root',
+                'sudo', 'podman', 'exec', '-u', 'root',
                 'mysql', 'mysqldump', 'heat'], stdout=out,
                 check=True)
 
@@ -532,11 +532,11 @@ class HeatPodLauncher(HeatContainerLauncher):
                 self.do_backup_db()
             try:
                 subprocess.check_call([
-                    'sudo', 'podman', 'exec', '-it', '-u', 'root',
+                    'sudo', 'podman', 'exec',  '-u', 'root',
                     'mysql', 'mysql', 'heat', '-e',
                     'drop database heat'])
                 subprocess.check_call([
-                    'sudo', 'podman', 'exec', '-it', '-u', 'root',
+                    'sudo', 'podman', 'exec',  '-u', 'root',
                     'mysql', 'mysql', '-e',
                     'drop user \'heat\'@\'%\''])
             except subprocess.CalledProcessError:
@@ -582,7 +582,7 @@ class HeatPodLauncher(HeatContainerLauncher):
 
     def database_exists(self):
         output = subprocess.check_output([
-            'sudo', 'podman', 'exec', '-it', '-u', 'root', 'mysql',
+            'sudo', 'podman', 'exec',  '-u', 'root', 'mysql',
             'mysql', '-e', 'show databases like "heat"'
         ])
         return 'heat' in str(output)
@@ -637,7 +637,7 @@ class HeatPodLauncher(HeatContainerLauncher):
            wait=wait_fixed(0.5))
     def wait_for_message_queue(self):
         output = subprocess.check_output([
-            'sudo', 'podman', 'exec', '-it', 'rabbitmq',
+            'sudo', 'podman', 'exec',  'rabbitmq',
             'rabbitmqctl', 'list_queues'
         ])
         if 'heat' not in str(output):
