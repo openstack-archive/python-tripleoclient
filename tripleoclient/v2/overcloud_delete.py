@@ -14,6 +14,7 @@
 #
 
 import logging
+import yaml
 
 from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
@@ -49,6 +50,14 @@ class DeleteOvercloud(command.Command):
                                    'FreeIPA before deleting the overcloud. '
                                    'Using this option might require you to '
                                    'manually cleanup FreeIPA later.'),
+                            default=False,
+                            action="store_true")
+        parser.add_argument('-b', '--baremetal-deployment',
+                            metavar='<baremetal_deployment.yaml>',
+                            help=_('Configuration file describing the '
+                                   'baremetal deployment'))
+        parser.add_argument('--network-ports',
+                            help=_('Enable unprovisioning of network ports'),
                             default=False,
                             action="store_true")
         return parser
@@ -89,4 +98,23 @@ class DeleteOvercloud(command.Command):
                 }
             )
 
+        if parsed_args.baremetal_deployment:
+            with open(parsed_args.baremetal_deployment, 'r') as fp:
+                roles = yaml.safe_load(fp)
+
+            with utils.TempDirs() as tmp:
+                utils.run_ansible_playbook(
+                    playbook='cli-overcloud-node-unprovision.yaml',
+                    workdir=tmp,
+                    inventory='localhost,',
+                    playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                    verbosity=utils.playbook_verbosity(self=self),
+                    extra_vars={
+                        "stack_name": parsed_args.stack,
+                        "baremetal_deployment": roles,
+                        "all": True,
+                        "prompt": False,
+                        "manage_network_ports": parsed_args.network_ports,
+                    }
+                )
         print("Success.")
