@@ -19,6 +19,7 @@ import os
 import os.path
 from oslo_config import cfg
 from oslo_log import log as logging
+from oslo_utils import excutils
 from prettytable import PrettyTable
 from pwd import getpwuid
 import re
@@ -689,8 +690,7 @@ class DeployOvercloud(command.Command):
         return [output_path]
 
     def setup_ephemeral_heat(self, parsed_args, parameters):
-        self.log.info("Using tripleo-deploy with "
-                      "ephemeral heat-all for stack operation")
+        self.log.info("Using ephemeral heat for stack operation")
         api_container_image = parameters['ContainerHeatApiImage']
         engine_container_image = \
             parameters['ContainerHeatEngineImage']
@@ -1276,15 +1276,14 @@ class DeployOvercloud(command.Command):
                     stack.stack_name,
                     status=deploy_status,
                     working_dir=self.working_dir)
-        except Exception as deploy_e:
-            deploy_status = 'DEPLOY_FAILED'
-            deploy_message = 'with error'
-            deploy_trace = deploy_e
-            deployment.set_deployment_status(
-                stack.stack_name,
-                status=deploy_status,
-                working_dir=self.working_dir
-            )
+        except (BaseException, Exception):
+            with excutils.save_and_reraise_exception():
+                deploy_status = 'DEPLOY_FAILED'
+                deploy_message = 'with error'
+                deployment.set_deployment_status(
+                    stack.stack_name,
+                    status=deploy_status,
+                    working_dir=self.working_dir)
         finally:
             try:
                 # Run postconfig on create or force
@@ -1354,9 +1353,6 @@ class DeployOvercloud(command.Command):
             except Exception as e:
                 self.log.error('Exception archiving deploy artifacts')
                 self.log.error(e)
-
-            if deploy_status == 'DEPLOY_FAILED':
-                raise(deploy_trace)
 
 
 class GetDeploymentStatus(command.Command):
