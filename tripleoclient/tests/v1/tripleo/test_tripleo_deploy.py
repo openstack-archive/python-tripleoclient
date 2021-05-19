@@ -777,7 +777,7 @@ class TestDeployUndercloud(TestPluginV1):
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_download_stack_outputs')
-    @mock.patch('tripleo_common.actions.ansible.'
+    @mock.patch('tripleo_common.utils.ansible.'
                 'write_default_ansible_cfg')
     # TODO(cjeanner) drop once we have proper oslo.privsep
     @mock.patch('os.chmod')
@@ -872,7 +872,7 @@ class TestDeployUndercloud(TestPluginV1):
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_download_stack_outputs')
-    @mock.patch('tripleo_common.actions.ansible.'
+    @mock.patch('tripleo_common.utils.ansible.'
                 'write_default_ansible_cfg')
     # TODO(cjeanner) drop once we have proper oslo.privsep
     @mock.patch('os.chmod')
@@ -957,7 +957,7 @@ class TestDeployUndercloud(TestPluginV1):
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_download_stack_outputs')
-    @mock.patch('tripleo_common.actions.ansible.'
+    @mock.patch('tripleo_common.utils.ansible.'
                 'write_default_ansible_cfg')
     # TODO(cjeanner) drop once we have proper oslo.privsep
     @mock.patch('os.chmod')
@@ -1116,7 +1116,7 @@ class TestDeployUndercloud(TestPluginV1):
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_download_stack_outputs')
-    @mock.patch('tripleo_common.actions.ansible.'
+    @mock.patch('tripleo_common.utils.ansible.'
                 'write_default_ansible_cfg')
     # TODO(cjeanner) drop once we have proper oslo.privsep
     @mock.patch('os.chmod')
@@ -1175,7 +1175,7 @@ class TestDeployUndercloud(TestPluginV1):
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_download_stack_outputs')
-    @mock.patch('tripleo_common.actions.ansible.'
+    @mock.patch('tripleo_common.utils.ansible.'
                 'write_default_ansible_cfg')
     # TODO(cjeanner) drop once we have proper oslo.privsep
     @mock.patch('os.chmod')

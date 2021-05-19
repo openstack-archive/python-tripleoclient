@@ -45,7 +45,7 @@ from tripleo_common.utils import parameters
 from tripleo_common.utils import passwords as password_utils
 
 # For ansible download and config generation
-from tripleo_common.actions import ansible
+from tripleo_common.utils import ansible
 from tripleo_common.inventory import TripleoInventory
 from tripleo_common.utils import config
 
