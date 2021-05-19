@@ -86,6 +86,14 @@ class UpdatePrepare(DeployOvercloud):
 
         super(UpdatePrepare, self).take_action(parsed_args)
         package_update.update(clients, container=stack_name)
+
+        # "Mandatory" validation to make sure kernelargs contains
+        # a TSX flag
+        if not parsed_args.disable_validations:
+            stack = oooutils.get_stack(clients.orchestration,
+                                       parsed_args.stack)
+            self._post_stack_validation(stack)
+
         package_update.get_config(clients, container=stack_name)
         self.log.info("Update init on stack {0} complete.".format(
                       parsed_args.stack))
