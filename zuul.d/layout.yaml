@@ -31,3 +31,8 @@
               - ^tripleoclient/config/.*minion.*$
               - ^tripleoclient/v1/.*minion.*$
               - ^tripleoclient/v1/tripleo_deploy.py$
+        - tripleo-ci-centos-8-standalone:
+            vars:
+              enable_validation: true
+              validation_component: validation
+              command: openstack tripleo validator
