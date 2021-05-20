@@ -299,7 +299,7 @@ class TripleOValidatorRun(command.Command):
             )
         )
 
-        extra_vars_group.add_argument(
+        parser.add_argument(
             '--extra-env-vars',
             metavar="key1=<val1>[,key2=val2 --extra-env-vars key3=<val3>]",
             action=parseractions.MultiKeyValueAction,
