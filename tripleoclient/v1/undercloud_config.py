@@ -397,6 +397,7 @@ def _process_network_args(env):
                                               'Please provide less than 6 '
                                               'servers in undercloud_'
                                               'nameservers.')
+    env['DnsServers'] = ','.join(CONF['undercloud_nameservers'])
     if netaddr.IPNetwork(CONF['local_ip']).version == 6:
         env['NovaIPv6'] = True
         env['RabbitIPv6'] = True
