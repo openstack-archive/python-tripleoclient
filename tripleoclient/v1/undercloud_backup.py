@@ -42,14 +42,14 @@ class BackupUndercloud(command.Command):
             const='rear',
             nargs='?',
             action='store',
-            help=_("Initialize environment for backup,"
+            help=_("Initialize environment for backup, "
                    "using 'rear' or 'nfs' as args "
                    "which will check for package install "
                    "and configured ReaR or NFS server. "
                    "Defaults to: rear. "
                    "i.e. --init rear. "
-                   "WARNING: This flag will be deprecated"
-                   "and replaced by '--setup-rear' and"
+                   "WARNING: This flag will be deprecated "
+                   "and replaced by '--setup-rear' and "
                    "'--setup-nfs'.")
         )
 
@@ -58,8 +58,8 @@ class BackupUndercloud(command.Command):
             '--setup-nfs',
             default=False,
             action='store_true',
-            help=_("Setup the NFS server on the backup node"
-                   "which will install required packages"
+            help=_("Setup the NFS server on the backup node "
+                   "which will install required packages "
                    "and configuration on the host 'BackupNode' "
                    "in the ansible inventory.")
 
@@ -69,7 +69,7 @@ class BackupUndercloud(command.Command):
             '--setup-rear',
             default=False,
             action='store_true',
-            help=_("Setup ReaR on the 'Undercloud' host which will"
+            help=_("Setup ReaR on the 'Undercloud' host which will "
                    "install and configure ReaR.")
         )
 
@@ -77,7 +77,7 @@ class BackupUndercloud(command.Command):
             '--inventory',
             action='store',
             default='/home/stack/tripleo-inventory.yaml',
-            help=_("Tripleo inventory file generated with"
+            help=_("Tripleo inventory file generated with "
                    "tripleo-ansible-inventory command. "
                    "Defaults to: /home/stack/tripleo-inventory.yaml.")
         )

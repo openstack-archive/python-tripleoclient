@@ -42,14 +42,14 @@ class BackupOvercloud(command.Command):
             const='rear',
             nargs='?',
             action='store',
-            help=_("Initialize environment for backup,"
+            help=_("Initialize environment for backup, "
                    "using 'rear' or 'nfs' as args "
                    "which will check for package install "
                    "and configured ReaR or NFS server. "
                    "Defaults to: rear. "
                    "i.e. --init rear. "
-                   "WARNING: This flag will be deprecated"
-                   "and replaced by '--setup-rear' and"
+                   "WARNING: This flag will be deprecated "
+                   "and replaced by '--setup-rear' and "
                    "'--setup-nfs'.")
         )
 
