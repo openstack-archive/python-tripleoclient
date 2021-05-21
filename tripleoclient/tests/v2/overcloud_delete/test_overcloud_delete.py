@@ -12,6 +12,7 @@
 #   License for the specific language governing permissions and limitations
 #   under the License.
 #
+import tempfile
 
 import mock
 from osc_lib import exceptions
@@ -32,7 +33,7 @@ class TestDeleteOvercloud(deploy_fakes.TestDeployOvercloud):
     @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
     @mock.patch('os.chdir', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True)
-    def test_plan_undeploy(self, mock_mkdir, mock_cd, mock_run_playbook):
+    def test_overcloud_delete(self, mock_mkdir, mock_cd, mock_run_playbook):
         arglist = ["overcast", "-y"]
         verifylist = [
             ("stack", "overcast"),
@@ -53,6 +54,43 @@ class TestDeleteOvercloud(deploy_fakes.TestDeployOvercloud):
             },
             verbosity=3,
         )
+
+    @mock.patch("tripleoclient.utils.run_ansible_playbook", autospec=True)
+    @mock.patch('os.chdir', autospec=True)
+    @mock.patch('tempfile.mkdtemp', autospec=True)
+    def test_overcloud_delete_unprovision(self, mock_mkdir,
+                                          mock_cd, mock_run_playbook):
+        arglist = ["overcast", "-y",
+                   '--network-ports']
+        verifylist = [
+            ("stack", "overcast"),
+            ("yes", True),
+            ("network_ports", True)
+        ]
+
+        with tempfile.NamedTemporaryFile() as inp:
+            inp.write(b'- name: Compute\n- name: Controller\n')
+            inp.flush()
+            arglist.extend(['-b', inp.name])
+            verifylist.append(('baremetal_deployment', inp.name))
+            parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+            self.cmd.take_action(parsed_args)
+
+            mock_run_playbook.assert_called_with(
+                'cli-overcloud-node-unprovision.yaml',
+                'localhost,',
+                mock.ANY,
+                constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                extra_vars={
+                    "stack_name": "overcast",
+                    "baremetal_deployment": mock.ANY,
+                    "all": True,
+                    "prompt": False,
+                    "manage_network_ports": True,
+                },
+                verbosity=3,
+            )
+            self.assertEqual(mock_run_playbook.call_count, 2)
 
     def test_no_confirmation(self):
         arglist = ["overcast", ]
