@@ -13,6 +13,8 @@
 #   under the License.
 #
 
+import os
+
 from oslo_config import cfg
 from oslo_log import log as logging
 
@@ -114,6 +116,11 @@ class ExternalUpdateRun(command.Command):
             help=_('The number of Ansible forks to use for the'
                    ' config-download ansible-playbook command.')
         )
+        parser.add_argument(
+            '--refresh',
+            action='store_true',
+            help=_('Refresh the config-download playbooks')
+        )
 
         return parser
 
@@ -128,35 +135,60 @@ class ExternalUpdateRun(command.Command):
                     constants.UPDATE_PROMPT, self.log)):
             raise OvercloudUpdateNotConfirmed(constants.UPDATE_NO)
 
-        _, ansible_dir = self.get_ansible_key_and_dir(
-            no_workflow=True,
-            stack=parsed_args.stack,
-            orchestration=self.app.client_manager.orchestration
-        )
-        deployment.config_download(
-            log=self.log,
-            clients=self.app.client_manager,
-            stack=oooutils.get_stack(
-                self.app.client_manager.orchestration,
-                parsed_args.stack
-            ),
-            output_dir=ansible_dir,
-            verbosity=oooutils.playbook_verbosity(self=self),
-            ansible_playbook_name=constants.EXTERNAL_UPDATE_PLAYBOOKS,
-            extra_vars=oooutils.parse_extra_vars(
-                extra_var_strings=parsed_args.extra_vars
-            ),
-            inventory_path=oooutils.get_tripleo_ansible_inventory(
-                parsed_args.static_inventory,
-                parsed_args.ssh_user,
-                parsed_args.stack,
-                return_inventory_file_path=True
-            ),
-            tags=parsed_args.tags,
-            skip_tags=parsed_args.skip_tags,
-            limit_hosts=oooutils.playbook_limit_parse(
-                limit_nodes=parsed_args.limit
-            ),
-            forks=parsed_args.ansible_forks
-        )
+        if parsed_args.refresh:
+            _, ansible_dir = self.get_ansible_key_and_dir(
+                no_workflow=True,
+                stack=parsed_args.stack,
+                orchestration=self.app.client_manager.orchestration
+            )
+            deployment.config_download(
+                log=self.log,
+                clients=self.app.client_manager,
+                stack=oooutils.get_stack(
+                    self.app.client_manager.orchestration,
+                    parsed_args.stack
+                ),
+                output_dir=ansible_dir,
+                verbosity=oooutils.playbook_verbosity(self=self),
+                ansible_playbook_name=constants.EXTERNAL_UPDATE_PLAYBOOKS,
+                extra_vars=oooutils.parse_extra_vars(
+                    extra_var_strings=parsed_args.extra_vars
+                ),
+                inventory_path=oooutils.get_tripleo_ansible_inventory(
+                    parsed_args.static_inventory,
+                    parsed_args.ssh_user,
+                    parsed_args.stack,
+                    return_inventory_file_path=True
+                ),
+                tags=parsed_args.tags,
+                skip_tags=parsed_args.skip_tags,
+                limit_hosts=oooutils.playbook_limit_parse(
+                    limit_nodes=parsed_args.limit
+                ),
+                forks=parsed_args.ansible_forks
+            )
+        else:
+            working_dir = oooutils.get_default_working_dir(parsed_args.stack)
+            config_download_dir = os.path.join(working_dir, 'config-download')
+            ansible_dir = os.path.join(config_download_dir, parsed_args.stack)
+            inventory_path = os.path.join(ansible_dir,
+                                          'tripleo-ansible-inventory.yaml')
+            key = oooutils.get_key(parsed_args.stack)
+            playbooks = [os.path.join(ansible_dir, p)
+                         for p in constants.EXTERNAL_UPDATE_PLAYBOOKS]
+            oooutils.run_ansible_playbook(
+                playbook=playbooks,
+                inventory=inventory_path,
+                workdir=config_download_dir,
+                tags=parsed_args.tags,
+                skip_tags=parsed_args.skip_tags,
+                limit_hosts=oooutils.playbook_limit_parse(
+                    limit_nodes=parsed_args.limit
+                ),
+                forks=parsed_args.ansible_forks,
+                key=key,
+                reproduce_command=True
+            )
+            deployment.snapshot_dir(ansible_dir)
+
         self.log.info("Completed Overcloud External Update Run.")
