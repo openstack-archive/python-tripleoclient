@@ -42,6 +42,8 @@ install-minion.log
 nosetests.xml
 .testrepository
 .stestr/*
+cover/*
+MagicMock/*
 
 # Translations
 *.mo
@@ -62,3 +64,7 @@ releasenotes/build
 
 # generated config samples
 *.conf.sample
+
+# VSCode
+.vscode/*
+.devcontainer/*
