@@ -334,7 +334,8 @@ def _validate_passwords_file():
     else:
         output_dir = CONF['output_dir']
 
-    passwd_path = os.path.join(output_dir, 'undercloud-passwords.conf')
+    passwd_path = os.path.join(output_dir,
+                               'tripleo-undercloud-passwords.yaml')
     if (os.path.isfile(os.path.join(constants.CLOUD_HOME_DIR, 'stackrc')) and
             not os.path.isfile(passwd_path)):
         message = (_('The %s file is missing.  This will cause all service '

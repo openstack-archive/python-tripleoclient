@@ -297,11 +297,13 @@ class TestDeployUndercloud(TestPluginV1):
                        'undercloud_rpc_password = pick-me-rpc\n'
                        'undercloud_legacy_pass = pick-me-legacy-instack\n')
 
-        self.cmd._update_passwords_env(self.temp_homedir,
-                                       'stack', upgrade=True,
-                                       passwords={'ADefault': 456,
-                                                  'ExistingKey':
-                                                  'dontupdate'})
+        with mock.patch('tripleoclient.constants.CLOUD_HOME_DIR',
+                        self.temp_homedir):
+            self.cmd._update_passwords_env(self.temp_homedir,
+                                           'stack', upgrade=True,
+                                           passwords={'ADefault': 456,
+                                                      'ExistingKey':
+                                                      'dontupdate'})
         expected_dict = {
             'parameter_defaults': {'GeneratedPassword': 123,
                                    'ExistingKey': 'xyz',

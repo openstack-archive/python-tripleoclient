@@ -160,7 +160,7 @@ class InstallUndercloud(command.Command):
                 self.log.warning(UNDERCLOUD_COMPLETION_MESSAGE.format(
                     os.path.join(
                         constants.UNDERCLOUD_OUTPUT_DIR,
-                        'undercloud-passwords.conf'
+                        'tripleo-undercloud-passwords.yaml'
                     ),
                     '~/stackrc'
                     ))
@@ -221,7 +221,7 @@ class UpgradeUndercloud(InstallUndercloud):
                 UNDERCLOUD_UPGRADE_COMPLETION_MESSAGE.format(
                     os.path.join(
                         constants.UNDERCLOUD_OUTPUT_DIR,
-                        'undercloud-passwords.conf'
+                        'tripleo-undercloud-passwords.yaml'
                     ),
                     '~/stackrc'))
         except Exception as e:
