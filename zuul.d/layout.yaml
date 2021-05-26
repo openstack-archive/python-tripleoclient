@@ -10,7 +10,7 @@
       - tripleo-multinode-container-minimal-pipeline
       - tripleo-undercloud-jobs-pipeline
       - tripleo-standalone-scenarios-pipeline
-      - tripleo-upgrades-master-pipeline
+      - tripleo-upgrades-wallaby-pipeline
     check:
       jobs:
         - tripleo-ci-centos-8-content-provider:
