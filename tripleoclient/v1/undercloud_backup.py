@@ -74,6 +74,15 @@ class BackupUndercloud(command.Command):
         )
 
         parser.add_argument(
+            '--db-only',
+            default=False,
+            action='store_true',
+            help=_("Perform a DB backup of the 'Undercloud' host. "
+                   "The DB backup file will be stored in /home/stack "
+                   "with the name openstack-backup-mysql-<timestamp>.sql.")
+        )
+
+        parser.add_argument(
             '--inventory',
             action='store',
             default='/home/stack/tripleo-inventory.yaml',
@@ -161,36 +170,47 @@ class BackupUndercloud(command.Command):
                _('The inventory file {} does not exist or is not '
                  'readable'.format(parsed_args.inventory)))
 
-        if parsed_args.setup_nfs is True or parsed_args.init == 'nfs':
+        if parsed_args.db_only is True:
 
             self._run_ansible_playbook(
-                              playbook='prepare-nfs-backup.yaml',
+                              playbook='cli-undercloud-db-backup.yaml',
                               inventory=parsed_args.inventory,
-                              tags='bar_setup_nfs_server',
+                              tags=None,
                               skip_tags=None,
                               extra_vars=extra_vars
                               )
-        if parsed_args.setup_rear is True or parsed_args.init == 'rear':
+        else:
 
-            self._run_ansible_playbook(
-                              playbook='prepare-undercloud-backup.yaml',
-                              inventory=parsed_args.inventory,
-                              tags='bar_setup_rear',
-                              skip_tags=None,
-                              extra_vars=extra_vars
-                              )
+            if parsed_args.setup_nfs is True or parsed_args.init == 'nfs':
 
-        if (parsed_args.setup_nfs is False and
-           parsed_args.setup_rear is False and
-           parsed_args.init is None):
+                self._run_ansible_playbook(
+                                  playbook='prepare-nfs-backup.yaml',
+                                  inventory=parsed_args.inventory,
+                                  tags='bar_setup_nfs_server',
+                                  skip_tags=None,
+                                  extra_vars=extra_vars
+                                  )
+            if parsed_args.setup_rear is True or parsed_args.init == 'rear':
 
-            self._run_ansible_playbook(
-                              playbook='cli-undercloud-backup.yaml',
-                              inventory=parsed_args.inventory,
-                              tags='bar_create_recover_image',
-                              skip_tags=None,
-                              extra_vars=extra_vars
-                              )
+                self._run_ansible_playbook(
+                                  playbook='prepare-undercloud-backup.yaml',
+                                  inventory=parsed_args.inventory,
+                                  tags='bar_setup_rear',
+                                  skip_tags=None,
+                                  extra_vars=extra_vars
+                                  )
+
+            if (parsed_args.setup_nfs is False and
+               parsed_args.setup_rear is False and
+               parsed_args.init is None):
+
+                self._run_ansible_playbook(
+                                  playbook='cli-undercloud-backup.yaml',
+                                  inventory=parsed_args.inventory,
+                                  tags='bar_create_recover_image',
+                                  skip_tags=None,
+                                  extra_vars=extra_vars
+                                  )
 
     def _legacy_backup_undercloud(self, parsed_args):
         """Legacy backup undercloud.
