@@ -512,6 +512,13 @@ class DeployOvercloud(command.Command):
                 "Error: --deployed-server must be used when using "
                 "--baremetal-deployment")
 
+        if (parsed_args.baremetal_deployment
+                and (parsed_args.config_download_only
+                     or parsed_args.setup_only)):
+            raise oscexc.CommandError(
+                "Error: --config-download-only/--setup-only must not be "
+                "used when using --baremetal-deployment")
+
         if parsed_args.environment_directories:
             self._validate_args_environment_directory(
                 parsed_args.environment_directories)
