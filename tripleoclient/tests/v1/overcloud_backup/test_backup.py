@@ -17,10 +17,14 @@ import mock
 
 from osc_lib.tests import utils
 
+import sys
 from tripleoclient import constants
 # from tripleoclient.tests import fakes
 from tripleoclient.v1 import overcloud_backup
-from unittest.mock import call
+if sys.version_info >= (3, 3):
+    from unittest.mock import call
+else:
+    from mock import call
 
 
 class TestOvercloudBackup(utils.TestCommand):
