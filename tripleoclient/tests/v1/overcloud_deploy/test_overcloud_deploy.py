@@ -1079,7 +1079,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                        'region': 'region1'}
         self.cmd.take_action(parsed_args)
         self.assertTrue(fixture.mock_get_hosts_and_enable_ssh_admin.called)
-        self.assertTrue(fixture.mock_config_download.called)
         self.assertTrue(fixture.mock_set_deployment_status.called)
         self.assertEqual(
             'DEPLOY_SUCCESS',
@@ -1291,7 +1290,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                        deployment_options={},
                        deployment_timeout=448,  # 451 - 3, total time left
                        in_flight_validations=False, limit_hosts=None,
-                       setup_only=False, skip_tags=None, tags=None, timeout=42,
+                       skip_tags=None, tags=None, timeout=42,
                        verbosity=3, forks=None)],
             fixture.mock_config_download.mock_calls)
         fixture.mock_config_download.assert_called()
