@@ -1382,12 +1382,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 verbosity=3, workdir=mock.ANY, forks=None)],
             utils_fixture2.mock_run_ansible_playbook.mock_calls)
 
-    @mock.patch('tripleoclient.utils.write_user_environment', autospec=True)
-    def test_provision_baremetal(self, mock_write):
-        mock_write.return_value = (
-            '/tmp/tht/user-environments/baremetal-deployed.yaml',
-            'overcloud/user-environments/baremetal-deployed.yaml'
-        )
+    def test_provision_baremetal(self):
         baremetal_deployed = {
             'parameter_defaults': {'foo': 'bar'}
         }
@@ -1425,6 +1420,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         with open(env_path, 'w') as f:
             yaml.safe_dump(baremetal_deployed, f)
 
+        self.cmd.working_dir = self.tmp_dir.join('working_dir')
         result = self.cmd._provision_baremetal(parsed_args, tht_root)
         self.cmd._unprovision_baremetal(parsed_args)
         self.assertEqual([env_path], result)
@@ -1438,7 +1434,11 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                     ],
                     'baremetal_deployed_path': env_path,
                     'ssh_public_keys': 'sekrit',
-                    'ssh_user_name': 'heat-admin'
+                    'ssh_user_name': 'heat-admin',
+                    'ssh_private_key_file': self.tmp_dir.join('id_rsa.pub'),
+                    'manage_network_ports': False,
+                    'configure_networking': False,
+                    'working_dir': self.tmp_dir.join('working_dir')
                 },
                 inventory='localhost,',
                 playbook='cli-overcloud-node-provision.yaml',
@@ -1453,7 +1453,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                         {'count': 10, 'name': 'Compute'},
                         {'count': 3, 'name': 'Controller'}
                     ],
-                    'prompt': False
+                    'prompt': False,
+                    'manage_network_ports': False,
                 },
                 inventory='localhost,',
                 playbook='cli-overcloud-node-unprovision.yaml',
@@ -1462,12 +1463,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 workdir=mock.ANY
             )
         ])
-        mock_write.assert_called_once_with(
-            {'parameter_defaults': {'foo': 'bar'}},
-            'baremetal-deployed.yaml',
-            tht_root,
-            'overcloud'
-        )
 
     def test__provision_networks(self):
         networks_file_path = self.tmp_dir.join('networks.yaml')
