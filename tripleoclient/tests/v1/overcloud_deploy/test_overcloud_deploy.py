@@ -112,6 +112,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         shutil.rmtree = self.real_shutil
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_provision_virtual_ips', autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_provision_networks', autospec=True)
     @mock.patch('tripleoclient.utils.check_service_vips_migrated_to_service')
     @mock.patch('tripleoclient.utils.build_stack_data', autospec=True)
@@ -158,7 +160,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                        mock_container_prepare, mock_generate_password,
                        mock_rc_params, mock_default_image_params,
                        mock_stack_data, mock_check_service_vip_migr,
-                       mock_provision_networks):
+                       mock_provision_networks, mock_provision_virtual_ips):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         clients = self.app.client_manager
@@ -341,6 +343,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertFalse(mock_invoke_plan_env_wf.called)
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_provision_virtual_ips', autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_provision_networks', autospec=True)
     @mock.patch('tripleoclient.utils.build_stack_data', autospec=True)
     @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
@@ -384,7 +388,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mock_process_env, mock_roles_data,
             mock_image_prepare, mock_generate_password,
             mock_rc_params, mock_stack_data,
-            mock_provision_networks):
+            mock_provision_networks, mock_provision_virtual_ips):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         utils_fixture = deployment.UtilsFixture()
@@ -427,6 +431,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.cmd.take_action(parsed_args)
         mock_copy.assert_called_once()
 
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_provision_virtual_ips', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_provision_networks', autospec=True)
     @mock.patch('tripleoclient.utils.check_service_vips_migrated_to_service')
@@ -473,7 +479,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                      mock_rc_params,
                                      mock_stack_data,
                                      mock_check_service_vip_migr,
-                                     mock_provision_networks):
+                                     mock_provision_networks,
+                                     mock_provision_virtual_ips):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         utils_fixture = deployment.UtilsFixture()
@@ -746,6 +753,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertFalse(mock_deploy.called)
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_provision_virtual_ips', autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_provision_networks', autospec=True)
     @mock.patch('tripleoclient.utils.check_service_vips_migrated_to_service')
     @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
@@ -776,7 +785,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                           mock_roles_data, mock_image_prepare,
                           mock_generate_password, mock_rc_params,
                           mock_check_service_vip_migr,
-                          mock_provision_networks):
+                          mock_provision_networks, mock_provision_virtual_ips):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         clients = self.app.client_manager
@@ -852,6 +861,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_copy.assert_called_once()
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_provision_virtual_ips', autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_provision_networks', autospec=True)
     @mock.patch('tripleoclient.utils.build_stack_data', autospec=True)
     @mock.patch('tripleo_common.utils.plan.default_image_params',
@@ -902,7 +913,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                  mock_rc_params,
                                  mock_default_image_params,
                                  mock_stack_data,
-                                 mock_provision_networks):
+                                 mock_provision_networks,
+                                 mock_provision_virtual_ips):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         utils_fixture = deployment.UtilsFixture()
@@ -1486,23 +1498,46 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             verbosity=3,
             workdir=mock.ANY)
 
-    @mock.patch('subprocess.Popen', autospec=True)
-    def test__get_undercloud_host_entry(self, mock_popen):
-        mock_process = mock.Mock()
-        mock_hosts = {
-            'fd12::1 uc.ctlplane.localdomain uc.ctlplane':
-                'fd12::1 uc.ctlplane.localdomain uc.ctlplane',
-            'fd12::1 uc.ctlplane.localdomain uc.ctlplane\n'
-            'fd12::1 uc.ctlplane.localdomain uc.ctlplane':
-                'fd12::1 uc.ctlplane.localdomain uc.ctlplane',
-            '1.2.3.4 uc.ctlplane foo uc.ctlplane bar uc.ctlplane':
-                '1.2.3.4 uc.ctlplane foo bar'
-        }
-        for value, expected in mock_hosts.items():
-            mock_process.communicate.return_value = (value, '')
-            mock_process.returncode = 0
-            mock_popen.return_value = mock_process
-            self.assertEqual(expected, self.cmd._get_undercloud_host_entry())
+    def test__provision_virtual_ips(self):
+        networks_file_path = self.tmp_dir.join('networks.yaml')
+        network_data = [
+            {'name': 'Network', 'name_lower': 'network', 'subnets': {}}
+        ]
+        with open(networks_file_path, 'w') as temp_file:
+            yaml.safe_dump(network_data, temp_file)
+        vips_file_path = self.tmp_dir.join('virtual_ips.yaml')
+        vip_data = [
+            {'network': 'internal_api', 'subnet': 'internal_api_subnet'}
+        ]
+        with open(vips_file_path, 'w') as temp_file:
+            yaml.safe_dump(vip_data, temp_file)
+
+        stack_name = 'overcloud'
+        arglist = ['--stack', stack_name,
+                   '--vip-file', vips_file_path,
+                   '--networks-file', networks_file_path]
+        verifylist = [('stack', stack_name),
+                      ('vip_file', vips_file_path),
+                      ('networks_file', networks_file_path)]
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        tht_root = self.tmp_dir.join('tht')
+        env_dir = os.path.join(tht_root, 'user-environments')
+        env_path = os.path.join(env_dir, 'virtual-ips-deployed.yaml')
+        os.makedirs(env_dir)
+
+        result = self.cmd._provision_virtual_ips(parsed_args, tht_root)
+        self.assertEqual([env_path], result)
+        self.mock_playbook.assert_called_once_with(
+            extra_vars={'stack_name': stack_name,
+                        'vip_data_path': vips_file_path,
+                        'vip_deployed_path': env_path,
+                        'overwrite': True},
+            inventory='localhost,',
+            playbook='cli-overcloud-network-vip-provision.yaml',
+            playbook_dir='/usr/share/ansible/tripleo-playbooks',
+            verbosity=3,
+            workdir=mock.ANY)
 
     def test_check_limit_warning(self):
         mock_warning = mock.MagicMock()

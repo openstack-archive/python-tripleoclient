@@ -30,6 +30,7 @@ UNDERCLOUD_ROLES_FILE = "roles_data_undercloud.yaml"
 STANDALONE_EPHEMERAL_STACK_VSTATE = '/var/lib/tripleo-heat-installer'
 UNDERCLOUD_LOG_FILE = "install-undercloud.log"
 OVERCLOUD_NETWORKS_FILE = "network_data.yaml"
+OVERCLOUD_VIP_FILE = "vip_data_default.yaml"
 STANDALONE_NETWORKS_FILE = "/dev/null"
 UNDERCLOUD_NETWORKS_FILE = "network_data_undercloud.yaml"
 ANSIBLE_HOSTS_FILENAME = "hosts.yaml"
