@@ -23,7 +23,7 @@ from tripleoclient import constants
 from tripleoclient import utils
 
 # For ansible.cfg generation
-from tripleo_common.actions import ansible
+from tripleo_common.utils import ansible
 
 
 class GenerateAnsibleConfig(command.Command):
