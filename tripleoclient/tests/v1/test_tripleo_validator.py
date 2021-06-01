@@ -13,18 +13,41 @@
 #   under the License.
 #
 
-
 try:
     from unittest import mock
 except ImportError:
     import mock
 
-from osc_lib.tests import utils
+from tripleoclient.tests import base
+
 from tripleoclient.v1 import tripleo_validator
 from tripleoclient.tests import fakes
 
 
-class TestValidatorGroupInfo(utils.TestCommand):
+class TestValidator(base.TestCase):
+
+    def setUp(self):
+        self.validator = tripleo_validator
+        super(TestValidator, self).setUp()
+
+    def test_module_init(self):
+        expected_names = set([
+            'LOG',
+            'TripleOValidatorList',
+            'TripleOValidatorShow',
+            'TripleOValidatorGroupInfo',
+            'TripleOValidatorShowParameter',
+            'TripleOValidatorRun',
+            'TripleOValidatorShowHistory',
+            'TripleOValidatorShowRun'
+        ])
+
+        module_names = set(dir(self.validator))
+
+        self.assertTrue(expected_names.issubset(module_names))
+
+
+class TestValidatorGroupInfo(base.TestCommand):
 
     def setUp(self):
         super(TestValidatorGroupInfo, self).setUp()
@@ -43,7 +66,7 @@ class TestValidatorGroupInfo(utils.TestCommand):
         self.cmd.take_action(parsed_args)
 
 
-class TestValidatorList(utils.TestCommand):
+class TestValidatorList(base.TestCommand):
 
     def setUp(self):
         super(TestValidatorList, self).setUp()
@@ -63,7 +86,7 @@ class TestValidatorList(utils.TestCommand):
         self.cmd.take_action(parsed_args)
 
 
-class TestValidatorShow(utils.TestCommand):
+class TestValidatorShow(base.TestCommand):
 
     def setUp(self):
         super(TestValidatorShow, self).setUp()
@@ -76,14 +99,14 @@ class TestValidatorShow(utils.TestCommand):
                 return_value=fakes.VALIDATIONS_LIST[0])
     def test_validation_show(self, mock_validations):
         arglist = ['my_val1']
-        verifylist = [('validation_id', 'my_val1')]
+        verifylist = [('validation_name', 'my_val1')]
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.cmd.take_action(parsed_args)
 
 
-class TestValidatorShowParameter(utils.TestCommand):
+class TestValidatorShowParameter(base.TestCommand):
 
     def setUp(self):
         super(TestValidatorShowParameter, self).setUp()
@@ -104,7 +127,7 @@ class TestValidatorShowParameter(utils.TestCommand):
         self.cmd.take_action(parsed_args)
 
 
-class TestValidatorShowRun(utils.TestCommand):
+class TestValidatorShowRun(base.TestCommand):
 
     def setUp(self):
         super(TestValidatorShowRun, self).setUp()
@@ -125,7 +148,7 @@ class TestValidatorShowRun(utils.TestCommand):
         self.cmd.take_action(parsed_args)
 
 
-class TestValidatorShowHistory(utils.TestCommand):
+class TestValidatorShowHistory(base.TestCommand):
 
     def setUp(self):
         super(TestValidatorShowHistory, self).setUp()
