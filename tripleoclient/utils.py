@@ -1177,7 +1177,8 @@ def check_service_vips_migrated_to_service(stack, environment):
            "'ServiceNetMap' and/or 'VipSubnetMap' parameters with the desired "
            "network and/or subnet for the service.")
     for resource in removed_resources:
-        if resource in registry or resource in stack_registry:
+        if ((resource in registry or resource in stack_registry) and
+                registry.get(resource) != 'OS::Heat::None'):
             raise exceptions.InvalidConfiguration(msg)
 
 
