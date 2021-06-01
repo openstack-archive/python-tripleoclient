@@ -2695,3 +2695,65 @@ def is_network_data_v2(networks_file_path):
             if 'ip_subnet' in network or 'ipv6_subnet' in network:
                 return False
     return True
+
+
+def rel_or_abs_path_role_playbook(roles_file_dir, playbook):
+    if os.path.isabs(playbook):
+        playbook_path = playbook
+    else:
+        # Load for playbook relative to the roles file
+        playbook_path = os.path.join(roles_file_dir, playbook)
+
+    return playbook_path
+
+
+def validate_roles_playbooks(roles_file_dir, roles):
+    not_found = []
+    playbooks = []
+    for role in roles:
+        playbooks.extend(role.get('ansible_playbooks', []))
+
+    for x in playbooks:
+        path = rel_or_abs_path_role_playbook(roles_file_dir, x['playbook'])
+        if not os.path.exists(path) or not os.path.isfile(path):
+            not_found.append(path)
+
+    if not_found:
+        raise exceptions.InvalidPlaybook(
+            'Invalid Playbook(s) {}, file(s) not found.'.format(
+                ', '.join(not_found)))
+
+
+def run_role_playbook(self, inventory, relative_dir, playbook,
+                      limit_hosts=None, extra_vars=dict()):
+    playbook_path = rel_or_abs_path_role_playbook(relative_dir, playbook)
+    playbook_dir = os.path.basename(playbook_path)
+
+    with TempDirs() as tmp:
+        run_ansible_playbook(
+            playbook=playbook_path,
+            inventory=inventory,
+            workdir=tmp,
+            playbook_dir=playbook_dir,
+            verbosity=playbook_verbosity(self=self),
+            limit_hosts=limit_hosts,
+            extra_vars=extra_vars,
+        )
+
+
+def run_role_playbooks(self, working_dir, roles_file_dir, roles):
+    inventory_file = os.path.join(working_dir,
+                                  'tripleo-ansible-inventory.yaml')
+    with open(inventory_file, 'r') as f:
+        inventory = yaml.safe_load(f.read())
+
+    # Pre-Network Config
+    for role in roles:
+        for x in role.get('ansible_playbooks', []):
+            run_role_playbook(self, inventory, roles_file_dir, x['playbook'],
+                              limit_hosts=role['name'],
+                              extra_vars=x.get('extra_vars', {}))
+
+    # Network Config
+    run_role_playbook(self, inventory, constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                      'cli-overcloud-node-network-config.yaml')
