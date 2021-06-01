@@ -290,8 +290,11 @@ class ProvisionNode(command.Command):
         oooutils.makedirs(working_dir)
 
         roles_file_path = os.path.abspath(parsed_args.input)
+        roles_file_dir = os.path.dirname(roles_file_path)
         with open(roles_file_path, 'r') as fp:
             roles = yaml.safe_load(fp)
+
+        oooutils.validate_roles_playbooks(roles_file_dir, roles)
 
         key = self.get_key_pair(parsed_args)
         with open('{}.pub'.format(key), 'rt') as fp:
@@ -310,6 +313,7 @@ class ProvisionNode(command.Command):
             "concurrency": parsed_args.concurrency,
             "manage_network_ports": (parsed_args.network_ports
                                      or parsed_args.network_config),
+            "configure_networking": parsed_args.network_config,
             "working_dir": working_dir
         }
 
@@ -323,77 +327,9 @@ class ProvisionNode(command.Command):
                 extra_vars=extra_vars,
             )
 
-        if parsed_args.network_ports or parsed_args.network_config:
-            roles_file_dir = os.path.dirname(roles_file_path)
-            inventory_file = os.path.join(working_dir,
-                                          'tripleo-ansible-inventory.yaml')
-            with open(inventory_file, 'r') as f:
-                inventory = yaml.safe_load(f.read())
-
-            # Pre-Network Config
-            for role in roles:
-                for playbook in role.get('ansible_playbooks', []):
-                    if not playbook.get('pre_network'):
-                        continue
-
-                    if os.path.isabs(playbook['playbook']):
-                        playbook_path = playbook['playbook']
-                    else:
-                        # Load for playbook relative to the roles file
-                        playbook_path = os.path.join(roles_file_dir,
-                                                     playbook['playbook'])
-
-                    self._validate_playbook(playbook_path)
-                    playbook_dir = os.path.basename(playbook_path)
-
-                    with oooutils.TempDirs() as tmp:
-                        oooutils.run_ansible_playbook(
-                            playbook=playbook_path,
-                            inventory=inventory,
-                            workdir=tmp,
-                            playbook_dir=playbook_dir,
-                            verbosity=oooutils.playbook_verbosity(self=self),
-                            limit_hosts=role['name'],
-                            extra_vars=playbook.get('extra_vars', {})
-                        )
-
-            # Network Config
-            if parsed_args.network_config:
-                with oooutils.TempDirs() as tmp:
-                    oooutils.run_ansible_playbook(
-                        playbook='cli-overcloud-node-network-config.yaml',
-                        inventory=inventory,
-                        workdir=tmp,
-                        playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
-                        verbosity=oooutils.playbook_verbosity(self=self),
-                    )
-
-            # Post-Network Config
-            for role in roles:
-                for playbook in role.get('ansible_playbooks', []):
-                    if playbook.get('pre_network'):
-                        continue
-
-                    if os.path.isabs(playbook['playbook']):
-                        playbook_path = playbook['playbook']
-                    else:
-                        # Load for playbook relative to the roles file
-                        playbook_path = os.path.join(roles_file_dir,
-                                                     playbook['playbook'])
-
-                    self._validate_playbook(playbook_path)
-                    playbook_dir = os.path.basename(playbook_path)
-
-                    with oooutils.TempDirs() as tmp:
-                        oooutils.run_ansible_playbook(
-                            playbook=playbook_path,
-                            inventory=inventory,
-                            workdir=tmp,
-                            playbook_dir=playbook_dir,
-                            verbosity=oooutils.playbook_verbosity(self=self),
-                            limit_hosts=role['name'],
-                            extra_vars=playbook.get('extra_vars', {})
-                        )
+        if parsed_args.network_config:
+            oooutils.run_role_playbooks(self, working_dir, roles_file_dir,
+                                        roles)
 
         print('Nodes deployed successfully, add %s to your deployment '
               'environment' % parsed_args.output)

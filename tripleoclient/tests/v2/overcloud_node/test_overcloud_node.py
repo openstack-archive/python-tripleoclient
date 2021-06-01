@@ -352,6 +352,7 @@ class TestProvisionNode(fakes.TestOvercloudNode):
                 'node_timeout': 3600,
                 'concurrency': 20,
                 'manage_network_ports': False,
+                'configure_networking': False,
                 'working_dir': mock.ANY,
             },
             inventory='localhost,',
