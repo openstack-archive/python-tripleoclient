@@ -100,7 +100,6 @@ ENABLE_SSH_ADMIN_SSH_PORT_TIMEOUT = 600
 ADDITIONAL_ARCHITECTURES = ['ppc64le']
 
 DEFAULT_VALIDATIONS_BASEDIR = "/usr/share/ansible"
-DEFAULT_VALIDATIONS_LEGACY_BASEDIR = "/usr/share/openstack-tripleo-validations"
 
 VALIDATIONS_LOG_BASEDIR = '/var/log/validations'
 
@@ -112,12 +111,7 @@ DEFAULT_TEMPLATES_DIR = "/usr/share/python-tripleoclient/templates"
 TRIPLEO_STATIC_INVENTORY = 'tripleo-ansible-inventory.yaml'
 ANSIBLE_INVENTORY = os.path.join(DEFAULT_WORK_DIR,
                                  '{}/', TRIPLEO_STATIC_INVENTORY)
-ANSIBLE_VALIDATION_DIR = (
-    os.path.join(DEFAULT_VALIDATIONS_LEGACY_BASEDIR, 'playbooks')
-    if os.path.exists(os.path.join(DEFAULT_VALIDATIONS_LEGACY_BASEDIR,
-                                   'playbooks'))
-    else "/usr/share/ansible/validation-playbooks"
-    )
+ANSIBLE_VALIDATION_DIR = "/usr/share/ansible/validation-playbooks"
 
 # NOTE(mwhahaha): So if we pip install tripleoclient, we need to also
 # honor pulling some other files from a venv (e.g. cli playbooks,
@@ -143,12 +137,7 @@ if sys.prefix != "/usr" and not os.path.isdir(CONTAINER_IMAGES_BASE_PATH):
         "/usr", "share", "tripleo-common", "container-images"
     )
 
-
-VALIDATION_GROUPS_INFO = (
-        '/usr/share/ansible/groups.yaml'
-        if os.path.exists('/usr/share/ansible/groups.yaml')
-        else os.path.join(DEFAULT_VALIDATIONS_LEGACY_BASEDIR, 'groups.yaml')
-        )
+VALIDATION_GROUPS_INFO = "{}/groups.yaml".format(DEFAULT_VALIDATIONS_BASEDIR)
 
 # ctlplane network defaults
 CTLPLANE_NET_NAME = 'ctlplane'
