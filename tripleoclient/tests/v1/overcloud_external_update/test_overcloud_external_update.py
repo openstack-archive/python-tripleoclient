@@ -13,7 +13,9 @@
 #   under the License.
 #
 
+import fixtures
 import mock
+import os
 
 from tripleoclient.tests import fakes as ooofakes
 from tripleoclient.tests.v1.overcloud_external_update import fakes
@@ -89,3 +91,37 @@ class TestOvercloudExternalUpdateRun(fakes.TestOvercloudExternalUpdateRun):
         ]
 
         self.check_parser(self.cmd, argslist, verifylist)
+
+    @mock.patch('tripleoclient.workflows.deployment.config_download')
+    @mock.patch('tripleoclient.utils.get_default_working_dir', autospec=True)
+    @mock.patch('tripleoclient.workflows.deployment.snapshot_dir',
+                autospec=True)
+    @mock.patch('tripleoclient.utils.run_ansible_playbook', autospec=True)
+    @mock.patch('tripleoclient.utils.get_key')
+    def test_update_with_refresh(
+            self, mock_get_key,
+            mock_run_ansible_playbook,
+            mock_snapshot_dir,
+            mock_get_default_working_dir,
+            mock_config_download):
+        argslist = ['--yes', '--refresh']
+        verifylist = [
+            ('refresh', True)
+        ]
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+        argslist = ['--yes']
+        verifylist = [
+            ('refresh', False)
+        ]
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+
+        mock_get_key.return_value = '/test/key'
+        work_dir = self.useFixture(fixtures.TempDir())
+        mock_get_default_working_dir.return_value = work_dir.path
+        ansible_dir = os.path.join(work_dir.path, 'config-download',
+                                   'overcloud')
+        self.cmd.take_action(parsed_args)
+        mock_get_key.assert_called_once_with('overcloud')
+        mock_snapshot_dir.assert_called_once_with(ansible_dir)
+        mock_run_ansible_playbook.assert_called()
+        mock_config_download.assert_not_called()

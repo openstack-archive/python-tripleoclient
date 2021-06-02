@@ -469,9 +469,19 @@ def config_download(log, clients, stack, ssh_network='ctlplane',
         print_msg=(verbosity == 0)
     )
 
-    if os.path.exists(stack_work_dir):
+    snapshot_dir(stack_work_dir)
+
+
+def snapshot_dir(directory):
+    """Git snapshot a directory
+
+    :params directory: Directory to snapshot
+    :type directory: string
+    :returns: None
+    """
+    if os.path.exists(directory):
         # Object to the git repository
-        repo = git.Repo(stack_work_dir)
+        repo = git.Repo(directory)
 
         # Configure git user.name and user.email
         git_config_user = "mistral"
