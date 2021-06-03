@@ -19,7 +19,6 @@ import logging
 import netaddr
 import os
 import pwd
-import re
 import shutil
 import six
 import subprocess
@@ -279,7 +278,7 @@ class Deploy(command.Command):
                               passwords=None, stack_name='undercloud'):
         pw_file = os.path.join(output_dir,
                                'tripleo-' + stack_name + '-passwords.yaml')
-        undercloud_pw_file = os.path.join(output_dir,
+        undercloud_pw_file = os.path.join(constants.CLOUD_HOME_DIR,
                                           stack_name + '-passwords.conf')
 
         # Generated passwords take the lowest precedence, allowing
@@ -329,6 +328,7 @@ class Deploy(command.Command):
                     else:
                         k = ''.join(i.capitalize() for i in k.split('_')[1:])
                     legacy_env[k] = v
+                os.remove(undercloud_pw_file)
 
             # Get the keystone keys before upgrade
             keystone_fernet_repo = '/etc/keystone/fernet-keys/'
@@ -374,22 +374,6 @@ class Deploy(command.Command):
         # TODO(cjeanner) drop that once using oslo.privsep
         # Do not forget to re-add os.chmod 0o600 on that one!
         self._set_data_rights(pw_file, user=user)
-        # Write out an instack undercloud compatible version.
-        # This contains sensitive data so ensure it's not world-readable
-        with open(undercloud_pw_file, 'w') as pf:
-            pf.write('[auth]\n')
-            for p, v in stack_env['parameter_defaults'].items():
-                if 'Password' in p or 'Token' in p or p.endswith('Kek'):
-                    # Convert camelcase from heat templates into the underscore
-                    # format used by instack undercloud.
-                    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', p)
-                    pw_key = re.sub('([a-z0-9])([A-Z])',
-                                    r'\1_\2', s1).lower()
-                    pf.write('undercloud_%s: %s\n' % (pw_key, v))
-
-        # TODO(cjeanner) drop that once using oslo.privsep
-        # Do not forget to re-add os.chmod 0o600 on that one!
-        self._set_data_rights(undercloud_pw_file, user=user)
 
         return pw_file
 
