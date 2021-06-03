@@ -1785,6 +1785,22 @@ def jinja_render_files(log, templates, working_dir,
         raise exceptions.DeploymentError(msg)
 
 
+def rewrite_env_path(env_path, tht_root, user_tht_root, log=None):
+    abs_env_path = os.path.abspath(env_path)
+    if (abs_env_path.startswith(user_tht_root)
+            and ((user_tht_root + '/') in env_path
+                 or (user_tht_root + '/') in abs_env_path
+                 or user_tht_root == abs_env_path
+                 or user_tht_root == env_path)):
+        new_env_path = env_path.replace(user_tht_root + '/', tht_root + '/')
+        if log:
+            log.debug("Redirecting env file %s to %s"
+                      % (abs_env_path, new_env_path))
+        env_path = new_env_path
+
+    return env_path, abs_env_path
+
+
 def process_multiple_environments(created_env_files, tht_root,
                                   user_tht_root,
                                   env_files_tracker=None,
@@ -1798,17 +1814,8 @@ def process_multiple_environments(created_env_files, tht_root,
     tht_root = os.path.normpath(tht_root)
     for env_path in created_env_files:
         log.debug("Processing environment files %s" % env_path)
-        abs_env_path = os.path.abspath(env_path)
-        if (abs_env_path.startswith(user_tht_root) and
-            ((user_tht_root + '/') in env_path or
-             (user_tht_root + '/') in abs_env_path or
-             user_tht_root == abs_env_path or
-             user_tht_root == env_path)):
-            new_env_path = env_path.replace(user_tht_root + '/',
-                                            tht_root + '/')
-            log.debug("Redirecting env file %s to %s"
-                      % (abs_env_path, new_env_path))
-            env_path = new_env_path
+        env_path, abs_env_path = rewrite_env_path(env_path, tht_root,
+                                                  user_tht_root, log=log)
         try:
             files, env = template_utils.process_environment_and_files(
                 env_path=env_path, include_env_in_files=include_env_in_files)
@@ -2740,3 +2747,41 @@ def run_role_playbooks(self, working_dir, roles_file_dir, roles):
     # Network Config
     run_role_playbook(self, inventory, constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
                       'cli-overcloud-node-network-config.yaml')
+
+
+def extend_protected_overrides(protected_overrides, output_path):
+    with open(output_path, 'r') as env_file:
+        data = yaml.safe_load(env_file.read())
+
+    protect_registry = protected_overrides['registry_entries']
+    resource_registry = data.get('resource_registry', {})
+
+    for reg_entry in resource_registry.keys():
+        protect_registry.setdefault(reg_entry, []).append(output_path)
+
+
+def check_prohibited_overrides(protected_overrides, user_environments):
+    found_conflict = False
+    protected_registry = protected_overrides['registry_entries']
+    msg = ("ERROR: Protected resource registry overrides detected! These "
+           "entries are used in internal environments and should not be "
+           "overridden in the user environment. Please remove these overrides "
+           "from the environment files.\n")
+    for env_path, abs_env_path in user_environments:
+        with open(env_path, 'r') as file:
+            data = yaml.safe_load(file.read())
+        registry = set(data.get('resource_registry', {}).keys())
+
+        conflicts = set(protected_registry.keys()).intersection(registry)
+        if not conflicts:
+            continue
+
+        found_conflict = True
+        for x in conflicts:
+            msg += ("Conflict detected for resource_registry entry: {}.\n"
+                    "\tUser environment: {}.\n"
+                    "\tInternal environment: {}\n").format(
+                x, abs_env_path, protected_registry[x])
+
+    if found_conflict:
+        raise exceptions.DeploymentError(msg)

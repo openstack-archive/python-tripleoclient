@@ -278,10 +278,11 @@ class DeployOvercloud(command.Command):
     def create_env_files(self, stack, parsed_args,
                          new_tht_root, user_tht_root):
         self.log.debug("Creating Environment files")
-        created_env_files = []
-
-        created_env_files.append(
-            os.path.join(new_tht_root, constants.DEFAULT_RESOURCE_REGISTRY))
+        # A dictionary to store resource registry types that are internal,
+        # and should not be overridden in user provided environments.
+        protected_overrides = {'registry_entries': dict()}
+        created_env_files = [
+            os.path.join(new_tht_root, constants.DEFAULT_RESOURCE_REGISTRY)]
 
         parameters = self.build_image_params(
             created_env_files, parsed_args, new_tht_root, user_tht_root)
@@ -309,18 +310,34 @@ class DeployOvercloud(command.Command):
 
         if not parsed_args.skip_nodes_and_networks:
             created_env_files.extend(
-                self._provision_networks(parsed_args, new_tht_root))
+                self._provision_networks(parsed_args, new_tht_root,
+                                         protected_overrides))
             created_env_files.extend(
-                self._provision_virtual_ips(parsed_args, new_tht_root))
+                self._provision_virtual_ips(parsed_args, new_tht_root,
+                                            protected_overrides))
             created_env_files.extend(
-                self._provision_baremetal(parsed_args, new_tht_root))
+                self._provision_baremetal(parsed_args, new_tht_root,
+                                          protected_overrides))
 
+        user_environments = []
         if parsed_args.environment_directories:
-            created_env_files.extend(utils.load_environment_directories(
+            user_environments.extend(utils.load_environment_directories(
                 parsed_args.environment_directories))
 
         if parsed_args.environment_files:
-            created_env_files.extend(parsed_args.environment_files)
+            user_environments.extend(parsed_args.environment_files)
+
+        if (not parsed_args.disable_protected_resource_types
+                and user_environments):
+            rewritten_user_environments = []
+            for env_path in user_environments:
+                env_path, abs_env_path = utils.rewrite_env_path(
+                    env_path, new_tht_root, user_tht_root)
+                rewritten_user_environments.append((env_path, abs_env_path))
+            utils.check_prohibited_overrides(protected_overrides,
+                                             rewritten_user_environments)
+
+        created_env_files.extend(user_environments)
 
         return created_env_files
 
@@ -564,8 +581,7 @@ class DeployOvercloud(command.Command):
                 "Error: The following environment directories were not found"
                 ": {0}".format(", ".join(nonexisting_dirs)))
 
-    def _provision_baremetal(self, parsed_args, tht_root):
-
+    def _provision_baremetal(self, parsed_args, tht_root, protected_overrides):
         if not parsed_args.baremetal_deployment:
             return []
 
@@ -611,6 +627,8 @@ class DeployOvercloud(command.Command):
             utils.run_role_playbooks(self, self.working_dir, roles_file_dir,
                                      roles)
 
+        utils.extend_protected_overrides(protected_overrides, output_path)
+
         return [output_path]
 
     def _unprovision_baremetal(self, parsed_args):
@@ -637,7 +655,7 @@ class DeployOvercloud(command.Command):
                 }
             )
 
-    def _provision_networks(self, parsed_args, tht_root):
+    def _provision_networks(self, parsed_args, tht_root, protected_overrides):
         # Parse the network data, if any network have 'ip_subnet' or
         # 'ipv6_subnet' keys this is not a network-v2 format file. In this
         # case do nothing.
@@ -666,9 +684,12 @@ class DeployOvercloud(command.Command):
                 extra_vars=extra_vars,
             )
 
+        utils.extend_protected_overrides(protected_overrides, output_path)
+
         return [output_path]
 
-    def _provision_virtual_ips(self, parsed_args, tht_root):
+    def _provision_virtual_ips(self, parsed_args, tht_root,
+                               protected_overrides):
         networks_file_path = utils.get_networks_file_path(
             parsed_args.networks_file, parsed_args.templates)
         if not utils.is_network_data_v2(networks_file_path):
@@ -697,6 +718,8 @@ class DeployOvercloud(command.Command):
                 verbosity=utils.playbook_verbosity(self=self),
                 extra_vars=extra_vars,
             )
+
+        utils.extend_protected_overrides(protected_overrides, output_path)
 
         return [output_path]
 
@@ -1134,6 +1157,17 @@ class DeployOvercloud(command.Command):
                    'the necessary input for the stack create must be provided '
                    'by the user.')
         )
+        parser.add_argument(
+            '--disable-protected-resource-types',
+            action='store_true',
+            default=False,
+            help=_('Disable protected resource type overrides. Resources '
+                   'types that are used internally are protected, and cannot '
+                   'be overridden in the user environment. Setting this '
+                   'argument disables the protection, allowing the protected '
+                   'resource types to be override in the user environment.')
+        )
+
         return parser
 
     def take_action(self, parsed_args):
