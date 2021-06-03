@@ -17,6 +17,7 @@
 import ansible_runner
 import argparse
 import datetime
+import fixtures
 import logging
 import mock
 import openstack
@@ -1992,3 +1993,61 @@ class TestGetHostEntry(base.TestCase):
             mock_process.returncode = 0
             mock_popen.return_value = mock_process
             self.assertEqual(expected, utils.get_undercloud_host_entry())
+
+
+class TestProhibitedOverrides(base.TestCommand):
+
+    def setUp(self):
+        super(TestProhibitedOverrides, self).setUp()
+        self.tmp_dir = self.useFixture(fixtures.TempDir())
+
+    def test_extend_protected_overrides(self):
+        protected_overrides = {
+            'registry_entries': {'OS::Foo::Bar': ['foo_bar_file']}}
+        output_path = self.tmp_dir.join('env-file.yaml')
+        fake_env = {
+            'parameter_defaults': {
+                'DeployedNetworkEnvironment': {'foo': 'bar'}},
+            'resource_registry': {
+                'OS::TripleO::Network': 'foo'}
+        }
+        with open(output_path, 'w') as temp_file:
+            yaml.safe_dump(fake_env, temp_file)
+
+        utils.extend_protected_overrides(protected_overrides, output_path)
+        self.assertEqual({
+            'registry_entries': {
+                'OS::Foo::Bar': ['foo_bar_file'],
+                'OS::TripleO::Network': [output_path]}},
+            protected_overrides)
+
+    def test_check_prohibited_overrides_with_conflict(self):
+        protected_overrides = {
+            'registry_entries': {'OS::Foo::Bar': ['foo_bar_file']}}
+        user_env = self.tmp_dir.join('env-file01.yaml')
+        fake_env = {'parameter_defaults': {'foo_param': {'foo': 'bar'}},
+                    'resource_registry': {'OS::Foo::Bar': 'foo'}}
+        with open(user_env, 'w') as temp_file:
+            yaml.safe_dump(fake_env, temp_file)
+
+        self.assertRaises(exceptions.DeploymentError,
+                          utils.check_prohibited_overrides,
+                          protected_overrides, [(user_env, user_env)])
+        self.assertRaisesRegex(
+            exceptions.DeploymentError,
+            'ERROR: Protected resource registry overrides detected!',
+            utils.check_prohibited_overrides,
+            protected_overrides, [(user_env, user_env)])
+
+    def test_check_prohibited_overrides_with_no_conflict(self):
+        protected_overrides = {
+            'registry_entries': {'OS::Foo::Bar': ['foo_bar_file']}}
+        user_env = self.tmp_dir.join('env-file01.yaml')
+        fake_env = {'parameter_defaults': {'bar_param': {'bar': 'foo'}},
+                    'resource_registry': {'OS::Bar::Foo': 'bar'}}
+        with open(user_env, 'w') as temp_file:
+            yaml.safe_dump(fake_env, temp_file)
+
+        self.assertIsNone(
+            utils.check_prohibited_overrides(protected_overrides,
+                                             [(user_env, user_env)]))
