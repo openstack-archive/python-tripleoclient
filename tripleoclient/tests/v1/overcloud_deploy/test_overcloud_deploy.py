@@ -1528,8 +1528,7 @@ class TestArgumentValidation(fakes.TestDeployOvercloud):
 
         app_args = mock.Mock()
         app_args.verbose_level = 1
-        self.validate = overcloud_deploy.DeployOvercloud(
-            self.app, app_args)._validate_args_environment_directory
+        self.validate = overcloud_deploy._validate_args_environment_dir
 
     def test_validate_env_dir(self):
         self.assertIsNone(self.validate(['/tmp/real_dir']))
