@@ -148,8 +148,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_get_ctlplane_attrs', autospec=True, return_value={})
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_get_undercloud_host_entry', autospec=True,
+    @mock.patch('tripleoclient.utils.get_undercloud_host_entry', autospec=True,
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
     @mock.patch('tripleoclient.utils.check_stack_network_matches_env_files')
     @mock.patch('tripleoclient.utils.check_ceph_fsid_matches_env_files')
@@ -272,8 +271,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.workflows.deployment.create_overcloudrc',
                 autospec=True)
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_get_undercloud_host_entry', autospec=True,
+    @mock.patch('tripleoclient.utils.get_undercloud_host_entry', autospec=True,
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
     @mock.patch('tripleoclient.workflows.parameters.invoke_plan_env_workflows',
                 autospec=True)
@@ -385,8 +383,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 'process_environment_and_files', autospec=True)
     @mock.patch('os.chdir')
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_get_undercloud_host_entry', autospec=True,
+    @mock.patch('tripleoclient.utils.get_undercloud_host_entry', autospec=True,
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
     @mock.patch('tripleoclient.utils.check_stack_network_matches_env_files')
     @mock.patch('tripleoclient.utils.check_ceph_fsid_matches_env_files')
@@ -484,8 +481,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 'process_environment_and_files', autospec=True)
     @mock.patch('tripleoclient.utils.check_nic_config_with_ansible')
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_get_undercloud_host_entry', autospec=True,
+    @mock.patch('tripleoclient.utils.get_undercloud_host_entry', autospec=True,
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
     @mock.patch('tripleoclient.utils.check_stack_network_matches_env_files')
     @mock.patch('tripleoclient.utils.check_ceph_fsid_matches_env_files')
@@ -770,8 +766,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         except ValueError as value_error:
             self.assertIn('/fake/path', str(value_error))
 
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_get_undercloud_host_entry', autospec=True,
+    @mock.patch('tripleoclient.utils.get_undercloud_host_entry', autospec=True,
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 'create_env_files', autospec=True)
@@ -812,8 +807,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True, return_value={})
     @mock.patch('tripleoclient.utils.check_nic_config_with_ansible')
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_get_undercloud_host_entry', autospec=True,
+    @mock.patch('tripleoclient.utils.get_undercloud_host_entry', autospec=True,
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
     @mock.patch('tripleoclient.utils.check_stack_network_matches_env_files')
     @mock.patch('tripleoclient.utils.check_ceph_fsid_matches_env_files')
@@ -928,8 +922,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_get_ctlplane_attrs', autospec=True, return_value={})
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_get_undercloud_host_entry', autospec=True,
+    @mock.patch('tripleoclient.utils.get_undercloud_host_entry', autospec=True,
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
     @mock.patch('tripleoclient.utils.check_stack_network_matches_env_files')
     @mock.patch('tripleoclient.utils.check_ceph_fsid_matches_env_files')
@@ -1057,8 +1050,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
     @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_get_undercloud_host_entry', autospec=True,
+    @mock.patch('tripleoclient.utils.get_undercloud_host_entry', autospec=True,
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 'create_env_files', autospec=True)
@@ -1101,8 +1093,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
     @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_get_undercloud_host_entry', autospec=True,
+    @mock.patch('tripleoclient.utils.get_undercloud_host_entry', autospec=True,
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 'create_env_files', autospec=True)
@@ -1147,8 +1138,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
     @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_get_undercloud_host_entry', autospec=True,
+    @mock.patch('tripleoclient.utils.get_undercloud_host_entry', autospec=True,
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 'create_env_files', autospec=True)
@@ -1195,8 +1185,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 'create_env_files', autospec=True)
     @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_get_undercloud_host_entry', autospec=True,
+    @mock.patch('tripleoclient.utils.get_undercloud_host_entry', autospec=True,
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 'deploy_tripleo_heat_templates', autospec=True)
@@ -1242,8 +1231,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 'create_env_files', autospec=True)
     @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_get_undercloud_host_entry', autospec=True,
+    @mock.patch('tripleoclient.utils.get_undercloud_host_entry', autospec=True,
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
@@ -1293,8 +1281,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
     @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_get_undercloud_host_entry', autospec=True,
+    @mock.patch('tripleoclient.utils.get_undercloud_host_entry', autospec=True,
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 'create_env_files', autospec=True)
@@ -1352,8 +1339,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_get_ctlplane_attrs', autospec=True, return_value={})
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_get_undercloud_host_entry', autospec=True,
+    @mock.patch('tripleoclient.utils.get_undercloud_host_entry', autospec=True,
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_heat_deploy', autospec=True)
@@ -1440,8 +1426,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_update_parameters')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_get_undercloud_host_entry', autospec=True,
+    @mock.patch('tripleoclient.utils.get_undercloud_host_entry', autospec=True,
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 'create_env_files', autospec=True)
