@@ -2714,3 +2714,34 @@ def get_ctlplane_attrs():
         })
 
     return net_attributes_map
+
+
+def cleanup_host_entry(entry):
+    # remove any tab or space excess
+    entry_stripped = re.sub('[ \t]+', ' ', str(entry).rstrip())
+    # removes any duplicate identical lines
+    unique_lines = list(set(entry_stripped.splitlines()))
+    ret = ''
+    for line in unique_lines:
+        # remove any duplicate word
+        hosts_unique = (' '.join(
+            collections.OrderedDict((w, w) for w in line.split()).keys()))
+        if hosts_unique != '':
+            ret += hosts_unique + '\n'
+    return ret.rstrip('\n')
+
+
+def get_undercloud_host_entry():
+    """Get hosts entry for undercloud ctlplane network
+
+    The host entry will be added on overcloud nodes
+    """
+    ctlplane_hostname = '.'.join([get_short_hostname(), 'ctlplane'])
+    cmd = ['getent', 'hosts', ctlplane_hostname]
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                               universal_newlines=True)
+    out, err = process.communicate()
+    if process.returncode != 0:
+        raise exceptions.DeploymentError('No entry for %s in /etc/hosts'
+                                         % ctlplane_hostname)
+    return cleanup_host_entry(out)

@@ -14,7 +14,6 @@
 #
 
 import argparse
-from collections import OrderedDict
 import os
 import os.path
 from oslo_config import cfg
@@ -22,10 +21,8 @@ from oslo_log import log as logging
 from oslo_utils import excutils
 from prettytable import PrettyTable
 from pwd import getpwuid
-import re
 import shutil
 import six
-import subprocess
 import time
 import yaml
 
@@ -121,40 +118,11 @@ class DeployOvercloud(command.Command):
                 parameters[param] = getattr(args, arg)
 
         parameters[
-            'UndercloudHostsEntries'] = [self._get_undercloud_host_entry()]
+            'UndercloudHostsEntries'] = [utils.get_undercloud_host_entry()]
 
         parameters['CtlplaneNetworkAttributes'] = utils.get_ctlplane_attrs()
 
         return parameters
-
-    def _cleanup_host_entry(self, entry):
-        # remove any tab or space excess
-        entry_stripped = re.sub('[ \t]+', ' ', str(entry).rstrip())
-        # removes any duplicate identical lines
-        unique_lines = list(set(entry_stripped.splitlines()))
-        ret = ''
-        for line in unique_lines:
-            # remove any duplicate word
-            hosts_unique = (' '.join(
-                OrderedDict((w, w) for w in line.split()).keys()))
-            if hosts_unique != '':
-                ret += hosts_unique + '\n'
-        return ret.rstrip('\n')
-
-    def _get_undercloud_host_entry(self):
-        """Get hosts entry for undercloud ctlplane network
-
-        The host entry will be added on overcloud nodes
-        """
-        ctlplane_hostname = '.'.join([utils.get_short_hostname(), 'ctlplane'])
-        cmd = ['getent', 'hosts', ctlplane_hostname]
-        process = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                   universal_newlines=True)
-        out, err = process.communicate()
-        if process.returncode != 0:
-            raise exceptions.DeploymentError('No entry for %s in /etc/hosts'
-                                             % ctlplane_hostname)
-        return self._cleanup_host_entry(out)
 
     def _check_limit_skiplist_warning(self, env):
         if env.get('parameter_defaults').get('DeploymentServerBlacklist'):
