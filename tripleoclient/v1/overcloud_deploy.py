@@ -260,7 +260,7 @@ class DeployOvercloud(command.Command):
                 cleanup=(not parsed_args.no_cleanup))
 
         # Copy the env_files to tmp folder for archiving
-        self._copy_env_files(env_files, new_tht_root)
+        utils.copy_env_files(env_files, new_tht_root)
 
         if parsed_args.limit:
             # check if skip list is defined while using --limit and throw a
@@ -303,24 +303,6 @@ class DeployOvercloud(command.Command):
             deployment_options=deployment_options)
 
         self._unprovision_baremetal(parsed_args)
-
-    def _copy_env_files(self, files_dict, tht_root):
-        file_prefix = "file://"
-
-        for fullpath in files_dict.keys():
-
-            if not fullpath.startswith(file_prefix):
-                continue
-
-            path = fullpath[len(file_prefix):]
-
-            if path.startswith(tht_root):
-                continue
-
-            reloc_path = os.path.join(
-                tht_root,
-                "user-environments/{}".format(os.path.basename(path)))
-            utils.safe_write(reloc_path, files_dict[fullpath])
 
     def _try_overcloud_deploy_with_compat_yaml(self, tht_root, stack,
                                                stack_name,
