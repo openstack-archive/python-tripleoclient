@@ -30,6 +30,7 @@ import logging
 
 import multiprocessing
 import netaddr
+import openstack
 import os
 import os.path
 import pwd
@@ -2675,3 +2676,41 @@ def export_overcloud(heat, stack, excludes, should_filter,
     data.update({'AddVipsToEtcHosts': False})
     data = dict(parameter_defaults=data)
     return data
+
+
+def get_ctlplane_attrs():
+    try:
+        conn = openstack.connect('undercloud')
+    except openstack.exceptions.ConfigException:
+        return dict()
+
+    if not conn.endpoint_for('network'):
+        return dict()
+
+    network = conn.network.find_network('ctlplane')
+    if network is None:
+        return dict()
+
+    net_attributes_map = {'network': dict(), 'subnets': dict()}
+
+    net_attributes_map['network'].update({
+        'name': network.name,
+        'mtu': network.mtu,
+        'dns_domain': network.dns_domain,
+        'tags': network.tags,
+    })
+
+    for subnet_id in network.subnet_ids:
+        subnet = conn.network.get_subnet(subnet_id)
+        net_attributes_map['subnets'].update({
+            subnet.name: {
+                'name': subnet.name,
+                'cidr': subnet.cidr,
+                'gateway_ip': subnet.gateway_ip,
+                'host_routes': subnet.host_routes,
+                'dns_nameservers': subnet.dns_nameservers,
+                'ip_version': subnet.ip_version,
+            }
+        })
+
+    return net_attributes_map

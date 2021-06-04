@@ -330,3 +330,84 @@ class FakePlaybookExecution(utils.TestCommand):
 def fake_ansible_runner_run_return(rc=0):
 
     return 'Test Status', rc
+
+
+class FakeNeutronNetwork(dict):
+    def __init__(self, **attrs):
+        NETWORK_ATTRS = ['id',
+                         'name',
+                         'status',
+                         'tenant_id',
+                         'is_admin_state_up',
+                         'mtu',
+                         'segments',
+                         'is_shared',
+                         'subnet_ids',
+                         'provider:network_type',
+                         'provider:physical_network',
+                         'provider:segmentation_id',
+                         'router:external',
+                         'availability_zones',
+                         'availability_zone_hints',
+                         'is_default',
+                         'tags']
+
+        raw = dict.fromkeys(NETWORK_ATTRS)
+        raw.update(attrs)
+        raw.update({
+            'provider_physical_network': attrs.get(
+                'provider:physical_network', None),
+            'provider_network_type': attrs.get(
+                'provider:network_type', None),
+            'provider_segmentation_id': attrs.get(
+                'provider:segmentation_id', None)
+        })
+        super(FakeNeutronNetwork, self).__init__(raw)
+
+    def __getattr__(self, key):
+        try:
+            return self[key]
+        except KeyError:
+            raise AttributeError(key)
+
+    def __setattr__(self, key, value):
+        if key in self:
+            self[key] = value
+        else:
+            raise AttributeError(key)
+
+
+class FakeNeutronSubnet(dict):
+    def __init__(self, **attrs):
+        SUBNET_ATTRS = ['id',
+                        'name',
+                        'network_id',
+                        'cidr',
+                        'tenant_id',
+                        'is_dhcp_enabled',
+                        'dns_nameservers',
+                        'allocation_pools',
+                        'host_routes',
+                        'ip_version',
+                        'gateway_ip',
+                        'ipv6_address_mode',
+                        'ipv6_ra_mode',
+                        'subnetpool_id',
+                        'segment_id',
+                        'tags']
+
+        raw = dict.fromkeys(SUBNET_ATTRS)
+        raw.update(attrs)
+        super(FakeNeutronSubnet, self).__init__(raw)
+
+    def __getattr__(self, key):
+        try:
+            return self[key]
+        except KeyError:
+            raise AttributeError(key)
+
+    def __setattr__(self, key, value):
+        if key in self:
+            self[key] = value
+        else:
+            raise AttributeError(key)

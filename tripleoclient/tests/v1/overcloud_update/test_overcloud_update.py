@@ -36,8 +36,37 @@ class TestOvercloudUpdatePrepare(fakes.TestOvercloudUpdatePrepare):
         self.mock_uuid4 = uuid4_patcher.start()
         self.addCleanup(self.mock_uuid4.stop)
 
+    @mock.patch('tripleoclient.utils.ensure_run_as_normal_user')
+    @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
+                return_value=True)
+    @mock.patch('six.moves.builtins.open')
+    @mock.patch('os.path.abspath')
+    @mock.patch('yaml.safe_load')
+    @mock.patch('shutil.copytree', autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_get_ctlplane_attrs', autospec=True, return_value={})
+                'take_action', autospec=True)
+    def test_update_failed(self, mock_deploy, mock_copy, mock_yaml,
+                           mock_abspath, mock_open,
+                           mock_confirm, mock_usercheck):
+        mock_deploy.side_effect = exceptions.DeploymentError()
+        mock_yaml.return_value = {'fake_container': 'fake_value'}
+        argslist = ['--stack', 'overcloud', '--templates', ]
+        verifylist = [
+            ('stack', 'overcloud'),
+            ('templates', constants.TRIPLEO_HEAT_TEMPLATES),
+        ]
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+
+        with mock.patch('os.path.exists') as mock_exists, \
+                mock.patch('os.path.isfile') as mock_isfile:
+            mock_exists.return_value = True
+            mock_isfile.return_value = True
+            self.assertRaises(exceptions.DeploymentError,
+                              self.cmd.take_action, parsed_args)
+            mock_usercheck.assert_called_once()
+
+    @mock.patch('tripleoclient.utils.get_ctlplane_attrs', autospec=True,
+                return_value={})
     @mock.patch('tripleoclient.utils.ensure_run_as_normal_user')
     @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
                 return_value=True)
@@ -74,35 +103,6 @@ class TestOvercloudUpdatePrepare(fakes.TestOvercloudUpdatePrepare):
             self.cmd.take_action(parsed_args)
             mock_usercheck.assert_called_once()
             mock_deploy.assert_called_once()
-
-    @mock.patch('tripleoclient.utils.ensure_run_as_normal_user')
-    @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
-                return_value=True)
-    @mock.patch('six.moves.builtins.open')
-    @mock.patch('os.path.abspath')
-    @mock.patch('yaml.safe_load')
-    @mock.patch('shutil.copytree', autospec=True)
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                'take_action', autospec=True)
-    def test_update_failed(self, mock_deploy, mock_copy, mock_yaml,
-                           mock_abspath, mock_open,
-                           mock_confirm, mock_usercheck):
-        mock_deploy.side_effect = exceptions.DeploymentError()
-        mock_yaml.return_value = {'fake_container': 'fake_value'}
-        argslist = ['--stack', 'overcloud', '--templates', ]
-        verifylist = [
-            ('stack', 'overcloud'),
-            ('templates', constants.TRIPLEO_HEAT_TEMPLATES),
-        ]
-        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
-
-        with mock.patch('os.path.exists') as mock_exists, \
-                mock.patch('os.path.isfile') as mock_isfile:
-            mock_exists.return_value = True
-            mock_isfile.return_value = True
-            self.assertRaises(exceptions.DeploymentError,
-                              self.cmd.take_action, parsed_args)
-            mock_usercheck.assert_called_once()
 
 
 class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
