@@ -86,11 +86,6 @@ THT_HOME = os.environ.get('THT_HOME',
 
 USER_HOME = os.environ.get('HOME', '')
 
-TELEMETRY_DOCKER_ENV_YAML = [
-    'environments/services/undercloud-gnocchi.yaml',
-    'environments/services/undercloud-aodh.yaml',
-    'environments/services/undercloud-ceilometer.yaml']
-
 CONF = cfg.CONF
 
 # When adding new options to the lists below, make sure to regenerate the
@@ -662,11 +657,8 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
             tht_templates, "environments/undercloud-enable-swift.yaml")]
 
     if CONF.get('enable_telemetry'):
-        for env_file in TELEMETRY_DOCKER_ENV_YAML:
-            deploy_args += ['-e', os.path.join(tht_templates, env_file)]
-    else:
         deploy_args += ['-e', os.path.join(
-            tht_templates, "environments/disable-telemetry.yaml")]
+            tht_templates, "environments/enable-legacy-telemetry.yaml")]
 
     if CONF.get('enable_cinder'):
         deploy_args += ['-e', os.path.join(
