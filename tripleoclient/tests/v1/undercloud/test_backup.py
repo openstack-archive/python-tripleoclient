@@ -33,6 +33,8 @@ class TestUndercloudBackup(utils.TestCommand):
         self.cmd = undercloud_backup.BackupUndercloud(self.app, app_args)
         self.app.client_manager.workflow_engine = mock.Mock()
         self.workflow = self.app.client_manager.workflow_engine
+        self.inventory = '/tmp/test_inventory.yaml'
+        self.file = open(self.inventory, 'w').close()
 
     @mock.patch('tripleoclient.workflows.undercloud_backup.backup',
                 autospec=True)
@@ -114,11 +116,18 @@ class TestUndercloudBackup(utils.TestCommand):
             mock.ANY,
             {'sources_path': '/home/stack/,/tmp/foo.yaml'})
 
+    @mock.patch('os.path.isfile')
+    @mock.patch('os.access')
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
-    def test_undercloud_backup_noargs(self, mock_playbook):
+    def test_undercloud_backup_noargs(self,
+                                      mock_playbook,
+                                      mock_access,
+                                      mock_isfile):
         arglist = []
         verifylist = []
+        mock_isfile.return_value = True
+        mock_access.return_value = True
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
@@ -135,13 +144,20 @@ class TestUndercloudBackup(utils.TestCommand):
             extra_vars=None
         )
 
+    @mock.patch('os.path.isfile')
+    @mock.patch('os.access')
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
-    def test_undercloud_backup_init(self, mock_playbook):
+    def test_undercloud_backup_init(self,
+                                    mock_playbook,
+                                    mock_access,
+                                    mock_isfile):
         arglist = [
             '--init'
         ]
         verifylist = []
+        mock_isfile.return_value = True
+        mock_access.return_value = True
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
@@ -158,14 +174,21 @@ class TestUndercloudBackup(utils.TestCommand):
             extra_vars=None
         )
 
+    @mock.patch('os.path.isfile')
+    @mock.patch('os.access')
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
-    def test_undercloud_backup_init_nfs(self, mock_playbook):
+    def test_undercloud_backup_init_nfs(self,
+                                        mock_playbook,
+                                        mock_access,
+                                        mock_isfile):
         arglist = [
             '--init',
             'nfs'
         ]
         verifylist = []
+        mock_isfile.return_value = True
+        mock_access.return_value = True
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
@@ -182,13 +205,20 @@ class TestUndercloudBackup(utils.TestCommand):
             extra_vars=None
         )
 
+    @mock.patch('os.path.isfile')
+    @mock.patch('os.access')
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
-    def test_undercloud_backup_setup_nfs(self, mock_playbook):
+    def test_undercloud_backup_setup_nfs(self,
+                                         mock_playbook,
+                                         mock_access,
+                                         mock_isfile):
         arglist = [
             '--setup-nfs'
         ]
         verifylist = []
+        mock_isfile.return_value = True
+        mock_access.return_value = True
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
@@ -205,13 +235,20 @@ class TestUndercloudBackup(utils.TestCommand):
             extra_vars=None
             )
 
+    @mock.patch('os.path.isfile')
+    @mock.patch('os.access')
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
-    def test_undercloud_backup_setup_rear(self, mock_playbook):
+    def test_undercloud_backup_setup_rear(self,
+                                          mock_playbook,
+                                          mock_access,
+                                          mock_isfile):
         arglist = [
             '--setup-rear'
         ]
         verifylist = []
+        mock_isfile.return_value = True
+        mock_access.return_value = True
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
@@ -226,24 +263,28 @@ class TestUndercloudBackup(utils.TestCommand):
             skip_tags=None,
             verbosity=1,
             extra_vars=None
-            )
+        )
 
+    @mock.patch('os.path.isfile')
+    @mock.patch('os.access')
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
     def test_undercloud_backup_setup_rear_extra_vars_inline(self,
-                                                            mock_playbook):
+                                                            mock_playbook,
+                                                            mock_access,
+                                                            mock_isfile):
         arglist = [
             '--setup-rear',
             '--extra-vars',
             '{"tripleo_backup_and_restore_nfs_server": "192.168.24.1"}'
         ]
         verifylist = []
-
+        mock_isfile.return_value = True
+        mock_access.return_value = True
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         extra_vars_dict = {
             'tripleo_backup_and_restore_nfs_server': '192.168.24.1'
         }
-
         self.cmd.take_action(parsed_args)
         mock_playbook.assert_called_once_with(
             logger=mock.ANY,
@@ -255,7 +296,7 @@ class TestUndercloudBackup(utils.TestCommand):
             verbosity=1,
             output_callback='tripleo',
             extra_vars=extra_vars_dict
-            )
+        )
 
     @mock.patch('tripleoclient.utils.run_ansible_playbook', autospec=True)
     def test_undercloud_backup_setup_nfs_rear_with_inventory(self,
@@ -264,10 +305,9 @@ class TestUndercloudBackup(utils.TestCommand):
             '--setup-nfs',
             '--setup-rear',
             '--inventory',
-            '/tmp/test_inventory.yaml'
+            self.inventory
         ]
         verifylist = []
-
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.cmd.take_action(parsed_args)
@@ -293,16 +333,22 @@ class TestUndercloudBackup(utils.TestCommand):
 
         mock_playbook.assert_has_calls(calls)
 
+    @mock.patch('os.path.isfile')
+    @mock.patch('os.access')
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
-    def test_undercloud_backup_setup_nfs_with_extra_vars(self, mock_playbook):
+    def test_undercloud_backup_setup_nfs_with_extra_vars(self,
+                                                         mock_playbook,
+                                                         mock_access,
+                                                         mock_isfile):
         arglist = [
             '--setup-nfs',
             '--extra-vars',
             '/tmp/test_vars.yaml'
         ]
         verifylist = []
-
+        mock_isfile.return_value = True
+        mock_access.return_value = True
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.cmd.take_action(parsed_args)
@@ -323,10 +369,9 @@ class TestUndercloudBackup(utils.TestCommand):
     def test_undercloud_backup_inventory(self, mock_playbook):
         arglist = [
             '--inventory',
-            '/tmp/test_inventory.yaml'
+            self.inventory
         ]
         verifylist = []
-
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.cmd.take_action(parsed_args)
@@ -341,3 +386,39 @@ class TestUndercloudBackup(utils.TestCommand):
             verbosity=1,
             extra_vars=None
         )
+
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
+                autospec=True)
+    def test_undercloud_backup_no_inventory(self, mock_playbook):
+        arglist = [
+            '--inventory',
+            '/tmp/no_inventory.yaml'
+        ]
+        verifylist = []
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        self.assertRaisesRegexp(
+            RuntimeError,
+            'The inventory file',
+            self.cmd.take_action,
+            parsed_args)
+
+    @mock.patch('os.access')
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
+                autospec=True)
+    def test_undercloud_backup_no_readable_inventory(self,
+                                                     mock_playbook,
+                                                     mock_access):
+        arglist = [
+            '--inventory',
+            self.inventory
+        ]
+        verifylist = []
+        mock_access.return_value = False
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.assertRaisesRegexp(
+            RuntimeError,
+            'The inventory file',
+            self.cmd.take_action,
+            parsed_args)

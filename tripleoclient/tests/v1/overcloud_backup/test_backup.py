@@ -34,12 +34,21 @@ class TestOvercloudBackup(utils.TestCommand):
         self.cmd = overcloud_backup.BackupOvercloud(self.app, app_args)
         self.app.client_manager.workflow_engine = mock.Mock()
         self.workflow = self.app.client_manager.workflow_engine
+        self.inventory = '/tmp/test_inventory.yaml'
+        self.file = open(self.inventory, 'w').close()
 
+    @mock.patch('os.path.isfile')
+    @mock.patch('os.access')
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
-    def test_overcloud_backup_noargs(self, mock_playbook):
+    def test_overcloud_backup_noargs(self,
+                                     mock_playbook,
+                                     mock_access,
+                                     mock_isfile):
         arglist = []
         verifylist = []
+        mock_isfile.return_value = True
+        mock_access.return_value = True
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
@@ -56,13 +65,20 @@ class TestOvercloudBackup(utils.TestCommand):
             extra_vars={}
         )
 
+    @mock.patch('os.path.isfile')
+    @mock.patch('os.access')
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
-    def test_overcloud_backup_init(self, mock_playbook):
+    def test_overcloud_backup_init(self,
+                                   mock_playbook,
+                                   mock_access,
+                                   mock_isfile):
         arglist = [
             '--init'
         ]
         verifylist = []
+        mock_isfile.return_value = True
+        mock_access.return_value = True
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
@@ -79,14 +95,21 @@ class TestOvercloudBackup(utils.TestCommand):
             extra_vars={}
         )
 
+    @mock.patch('os.path.isfile')
+    @mock.patch('os.access')
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
-    def test_overcloud_backup_init_nfs(self, mock_playbook):
+    def test_overcloud_backup_init_nfs(self,
+                                       mock_playbook,
+                                       mock_access,
+                                       mock_isfile):
         arglist = [
             '--init',
             'nfs'
         ]
         verifylist = []
+        mock_isfile.return_value = True
+        mock_access.return_value = True
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
@@ -103,13 +126,20 @@ class TestOvercloudBackup(utils.TestCommand):
             extra_vars={}
         )
 
+    @mock.patch('os.path.isfile')
+    @mock.patch('os.access')
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
-    def test_overcloud_backup_setup_nfs(self, mock_playbook):
+    def test_overcloud_backup_setup_nfs(self,
+                                        mock_playbook,
+                                        mock_access,
+                                        mock_isfile):
         arglist = [
             '--setup-nfs'
         ]
         verifylist = []
+        mock_isfile.return_value = True
+        mock_access.return_value = True
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
@@ -126,13 +156,20 @@ class TestOvercloudBackup(utils.TestCommand):
             extra_vars={}
         )
 
+    @mock.patch('os.path.isfile')
+    @mock.patch('os.access')
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
-    def test_overcloud_backup_setup_rear(self, mock_playbook):
+    def test_overcloud_backup_setup_rear(self,
+                                         mock_playbook,
+                                         mock_access,
+                                         mock_isfile):
         arglist = [
             '--setup-rear',
         ]
         verifylist = []
+        mock_isfile.return_value = True
+        mock_access.return_value = True
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
@@ -156,14 +193,13 @@ class TestOvercloudBackup(utils.TestCommand):
             '--setup-nfs',
             '--setup-rear',
             '--inventory',
-            '/tmp/test_inventory.yaml'
+            self.inventory
         ]
         verifylist = []
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.cmd.take_action(parsed_args)
-
         calls = [call(logger=mock.ANY,
                       workdir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
                       playbook='prepare-nfs-backup.yaml',
@@ -185,16 +221,22 @@ class TestOvercloudBackup(utils.TestCommand):
 
         mock_playbook.assert_has_calls(calls)
 
+    @mock.patch('os.path.isfile')
+    @mock.patch('os.access')
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
     def test_overcloud_backup_setup_rear_extra_vars_inline(self,
-                                                           mock_playbook):
+                                                           mock_playbook,
+                                                           mock_access,
+                                                           mock_isfile):
         arglist = [
             '--setup-rear',
             '--extra-vars',
             '{"tripleo_backup_and_restore_nfs_server": "192.168.24.1"}'
         ]
         verifylist = []
+        mock_isfile.return_value = True
+        mock_access.return_value = True
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         extra_vars_dict = {
@@ -214,15 +256,22 @@ class TestOvercloudBackup(utils.TestCommand):
             extra_vars=extra_vars_dict
             )
 
+    @mock.patch('os.path.isfile')
+    @mock.patch('os.access')
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
-    def test_overcloud_backup_setup_rear_with_extra_vars(self, mock_playbook):
+    def test_overcloud_backup_setup_rear_with_extra_vars(self,
+                                                         mock_playbook,
+                                                         mock_access,
+                                                         mock_isfile):
         arglist = [
             '--setup-rear',
             '--extra-vars',
             '/tmp/test_vars.yaml'
         ]
         verifylist = []
+        mock_isfile.return_value = True
+        mock_access.return_value = True
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
@@ -244,10 +293,9 @@ class TestOvercloudBackup(utils.TestCommand):
     def test_overcloud_backup_inventory(self, mock_playbook):
         arglist = [
             '--inventory',
-            '/tmp/test_inventory.yaml'
+            self.inventory
         ]
         verifylist = []
-
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.cmd.take_action(parsed_args)
@@ -262,3 +310,39 @@ class TestOvercloudBackup(utils.TestCommand):
             verbosity=1,
             extra_vars={}
         )
+
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
+                autospec=True)
+    def test_overcloud_backup_no_inventory(self, mock_playbook):
+        arglist = [
+            '--inventory',
+            '/tmp/no_inventory.yaml'
+        ]
+        verifylist = []
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        self.assertRaisesRegexp(
+            RuntimeError,
+            'The inventory file',
+            self.cmd.take_action,
+            parsed_args)
+
+    @mock.patch('os.access')
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
+                autospec=True)
+    def test_overcloud_backup_no_readable_inventory(self,
+                                                    mock_playbook,
+                                                    mock_access):
+        arglist = [
+            '--inventory',
+            self.inventory
+        ]
+        verifylist = []
+        mock_access.return_value = False
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.assertRaisesRegexp(
+            RuntimeError,
+            'The inventory file',
+            self.cmd.take_action,
+            parsed_args)
