@@ -155,6 +155,12 @@ class BackupUndercloud(command.Command):
 
         extra_vars = self._parse_extra_vars(parsed_args.extra_vars)
 
+        if not (os.path.isfile(parsed_args.inventory) and
+                os.access(parsed_args.inventory, os.R_OK)):
+            raise RuntimeError(
+               _('The inventory file {} does not exist or is not '
+                 'readable'.format(parsed_args.inventory)))
+
         if parsed_args.setup_nfs is True or parsed_args.init == 'nfs':
 
             self._run_ansible_playbook(
