@@ -249,8 +249,7 @@ def config_download(log, clients, stack, ssh_network='ctlplane',
                     ansible_playbook_name='deploy_steps_playbook.yaml',
                     limit_hosts=None, extra_vars=None, inventory_path=None,
                     ssh_user='tripleo-admin', tags=None, skip_tags=None,
-                    deployment_timeout=None, forks=None, setup_only=False,
-                    working_dir=None):
+                    deployment_timeout=None, forks=None, working_dir=None):
     """Run config download.
 
     :param log: Logging object
@@ -308,10 +307,6 @@ def config_download(log, clients, stack, ssh_network='ctlplane',
 
     :param deployment_timeout: Deployment timeout in minutes.
     :type deployment_timeout: Integer
-
-    :param setup_only: Only generates the config-download directory
-                       without executing the actual playbooks.
-    :type setup_only: Boolean
 
     :param working_dir: Consistent working directory used for generated
                         ansible files.
@@ -408,17 +403,6 @@ def config_download(log, clients, stack, ssh_network='ctlplane',
             'inventory_path': inventory_path
         }
     )
-
-    # If we only want to generate config-download directory, we can quit here.
-    if setup_only:
-        _log_and_print(
-            message='Overcloud configuration generated for stack: {}'.format(
-                stack.stack_name
-            ),
-            logger=log,
-            print_msg=(verbosity == 0)
-        )
-        return
 
     _log_and_print(
         message='Executing deployment playbook for stack: {}'.format(
