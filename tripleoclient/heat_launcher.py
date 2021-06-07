@@ -37,7 +37,8 @@ from tenacity.wait import wait_fixed
 from tripleoclient.constants import (DEFAULT_HEAT_CONTAINER,
                                      DEFAULT_HEAT_API_CONTAINER,
                                      DEFAULT_HEAT_ENGINE_CONTAINER,
-                                     DEFAULT_TEMPLATES_DIR)
+                                     DEFAULT_TEMPLATES_DIR,
+                                     EPHEMERAL_HEAT_POD_NAME)
 from tripleoclient.exceptions import HeatPodMessageQueueException
 
 log = logging.getLogger(__name__)
@@ -478,7 +479,7 @@ class HeatPodLauncher(HeatContainerLauncher):
     def get_pod_state(self):
         inspect = subprocess.run([
             'sudo', 'podman', 'pod', 'inspect', '--format',
-            '"{{.State}}"', 'ephemeral-heat'],
+            '"{{.State}}"', EPHEMERAL_HEAT_POD_NAME],
             check=False,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT)
@@ -486,7 +487,8 @@ class HeatPodLauncher(HeatContainerLauncher):
 
     def launch_heat(self):
         if "Running" in self.get_pod_state():
-            log.info("ephemeral-heat pod already running, skipping launch")
+            log.info("%s pod already running, skipping launch",
+                     EPHEMERAL_HEAT_POD_NAME)
             return
         self._write_heat_pod()
         subprocess.check_call([
@@ -570,7 +572,7 @@ class HeatPodLauncher(HeatContainerLauncher):
     def pod_exists(self):
         try:
             subprocess.check_call(
-                ['sudo', 'podman', 'pod', 'inspect', 'ephemeral-heat'],
+                ['sudo', 'podman', 'pod', 'inspect', EPHEMERAL_HEAT_POD_NAME],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL)
             return True
@@ -593,9 +595,10 @@ class HeatPodLauncher(HeatContainerLauncher):
             except subprocess.CalledProcessError:
                 pass
         if self.pod_exists():
-            log.info("Removing pod: ephemeral-heat")
+            log.info("Removing pod: %s", EPHEMERAL_HEAT_POD_NAME)
             subprocess.call([
-                'sudo', 'podman', 'pod', 'rm', '-f', 'ephemeral-heat'
+                'sudo', 'podman', 'pod', 'rm', '-f',
+                EPHEMERAL_HEAT_POD_NAME
             ])
         config = self._read_heat_config()
         log_file_path = os.path.join(self.log_dir,
@@ -605,11 +608,12 @@ class HeatPodLauncher(HeatContainerLauncher):
 
     def stop_heat(self):
         if self.pod_exists() and self.get_pod_state() != 'Exited':
-            log.info("Stopping pod: ephemeral-heat")
+            log.info("Stopping pod: %s", EPHEMERAL_HEAT_POD_NAME)
             subprocess.check_call([
-                'sudo', 'podman', 'pod', 'stop', 'ephemeral-heat'
+                'sudo', 'podman', 'pod', 'stop',
+                EPHEMERAL_HEAT_POD_NAME
             ])
-            log.info("Stopped pod: ephemeral-heat")
+            log.info("Stopped pod: %s", EPHEMERAL_HEAT_POD_NAME)
 
     def check_message_bus(self):
         log.info("Checking that message bus (rabbitmq) is up")
@@ -650,13 +654,14 @@ class HeatPodLauncher(HeatContainerLauncher):
 
     def kill_heat(self, pid):
         if self.pod_exists():
-            log.info("Killing pod: ephemeral-heat")
+            log.info("Killing pod: %s", EPHEMERAL_HEAT_POD_NAME)
             subprocess.call([
-                'sudo', 'podman', 'pod', 'kill', 'ephemeral-heat'
+                'sudo', 'podman', 'pod', 'kill',
+                EPHEMERAL_HEAT_POD_NAME
             ])
-            log.info("Killed pod: ephemeral-heat")
+            log.info("Killed pod: %s", EPHEMERAL_HEAT_POD_NAME)
         else:
-            log.info("Pod does not exist: ephemeral-heat")
+            log.info("Pod does not exist: %s", EPHEMERAL_HEAT_POD_NAME)
 
     def _decode(self, encoded):
         if not encoded:
@@ -702,11 +707,11 @@ class HeatPodLauncher(HeatContainerLauncher):
            stop=(stop_after_delay(10) | stop_after_attempt(10)),
            wait=wait_fixed(0.5))
     def wait_for_message_queue(self):
+        queue_name = 'engine.' + EPHEMERAL_HEAT_POD_NAME
         output = subprocess.check_output([
-            'sudo', 'podman', 'exec',  'rabbitmq',
-            'rabbitmqctl', 'list_queues'
-        ])
-        if 'heat' not in str(output):
+            'sudo', 'podman', 'exec', 'rabbitmq',
+            'rabbitmqctl', 'list_queues'])
+        if str(output).count(queue_name) < 1:
             msg = "Message queue for ephemeral heat not created in time."
             raise HeatPodMessageQueueException(msg)
 
@@ -720,7 +725,7 @@ class HeatPodLauncher(HeatContainerLauncher):
 
     def _write_heat_config(self):
         heat_config_tmpl_path = os.path.join(DEFAULT_TEMPLATES_DIR,
-                                             "ephemeral-heat",
+                                             EPHEMERAL_HEAT_POD_NAME,
                                              "heat.conf.j2")
         with open(heat_config_tmpl_path) as tmpl:
             heat_config_tmpl = jinja2.Template(tmpl.read())
@@ -739,7 +744,7 @@ class HeatPodLauncher(HeatContainerLauncher):
 
     def _write_heat_pod(self):
         heat_pod_tmpl_path = os.path.join(DEFAULT_TEMPLATES_DIR,
-                                          "ephemeral-heat",
+                                          EPHEMERAL_HEAT_POD_NAME,
                                           "heat-pod.yaml.j2")
         with open(heat_pod_tmpl_path) as tmpl:
             heat_pod_tmpl = jinja2.Template(tmpl.read())
@@ -752,6 +757,7 @@ class HeatPodLauncher(HeatContainerLauncher):
             "api_port": self.api_port,
             "api_image": self.api_container_image,
             "engine_image": self.engine_container_image,
+            "heat_pod_name": EPHEMERAL_HEAT_POD_NAME
         }
         heat_pod = heat_pod_tmpl.render(**pod_vars)
 
