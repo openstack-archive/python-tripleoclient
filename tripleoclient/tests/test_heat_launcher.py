@@ -416,11 +416,11 @@ class TestHeatPodLauncher(base.TestCase):
     def test_wait_for_message_queue(self):
         launcher = self.get_launcher()
         wait_mq = launcher.wait_for_message_queue.__wrapped__
-        self.check_output.return_value = 'heat'
+        self.check_output.return_value = 'engine.ephemeral-heat'
         wait_mq(launcher)
 
         self.check_output.reset_mock()
-        self.check_output.return_value = 'test'
+        self.check_output.return_value = 'heat-listener'
         self.assertRaises(HeatPodMessageQueueException, wait_mq, launcher)
 
     def test_get_log_file_path(self):
