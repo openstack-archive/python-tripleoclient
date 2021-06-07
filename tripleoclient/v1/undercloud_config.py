@@ -135,10 +135,10 @@ def _get_unknown_instack_tags(env, src):
 def _process_drivers_and_hardware_types(conf, env):
     """Populate the environment with ironic driver information."""
     # Ensure correct rendering of the list and uniqueness of the items
-    enabled_hardware_types = set(conf.enabled_hardware_types)
+    enabled_hardware_types = list(conf.enabled_hardware_types)
     if conf.enable_node_discovery:
         if conf.discovery_default_driver not in enabled_hardware_types:
-            enabled_hardware_types.add(conf.discovery_default_driver)
+            enabled_hardware_types.append(conf.discovery_default_driver)
         env['IronicInspectorEnableNodeDiscovery'] = True
         env['IronicInspectorDiscoveryDefaultDriver'] = (
             conf.discovery_default_driver)
@@ -150,61 +150,62 @@ def _process_drivers_and_hardware_types(conf, env):
 
     # In most cases power and management interfaces are called the same, so we
     # use one variable for them.
-    mgmt_interfaces = {'fake', 'ipmitool'}
+    mgmt_interfaces = ['ipmitool']
     # TODO(dtantsur): can we somehow avoid hardcoding hardware types here?
     for hw_type in ('redfish', 'idrac', 'ilo', 'irmc', 'staging-ovirt',
                     'xclarity'):
         if hw_type in enabled_hardware_types:
-            mgmt_interfaces.add(hw_type)
+            mgmt_interfaces.append(hw_type)
+    mgmt_interfaces.append('fake')
 
-    bios_interfaces = {'no-bios'}
+    bios_interfaces = ['no-bios']
     for hw_type in ['ilo', 'irmc', 'redfish']:
         if hw_type in enabled_hardware_types:
-            bios_interfaces.add(hw_type)
+            bios_interfaces.append(hw_type)
 
     # Two hardware types use non-default boot interfaces.
-    boot_interfaces = {'ipxe', 'pxe'}
+    boot_interfaces = ['ipxe', 'pxe']
     for hw_type in ('ilo', 'irmc'):
         if hw_type in enabled_hardware_types:
-            boot_interfaces.add('%s-pxe' % hw_type)
+            boot_interfaces.append('%s-pxe' % hw_type)
 
-    inspect_interfaces = {'inspector', 'no-inspect'}
+    inspect_interfaces = ['inspector', 'no-inspect']
     for hw_type in ('redfish', 'idrac', 'ilo', 'irmc'):
         if hw_type in enabled_hardware_types:
-            inspect_interfaces.add(hw_type)
+            inspect_interfaces.append(hw_type)
 
-    raid_interfaces = {'no-raid'}
+    raid_interfaces = ['no-raid']
     if 'idrac' in enabled_hardware_types:
-        raid_interfaces.add('idrac')
+        raid_interfaces.append('idrac')
 
-    vendor_interfaces = {'no-vendor'}
+    vendor_interfaces = ['no-vendor']
     for (hw_type, iface) in [('ipmi', 'ipmitool'),
                              ('idrac', 'idrac')]:
         if hw_type in enabled_hardware_types:
-            vendor_interfaces.add(iface)
+            vendor_interfaces.append(iface)
 
     power_interfaces = mgmt_interfaces.copy()
     # The snmp hardware type uses noop management and snmp power; noop
     # management is also used by ipmi and staging hardware types.
-    mgmt_interfaces.add('noop')
+    mgmt_interfaces.append('noop')
     if 'snmp' in enabled_hardware_types:
-        power_interfaces.add('snmp')
+        power_interfaces.append('snmp')
 
-    deploy_interfaces = {'iscsi', 'direct', 'ansible'}
+    deploy_interfaces = ['direct', 'iscsi', 'ansible']
     if 'fake-hardware' in enabled_hardware_types:
-        deploy_interfaces.add('fake')
-        boot_interfaces.add('fake')
+        deploy_interfaces.append('fake')
+        boot_interfaces.append('fake')
 
-    env['IronicEnabledHardwareTypes'] = sorted(enabled_hardware_types)
+    env['IronicEnabledHardwareTypes'] = enabled_hardware_types
 
-    env['IronicEnabledBiosInterfaces'] = sorted(bios_interfaces)
-    env['IronicEnabledBootInterfaces'] = sorted(boot_interfaces)
-    env['IronicEnabledInspectInterfaces'] = sorted(inspect_interfaces)
-    env['IronicEnabledManagementInterfaces'] = sorted(mgmt_interfaces)
-    env['IronicEnabledPowerInterfaces'] = sorted(power_interfaces)
-    env['IronicEnabledRaidInterfaces'] = sorted(raid_interfaces)
-    env['IronicEnabledVendorInterfaces'] = sorted(vendor_interfaces)
-    env['IronicEnabledDeployInterfaces'] = sorted(deploy_interfaces)
+    env['IronicEnabledBiosInterfaces'] = bios_interfaces
+    env['IronicEnabledBootInterfaces'] = boot_interfaces
+    env['IronicEnabledInspectInterfaces'] = inspect_interfaces
+    env['IronicEnabledManagementInterfaces'] = mgmt_interfaces
+    env['IronicEnabledPowerInterfaces'] = power_interfaces
+    env['IronicEnabledRaidInterfaces'] = raid_interfaces
+    env['IronicEnabledVendorInterfaces'] = vendor_interfaces
+    env['IronicEnabledDeployInterfaces'] = deploy_interfaces
 
 
 def _process_ipa_args(conf, env):
