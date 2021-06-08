@@ -188,9 +188,9 @@ class TestHeatPodLauncher(base.TestCase):
             launcher.do_restore_db()
             self.assertEqual(mock.call(str(three), launcher.heat_dir),
                              mock_untar.call_args)
-            self.assertEqual(mock.call(str(three).rstrip('.tar.bz2')),
+            self.assertEqual(mock.call(launcher.heat_dir + '/heat-db.sql'),
                              mock_unlink.call_args)
-            mock_open.assert_called_with(str(three).rstrip('.tar.bz2')) # noqa
+            mock_open.assert_called_with(launcher.heat_dir + '/heat-db.sql') # noqa
             self.assertTrue(self.check_call('mysql heat', self.run))
 
         mock_unlink.reset_mock()
@@ -202,9 +202,9 @@ class TestHeatPodLauncher(base.TestCase):
             launcher.do_restore_db()
             self.assertEqual(mock.call(str(two), launcher.heat_dir),
                              mock_untar.call_args)
-            self.assertEqual(mock.call(str(two).rstrip('.tar.bz2')), # noqa
+            self.assertEqual(mock.call(launcher.heat_dir + '/heat-db.sql'),
                              mock_unlink.call_args)
-            mock_open.assert_called_with(str(two).rstrip('.tar.bz2')) # noqa
+            mock_open.assert_called_with(launcher.heat_dir + '/heat-db.sql') # noqa
             self.assertTrue(self.check_call('mysql heat', self.run))
 
     @mock.patch('tripleoclient.heat_launcher.HeatPodLauncher.tar_file')

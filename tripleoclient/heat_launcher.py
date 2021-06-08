@@ -313,7 +313,8 @@ heat.filter_factory = heat.api.openstack:faultwrap_filter
         return True
 
     def tar_file(self, file_path, cleanup=True):
-        tf_name = '{}-{}.tar.bzip2'.format(file_path, self.timestamp)
+        tf_name = '{}-{}{}'.format(file_path, self.timestamp,
+                                   self.zipped_db_suffix)
         tf = tarfile.open(tf_name, 'w:bz2')
         tf.add(file_path, os.path.basename(file_path))
         tf.close()
@@ -530,18 +531,18 @@ class HeatPodLauncher(HeatContainerLauncher):
 
     def do_restore_db(self, db_dump_path=None):
         if not db_dump_path:
+            db_dump_path = self.db_dump_path
             # Find the latest dump from self.heat_dir
             db_dumps = glob.glob(
-                '{}/heat-db-dump*{}'.format
-                (self.heat_dir,
+                '{}-*{}'.format
+                (db_dump_path,
                  self.zipped_db_suffix))
             if not db_dumps:
                 raise Exception('No db backups found to restore in %s' %
                                 self.heat_dir)
-            db_dump_path = max(db_dumps, key=os.path.getmtime)
-            self.untar_file(db_dump_path, self.heat_dir)
-            db_dump_path = db_dump_path.rstrip(self.zipped_db_suffix)
-            log.info("Restoring db from {}".format(db_dump_path))
+            db_dump = max(db_dumps, key=os.path.getmtime)
+            self.untar_file(db_dump, self.heat_dir)
+            log.info("Restoring db from {}".format(db_dump))
         try:
             with open(db_dump_path) as f:
                 subprocess.run([
