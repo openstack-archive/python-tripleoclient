@@ -42,10 +42,6 @@ CONF = cfg.CONF
 # We need 8 GB, leave a little room for variation in what 8 GB means on
 # different platforms.
 REQUIRED_MB = 7680
-PASSWORD_PATH = os.path.join(
-    constants.UNDERCLOUD_OUTPUT_DIR,
-    'undercloud-passwords.conf'
-)
 
 LOG = logging.getLogger(__name__ + ".UndercloudSetup")
 
@@ -332,11 +328,18 @@ def _validate_passwords_file():
     is missing it will break the undercloud, so we should fail-fast and let
     the user know about the problem.
     """
+    if not CONF.get('output_dir'):
+        output_dir = os.path.join(constants.UNDERCLOUD_OUTPUT_DIR,
+                                  'tripleo-deploy', 'undercloud')
+    else:
+        output_dir = CONF['output_dir']
+
+    passwd_path = os.path.join(output_dir, 'undercloud-passwords.conf')
     if (os.path.isfile(os.path.join(constants.CLOUD_HOME_DIR, 'stackrc')) and
-            not os.path.isfile(PASSWORD_PATH)):
+            not os.path.isfile(passwd_path)):
         message = (_('The %s file is missing.  This will cause all service '
                      'passwords to change and break the existing '
-                     'undercloud. ') % PASSWORD_PATH)
+                     'undercloud. ') % passwd_path)
         LOG.error(message)
         raise FailedValidation(message)
 
