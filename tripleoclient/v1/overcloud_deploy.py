@@ -435,10 +435,6 @@ class DeployOvercloud(command.Command):
             messages = 'Failed to deploy: %s' % str(e)
             raise ValueError(messages)
 
-    def _format_endpoint_name(self, service, interface):
-        return re.sub('v[0-9]+', '',
-                      service.capitalize() + interface.capitalize())
-
     def _deploy_postconfig(self, stack, parsed_args):
         self.log.debug("_deploy_postconfig(%s)" % parsed_args)
 
