@@ -1870,3 +1870,44 @@ class TestGeneralUtils(base.TestCommand):
         limit_hosts_expected = 'controller0:compute0:compute1:!compute2'
         limit_hosts_actual = utils.playbook_limit_parse(limit_nodes)
         self.assertEqual(limit_hosts_actual, limit_hosts_expected)
+
+
+class TestTempDirs(base.TestCase):
+
+    @mock.patch('tripleoclient.utils.tempfile.mkdtemp',
+                autospec=True,
+                return_value='foo')
+    @mock.patch('tripleoclient.utils.Pushd', autospec=True)
+    def test_init_dirpath(self, mock_pushd, mock_mkdtemp):
+
+        utils.TempDirs(dir_path='bar')
+
+        mock_pushd.assert_called_once_with(directory='foo')
+        mock_mkdtemp.assert_called_once_with(
+            dir='bar',
+            prefix='tripleo')
+
+    @mock.patch('tripleoclient.utils.tempfile.mkdtemp',
+                autospec=True,
+                return_value='foo')
+    @mock.patch('tripleoclient.utils.Pushd', autospec=True,)
+    def test_init_no_prefix(self, mock_pushd, mock_mkdtemp):
+
+        utils.TempDirs(dir_prefix=None)
+
+        mock_pushd.assert_called_once_with(directory='foo')
+        mock_mkdtemp.assert_called_once_with()
+
+    @mock.patch('tripleoclient.utils.LOG.warning', autospec=True,)
+    @mock.patch('tripleoclient.utils.tempfile.mkdtemp',
+                autospec=True,
+                return_value='foo')
+    @mock.patch('tripleoclient.utils.Pushd', autospec=True)
+    def test_exit_warning(self, mock_pushd, mock_mkdtemp, mock_log):
+
+        temp_dirs = utils.TempDirs(cleanup=False, chdir=False)
+
+        temp_dirs.__exit__()
+
+        mock_log.assert_called_once_with(
+            "Not cleaning temporary directory [ foo ]")
