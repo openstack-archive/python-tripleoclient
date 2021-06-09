@@ -546,7 +546,7 @@ class HeatPodLauncher(HeatContainerLauncher):
         try:
             with open(db_dump_path) as f:
                 subprocess.run([
-                    'sudo', 'podman', 'exec', '-u', 'root',
+                    'sudo', 'podman', 'exec', '-i', '-u', 'root',
                     'mysql', 'mysql', 'heat'], stdin=f,
                     check=True)
         finally:
