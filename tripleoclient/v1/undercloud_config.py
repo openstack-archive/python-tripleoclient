@@ -186,7 +186,7 @@ def _process_drivers_and_hardware_types(conf, env):
     if 'snmp' in enabled_hardware_types:
         power_interfaces.append('snmp')
 
-    deploy_interfaces = ['direct', 'iscsi', 'ansible']
+    deploy_interfaces = ['direct', 'ansible']
     if 'fake-hardware' in enabled_hardware_types:
         deploy_interfaces.append('fake')
         boot_interfaces.append('fake')
