@@ -31,7 +31,6 @@ import yaml
 
 from heatclient.common import template_utils
 from keystoneauth1.exceptions.catalog import EndpointNotFound
-import openstack
 from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
 from tripleo_common.image import kolla_builder
@@ -124,46 +123,9 @@ class DeployOvercloud(command.Command):
         parameters[
             'UndercloudHostsEntries'] = [self._get_undercloud_host_entry()]
 
-        parameters['CtlplaneNetworkAttributes'] = self._get_ctlplane_attrs()
+        parameters['CtlplaneNetworkAttributes'] = utils.get_ctlplane_attrs()
 
         return parameters
-
-    def _get_ctlplane_attrs(self):
-        try:
-            conn = openstack.connect('undercloud')
-        except openstack.exceptions.ConfigException:
-            return dict()
-
-        if not conn.endpoint_for('network'):
-            return dict()
-
-        network = conn.network.find_network('ctlplane')
-        if network is None:
-            return dict()
-
-        net_attributes_map = {'network': dict(), 'subnets': dict()}
-
-        net_attributes_map['network'].update({
-            'name': network.name,
-            'mtu': network.mtu,
-            'dns_domain': network.dns_domain,
-            'tags': network.tags,
-        })
-
-        for subnet_id in network.subnet_ids:
-            subnet = conn.network.get_subnet(subnet_id)
-            net_attributes_map['subnets'].update({
-                subnet.name: {
-                    'name': subnet.name,
-                    'cidr': subnet.cidr,
-                    'gateway_ip': subnet.gateway_ip,
-                    'host_routes': subnet.host_routes,
-                    'dns_nameservers': subnet.dns_nameservers,
-                    'ip_version': subnet.ip_version,
-                }
-            })
-
-        return net_attributes_map
 
     def _cleanup_host_entry(self, entry):
         # remove any tab or space excess
