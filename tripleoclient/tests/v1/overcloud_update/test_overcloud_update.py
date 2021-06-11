@@ -70,8 +70,7 @@ class TestOvercloudUpdatePrepare(fakes.TestOvercloudUpdatePrepare):
     @mock.patch('tripleoclient.utils.ensure_run_as_normal_user')
     @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
                 return_value=True)
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_get_undercloud_host_entry', autospec=True,
+    @mock.patch('tripleoclient.utils.get_undercloud_host_entry', autospec=True,
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
     @mock.patch('tripleoclient.v1.overcloud_update.UpdatePrepare.log',
                 autospec=True)

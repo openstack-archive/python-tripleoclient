@@ -1971,3 +1971,24 @@ class TestGetCtlplaneAttrs(base.TestCase):
             }
         }
         self.assertEqual(expected, utils.get_ctlplane_attrs())
+
+
+class TestGetHostEntry(base.TestCase):
+
+    @mock.patch('subprocess.Popen', autospec=True)
+    def test_get_undercloud_host_entry(self, mock_popen):
+        mock_process = mock.Mock()
+        mock_hosts = {
+            'fd12::1 uc.ctlplane.localdomain uc.ctlplane':
+                'fd12::1 uc.ctlplane.localdomain uc.ctlplane',
+            'fd12::1 uc.ctlplane.localdomain uc.ctlplane\n'
+            'fd12::1 uc.ctlplane.localdomain uc.ctlplane':
+                'fd12::1 uc.ctlplane.localdomain uc.ctlplane',
+            '1.2.3.4 uc.ctlplane foo uc.ctlplane bar uc.ctlplane':
+                '1.2.3.4 uc.ctlplane foo bar'
+        }
+        for value, expected in mock_hosts.items():
+            mock_process.communicate.return_value = (value, '')
+            mock_process.returncode = 0
+            mock_popen.return_value = mock_process
+            self.assertEqual(expected, utils.get_undercloud_host_entry())
