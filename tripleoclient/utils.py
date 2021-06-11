@@ -65,6 +65,8 @@ from tenacity import retry
 from tenacity.stop import stop_after_attempt, stop_after_delay
 from tenacity.wait import wait_fixed
 
+from tripleo_common.image import kolla_builder
+from tripleo_common.utils import plan as plan_utils
 from tripleo_common.utils import heat as tc_heat_utils
 from tripleo_common.utils import stack as stack_utils
 from tripleo_common import update
@@ -72,6 +74,7 @@ from tripleoclient import constants
 from tripleoclient import exceptions
 from tripleoclient import export
 from tripleoclient import heat_launcher
+from tripleoclient.workflows import roles
 
 
 LOG = logging.getLogger(__name__ + ".utils")
@@ -2745,3 +2748,27 @@ def get_undercloud_host_entry():
         raise exceptions.DeploymentError('No entry for %s in /etc/hosts'
                                          % ctlplane_hostname)
     return cleanup_host_entry(out)
+
+
+def build_image_params(env_files, parsed_args, new_tht_root, user_tht_root):
+    image_params = plan_utils.default_image_params()
+    if parsed_args.disable_container_prepare:
+        return image_params
+
+    if parsed_args.environment_directories:
+        env_files.extend(load_environment_directories(
+            parsed_args.environment_directories))
+    if parsed_args.environment_files:
+        env_files.extend(parsed_args.environment_files)
+
+    _, env = process_multiple_environments(
+        env_files, new_tht_root, user_tht_root,
+        cleanup=(not parsed_args.no_cleanup))
+
+    image_params.update(
+        kolla_builder.container_images_prepare_multi(
+            env, roles.get_roles_data(parsed_args.roles_file, new_tht_root),
+            dry_run=True)
+    )
+
+    return image_params

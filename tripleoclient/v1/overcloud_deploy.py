@@ -30,7 +30,6 @@ from heatclient.common import template_utils
 from keystoneauth1.exceptions.catalog import EndpointNotFound
 from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
-from tripleo_common.image import kolla_builder
 from tripleo_common import update
 from tripleo_common.utils import plan as plan_utils
 
@@ -40,7 +39,6 @@ from tripleoclient import exceptions
 from tripleoclient import utils
 from tripleoclient.workflows import deployment
 from tripleoclient.workflows import parameters as workflow_params
-from tripleoclient.workflows import roles
 
 CONF = cfg.CONF
 
@@ -178,29 +176,6 @@ class DeployOvercloud(command.Command):
                                  new_tht_root)
         return new_tht_root, tht_root
 
-    def build_image_params(self, env_files, parsed_args,
-                           new_tht_root, user_tht_root):
-        image_params = plan_utils.default_image_params()
-        if not parsed_args.disable_container_prepare:
-            if parsed_args.environment_directories:
-                env_files.extend(utils.load_environment_directories(
-                    parsed_args.environment_directories))
-
-            if parsed_args.environment_files:
-                env_files.extend(parsed_args.environment_files)
-
-            _, env = utils.process_multiple_environments(
-                env_files, new_tht_root, user_tht_root,
-                cleanup=(not parsed_args.no_cleanup))
-
-            updated_params = kolla_builder.container_images_prepare_multi(
-                env, roles.get_roles_data(parsed_args.roles_file,
-                                          new_tht_root), dry_run=True)
-            if updated_params:
-                image_params.update(updated_params)
-
-        return image_params
-
     def create_env_files(self, stack, parsed_args,
                          new_tht_root, user_tht_root):
         self.log.debug("Creating Environment files")
@@ -209,7 +184,7 @@ class DeployOvercloud(command.Command):
         created_env_files.append(
             os.path.join(new_tht_root, constants.DEFAULT_RESOURCE_REGISTRY))
 
-        parameters = self.build_image_params(
+        parameters = utils.build_image_params(
             created_env_files, parsed_args, new_tht_root, user_tht_root)
 
         self._update_parameters(
