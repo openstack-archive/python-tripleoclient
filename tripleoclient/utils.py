@@ -2772,3 +2772,20 @@ def build_image_params(env_files, parsed_args, new_tht_root, user_tht_root):
     )
 
     return image_params
+
+
+def copy_env_files(files_dict, tht_root):
+    file_prefix = "file://"
+
+    for full_path in files_dict.keys():
+        if not full_path.startswith(file_prefix):
+            continue
+
+        path = full_path[len(file_prefix):]
+
+        if path.startswith(tht_root):
+            continue
+
+        relocate_path = os.path.join(tht_root, "user-environments",
+                                     os.path.basename(path))
+        safe_write(relocate_path, files_dict[full_path])
