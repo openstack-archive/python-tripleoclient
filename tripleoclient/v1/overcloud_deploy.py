@@ -43,6 +43,16 @@ from tripleoclient.workflows import parameters as workflow_params
 CONF = cfg.CONF
 
 
+def _validate_args_environment_dir(dirs):
+    default = os.path.expanduser(constants.DEFAULT_ENV_DIRECTORY)
+    not_found = [d for d in dirs if not os.path.isdir(d) and d != default]
+
+    if not_found:
+        raise oscexc.CommandError(
+            "Error: The following environment directories were not found"
+            ": {0}".format(", ".join(not_found)))
+
+
 class DeployOvercloud(command.Command):
     """Deploy Overcloud"""
 
@@ -406,21 +416,7 @@ class DeployOvercloud(command.Command):
                 "used when using --baremetal-deployment")
 
         if parsed_args.environment_directories:
-            self._validate_args_environment_directory(
-                parsed_args.environment_directories)
-
-    def _validate_args_environment_directory(self, directories):
-        default = os.path.expanduser(constants.DEFAULT_ENV_DIRECTORY)
-        nonexisting_dirs = []
-
-        for d in directories:
-            if not os.path.isdir(d) and d != default:
-                nonexisting_dirs.append(d)
-
-        if nonexisting_dirs:
-            raise oscexc.CommandError(
-                "Error: The following environment directories were not found"
-                ": {0}".format(", ".join(nonexisting_dirs)))
+            _validate_args_environment_dir(parsed_args.environment_directories)
 
     def _provision_baremetal(self, parsed_args, tht_root):
 
