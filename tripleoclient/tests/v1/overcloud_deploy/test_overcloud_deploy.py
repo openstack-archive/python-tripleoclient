@@ -81,8 +81,15 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_sleep.start()
         self.addCleanup(mock_sleep.stop)
 
-        mock_run_command = mock.patch(
+        mock_run_command_and_log = mock.patch(
             'tripleoclient.utils.run_command_and_log',
+            autospec=True,
+            return_value=0)
+        mock_run_command_and_log.start()
+        self.addCleanup(mock_run_command_and_log.stop)
+
+        mock_run_command = mock.patch(
+            'tripleoclient.utils.run_command',
             autospec=True,
             return_value=0)
         mock_run_command.start()

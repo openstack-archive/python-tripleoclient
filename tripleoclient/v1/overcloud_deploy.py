@@ -1238,8 +1238,11 @@ class DeployOvercloud(command.Command):
                     ansible_dir = config_download_dir
                 else:
                     ansible_dir = None
-                utils.archive_deploy_artifacts(self.log, parsed_args.stack,
-                                               self.working_dir, ansible_dir)
+                archive_filename = utils.archive_deploy_artifacts(
+                    self.log, parsed_args.stack, self.working_dir, ansible_dir)
+                utils.run_command(
+                    ['sudo', 'cp', archive_filename,
+                     constants.TRIPLEO_ARCHIVE_DIR])
             except Exception as e:
                 self.log.error('Exception archiving deploy artifacts')
                 self.log.error(e)

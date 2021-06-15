@@ -2875,3 +2875,16 @@ def run_role_playbooks(self, working_dir, roles_file_dir, roles):
     # Network Config
     run_role_playbook(self, inventory, constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
                       'cli-overcloud-node-network-config.yaml')
+
+
+def create_archive_dir(self, archive_dir=constants.TRIPLEO_ARCHIVE_DIR):
+    """Create the TripleO archive directory as root. The directory is created
+    in a location typically owned by root (/var/lib), and remains owned as root
+    to decrease the chance it is accidentally deleted by a normal user.
+
+    :param archive_dir: The archive directory to create
+    :type archive_dir: string
+
+    :return: None
+    """
+    return run_command(['sudo', 'mkdir', '-p', archive_dir])
