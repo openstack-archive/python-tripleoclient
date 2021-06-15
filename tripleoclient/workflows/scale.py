@@ -18,6 +18,7 @@ import shutil
 import tempfile
 
 from heatclient.common import event_utils
+from keystoneauth1.exceptions.catalog import EndpointNotFound
 
 from tripleoclient import constants
 from tripleoclient import utils
@@ -195,7 +196,7 @@ def scale_down(log, clients, stack, nodes, timeout=None, verbosity=0,
         try:
             _node = clients.compute.servers.get(node)
             limit_list.append(_node.name)
-        except (KeyError, ValueError, AttributeError):
+        except (KeyError, ValueError, AttributeError, EndpointNotFound):
             limit_list.append(node)
 
     if limit_list:
