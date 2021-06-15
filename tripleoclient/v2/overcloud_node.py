@@ -207,8 +207,8 @@ class IntrospectNode(command.Command):
         if parsed_args.provide:
             if parsed_args.node_uuids:
                 baremetal.provide(
-                    self.app.client_manager,
                     node_uuids=parsed_args.node_uuids,
+                    verbosity=oooutils.playbook_verbosity(self=self)
                 )
             else:
                 baremetal.provide_manageable_nodes(

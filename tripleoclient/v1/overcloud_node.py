@@ -218,10 +218,13 @@ class ProvideNode(command.Command):
         self.log.debug("take_action(%s)" % parsed_args)
 
         if parsed_args.node_uuids:
-            baremetal.provide(self.app.client_manager,
-                              node_uuids=parsed_args.node_uuids)
+            baremetal.provide(node_uuids=parsed_args.node_uuids,
+                              verbosity=oooutils.playbook_verbosity(self))
+
         else:
-            baremetal.provide_manageable_nodes(self.app.client_manager)
+            baremetal.provide_manageable_nodes(
+                self.app.client_manager,
+                verbosity=oooutils.playbook_verbosity(self))
 
 
 class CleanNode(command.Command):
@@ -266,9 +269,8 @@ class CleanNode(command.Command):
 
         if parsed_args.provide:
             if nodes:
-                baremetal.provide(self.app.client_manager,
-                                  node_uuids=nodes,
-                                  )
+                baremetal.provide(node_uuids=nodes,
+                                  verbosity=oooutils.playbook_verbosity(self))
             else:
                 baremetal.provide_manageable_nodes(self.app.client_manager)
 
@@ -447,9 +449,9 @@ class DiscoverNode(command.Command):
             )
 
         if parsed_args.provide:
-            baremetal.provide(self.app.client_manager,
-                              node_uuids=nodes_uuids
-                              )
+            baremetal.provide(
+                node_uuids=nodes_uuids,
+                verbosity=oooutils.playbook_verbosity(self))
 
 
 class ExtractProvisionedNode(command.Command):

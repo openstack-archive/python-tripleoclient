@@ -102,15 +102,15 @@ def register_or_update(clients, nodes_json, kernel_name=None,
     return registered_nodes
 
 
-def provide(verbosity, node_uuids):
+def provide(node_uuids, verbosity=0):
     """Provide Baremetal Nodes
-
-    :param verbosity: Verbosity level
-    :type verbosity: Integer
 
     :param node_uuids: List of instance UUID(s).
     :type node_uuids: List
-    """
+
+    :param verbosity: Verbosity level
+    :type verbosity: Integer
+   """
 
     with utils.TempDirs() as tmp:
         utils.run_ansible_playbook(
@@ -138,11 +138,11 @@ def provide_manageable_nodes(clients, verbosity=0):
     """
 
     provide(
-        verbosity=verbosity,
         node_uuids=[
             i.uuid for i in clients.baremetal.node.list()
             if i.provision_state == "manageable" and not i.maintenance
-        ]
+        ],
+        verbosity=verbosity
     )
 
 

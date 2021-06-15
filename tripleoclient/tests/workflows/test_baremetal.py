@@ -97,7 +97,7 @@ class TestBaremetalWorkflows(fakes.FakePlaybookExecution):
         ), [mock.ANY])
 
     def test_provide_success(self):
-        baremetal.provide(self.app.client_manager, node_uuids=[])
+        baremetal.provide(node_uuids=[])
 
     def test_introspect_success(self):
         baremetal.introspect(self.app.client_manager, node_uuids=[],
