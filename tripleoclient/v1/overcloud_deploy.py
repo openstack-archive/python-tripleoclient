@@ -53,6 +53,72 @@ def _validate_args_environment_dir(dirs):
             ": {0}".format(", ".join(not_found)))
 
 
+def _update_args_from_answers_file(parsed_args):
+    if parsed_args.answers_file is None:
+        return
+
+    with open(parsed_args.answers_file, 'r') as answers_file:
+        answers = yaml.safe_load(answers_file)
+
+    if parsed_args.templates is None:
+        parsed_args.templates = answers['templates']
+    if 'environments' in answers:
+        if parsed_args.environment_files is not None:
+            answers['environments'].extend(parsed_args.environment_files)
+        parsed_args.environment_files = answers['environments']
+
+
+def _validate_args(parsed_args):
+    if parsed_args.templates is None and parsed_args.answers_file is None:
+        raise oscexc.CommandError(
+            "You must specify either --templates or --answers-file")
+
+    if parsed_args.baremetal_deployment and not parsed_args.deployed_server:
+        raise oscexc.CommandError(
+            "Error: --deployed-server must be used when using "
+            "--baremetal-deployment")
+
+    if (parsed_args.baremetal_deployment
+            and (parsed_args.config_download_only or parsed_args.setup_only)):
+        raise oscexc.CommandError(
+            "Error: --config-download-only/--setup-only must not be used when "
+            "using --baremetal-deployment")
+
+    if parsed_args.environment_directories:
+        _validate_args_environment_dir(parsed_args.environment_directories)
+
+    not_found = [x for x in [parsed_args.networks_file,
+                             parsed_args.plan_environment_file,
+                             parsed_args.plan_environment_file,
+                             parsed_args.answers_file]
+                 if x and not os.path.isfile(x)]
+
+    jinja2_envs = []
+    if parsed_args.environment_files:
+        for env in parsed_args.environment_files:
+            if env.endswith(".j2.yaml"):
+                jinja2_envs.append(env)
+                continue
+
+            # Tolerate missing file if there's a j2.yaml file that will
+            # be rendered in the plan but not available locally (yet)
+            if (not os.path.isfile(env)
+                    and not os.path.isfile(env.replace(".yaml", ".j2.yaml"))):
+                not_found.append(env)
+
+    if not_found:
+        raise oscexc.CommandError(
+            "Error: The following files were not found: {}".format(
+                ", ".join(not_found)))
+
+    if jinja2_envs:
+        rewritten_paths = [e.replace(".j2.yaml", ".yaml") for e in jinja2_envs]
+        raise oscexc.CommandError(
+            "Error: The following jinja2 files were provided: {}. Did you "
+            "mean {}?".format(' -e '.join(jinja2_envs),
+                              ' -e '.join(rewritten_paths)))
+
+
 class DeployOvercloud(command.Command):
     """Deploy Overcloud"""
 
@@ -69,18 +135,6 @@ class DeployOvercloud(command.Command):
                 self.log.warning('WARNING: Nova endpoint not available. '
                                  'Assuming --deployed-server')
                 parsed_args.deployed_server = True
-
-    def _update_args_from_answers_file(self, args):
-        if args.answers_file is not None:
-            with open(args.answers_file, 'r') as answers_file:
-                answers = yaml.safe_load(answers_file)
-
-            if args.templates is None:
-                args.templates = answers['templates']
-            if 'environments' in answers:
-                if args.environment_files is not None:
-                    answers['environments'].extend(args.environment_files)
-                args.environment_files = answers['environments']
 
     def _update_parameters(self, args, parameters,
                            tht_root, user_tht_root):
@@ -350,69 +404,6 @@ class DeployOvercloud(command.Command):
             [x for x in no_proxy_list if x is not None])
 
         utils.remove_known_hosts(overcloud_ip_or_fqdn)
-
-    def _validate_args(self, parsed_args):
-        if parsed_args.templates is None and parsed_args.answers_file is None:
-            raise oscexc.CommandError(
-                "You must specify either --templates or --answers-file")
-
-        if parsed_args.environment_files:
-            nonexisting_envs = []
-            jinja2_envs = []
-            for env_file in parsed_args.environment_files:
-
-                if env_file.endswith(".j2.yaml"):
-                    jinja2_envs.append(env_file)
-                elif not os.path.isfile(env_file):
-                    # Tolerate missing file if there's a j2.yaml file that will
-                    # be rendered in the plan but not available locally (yet)
-                    if not os.path.isfile(env_file.replace(".yaml",
-                                                           ".j2.yaml")):
-                        nonexisting_envs.append(env_file)
-
-            # Check networks_file existence
-            if parsed_args.networks_file:
-                if not os.path.isfile(parsed_args.networks_file):
-                    nonexisting_envs.append(parsed_args.networks_file)
-
-            # check plan_environment_file existence
-            if parsed_args.plan_environment_file:
-                if not os.path.isfile(parsed_args.plan_environment_file):
-                    nonexisting_envs.append(parsed_args.plan_environment_file)
-
-            # check answers_file existence
-            if parsed_args.answers_file:
-                if not os.path.isfile(parsed_args.answers_file):
-                    nonexisting_envs.append(parsed_args.answers_file)
-
-            if jinja2_envs:
-                rewritten_paths = [e.replace(".j2.yaml", ".yaml")
-                                   for e in jinja2_envs]
-                raise oscexc.CommandError(
-                    "Error: The following jinja2 files were provided: -e "
-                    "{}. Did you mean -e {}?".format(
-                        ' -e '.join(jinja2_envs),
-                        ' -e '.join(rewritten_paths)))
-            if nonexisting_envs:
-                raise oscexc.CommandError(
-                    "Error: The following files were not found: {0}".format(
-                        ", ".join(nonexisting_envs)))
-
-        if (parsed_args.baremetal_deployment
-                and not parsed_args.deployed_server):
-            raise oscexc.CommandError(
-                "Error: --deployed-server must be used when using "
-                "--baremetal-deployment")
-
-        if (parsed_args.baremetal_deployment
-                and (parsed_args.config_download_only
-                     or parsed_args.setup_only)):
-            raise oscexc.CommandError(
-                "Error: --config-download-only/--setup-only must not be "
-                "used when using --baremetal-deployment")
-
-        if parsed_args.environment_directories:
-            _validate_args_environment_dir(parsed_args.environment_directories)
 
     def _provision_baremetal(self, parsed_args, tht_root):
 
@@ -951,7 +942,7 @@ class DeployOvercloud(command.Command):
         sc_logger = logging.getLogger("swiftclient")
         sc_logger.setLevel(logging.CRITICAL)
 
-        self._validate_args(parsed_args)
+        _validate_args(parsed_args)
 
         # Throw warning if deprecated service is enabled and
         # ask user if deployment should still be continued.
@@ -959,7 +950,7 @@ class DeployOvercloud(command.Command):
             utils.check_deprecated_service_is_enabled(
                 parsed_args.environment_files)
 
-        self._update_args_from_answers_file(parsed_args)
+        _update_args_from_answers_file(parsed_args)
 
         if parsed_args.dry_run:
             self.log.info("Validation Finished")

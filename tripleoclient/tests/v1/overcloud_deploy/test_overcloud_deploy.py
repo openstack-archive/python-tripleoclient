@@ -260,8 +260,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 '_deploy_postconfig', autospec=True)
     @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env',
                 autospec=True)
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_validate_args')
+    @mock.patch('tripleoclient.v1.overcloud_deploy._validate_args')
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
     @mock.patch('os.chmod', autospec=True)
@@ -365,8 +364,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 '_deploy_postconfig', autospec=True)
     @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env',
                 autospec=True)
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_validate_args')
+    @mock.patch('tripleoclient.v1.overcloud_deploy._validate_args')
     @mock.patch('tripleoclient.utils.create_parameters_env', autospec=True)
     @mock.patch('heatclient.common.template_utils.get_template_contents',
                 autospec=True)
@@ -672,7 +670,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.assertRaises(oscexc.CommandError,
-                          self.cmd._validate_args,
+                          overcloud_deploy._validate_args,
                           parsed_args)
 
     @mock.patch('os.path.isfile', autospec=True)
@@ -689,7 +687,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_isfile.side_effect = [False, True]
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
-        self.cmd._validate_args(parsed_args)
+        overcloud_deploy._validate_args(parsed_args)
         calls = [mock.call(env_path),
                  mock.call(env_path.replace(".yaml", ".j2.yaml"))]
         mock_isfile.assert_has_calls(calls)
@@ -894,8 +892,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig', autospec=True)
     @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env')
-    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
-                '_validate_args')
+    @mock.patch('tripleoclient.v1.overcloud_deploy._validate_args')
     @mock.patch('tripleoclient.utils.create_parameters_env', autospec=True)
     @mock.patch('tripleoclient.utils.create_tempest_deployer_input',
                 autospec=True)
