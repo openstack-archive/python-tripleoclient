@@ -844,10 +844,7 @@ class DeployOvercloud(command.Command):
         parser.add_argument(
             '--config-dir',
             dest='config_dir',
-            default=os.path.join(
-                constants.CLOUD_HOME_DIR,
-                'tripleo-config'
-            ),
+            default=None,
             help=_('The directory where the configuration files will be '
                    'pushed'),
         )
@@ -1093,7 +1090,7 @@ class DeployOvercloud(command.Command):
             config_download_dir = parsed_args.output_dir or \
                 os.path.join(self.working_dir, "config-download")
 
-            if parsed_args.config_download or parsed_args.setup_only:
+            if parsed_args.config_download:
                 self.log.info("Deploying overcloud configuration")
                 deployment.set_deployment_status(
                     stack.stack_name,
@@ -1101,8 +1098,7 @@ class DeployOvercloud(command.Command):
                     working_dir=self.working_dir
                 )
 
-                if not parsed_args.config_download_only and \
-                   not parsed_args.setup_only:
+                if not parsed_args.config_download_only:
                     deployment.get_hosts_and_enable_ssh_admin(
                         stack,
                         parsed_args.overcloud_ssh_network,
@@ -1122,38 +1118,36 @@ class DeployOvercloud(command.Command):
                         raise exceptions.DeploymentError(
                             'Deployment timed out after %sm' % used)
 
-                deployment_options = {}
-                if parsed_args.deployment_python_interpreter:
-                    deployment_options['ansible_python_interpreter'] = \
-                        parsed_args.deployment_python_interpreter
+                if not parsed_args.setup_only:
+                    deployment_options = {}
+                    if parsed_args.deployment_python_interpreter:
+                        deployment_options['ansible_python_interpreter'] = \
+                            parsed_args.deployment_python_interpreter
 
-                deployment.make_config_download_dir(config_download_dir,
-                                                    parsed_args.stack)
+                    deployment.make_config_download_dir(config_download_dir,
+                                                        parsed_args.stack)
 
-                deployment.config_download(
-                    self.log,
-                    self.clients,
-                    stack,
-                    parsed_args.overcloud_ssh_network,
-                    config_download_dir,
-                    parsed_args.override_ansible_cfg,
-                    timeout=parsed_args.overcloud_ssh_port_timeout,
-                    verbosity=utils.playbook_verbosity(self=self),
-                    deployment_options=deployment_options,
-                    in_flight_validations=parsed_args.inflight,
-                    deployment_timeout=timeout,
-                    tags=parsed_args.tags,
-                    skip_tags=parsed_args.skip_tags,
-                    limit_hosts=utils.playbook_limit_parse(
-                        limit_nodes=parsed_args.limit
-                    ),
-                    forks=parsed_args.ansible_forks,
-                    setup_only=parsed_args.setup_only
-                )
-
-                if parsed_args.setup_only:
+                    deployment.config_download(
+                        self.log,
+                        self.clients,
+                        stack,
+                        parsed_args.overcloud_ssh_network,
+                        config_download_dir,
+                        parsed_args.override_ansible_cfg,
+                        timeout=parsed_args.overcloud_ssh_port_timeout,
+                        verbosity=utils.playbook_verbosity(self=self),
+                        deployment_options=deployment_options,
+                        in_flight_validations=parsed_args.inflight,
+                        deployment_timeout=timeout,
+                        tags=parsed_args.tags,
+                        skip_tags=parsed_args.skip_tags,
+                        limit_hosts=utils.playbook_limit_parse(
+                            limit_nodes=parsed_args.limit
+                        ),
+                        forks=parsed_args.ansible_forks)
+                else:
                     # Download config
-                    config_dir = os.path.abspath(parsed_args.config_dir)
+                    config_dir = parsed_args.config_dir or config_download_dir
                     config_type = parsed_args.config_type
                     preserve_config_dir = parsed_args.preserve_config_dir
                     extra_vars = {
@@ -1173,18 +1167,6 @@ class DeployOvercloud(command.Command):
                             verbosity=utils.playbook_verbosity(self=self),
                             extra_vars=extra_vars
                         )
-
-                    # Run admin authorize
-                    deployment.get_hosts_and_enable_ssh_admin(
-                        stack,
-                        parsed_args.overcloud_ssh_network,
-                        parsed_args.overcloud_ssh_user,
-                        self.get_key_pair(parsed_args),
-                        parsed_args.overcloud_ssh_port_timeout,
-                        verbosity=utils.playbook_verbosity(self=self),
-                        heat_type=parsed_args.heat_type
-                    )
-
                 deployment.set_deployment_status(
                     stack.stack_name,
                     status=deploy_status,
