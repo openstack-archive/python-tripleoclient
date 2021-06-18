@@ -2,8 +2,8 @@ apiVersion: v1
 kind: Pod
 metadata:
   labels:
-    app: ephemeral-heat
-  name: ephemeral-heat
+    app: {{ heat_pod_name }}
+  name: {{ heat_pod_name }}
 spec:
   containers:
   - command:
