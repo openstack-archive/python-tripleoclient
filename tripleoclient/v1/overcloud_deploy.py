@@ -303,6 +303,8 @@ class DeployOvercloud(command.Command):
                     constants.DEPLOYED_SERVER_ENVIRONMENT))
 
         created_env_files.extend(
+            self._provision_networks(parsed_args, new_tht_root))
+        created_env_files.extend(
             self._provision_baremetal(parsed_args, new_tht_root))
 
         if parsed_args.environment_directories:
@@ -595,6 +597,47 @@ class DeployOvercloud(command.Command):
                     "prompt": False,
                 }
             )
+
+    @staticmethod
+    def _is_network_data_v2(networks_file_path):
+        with open(networks_file_path, 'r') as f:
+            network_data = yaml.safe_load(f.read())
+        for network in network_data:
+            if 'ip_subnet' in network or 'ipv6_subnet' in network:
+                return False
+
+        return True
+
+    def _provision_networks(self, parsed_args, tht_root):
+        # Parse the network data, if any network have 'ip_subnet' or
+        # 'ipv6_subnet' keys this is not a network-v2 format file. In this
+        # case do nothing.
+        networks_file_path = utils.get_networks_file_path(
+            parsed_args.networks_file, parsed_args.templates)
+
+        if not self._is_network_data_v2(networks_file_path):
+            return []
+
+        output_path = utils.build_user_env_path(
+            'networks-deployed.yaml',
+            tht_root)
+        extra_vars = {
+            "network_data_path": networks_file_path,
+            "network_deployed_path": output_path,
+            "overwrite": True,
+        }
+
+        with utils.TempDirs() as tmp:
+            utils.run_ansible_playbook(
+                playbook='cli-overcloud-network-provision.yaml',
+                inventory='localhost,',
+                workdir=tmp,
+                playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                verbosity=utils.playbook_verbosity(self=self),
+                extra_vars=extra_vars,
+            )
+
+        return [output_path]
 
     def setup_ephemeral_heat(self, parsed_args, parameters):
         self.log.info("Using tripleo-deploy with "

@@ -111,6 +111,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         os.unlink(self.parameter_defaults_env_file)
         shutil.rmtree = self.real_shutil
 
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_provision_networks', autospec=True)
     @mock.patch('tripleoclient.utils.check_service_vips_migrated_to_service')
     @mock.patch('tripleoclient.utils.build_stack_data', autospec=True)
     @mock.patch('tripleo_common.utils.plan.default_image_params',
@@ -155,7 +157,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                        mock_process_env, mock_roles_data,
                        mock_container_prepare, mock_generate_password,
                        mock_rc_params, mock_default_image_params,
-                       mock_stack_data, mock_check_service_vip_migr):
+                       mock_stack_data, mock_check_service_vip_migr,
+                       mock_provision_networks):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         clients = self.app.client_manager
@@ -229,6 +232,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             output_dir=self.cmd.working_dir)
         mock_copy.assert_called_once()
 
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_provision_networks', autospec=True)
     @mock.patch('tripleoclient.utils.build_stack_data', autospec=True)
     @mock.patch('tripleo_common.utils.plan.default_image_params',
                 return_value={})
@@ -274,7 +279,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                         mock_process_env, mock_roles_data,
                         mock_container_prepare, mock_generate_password,
                         mock_rc_params, mock_default_image_params,
-                        mock_stack_data):
+                        mock_stack_data, mock_provision_networks):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         utils_fixture = deployment.UtilsFixture()
@@ -335,6 +340,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_validate_args.assert_called_once_with(parsed_args)
         self.assertFalse(mock_invoke_plan_env_wf.called)
 
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_provision_networks', autospec=True)
     @mock.patch('tripleoclient.utils.build_stack_data', autospec=True)
     @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
     @mock.patch('tripleo_common.utils.plan.generate_passwords',
@@ -376,7 +383,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mock_chdir,
             mock_process_env, mock_roles_data,
             mock_image_prepare, mock_generate_password,
-            mock_rc_params, mock_stack_data):
+            mock_rc_params, mock_stack_data,
+            mock_provision_networks):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         utils_fixture = deployment.UtilsFixture()
@@ -419,6 +427,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.cmd.take_action(parsed_args)
         mock_copy.assert_called_once()
 
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_provision_networks', autospec=True)
     @mock.patch('tripleoclient.utils.check_service_vips_migrated_to_service')
     @mock.patch('tripleoclient.utils.build_stack_data', autospec=True)
     @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
@@ -462,7 +472,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                      mock_generate_password,
                                      mock_rc_params,
                                      mock_stack_data,
-                                     mock_check_service_vip_migr):
+                                     mock_check_service_vip_migr,
+                                     mock_provision_networks):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         utils_fixture = deployment.UtilsFixture()
@@ -734,6 +745,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.assertFalse(utils_fixture.mock_deploy_tht.called)
         self.assertFalse(mock_deploy.called)
 
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_provision_networks', autospec=True)
     @mock.patch('tripleoclient.utils.check_service_vips_migrated_to_service')
     @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
     @mock.patch('tripleo_common.utils.plan.generate_passwords',
@@ -762,7 +775,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                           mock_copy, mock_nic_ansible,
                           mock_roles_data, mock_image_prepare,
                           mock_generate_password, mock_rc_params,
-                          mock_check_service_vip_migr):
+                          mock_check_service_vip_migr,
+                          mock_provision_networks):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         clients = self.app.client_manager
@@ -837,6 +851,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             output_dir=self.cmd.working_dir)
         mock_copy.assert_called_once()
 
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_provision_networks', autospec=True)
     @mock.patch('tripleoclient.utils.build_stack_data', autospec=True)
     @mock.patch('tripleo_common.utils.plan.default_image_params',
                 autospec=True)
@@ -885,7 +901,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                  mock_generate_password,
                                  mock_rc_params,
                                  mock_default_image_params,
-                                 mock_stack_data):
+                                 mock_stack_data,
+                                 mock_provision_networks):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         utils_fixture = deployment.UtilsFixture()
@@ -1439,6 +1456,35 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             tht_root,
             'overcloud'
         )
+
+    def test__provision_networks(self):
+        networks_file_path = self.tmp_dir.join('networks.yaml')
+        network_data = [
+            {'name': 'Network', 'name_lower': 'network', 'subnets': {}}
+        ]
+        with open(networks_file_path, 'w') as temp_file:
+            yaml.safe_dump(network_data, temp_file)
+
+        arglist = ['--networks-file', networks_file_path]
+        verifylist = [('networks_file', networks_file_path)]
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        tht_root = self.tmp_dir.join('tht')
+        env_dir = os.path.join(tht_root, 'user-environments')
+        env_path = os.path.join(env_dir, 'networks-deployed.yaml')
+        os.makedirs(env_dir)
+
+        result = self.cmd._provision_networks(parsed_args, tht_root)
+        self.assertEqual([env_path], result)
+        self.mock_playbook.assert_called_once_with(
+            extra_vars={'network_data_path': networks_file_path,
+                        'network_deployed_path': env_path,
+                        'overwrite': True},
+            inventory='localhost,',
+            playbook='cli-overcloud-network-provision.yaml',
+            playbook_dir='/usr/share/ansible/tripleo-playbooks',
+            verbosity=3,
+            workdir=mock.ANY)
 
     @mock.patch('subprocess.Popen', autospec=True)
     def test__get_undercloud_host_entry(self, mock_popen):
