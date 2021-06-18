@@ -41,7 +41,6 @@ def validate_nodes(clients, nodes_json):
 
     :returns: Boolean
     """
-    nodes_json = node_utils.convert_nodes_json_mac_to_ports(nodes_json)
     validated_nodes = node_utils.validate_nodes(nodes_json)
     if not validated_nodes:
         return True
@@ -73,7 +72,6 @@ def register_or_update(clients, nodes_json, kernel_name=None,
     :returns: List
     """
 
-    nodes_json = node_utils.convert_nodes_json_mac_to_ports(nodes_json)
     for node in nodes_json:
         caps = node.get('capabilities', {})
         caps = node_utils.capabilities_to_dict(caps)
