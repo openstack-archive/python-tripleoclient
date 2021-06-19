@@ -249,26 +249,29 @@ class DeployOvercloud(command.Command):
 
     def build_image_params(self, env_files, parsed_args,
                            new_tht_root, user_tht_root):
-        image_params = plan_utils.default_image_params()
-        if not parsed_args.disable_container_prepare:
-            if parsed_args.environment_directories:
-                env_files.extend(utils.load_environment_directories(
-                    parsed_args.environment_directories))
+        params = {}
+        if parsed_args.environment_directories:
+            env_files.extend(utils.load_environment_directories(
+                parsed_args.environment_directories))
 
-            if parsed_args.environment_files:
-                env_files.extend(parsed_args.environment_files)
+        if parsed_args.environment_files:
+            env_files.extend(parsed_args.environment_files)
 
-            _, env = utils.process_multiple_environments(
-                env_files, new_tht_root, user_tht_root,
-                cleanup=(not parsed_args.no_cleanup))
+        _, env = utils.process_multiple_environments(
+            env_files, new_tht_root, user_tht_root,
+            cleanup=(not parsed_args.no_cleanup))
 
-            updated_params = kolla_builder.container_images_prepare_multi(
-                env, roles.get_roles_data(parsed_args.roles_file,
-                                          new_tht_root), dry_run=True)
-            if updated_params:
-                image_params.update(updated_params)
+        roles_data = roles.get_roles_data(
+            parsed_args.roles_file, new_tht_root)
+        params.update(kolla_builder.get_enabled_services(env, roles_data))
+        params.update(plan_utils.default_image_params())
 
-        return image_params
+        if parsed_args.disable_container_prepare:
+            return params
+
+        params.update(kolla_builder.container_images_prepare_multi(
+                env, roles_data, dry_run=True))
+        return params
 
     def create_env_files(self, stack, parsed_args,
                          new_tht_root, user_tht_root):
