@@ -89,8 +89,8 @@ def _validate_args(parsed_args):
 
     not_found = [x for x in [parsed_args.networks_file,
                              parsed_args.plan_environment_file,
-                             parsed_args.plan_environment_file,
-                             parsed_args.answers_file]
+                             parsed_args.answers_file,
+                             parsed_args.vip_file]
                  if x and not os.path.isfile(x)]
 
     jinja2_envs = []
@@ -117,6 +117,16 @@ def _validate_args(parsed_args):
             "Error: The following jinja2 files were provided: {}. Did you "
             "mean {}?".format(' -e '.join(jinja2_envs),
                               ' -e '.join(rewritten_paths)))
+
+    if parsed_args.vip_file:
+        # Check vip_file only used with network data v2
+        networks_file_path = utils.get_networks_file_path(
+            parsed_args.networks_file, parsed_args.templates)
+        if not utils.is_network_data_v2(networks_file_path):
+            raise exceptions.CommandError(
+                'The --vip-file option can only be used in combination with a '
+                'network data v2 format networks file. The provided file {} '
+                'is network data v1 format'.format(networks_file_path))
 
 
 class DeployOvercloud(command.Command):
@@ -274,6 +284,8 @@ class DeployOvercloud(command.Command):
 
         created_env_files.extend(
             self._provision_networks(parsed_args, new_tht_root))
+        created_env_files.extend(
+            self._provision_virtual_ips(parsed_args, new_tht_root))
         created_env_files.extend(
             self._provision_baremetal(parsed_args, new_tht_root))
 
@@ -472,24 +484,13 @@ class DeployOvercloud(command.Command):
                 }
             )
 
-    @staticmethod
-    def _is_network_data_v2(networks_file_path):
-        with open(networks_file_path, 'r') as f:
-            network_data = yaml.safe_load(f.read())
-        for network in network_data:
-            if 'ip_subnet' in network or 'ipv6_subnet' in network:
-                return False
-
-        return True
-
     def _provision_networks(self, parsed_args, tht_root):
         # Parse the network data, if any network have 'ip_subnet' or
         # 'ipv6_subnet' keys this is not a network-v2 format file. In this
         # case do nothing.
         networks_file_path = utils.get_networks_file_path(
             parsed_args.networks_file, parsed_args.templates)
-
-        if not self._is_network_data_v2(networks_file_path):
+        if not utils.is_network_data_v2(networks_file_path):
             return []
 
         output_path = utils.build_user_env_path(
@@ -504,6 +505,37 @@ class DeployOvercloud(command.Command):
         with utils.TempDirs() as tmp:
             utils.run_ansible_playbook(
                 playbook='cli-overcloud-network-provision.yaml',
+                inventory='localhost,',
+                workdir=tmp,
+                playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                verbosity=utils.playbook_verbosity(self=self),
+                extra_vars=extra_vars,
+            )
+
+        return [output_path]
+
+    def _provision_virtual_ips(self, parsed_args, tht_root):
+        networks_file_path = utils.get_networks_file_path(
+            parsed_args.networks_file, parsed_args.templates)
+        if not utils.is_network_data_v2(networks_file_path):
+            return []
+
+        vip_file_path = utils.get_vip_file_path(parsed_args.vip_file,
+                                                parsed_args.templates)
+        output_path = utils.build_user_env_path(
+            'virtual-ips-deployed.yaml',
+            tht_root)
+
+        extra_vars = {
+            "stack_name": parsed_args.stack,
+            "vip_data_path": vip_file_path,
+            "vip_deployed_path": output_path,
+            "overwrite": True,
+        }
+
+        with utils.TempDirs() as tmp:
+            utils.run_ansible_playbook(
+                playbook='cli-overcloud-network-vip-provision.yaml',
                 inventory='localhost,',
                 workdir=tmp,
                 playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
@@ -613,6 +645,9 @@ class DeployOvercloud(command.Command):
             help=_('Networks file, overrides the default %s in the '
                    '--templates directory') % constants.OVERCLOUD_NETWORKS_FILE
         )
+        parser.add_argument(
+            '--vip-file', dest='vip_file',
+            help=_('Configuration file describing the network Virtual IPs.'))
         parser.add_argument(
             '--plan-environment-file', '-p',
             help=_('Plan Environment file for derived parameters.')

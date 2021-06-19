@@ -1704,6 +1704,12 @@ def get_networks_file_path(networks_file, tht_root):
     return os.path.abspath(networks_file)
 
 
+def get_vip_file_path(vip_file, tht_root):
+    vip_file = vip_file or os.path.join(
+        tht_root, constants.OVERCLOUD_VIP_FILE)
+    return os.path.abspath(vip_file)
+
+
 def build_stack_data(clients, stack_name, template,
                      files, env_files):
     orchestration_client = clients.orchestration
@@ -2789,3 +2795,21 @@ def copy_env_files(files_dict, tht_root):
         relocate_path = os.path.join(tht_root, "user-environments",
                                      os.path.basename(path))
         safe_write(relocate_path, files_dict[full_path])
+
+
+def is_network_data_v2(networks_file_path):
+    """Parse the network data, if any network have 'ip_subnet' or
+    'ipv6_subnet' keys this is not a network-v2 format file.
+
+    :param networks_file_path:
+    :return: boolean
+    """
+    with open(networks_file_path, 'r') as f:
+        network_data = yaml.safe_load(f.read())
+
+    if isinstance(network_data, list):
+        for network in network_data:
+            if 'ip_subnet' in network or 'ipv6_subnet' in network:
+                return False
+
+    return True
