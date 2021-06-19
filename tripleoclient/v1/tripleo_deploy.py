@@ -745,33 +745,12 @@ class Deploy(command.Command):
 
         roles_data = utils.fetch_roles_file(
             roles_file_path, parsed_args.templates)
-        to_remove = set()
-        for key, value in env.get('resource_registry', {}).items():
-            if (key.startswith('OS::TripleO::Services::') and
-                    value == 'OS::Heat::None'):
-                to_remove.add(key)
-        if to_remove:
-            for role in roles_data:
-                for service in to_remove:
-                    try:
-                        role.get('ServicesDefault', []).remove(service)
-                    except ValueError:
-                        pass
-            self.log.info('Removing unused services, updating roles')
-            # This will clean up the directory and set it up again
-            self.tht_render = None
-            self._populate_templates_dir(parsed_args.templates,
-                                         parsed_args.stack.lower())
-            roles_file_path = os.path.join(
-                self.tht_render, 'roles-data-override.yaml')
-            with open(roles_file_path, "w") as f:
-                f.write(yaml.safe_dump(roles_data))
-            # Redo the dance
-            environments = self._setup_heat_environments(
-                roles_file_path, networks_file_path, parsed_args)
-            env_files, env = utils.process_multiple_environments(
-                environments, self.tht_render, parsed_args.templates,
-                cleanup=parsed_args.cleanup)
+
+        parameter_defaults = env.get('parameter_defaults', {})
+        enabled_service_map = kolla_builder.get_enabled_services(
+            env, roles_data)
+        if enabled_service_map:
+            parameter_defaults.update(enabled_service_map)
 
         if not parsed_args.disable_container_prepare:
             self._prepare_container_images(env, roles_data)

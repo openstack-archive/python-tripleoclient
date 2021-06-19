@@ -2750,11 +2750,9 @@ def get_undercloud_host_entry():
     return cleanup_host_entry(out)
 
 
-def build_image_params(env_files, parsed_args, new_tht_root, user_tht_root):
-    image_params = plan_utils.default_image_params()
-    if parsed_args.disable_container_prepare:
-        return image_params
-
+def build_enabled_sevices_image_params(env_files, parsed_args,
+                                       new_tht_root, user_tht_root):
+    params = {}
     if parsed_args.environment_directories:
         env_files.extend(load_environment_directories(
             parsed_args.environment_directories))
@@ -2765,13 +2763,21 @@ def build_image_params(env_files, parsed_args, new_tht_root, user_tht_root):
         env_files, new_tht_root, user_tht_root,
         cleanup=(not parsed_args.no_cleanup))
 
-    image_params.update(
+    roles_data = roles.get_roles_data(
+        parsed_args.roles_file, new_tht_root)
+
+    params.update(kolla_builder.get_enabled_services(env, roles_data))
+    params.update(plan_utils.default_image_params())
+
+    if parsed_args.disable_container_prepare:
+        return params
+
+    params.update(
         kolla_builder.container_images_prepare_multi(
-            env, roles.get_roles_data(parsed_args.roles_file, new_tht_root),
+            env, roles_data,
             dry_run=True)
     )
-
-    return image_params
+    return params
 
 
 def copy_env_files(files_dict, tht_root):
