@@ -333,10 +333,8 @@ class ProvisionNode(command.Command):
                 verbosity=oooutils.playbook_verbosity(self=self),
                 extra_vars=extra_vars,
             )
-
-        if parsed_args.network_config:
-            oooutils.run_role_playbooks(self, working_dir, roles_file_dir,
-                                        roles)
+        oooutils.run_role_playbooks(self, working_dir, roles_file_dir,
+                                    roles, parsed_args.network_config)
 
         oooutils.copy_to_wd(working_dir, roles_file_path, parsed_args.stack,
                             'baremetal')
