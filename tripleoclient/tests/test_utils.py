@@ -255,6 +255,221 @@ class TestRunAnsiblePlaybook(TestCase):
         )
 
 
+class TestRunRolePlaybooks(TestCase):
+    def setUp(self):
+        tmp_dir = utils.TempDirs().dir
+        self.work_dir = os.path.join(tmp_dir, 'working_dir')
+        utils.makedirs(self.work_dir)
+        self.inventory_path = os.path.join(
+            self.work_dir, 'tripleo-ansible-inventory.yaml')
+        with open(self.inventory_path, 'w') as f:
+            f.write('{}')
+
+        self.cmd = mock.Mock()
+        self.cmd.app.options.debug = False
+        self.cmd.app_args.verbose_level = 0
+
+    @mock.patch('tripleoclient.utils.run_ansible_playbook')
+    def test_network_config(self, mock_run):
+        roles = [
+            {'count': 10, 'name': 'Compute'},
+            {'count': 3, 'name': 'Controller'}
+        ]
+        utils.run_role_playbooks(self.cmd, self.work_dir, self.work_dir,
+                                 roles, True)
+
+        self.assertEqual(3, mock_run.call_count)
+        mock_run.assert_has_calls([
+            mock.call(
+                playbook='/usr/share/ansible/tripleo-playbooks/'
+                         'cli-overcloud-node-growvols.yaml',
+                inventory={},
+                workdir=mock.ANY,
+                playbook_dir='/usr/share/ansible/tripleo-playbooks',
+                verbosity=0,
+                limit_hosts='Compute',
+                extra_vars={}
+            ),
+            mock.call(
+                playbook='/usr/share/ansible/tripleo-playbooks/'
+                         'cli-overcloud-node-growvols.yaml',
+                inventory={},
+                workdir=mock.ANY,
+                playbook_dir='/usr/share/ansible/tripleo-playbooks',
+                verbosity=0,
+                limit_hosts='Controller',
+                extra_vars={}
+            ),
+            mock.call(
+                playbook='/usr/share/ansible/tripleo-playbooks/'
+                         'cli-overcloud-node-network-config.yaml',
+                inventory={},
+                workdir=mock.ANY,
+                playbook_dir='/usr/share/ansible/tripleo-playbooks',
+                verbosity=0,
+                limit_hosts=None,
+                extra_vars={}
+            )
+        ])
+
+    @mock.patch('tripleoclient.utils.run_ansible_playbook')
+    def test_no_network_config(self, mock_run):
+        roles = [
+            {'count': 10, 'name': 'Compute'},
+            {'count': 3, 'name': 'Controller'}
+        ]
+        utils.run_role_playbooks(self.cmd, self.work_dir, self.work_dir,
+                                 roles, False)
+
+        self.assertEqual(2, mock_run.call_count)
+        mock_run.assert_has_calls([
+            mock.call(
+                playbook='/usr/share/ansible/tripleo-playbooks/'
+                         'cli-overcloud-node-growvols.yaml',
+                inventory={},
+                workdir=mock.ANY,
+                playbook_dir='/usr/share/ansible/tripleo-playbooks',
+                verbosity=0,
+                limit_hosts='Compute',
+                extra_vars={}
+            ),
+            mock.call(
+                playbook='/usr/share/ansible/tripleo-playbooks/'
+                         'cli-overcloud-node-growvols.yaml',
+                inventory={},
+                workdir=mock.ANY,
+                playbook_dir='/usr/share/ansible/tripleo-playbooks',
+                verbosity=0,
+                limit_hosts='Controller',
+                extra_vars={}
+            )
+        ])
+
+    @mock.patch('tripleoclient.utils.run_ansible_playbook')
+    def test_override_growvols(self, mock_run):
+        roles = [
+            {'count': 10, 'name': 'Compute'},
+            {
+                'count': 3,
+                'name': 'Controller',
+                'ansible_playbooks': [
+                    {
+                        'playbook': '/usr/share/ansible/tripleo-playbooks/'
+                                    'cli-overcloud-node-growvols.yaml',
+                        'extra_vars': {
+                            'growvols_args': '/var=50% /srv=50%'
+                        }
+                    }
+                ]
+            }
+        ]
+        utils.run_role_playbooks(self.cmd, self.work_dir, self.work_dir,
+                                 roles, False)
+
+        self.assertEqual(2, mock_run.call_count)
+        mock_run.assert_has_calls([
+            mock.call(
+                playbook='/usr/share/ansible/tripleo-playbooks/'
+                         'cli-overcloud-node-growvols.yaml',
+                inventory={},
+                workdir=mock.ANY,
+                playbook_dir='/usr/share/ansible/tripleo-playbooks',
+                verbosity=0,
+                limit_hosts='Compute',
+                extra_vars={}
+            ),
+            mock.call(
+                playbook='/usr/share/ansible/tripleo-playbooks/'
+                         'cli-overcloud-node-growvols.yaml',
+                inventory={},
+                workdir=mock.ANY,
+                playbook_dir='/usr/share/ansible/tripleo-playbooks',
+                verbosity=0,
+                limit_hosts='Controller',
+                extra_vars={'growvols_args': '/var=50% /srv=50%'}
+            )
+        ])
+
+    @mock.patch('tripleoclient.utils.run_ansible_playbook')
+    def test_role_playbooks(self, mock_run):
+        roles = [
+            {'count': 10, 'name': 'Compute'},
+            {
+                'count': 3,
+                'name': 'Controller',
+                'ansible_playbooks': [
+                    {
+                        'playbook': 'the_thing.yaml'
+                    },
+                    {
+                        'playbook': '/usr/share/ansible/tripleo-playbooks/'
+                                    'cli-overcloud-node-growvols.yaml',
+                        'extra_vars': {
+                            'growvols_args': '/var=50% /srv=50%'
+                        }
+                    },
+                    {
+                        'playbook': 'the_other_thing.yaml'
+                    },
+                ]
+            }
+        ]
+        utils.run_role_playbooks(self.cmd, self.work_dir, self.work_dir,
+                                 roles, True)
+
+        self.assertEqual(5, mock_run.call_count)
+        mock_run.assert_has_calls([
+            mock.call(
+                playbook='/usr/share/ansible/tripleo-playbooks/'
+                         'cli-overcloud-node-growvols.yaml',
+                inventory={},
+                workdir=mock.ANY,
+                playbook_dir='/usr/share/ansible/tripleo-playbooks',
+                verbosity=0,
+                limit_hosts='Compute',
+                extra_vars={}
+            ),
+            mock.call(
+                playbook=os.path.join(self.work_dir, 'the_thing.yaml'),
+                inventory={},
+                workdir=mock.ANY,
+                playbook_dir=self.work_dir,
+                verbosity=0,
+                limit_hosts='Controller',
+                extra_vars={}
+            ),
+            mock.call(
+                playbook='/usr/share/ansible/tripleo-playbooks/'
+                         'cli-overcloud-node-growvols.yaml',
+                inventory={},
+                workdir=mock.ANY,
+                playbook_dir='/usr/share/ansible/tripleo-playbooks',
+                verbosity=0,
+                limit_hosts='Controller',
+                extra_vars={'growvols_args': '/var=50% /srv=50%'}
+            ),
+            mock.call(
+                playbook=os.path.join(self.work_dir, 'the_other_thing.yaml'),
+                inventory={},
+                workdir=mock.ANY,
+                playbook_dir=self.work_dir,
+                verbosity=0,
+                limit_hosts='Controller',
+                extra_vars={}
+            ),
+            mock.call(
+                playbook='/usr/share/ansible/tripleo-playbooks/'
+                         'cli-overcloud-node-network-config.yaml',
+                inventory={},
+                workdir=mock.ANY,
+                playbook_dir='/usr/share/ansible/tripleo-playbooks',
+                verbosity=0,
+                limit_hosts=None,
+                extra_vars={}
+            )
+        ])
+
+
 class TestRunCommandAndLog(TestCase):
     def setUp(self):
         self.mock_logger = mock.Mock(spec=logging.Logger)
