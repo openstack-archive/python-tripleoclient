@@ -503,9 +503,16 @@ class UploadOvercloudImage(command.Command):
             "--local",
             dest="local",
             action="store_true",
-            default=False,
-            help=_('Copy files locally, even if there is an image service '
-                   'endpoint'))
+            default=True,
+            help=_('DEPRECATED: Copy files locally, even if there is an image '
+                   'service endpoint. The default has been changed to copy '
+                   'files locally.'))
+        parser.add_argument(
+            "--no-local",
+            dest="local",
+            action="store_false",
+            default=True,
+            help=_('Upload files to image service.'))
         parser.add_argument(
             "--local-path",
             default=self._get_environment_var(

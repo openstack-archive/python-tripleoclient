@@ -1,0 +1,9 @@
+---
+deprecations:
+  - |
+    The ``--local`` argument to the ``openstack overcloud image upload``
+    command has been deprecated and a ``--no-local`` argument has been
+    added. Earlier we used to fallback to upload locally when glance
+    was not available. As glance is not installed in the undercloud by
+    default, we would upload images locally unless ``--no-local`` is
+    used.

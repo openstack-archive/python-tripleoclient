@@ -536,7 +536,7 @@ class TestUploadOvercloudImage(TestPluginV1):
                                         mock_subprocess_call,
                                         mock_isfile,
                                         mock_convert_image):
-        parsed_args = self.check_parser(self.cmd, [], [])
+        parsed_args = self.check_parser(self.cmd, ['--no-local'], [])
         mock_isfile.return_value = False
 
         mock_get_image.return_value = None
@@ -593,7 +593,8 @@ class TestUploadOvercloudImage(TestPluginV1):
                                                 mock_subprocess_call,
                                                 mock_isfile):
         parsed_args = self.check_parser(self.cmd,
-                                        ['--image-path', '/foo'],
+                                        ['--image-path', '/foo',
+                                         '--no-local'],
                                         [])
         mock_get_image.return_value = None
         mock_image_try_update.return_value = None
@@ -636,7 +637,7 @@ class TestUploadOvercloudImage(TestPluginV1):
                                               mock_subprocess_call,
                                               mock_isfile,
                                               mock_convert_image):
-        parsed_args = self.check_parser(self.cmd, [], [])
+        parsed_args = self.check_parser(self.cmd, ['--no-local'], [])
         mock_isfile.return_value = True
         mock_files_changed.return_value = True
 
@@ -680,7 +681,8 @@ class TestUploadOvercloudImage(TestPluginV1):
                                             mock_get_image,
                                             mock_subprocess_call,
                                             mock_convert_image):
-        parsed_args = self.check_parser(self.cmd, ['--update-existing'], [])
+        parsed_args = self.check_parser(self.cmd, ['--update-existing',
+                                                   '--no-local'], [])
         mock_files_changed.return_value = True
 
         existing_image = mock.Mock(id=10, name='imgname',
@@ -750,7 +752,8 @@ class TestUploadOvercloudImageFull(TestPluginV1):
                                      mock_get_image,
                                      mock_subprocess_call,
                                      mock_isfile, mock_convert_image):
-        parsed_args = self.check_parser(self.cmd, ['--whole-disk'], [])
+        parsed_args = self.check_parser(self.cmd, ['--whole-disk',
+                                                   '--no-local'], [])
         mock_isfile.return_value = False
 
         mock_get_image.return_value = None
@@ -800,7 +803,8 @@ class TestUploadOvercloudImageFull(TestPluginV1):
                                                mock_isfile,
                                                mock_convert_image):
         parsed_args = self.check_parser(self.cmd,
-                                        ['--whole-disk', '--arch', 'ppc64le'],
+                                        ['--whole-disk', '--arch', 'ppc64le',
+                                         '--no-local'],
                                         [])
         mock_isfile.return_value = False
 
@@ -854,7 +858,8 @@ class TestUploadOvercloudImageFull(TestPluginV1):
                                               mock_subprocess_call,
                                               mock_isfile,
                                               mock_convert_image):
-        parsed_args = self.check_parser(self.cmd, ['--whole-disk'], [])
+        parsed_args = self.check_parser(self.cmd, ['--whole-disk',
+                                                   '--no-local'], [])
         mock_isfile.return_value = True
         mock_files_changed.return_value = True
 
@@ -897,7 +902,8 @@ class TestUploadOvercloudImageFull(TestPluginV1):
                                             mock_subprocess_call,
                                             mock_convert_image):
         parsed_args = self.check_parser(
-            self.cmd, ['--update-existing', '--whole-disk'], [])
+            self.cmd, ['--update-existing', '--whole-disk',
+                       '--no-local'], [])
         mock_files_changed.return_value = True
 
         existing_image = mock.Mock(id=10, name='imgname',
@@ -980,16 +986,15 @@ class TestUploadOvercloudImageFullMultiArch(TestPluginV1):
         mock_get_image.return_value = None
 
         parsed_args = self.check_parser(self.cmd,
-                                        ['--whole-disk'],
+                                        ['--whole-disk', '--no-local'],
                                         [])
         self.cmd.take_action(parsed_args)
         parsed_args = self.check_parser(self.cmd,
                                         ['--whole-disk',
                                          '--http-boot', '/httpboot/ppc64le',
-                                         '--arch', 'ppc64le'],
+                                         '--arch', 'ppc64le', '--no-local'],
                                         [])
         self.cmd.take_action(parsed_args)
-
         self.assertEqual(
             0,
             self.app.client_manager.image.delete_image.call_count
@@ -1049,20 +1054,22 @@ class TestUploadOvercloudImageFullMultiArch(TestPluginV1):
         mock_get_image.return_value = None
 
         parsed_args = self.check_parser(self.cmd,
-                                        ['--whole-disk'],
+                                        ['--whole-disk', '--no-local'],
                                         [])
         self.cmd.take_action(parsed_args)
         parsed_args = self.check_parser(self.cmd,
                                         ['--whole-disk',
                                          '--http-boot', '/httpboot/ppc64le',
-                                         '--architecture', 'ppc64le'],
+                                         '--architecture', 'ppc64le',
+                                         '--no-local'],
                                         [])
         self.cmd.take_action(parsed_args)
         parsed_args = self.check_parser(self.cmd,
                                         ['--whole-disk',
                                          '--http-boot', '/httpboot/p9-ppc64le',
                                          '--architecture', 'ppc64le',
-                                         '--platform', 'p9'],
+                                         '--platform', 'p9',
+                                         '--no-local'],
                                         [])
         self.cmd.take_action(parsed_args)
 
@@ -1164,7 +1171,8 @@ class TestUploadOnlyExisting(TestPluginV1):
         mock_image_try_update.return_value = None
 
         parsed_args = self.check_parser(
-            self.cmd, ['--whole-disk', '--image-type=ironic-python-agent'], [])
+            self.cmd, ['--whole-disk', '--image-type=ironic-python-agent',
+                       '--no-local'], [])
 
         mock_files_changed.return_value = True
         self.cmd.take_action(parsed_args)
@@ -1195,7 +1203,8 @@ class TestUploadOnlyExisting(TestPluginV1):
         mock_image_try_update.return_value = None
 
         parsed_args = self.check_parser(
-            self.cmd, ['--whole-disk', '--image-type=os'], [])
+            self.cmd, ['--whole-disk', '--image-type=os',
+                       '--no-local'], [])
 
         mock_files_changed.return_value = True
         self.cmd.take_action(parsed_args)
@@ -1229,7 +1238,8 @@ class TestUploadOnlyExisting(TestPluginV1):
         mock_image_try_update.return_value = None
 
         parsed_args = self.check_parser(
-            self.cmd, ['--image-type=ironic-python-agent'], [])
+            self.cmd, ['--image-type=ironic-python-agent',
+                       '--no-local'], [])
 
         mock_files_changed.return_value = True
         self.cmd.take_action(parsed_args)
@@ -1261,7 +1271,8 @@ class TestUploadOnlyExisting(TestPluginV1):
         mock_image_try_update.return_value = None
 
         parsed_args = self.check_parser(
-            self.cmd, ['--image-type=os'], [])
+            self.cmd, ['--image-type=os',
+                       '--no-local'], [])
 
         mock_files_changed.return_value = True
         self.cmd.take_action(parsed_args)
