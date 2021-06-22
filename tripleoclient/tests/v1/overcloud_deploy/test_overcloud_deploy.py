@@ -120,6 +120,12 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         horizon_url.return_value = 'fake://url:12345'
         self.addCleanup(horizon_url.stop)
 
+        # Mock copy to working dir
+        mock_copy_to_wd = mock.patch(
+            'tripleoclient.utils.copy_to_wd', autospec=True)
+        mock_copy_to_wd.start()
+        self.addCleanup(mock_copy_to_wd.stop)
+
     def tearDown(self):
         super(TestDeployOvercloud, self).tearDown()
         os.unlink(self.parameter_defaults_env_file)
@@ -359,7 +365,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         utils_overcloud_fixture.mock_deploy_tht.assert_called_with(
             output_dir=self.cmd.working_dir)
 
-        mock_validate_args.assert_called_once_with(parsed_args)
+        mock_validate_args.assert_called_once_with(parsed_args,
+                                                   self.cmd.working_dir)
         self.assertFalse(mock_invoke_plan_env_wf.called)
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
@@ -700,10 +707,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         ]
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-
+        working_dir = self.tmp_dir.join('working_dir')
         self.assertRaises(oscexc.CommandError,
                           overcloud_deploy._validate_args,
-                          parsed_args)
+                          parsed_args, working_dir)
 
     @mock.patch('os.path.isfile', autospec=True)
     def test_validate_args_missing_rendered_files(self, mock_isfile):
@@ -718,8 +725,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_isfile.side_effect = [False, True]
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        working_dir = self.tmp_dir.join('working_dir')
 
-        overcloud_deploy._validate_args(parsed_args)
+        overcloud_deploy._validate_args(parsed_args, working_dir)
         calls = [mock.call(env_path),
                  mock.call(env_path.replace(".yaml", ".j2.yaml"))]
         mock_isfile.assert_has_calls(calls)
@@ -1042,7 +1050,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_create_tempest_deployer_input.assert_called_with(
             output_dir=self.cmd.working_dir)
 
-        mock_validate_args.assert_called_once_with(parsed_args)
+        mock_validate_args.assert_called_once_with(parsed_args,
+                                                   self.cmd.working_dir)
         mock_copy.assert_called_once()
 
     @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
@@ -1481,11 +1490,15 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             utils_fixture2.mock_run_ansible_playbook.mock_calls)
 
     def test_provision_baremetal(self):
+        self.cmd.working_dir = self.tmp_dir.join('working_dir')
+        os.mkdir(self.cmd.working_dir)
+        bm_deploy_path = os.path.join(
+            self.cmd.working_dir,
+            'tripleo-overcloud-baremetal-deployment.yaml')
         baremetal_deployed = {
             'parameter_defaults': {'foo': 'bar'}
         }
 
-        bm_deploy_path = self.tmp_dir.join('bm_deploy.yaml')
         deploy_data = [
             {'name': 'Compute', 'count': 10},
             {'name': 'Controller', 'count': 3},
@@ -1570,8 +1583,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         ])
         self.mock_role_playbooks.assert_called_once_with(
             self.cmd,
-            self.tmp_dir.join('working_dir'),
-            self.tmp_dir.path,
+            self.cmd.working_dir,
+            self.cmd.working_dir,
             [
                 {'count': 10, 'name': 'Compute'},
                 {'count': 3, 'name': 'Controller'}
@@ -1580,7 +1593,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         )
 
     def test__provision_networks(self):
-        networks_file_path = self.tmp_dir.join('networks.yaml')
+        self.cmd.working_dir = self.tmp_dir.join('working_dir')
+        os.mkdir(self.cmd.working_dir)
+        networks_file_path = os.path.join(
+            self.cmd.working_dir, 'tripleo-overcloud-network-data.yaml')
         fake_network_data = [{'name': 'Network', 'name_lower': 'network'}]
         fake_deployed_env = {
             'parameter_defaults':
@@ -1624,13 +1640,17 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             workdir=mock.ANY)
 
     def test__provision_virtual_ips(self):
-        networks_file_path = self.tmp_dir.join('networks.yaml')
+        self.cmd.working_dir = self.tmp_dir.join('working_dir')
+        os.mkdir(self.cmd.working_dir)
+        networks_file_path = os.path.join(
+            self.cmd.working_dir, 'tripleo-overcloud-network-data.yaml')
         network_data = [
             {'name': 'Network', 'name_lower': 'network', 'subnets': {}}
         ]
         with open(networks_file_path, 'w') as temp_file:
             yaml.safe_dump(network_data, temp_file)
-        vips_file_path = self.tmp_dir.join('virtual_ips.yaml')
+        vips_file_path = os.path.join(
+            self.cmd.working_dir, 'tripleo-overcloud-virtual-ips.yaml')
         vip_data = [
             {'network': 'internal_api', 'subnet': 'internal_api_subnet'}
         ]

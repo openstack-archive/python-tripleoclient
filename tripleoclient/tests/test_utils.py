@@ -2369,3 +2369,74 @@ class TestParseContainerImagePrepare(TestCase):
                 utils.parse_container_image_prepare(key, keys,
                                                     cfgfile.name)
         self.assertEqual(reg_actual, reg_expected)
+
+
+class TestWorkingDirDefaults(base.TestCase):
+
+    def setUp(self):
+        super(TestWorkingDirDefaults, self).setUp()
+        self.working_dir = tempfile.mkdtemp()
+        self.stack = 'overcloud'
+        self.wd_roles_file = os.path.join(
+            self.working_dir,
+            utils.constants.WD_DEFAULT_ROLES_FILE_NAME.format(self.stack))
+        self.wd_networks_file = os.path.join(
+            self.working_dir,
+            utils.constants.WD_DEFAULT_NETWORKS_FILE_NAME.format(self.stack))
+        self.wd_vip_file = os.path.join(
+            self.working_dir,
+            utils.constants.WD_DEFAULT_VIP_FILE_NAME.format(self.stack))
+        self.wd_barametal_file = os.path.join(
+            self.working_dir,
+            utils.constants.WD_DEFAULT_BAREMETAL_FILE_NAME.format(self.stack))
+
+    def tearDown(self):
+        super(TestWorkingDirDefaults, self).tearDown()
+        shutil.rmtree(self.working_dir)
+
+    @mock.patch.object(utils, 'rewrite_ansible_playbook_paths', autospec=True)
+    @mock.patch.object(shutil, 'copy', autospec=True)
+    def test_update_working_dir_defaults(self, mock_shutil_copy,
+                                         mock_rewrite_ansible_playbook_paths):
+        args = mock.Mock()
+        args.stack = self.stack
+        args.templates = '/tht_root'
+        args.roles_file = '/dir/roles_file.yaml'
+        args.networks_file = '/dir/networks_file.yaml'
+        args.vip_file = '/dir/vip_file.yaml'
+        args.baremetal_deployment = '/dir/baremetal_deployment.yaml'
+
+        utils.update_working_dir_defaults(self.working_dir, args)
+
+        mock_shutil_copy.assert_has_calls(
+            [mock.call(args.baremetal_deployment, self.wd_barametal_file),
+             mock.call(args.roles_file, self.wd_roles_file),
+             mock.call(args.networks_file, self.wd_networks_file),
+             mock.call(args.vip_file, self.wd_vip_file)])
+
+    def test_rewrite_ansible_playbook_paths(self):
+        src = '/rel/path/baremetal.yaml'
+        dest = self.wd_barametal_file
+        roles = '''
+        - name: Controller
+          ansible_playbooks:
+          - playbook: controller-playbook.yaml
+          - playbook: /abs/path/controller-playbook.yaml
+        - name: Compute
+          ansible_playbooks:
+          - playbook: compute-playbook.yaml
+          - playbook: /abs/path/compute-playbook.yaml
+        '''
+        with open(dest, 'w') as f:
+            f.write(roles)
+        utils.rewrite_ansible_playbook_paths(src, dest)
+        with open(dest, 'r') as f:
+            data = yaml.safe_load(f.read())
+        self.assertEqual(data[0]['ansible_playbooks'][0]['playbook'],
+                         '/rel/path/controller-playbook.yaml')
+        self.assertEqual(data[0]['ansible_playbooks'][1]['playbook'],
+                         '/abs/path/controller-playbook.yaml')
+        self.assertEqual(data[1]['ansible_playbooks'][0]['playbook'],
+                         '/rel/path/compute-playbook.yaml')
+        self.assertEqual(data[1]['ansible_playbooks'][1]['playbook'],
+                         '/abs/path/compute-playbook.yaml')

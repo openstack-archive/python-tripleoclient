@@ -69,7 +69,7 @@ def _update_args_from_answers_file(parsed_args):
         parsed_args.environment_files = answers['environments']
 
 
-def _validate_args(parsed_args):
+def _validate_args(parsed_args, working_dir):
     if parsed_args.templates is None and parsed_args.answers_file is None:
         raise oscexc.CommandError(
             "You must specify either --templates or --answers-file")
@@ -126,8 +126,8 @@ def _validate_args(parsed_args):
 
     if parsed_args.vip_file:
         # Check vip_file only used with network data v2
-        networks_file_path = utils.get_networks_file_path(
-            parsed_args.networks_file, parsed_args.templates)
+        networks_file_path = utils.get_networks_file_path(working_dir,
+                                                          parsed_args.stack)
         if not utils.is_network_data_v2(networks_file_path):
             raise oscexc.CommandError(
                 'The --vip-file option can only be used in combination with a '
@@ -232,8 +232,12 @@ class DeployOvercloud(command.Command):
         files = dict(list(template_files.items()) + list(env_files.items()))
 
         workflow_params.check_deprecated_parameters(
-            self.clients, stack_name, tht_root, template,
-            roles_file, files, env_files_tracker)
+            self.clients,
+            stack_name,
+            template,
+            files,
+            env_files_tracker,
+            self.working_dir)
 
         self.log.info("Deploying templates in the directory {0}".format(
             os.path.abspath(tht_root)))
@@ -247,13 +251,18 @@ class DeployOvercloud(command.Command):
         new_tht_root = "%s/tripleo-heat-templates" % self.working_dir
         self.log.debug("Creating working templates tree in %s"
                        % new_tht_root)
+        roles_file_path = utils.get_roles_file_path(self.working_dir,
+                                                    parsed_args.stack)
+        networks_file_path = utils.get_networks_file_path(self.working_dir,
+                                                          parsed_args.stack)
         shutil.rmtree(new_tht_root, ignore_errors=True)
         shutil.copytree(tht_root, new_tht_root, symlinks=True)
-        utils.jinja_render_files(self.log, parsed_args.templates,
-                                 new_tht_root,
-                                 parsed_args.roles_file,
-                                 parsed_args.networks_file,
-                                 new_tht_root)
+        utils.jinja_render_files(self.log,
+                                 templates=parsed_args.templates,
+                                 working_dir=new_tht_root,
+                                 roles_file=roles_file_path,
+                                 networks_file=networks_file_path,
+                                 base_path=new_tht_root)
         return new_tht_root, tht_root
 
     def create_env_files(self, stack, parsed_args,
@@ -266,7 +275,8 @@ class DeployOvercloud(command.Command):
             os.path.join(new_tht_root, constants.DEFAULT_RESOURCE_REGISTRY)]
 
         parameters = utils.build_enabled_sevices_image_params(
-            created_env_files, parsed_args, new_tht_root, user_tht_root)
+            created_env_files, parsed_args, new_tht_root, user_tht_root,
+            self.working_dir)
 
         self._update_parameters(
             parsed_args, parameters, new_tht_root, user_tht_root)
@@ -348,9 +358,9 @@ class DeployOvercloud(command.Command):
                 'derived_parameters.yaml', new_tht_root)
             workflow_params.build_derived_params_environment(
                 self.clients, parsed_args.stack, new_tht_root, env_files,
-                env_files_tracker, parsed_args.roles_file,
-                parsed_args.plan_environment_file,
-                output_path, utils.playbook_verbosity(self=self))
+                env_files_tracker, parsed_args.plan_environment_file,
+                output_path, utils.playbook_verbosity(self=self),
+                self.working_dir)
 
             created_env_files.append(output_path)
             env_files_tracker = []
@@ -447,15 +457,17 @@ class DeployOvercloud(command.Command):
         utils.remove_known_hosts(overcloud_ip_or_fqdn)
 
     def _provision_baremetal(self, parsed_args, tht_root, protected_overrides):
-        if not parsed_args.baremetal_deployment:
+
+        baremetal_file = utils.get_baremetal_file_path(self.working_dir,
+                                                       parsed_args.stack)
+        if not baremetal_file:
             return []
 
-        roles_file_path = os.path.abspath(parsed_args.baremetal_deployment)
-        roles_file_dir = os.path.dirname(roles_file_path)
-        with open(parsed_args.baremetal_deployment, 'r') as fp:
+        baremetal_file_dir = os.path.dirname(baremetal_file)
+        with open(baremetal_file, 'r') as fp:
             roles = yaml.safe_load(fp)
 
-        utils.validate_roles_playbooks(roles_file_dir, roles)
+        utils.validate_roles_playbooks(baremetal_file_dir, roles)
 
         key = self.get_key_pair(parsed_args)
         with open('{}.pub'.format(key), 'rt') as fp:
@@ -487,7 +499,7 @@ class DeployOvercloud(command.Command):
                 verbosity=utils.playbook_verbosity(self=self),
                 extra_vars=extra_vars,
             )
-        utils.run_role_playbooks(self, self.working_dir, roles_file_dir,
+        utils.run_role_playbooks(self, self.working_dir, baremetal_file_dir,
                                  roles, parsed_args.network_config)
 
         utils.extend_protected_overrides(protected_overrides, output_path)
@@ -496,10 +508,12 @@ class DeployOvercloud(command.Command):
 
     def _unprovision_baremetal(self, parsed_args):
 
-        if not parsed_args.baremetal_deployment:
+        baremetal_file = utils.get_baremetal_file_path(self.working_dir,
+                                                       parsed_args.stack)
+        if not baremetal_file:
             return
 
-        with open(parsed_args.baremetal_deployment, 'r') as fp:
+        with open(baremetal_file, 'r') as fp:
             roles = yaml.safe_load(fp)
 
         with utils.TempDirs() as tmp:
@@ -522,7 +536,8 @@ class DeployOvercloud(command.Command):
         # 'ipv6_subnet' keys this is not a network-v2 format file. In this
         # case do nothing.
         networks_file_path = utils.get_networks_file_path(
-            parsed_args.networks_file, parsed_args.templates)
+            self.working_dir, parsed_args.stack)
+
         if not utils.is_network_data_v2(networks_file_path):
             return []
 
@@ -552,13 +567,14 @@ class DeployOvercloud(command.Command):
 
     def _provision_virtual_ips(self, parsed_args, tht_root,
                                protected_overrides):
-        networks_file_path = utils.get_networks_file_path(
-            parsed_args.networks_file, parsed_args.templates)
+        networks_file_path = utils.get_networks_file_path(self.working_dir,
+                                                          parsed_args.stack)
         if not utils.is_network_data_v2(networks_file_path):
             return []
 
-        vip_file_path = utils.get_vip_file_path(parsed_args.vip_file,
-                                                parsed_args.templates)
+        vip_file_path = utils.get_vip_file_path(self.working_dir,
+                                                parsed_args.stack)
+
         output_path = utils.build_user_env_path(
             'virtual-ips-deployed.yaml',
             tht_root)
@@ -1056,7 +1072,12 @@ class DeployOvercloud(command.Command):
         sc_logger = logging.getLogger("swiftclient")
         sc_logger.setLevel(logging.CRITICAL)
 
-        _validate_args(parsed_args)
+        _update_args_from_answers_file(parsed_args)
+
+        # Make a copy of the files provided on command line in the working dir
+        # If the command is re-run without providing the argument the "backup"
+        # from the previous run in the working dir is used.
+        utils.update_working_dir_defaults(self.working_dir, parsed_args)
 
         # Throw warning if deprecated service is enabled and
         # ask user if deployment should still be continued.
@@ -1064,7 +1085,7 @@ class DeployOvercloud(command.Command):
             utils.check_deprecated_service_is_enabled(
                 parsed_args.environment_files)
 
-        _update_args_from_answers_file(parsed_args)
+        _validate_args(parsed_args, self.working_dir)
 
         if parsed_args.dry_run:
             self.log.info("Validation Finished")

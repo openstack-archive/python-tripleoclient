@@ -19,22 +19,22 @@ from tripleoclient import utils
 LOG = logging.getLogger(__name__)
 
 
-def get_roles_data(roles_file, tht_root):
-    abs_roles_file = utils.get_roles_file_path(
-        roles_file, tht_root)
-    roles_data = None
+def get_roles_data(working_dir, stack_name):
+    abs_roles_file = utils.get_roles_file_path(working_dir, stack_name)
     with open(abs_roles_file, 'r') as fp:
         roles_data = yaml.safe_load(fp)
+
     return roles_data
 
 
-def get_roles(clients, roles_file, tht_root,
+def get_roles(clients,
               stack_name,
               template,
               files,
               env_files,
+              working_dir,
               detail=False, valid=False):
-    roles_data = get_roles_data(roles_file, tht_root)
+    roles_data = get_roles_data(working_dir, stack_name)
 
     if detail:
         return roles_data
