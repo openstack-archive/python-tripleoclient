@@ -19,6 +19,7 @@ import sys
 from osc_lib.i18n import _
 from six.moves import configparser
 
+TRIPLEO_ARCHIVE_DIR = "/var/lib/tripleo/archive"
 TRIPLEO_HEAT_TEMPLATES = "/usr/share/openstack-tripleo-heat-templates/"
 OVERCLOUD_YAML_NAME = "overcloud.yaml"
 OVERCLOUD_ROLES_FILE = "roles_data.yaml"
