@@ -333,6 +333,9 @@ class ProvisionNode(command.Command):
             oooutils.run_role_playbooks(self, working_dir, roles_file_dir,
                                         roles)
 
+        oooutils.copy_to_wd(working_dir, roles_file_path, parsed_args.stack,
+                            'baremetal')
+
         print('Nodes deployed successfully, add %s to your deployment '
               'environment' % parsed_args.output)
 

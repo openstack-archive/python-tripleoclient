@@ -272,3 +272,13 @@ UPDATE_PROMPT = _('You are about to run a UPDATE command. '
 UPDATE_NO = _('User did not confirm update, so exiting. '
               'Consider using the --yes/-y parameter if you '
               'prefer to skip this warning in the future')
+
+# Work-Dir default file names
+WD_DEFAULT_ROLES_FILE_NAME = 'tripleo-{}-roles-data.yaml'
+WD_DEFAULT_NETWORKS_FILE_NAME = 'tripleo-{}-network-data.yaml'
+WD_DEFAULT_VIP_FILE_NAME = 'tripleo-{}-virtual-ips.yaml'
+WD_DEFAULT_BAREMETAL_FILE_NAME = 'tripleo-{}-baremetal-deployment.yaml'
+KIND_TEMPLATES = {'roles': WD_DEFAULT_ROLES_FILE_NAME,
+                  'networks': WD_DEFAULT_NETWORKS_FILE_NAME,
+                  'baremetal': WD_DEFAULT_BAREMETAL_FILE_NAME,
+                  'vips': WD_DEFAULT_VIP_FILE_NAME}

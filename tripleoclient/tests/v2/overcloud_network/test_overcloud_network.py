@@ -80,6 +80,12 @@ class TestOvercloudNetworkProvision(fakes.FakePlaybookExecution):
         self.cmd = overcloud_network.OvercloudNetworkProvision(self.app, None)
         self.cmd.app_args = mock.Mock(verbose_level=1)
 
+        # Mock copy to working dir
+        mock_copy_to_wd = mock.patch(
+            'tripleoclient.utils.copy_to_wd', autospec=True)
+        mock_copy_to_wd.start()
+        self.addCleanup(mock_copy_to_wd.stop)
+
     @mock.patch('tripleoclient.utils.TempDirs', autospect=True)
     @mock.patch('os.path.abspath', autospect=True)
     @mock.patch('os.path.exists', autospect=True)
