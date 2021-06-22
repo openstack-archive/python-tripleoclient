@@ -316,6 +316,8 @@ class TestDeployUndercloud(TestPluginV1):
                                           mock.ANY,
                                           default_flow_style=False)
 
+    @mock.patch('tripleoclient.utils.fetch_roles_file',
+                return_value={}, autospec=True)
     @mock.patch('heatclient.common.template_utils.'
                 'process_environment_and_files', return_value=({}, {}),
                 autospec=True)
@@ -336,7 +338,8 @@ class TestDeployUndercloud(TestPluginV1):
                                                  mock_hc_templ_parse,
                                                  mock_hc_env_parse,
                                                  mock_hc_get_templ_cont,
-                                                 mock_hc_process):
+                                                 mock_hc_process,
+                                                 mock_role_data):
 
         with tempfile.NamedTemporaryFile(delete=False) as roles_file:
             self.addCleanup(os.unlink, roles_file.name)
@@ -371,6 +374,8 @@ class TestDeployUndercloud(TestPluginV1):
             mock.call(env_path='../outside.yaml',
                       include_env_in_files=False)])
 
+    @mock.patch('tripleoclient.utils.fetch_roles_file',
+                return_value={}, autospec=True)
     @mock.patch('tripleoclient.utils.rel_or_abs_path')
     @mock.patch('heatclient.common.template_utils.'
                 'process_environment_and_files', return_value=({}, {}),
@@ -400,7 +405,8 @@ class TestDeployUndercloud(TestPluginV1):
                                                    mock_hc_env_parse,
                                                    mock_hc_get_templ_cont,
                                                    mock_hc_process,
-                                                   mock_norm_path):
+                                                   mock_norm_path,
+                                                   mock_roles_data):
         def hc_process(*args, **kwargs):
             if 'abs.yaml' in kwargs['env_path']:
                 raise hc_exc.CommandError
@@ -443,92 +449,6 @@ class TestDeployUndercloud(TestPluginV1):
 
         mock_yaml_dump.assert_has_calls([mock.call(rewritten_env,
                                         default_flow_style=False)])
-
-    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
-                '_populate_templates_dir')
-    @mock.patch('tripleoclient.utils.fetch_roles_file')
-    @mock.patch('tripleoclient.utils.rel_or_abs_path')
-    @mock.patch('heatclient.common.template_utils.'
-                'process_environment_and_files', return_value=({}, {}),
-                autospec=True)
-    @mock.patch('heatclient.common.template_utils.'
-                'get_template_contents', return_value=({}, {}),
-                autospec=True)
-    @mock.patch('heatclient.common.environment_format.'
-                'parse', autospec=True, return_value=dict())
-    @mock.patch('heatclient.common.template_format.'
-                'parse', autospec=True, return_value=dict())
-    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
-                '_setup_heat_environments', autospec=True)
-    @mock.patch('yaml.safe_dump', autospec=True)
-    @mock.patch('yaml.safe_load', autospec=True)
-    @mock.patch('six.moves.builtins.open')
-    @mock.patch('tempfile.NamedTemporaryFile', autospec=True)
-    @mock.patch('tripleo_common.image.kolla_builder.'
-                'container_images_prepare_multi')
-    def test_deploy_tripleo_heat_templates_remove(self,
-                                                  mock_cipm,
-                                                  mock_temp, mock_open,
-                                                  mock_yaml_load,
-                                                  mock_yaml_dump,
-                                                  mock_setup_heat_envs,
-                                                  mock_hc_templ_parse,
-                                                  mock_hc_env_parse,
-                                                  mock_hc_get_templ_cont,
-                                                  mock_hc_process,
-                                                  mock_norm_path,
-                                                  mock_fetch_roles,
-                                                  mock_populate):
-        def hc_process(*args, **kwargs):
-            if 'myenv.yaml' in kwargs['env_path']:
-                env = {
-                    'resource_registry': {
-                        'OS::TripleO::Services::Foo': 'OS::Heat::None'}}
-                return ({}, env)
-            else:
-                return ({}, {})
-
-        mock_fetch_roles.return_value = [
-            {'name': 'Bar', 'ServicesDefault': [
-                'OS::TripleO::Services::Foo', 'OS::TripleO::Services::Bar']},
-            {'name': 'Foo', 'tags': ['primary']}
-        ]
-
-        def set_tht(templates, stack_name):
-            self.cmd.tht_render = "tht_from"
-
-        mock_populate.side_effect = set_tht
-
-        mock_cipm.return_value = {}
-
-        mock_hc_process.side_effect = hc_process
-
-        parsed_args = self.check_parser(self.cmd,
-                                        ['--templates', '/tmp/thtroot'], [])
-
-        rewritten_role = [
-            {'name': 'Bar', 'ServicesDefault': ['OS::TripleO::Services::Bar']},
-            {'name': 'Foo', 'tags': ['primary']}
-        ]
-        myenv = {'resource_registry': {
-            'OS::Foo::Bar': '../outside.yaml',
-            'OS::Foo::Baz': './inside.yaml',
-            'OS::Foo::Qux': '/tmp/thtroot/abs.yaml',
-            'OS::Foo::Quux': '/tmp/thtroot42/notouch.yaml',
-            'OS::Foo::Corge': '/tmp/thtroot/puppet/foo.yaml'
-            }
-        }
-        mock_yaml_load.return_value = myenv
-
-        mock_setup_heat_envs.return_value = [
-            './inside.yaml', '/tmp/thtroot/abs.yaml',
-            '/tmp/thtroot/puppet/foo.yaml',
-            '/tmp/thtroot/environments/myenv.yaml',
-            '../outside.yaml']
-
-        self.cmd._deploy_tripleo_heat_templates(self.orc, parsed_args)
-
-        mock_yaml_dump.assert_has_calls([mock.call(rewritten_role)])
 
     @mock.patch('shutil.copy')
     @mock.patch('os.path.exists', return_value=False)

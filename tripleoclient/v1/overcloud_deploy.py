@@ -264,7 +264,7 @@ class DeployOvercloud(command.Command):
         created_env_files.append(
             os.path.join(new_tht_root, constants.DEFAULT_RESOURCE_REGISTRY))
 
-        parameters = utils.build_image_params(
+        parameters = utils.build_enabled_sevices_image_params(
             created_env_files, parsed_args, new_tht_root, user_tht_root)
 
         self._update_parameters(
