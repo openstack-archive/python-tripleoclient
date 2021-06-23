@@ -77,9 +77,6 @@ spec:
     - mountPath: /token_file.json
       name: heat-token-file
       readOnly: true
-    - mountPath: /etc/heat/noauth_policy.json
-      name: heat-noauth-policy
-      readOnly: true
     workingDir: /
   volumes:
   - hostPath:
@@ -98,8 +95,4 @@ spec:
       path: {{ heat_dir }}/token_file.json
       type: File
     name: heat-token-file
-  - hostPath:
-      path: {{ policy_file }}
-      type: File
-    name: heat-noauth-policy
 status: {}
