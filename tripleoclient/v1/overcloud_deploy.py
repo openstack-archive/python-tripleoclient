@@ -560,6 +560,19 @@ class DeployOvercloud(command.Command):
         self.log.info("Using ephemeral heat for stack operation")
         restore_db = (parsed_args.setup_only or
                       parsed_args.config_download_only)
+
+        # Skip trying to pull the images if they are set to the default
+        # as they can't be pulled since they are tagged as localhost.
+        # If the images are missing for some reason, podman will still pull
+        # them by default, and error appropriately if needed.
+        if (parsed_args.heat_container_api_image ==
+                constants.DEFAULT_EPHEMERAL_HEAT_API_CONTAINER or
+                parsed_args.heat_container_engine_image ==
+                constants.DEFAULT_EPHEMERAL_HEAT_ENGINE_CONTAINER):
+            skip_heat_pull = True
+        else:
+            skip_heat_pull = parsed_args.skip_heat_pull
+
         self.heat_launcher = utils.get_heat_launcher(
             parsed_args.heat_type,
             api_container_image=parsed_args.heat_container_api_image,
@@ -568,7 +581,7 @@ class DeployOvercloud(command.Command):
                                   'heat-launcher'),
             use_tmp_dir=False,
             rm_heat=parsed_args.rm_heat,
-            skip_heat_pull=parsed_args.skip_heat_pull)
+            skip_heat_pull=skip_heat_pull)
         self.orchestration_client = \
             utils.launch_heat(self.heat_launcher, restore_db=restore_db)
         self.clients.orchestration = self.orchestration_client
@@ -935,21 +948,21 @@ class DeployOvercloud(command.Command):
             '--heat-container-api-image',
             metavar='<HEAT_CONTAINER_API_IMAGE>',
             dest='heat_container_api_image',
-            default=constants.DEFAULT_HEAT_API_CONTAINER,
+            default=constants.DEFAULT_EPHEMERAL_HEAT_API_CONTAINER,
             help=_('The container image to use when launching the heat-api '
                    'process. Only used when --heat-type=pod. '
                    'Defaults to: {}'.format(
-                       constants.DEFAULT_HEAT_API_CONTAINER))
+                       constants.DEFAULT_EPHEMERAL_HEAT_API_CONTAINER))
         )
         parser.add_argument(
             '--heat-container-engine-image',
             metavar='<HEAT_CONTAINER_ENGINE_IMAGE>',
             dest='heat_container_engine_image',
-            default=constants.DEFAULT_HEAT_ENGINE_CONTAINER,
+            default=constants.DEFAULT_EPHEMERAL_HEAT_ENGINE_CONTAINER,
             help=_('The container image to use when launching the heat-engine '
                    'process. Only used when --heat-type=pod. '
                    'Defaults to: {}'.format(
-                       constants.DEFAULT_HEAT_ENGINE_CONTAINER))
+                       constants.DEFAULT_EPHEMERAL_HEAT_ENGINE_CONTAINER))
         )
         parser.add_argument(
             '--rm-heat',
