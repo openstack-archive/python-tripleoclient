@@ -229,6 +229,27 @@ EXPORT_PASSWORD_EXCLUDE_PATTERNS = [
     'ceph.*'
 ]
 
+EXPORT_DATA = {
+        "EndpointMap": {
+            "parameter": "EndpointMapOverride",
+        },
+        "HostsEntry": {
+            "parameter": "ExtraHostFileEntries",
+        },
+        "GlobalConfig": {
+            "parameter": "GlobalConfigExtraMapData",
+        },
+        "AllNodesConfig": {
+            "file": "group_vars/overcloud.json",
+            "parameter": "AllNodesExtraMapData",
+            "filter": ["oslo_messaging_notify_short_bootstrap_node_name",
+                       "oslo_messaging_notify_node_names",
+                       "oslo_messaging_rpc_node_names",
+                       "memcached_node_ips",
+                       "ovn_dbs_vip",
+                       "redis_vip"]},
+    }
+
 # Package that need to be to the latest before undercloud
 # update/update
 UNDERCLOUD_EXTRA_PACKAGES = [

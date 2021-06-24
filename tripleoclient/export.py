@@ -60,31 +60,11 @@ def export_stack(heat, stack, should_filter=False,
     #         output.File is relative to <config-download-dir>/stack.
     # filter: in case only specific settings should be
     #         exported from parameter data.
-    export_data = {
-        "EndpointMap": {
-            "parameter": "EndpointMapOverride",
-        },
-        "HostsEntry": {
-            "parameter": "ExtraHostFileEntries",
-        },
-        "GlobalConfig": {
-            "parameter": "GlobalConfigExtraMapData",
-        },
-        "AllNodesConfig": {
-            "file": "group_vars/overcloud.json",
-            "parameter": "AllNodesExtraMapData",
-            "filter": ["oslo_messaging_notify_short_bootstrap_node_name",
-                       "oslo_messaging_notify_node_names",
-                       "oslo_messaging_rpc_node_names",
-                       "memcached_node_ips",
-                       "ovn_dbs_vip",
-                       "redis_vip"]},
-    }
 
     data = {}
     heat_stack = oooutils.get_stack(heat, stack)
 
-    for export_key, export_param in export_data.items():
+    for export_key, export_param in constants.EXPORT_DATA.items():
         param = export_param["parameter"]
         if "file" in export_param:
             # get file data
