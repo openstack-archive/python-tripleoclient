@@ -305,12 +305,13 @@ class DeployOvercloud(command.Command):
                     new_tht_root,
                     constants.DEPLOYED_SERVER_ENVIRONMENT))
 
-        created_env_files.extend(
-            self._provision_networks(parsed_args, new_tht_root))
-        created_env_files.extend(
-            self._provision_virtual_ips(parsed_args, new_tht_root))
-        created_env_files.extend(
-            self._provision_baremetal(parsed_args, new_tht_root))
+        if not parsed_args.skip_nodes_and_networks:
+            created_env_files.extend(
+                self._provision_networks(parsed_args, new_tht_root))
+            created_env_files.extend(
+                self._provision_virtual_ips(parsed_args, new_tht_root))
+            created_env_files.extend(
+                self._provision_baremetal(parsed_args, new_tht_root))
 
         if parsed_args.environment_directories:
             created_env_files.extend(utils.load_environment_directories(
@@ -1072,6 +1073,16 @@ class DeployOvercloud(command.Command):
             default=False,
             help=_('When --heat-type is pod or container, assume '
                    'the container image has already been pulled ')
+        )
+        parser.add_argument(
+            '--skip-nodes-and-networks',
+            action='store_true',
+            default=False,
+            help=_('When this is set no Baremetal Nodes, Networks nor Virtual '
+                   'IPs will be provisioned. The resources are assumed to '
+                   'already be provisioned. The environment files including '
+                   'the necessary input for the stack create must be provided '
+                   'by the user.')
         )
         return parser
 
