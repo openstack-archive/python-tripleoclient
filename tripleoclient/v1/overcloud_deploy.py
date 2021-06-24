@@ -367,6 +367,9 @@ class DeployOvercloud(command.Command):
                     # upgrades: check if swift is deployed
                     utils.check_swift_and_rgw(stack, env,
                                               self.__class__.__name__)
+        # check if ceph-ansible env is present
+        utils.check_ceph_ansible(env.get('resource_registry', {}),
+                                 self.__class__.__name__)
         # check migration to new nic config with ansible
         utils.check_nic_config_with_ansible(stack, env)
         # check migration to service vips managed by servce

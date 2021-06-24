@@ -1051,6 +1051,31 @@ def get_rc_params(orchestration_client, stack_name):
     return rc_params
 
 
+def check_ceph_ansible(resource_registry, stage):
+    """Fail if ceph-ansible is still passed
+
+    If any of the ceph-ansible related resources are part of the
+    Ceph services path, then the overcloud deploy (or the stack
+    update) should fail, unless they are included in the context
+    of Update/Upgrade/Converge, where these environments are still
+    relevant and required.
+    """
+
+    if not resource_registry or stage not in "DeployOvercloud":
+        return
+
+    # for each Ceph related service, fail if ceph-ansible is part
+    # of the provided path
+    for name, path in resource_registry.items():
+        if 'Ceph' in name and 'ceph-ansible' in path:
+            raise exceptions.InvalidConfiguration('The Ceph deployment is not '
+                                                  'available anymore using '
+                                                  'ceph-ansible. If you want '
+                                                  'to deploy Ceph, please add '
+                                                  'the cephadm environment '
+                                                  'file.')
+
+
 def check_ceph_fsid_matches_env_files(stack, environment):
     """Check CephClusterFSID against proposed env files
 
