@@ -527,12 +527,9 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
         env_data['DockerInsecureRegistryAddress'].append(
             CONF['undercloud_admin_host'])
     else:
-        env_data['DockerInsecureRegistryAddress'] = [
-            '%s:8787' % local_registry_name]
-        env_data['DockerInsecureRegistryAddress'].append(
-            '%s:8787' % CONF['local_ip'].split('/')[0])
-        env_data['DockerInsecureRegistryAddress'].append(
-            '%s:8787' % CONF['undercloud_admin_host'])
+        msg = ('Unsupported container_cli: %s' % CONF['container_cli'])
+        raise exceptions.InvalidConfiguration(msg)
+
     env_data['DockerInsecureRegistryAddress'].extend(
         CONF['container_insecure_registries'])
 

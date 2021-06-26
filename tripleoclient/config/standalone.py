@@ -122,8 +122,7 @@ class StandaloneConfig(BaseConfig):
             cfg.StrOpt('deployment_user',
                        help=_(
                            'User used to run openstack undercloud install '
-                           'command which will be used to add the user to the '
-                           'docker group, required to upload containers'),
+                           'command.')
                        ),
             cfg.StrOpt('hieradata_override',
                        default='',
@@ -210,7 +209,7 @@ class StandaloneConfig(BaseConfig):
                                'configuration and can be used to override '
                                'any derived values. This should be used '
                                'only by advanced users.')),
-            # docker config bits
+            # container config bits
             cfg.StrOpt('container_registry_mirror',
                        deprecated_name='docker_registry_mirror',
                        default='',
@@ -226,8 +225,9 @@ class StandaloneConfig(BaseConfig):
                         ),
             cfg.StrOpt('container_cli',
                        default='podman',
+                       choices=('podman',),
                        help=_('Container CLI used for deployment; '
-                              'Can be docker or podman.')),
+                              'Only podman is allowed.')),
             cfg.BoolOpt('container_healthcheck_disabled',
                         default=False,
                         help=_(
