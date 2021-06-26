@@ -83,6 +83,9 @@ class StandaloneConfig(BaseConfig):
                         help=_('Whether to enable the nova service.')),
             cfg.BoolOpt('enable_novajoin',
                         default=novajoin,
+                        deprecated_for_removal=True,
+                        deprecated_reason=('Support for the novajoin metadata '
+                                           'service has been deprecated.'),
                         help=_('Whether to install the novajoin metadata '
                                'service')
                         ),
