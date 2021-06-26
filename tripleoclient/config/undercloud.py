@@ -286,8 +286,7 @@ class UndercloudConfig(StandaloneConfig):
                        ),
             cfg.BoolOpt('ipxe_enabled',
                         default=True,
-                        help=_('Whether to use iPXE for deploy and '
-                               'inspection.'),
+                        help=_('Whether to use iPXE for inspection.'),
                         deprecated_name='ipxe_deploy',
                         ),
             cfg.IntOpt('scheduler_max_attempts',
