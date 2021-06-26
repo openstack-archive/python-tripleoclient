@@ -80,12 +80,11 @@ class MinionConfig(StandaloneConfig):
                         default=['0.pool.ntp.org', '1.pool.ntp.org',
                                  '2.pool.ntp.org', '3.pool.ntp.org'],
                         help=_('List of ntp servers to use.')),
-            cfg.StrOpt('minion_timezone', default=None,
+            cfg.StrOpt('minion_timezone',
                        help=_('Host timezone to be used. If no timezone is '
                               'specified, the existing timezone configuration '
                               'is used.')),
             cfg.StrOpt('minion_service_certificate',
-                       default='',
                        help=_(
                            'TODO: '
                            'Certificate file to use for OpenStack service SSL '

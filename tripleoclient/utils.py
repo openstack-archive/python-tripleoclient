@@ -2349,8 +2349,8 @@ def check_env_for_proxy(no_proxy_hosts=None):
     """
     if no_proxy_hosts is None:
         no_proxy_hosts = ['127.0.0.1']
-    http_proxy = os.environ.get('http_proxy', None)
-    https_proxy = os.environ.get('https_proxy', None)
+    http_proxy = os.environ.get('http_proxy')
+    https_proxy = os.environ.get('https_proxy')
     if os.environ.get('no_proxy'):
         no_proxy = os.environ.get('no_proxy').split(',')
     else:

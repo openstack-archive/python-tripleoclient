@@ -130,7 +130,6 @@ class StandaloneConfig(BaseConfig):
                            'command.')
                        ),
             cfg.StrOpt('hieradata_override',
-                       default='',
                        help=_(
                            'Path to hieradata override file. Relative paths '
                            'get computed inside of $HOME. When it points to a '
@@ -145,7 +144,6 @@ class StandaloneConfig(BaseConfig):
                            'require a manual revision.')
                        ),
             cfg.StrOpt('net_config_override',
-                       default='',
                        help=_(
                            'Path to network config override template. '
                            'Relative paths get computed inside of $HOME. '
@@ -162,19 +160,16 @@ class StandaloneConfig(BaseConfig):
                            'for example:\n%s ') % NETCONFIG_TAGS_EXAMPLE
                        ),
             cfg.StrOpt('templates',
-                       default='',
                        help=_('The tripleo-heat-templates directory to '
                               'override')
                        ),
             cfg.StrOpt('roles_file',
-                       default=None,
                        help=_('Roles file to override for heat. May be an '
                               'absolute path or the path relative to the '
                               'tripleo-heat-templates directory used for '
                               'deployment')
                        ),
             cfg.StrOpt('networks_file',
-                       default=None,
                        help=_('Networks file to override for heat. May be an '
                               'absolute path or the path relative to the '
                               'tripleo-heat-templates directory used for '
@@ -190,7 +185,6 @@ class StandaloneConfig(BaseConfig):
                                ' directly If this is set to false, a '
                                'containerized version of heat-all is used.')),
             cfg.StrOpt('heat_container_image',
-                       default='',
                        help=_('Custom URL for the heat-all container image to '
                               'use as part of the undercloud deployment. If '
                               'not specified, the default "%s" is used. '
@@ -199,7 +193,6 @@ class StandaloneConfig(BaseConfig):
                               'undercloud install.' % DEFAULT_HEAT_CONTAINER)
                        ),
             cfg.StrOpt('container_images_file',
-                       default='',
                        required=False,
                        help=_(
                            'REQUIRED if authentication is needed to fetch '
@@ -221,7 +214,6 @@ class StandaloneConfig(BaseConfig):
                                'only by advanced users.')),
             # container config bits
             cfg.StrOpt('container_registry_mirror',
-                       default='',
                        help=_(
                            'An optional container registry mirror that will '
                            'be used.')

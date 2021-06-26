@@ -495,20 +495,18 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
     else:
         env_data['SELinuxMode'] = 'permissive'
 
-    if CONF.get('undercloud_ntp_servers', None):
+    if CONF.get('undercloud_ntp_servers'):
         env_data['NtpServer'] = CONF['undercloud_ntp_servers']
 
-    if CONF.get('undercloud_timezone', None):
-        env_data['TimeZone'] = CONF['undercloud_timezone']
-    else:
-        env_data['TimeZone'] = utils.get_local_timezone()
+    env_data['TimeZone'] = (CONF.get('undercloud_timezone') or
+                            utils.get_local_timezone())
 
-    if CONF.get('enable_validations', False):
+    if CONF.get('enable_validations'):
         env_data['UndercloudConfigFilePath'] = constants.UNDERCLOUD_CONF_PATH
         if not no_validations:
             env_data['EnableValidations'] = CONF['enable_validations']
 
-    if CONF.get('overcloud_domain_name', None):
+    if CONF.get('overcloud_domain_name'):
         env_data['NeutronDnsDomain'] = CONF['overcloud_domain_name']
         deploy_args.append('--local-domain=%s' % CONF['overcloud_domain_name'])
 
@@ -530,7 +528,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
 
     env_data['ContainerCli'] = CONF['container_cli']
 
-    if CONF.get('container_registry_mirror', None):
+    if CONF.get('container_registry_mirror'):
         env_data['DockerRegistryMirror'] = CONF['container_registry_mirror']
 
     # This parameter the IP address used to bind the local container registry
@@ -545,25 +543,19 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
         env_data['AdditionalArchitectures'] = \
             ','.join(CONF['additional_architectures'])
 
-    if CONF.get('local_ip', None):
+    if CONF.get('local_ip'):
         deploy_args.append('--local-ip=%s' % CONF['local_ip'])
 
-    if CONF.get('templates', None):
-        tht_templates = CONF['templates']
-        deploy_args.append('--templates=%s' % tht_templates)
-    else:
-        tht_templates = THT_HOME
-        deploy_args.append('--templates=%s' % THT_HOME)
+    tht_templates = CONF.get('templates') or THT_HOME
+    deploy_args.append('--templates=%s' % tht_templates)
 
-    if CONF.get('roles_file', constants.UNDERCLOUD_ROLES_FILE):
+    if CONF.get('roles_file'):
         deploy_args.append('--roles-file=%s' % CONF['roles_file'])
 
-    if CONF.get('networks_file'):
-        deploy_args.append('--networks-file=%s' % CONF['networks_file'])
-    else:
-        deploy_args.append('--networks-file=%s' %
-                           os.path.join(tht_templates,
-                                        constants.UNDERCLOUD_NETWORKS_FILE))
+    networks_file = (CONF.get('networks_file') or
+                     os.path.join(tht_templates,
+                                  constants.UNDERCLOUD_NETWORKS_FILE))
+    deploy_args.append('--networks-file=%s' % networks_file)
 
     if yes:
         deploy_args += ['-y']
@@ -718,7 +710,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
         admin_ip = netaddr.IPAddress(admin_host)
         deploy_args += ['--control-virtual-ip', admin_host]
 
-        if not CONF.get('net_config_override', None):
+        if not CONF.get('net_config_override'):
             if (admin_ip not in local_net.cidr or
                     public_ip not in local_net.cidr):
                 LOG.warning('undercloud_admin_host or undercloud_public_host '
@@ -741,7 +733,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
     if CONF.get('cleanup'):
         deploy_args.append('--cleanup')
 
-    if CONF.get('net_config_override', None):
+    if CONF.get('net_config_override'):
         data_file = CONF['net_config_override']
         if os.path.abspath(data_file) != data_file:
             data_file = os.path.join(USER_HOME, data_file)
@@ -776,7 +768,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
                 try:
                     context[tag] = CONF[mapped_value]
                 except cfg.NoSuchOptError:
-                    context[tag] = env_data.get(mapped_value, None)
+                    context[tag] = env_data.get(mapped_value)
 
         # this returns a unicode string, convert it in into json
         net_config_str = net_config_env.get_template(
@@ -799,7 +791,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
     utils.write_env_file(env_data, params_file, registry_overwrites)
     deploy_args += ['-e', params_file]
 
-    if CONF.get('hieradata_override', None):
+    if CONF.get('hieradata_override'):
         data_file = CONF['hieradata_override']
         if os.path.abspath(data_file) != data_file:
             data_file = os.path.join(USER_HOME, data_file)

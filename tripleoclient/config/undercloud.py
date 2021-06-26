@@ -143,7 +143,7 @@ class UndercloudConfig(StandaloneConfig):
                         default=['0.pool.ntp.org', '1.pool.ntp.org',
                                  '2.pool.ntp.org', '3.pool.ntp.org'],
                         help=_('List of ntp servers to use.')),
-            cfg.StrOpt('undercloud_timezone', default=None,
+            cfg.StrOpt('undercloud_timezone',
                        help=_('Host timezone to be used. If no timezone is '
                               'specified, the existing timezone configuration '
                               'is used.')),
@@ -177,7 +177,6 @@ class UndercloudConfig(StandaloneConfig):
                            'local_ip/local_interface should reside '
                            'in this subnet.')),
             cfg.StrOpt('undercloud_service_certificate',
-                       default='',
                        help=_(
                            'Certificate file to use for OpenStack service SSL '
                            'connections.  Setting this enables SSL for the '
@@ -209,7 +208,6 @@ class UndercloudConfig(StandaloneConfig):
                            'trust chain.')
                        ),
             cfg.StrOpt('service_principal',
-                       default='',
                        help=_(
                            'The kerberos principal for the service that will '
                            'use the certificate. This is only needed if your '
@@ -279,7 +277,6 @@ class UndercloudConfig(StandaloneConfig):
                         help=_('Enable or disable SELinux during the '
                                'deployment.')),
             cfg.StrOpt('ipa_otp',
-                       default='',
                        help=_(
                            'One Time Password to register Undercloud node '
                            'with an IPA server.')

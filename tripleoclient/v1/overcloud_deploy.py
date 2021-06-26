@@ -192,7 +192,7 @@ class DeployOvercloud(command.Command):
 
         # Update parameters from commandline
         for param, arg in param_args:
-            if getattr(args, arg, None) is not None:
+            if getattr(args, arg) is not None:
                 parameters[param] = getattr(args, arg)
 
         parameters[

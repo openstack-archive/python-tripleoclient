@@ -335,7 +335,7 @@ class TestNetworkSettings(TestBaseNetworkSettings):
                          undercloud_admin_host='192.168.24.1',
                          undercloud_public_host='192.168.24.2',
                          generate_service_certificate=False,
-                         undercloud_service_certificate='')
+                         undercloud_service_certificate=None)
         undercloud_config._process_network_args(env)
 
     def test_start_end_all_addresses(self):
