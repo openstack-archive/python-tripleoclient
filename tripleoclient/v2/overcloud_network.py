@@ -201,7 +201,7 @@ class OvercloudVirtualIPsProvision(command.Command):
         parser.add_argument('vip_file',
                             metavar='<vip_data.yaml>',
                             help=_('Configuration file describing the network '
-                                   'deployment.'))
+                                   'Virtual IPs.'))
         parser.add_argument('--stack', dest='stack', required=True,
                             help=_('Name of heat stack '
                                    '(default=Env: OVERCLOUD_STACK_NAME)'),
