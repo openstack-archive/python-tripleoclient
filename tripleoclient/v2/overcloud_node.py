@@ -262,6 +262,10 @@ class ProvisionNode(command.Command):
                                    'nodes. (Implies "--network-ports")'),
                             default=False,
                             action="store_true")
+        parser.add_argument('--templates',
+                            help=_("The directory containing the Heat "
+                                   "templates to deploy"),
+                            default=constants.TRIPLEO_HEAT_TEMPLATES)
         parser.add_argument(
             '--working-dir', action='store',
             help=_('The working directory for the deployment where all '
@@ -314,7 +318,8 @@ class ProvisionNode(command.Command):
             "manage_network_ports": (parsed_args.network_ports
                                      or parsed_args.network_config),
             "configure_networking": parsed_args.network_config,
-            "working_dir": working_dir
+            "working_dir": working_dir,
+            "templates": parsed_args.templates,
         }
 
         with oooutils.TempDirs() as tmp:
