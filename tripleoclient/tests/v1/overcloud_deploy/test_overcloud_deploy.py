@@ -1490,11 +1490,13 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         arglist = [
             '--baremetal-deployment', bm_deploy_path,
-            '--overcloud-ssh-key', ssh_key_path
+            '--overcloud-ssh-key', ssh_key_path,
+            '--templates', constants.TRIPLEO_HEAT_TEMPLATES,
         ]
         verifylist = [
             ('baremetal_deployment', bm_deploy_path),
             ('overcloud_ssh_key', ssh_key_path),
+            ('templates', constants.TRIPLEO_HEAT_TEMPLATES)
         ]
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
@@ -1524,7 +1526,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                     'ssh_private_key_file': self.tmp_dir.join('id_rsa.pub'),
                     'manage_network_ports': False,
                     'configure_networking': False,
-                    'working_dir': self.tmp_dir.join('working_dir')
+                    'working_dir': self.tmp_dir.join('working_dir'),
+                    'templates': constants.TRIPLEO_HEAT_TEMPLATES,
                 },
                 inventory='localhost,',
                 playbook='cli-overcloud-node-provision.yaml',
@@ -1558,8 +1561,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         with open(networks_file_path, 'w') as temp_file:
             yaml.safe_dump(network_data, temp_file)
 
-        arglist = ['--networks-file', networks_file_path]
-        verifylist = [('networks_file', networks_file_path)]
+        arglist = ['--networks-file', networks_file_path,
+                   '--templates', constants.TRIPLEO_HEAT_TEMPLATES]
+        verifylist = [('networks_file', networks_file_path),
+                      ('templates', constants.TRIPLEO_HEAT_TEMPLATES)]
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         tht_root = self.tmp_dir.join('tht')
@@ -1572,7 +1577,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.mock_playbook.assert_called_once_with(
             extra_vars={'network_data_path': networks_file_path,
                         'network_deployed_path': env_path,
-                        'overwrite': True},
+                        'overwrite': True,
+                        'templates': constants.TRIPLEO_HEAT_TEMPLATES},
             inventory='localhost,',
             playbook='cli-overcloud-network-provision.yaml',
             playbook_dir='/usr/share/ansible/tripleo-playbooks',
@@ -1596,10 +1602,12 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         stack_name = 'overcloud'
         arglist = ['--stack', stack_name,
                    '--vip-file', vips_file_path,
-                   '--networks-file', networks_file_path]
+                   '--networks-file', networks_file_path,
+                   '--templates', constants.TRIPLEO_HEAT_TEMPLATES]
         verifylist = [('stack', stack_name),
                       ('vip_file', vips_file_path),
-                      ('networks_file', networks_file_path)]
+                      ('networks_file', networks_file_path),
+                      ('templates', constants.TRIPLEO_HEAT_TEMPLATES)]
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         tht_root = self.tmp_dir.join('tht')
@@ -1613,7 +1621,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             extra_vars={'stack_name': stack_name,
                         'vip_data_path': vips_file_path,
                         'vip_deployed_path': env_path,
-                        'overwrite': True},
+                        'overwrite': True,
+                        'templates': constants.TRIPLEO_HEAT_TEMPLATES},
             inventory='localhost,',
             playbook='cli-overcloud-network-vip-provision.yaml',
             playbook_dir='/usr/share/ansible/tripleo-playbooks',

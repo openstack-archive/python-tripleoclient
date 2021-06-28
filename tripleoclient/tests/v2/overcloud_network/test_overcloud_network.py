@@ -17,6 +17,7 @@ import mock
 
 from osc_lib import exceptions as osc_lib_exc
 
+from tripleoclient import constants
 from tripleoclient.tests import fakes
 from tripleoclient.v2 import overcloud_network
 
@@ -102,7 +103,8 @@ class TestOvercloudNetworkProvision(fakes.FakePlaybookExecution):
             extra_vars={
                 "network_data_path": '/test/network_data_v2.yaml',
                 "network_deployed_path": '/test/deployed_networks.yaml',
-                "overwrite": True
+                "overwrite": True,
+                'templates': constants.TRIPLEO_HEAT_TEMPLATES,
             }
         )
 

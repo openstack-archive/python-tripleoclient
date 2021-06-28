@@ -96,6 +96,10 @@ class OvercloudNetworkProvision(command.Command):
         parser.add_argument('-y', '--yes', default=False, action='store_true',
                             help=_('Skip yes/no prompt for existing files '
                                    '(assume yes).'))
+        parser.add_argument('--templates',
+                            help=_("The directory containing the Heat "
+                                   "templates to deploy"),
+                            default=constants.TRIPLEO_HEAT_TEMPLATES)
 
         return parser
 
@@ -123,7 +127,8 @@ class OvercloudNetworkProvision(command.Command):
         extra_vars = {
             "network_data_path": networks_file_path,
             "network_deployed_path": output_path,
-            "overwrite": overwrite
+            "overwrite": overwrite,
+            "templates": parsed_args.templates,
         }
 
         with oooutils.TempDirs() as tmp:
@@ -214,6 +219,10 @@ class OvercloudVirtualIPsProvision(command.Command):
         parser.add_argument('-y', '--yes', default=False, action='store_true',
                             help=_('Skip yes/no prompt for existing files '
                                    '(assume yes).'))
+        parser.add_argument('--templates',
+                            help=_("The directory containing the Heat "
+                                   "templates to deploy"),
+                            default=constants.TRIPLEO_HEAT_TEMPLATES)
 
         return parser
 
@@ -242,7 +251,8 @@ class OvercloudVirtualIPsProvision(command.Command):
             "stack_name": parsed_args.stack,
             "vip_data_path": vip_file_path,
             "vip_deployed_path": output_path,
-            "overwrite": overwrite
+            "overwrite": overwrite,
+            "templates": parsed_args.templates,
         }
 
         with oooutils.TempDirs() as tmp:

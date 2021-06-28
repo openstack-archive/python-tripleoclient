@@ -354,6 +354,7 @@ class TestProvisionNode(fakes.TestOvercloudNode):
                 'manage_network_ports': False,
                 'configure_networking': False,
                 'working_dir': mock.ANY,
+                'templates': constants.TRIPLEO_HEAT_TEMPLATES,
             },
             inventory='localhost,',
             playbook='cli-overcloud-node-provision.yaml',
@@ -411,7 +412,7 @@ class TestUnprovisionNode(fakes.TestOvercloudNode):
                 playbook='cli-overcloud-node-unprovision.yaml',
                 playbook_dir='/usr/share/ansible/tripleo-playbooks',
                 verbosity=mock.ANY,
-                workdir=tmp
+                workdir=tmp,
             ),
             mock.call(
                 extra_vars={
