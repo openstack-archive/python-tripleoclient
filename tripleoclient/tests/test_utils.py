@@ -835,20 +835,6 @@ class TestNodeAddCapabilities(TestCase):
         self.assertEqual({'x': 'y'}, new_caps)
 
 
-class FakeFlavor(object):
-    def __init__(self, name, profile=''):
-        self.name = name
-        self.profile = name
-        if profile != '':
-            self.profile = profile
-
-    def get_keys(self):
-        return {
-            'capabilities:boot_option': 'local',
-            'capabilities:profile': self.profile
-        }
-
-
 class TestAssignVerifyProfiles(TestCase):
     def setUp(self):
 
@@ -857,7 +843,7 @@ class TestAssignVerifyProfiles(TestCase):
                                    node=mock.Mock(spec=['list', 'update']))
         self.nodes = []
         self.bm_client.node.list.return_value = self.nodes
-        self.flavors = {name: (FakeFlavor(name), 1)
+        self.flavors = {name: (fakes.FakeFlavor(name), 1)
                         for name in ('compute', 'control')}
 
     def _get_fake_node(self, profile=None, possible_profiles=[],
@@ -1002,7 +988,7 @@ class TestAssignVerifyProfiles(TestCase):
 
     def test_no_spurious_warnings(self):
         self.nodes[:] = [self._get_fake_node(profile=None)]
-        self.flavors = {'baremetal': (FakeFlavor('baremetal', None), 1)}
+        self.flavors = {'baremetal': (fakes.FakeFlavor('baremetal', None), 1)}
         self._test(0, 0)
 
 
