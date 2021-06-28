@@ -1316,7 +1316,7 @@ class Deploy(command.Command):
                         utils.run_ansible_playbook(
                             inventory=os.path.join(
                                 self.ansible_dir,
-                                'inventory.yaml'
+                                'inventory'
                             ),
                             workdir=self.ansible_dir,
                             verbosity=utils.playbook_verbosity(self=self),
