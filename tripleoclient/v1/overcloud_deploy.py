@@ -1253,6 +1253,7 @@ class DeployOvercloud(command.Command):
                     ansible_dir = None
                 archive_filename = utils.archive_deploy_artifacts(
                     self.log, parsed_args.stack, self.working_dir, ansible_dir)
+                utils.create_archive_dir()
                 utils.run_command(
                     ['sudo', 'cp', archive_filename,
                      constants.TRIPLEO_ARCHIVE_DIR])
