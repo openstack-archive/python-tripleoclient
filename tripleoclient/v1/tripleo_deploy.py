@@ -801,9 +801,7 @@ class Deploy(command.Command):
             stack_name))
         # python output buffering is making this seem to take forever..
         sys.stdout.flush()
-        stack_config.write_config(stack_config.fetch_config(stack_name),
-                                  stack_name,
-                                  self.tmp_ansible_dir)
+        stack_config.download_config(stack_name, self.tmp_ansible_dir)
 
         inventory = TripleoInventory(
             hclient=client,
@@ -823,6 +821,9 @@ class Deploy(command.Command):
         shutil.copyfile(inv_path,
                         os.path.join(self.output_dir,
                                      constants.TRIPLEO_STATIC_INVENTORY))
+        # copy inventory file to Runner friendly path
+        shutil.copyfile(inv_path, os.path.join(self.tmp_ansible_dir,
+                                               'inventory', 'tripleo'))
 
         self.log.info(_('** Downloaded {0} ansible to {1} **').format(
                       stack_name, self.tmp_ansible_dir))
