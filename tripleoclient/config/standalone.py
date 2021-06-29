@@ -74,6 +74,9 @@ class StandaloneConfig(BaseConfig):
                         ),
             cfg.BoolOpt('enable_mistral',
                         default=mistral,
+                        deprecated_for_removal=True,
+                        deprecated_reason=('Support for the mistral service '
+                                           'has been deprecated.'),
                         help=_('Whether to enable the mistral service.')),
             cfg.BoolOpt('enable_nova',
                         default=nova,
@@ -100,6 +103,9 @@ class StandaloneConfig(BaseConfig):
                         ),
             cfg.BoolOpt('enable_zaqar',
                         default=zaqar,
+                        deprecated_for_removal=True,
+                        deprecated_reason=('Support for the zaqar service '
+                                           'has been deprecated.'),
                         help=_('Whether to enable the zaqar service.')),
             cfg.BoolOpt('enable_neutron',
                         default=neutron,

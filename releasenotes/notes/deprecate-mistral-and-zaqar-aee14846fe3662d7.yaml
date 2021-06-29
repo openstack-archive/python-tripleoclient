@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    The ``enable_mistral`` parameter and the ``enable_zaqar`` parameter in
+    undercloud/standalone deployment have been deprecated and will be removed
+    in a future release.
