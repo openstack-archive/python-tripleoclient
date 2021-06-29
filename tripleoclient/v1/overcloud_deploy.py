@@ -1160,32 +1160,32 @@ class DeployOvercloud(command.Command):
                             limit_nodes=parsed_args.limit
                         ),
                         forks=parsed_args.ansible_forks)
-                else:
-                    # Download config
-                    config_dir = parsed_args.config_dir or config_download_dir
-                    config_type = parsed_args.config_type
-                    preserve_config_dir = parsed_args.preserve_config_dir
-                    extra_vars = {
-                        'plan': stack.stack_name,
-                        'config_dir': config_dir,
-                        'preserve_config': preserve_config_dir
-                    }
-                    if parsed_args.config_type:
-                        extra_vars['config_type'] = config_type
-
-                    with utils.TempDirs() as tmp:
-                        utils.run_ansible_playbook(
-                            playbook='cli-config-download-export.yaml',
-                            inventory='localhost,',
-                            workdir=tmp,
-                            playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
-                            verbosity=utils.playbook_verbosity(self=self),
-                            extra_vars=extra_vars
-                        )
                 deployment.set_deployment_status(
                     stack.stack_name,
                     status=deploy_status,
                     working_dir=self.working_dir)
+            elif not parsed_args.config_download or parsed_args.setup_only:
+                # Download config
+                config_dir = parsed_args.config_dir or config_download_dir
+                config_type = parsed_args.config_type
+                preserve_config_dir = parsed_args.preserve_config_dir
+                extra_vars = {
+                    'plan': stack.stack_name,
+                    'config_dir': config_dir,
+                    'preserve_config': preserve_config_dir
+                }
+                if parsed_args.config_type:
+                    extra_vars['config_type'] = config_type
+
+                with utils.TempDirs() as tmp:
+                    utils.run_ansible_playbook(
+                        playbook='cli-config-download-export.yaml',
+                        inventory='localhost,',
+                        workdir=tmp,
+                        playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                        verbosity=utils.playbook_verbosity(self=self),
+                        extra_vars=extra_vars
+                    )
         except (BaseException, Exception):
             with excutils.save_and_reraise_exception():
                 deploy_status = 'DEPLOY_FAILED'
