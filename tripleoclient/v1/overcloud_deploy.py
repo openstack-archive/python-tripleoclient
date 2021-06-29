@@ -1040,6 +1040,18 @@ class DeployOvercloud(command.Command):
                    'argument disables the protection, allowing the protected '
                    'resource types to be override in the user environment.')
         )
+        parser.add_argument(
+            '-y', '--yes', default=False,
+            action='store_true',
+            help=_('Use -y or --yes to skip any confirmation required before '
+                   'the deploy operation. Use this with caution!')
+        )
+        parser.add_argument(
+            '--allow-deprecated-network-data', default=False,
+            action='store_true',
+            help=_('Set this to allow using deprecated network data YAML '
+                   'definition schema.')
+        )
 
         return parser
 
@@ -1047,6 +1059,19 @@ class DeployOvercloud(command.Command):
         logging.register_options(CONF)
         logging.setup(CONF, '')
         self.log.debug("take_action(%s)" % parsed_args)
+
+        if (parsed_args.networks_file and
+                (not parsed_args.yes
+                 and not parsed_args.allow_deprecated_network_data)):
+            if not utils.is_network_data_v2(parsed_args.networks_file):
+                confirm = utils.prompt_user_for_confirmation(
+                    'DEPRECATED network data definition {} provided. Please '
+                    'update the network data definition to version 2.\n'
+                    'Do you still wish to continue with deployment [y/N]'
+                    .format(parsed_args.networks_file),
+                    self.log)
+                if not confirm:
+                    raise oscexc.CommandError("Action not confirmed, exiting.")
 
         if not parsed_args.working_dir:
             self.working_dir = utils.get_default_working_dir(

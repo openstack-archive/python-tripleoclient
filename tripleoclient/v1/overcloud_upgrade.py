@@ -48,12 +48,7 @@ class UpgradePrepare(DeployOvercloud):
 
     def get_parser(self, prog_name):
         parser = super(UpgradePrepare, self).get_parser(prog_name)
-        parser.add_argument('-y', '--yes', default=False,
-                            action='store_true',
-                            help=_("Use -y or --yes to skip the confirmation "
-                                   "required before any upgrade "
-                                   "operation. Use this with caution! "),
-                            )
+
         return parser
 
     def take_action(self, parsed_args):

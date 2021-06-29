@@ -43,12 +43,7 @@ class UpdatePrepare(DeployOvercloud):
 
     def get_parser(self, prog_name):
         parser = super(UpdatePrepare, self).get_parser(prog_name)
-        parser.add_argument('-y', '--yes', default=False,
-                            action='store_true',
-                            help=_("Use -y or --yes to skip the confirmation "
-                                   "required before any update operation. "
-                                   "Use this with caution! "),
-                            )
+
         return parser
 
     def take_action(self, parsed_args):
@@ -233,12 +228,6 @@ class UpdateConverge(DeployOvercloud):
 
     def get_parser(self, prog_name):
         parser = super(UpdateConverge, self).get_parser(prog_name)
-        parser.add_argument('-y', '--yes', default=False,
-                            action='store_true',
-                            help=_("Use -y or --yes to skip the confirmation "
-                                   "required before any update operation. "
-                                   "Use this with caution! "),
-                            )
 
         return parser
 
