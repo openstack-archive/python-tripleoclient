@@ -60,9 +60,7 @@ class StandaloneConfig(BaseConfig):
             # service enablement
             cfg.BoolOpt('enable_cinder',
                         default=cinder,
-                        help=_(
-                            'Whether to install the Volume service. It is not '
-                            'currently used in the undercloud.')),
+                        help=_('Whether to install the cinder service.')),
             cfg.BoolOpt('enable_frr',
                         default=frr,
                         help=_('Whether to enable the frr service.')),
@@ -71,8 +69,8 @@ class StandaloneConfig(BaseConfig):
                         help=_('Whether to enable the ironic service.')),
             cfg.BoolOpt('enable_ironic_inspector',
                         default=ironic_inspector,
-                        help=_(
-                            'Whether to enable the ironic inspector service.')
+                        help=_('Whether to enable the ironic inspector '
+                               'service.')
                         ),
             cfg.BoolOpt('enable_mistral',
                         default=mistral,
@@ -82,19 +80,17 @@ class StandaloneConfig(BaseConfig):
                         help=_('Whether to enable the nova service.')),
             cfg.BoolOpt('enable_novajoin',
                         default=novajoin,
-                        help=_('Whether to install novajoin metadata service '
-                               'in the Undercloud.')
+                        help=_('Whether to install the novajoin metadata '
+                               'service')
                         ),
             cfg.BoolOpt('enable_swift',
                         default=swift,
-                        help=_('Whether to install Swift services in the '
-                               'Undercloud.')
+                        help=_('Whether to install the swift services')
                         ),
             cfg.BoolOpt('enable_telemetry',
                         default=telemetry,
                         help=_('Whether to install Telemetry services '
-                               '(ceilometer, gnocchi, aodh) in the '
-                               'Undercloud.')
+                               '(ceilometer, gnocchi, aodh).')
                         ),
             cfg.BoolOpt('enable_validations',
                         default=validations,
