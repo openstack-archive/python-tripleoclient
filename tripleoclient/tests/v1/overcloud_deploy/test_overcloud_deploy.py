@@ -1531,7 +1531,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                     'ssh_public_keys': 'sekrit',
                     'ssh_user_name': 'heat-admin',
                     'ssh_private_key_file': self.tmp_dir.join('id_rsa.pub'),
-                    'manage_network_ports': False,
+                    'manage_network_ports': True,
                     'configure_networking': False,
                     'working_dir': self.tmp_dir.join('working_dir'),
                     'templates': constants.TRIPLEO_HEAT_TEMPLATES,
@@ -1550,7 +1550,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                         {'count': 3, 'name': 'Controller'}
                     ],
                     'prompt': False,
-                    'manage_network_ports': False,
+                    'manage_network_ports': True,
                 },
                 inventory='localhost,',
                 playbook='cli-overcloud-node-unprovision.yaml',
