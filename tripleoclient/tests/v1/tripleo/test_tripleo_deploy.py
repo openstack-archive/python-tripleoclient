@@ -522,10 +522,12 @@ class TestDeployUndercloud(TestPluginV1):
             mock_process_hiera, mock_open, mock_os, mock_yaml_dump,
             mock_yaml_load, mock_time):
 
-        parsed_args = self.check_parser(self.cmd,
-                                        ['--local-ip', '127.0.0.1/8',
-                                         '--templates', 'tht_from',
-                                         '--output-dir', 'tht_to'], [])
+        parsed_args = self.check_parser(
+            self.cmd, ['--local-ip', '127.0.0.1/8',
+                       '--templates', 'tht_from',
+                       '--output-dir', 'tht_to',
+                       '--roles-file', '/roles_file,yaml',
+                       '--networks-file', '/networks_file.yaml'], [])
         dropin = 'tht_from/standalone-stack-vstate-dropin.yaml'
         self.cmd.output_dir = 'tht_to'
         self.cmd.tht_render = 'tht_from'

@@ -1768,15 +1768,11 @@ def jinja_render_files(log, templates, working_dir,
         templates, 'tools/process-templates.py')
     args = [python_cmd, process_templates]
 
-    if roles_file:
-        roles_file_path = get_roles_file_path(
-            roles_file, base_path)
-        args.extend(['--roles-data', roles_file_path])
+    roles_file_path = get_roles_file_path(roles_file, base_path)
+    args.extend(['--roles-data', roles_file_path])
 
-    if networks_file:
-        networks_file_path = get_networks_file_path(
-            networks_file, base_path)
-        args.extend(['--network-data', networks_file_path])
+    networks_file_path = get_networks_file_path(networks_file, base_path)
+    args.extend(['--network-data', networks_file_path])
 
     if base_path:
         args.extend(['-p', base_path])
