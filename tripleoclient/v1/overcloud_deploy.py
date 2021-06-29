@@ -84,11 +84,10 @@ def _validate_args(parsed_args):
             "Error: --config-download-only/--setup-only must not be used when "
             "using --baremetal-deployment")
 
-    if ((parsed_args.network_ports or parsed_args.network_config)
-            and not parsed_args.baremetal_deployment):
+    if (parsed_args.network_config and not parsed_args.baremetal_deployment):
         raise oscexc.CommandError(
             "Error: --baremetal-deployment must be used when using "
-            "--network-ports or --network-config")
+            "--network-config")
 
     if parsed_args.environment_directories:
         _validate_args_environment_dir(parsed_args.environment_directories)
@@ -451,8 +450,7 @@ class DeployOvercloud(command.Command):
             "ssh_private_key_file": key,
             "ssh_public_keys": ssh_key,
             "ssh_user_name": parsed_args.overcloud_ssh_user,
-            "manage_network_ports": (parsed_args.network_ports
-                                     or parsed_args.network_config),
+            "manage_network_ports": True,
             "configure_networking": parsed_args.network_config,
             "working_dir": self.working_dir,
             "templates": parsed_args.templates,
@@ -492,8 +490,7 @@ class DeployOvercloud(command.Command):
                     "stack_name": parsed_args.stack,
                     "baremetal_deployment": roles,
                     "prompt": False,
-                    "manage_network_ports": (parsed_args.network_ports
-                                             or parsed_args.network_config),
+                    "manage_network_ports": True,
                 }
             )
 
@@ -878,10 +875,6 @@ class DeployOvercloud(command.Command):
                             metavar='<baremetal_deployment.yaml>',
                             help=_('Configuration file describing the '
                                    'baremetal deployment'))
-        parser.add_argument('--network-ports',
-                            help=_('Enable provisioning of network ports'),
-                            default=False,
-                            action="store_true")
         parser.add_argument('--network-config',
                             help=_('Apply network config to provisioned '
                                    'nodes. (Implies "--network-ports")'),

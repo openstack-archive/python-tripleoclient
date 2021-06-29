@@ -254,7 +254,9 @@ class ProvisionNode(command.Command):
                             help=_('Number of seconds to wait for the node '
                                    'provision to complete. (default=3600)'))
         parser.add_argument('--network-ports',
-                            help=_('Enable provisioning of network ports'),
+                            help=_('DEPRECATED! Network ports will always be '
+                                   'provisioned.\n'
+                                   'Enable provisioning of network ports'),
                             default=False,
                             action="store_true")
         parser.add_argument('--network-config',
@@ -286,6 +288,11 @@ class ProvisionNode(command.Command):
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
 
+        if parsed_args.network_ports:
+            self.log.warning('DEPRECATED option "--network-ports" detected. '
+                             'This option is no longer used, network ports '
+                             'are always managed.')
+
         if not parsed_args.working_dir:
             working_dir = oooutils.get_default_working_dir(
                 parsed_args.stack)
@@ -315,8 +322,7 @@ class ProvisionNode(command.Command):
             "ssh_user_name": parsed_args.overcloud_ssh_user,
             "node_timeout": parsed_args.timeout,
             "concurrency": parsed_args.concurrency,
-            "manage_network_ports": (parsed_args.network_ports
-                                     or parsed_args.network_config),
+            "manage_network_ports": True,
             "configure_networking": parsed_args.network_config,
             "working_dir": working_dir,
             "templates": parsed_args.templates,
@@ -366,13 +372,20 @@ class UnprovisionNode(command.Command):
                             help=_('Configuration file describing the '
                                    'baremetal deployment'))
         parser.add_argument('--network-ports',
-                            help=_('Enable unprovisioning of network ports'),
+                            help=_('DEPRECATED! Network ports will always be '
+                                   'unprovisioned.\n'
+                                   'Enable unprovisioning of network ports'),
                             default=False,
                             action="store_true")
         return parser
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+
+        if parsed_args.network_ports:
+            self.log.warning('DEPRECATED option "--network-ports" detected. '
+                             'This option is no longer used, network ports '
+                             'are always managed.')
 
         with open(parsed_args.input, 'r') as fp:
             roles = yaml.safe_load(fp)
@@ -393,7 +406,7 @@ class UnprovisionNode(command.Command):
                         "all": parsed_args.all,
                         "prompt": True,
                         "unprovision_confirm": unprovision_confirm,
-                        "manage_network_ports": parsed_args.network_ports,
+                        "manage_network_ports": True,
                     }
                 )
                 with open(unprovision_confirm) as f:
