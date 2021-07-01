@@ -18,6 +18,7 @@ import sys
 
 from osc_lib.i18n import _
 from six.moves import configparser
+from tripleo_common.image import kolla_builder
 
 TRIPLEO_HEAT_TEMPLATES = "/usr/share/openstack-tripleo-heat-templates/"
 OVERCLOUD_YAML_NAME = "overcloud.yaml"
@@ -38,21 +39,37 @@ EPHEMERAL_HEAT_POD_NAME = "ephemeral-heat"
 ANSIBLE_CWL = "tripleo_dense,tripleo_profile_tasks,tripleo_states"
 CONTAINER_IMAGE_PREPARE_LOG_FILE = "container_image_prepare.log"
 DEFAULT_CONTAINER_REGISTRY = "quay.io"
-DEFAULT_CONTAINER_NAMESPACE = "tripleomaster"
+DEFAULT_CONTAINER_NAMESPACE = "tripleowallaby"
 DEFAULT_CONTAINER_TAG = "current-tripleo"
 DEFAULT_RESOURCE_REGISTRY = 'overcloud-resource-registry-puppet.yaml'
-DEFAULT_HEAT_CONTAINER = ('{}/{}/openstack-heat-all:{}'.format(
-    DEFAULT_CONTAINER_REGISTRY,
-    DEFAULT_CONTAINER_NAMESPACE,
-    DEFAULT_CONTAINER_TAG))
-DEFAULT_HEAT_API_CONTAINER = ('{}/{}/openstack-heat-api:{}'.format(
-    DEFAULT_CONTAINER_REGISTRY,
-    DEFAULT_CONTAINER_NAMESPACE,
-    DEFAULT_CONTAINER_TAG))
-DEFAULT_HEAT_ENGINE_CONTAINER = ('{}/{}/openstack-heat-engine:{}'.format(
-    DEFAULT_CONTAINER_REGISTRY,
-    DEFAULT_CONTAINER_NAMESPACE,
-    DEFAULT_CONTAINER_TAG))
+
+if os.path.isfile(kolla_builder.DEFAULT_PREPARE_FILE):
+    kolla_builder.init_prepare_defaults(kolla_builder.DEFAULT_PREPARE_FILE)
+    DEFAULT_CONTAINER_IMAGE_PARAMS = kolla_builder.CONTAINER_IMAGES_DEFAULTS
+else:
+    DEFAULT_CONTAINER_IMAGE_PARAMS = {
+        'namespace': 'quay.io/tripleowallaby',
+        'name_prefix': 'openstack-',
+        'tag': 'current-tripleo'
+    }
+DEFAULT_HEAT_CONTAINER = ('{}/{}heat-all:{}'.format(
+    DEFAULT_CONTAINER_IMAGE_PARAMS['namespace'],
+    DEFAULT_CONTAINER_IMAGE_PARAMS['name_prefix'],
+    DEFAULT_CONTAINER_IMAGE_PARAMS['tag']))
+DEFAULT_HEAT_API_CONTAINER = ('{}/{}heat-api:{}'.format(
+    DEFAULT_CONTAINER_IMAGE_PARAMS['namespace'],
+    DEFAULT_CONTAINER_IMAGE_PARAMS['name_prefix'],
+    DEFAULT_CONTAINER_IMAGE_PARAMS['tag']))
+DEFAULT_HEAT_ENGINE_CONTAINER = ('{}/{}heat-engine:{}'.format(
+    DEFAULT_CONTAINER_IMAGE_PARAMS['namespace'],
+    DEFAULT_CONTAINER_IMAGE_PARAMS['name_prefix'],
+    DEFAULT_CONTAINER_IMAGE_PARAMS['tag']))
+DEFAULT_EPHEMERAL_HEAT_CONTAINER = \
+    'localhost/tripleo/openstack-heat-all:ephemeral'
+DEFAULT_EPHEMERAL_HEAT_API_CONTAINER = \
+    'localhost/tripleo/openstack-heat-api:ephemeral'
+DEFAULT_EPHEMERAL_HEAT_ENGINE_CONTAINER = \
+    'localhost/tripleo/openstack-heat-engine:ephemeral'
 
 
 USER_PARAMETERS = 'user-environments/tripleoclient-parameters.yaml'
