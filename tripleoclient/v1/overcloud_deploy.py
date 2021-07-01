@@ -390,10 +390,6 @@ class DeployOvercloud(command.Command):
         # check migration to service vips managed by servce
         utils.check_service_vips_migrated_to_service(stack, env)
 
-        if parsed_args.heat_type != 'installed':
-            self.setup_ephemeral_heat(
-                parsed_args, env.get('parameter_defaults'))
-
         self._try_overcloud_deploy_with_compat_yaml(
             new_tht_root, stack,
             parsed_args.stack, env_files,
@@ -700,17 +696,14 @@ class DeployOvercloud(command.Command):
 
         return [output_path]
 
-    def setup_ephemeral_heat(self, parsed_args, parameters):
+    def setup_ephemeral_heat(self, parsed_args):
         self.log.info("Using ephemeral heat for stack operation")
-        api_container_image = parameters['ContainerHeatApiImage']
-        engine_container_image = \
-            parameters['ContainerHeatEngineImage']
         restore_db = (parsed_args.setup_only or
                       parsed_args.config_download_only)
         self.heat_launcher = utils.get_heat_launcher(
             parsed_args.heat_type,
-            api_container_image=api_container_image,
-            engine_container_image=engine_container_image,
+            api_container_image=parsed_args.heat_container_api_image,
+            engine_container_image=parsed_args.heat_container_engine_image,
             heat_dir=os.path.join(self.working_dir,
                                   'heat-launcher'),
             use_tmp_dir=False,
@@ -1068,7 +1061,7 @@ class DeployOvercloud(command.Command):
         parser.add_argument(
             '--heat-type',
             action='store',
-            default='installed',
+            default='pod',
             choices=['installed', 'pod', 'container', 'native'],
             help=_('The type of Heat process to use to execute '
                    'the deployment.\n'
@@ -1077,6 +1070,26 @@ class DeployOvercloud(command.Command):
                    'pod: Use an ephemeral Heat pod.\n'
                    'container: Use an ephemeral Heat container.\n'
                    'native: Use an ephemeral Heat process.')
+        )
+        parser.add_argument(
+            '--heat-container-api-image',
+            metavar='<HEAT_CONTAINER_API_IMAGE>',
+            dest='heat_container_api_image',
+            default=constants.DEFAULT_HEAT_API_CONTAINER,
+            help=_('The container image to use when launching the heat-api '
+                   'process. Only used when --heat-type=pod. '
+                   'Defaults to: {}'.format(
+                       constants.DEFAULT_HEAT_API_CONTAINER))
+        )
+        parser.add_argument(
+            '--heat-container-engine-image',
+            metavar='<HEAT_CONTAINER_ENGINE_IMAGE>',
+            dest='heat_container_engine_image',
+            default=constants.DEFAULT_HEAT_ENGINE_CONTAINER,
+            help=_('The container image to use when launching the heat-engine '
+                   'process. Only used when --heat-type=pod. '
+                   'Defaults to: {}'.format(
+                       constants.DEFAULT_HEAT_ENGINE_CONTAINER))
         )
         parser.add_argument(
             '--rm-heat',
@@ -1169,6 +1182,13 @@ class DeployOvercloud(command.Command):
             self.create_template_dirs(parsed_args)
         created_env_files = self.create_env_files(
                 stack, parsed_args, new_tht_root, user_tht_root)
+
+        if parsed_args.heat_type != 'installed':
+            self.setup_ephemeral_heat(parsed_args)
+        else:
+            self.log.warning(
+                ("DEPRECATED: Using --heat-type=installed is deprecated "
+                 "and will be removed in a future release."))
 
         try:
             if not (parsed_args.config_download_only or

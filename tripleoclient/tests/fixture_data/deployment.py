@@ -75,3 +75,19 @@ class UtilsFixture(fixtures.Fixture):
         self.mock_run_ansible_playbook = self.useFixture(fixtures.MockPatch(
             'tripleoclient.utils.run_ansible_playbook')
         ).mock
+        self.mock_get_heat_launcher = self.useFixture(fixtures.MockPatch(
+            'tripleoclient.utils.get_heat_launcher')
+        ).mock
+        self.mock_launch_heat = self.useFixture(fixtures.MockPatch(
+            'tripleoclient.utils.launch_heat')
+        ).mock
+        self.mock_kill_heat = self.useFixture(fixtures.MockPatch(
+            'tripleoclient.utils.kill_heat')
+        ).mock
+        self.mock_rm_heat = self.useFixture(fixtures.MockPatch(
+            'tripleoclient.utils.rm_heat')
+        ).mock
+        self.mock_export_overcloud = self.useFixture(fixtures.MockPatch(
+            'tripleoclient.utils.export_overcloud')
+        ).mock
+        self.mock_export_overcloud.return_value = {}

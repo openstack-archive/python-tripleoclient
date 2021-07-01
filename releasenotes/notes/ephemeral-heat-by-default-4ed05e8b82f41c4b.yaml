@@ -1,0 +1,10 @@
+---
+features:
+  - An ephemeral Heat process is now used by default for overcloud deployment.
+    On each overcloud management operation (deploy/update/upgrade), a
+    containerized Heat process will be started, the stack will be created new,
+    and then the Heat process will be stopped. The enable_heat option is
+    undercloud.conf is now defaulted to False.
+deprecations:
+  - Setting enable_heat=True in undercloud.conf is deprecated.
+  - Using --heat-type=installed is deprecated with the openstack overcloud commands.
