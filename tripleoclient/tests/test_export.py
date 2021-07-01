@@ -134,21 +134,9 @@ class TestExport(TestCase):
             export.export_stack(heat, "control")
         mock_get_stack.assert_called_once_with(heat, 'control')
 
+    @mock.patch('tripleoclient.export.LOG')
     @mock.patch('tripleo_common.utils.plan.generate_passwords')
-    def test_export_passwords(self, mock_gen_pass):
-        heat = mock.Mock()
-        mock_passwords = {
-            'AdminPassword': 'a_user',
-            'RpcPassword': 'B'}
-        mock_gen_pass.return_value = mock_passwords
-        data = export.export_passwords(heat, 'overcloud')
-
-        self.assertEqual(dict(AdminPassword='a_user',
-                              RpcPassword='B'),
-                         data)
-
-    @mock.patch('tripleo_common.utils.plan.generate_passwords')
-    def test_export_passwords_excludes(self, mock_gen_pass):
+    def test_export_passwords(self, mock_gen_pass, mock_log):
         heat = mock.Mock()
         mock_passwords = {
             'AdminPassword': 'A',
@@ -156,14 +144,36 @@ class TestExport(TestCase):
             'CephClientKey': 'cephkey',
             'CephClusterFSID': 'cephkey',
             'CephRgwKey': 'cephkey'}
+
         mock_gen_pass.return_value = mock_passwords
+
+        expected_password_export = mock_passwords.copy()
+        data = export.export_passwords(heat, 'overcloud', False)
+
+        self.assertEqual(
+            expected_password_export,
+            data)
+
+    @mock.patch('tripleoclient.export.LOG')
+    @mock.patch('tripleo_common.utils.plan.generate_passwords')
+    def test_export_passwords_excludes(self, mock_gen_pass, mock_log):
+        heat = mock.Mock()
+        mock_passwords = {
+            'AdminPassword': 'A',
+            'RpcPassword': 'B',
+            'CephClientKey': 'cephkey',
+            'CephClusterFSID': 'cephkey',
+            'CephRgwKey': 'cephkey'}
+
+        mock_gen_pass.return_value = mock_passwords
+
+        expected_password_export = {
+            'AdminPassword': 'A',
+            'RpcPassword': 'B'}
+
         data = export.export_passwords(heat, 'overcloud')
 
-        mock_passwords.pop('CephClientKey')
-        mock_passwords.pop('CephClusterFSID')
-        mock_passwords.pop('CephRgwKey')
-
-        self.assertEqual(mock_passwords, data)
+        self.assertEqual(expected_password_export, data)
 
     def test_export_ceph_net_key(self):
         with mock.patch('six.moves.builtins.open', self.mock_open_ceph_global):
