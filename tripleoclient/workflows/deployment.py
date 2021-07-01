@@ -416,7 +416,7 @@ def config_download(log, clients, stack, ssh_network='ctlplane',
     stack_work_dir = os.path.join(output_dir, stack.stack_name)
     if not inventory_path:
         inventory_path = os.path.join(stack_work_dir,
-                                      'tripleo-ansible-inventory.yaml')
+                                      'inventory')
 
     if isinstance(ansible_playbook_name, list):
         playbooks = [os.path.join(stack_work_dir, p)
