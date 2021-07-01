@@ -280,8 +280,12 @@ class ProvisionNode(command.Command):
             working_dir = os.path.abspath(parsed_args.working_dir)
         oooutils.makedirs(working_dir)
 
-        with open(parsed_args.input, 'r') as fp:
+        roles_file_path = os.path.abspath(parsed_args.input)
+        roles_file_dir = os.path.dirname(roles_file_path)
+        with open(roles_file_path, 'r') as fp:
             roles = yaml.safe_load(fp)
+
+        oooutils.validate_roles_playbooks(roles_file_dir, roles)
 
         key = self.get_key_pair(parsed_args)
         with open('{}.pub'.format(key), 'rt') as fp:
@@ -300,6 +304,7 @@ class ProvisionNode(command.Command):
             "concurrency": parsed_args.concurrency,
             "manage_network_ports": (parsed_args.network_ports
                                      or parsed_args.network_config),
+            "configure_networking": parsed_args.network_config,
             "working_dir": working_dir
         }
 
@@ -314,20 +319,8 @@ class ProvisionNode(command.Command):
             )
 
         if parsed_args.network_config:
-            inventory_file = os.path.join(working_dir,
-                                          'tripleo-ansible-inventory.yaml')
-
-            with open(inventory_file, 'r') as f:
-                inventory = yaml.safe_load(f.read())
-
-            with oooutils.TempDirs() as tmp:
-                oooutils.run_ansible_playbook(
-                    playbook='cli-overcloud-node-network-config.yaml',
-                    inventory=inventory,
-                    workdir=tmp,
-                    playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
-                    verbosity=oooutils.playbook_verbosity(self=self),
-                )
+            oooutils.run_role_playbooks(self, working_dir, roles_file_dir,
+                                        roles)
 
         print('Nodes deployed successfully, add %s to your deployment '
               'environment' % parsed_args.output)
