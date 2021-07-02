@@ -265,6 +265,35 @@ class TestUndercloudBackup(utils.TestCommand):
     @mock.patch('os.access')
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
+    def test_undercloud_backup_db_only(self,
+                                       mock_playbook,
+                                       mock_access,
+                                       mock_isfile):
+        arglist = [
+            '--db-only'
+        ]
+        verifylist = []
+        mock_isfile.return_value = True
+        mock_access.return_value = True
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
+        mock_playbook.assert_called_once_with(
+            workdir=mock.ANY,
+            playbook='cli-undercloud-db-backup.yaml',
+            inventory=parsed_args.inventory,
+            tags=None,
+            skip_tags=None,
+            playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            verbosity=3,
+            extra_vars=None
+        )
+
+    @mock.patch('os.path.isfile')
+    @mock.patch('os.access')
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
+                autospec=True)
     def test_undercloud_backup_setup_rear(self,
                                           mock_playbook,
                                           mock_access,
@@ -320,6 +349,37 @@ class TestUndercloudBackup(utils.TestCommand):
             playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             verbosity=3,
             extra_vars=extra_vars_dict
+        )
+
+    @mock.patch('os.path.isfile')
+    @mock.patch('os.access')
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
+                autospec=True)
+    def test_undercloud_backup_db_only_with_setup_options(self,
+                                                          mock_playbook,
+                                                          mock_access,
+                                                          mock_isfile):
+        arglist = [
+            '--db-only',
+            '--setup-nfs',
+            '--setup-rear'
+        ]
+        verifylist = []
+        mock_isfile.return_value = True
+        mock_access.return_value = True
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
+        mock_playbook.assert_called_once_with(
+            workdir=mock.ANY,
+            playbook='cli-undercloud-db-backup.yaml',
+            inventory=parsed_args.inventory,
+            tags=None,
+            skip_tags=None,
+            playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            verbosity=3,
+            extra_vars=None
         )
 
     @mock.patch('tripleoclient.utils.run_ansible_playbook', autospec=True)
