@@ -132,13 +132,15 @@ class StandaloneConfig(BaseConfig):
                        help=_(
                            'Path to hieradata override file. Relative paths '
                            'get computed inside of $HOME. When it points to a '
-                           'heat env file, it is passed in t-h-t via "-e '
-                           '<file>", as is. When the file contains legacy '
-                           'instack data, it is wrapped with '
-                           'UndercloudExtraConfig and also passed in for '
-                           't-h-t as a temp file created in output_dir. Note, '
-                           'instack hiera data may be not t-h-t compatible '
-                           'and will highly likely require a manual revision.')
+                           'heat env file, it is passed in '
+                           'tripleo-heat-templates via "-e <file>", as is. '
+                           'When the file contains legacy instack data, it is '
+                           'wrapped with UndercloudExtraConfig and also '
+                           'passed in for tripleo-heat-templates as a temp '
+                           'file created in output_dir. Note, instack '
+                           'hieradata may be incompatible with '
+                           'tripleo-heat-templates and will highly likely '
+                           'require a manual revision.')
                        ),
             cfg.StrOpt('net_config_override',
                        default='',
@@ -146,7 +148,7 @@ class StandaloneConfig(BaseConfig):
                            'Path to network config override template. '
                            'Relative paths get computed inside of $HOME. '
                            'Must be in the json format. '
-                           'Its content overrides anything in t-h-t '
+                           'Its content overrides anything in '
                            '<role>NetConfigOverride. The processed '
                            'template is then passed in Heat via the '
                            'generated parameters file created in '
@@ -159,19 +161,22 @@ class StandaloneConfig(BaseConfig):
                        ),
             cfg.StrOpt('templates',
                        default='',
-                       help=_('heat templates file to override.')
+                       help=_('The tripleo-heat-templates directory to '
+                              'override')
                        ),
             cfg.StrOpt('roles_file',
                        default=None,
                        help=_('Roles file to override for heat. May be an '
                               'absolute path or the path relative to the '
-                              't-h-t templates directory used for deployment')
+                              'tripleo-heat-templates directory used for '
+                              'deployment')
                        ),
             cfg.StrOpt('networks_file',
                        default=None,
                        help=_('Networks file to override for heat. May be an '
                               'absolute path or the path relative to the '
-                              't-h-t templates directory used for deployment')
+                              'tripleo-heat-templates directory used for '
+                              'deployment')
                        ),
             cfg.BoolOpt('heat_native',
                         default=True,
