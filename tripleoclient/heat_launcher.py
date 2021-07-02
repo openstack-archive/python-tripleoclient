@@ -204,8 +204,6 @@ class HeatBaseLauncher(object):
         self.paste_file = os.path.join(self.install_dir, 'api-paste.ini')
         self.token_file = os.path.join(self.install_dir, 'token_file.json')
 
-        self.policy_file = os.path.join(os.path.dirname(__file__),
-                                        'noauth_policy.json')
         self.user = user
         self._write_fake_keystone_token(self.api_port, self.token_file)
         self._write_heat_config()
@@ -260,14 +258,11 @@ connection = sqlite:///%(sqlite_db)s.db
 flavor = noauth
 api_paste_config = api-paste.ini
 
-[oslo_policy]
-policy_file = %(policy_file)s
-
 [yaql]
 memory_quota=900000
 limit_iterators=9000
         ''' % {'sqlite_db': self.sql_db, 'log_file': self.log_file,
-               'api_port': self.api_port, 'policy_file': self.policy_file,
+               'api_port': self.api_port,
                'token_file': self.token_file}
 
         with open(self.config_file, 'w') as temp_file:
@@ -364,8 +359,6 @@ class HeatContainerLauncher(HeatBaseLauncher):
                 'conf': self.paste_file},
             '--volume', '%(inst_tmp)s:%(inst_tmp)s:Z' % {'inst_tmp':
                                                          self.install_dir},
-            '--volume', '%(pfile)s:%(pfile)s:ro' % {'pfile':
-                                                    self.policy_file},
             self.all_container_image, 'heat-all'
         ]
         log.debug(' '.join(cmd))
@@ -752,7 +745,6 @@ class HeatPodLauncher(HeatContainerLauncher):
         pod_vars = {
             "install_dir": self.install_dir,
             "heat_dir": self.heat_dir,
-            "policy_file": self.policy_file,
             "ctlplane_ip": self.host,
             "api_port": self.api_port,
             "api_image": self.api_container_image,
