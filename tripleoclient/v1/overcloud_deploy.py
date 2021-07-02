@@ -454,7 +454,8 @@ class DeployOvercloud(command.Command):
             "manage_network_ports": (parsed_args.network_ports
                                      or parsed_args.network_config),
             "configure_networking": parsed_args.network_config,
-            "working_dir": self.working_dir
+            "working_dir": self.working_dir,
+            "templates": parsed_args.templates,
         }
 
         with utils.TempDirs() as tmp:
@@ -512,6 +513,7 @@ class DeployOvercloud(command.Command):
             "network_data_path": networks_file_path,
             "network_deployed_path": output_path,
             "overwrite": True,
+            "templates": parsed_args.templates,
         }
 
         with utils.TempDirs() as tmp:
@@ -543,6 +545,7 @@ class DeployOvercloud(command.Command):
             "vip_data_path": vip_file_path,
             "vip_deployed_path": output_path,
             "overwrite": True,
+            "templates": parsed_args.templates,
         }
 
         with utils.TempDirs() as tmp:
