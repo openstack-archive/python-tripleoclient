@@ -254,3 +254,54 @@ class OvercloudVirtualIPsProvision(command.Command):
                 verbosity=oooutils.playbook_verbosity(self=self),
                 extra_vars=extra_vars,
             )
+
+
+class OvercloudNetworkUnprovision(command.Command):
+
+    log = logging.getLogger(__name__ + ".OvercloudNetworkUnprovision")
+
+    def get_parser(self, prog_name):
+        parser = super(OvercloudNetworkUnprovision, self).get_parser(prog_name)
+
+        parser.add_argument('networks_file',
+                            metavar='<network_data.yaml>',
+                            help=_('Configuration file describing the network '
+                                   'deployment.'))
+        parser.add_argument('-y', '--yes',
+                            help=_('Skip yes/no prompt (assume yes).'),
+                            default=False,
+                            action="store_true")
+
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)" % parsed_args)
+
+        networks_file_path = os.path.abspath(parsed_args.networks_file)
+
+        if not parsed_args.yes:
+            confirm = oooutils.prompt_user_for_confirmation(
+                message=_("Are you sure you want to unprovision the networks "
+                          "mentioned in file %s [y/N]? " % networks_file_path),
+                logger=self.log)
+            if not confirm:
+                raise oscexc.CommandError("Action not confirmed, exiting.")
+
+        if not os.path.exists(networks_file_path):
+            raise oscexc.CommandError(
+                "Network configuration file does not exist:"
+                " %s" % parsed_args.networks_file)
+
+        extra_vars = {
+            "network_data_path": networks_file_path,
+        }
+
+        with oooutils.TempDirs() as tmp:
+            oooutils.run_ansible_playbook(
+                playbook='cli-overcloud-network-unprovision.yaml',
+                inventory='localhost,',
+                workdir=tmp,
+                playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                verbosity=oooutils.playbook_verbosity(self=self),
+                extra_vars=extra_vars,
+            )
