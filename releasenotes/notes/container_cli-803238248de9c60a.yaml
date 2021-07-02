@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    The ``container_cli`` parameter no longer accepts ``docker``. Now only
+    ``podman`` is accepted as a valid value.
