@@ -1,0 +1,5 @@
+---
+deprecations:
+  - |
+    The ``enable_novajoin`` parameter in undercloud/standalone deployment has
+    been deprecated.
