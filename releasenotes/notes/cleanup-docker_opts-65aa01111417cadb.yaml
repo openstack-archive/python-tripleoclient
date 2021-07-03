@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    The following two options have been removed.
+
+    - ``docker_registry_mirror``
+    - ``docker_insecure_registries``

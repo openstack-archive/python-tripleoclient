@@ -218,14 +218,12 @@ class StandaloneConfig(BaseConfig):
                                'only by advanced users.')),
             # container config bits
             cfg.StrOpt('container_registry_mirror',
-                       deprecated_name='docker_registry_mirror',
                        default='',
                        help=_(
                            'An optional container registry mirror that will '
                            'be used.')
                        ),
             cfg.ListOpt('container_insecure_registries',
-                        deprecated_name='docker_insecure_registries',
                         default=[],
                         help=_('Used to add custom insecure registries for '
                                'containers.')
