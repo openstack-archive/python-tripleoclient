@@ -1,0 +1,8 @@
+---
+features:
+  - Undercloud is now deployed without keystone and deploys standalone
+    openstack services with http_basic authentication. A new option
+    'enable_keystone' has been added to enable keystone in the undercloud
+    if required.
+upgrade:
+  - keystone service would not be deployed by default in the undercloud.

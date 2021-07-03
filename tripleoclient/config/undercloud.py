@@ -71,6 +71,7 @@ _deprecated_opt_inspection_iprange = [cfg.DeprecatedOpt(
 class UndercloudConfig(StandaloneConfig):
     def get_undercloud_service_opts(self):
         return super(UndercloudConfig, self).get_enable_service_opts(
+            keystone=False,
             cinder=False,
             heat=False,
             ironic=True,

@@ -99,6 +99,7 @@ class TestUndercloudConfig(base.TestCase):
                     'enable_heat',
                     'enable_ironic',
                     'enable_ironic_inspector',
+                    'enable_keystone',
                     'enable_mistral',
                     'enable_neutron',
                     'enable_node_discovery',
@@ -169,6 +170,7 @@ class TestUndercloudConfig(base.TestCase):
         ret = self.config.get_undercloud_service_opts()
         expected = {'enable_cinder': False,
                     'enable_frr': False,
+                    'enable_keystone': False,
                     'enable_heat': False,
                     'enable_ironic': True,
                     'enable_ironic_inspector': True,

@@ -55,7 +55,8 @@ class StandaloneConfig(BaseConfig):
                                 ironic_inspector=False, mistral=False,
                                 nova=False, novajoin=False, swift=False,
                                 telemetry=False, validations=False,
-                                zaqar=False, neutron=False, heat=False):
+                                zaqar=False, neutron=False, heat=False,
+                                keystone=True):
         _opts = [
             # service enablement
             cfg.BoolOpt('enable_cinder',
@@ -113,6 +114,9 @@ class StandaloneConfig(BaseConfig):
             cfg.BoolOpt('enable_heat',
                         default=heat,
                         help=_('Whether to enable the heat service.')),
+            cfg.BoolOpt('enable_keystone',
+                        default=keystone,
+                        help=_('Whether to enable the keystone service.')),
 
         ]
         return self.sort_opts(_opts)
