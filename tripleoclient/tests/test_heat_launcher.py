@@ -539,6 +539,7 @@ class TestHeatPodLauncherUtils(base.TestCase):
         utils._local_orchestration_client = None
         mock_launcher = mock.Mock()
         mock_launcher.api_port = 1234
+        mock_launcher.heat_type = 'pod'
         mock_get_heat_launcher.return_value = mock_launcher
         mock_socket.return_value = 'socket'
         utils.launch_heat()
@@ -594,10 +595,12 @@ class TestHeatNativeLauncher(base.TestCase):
         mock_mkdtemp.return_value = self.tmp_dir
 
         def test_install_dir():
-            mock_mkdtemp.assert_not_called()
+            mock_mkdtemp.assert_called()
             return ("", "")
 
-        # Test that tempfile.mkdtemp is *not* called before the tmpfs is setup,
-        # otherwise the tmpfs will cause the temp dir to be lost
+        # Test that tempfile.mkdtemp is called before the tmpfs is setup,
+        # so that the tmpfs mount is created at the temp dir.
         self.mock_popen.communicate.side_effect = test_install_dir
         self.get_launcher()
+        self.assertEqual(['mount', '-t', 'tmpfs'],
+                         self.popen.call_args_list[1][0][0][0:3])

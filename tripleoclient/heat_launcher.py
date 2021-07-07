@@ -22,6 +22,7 @@ import logging
 import multiprocessing
 import os
 import pwd
+import shutil
 import signal
 import subprocess
 import tarfile
@@ -148,38 +149,33 @@ class HeatBaseLauncher(object):
         self.skip_heat_pull = skip_heat_pull
         self.zipped_db_suffix = '.tar.bzip2'
         self.log_dir = os.path.join(self.heat_dir, 'log')
+        self.use_tmp_dir = use_tmp_dir
 
-        if os.path.isdir(self.heat_dir):
-            if use_root:
-                # This one may fail but it's just cleanup.
-                p = subprocess.Popen(['umount', self.heat_dir],
-                                     stdout=subprocess.PIPE,
-                                     stderr=subprocess.PIPE,
-                                     universal_newlines=True)
-                cmd_stdout, cmd_stderr = p.communicate()
-                retval = p.returncode
-                if retval != 0:
-                    log.info('Cleanup unmount of %s failed (probably because '
-                             'it was not mounted): %s' %
-                             (self.heat_dir, cmd_stderr))
-                else:
-                    log.info('umount of %s success' % (self.heat_dir))
-        else:
+        if not os.path.isdir(self.heat_dir):
             # Create the directory if it doesn't exist.
             try:
-                os.makedirs(self.heat_dir, mode=0o700)
+                os.makedirs(self.heat_dir, mode=0o755)
             except Exception as e:
                 log.error('Creating temp directory "%s" failed: %s' %
                           (self.heat_dir, e))
                 raise Exception('Could not create temp directory %s: %s' %
                                 (self.heat_dir, e))
 
+        if self.use_tmp_dir:
+            self.install_dir = tempfile.mkdtemp(
+                prefix='%s/tripleo_deploy-' % self.heat_dir)
+        else:
+            self.install_dir = self.heat_dir
+
         if use_root:
+            self.umount_install_dir()
+
+        if use_root and use_tmp_dir:
             # As an optimization we mount the tmp directory in a tmpfs (in
             # memory) filesystem.  Depending on your system this can cut the
             # heat deployment times by half.
             p = subprocess.Popen(['mount', '-t', 'tmpfs', '-o', 'size=500M',
-                                  'tmpfs', self.heat_dir],
+                                  'tmpfs', self.install_dir],
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE,
                                  universal_newlines=True)
@@ -191,12 +187,6 @@ class HeatBaseLauncher(object):
                 log.warning('Unable to mount tmpfs for logs and '
                             'database %s: %s' %
                             (self.heat_dir, cmd_stderr))
-
-        if use_tmp_dir:
-            self.install_dir = tempfile.mkdtemp(
-                prefix='%s/undercloud_deploy-' % self.heat_dir)
-        else:
-            self.install_dir = self.heat_dir
 
         self.log_file = self._get_log_file_path()
         self.sql_db = os.path.join(self.install_dir, 'heat.sqlite')
@@ -220,6 +210,21 @@ class HeatBaseLauncher(object):
         if rm_heat:
             self.kill_heat(None)
             self.rm_heat()
+
+    def umount_install_dir(self):
+        # This one may fail but it's just cleanup.
+        p = subprocess.Popen(['umount', self.install_dir],
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE,
+                             universal_newlines=True)
+        cmd_stdout, cmd_stderr = p.communicate()
+        retval = p.returncode
+        if retval != 0:
+            log.info('Cleanup unmount of %s failed (probably because '
+                     'it was not mounted): %s' %
+                     (self.heat_dir, cmd_stderr))
+        else:
+            log.info('umount of %s success' % (self.heat_dir))
 
     def _get_log_file_path(self):
         return os.path.join(self.install_dir, 'heat.log')
@@ -437,12 +442,19 @@ class HeatNativeLauncher(HeatBaseLauncher):
     def launch_heat(self):
         os.execvp('heat-all', ['heat-all', '--config-file', self.config_file])
 
-    def heat_db_sync(self):
+    def heat_db_sync(self, restore_db=False):
         subprocess.check_call(['heat-manage', '--config-file',
                                self.config_file, 'db_sync'])
 
     def kill_heat(self, pid):
         os.kill(pid, signal.SIGKILL)
+        if self.use_tmp_dir:
+            shutil.copytree(
+                self.install_dir,
+                os.path.join(self.heat_dir,
+                             'tripleo_deploy-%s' % self.timestamp))
+        self.umount_install_dir()
+        shutil.rmtree(self.install_dir)
 
 
 class HeatPodLauncher(HeatContainerLauncher):

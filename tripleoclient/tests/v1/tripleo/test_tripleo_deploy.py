@@ -768,7 +768,7 @@ class TestDeployUndercloud(TestPluginV1):
         self.cmd.take_action(parsed_args)
         mock_createdirs.assert_called_once()
         mock_puppet.assert_called_once()
-        mock_launchheat.assert_called_with(parsed_args)
+        mock_launchheat.assert_called_with(parsed_args, self.cmd.output_dir)
         mock_tht.assert_called_once_with(self.cmd, fake_orchestration,
                                          parsed_args)
         mock_download.assert_called_with(self.cmd, fake_orchestration,
@@ -864,7 +864,7 @@ class TestDeployUndercloud(TestPluginV1):
                           self.cmd.take_action, parsed_args)
         mock_createdirs.assert_called_once()
         mock_puppet.assert_called_once()
-        mock_launchheat.assert_called_with(parsed_args)
+        mock_launchheat.assert_called_with(parsed_args, self.cmd.output_dir)
         mock_tht.assert_called_once_with(self.cmd, fake_orchestration,
                                          parsed_args)
         mock_download.assert_called_with(self.cmd, fake_orchestration,
@@ -944,7 +944,7 @@ class TestDeployUndercloud(TestPluginV1):
                           self.cmd.take_action, parsed_args)
         mock_createdirs.assert_called_once()
         mock_puppet.assert_called_once()
-        mock_launchheat.assert_called_with(parsed_args)
+        mock_launchheat.assert_called_with(parsed_args, self.cmd.output_dir)
         mock_tht.assert_not_called()
         mock_download.assert_not_called()
         mock_tarball.assert_called_once()
