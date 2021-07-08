@@ -1,0 +1,54 @@
+---
+features:
+  - |
+    Neutron resources for overcloud deployments on the undercloud is now
+    managed with tooling external to the Heat stack.
+
+    Networks and subnet resources as well as Virtual IPs for an overcloud
+    can either be manged using separate commands or the all-in-one
+    ``overcloud deploy`` by using the new network data YAML definition as
+    ``--networks-file`` and the ``--vip-file`` arguments with this command.
+
+    Overcloud node network ports are now managed by the baremetal node
+    provisioning workflow. Baremeteal nodes, and the network resources, can
+    be provisioned using the separate ``overcloud node provision`` command.
+    Alternatively the all-in-one ``overcloud deploy`` command will run the
+    baremetal node provisioning steps if the ``--baremetal-deployment``
+    argument is used.
+
+    Please refer to the `Networking Version 2 (Two)
+    <https://docs.openstack.org/project-deploy-guide/tripleo-docs/latest/deployment/network_v2.html>`_.
+    documentation page for more details.
+upgrade:
+  - |
+    The network data defintion used with the overcloud deployement must be
+    updated to version 2. The undercloud upgrade will execute the command
+    (``openstack overcloud network extract``) to generate the network data
+    definition for each deployed overcloud. The undercloud upgrade will save
+    the new file in the working directory for each stack, defaults to
+    ``overcloud-deploy/<STACK_NAME>/tripleo-<STACK_NAME>-network-data.yaml``.
+  - |
+    A new YAML definition file for overcloud stack virtual IPs must be used.
+    The undercloud upgrade will execute the command (``overcloud network vip
+    extract``) to generate this file for each deployed overcloud. The
+    undercloud upgrade will save the new file in the working directory for
+    each stack, defaults to
+    ``overcloud-deploy/< STACK_NAME>/tripleo-<STACK_NAME>-virtual-ips.yaml``.
+  - The baremetal node defintion has been extended to support neutron port
+    resource managment, this requires additional input in the YAML definition
+    used for baremetal node provisioning. The undercloud upgrade will execute
+    the command (``overcloud node extract provisioned``) to generate this file
+    for each deployed overcloud. The undercloud upgrade will save the new file
+    in the working directory for each stack, defaults to
+    ``overcloud-deploy/<STACK_NAME>/tripleo-<STACK_NAME>-baremetal-deployment.yaml.yaml``.
+deprecations:
+  - |
+    To enable management of neutron resources external to Heat the network data
+    YAML definition schema has been updated. The previous schema version has been
+    deprecated, using the deprecated v1 schema is only possible when the deprecated
+    non-ephemeral Heat on the Undercloud.
+  - |
+    Managing netron resources for composable networks is now enabled by default when
+    provisioning baremetal nodes. The option ``--network-ports`` has been deprecated,
+    and is a NOOP until it is fully removed.
+
