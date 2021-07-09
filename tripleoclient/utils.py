@@ -2847,7 +2847,7 @@ def validate_roles_playbooks(roles_file_dir, roles):
 def run_role_playbook(self, inventory, relative_dir, playbook,
                       limit_hosts=None, extra_vars=dict()):
     playbook_path = rel_or_abs_path_role_playbook(relative_dir, playbook)
-    playbook_dir = os.path.basename(playbook_path)
+    playbook_dir = os.path.dirname(playbook_path)
 
     with TempDirs() as tmp:
         run_ansible_playbook(
@@ -2861,22 +2861,39 @@ def run_role_playbook(self, inventory, relative_dir, playbook,
         )
 
 
-def run_role_playbooks(self, working_dir, roles_file_dir, roles):
+def run_role_playbooks(self, working_dir, roles_file_dir, roles,
+                       network_config=True):
     inventory_file = os.path.join(working_dir,
                                   'tripleo-ansible-inventory.yaml')
     with open(inventory_file, 'r') as f:
         inventory = yaml.safe_load(f.read())
 
+    growvols_play = 'cli-overcloud-node-growvols.yaml'
+    growvols_path = rel_or_abs_path_role_playbook(
+        constants.ANSIBLE_TRIPLEO_PLAYBOOKS, growvols_play)
+
     # Pre-Network Config
     for role in roles:
+        role_playbooks = []
+
         for x in role.get('ansible_playbooks', []):
+            role_playbooks.append(x['playbook'])
+
             run_role_playbook(self, inventory, roles_file_dir, x['playbook'],
                               limit_hosts=role['name'],
                               extra_vars=x.get('extra_vars', {}))
 
-    # Network Config
-    run_role_playbook(self, inventory, constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
-                      'cli-overcloud-node-network-config.yaml')
+        if growvols_path not in role_playbooks:
+            # growvols was not run with custom extra_vars, run it with defaults
+            run_role_playbook(self, inventory,
+                              constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                              growvols_play,
+                              limit_hosts=role['name'])
+
+    if network_config:
+        # Network Config
+        run_role_playbook(self, inventory, constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                          'cli-overcloud-node-network-config.yaml')
 
 
 def create_archive_dir(archive_dir=constants.TRIPLEO_ARCHIVE_DIR):

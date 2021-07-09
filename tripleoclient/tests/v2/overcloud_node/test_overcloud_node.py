@@ -315,7 +315,9 @@ class TestProvisionNode(fakes.TestOvercloudNode):
 
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
-    def test_ok(self, mock_playbook):
+    @mock.patch('tripleoclient.utils.run_role_playbooks',
+                autospec=True)
+    def test_ok(self, mock_role_playbooks, mock_playbook):
         with tempfile.NamedTemporaryFile() as inp:
             with tempfile.NamedTemporaryFile() as outp:
                 with tempfile.NamedTemporaryFile() as keyf:
@@ -361,6 +363,16 @@ class TestProvisionNode(fakes.TestOvercloudNode):
             playbook_dir='/usr/share/ansible/tripleo-playbooks',
             verbosity=mock.ANY,
             workdir=mock.ANY
+        )
+        mock_role_playbooks.assert_called_once_with(
+            self.cmd,
+            mock.ANY,
+            '/tmp',
+            [
+                {'name': 'Compute'},
+                {'name': 'Controller'}
+            ],
+            False
         )
 
 

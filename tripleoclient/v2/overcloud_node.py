@@ -337,10 +337,8 @@ class ProvisionNode(command.Command):
                 verbosity=oooutils.playbook_verbosity(self=self),
                 extra_vars=extra_vars,
             )
-
-        if parsed_args.network_config:
-            oooutils.run_role_playbooks(self, working_dir, roles_file_dir,
-                                        roles)
+        oooutils.run_role_playbooks(self, working_dir, roles_file_dir,
+                                    roles, parsed_args.network_config)
 
         print('Nodes deployed successfully, add %s to your deployment '
               'environment' % parsed_args.output)

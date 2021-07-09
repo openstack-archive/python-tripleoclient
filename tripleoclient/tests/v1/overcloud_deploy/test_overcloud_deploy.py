@@ -103,6 +103,14 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.mock_playbook = playbook_runner.start()
         self.addCleanup(playbook_runner.stop)
 
+        # Mock role playbooks runner
+        role_playbooks = mock.patch(
+            'tripleoclient.utils.run_role_playbooks',
+            autospec=True
+        )
+        self.mock_role_playbooks = role_playbooks.start()
+        self.addCleanup(role_playbooks.stop)
+
         # Mock horizon url return
         horizon_url = mock.patch(
             'tripleoclient.workflows.deployment.get_horizon_url',
@@ -1540,6 +1548,16 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 workdir=mock.ANY
             )
         ])
+        self.mock_role_playbooks.assert_called_once_with(
+            self.cmd,
+            self.tmp_dir.join('working_dir'),
+            self.tmp_dir.path,
+            [
+                {'count': 10, 'name': 'Compute'},
+                {'count': 3, 'name': 'Controller'}
+            ],
+            False
+        )
 
     def test__provision_networks(self):
         networks_file_path = self.tmp_dir.join('networks.yaml')
