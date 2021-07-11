@@ -59,6 +59,7 @@ from six.moves import configparser
 
 from heatclient import exc as hc_exc
 from six.moves.urllib import error as url_error
+from six.moves.urllib import parse as url_parse
 from six.moves.urllib import request
 
 from tenacity import retry
@@ -2968,3 +2969,86 @@ def check_prohibited_overrides(protected_overrides, user_environments):
 
     if found_conflict:
         raise exceptions.DeploymentError(msg)
+
+
+def parse_container_image_prepare(tht_key='ContainerImagePrepare',
+                                  keys=[], source=None):
+    """Extracts key/value pairs from list of keys in source file
+    If keys=[foo,bar] and source is the following,
+    then return {foo: 1, bar: 2}
+
+    parameter_defaults:
+      ContainerImagePrepare:
+      - tag_from_label: grault
+        set:
+          foo: 1
+          bar: 2
+          namespace: quay.io/garply
+      ContainerImageRegistryCredentials:
+        'quay.io': {'quay_username': 'quay_password'}
+
+    Alternatively, if tht_key='ContainerImageRegistryCredentials' and
+    keys=['quay.io/garply'] for the above, then return the following:
+
+    {'registry_url': 'quay.io',
+     'registry_username': 'quay_username',
+     'registry_password': 'quay_password'}
+
+    If the tht_key is not found, return an empty dictionary
+
+    :param tht_key: string of a THT parameter (only 2 options)
+    :param keys: list of keys to extract
+    :param source: (string) path to container_image_prepare_defaults.yaml
+
+    :return: dictionary
+    """
+    image_map = {}
+    if source is None:
+        source = kolla_builder.DEFAULT_PREPARE_FILE
+    if not os.path.exists(source):
+        raise RuntimeError(
+            "Path to container image prepare defaults file "
+            "not found: %s." % os.path.abspath(source))
+    with open(source, 'r') as stream:
+        try:
+            images = yaml.safe_load(stream)
+        except yaml.YAMLError as exc:
+            raise RuntimeError(
+                "yaml.safe_load(%s) returned '%s'" % (source, exc))
+
+    if tht_key == 'ContainerImagePrepare':
+        try:
+            tag_list = images['parameter_defaults'][tht_key]
+            for key in keys:
+                for tag in tag_list:
+                    if 'set' in tag:
+                        if key in tag['set']:
+                            image_map[key] = tag['set'][key]
+        except KeyError:
+            raise RuntimeError(
+                "The expected parameter_defaults and %s are not "
+                "defined in data file: %s" % (tht_key, source))
+    elif tht_key == 'ContainerImageRegistryCredentials':
+        try:
+            tag_list = images['parameter_defaults'][tht_key]
+            for key in keys:
+                for tag in tag_list:
+                    registry = url_parse.urlparse(key).netloc
+                    if len(registry) == 0:
+                        registry = url_parse.urlparse('//' + key).netloc
+                    if tag == registry:
+                        if isinstance(tag_list[registry], collections.Mapping):
+                            credentials = tag_list[registry].popitem()
+                            image_map['registry_username'] = credentials[0]
+                            image_map['registry_password'] = credentials[1]
+                            image_map['registry_url'] = registry
+        except KeyError:
+            LOG.info("Unable to parse %s from %s. "
+                     "Assuming the container registry does not "
+                     "require authentication or that the "
+                     "registry URL, username and password "
+                     "will be passed another way."
+                     % (tht_key, source))
+    else:
+        raise RuntimeError("Unsupported tht_key: %s" % tht_key)
+    return image_map

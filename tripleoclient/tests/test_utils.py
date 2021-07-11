@@ -2295,3 +2295,41 @@ class TestProhibitedOverrides(base.TestCommand):
             environment)
         resource_registry.pop("neutron")
         self.assertIsNone(utils.check_neutron_resources(environment))
+
+
+class TestParseContainerImagePrepare(TestCase):
+
+    fake_env = {'parameter_defaults': {'ContainerImagePrepare':
+                                       [{'push_destination': True, 'set':
+                                         {'ceph_image': 'ceph',
+                                          'ceph_namespace': 'quay.io:443/ceph',
+                                          'ceph_tag': 'latest'}}],
+                                       'ContainerImageRegistryCredentials':
+                                       {'quay.io:443': {'quay_username':
+                                                        'quay_password'}}}}
+
+    def test_parse_container_image_prepare(self):
+        key = 'ContainerImagePrepare'
+        keys = ['ceph_namespace', 'ceph_image', 'ceph_tag']
+        reg_expected = {'ceph_image': 'ceph',
+                        'ceph_namespace': 'quay.io:443/ceph',
+                        'ceph_tag': 'latest'}
+        with tempfile.NamedTemporaryFile(mode='w') as cfgfile:
+            yaml.safe_dump(self.fake_env, cfgfile)
+            reg_actual = \
+                utils.parse_container_image_prepare(key, keys,
+                                                    cfgfile.name)
+        self.assertEqual(reg_actual, reg_expected)
+
+    def test_parse_container_image_prepare_credentials(self):
+        key = 'ContainerImageRegistryCredentials'
+        keys = ['quay.io:443/ceph']
+        reg_expected = {'registry_url': 'quay.io:443',
+                        'registry_username': 'quay_username',
+                        'registry_password': 'quay_password'}
+        with tempfile.NamedTemporaryFile(mode='w') as cfgfile:
+            yaml.safe_dump(self.fake_env, cfgfile)
+            reg_actual = \
+                utils.parse_container_image_prepare(key, keys,
+                                                    cfgfile.name)
+        self.assertEqual(reg_actual, reg_expected)
