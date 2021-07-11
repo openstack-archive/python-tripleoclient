@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    A new command "openstack overcloud ceph deploy" is added. The command is
+    used to deploy Ceph after the hardware has been provisioned with networking
+    and before the overcloud is deployed. The command takes the output of
+    "openstack overcloud node provision" as input and returns a Heat enviornment
+    file, e.g. deployed_ceph.yaml, as output. The deployed_ceph.yaml file may then
+    be passed to the "openstack overcloud deploy" command as input. During overcloud
+    deployment the Ceph cluster is then configured to host OpenStack. E.g. cephx keys
+    and pools are still created on the Ceph cluster by "openstack overcloud deploy".
