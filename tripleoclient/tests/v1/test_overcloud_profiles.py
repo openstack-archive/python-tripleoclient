@@ -15,7 +15,7 @@
 import mock
 
 from tripleoclient import exceptions
-from tripleoclient.tests import test_utils
+from tripleoclient.tests import fakes
 from tripleoclient.tests.v1 import test_plugin
 from tripleoclient import utils
 from tripleoclient.v1 import overcloud_profiles
@@ -30,8 +30,8 @@ class TestMatchProfiles(test_plugin.TestPluginV1):
         self.app.client_manager.baremetal = mock.Mock()
         self.app.client_manager.compute = mock.Mock()
         self.flavors = [
-            test_utils.FakeFlavor('compute'),
-            test_utils.FakeFlavor('control'),
+            fakes.FakeFlavor('compute'),
+            fakes.FakeFlavor('control'),
         ]
         self.app.client_manager.compute.flavors.list.return_value = (
             self.flavors)

@@ -411,3 +411,17 @@ class FakeNeutronSubnet(dict):
             self[key] = value
         else:
             raise AttributeError(key)
+
+
+class FakeFlavor(object):
+    def __init__(self, name, profile=''):
+        self.name = name
+        self.profile = name
+        if profile != '':
+            self.profile = profile
+
+    def get_keys(self):
+        return {
+            'capabilities:boot_option': 'local',
+            'capabilities:profile': self.profile
+        }
