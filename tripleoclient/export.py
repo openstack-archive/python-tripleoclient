@@ -199,3 +199,15 @@ def export_ceph(stack, cephx,
     data['dashboard_enabled'] = False
 
     return data
+
+
+def export_overcloud(heat, stack, excludes, should_filter,
+                     config_download_dir):
+    data = export_passwords(heat, stack, excludes)
+    data.update(export_stack(
+        heat, stack, should_filter, config_download_dir))
+    # do not add extra host entries for VIPs for stacks deployed off that
+    # exported data, since it already contains those entries
+    data.update({'AddVipsToEtcHosts': False})
+    data = dict(parameter_defaults=data)
+    return data
