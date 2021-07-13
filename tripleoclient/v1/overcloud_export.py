@@ -19,7 +19,7 @@ from osc_lib.i18n import _
 from osc_lib import utils as osc_utils
 
 from tripleoclient import command
-from tripleoclient import utils
+from tripleoclient import export
 
 
 class ExportOvercloud(command.Command):
@@ -87,7 +87,7 @@ class ExportOvercloud(command.Command):
         # prepare clients to access the environment
         clients = self.app.client_manager
         heat = clients.orchestration
-        data = utils.export_overcloud(
+        data = export.export_overcloud(
             heat, stack, excludes=not parsed_args.no_password_excludes,
             should_filter=False, config_download_dir=config_download_dir)
         # write the exported data

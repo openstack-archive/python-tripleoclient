@@ -88,6 +88,6 @@ class UtilsFixture(fixtures.Fixture):
             'tripleoclient.utils.rm_heat')
         ).mock
         self.mock_export_overcloud = self.useFixture(fixtures.MockPatch(
-            'tripleoclient.utils.export_overcloud')
+            'tripleoclient.export.export_overcloud')
         ).mock
         self.mock_export_overcloud.return_value = {}

@@ -36,6 +36,7 @@ from tripleo_common.utils import plan as plan_utils
 from tripleoclient import command
 from tripleoclient import constants
 from tripleoclient import exceptions
+from tripleoclient import export
 from tripleoclient import utils
 from tripleoclient.workflows import deployment
 from tripleoclient.workflows import parameters as workflow_params
@@ -1223,7 +1224,7 @@ class DeployOvercloud(command.Command):
                 if (parsed_args.heat_type != 'installed' and
                         parsed_args.config_download):
                     # Create overcloud export
-                    data = utils.export_overcloud(
+                    data = export.export_overcloud(
                         self.orchestration_client,
                         parsed_args.stack, True, False,
                         config_download_dir)
