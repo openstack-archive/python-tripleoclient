@@ -72,6 +72,16 @@ class BackupOvercloud(command.Command):
         )
 
         parser.add_argument(
+            '--cron',
+            default=False,
+            action='store_true',
+            help=_("Sets up a new cron job that by default will "
+                   "execute a weekly backup at Sundays midnight, "
+                   "but that can be customized by using the "
+                   "tripleo_backup_and_restore_cron extra-var.")
+        )
+
+        parser.add_argument(
             '--inventory',
             default='/home/stack/tripleo-inventory.yaml',
             help=_("Tripleo inventory file generated with "
@@ -165,8 +175,20 @@ class BackupOvercloud(command.Command):
                               extra_vars=extra_vars
                               )
 
+        if parsed_args.cron is True:
+
+            LOG.debug(_('Programming cron backup'))
+            self._run_ansible_playbook(
+                              playbook='cli-overcloud-backup-cron.yaml',
+                              inventory=parsed_args.inventory,
+                              tags=None,
+                              skip_tags=None,
+                              extra_vars=extra_vars
+                              )
+
         if (parsed_args.setup_nfs is False and
            parsed_args.setup_rear is False and
+           parsed_args.cron is False and
            parsed_args.init is None):
 
             LOG.debug(_('Starting Overcloud Backup'))
