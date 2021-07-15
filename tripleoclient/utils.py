@@ -571,7 +571,7 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
 
     # Set var handling for better performance
     env['ANSIBLE_INJECT_FACT_VARS'] = False
-    env['ANSIBLE_VARS_PLUGIN_STAGE'] = 'inventory'
+    env['ANSIBLE_VARS_PLUGIN_STAGE'] = 'all'
     env['ANSIBLE_GATHER_SUBSET'] = '!all,min'
 
     if connection == 'local':
