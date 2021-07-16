@@ -15,6 +15,7 @@ import os
 
 from unittest import mock
 
+from keystoneauth1.exceptions.catalog import EndpointNotFound
 from osc_lib.tests import utils
 
 from tripleoclient.v1 import overcloud_export
@@ -142,3 +143,21 @@ class TestOvercloudExport(utils.TestCommand):
             'foo',
             False,
             '/tmp/bar')
+
+    @mock.patch('shutil.copy')
+    @mock.patch('os.path.exists')
+    @mock.patch('tripleoclient.utils.get_default_working_dir')
+    def test_export_ephemeral_heat(self, mock_working_dir, mock_exists,
+                                   mock_copy):
+        argslist = ['--force-overwrite']
+        verifylist = [('force_overwrite', True)]
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+        mock_exists.return_value = True
+        mock_working_dir.return_value = 'wd'
+        heat = self.app.client_manager.orchestration
+        heat.stacks.client.session.get_endpoint.side_effect = EndpointNotFound
+        with mock.patch('six.moves.builtins.open', self.mock_open):
+            self.cmd.take_action(parsed_args)
+        mock_working_dir.assert_called()
+        mock_copy.assert_called_with(
+            'wd/overcloud-export.yaml', 'overcloud-export.yaml')
