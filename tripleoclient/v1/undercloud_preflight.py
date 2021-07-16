@@ -95,7 +95,7 @@ def _check_diskspace(upgrade=False):
             inventory='undercloud',
             log_path=tmp,
             validations_dir=constants.ANSIBLE_VALIDATION_DIR,
-            validation_name=playbook_args['playbook'])
+            validation_name=[playbook_args['playbook']])
 
 
 def _check_memory():
