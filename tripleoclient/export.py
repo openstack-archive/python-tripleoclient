@@ -29,12 +29,12 @@ from tripleoclient import utils as oooutils
 LOG = logging.getLogger(__name__ + ".utils")
 
 
-def export_passwords(heat, stack, excludes=True):
+def export_passwords(working_dir, stack, excludes=True):
     """For each password, check if it's excluded, then check if there's a user
     defined value from parameter_defaults, and if not use the value from the
     generated passwords.
-    :param heat: tht client
-    :type heat: Client
+    :param working_dir: Working dir for the deployment
+    :type working_dir: string
     :param stack: stack name for password generator
     :type stack: string
     :param excludes: filter the passwords or not, defaults to `True`
@@ -48,8 +48,13 @@ def export_passwords(heat, stack, excludes=True):
             if re.match(pattern, password, re.I):
                 return True
 
+    passwords_file = os.path.join(
+        working_dir,
+        constants.PASSWORDS_ENV_FORMAT.format(stack))
+    with open(passwords_file) as f:
+        passwords_env = yaml.safe_load(f.read())
     generated_passwords = plan_utils.generate_passwords(
-        heat=heat, container=stack)
+        passwords_env=passwords_env)
 
     filtered_passwords = generated_passwords.copy()
 
@@ -61,14 +66,14 @@ def export_passwords(heat, stack, excludes=True):
     return filtered_passwords
 
 
-def export_stack(heat, stack, should_filter=False,
+def export_stack(working_dir, stack, should_filter=False,
                  config_download_dir=constants.DEFAULT_WORK_DIR):
     """Export stack information.
     Iterates over parameters selected for export and loads
     additional data from the referenced files.
 
-    :param heat: tht client
-    :type heat: Client
+    :param working_dir: Working dir for the deployment
+    :type working_dir: string
     :param stack: stack name for password generator
     :type stack: string
     :params should_filter:
@@ -93,7 +98,6 @@ def export_stack(heat, stack, should_filter=False,
     """
 
     data = {}
-    heat_stack = oooutils.get_stack(heat, stack)
 
     for export_key, export_param in constants.EXPORT_DATA.items():
         param = export_param["parameter"]
@@ -106,8 +110,8 @@ def export_stack(heat, stack, should_filter=False,
             export_data = oooutils.get_parameter_file(file)
         else:
             # get stack data
-            export_data = oooutils.get_stack_output_item(
-                            heat_stack, export_key)
+            export_data = oooutils.get_stack_saved_output_item(
+                            export_key, working_dir)
 
         if export_data:
             # When we export information from a cell controller stack
@@ -121,14 +125,21 @@ def export_stack(heat, stack, should_filter=False,
                 data[param] = export_data
 
         else:
-            raise RuntimeError(
-                "No data returned to export %s from." % param)
+            LOG.warning("No data returned to export %s from." % param)
 
     # Check if AuthCloudName is in the stack environment, and if so add it to
     # the export data. Otherwise set it to the exported stack's name.
-    auth_cloud_name = heat_stack.environment().get(
-                        'parameter_defaults').get(
-                            'AuthCloudName', None)
+    auth_cloud_name = oooutils.get_stack_saved_output_item(
+                        'AuthCloudName', working_dir)
+    if auth_cloud_name:
+        data['AuthCloudName'] = auth_cloud_name
+    else:
+        data['AuthCloudName'] = stack
+
+    # Check if AuthCloudName is in the stack environment, and if so add it to
+    # the export data. Otherwise set it to the exported stack's name.
+    auth_cloud_name = oooutils.get_stack_saved_output_item(
+                        'AuthCloudName', working_dir)
     if auth_cloud_name:
         data['AuthCloudName'] = auth_cloud_name
     else:
@@ -213,11 +224,11 @@ def export_ceph(stack, cephx,
     return data
 
 
-def export_overcloud(heat, stack, excludes, should_filter,
+def export_overcloud(working_dir, stack, excludes, should_filter,
                      config_download_dir):
-    data = export_passwords(heat, stack, excludes)
+    data = export_passwords(working_dir, stack, excludes)
     data.update(export_stack(
-        heat, stack, should_filter, config_download_dir))
+        working_dir, stack, should_filter, config_download_dir))
     # do not add extra host entries for VIPs for stacks deployed off that
     # exported data, since it already contains those entries
     data.update({'AddVipsToEtcHosts': False})

@@ -12,13 +12,13 @@
 #   License for the specific language governing permissions and limitations
 #   under the License.
 #
-from json.decoder import JSONDecodeError
 import os
 
 import mock
 from unittest import TestCase
 
 from tripleoclient import export
+from tripleoclient import utils
 
 
 class TestExport(TestCase):
@@ -28,22 +28,7 @@ class TestExport(TestCase):
         self.unlink_patch.start()
         self.mock_log = mock.Mock('logging.getLogger')
 
-        outputs = [
-            {'output_key': 'EndpointMap',
-             'output_value': dict(em_key='em_value')},
-            {'output_key': 'HostsEntry',
-             'output_value': 'hosts entry'},
-            {'output_key': 'GlobalConfig',
-             'output_value': dict(gc_key='gc_value')},
-        ]
-        self.mock_stack = mock.Mock()
-        self.mock_stack.to_dict.return_value = dict(outputs=outputs)
         self.mock_open = mock.mock_open(read_data='{"an_key":"an_value"}')
-
-        mock_environment = mock.Mock()
-        self.mock_stack.environment = mock_environment
-        mock_environment.return_value = dict(
-            parameter_defaults=dict())
 
         ceph_inv = {
             'DistributedComputeHCI': {
@@ -80,40 +65,23 @@ class TestExport(TestCase):
         }
         self.mock_open_ceph_all = mock.mock_open(read_data=str(ceph_all))
 
+    def _get_stack_saved_output_item(self, output_key, working_dir):
+        outputs = {
+            'EndpointMap': dict(em_key='em_value'),
+            'HostsEntry': 'hosts entry',
+            'GlobalConfig': dict(gc_key='gc_value'),
+            'AuthCloudName': 'central',
+        }
+        return outputs[output_key]
+
+    @mock.patch('tripleoclient.utils.get_stack_saved_output_item')
     @mock.patch('tripleoclient.utils.os.path.exists',
                 autospec=True, reutrn_value=True)
-    @mock.patch('tripleoclient.utils.get_stack')
-    def test_export_stack(self, mock_get_stack, mock_exists):
-        heat = mock.Mock()
-        mock_get_stack.return_value = self.mock_stack
+    def test_export_stack(self, mock_exists, mock_output_item):
+        mock_output_item.side_effect = self._get_stack_saved_output_item
+        working_dir = utils.get_default_working_dir('overcloud')
         with mock.patch('tripleoclient.utils.open', self.mock_open):
-            data = export.export_stack(heat, "overcloud")
-
-        expected = \
-            {'AllNodesExtraMapData': {u'an_key': u'an_value'},
-             'AuthCloudName': 'overcloud',
-             'EndpointMapOverride': {'em_key': 'em_value'},
-             'ExtraHostFileEntries': 'hosts entry',
-             'GlobalConfigExtraMapData': {'gc_key': 'gc_value'}}
-
-        self.assertEqual(expected, data)
-        self.mock_open.assert_called_once_with(
-            os.path.join(
-                os.environ.get('HOME'),
-                'config-download/overcloud/group_vars/overcloud.json'),
-            'r')
-
-    @mock.patch('tripleoclient.utils.os.path.exists',
-                autospec=True, reutrn_value=True)
-    @mock.patch('tripleoclient.utils.get_stack')
-    def test_export_stack_auth_cloud_name_set(
-            self, mock_get_stack, mock_exists):
-        heat = mock.Mock()
-        mock_get_stack.return_value = self.mock_stack
-        self.mock_stack.environment.return_value['parameter_defaults'] = (
-            dict(AuthCloudName='central'))
-        with mock.patch('tripleoclient.utils.open', self.mock_open):
-            data = export.export_stack(heat, "overcloud")
+            data = export.export_stack(working_dir, "overcloud")
 
         expected = \
             {'AllNodesExtraMapData': {u'an_key': u'an_value'},
@@ -129,20 +97,45 @@ class TestExport(TestCase):
                 'config-download/overcloud/group_vars/overcloud.json'),
             'r')
 
+    @mock.patch('tripleoclient.utils.get_stack_saved_output_item')
     @mock.patch('tripleoclient.utils.os.path.exists',
                 autospec=True, reutrn_value=True)
-    @mock.patch('tripleoclient.utils.get_stack')
-    def test_export_stack_should_filter(self, mock_get_stack, mock_exists):
-        heat = mock.Mock()
-        mock_get_stack.return_value = self.mock_stack
+    def test_export_stack_auth_cloud_name_set(
+            self, mock_exists, mock_output_item):
+        mock_output_item.side_effect = self._get_stack_saved_output_item
+        working_dir = utils.get_default_working_dir('overcloud')
+        with mock.patch('tripleoclient.utils.open', self.mock_open):
+            data = export.export_stack(working_dir, "overcloud")
+
+        expected = \
+            {'AllNodesExtraMapData': {u'an_key': u'an_value'},
+             'AuthCloudName': 'central',
+             'EndpointMapOverride': {'em_key': 'em_value'},
+             'ExtraHostFileEntries': 'hosts entry',
+             'GlobalConfigExtraMapData': {'gc_key': 'gc_value'}}
+
+        self.assertEqual(expected, data)
+        self.mock_open.assert_called_once_with(
+            os.path.join(
+                os.environ.get('HOME'),
+                'config-download/overcloud/group_vars/overcloud.json'),
+            'r')
+
+    @mock.patch('tripleoclient.utils.get_stack_saved_output_item')
+    @mock.patch('tripleoclient.utils.os.path.exists',
+                autospec=True, reutrn_value=True)
+    def test_export_stack_should_filter(self, mock_exists, mock_stack_output):
+        working_dir = utils.get_default_working_dir('overcloud')
+        mock_stack_output.side_effect = self._get_stack_saved_output_item
         self.mock_open = mock.mock_open(
             read_data='{"an_key":"an_value","ovn_dbs_vip":"vip"}')
         with mock.patch('builtins.open', self.mock_open):
-            data = export.export_stack(heat, "overcloud", should_filter=True)
+            data = export.export_stack(
+                    working_dir, "overcloud", should_filter=True)
 
         expected = \
             {'AllNodesExtraMapData': {u'ovn_dbs_vip': u'vip'},
-             'AuthCloudName': 'overcloud',
+             'AuthCloudName': 'central',
              'EndpointMapOverride': {'em_key': 'em_value'},
              'ExtraHostFileEntries': 'hosts entry',
              'GlobalConfigExtraMapData': {'gc_key': 'gc_value'}}
@@ -156,51 +149,17 @@ class TestExport(TestCase):
 
     @mock.patch('tripleoclient.utils.os.path.exists',
                 autospec=True, reutrn_value=True)
-    @mock.patch('tripleoclient.utils.get_stack')
-    def test_export_stack_cd_dir(self, mock_get_stack, mock_exists):
-        heat = mock.Mock()
-        mock_get_stack.return_value = self.mock_stack
+    def test_export_stack_cd_dir(self, mock_exists):
+        working_dir = utils.get_default_working_dir('overcloud')
         with mock.patch('tripleoclient.utils.open', self.mock_open):
-            export.export_stack(heat, "overcloud",
+            export.export_stack(working_dir, "overcloud",
                                 config_download_dir='/foo')
-        self.mock_open.assert_called_once_with(
+        self.mock_open.assert_called_with(
             '/foo/overcloud/group_vars/overcloud.json', 'r')
-
-    @mock.patch('tripleoclient.utils.os.path.exists',
-                autospec=True, reutrn_value=True)
-    @mock.patch('tripleoclient.utils.get_stack')
-    def test_export_stack_stack_name(self, mock_get_stack, mock_exists):
-        heat = mock.Mock()
-        mock_get_stack.return_value = self.mock_stack
-        with mock.patch('tripleoclient.utils.open', self.mock_open):
-            export.export_stack(heat, "control")
-        mock_get_stack.assert_called_once_with(heat, 'control')
-
-    @mock.patch('tripleoclient.utils.LOG.error', autospec=True)
-    @mock.patch('tripleoclient.utils.json.load', autospec=True,
-                side_effect=JSONDecodeError)
-    @mock.patch('tripleoclient.utils.open')
-    @mock.patch('tripleoclient.utils.os.path.exists', autospec=True,
-                return_value=True)
-    @mock.patch('tripleoclient.utils.get_stack', autospec=True)
-    def test_export_stack_decode_error(self, mock_get_stack, mock_exists,
-                                       mock_open, mock_json_load, mock_log):
-
-        heat = mock.MagicMock()
-        mock_get_stack.return_value = self.mock_stack
-        self.assertRaises(
-            RuntimeError, export.export_stack, heat, "overcloud")
-
-        mock_open.assert_called_once_with(
-            os.path.join(
-                os.environ.get('HOME'),
-                'config-download/overcloud/group_vars/overcloud.json'),
-            'r')
 
     @mock.patch('tripleoclient.export.LOG')
     @mock.patch('tripleo_common.utils.plan.generate_passwords')
     def test_export_passwords(self, mock_gen_pass, mock_log):
-        heat = mock.Mock()
         mock_passwords = {
             'AdminPassword': 'A',
             'RpcPassword': 'B',
@@ -211,16 +170,20 @@ class TestExport(TestCase):
         mock_gen_pass.return_value = mock_passwords
 
         expected_password_export = mock_passwords.copy()
-        data = export.export_passwords(heat, 'overcloud', False)
+        working_dir = utils.get_default_working_dir('overcloud')
+        with mock.patch('builtins.open', mock.mock_open()):
+            data = export.export_passwords(working_dir, 'overcloud', False)
 
         self.assertEqual(
             expected_password_export,
             data)
 
+    @mock.patch('tripleoclient.utils.get_stack_saved_output_item')
     @mock.patch('tripleoclient.export.LOG')
     @mock.patch('tripleo_common.utils.plan.generate_passwords')
-    def test_export_passwords_excludes(self, mock_gen_pass, mock_log):
-        heat = mock.Mock()
+    def test_export_passwords_excludes(self, mock_gen_pass, mock_log,
+                                       mock_output_item):
+        mock_output_item.side_effect = self._get_stack_saved_output_item
         mock_passwords = {
             'AdminPassword': 'A',
             'RpcPassword': 'B',
@@ -234,7 +197,9 @@ class TestExport(TestCase):
             'AdminPassword': 'A',
             'RpcPassword': 'B'}
 
-        data = export.export_passwords(heat, 'overcloud')
+        working_dir = utils.get_default_working_dir('overcloud')
+        with mock.patch('builtins.open', mock.mock_open()):
+            data = export.export_passwords(working_dir, 'overcloud')
 
         self.assertEqual(expected_password_export, data)
 

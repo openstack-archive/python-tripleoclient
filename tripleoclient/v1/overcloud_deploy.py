@@ -1392,7 +1392,7 @@ class DeployOvercloud(command.Command):
                         parsed_args.config_download):
                     # Create overcloud export
                     data = export.export_overcloud(
-                        self.orchestration_client,
+                        self.working_dir,
                         parsed_args.stack, True, False,
                         config_download_dir)
                     export_file = os.path.join(
