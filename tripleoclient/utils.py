@@ -72,7 +72,6 @@ from tripleo_common.utils import stack as stack_utils
 from tripleo_common import update
 from tripleoclient import constants
 from tripleoclient import exceptions
-from tripleoclient import export
 from tripleoclient import heat_launcher
 from tripleoclient.workflows import roles
 
@@ -2669,18 +2668,6 @@ def get_default_working_dir(stack):
     return os.path.join(
         os.path.expanduser('~'),
         "overcloud-deploy", stack)
-
-
-def export_overcloud(heat, stack, excludes, should_filter,
-                     config_download_dir):
-    data = export.export_passwords(heat, stack, excludes)
-    data.update(export.export_stack(
-        heat, stack, should_filter, config_download_dir))
-    # do not add extra host entries for VIPs for stacks deployed off that
-    # exported data, since it already contains those entries
-    data.update({'AddVipsToEtcHosts': False})
-    data = dict(parameter_defaults=data)
-    return data
 
 
 def get_ctlplane_attrs():
