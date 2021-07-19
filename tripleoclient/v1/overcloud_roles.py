@@ -90,29 +90,22 @@ class RolesGenerate(RolesBaseCommand):
 
 
 class RoleList(RolesBaseCommand):
-    """List availables roles (DEPRECATED).
+    """List availables roles."""
 
-    Please use "openstack overcloud roles list" instead.
-    """
     def get_parser(self, prog_name):
         parser = super(RoleList, self).get_parser(prog_name)
         return parser
 
     def take_action(self, parsed_args):
         self.log.debug('take_action({})'.format(parsed_args))
-        self.log.warning('This command is deprecated. Please use "openstack '
-                         'overcloud roles list" instead.')
         roles_path = os.path.realpath(parsed_args.roles_path)
         roles = rolesutils.get_roles_list_from_directory(roles_path)
         print('\n'.join(roles))
 
 
 class RoleShow(RolesBaseCommand):
-    """Show information about a given role (DEPRECATED).
+    """Show information about a given role."""
 
-
-    Please use "openstack overcloud roles show" intead.
-    """
     def get_parser(self, prog_name):
         parser = super(RoleShow, self).get_parser(prog_name)
         parser.add_argument('role', metavar='<role>',
@@ -121,8 +114,6 @@ class RoleShow(RolesBaseCommand):
 
     def take_action(self, parsed_args):
         self.log.debug('take_action({})'.format(parsed_args))
-        self.log.warning('This command is deprecated. Please use "openstack '
-                         'overcloud roles show" instead.')
         roles_path = os.path.realpath(parsed_args.roles_path)
         role_name = parsed_args.role
         file_path = os.path.join(roles_path, '{}.yaml'.format(role_name))
