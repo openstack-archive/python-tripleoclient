@@ -589,10 +589,9 @@ class TestDeployUndercloud(TestPluginV1):
         def abs_path_stub(*args, **kwargs):
             if 'notenv.yaml' in args:
                 return os.path.join(tht_render, 'notenv.yaml')
-            elif 'env.yaml' in args:
+            if 'env.yaml' in args:
                 return os.path.join(tht_render, 'env.yaml')
-            else:
-                return original_abs(*args, **kwargs)
+            return original_abs(*args, **kwargs)
 
         # logic handled in _standalone_deploy
         self.cmd.output_dir = tht_to

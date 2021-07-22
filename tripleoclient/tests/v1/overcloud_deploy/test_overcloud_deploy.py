@@ -1683,8 +1683,7 @@ class TestArgumentValidation(fakes.TestDeployOvercloud):
         def is_dir(arg):
             if arg == '/tmp/real_dir':
                 return True
-            else:
-                return False
+            return False
 
         patcher = mock.patch('os.path.isdir')
         mock_isdir = patcher.start()

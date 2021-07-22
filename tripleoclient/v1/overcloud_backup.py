@@ -121,7 +121,7 @@ class BackupOvercloud(command.Command):
     def _parse_extra_vars(self, raw_extra_vars):
 
         if raw_extra_vars is None:
-            return {}
+            extra_vars = {}
         elif os.path.exists(raw_extra_vars):
             with open(raw_extra_vars, 'r') as fp:
                 extra_vars = yaml.safe_load(fp.read())

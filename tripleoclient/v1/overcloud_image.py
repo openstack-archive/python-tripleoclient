@@ -206,7 +206,7 @@ class FileImageClientAdapter(BaseClientAdapter):
             if os.path.exists(path.replace("file://", "")):
                 return path
             return None
-        elif prop == 'ramdisk_id':
+        if prop == 'ramdisk_id':
             path = os.path.splitext(image.id)[0] + '.initrd'
             if os.path.exists(path.replace("file://", "")):
                 return path
@@ -267,15 +267,12 @@ class FileImageClientAdapter(BaseClientAdapter):
                     if self.updated is not None:
                         self.updated.append(dest_path)
                     return None
-                else:
-                    print('Image "%s" already exists and can be updated'
-                          ' with --update-existing.' % dest_path)
-                    return image
-            else:
-                print('Image "%s" is up-to-date, skipping.' % dest_path)
+                print('Image "%s" already exists and can be updated'
+                      ' with --update-existing.' % dest_path)
                 return image
-        else:
-            return None
+            print('Image "%s" is up-to-date, skipping.' % dest_path)
+            return image
+        return None
 
     def _upload_image(self, src_path, dest_path):
         dest_dir = os.path.split(dest_path)[0]
@@ -337,15 +334,12 @@ class GlanceClientAdapter(BaseClientAdapter):
                     if self.updated is not None:
                         self.updated.append(image.id)
                     return None
-                else:
-                    print('Image "%s" already exists and can be updated'
-                          ' with --update-existing.' % image_name)
-                    return image
-            else:
-                print('Image "%s" is up-to-date, skipping.' % image_name)
+                print('Image "%s" already exists and can be updated'
+                      ' with --update-existing.' % image_name)
                 return image
-        else:
-            return None
+            print('Image "%s" is up-to-date, skipping.' % image_name)
+            return image
+        return None
 
     def _upload_image(self, name, data, properties=None, visibility='public',
                       disk_format='raw', container_format='bare'):

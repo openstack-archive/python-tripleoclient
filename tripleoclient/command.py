@@ -90,8 +90,8 @@ class Command(command.Command):
                     'the --overcloud-ssh-key switch.'
                 )
             return key
-        else:
-            return parsed_args.overcloud_ssh_key
+
+        return parsed_args.overcloud_ssh_key
 
 
 class Lister(Command, command.Lister):

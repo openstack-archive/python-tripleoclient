@@ -122,8 +122,7 @@ def _get_unknown_instack_tags(env, src):
     known_tags = set(INSTACK_NETCONF_MAPPING.keys())
     if found_tags <= known_tags:
         return (', ').join(found_tags - known_tags)
-    else:
-        return None
+    return None
 
 
 def _process_drivers_and_hardware_types(conf, env):

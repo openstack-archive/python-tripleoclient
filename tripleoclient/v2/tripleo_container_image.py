@@ -268,8 +268,7 @@ class Build(command.Command):
         if content:
             if tree:
                 return {tree: content}
-            else:
-                return content
+            return content
 
         return tree
 

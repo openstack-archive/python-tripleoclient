@@ -188,8 +188,7 @@ class Deploy(command.Command):
         if not parsed_args.networks_file:
             return os.path.join(parsed_args.templates,
                                 constants.STANDALONE_NETWORKS_FILE)
-        else:
-            return parsed_args.networks_file
+        return parsed_args.networks_file
 
     def _get_primary_role_name(self, roles_file_path, templates):
         """Return the primary role name"""

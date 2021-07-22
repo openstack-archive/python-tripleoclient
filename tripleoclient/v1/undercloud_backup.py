@@ -155,11 +155,10 @@ class BackupUndercloud(command.Command):
     def _parse_extra_vars(self, raw_extra_vars):
 
         if raw_extra_vars is None:
-            return raw_extra_vars
+            extra_vars = None
         elif os.path.exists(raw_extra_vars):
             with open(raw_extra_vars, 'r') as fp:
                 extra_vars = yaml.safe_load(fp.read())
-
         else:
             try:
                 extra_vars = yaml.safe_load(raw_extra_vars)

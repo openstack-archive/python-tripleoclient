@@ -44,8 +44,7 @@ def validate_nodes(clients, nodes_json):
     validated_nodes = node_utils.validate_nodes(nodes_json)
     if not validated_nodes:
         return True
-    else:
-        raise exceptions.RegisterOrUpdateError(validated_nodes)
+    raise exceptions.RegisterOrUpdateError(validated_nodes)
 
 
 def register_or_update(clients, nodes_json, kernel_name=None,

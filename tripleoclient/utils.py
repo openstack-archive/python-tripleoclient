@@ -235,11 +235,9 @@ def playbook_verbosity(self):
 
     if self.app.options.debug:
         return 3
-    else:
-        if self.app_args.verbose_level <= 1:
-            return 0
-        else:
-            return self.app_args.verbose_level
+    if self.app_args.verbose_level <= 1:
+        return 0
+    return self.app_args.verbose_level
 
 
 def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
@@ -377,8 +375,7 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
         if timeout and timeout > 0:
             return ('Running Ansible playbook with timeout %sm: %s,' %
                     (timeout, playbook))
-        else:
-            return ('Running Ansible playbook: %s,' % playbook)
+        return ('Running Ansible playbook: %s,' % playbook)
 
     if not playbook_dir:
         playbook_dir = workdir
@@ -736,12 +733,11 @@ def convert(data):
     """Recursively converts dictionary keys,values to strings."""
     if isinstance(data, six.string_types):
         return str(data)
-    elif isinstance(data, collectionsAbc.Mapping):
+    if isinstance(data, collectionsAbc.Mapping):
         return dict(map(convert, six.iteritems(data)))
-    elif isinstance(data, collectionsAbc.Iterable):
+    if isinstance(data, collectionsAbc.Iterable):
         return type(data)(map(convert, data))
-    else:
-        return data
+    return data
 
 
 def bracket_ipv6(address):
@@ -1019,8 +1015,7 @@ def get_endpoint(key, stack):
     endpoint_map = get_endpoint_map(stack)
     if endpoint_map:
         return endpoint_map[key]['host']
-    else:
-        return get_service_ips(stack).get(key + 'Vip')
+    return get_service_ips(stack).get(key + 'Vip')
 
 
 def get_stack(orchestration_client, stack_name):
@@ -1506,16 +1501,15 @@ def prompt_user_for_confirmation(message, logger, positive_response='y'):
         if not sys.stdin.isatty():
             logger.error(_('User interaction required, cannot confirm.'))
             return False
-        else:
-            sys.stdout.write(message)
-            sys.stdout.flush()
-            prompt_response = sys.stdin.readline().lower()
-            if not prompt_response.startswith(positive_response):
-                logger.info(_(
-                    'User did not confirm action so taking no action.'))
-                return False
-            logger.info(_('User confirmed action.'))
-            return True
+        sys.stdout.write(message)
+        sys.stdout.flush()
+        prompt_response = sys.stdin.readline().lower()
+        if not prompt_response.startswith(positive_response):
+            logger.info(_(
+                'User did not confirm action so taking no action.'))
+            return False
+        logger.info(_('User confirmed action.'))
+        return True
     except KeyboardInterrupt:  # ctrl-c
         logger.info(_(
             'User did not confirm action (ctrl-c) so taking no action.'))
@@ -1564,8 +1558,7 @@ def replace_links_in_template(template_part, link_replacement):
         if ((key == 'get_file' or key == 'type') and
                 isinstance(value, six.string_types)):
             return link_replacement.get(value, value)
-        else:
-            return replace_links_in_template(value, link_replacement)
+        return replace_links_in_template(value, link_replacement)
 
     def replaced_list_value(value):
         return replace_links_in_template(value, link_replacement)
@@ -1573,10 +1566,9 @@ def replace_links_in_template(template_part, link_replacement):
     if isinstance(template_part, dict):
         return {k: replaced_dict_value(k, v)
                 for k, v in six.iteritems(template_part)}
-    elif isinstance(template_part, list):
+    if isinstance(template_part, list):
         return list(map(replaced_list_value, template_part))
-    else:
-        return template_part
+    return template_part
 
 
 def relative_link_replacement(link_replacement, current_dir):
@@ -1680,9 +1672,9 @@ def get_tripleo_ansible_inventory(inventory_file=None,
         with open(inventory_file, "r") as f:
             inventory = f.read()
         return inventory
-    else:
-        raise exceptions.InvalidConfiguration(_(
-            "Inventory file %s can not be found.") % inventory_file)
+
+    raise exceptions.InvalidConfiguration(_(
+        "Inventory file %s can not be found.") % inventory_file)
 
 
 def cleanup_tripleo_ansible_inventory_file(path):
@@ -2051,8 +2043,7 @@ def run_command_and_log(log, cmd, cwd=None, env=None, retcode_only=True):
                 break
         proc.stdout.close()
         return proc.wait()
-    else:
-        return proc
+    return proc
 
 
 def build_prepare_env(environment_files, environment_directories):
@@ -2647,10 +2638,9 @@ def test_heat_api_port(heat_api_socket, host, port):
 def get_heat_launcher(heat_type, *args, **kwargs):
     if heat_type == 'native':
         return heat_launcher.HeatNativeLauncher(*args, **kwargs)
-    elif heat_type == 'container':
+    if heat_type == 'container':
         return heat_launcher.HeatContainerLauncher(*args, **kwargs)
-    else:
-        return heat_launcher.HeatPodLauncher(*args, **kwargs)
+    return heat_launcher.HeatPodLauncher(*args, **kwargs)
 
 
 def kill_heat(launcher):
