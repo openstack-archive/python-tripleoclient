@@ -1079,6 +1079,13 @@ class Deploy(command.Command):
                    'the container parameters configured, the deployment '
                    'action may fail.')
         )
+        parser.add_argument(
+            '--reproduce-command',
+            action='store_true',
+            default=False,
+            help=_('Create a reproducer command with ansible command'
+                   'line and all environments variables.')
+        )
 
         stack_action_group = parser.add_mutually_exclusive_group()
 
@@ -1322,6 +1329,7 @@ class Deploy(command.Command):
                             verbosity=utils.playbook_verbosity(self=self),
                             extra_env_variables=extra_env_var,
                             forks=parsed_args.ansible_forks,
+                            reproduce_command=parsed_args.reproduce_command,
                             **operation)
             is_complete = True
         finally:
