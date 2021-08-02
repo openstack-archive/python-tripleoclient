@@ -1006,7 +1006,7 @@ class DeployOvercloud(command.Command):
                 'Only plan update is not supported.')
 
         deploy_status = 'DEPLOY_SUCCESS'
-        deploy_message = 'without error'
+        deploy_message = 'successfully'
 
         self._setup_clients(parsed_args)
 
