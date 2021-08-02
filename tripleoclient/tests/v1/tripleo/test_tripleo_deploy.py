@@ -20,8 +20,6 @@ import tempfile
 import yaml
 
 from heatclient import exc as hc_exc
-from tripleo_common.image import kolla_builder
-
 from tripleoclient import exceptions
 from tripleoclient.tests import fakes
 from tripleoclient.tests.v1.test_plugin import TestPluginV1
@@ -30,11 +28,6 @@ from tripleoclient.tests.v1.test_plugin import TestPluginV1
 from tripleoclient.v1 import tripleo_deploy
 
 import ansible_runner
-
-
-# TODO(sbaker) Remove after a tripleo-common release contains this new function
-if not hasattr(kolla_builder, 'container_images_prepare_multi'):
-    setattr(kolla_builder, 'container_images_prepare_multi', mock.Mock())
 
 
 class FakePluginV1Client(object):

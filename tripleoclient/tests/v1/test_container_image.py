@@ -26,23 +26,10 @@ import yaml
 
 from osc_lib import exceptions as oscexc
 from six.moves.urllib import parse
-from tripleo_common.image import image_uploader
 from tripleo_common.image import kolla_builder
 from tripleoclient import constants
 from tripleoclient.tests.v1.test_plugin import TestPluginV1
 from tripleoclient.v1 import container_image
-
-# TODO(sbaker) Remove after a tripleo-common release contains this attribute
-CLEANUP = (
-    CLEANUP_FULL, CLEANUP_PARTIAL, CLEANUP_NONE
-) = (
-    'full', 'partial', 'none'
-)
-if not hasattr(image_uploader, 'CLEANUP'):
-    setattr(image_uploader, 'CLEANUP', CLEANUP)
-    setattr(image_uploader, 'CLEANUP_FULL', CLEANUP_FULL)
-    setattr(image_uploader, 'CLEANUP_PARTIAL', CLEANUP_PARTIAL)
-    setattr(image_uploader, 'CLEANUP_NONE', CLEANUP_NONE)
 
 
 class TestContainerImageUpload(TestPluginV1):
