@@ -325,7 +325,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
         mock_stack = fakes.create_tht_stack()
-        orchestration_client.stacks.get.side_effect = [None, mock_stack]
+        orchestration_client.stacks.get.side_effect = \
+            [None, mock_stack, mock_stack]
 
         def _orch_clt_create(**kwargs):
             orchestration_client.stacks.get.return_value = mock_stack
@@ -1421,7 +1422,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                        deployment_timeout=448,  # 451 - 3, total time left
                        in_flight_validations=False, limit_hosts=None,
                        skip_tags=None, tags=None, timeout=42,
-                       verbosity=3, forks=None)],
+                       verbosity=3, forks=None, denyed_hostnames=None)],
             fixture.mock_config_download.mock_calls)
         fixture.mock_config_download.assert_called()
         mock_copy.assert_called_once()
