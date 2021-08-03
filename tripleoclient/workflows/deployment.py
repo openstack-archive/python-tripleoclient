@@ -103,10 +103,10 @@ def deploy_without_plan(clients, stack, stack_name, template,
             raise exceptions.DeploymentError("Heat Stack update failed.")
 
 
-def get_overcloud_hosts(stack, ssh_network):
+def get_overcloud_hosts(stack, ssh_network, working_dir):
     ips = []
-    role_net_ip_map = utils.get_role_net_ip_map(stack)
-    blacklisted_ips = utils.get_blacklisted_ip_addresses(stack)
+    role_net_ip_map = utils.get_role_net_ip_map(working_dir)
+    blacklisted_ips = utils.get_blacklisted_ip_addresses(working_dir)
     if not role_net_ip_map:
         raise exceptions.DeploymentError(
             'No overcloud hosts were found in the current stack.'
@@ -136,7 +136,7 @@ def get_overcloud_hosts(stack, ssh_network):
     return ips
 
 
-def get_hosts_and_enable_ssh_admin(stack, overcloud_ssh_network,
+def get_hosts_and_enable_ssh_admin(stack_name, overcloud_ssh_network,
                                    overcloud_ssh_user, overcloud_ssh_key,
                                    overcloud_ssh_port_timeout,
                                    working_dir, verbosity=0,
@@ -146,8 +146,8 @@ def get_hosts_and_enable_ssh_admin(stack, overcloud_ssh_network,
     Get a list of hosts from a given stack and enable admin ssh across all of
     them.
 
-    :param stack: Stack data.
-    :type stack: Object
+    :param stack_name: Stack name.
+    :type stack_name: String
 
     :param overcloud_ssh_network: Network id.
     :type overcloud_ssh_network: String
@@ -165,10 +165,10 @@ def get_hosts_and_enable_ssh_admin(stack, overcloud_ssh_network,
     :type verbosity: Integer
     """
 
-    hosts = get_overcloud_hosts(stack, overcloud_ssh_network)
+    hosts = get_overcloud_hosts(stack_name, overcloud_ssh_network, working_dir)
     if [host for host in hosts if host]:
         enable_ssh_admin(
-            stack,
+            stack_name,
             hosts,
             overcloud_ssh_user,
             overcloud_ssh_key,
@@ -180,18 +180,18 @@ def get_hosts_and_enable_ssh_admin(stack, overcloud_ssh_network,
     else:
         raise exceptions.DeploymentError(
             'Cannot find any hosts on "{}" in network "{}"'.format(
-                stack.stack_name,
+                stack_name,
                 overcloud_ssh_network
             )
         )
 
 
-def enable_ssh_admin(stack, hosts, ssh_user, ssh_key, timeout,
+def enable_ssh_admin(stack_name, hosts, ssh_user, ssh_key, timeout,
                      working_dir, verbosity=0, heat_type='installed'):
     """Run enable ssh admin access playbook.
 
-    :param stack: Stack data.
-    :type stack: Object
+    :param stack_name: Stack name.
+    :type stack_name: String
 
     :param hosts: Machines to connect to.
     :type hosts: List
@@ -237,7 +237,7 @@ def enable_ssh_admin(stack, hosts, ssh_user, ssh_key, timeout,
             extra_vars={
                 "ssh_user": ssh_user,
                 "ssh_servers": hosts,
-                'tripleo_cloud_name': stack.stack_name
+                'tripleo_cloud_name': stack_name
             },
             ansible_timeout=timeout
         )
@@ -247,14 +247,15 @@ def enable_ssh_admin(stack, hosts, ssh_user, ssh_key, timeout,
     print("Enabling ssh admin - COMPLETE.")
 
 
-def config_download(log, clients, stack, ssh_network='ctlplane',
+def config_download(log, clients, stack_name, ssh_network='ctlplane',
                     output_dir=None, override_ansible_cfg=None,
                     timeout=600, verbosity=0, deployment_options=None,
                     in_flight_validations=False,
                     ansible_playbook_name='deploy_steps_playbook.yaml',
                     limit_hosts=None, extra_vars=None, inventory_path=None,
                     ssh_user='tripleo-admin', tags=None, skip_tags=None,
-                    deployment_timeout=None, forks=None, working_dir=None):
+                    deployment_timeout=None, forks=None, working_dir=None,
+                    denyed_hostnames=None):
     """Run config download.
 
     :param log: Logging object
@@ -344,7 +345,7 @@ def config_download(log, clients, stack, ssh_network='ctlplane',
         output_dir = DEFAULT_WORK_DIR
 
     if not working_dir:
-        working_dir = utils.get_default_working_dir(stack.stack_name)
+        working_dir = utils.get_default_working_dir(stack_name)
 
     if not deployment_options:
         deployment_options = dict()
@@ -373,22 +374,18 @@ def config_download(log, clients, stack, ssh_network='ctlplane',
 
     _log_and_print(
         message='Checking for blacklisted hosts from stack: {}'.format(
-            stack.stack_name
+            stack_name
         ),
         logger=log,
         print_msg=(verbosity == 0)
     )
     if not limit_hosts:
-        blacklist_show = stack.output_show('BlacklistedHostnames')
-        blacklist_stack_output = blacklist_show.get('output', dict())
-        blacklist_stack_output_value = blacklist_stack_output.get(
-            'output_value')
-        if blacklist_stack_output_value:
+        if denyed_hostnames:
             limit_hosts = (
-                ':'.join(['!{}'.format(i) for i in blacklist_stack_output_value
+                ':'.join(['!{}'.format(i) for i in denyed_hostnames
                           if i]))
 
-    key_file = utils.get_key(stack.stack_name)
+    key_file = utils.get_key(stack_name)
     python_interpreter = deployment_options.get('ansible_python_interpreter')
 
     playbook = 'cli-config-download.yaml'
@@ -402,7 +399,7 @@ def config_download(log, clients, stack, ssh_network='ctlplane',
         verbosity=verbosity,
         reproduce_command=True,
         extra_vars={
-            'plan': stack.stack_name,
+            'plan': stack_name,
             'output_dir': output_dir,
             'ansible_ssh_user': ssh_user,
             'ansible_ssh_private_key_file': key_file,
@@ -414,13 +411,13 @@ def config_download(log, clients, stack, ssh_network='ctlplane',
 
     _log_and_print(
         message='Executing deployment playbook for stack: {}'.format(
-            stack.stack_name
+            stack_name
         ),
         logger=log,
         print_msg=(verbosity == 0)
     )
 
-    stack_work_dir = os.path.join(output_dir, stack.stack_name)
+    stack_work_dir = os.path.join(output_dir, stack_name)
     if not inventory_path:
         inventory_path = os.path.join(stack_work_dir,
                                       'tripleo-ansible-inventory.yaml')
@@ -455,7 +452,7 @@ def config_download(log, clients, stack, ssh_network='ctlplane',
 
     _log_and_print(
         message='Overcloud configuration completed for stack: {}'.format(
-            stack.stack_name
+            stack_name
         ),
         logger=log,
         print_msg=(verbosity == 0)

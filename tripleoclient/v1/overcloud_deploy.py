@@ -1288,6 +1288,11 @@ class DeployOvercloud(command.Command):
                 self.deploy_tripleo_heat_templates(
                     stack, parsed_args, new_tht_root,
                     user_tht_root, created_env_files)
+
+                stack = utils.get_stack(
+                    self.orchestration_client, parsed_args.stack)
+                utils.save_stack_outputs(
+                    self.orchestration_client, stack, self.working_dir)
         except Exception:
             if parsed_args.heat_type != 'installed' and self.heat_launcher:
                 self.log.info("Stopping ephemeral heat.")
@@ -1295,9 +1300,10 @@ class DeployOvercloud(command.Command):
                 utils.rm_heat(self.heat_launcher, backup_db=True)
             raise
 
-        # Get a new copy of the stack after stack update/create. If it was
-        # a create then the previous stack object would be None.
-        stack = utils.get_stack(self.orchestration_client, parsed_args.stack)
+        # Get a new copy of the stack after stack update/create. If it
+        # was a create then the previous stack object would be None.
+        stack = utils.get_stack(
+            self.orchestration_client, parsed_args.stack)
 
         overcloud_endpoint = None
         old_rcpath = None
@@ -1337,7 +1343,7 @@ class DeployOvercloud(command.Command):
 
                 if not parsed_args.config_download_only:
                     deployment.get_hosts_and_enable_ssh_admin(
-                        stack,
+                        parsed_args.stack,
                         parsed_args.overcloud_ssh_network,
                         parsed_args.overcloud_ssh_user,
                         self.get_key_pair(parsed_args),
@@ -1368,7 +1374,7 @@ class DeployOvercloud(command.Command):
                     deployment.config_download(
                         self.log,
                         self.clients,
-                        stack,
+                        parsed_args.stack,
                         parsed_args.overcloud_ssh_network,
                         config_download_dir,
                         parsed_args.override_ansible_cfg,
@@ -1382,7 +1388,9 @@ class DeployOvercloud(command.Command):
                         limit_hosts=utils.playbook_limit_parse(
                             limit_nodes=parsed_args.limit
                         ),
-                        forks=parsed_args.ansible_forks)
+                        forks=parsed_args.ansible_forks,
+                        denyed_hostnames=utils.get_stack_saved_output_item(
+                            'BlacklistedHostnames', self.working_dir))
                 deployment.set_deployment_status(
                     stack.stack_name,
                     status=deploy_status,
@@ -1414,7 +1422,7 @@ class DeployOvercloud(command.Command):
                 deploy_status = 'DEPLOY_FAILED'
                 deploy_message = 'with error'
                 deployment.set_deployment_status(
-                    stack.stack_name,
+                    parsed_args.stack,
                     status=deploy_status,
                     working_dir=self.working_dir)
         finally:

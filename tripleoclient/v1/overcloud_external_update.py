@@ -144,10 +144,7 @@ class ExternalUpdateRun(command.Command):
             deployment.config_download(
                 log=self.log,
                 clients=self.app.client_manager,
-                stack=oooutils.get_stack(
-                    self.app.client_manager.orchestration,
-                    parsed_args.stack
-                ),
+                stack_name=parsed_args.stack,
                 output_dir=ansible_dir,
                 verbosity=oooutils.playbook_verbosity(self=self),
                 ansible_playbook_name=constants.EXTERNAL_UPDATE_PLAYBOOKS,

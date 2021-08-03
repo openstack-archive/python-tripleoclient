@@ -990,6 +990,15 @@ def get_stack_output_item(stack, item):
     return None
 
 
+def get_stack_saved_output_item(output, working_dir):
+    outputs_dir = os.path.join(working_dir, 'outputs')
+    output_path = os.path.join(outputs_dir, output)
+    if not os.path.isfile(output_path):
+        return None
+    with open(output_path) as f:
+        return yaml.safe_load(f.read())
+
+
 def get_overcloud_endpoint(stack):
     return get_stack_output_item(stack, 'KeystoneURL')
 
@@ -1008,12 +1017,14 @@ def get_endpoint_map(stack):
     return endpoint_map
 
 
-def get_blacklisted_ip_addresses(stack):
-    return get_stack_output_item(stack, 'BlacklistedIpAddresses')
+def get_blacklisted_ip_addresses(working_dir):
+    return get_stack_saved_output_item(
+        'BlacklistedIpAddresses', working_dir)
 
 
-def get_role_net_ip_map(stack):
-    return get_stack_output_item(stack, 'RoleNetIpMap')
+def get_role_net_ip_map(working_dir):
+    return get_stack_saved_output_item(
+        'RoleNetIpMap', working_dir)
 
 
 def get_endpoint(key, stack):
@@ -2998,3 +3009,13 @@ def parse_ansible_inventory(inventory_file, group):
                                  sources=[inventory_file])
 
     return(inventory.get_hosts(pattern=group))
+
+
+def save_stack_outputs(heat, stack, working_dir):
+    outputs_dir = os.path.join(working_dir, 'outputs')
+    makedirs(outputs_dir)
+    for output in constants.STACK_OUTPUTS:
+        val = get_stack_output_item(stack, output)
+        output_path = os.path.join(outputs_dir, output)
+        with open(output_path, 'w') as f:
+            f.write(yaml.dump(val))

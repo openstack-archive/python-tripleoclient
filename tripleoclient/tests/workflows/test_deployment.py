@@ -66,6 +66,7 @@ class TestDeploymentWorkflows(utils.TestCommand):
     def test_get_overcloud_hosts(self, mock_role_net_ip_map,
                                  mock_blacklisted_ip_addresses):
         stack = mock.Mock()
+        working_dir = mock.Mock()
         mock_role_net_ip_map.return_value = {
             'Controller': {
                 'ctlplane': ['1.1.1.1', '2.2.2.2', '3.3.3.3'],
@@ -76,12 +77,12 @@ class TestDeploymentWorkflows(utils.TestCommand):
         }
         mock_blacklisted_ip_addresses.return_value = []
 
-        ips = deployment.get_overcloud_hosts(stack, 'ctlplane')
+        ips = deployment.get_overcloud_hosts(stack, 'ctlplane', working_dir)
         expected = ['1.1.1.1', '2.2.2.2', '3.3.3.3',
                     '7.7.7.7', '8.8.8.8', '9.9.9.9']
         self.assertEqual(sorted(expected), sorted(ips))
 
-        ips = deployment.get_overcloud_hosts(stack, 'external')
+        ips = deployment.get_overcloud_hosts(stack, 'external', working_dir)
         expected = ['4.4.4.4', '5.5.5.5', '6.6.6.6',
                     '10.10.10.10', '11.11.11.11', '12.12.12.12']
         self.assertEqual(sorted(expected), sorted(ips))
@@ -92,6 +93,7 @@ class TestDeploymentWorkflows(utils.TestCommand):
             self, mock_role_net_ip_map,
             mock_blacklisted_ip_addresses):
         stack = mock.Mock()
+        working_dir = mock.Mock()
         stack.output_show.return_value = []
         mock_role_net_ip_map.return_value = {
             'Controller': {
@@ -103,19 +105,19 @@ class TestDeploymentWorkflows(utils.TestCommand):
         }
 
         mock_blacklisted_ip_addresses.return_value = ['8.8.8.8']
-        ips = deployment.get_overcloud_hosts(stack, 'ctlplane')
+        ips = deployment.get_overcloud_hosts(stack, 'ctlplane', working_dir)
         expected = ['1.1.1.1', '2.2.2.2', '3.3.3.3',
                     '7.7.7.7', '9.9.9.9']
         self.assertEqual(sorted(expected), sorted(ips))
 
-        ips = deployment.get_overcloud_hosts(stack, 'external')
+        ips = deployment.get_overcloud_hosts(stack, 'external', working_dir)
         expected = ['4.4.4.4', '5.5.5.5', '6.6.6.6',
                     '10.10.10.10', '12.12.12.12']
         self.assertEqual(sorted(expected), sorted(ips))
 
         mock_blacklisted_ip_addresses.return_value = ['7.7.7.7', '9.9.9.9',
                                                       '2.2.2.2']
-        ips = deployment.get_overcloud_hosts(stack, 'external')
+        ips = deployment.get_overcloud_hosts(stack, 'external', working_dir)
         expected = ['4.4.4.4', '6.6.6.6', '11.11.11.11']
         self.assertEqual(sorted(expected), sorted(ips))
 
@@ -129,7 +131,7 @@ class TestDeploymentWorkflows(utils.TestCommand):
         stack.output_show.return_value = {'output': {'output_value': []}}
         clients = mock.Mock()
         deployment.config_download(
-            log, clients, stack, 'templates', 'ssh_user',
+            log, clients, 'stacktest', 'templates', 'ssh_user',
             'ssh_key', 'ssh_networks', 'output_dir', False,
             'timeout')
 

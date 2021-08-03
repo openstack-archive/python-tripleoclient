@@ -1,0 +1,5 @@
+---
+other:
+  - Stack outputs that are needed by other functionality of the overcloud
+    deployment are now saved in the stack working directory in an outputs
+    subdirectory (default ~/overcloud-deploy/<stack>/outputs).
