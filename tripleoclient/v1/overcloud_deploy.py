@@ -603,9 +603,6 @@ class DeployOvercloud(command.Command):
 
     def setup_ephemeral_heat(self, parsed_args):
         self.log.info("Using ephemeral heat for stack operation")
-        restore_db = (parsed_args.setup_only or
-                      parsed_args.config_download_only)
-
         # Skip trying to pull the images if they are set to the default
         # as they can't be pulled since they are tagged as localhost.
         # If the images are missing for some reason, podman will still pull
@@ -627,8 +624,7 @@ class DeployOvercloud(command.Command):
             use_tmp_dir=False,
             rm_heat=parsed_args.rm_heat,
             skip_heat_pull=skip_heat_pull)
-        self.orchestration_client = \
-            utils.launch_heat(self.heat_launcher, restore_db=restore_db)
+        self.orchestration_client = utils.launch_heat(self.heat_launcher)
         self.clients.orchestration = self.orchestration_client
 
     def get_parser(self, prog_name):
@@ -828,35 +824,38 @@ class DeployOvercloud(command.Command):
             '--config-download',
             action='store_true',
             default=True,
-            help=_('Run deployment via config-download mechanism. This is '
-                   'now the default, and this CLI options may be removed in '
-                   'the future.')
+            help=_('DEPRECATED: Run deployment via config-download mechanism. '
+                   'This is now the default, and this CLI options has no '
+                   'effect.')
         )
         parser.add_argument(
             '--no-config-download',
             '--stack-only',
-            action='store_false',
+            action='store_true',
             default=False,
-            dest='config_download',
+            dest='stack_only',
             help=_('Disable the config-download workflow and only create '
-                   'the stack and associated OpenStack resources. No '
-                   'software configuration will be applied.')
+                   'the stack and download the config. No software '
+                   'configuration, setup, or any changes will be applied '
+                   'to overcloud nodes.')
         )
         parser.add_argument(
             '--config-download-only',
             action='store_true',
             default=False,
-            help=_('Disable the stack create/update, and only run the '
+            help=_('Disable the stack create and setup, and only run the '
                    'config-download workflow to apply the software '
-                   'configuration.')
+                   'configuration. Requires that config-download setup '
+                   'was previously completed, either with --stack-only '
+                   'and --setup-only or a full deployment')
         )
         parser.add_argument(
             '--setup-only',
             action='store_true',
             default=False,
-            help=_('option will automate the setup and download steps '
-                   'required to prepare the environment for manual '
-                   'ansible execution.')
+            help=_('Disable the stack and config-download workflow to apply '
+                   'the software configuration and only run the setup to '
+                   'enable ssh connectivity.')
         )
         parser.add_argument(
             '--config-dir',
@@ -1134,15 +1133,38 @@ class DeployOvercloud(command.Command):
                 stack, parsed_args, new_tht_root, user_tht_root)
 
         if parsed_args.heat_type != 'installed':
-            self.setup_ephemeral_heat(parsed_args)
+            ephemeral_heat = True
         else:
+            ephemeral_heat = False
             self.log.warning(
                 ("DEPRECATED: Using --heat-type=installed is deprecated "
                  "and will be removed in a future release."))
 
+        # full_deploy means we're doing a full deployment
+        # e.g., no --*-only args were passed
+        full_deploy = not (parsed_args.stack_only or parsed_args.setup_only or
+                           parsed_args.config_download_only)
+        # do_stack is True when:
+        # --stack-only
+        # a full deployment
+        do_stack = (parsed_args.stack_only or full_deploy)
+        # do_setup is True when:
+        # --setup-only OR
+        # a full deployment
+        do_setup = parsed_args.setup_only or full_deploy
+        # do_config_download is True when:
+        # --config-download-only OR
+        # a full deployment
+        do_config_download = parsed_args.config_download_only or full_deploy
+
+        if ephemeral_heat and do_stack:
+            self.setup_ephemeral_heat(parsed_args)
+
+        config_download_dir = parsed_args.output_dir or \
+            os.path.join(self.working_dir, "config-download")
+
         try:
-            if not (parsed_args.config_download_only or
-                    parsed_args.setup_only):
+            if do_stack:
                 self.deploy_tripleo_heat_templates(
                     stack, parsed_args, new_tht_root,
                     user_tht_root, created_env_files)
@@ -1151,6 +1173,39 @@ class DeployOvercloud(command.Command):
                     self.orchestration_client, parsed_args.stack)
                 utils.save_stack_outputs(
                     self.orchestration_client, stack, self.working_dir)
+
+                # Download config
+                config_dir = parsed_args.config_dir or config_download_dir
+                config_type = parsed_args.config_type
+                preserve_config_dir = parsed_args.preserve_config_dir
+                key_file = utils.get_key(parsed_args.stack)
+                extra_vars = {
+                    'plan': parsed_args.stack,
+                    'config_dir': config_dir,
+                    'preserve_config': preserve_config_dir,
+                    'output_dir': config_download_dir,
+                    'ansible_ssh_user': parsed_args.overcloud_ssh_user,
+                    'ansible_ssh_private_key_file': key_file,
+                    'ssh_network': parsed_args.overcloud_ssh_network,
+                    'python_interpreter':
+                        parsed_args.deployment_python_interpreter,
+                }
+                if parsed_args.config_type:
+                    extra_vars['config_type'] = config_type
+
+                playbook = 'cli-config-download.yaml'
+                ansible_work_dir = os.path.join(
+                    self.working_dir, os.path.splitext(playbook)[0])
+                utils.run_ansible_playbook(
+                    playbook='cli-config-download.yaml',
+                    inventory='localhost,',
+                    workdir=ansible_work_dir,
+                    playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                    reproduce_command=True,
+                    verbosity=utils.playbook_verbosity(self=self),
+                    extra_vars=extra_vars
+                )
+
         except Exception:
             if parsed_args.heat_type != 'installed' and self.heat_launcher:
                 self.log.info("Stopping ephemeral heat.")
@@ -1158,59 +1213,45 @@ class DeployOvercloud(command.Command):
                 utils.rm_heat(self.heat_launcher, backup_db=True)
             raise
 
-        # Get a new copy of the stack after stack update/create. If it
-        # was a create then the previous stack object would be None.
-        stack = utils.get_stack(
-            self.orchestration_client, parsed_args.stack)
-
         overcloud_endpoint = None
         old_rcpath = None
         rcpath = None
         horizon_url = None
 
         try:
-            # Force fetching of attributes
-            stack.get()
-            overcloud_endpoint = utils.get_overcloud_endpoint(stack)
-            horizon_url = deployment.get_horizon_url(
-                stack=stack.stack_name,
-                heat_type=parsed_args.heat_type,
-                working_dir=self.working_dir)
-            rc_params = utils.get_rc_params(
-                self.orchestration_client,
-                parsed_args.stack)
+            if stack:
+                # Force fetching of attributes
+                stack.get()
+                overcloud_endpoint = utils.get_overcloud_endpoint(stack)
+                horizon_url = deployment.get_horizon_url(
+                    stack=stack.stack_name,
+                    heat_type=parsed_args.heat_type,
+                    working_dir=self.working_dir)
+                rc_params = utils.get_rc_params(
+                    self.orchestration_client,
+                    parsed_args.stack)
 
-            # For backwards compatibility, we will also write overcloudrc to
-            # $HOME and then self.working_dir.
-            old_rcpath = deployment.create_overcloudrc(
-                stack, rc_params, parsed_args.no_proxy)
-            rcpath = deployment.create_overcloudrc(
-                stack, rc_params, parsed_args.no_proxy,
-                self.working_dir)
+                # For backwards compatibility, we will also write overcloudrc
+                # to $HOME and then self.working_dir.
+                old_rcpath = deployment.create_overcloudrc(
+                    stack, rc_params, parsed_args.no_proxy)
+                rcpath = deployment.create_overcloudrc(
+                    stack, rc_params, parsed_args.no_proxy,
+                    self.working_dir)
 
-            config_download_dir = parsed_args.output_dir or \
-                os.path.join(self.working_dir, "config-download")
-
-            if parsed_args.config_download:
-                self.log.info("Deploying overcloud configuration")
-                deployment.set_deployment_status(
-                    stack.stack_name,
-                    status='DEPLOYING',
-                    working_dir=self.working_dir
+            if do_setup:
+                deployment.get_hosts_and_enable_ssh_admin(
+                    parsed_args.stack,
+                    parsed_args.overcloud_ssh_network,
+                    parsed_args.overcloud_ssh_user,
+                    self.get_key_pair(parsed_args),
+                    parsed_args.overcloud_ssh_port_timeout,
+                    self.working_dir,
+                    verbosity=utils.playbook_verbosity(self=self),
+                    heat_type=parsed_args.heat_type
                 )
 
-                if not parsed_args.config_download_only:
-                    deployment.get_hosts_and_enable_ssh_admin(
-                        parsed_args.stack,
-                        parsed_args.overcloud_ssh_network,
-                        parsed_args.overcloud_ssh_user,
-                        self.get_key_pair(parsed_args),
-                        parsed_args.overcloud_ssh_port_timeout,
-                        self.working_dir,
-                        verbosity=utils.playbook_verbosity(self=self),
-                        heat_type=parsed_args.heat_type
-                    )
-
+            if do_config_download:
                 if parsed_args.config_download_timeout:
                     timeout = parsed_args.config_download_timeout
                 else:
@@ -1220,61 +1261,45 @@ class DeployOvercloud(command.Command):
                         raise exceptions.DeploymentError(
                             'Deployment timed out after %sm' % used)
 
-                if not parsed_args.setup_only:
-                    deployment_options = {}
-                    if parsed_args.deployment_python_interpreter:
-                        deployment_options['ansible_python_interpreter'] = \
-                            parsed_args.deployment_python_interpreter
-
-                    deployment.make_config_download_dir(config_download_dir,
-                                                        parsed_args.stack)
-
-                    deployment.config_download(
-                        self.log,
-                        self.clients,
-                        parsed_args.stack,
-                        parsed_args.overcloud_ssh_network,
-                        config_download_dir,
-                        parsed_args.override_ansible_cfg,
-                        timeout=parsed_args.overcloud_ssh_port_timeout,
-                        verbosity=utils.playbook_verbosity(self=self),
-                        deployment_options=deployment_options,
-                        in_flight_validations=parsed_args.inflight,
-                        deployment_timeout=timeout,
-                        tags=parsed_args.tags,
-                        skip_tags=parsed_args.skip_tags,
-                        limit_hosts=utils.playbook_limit_parse(
-                            limit_nodes=parsed_args.limit
-                        ),
-                        forks=parsed_args.ansible_forks,
-                        denyed_hostnames=utils.get_stack_saved_output_item(
-                            'BlacklistedHostnames', self.working_dir))
+                self.log.info("Deploying overcloud configuration")
                 deployment.set_deployment_status(
-                    stack.stack_name,
-                    status=deploy_status,
-                    working_dir=self.working_dir)
-            elif not parsed_args.config_download or parsed_args.setup_only:
-                # Download config
-                config_dir = parsed_args.config_dir or config_download_dir
-                config_type = parsed_args.config_type
-                preserve_config_dir = parsed_args.preserve_config_dir
-                extra_vars = {
-                    'plan': stack.stack_name,
-                    'config_dir': config_dir,
-                    'preserve_config': preserve_config_dir
-                }
-                if parsed_args.config_type:
-                    extra_vars['config_type'] = config_type
+                    parsed_args.stack,
+                    status='DEPLOYING',
+                    working_dir=self.working_dir
+                )
 
-                with utils.TempDirs() as tmp:
-                    utils.run_ansible_playbook(
-                        playbook='cli-config-download-export.yaml',
-                        inventory='localhost,',
-                        workdir=tmp,
-                        playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
-                        verbosity=utils.playbook_verbosity(self=self),
-                        extra_vars=extra_vars
-                    )
+                deployment_options = {}
+                if parsed_args.deployment_python_interpreter:
+                    deployment_options['ansible_python_interpreter'] = \
+                        parsed_args.deployment_python_interpreter
+
+                deployment.make_config_download_dir(config_download_dir,
+                                                    parsed_args.stack)
+
+                deployment.config_download(
+                    self.log,
+                    self.clients,
+                    parsed_args.stack,
+                    parsed_args.overcloud_ssh_network,
+                    config_download_dir,
+                    parsed_args.override_ansible_cfg,
+                    timeout=parsed_args.overcloud_ssh_port_timeout,
+                    verbosity=utils.playbook_verbosity(self=self),
+                    deployment_options=deployment_options,
+                    in_flight_validations=parsed_args.inflight,
+                    deployment_timeout=timeout,
+                    tags=parsed_args.tags,
+                    skip_tags=parsed_args.skip_tags,
+                    limit_hosts=utils.playbook_limit_parse(
+                        limit_nodes=parsed_args.limit
+                    ),
+                    forks=parsed_args.ansible_forks,
+                    denyed_hostnames=utils.get_stack_saved_output_item(
+                        'BlacklistedHostnames', self.working_dir))
+            deployment.set_deployment_status(
+                parsed_args.stack,
+                status=deploy_status,
+                working_dir=self.working_dir)
         except (BaseException, Exception):
             with excutils.save_and_reraise_exception():
                 deploy_status = 'DEPLOY_FAILED'
@@ -1286,7 +1311,7 @@ class DeployOvercloud(command.Command):
         finally:
             try:
                 # Run postconfig on create or force
-                if (stack_create or parsed_args.force_postconfig
+                if (stack or parsed_args.force_postconfig
                         and not parsed_args.skip_postconfig):
                     self._deploy_postconfig(stack, parsed_args)
             except Exception as e:
@@ -1327,11 +1352,13 @@ class DeployOvercloud(command.Command):
                 self.log.error('Exception creating overcloud export.')
                 self.log.error(e)
 
-            print("Overcloud Endpoint: {0}".format(overcloud_endpoint))
-            print("Overcloud Horizon Dashboard URL: {0}".format(horizon_url))
-            print("Overcloud rc file: {} and {}".format(
-                rcpath, old_rcpath))
-            print("Overcloud Deployed {0}".format(deploy_message))
+            if do_config_download:
+                print("Overcloud Endpoint: {0}".format(overcloud_endpoint))
+                print("Overcloud Horizon Dashboard URL: {0}".format(
+                    horizon_url))
+                print("Overcloud rc file: {} and {}".format(
+                    rcpath, old_rcpath))
+                print("Overcloud Deployed {0}".format(deploy_message))
 
             try:
                 if parsed_args.heat_type != 'installed':

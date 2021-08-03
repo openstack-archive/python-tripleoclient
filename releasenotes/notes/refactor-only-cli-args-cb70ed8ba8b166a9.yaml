@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    The cli arguments that control what parts of the deployment to execute
+    have been refactored to better align with the user expected intention,
+    --stack-only: create the stack, download the config. no overcloud node
+    changes
+    --setup-only: ssh admin authorization setup.
+    --config-download-only: run config-download playbook(s) to configure the
+    overcloud.
