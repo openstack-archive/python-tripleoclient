@@ -250,6 +250,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_copy.assert_called_once()
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
+                '_provision_virtual_ips', autospec=True)
+    @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_provision_networks', autospec=True)
     @mock.patch('tripleoclient.utils.build_stack_data', autospec=True)
     @mock.patch('tripleo_common.utils.plan.default_image_params',
@@ -294,7 +296,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                         mock_process_env, mock_roles_data,
                         mock_container_prepare, mock_generate_password,
                         mock_rc_params, mock_default_image_params,
-                        mock_stack_data, mock_provision_networks):
+                        mock_stack_data, mock_provision_networks,
+                        mock_provision_virtual_ips):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         utils_fixture = deployment.UtilsFixture()
@@ -1504,8 +1507,12 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         with open(env_path, 'w') as f:
             yaml.safe_dump(baremetal_deployed, f)
 
+        protected_overrides = {'registry_entries': dict(),
+                               'parameter_entries': dict()}
+
         self.cmd.working_dir = self.tmp_dir.join('working_dir')
-        result = self.cmd._provision_baremetal(parsed_args, tht_root)
+        result = self.cmd._provision_baremetal(parsed_args, tht_root,
+                                               protected_overrides)
         self.cmd._unprovision_baremetal(parsed_args)
         self.assertEqual([env_path], result)
         self.mock_playbook.assert_has_calls([
@@ -1561,11 +1568,16 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
     def test__provision_networks(self):
         networks_file_path = self.tmp_dir.join('networks.yaml')
-        network_data = [
-            {'name': 'Network', 'name_lower': 'network', 'subnets': {}}
-        ]
+        fake_network_data = [{'name': 'Network', 'name_lower': 'network'}]
+        fake_deployed_env = {
+            'parameter_defaults':
+                {'DeployedNetworkEnvironment': {'foo': 'bar'}},
+            'resource_registry':
+                {'OS::TripleO::Network': 'foo'}
+        }
+
         with open(networks_file_path, 'w') as temp_file:
-            yaml.safe_dump(network_data, temp_file)
+            yaml.safe_dump(fake_network_data, temp_file)
 
         arglist = ['--networks-file', networks_file_path,
                    '--templates', constants.TRIPLEO_HEAT_TEMPLATES]
@@ -1578,7 +1590,14 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         env_path = os.path.join(env_dir, 'networks-deployed.yaml')
         os.makedirs(env_dir)
 
-        result = self.cmd._provision_networks(parsed_args, tht_root)
+        with open(env_path, 'w') as env_file:
+            env_file.write(yaml.safe_dump(data=fake_deployed_env))
+
+        protected_overrides = {'registry_entries': dict(),
+                               'parameter_entries': dict()}
+
+        result = self.cmd._provision_networks(parsed_args, tht_root,
+                                              protected_overrides)
         self.assertEqual([env_path], result)
         self.mock_playbook.assert_called_once_with(
             extra_vars={'network_data_path': networks_file_path,
@@ -1605,6 +1624,10 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         with open(vips_file_path, 'w') as temp_file:
             yaml.safe_dump(vip_data, temp_file)
 
+        fake_deployed_env = {
+            'parameter_defaults': {'VipPortMap': {'external': {'foo': 'bar'}}},
+            'resource_registry': {
+                'OS::TripleO::Network::Ports::ExternalVipPort': 'foo'}}
         stack_name = 'overcloud'
         arglist = ['--stack', stack_name,
                    '--vip-file', vips_file_path,
@@ -1621,7 +1644,14 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         env_path = os.path.join(env_dir, 'virtual-ips-deployed.yaml')
         os.makedirs(env_dir)
 
-        result = self.cmd._provision_virtual_ips(parsed_args, tht_root)
+        with open(env_path, 'w') as env_file:
+            env_file.write(yaml.safe_dump(data=fake_deployed_env))
+
+        protected_overrides = {'registry_entries': dict(),
+                               'parameter_entries': dict()}
+
+        result = self.cmd._provision_virtual_ips(parsed_args, tht_root,
+                                                 protected_overrides)
         self.assertEqual([env_path], result)
         self.mock_playbook.assert_called_once_with(
             extra_vars={'stack_name': stack_name,
