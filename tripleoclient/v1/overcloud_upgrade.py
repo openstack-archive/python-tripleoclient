@@ -71,9 +71,9 @@ class UpgradePrepare(DeployOvercloud):
         clients = self.app.client_manager
 
         # In case of update and upgrade we need to force the
-        # config_download to false. The heat stack update will be performed
+        # stack_only to true. The heat stack update will be performed
         # by DeployOvercloud class but skipping the config download part.
-        parsed_args.config_download = False
+        parsed_args.stack_only = True
         # Add the template attribute environment to set noops etc
         templates_dir = (parsed_args.templates or
                          constants.TRIPLEO_HEAT_TEMPLATES)

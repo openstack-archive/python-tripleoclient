@@ -385,30 +385,6 @@ def config_download(log, clients, stack_name, ssh_network='ctlplane',
                 ':'.join(['!{}'.format(i) for i in denyed_hostnames
                           if i]))
 
-    key_file = utils.get_key(stack_name)
-    python_interpreter = deployment_options.get('ansible_python_interpreter')
-
-    playbook = 'cli-config-download.yaml'
-    ansible_work_dir = os.path.join(
-        working_dir, os.path.splitext(playbook)[0])
-    utils.run_ansible_playbook(
-        playbook=playbook,
-        inventory='localhost,',
-        workdir=ansible_work_dir,
-        playbook_dir=ANSIBLE_TRIPLEO_PLAYBOOKS,
-        verbosity=verbosity,
-        reproduce_command=True,
-        extra_vars={
-            'plan': stack_name,
-            'output_dir': output_dir,
-            'ansible_ssh_user': ssh_user,
-            'ansible_ssh_private_key_file': key_file,
-            'ssh_network': ssh_network,
-            'python_interpreter': python_interpreter,
-            'inventory_path': inventory_path
-        }
-    )
-
     _log_and_print(
         message='Executing deployment playbook for stack: {}'.format(
             stack_name
@@ -438,7 +414,7 @@ def config_download(log, clients, stack_name, ssh_network='ctlplane',
         ansible_cfg=override_ansible_cfg,
         verbosity=verbosity,
         ssh_user=ssh_user,
-        key=key_file,
+        key=utils.get_key(stack_name),
         limit_hosts=limit_hosts,
         ansible_timeout=timeout,
         reproduce_command=True,
