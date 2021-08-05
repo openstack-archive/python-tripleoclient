@@ -872,6 +872,31 @@ class TestWaitForStackUtil(TestCase):
         with self.assertRaises(exceptions.InvalidConfiguration):
             utils.check_ceph_fsid_matches_env_files(mock_stack, provided_env)
 
+    def test_check_ceph_ansible(self):
+
+        res_reg = {
+            'resource_registry': {
+                'OS::Tripleo::Services::CephMon': '/path/to/ceph-ansible.yml',
+            }
+        }
+
+        utils.check_ceph_ansible(res_reg.get('resource_registry', {}),
+                                 'UpgradePrepare')
+        utils.check_ceph_ansible(res_reg.get('resource_registry', {}),
+                                 'UpgradeConverge')
+
+    def test_check_ceph_ansible_fail(self):
+
+        res_reg = {
+            'resource_registry': {
+                'OS::Tripleo::Services::CephMon': '/path/to/ceph-ansible.yml',
+            }
+        }
+
+        with self.assertRaises(exceptions.InvalidConfiguration):
+            utils.check_ceph_ansible(res_reg.get('resource_registry', {}),
+                                     'DeployOvercloud')
+
     def test_check_swift_and_rgw(self):
         stack_reg = {
             'OS::TripleO::Services::SwiftProxy': 'OS::Heat::None',
