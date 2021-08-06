@@ -313,12 +313,34 @@ class GlanceClientAdapter(BaseClientAdapter):
         print(table, file=sys.stdout)
 
     def _get_image(self, name):
+        """Retrieves 'openstack.image.v2.image.Image' object.
+        Uses 'openstack.image.v2._proxy.Proxy.find_image' method.
+
+        :param name: name or ID of an image
+        :type name: `string`
+
+        :returns: Requested image object if one exists, otherwise `None`
+        :rtype: `openstack.image.v2.image.Image` or `NoneType`
+        """
         # This would return None by default for an non-existent resorurce
         # And DuplicateResource exception if there more than one.
         return self.client.find_image(name)
 
     def _image_changed(self, image, filename):
-        return image.checksum != plugin_utils.file_checksum(filename)
+        """Compare the precomputed hash value with the one derived here.
+        :param image: Image resource
+        :type image: `openstack.image.v2.image.Image`
+        :param filename: path to the image file
+        :type filname: `string`
+
+        :returns: True if image hashes don't match, false otherwise
+        :rtype: `bool`
+        """
+        if not hasattr(image, 'hash_value'):
+            raise RuntimeError(
+                ("The supplied image does not have a hash value set."))
+        return image.hash_value != plugin_utils.file_checksum(
+            filename, image.hash_algo)
 
     def _image_try_update(self, image_name, image_file):
         image = self._get_image(image_name)

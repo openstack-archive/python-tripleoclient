@@ -1255,17 +1255,29 @@ def remove_known_hosts(overcloud_ip):
         subprocess.check_call(command)
 
 
-def file_checksum(filepath):
-    """Calculate md5 checksum on file
-
+def file_checksum(filepath, hash_algo='sha512'):
+    """Calculate sha512 checksum on file
     :param filepath: Full path to file (e.g. /home/stack/image.qcow2)
     :type  filepath: string
+    :param hash_algo: name of the hash algorithm, 'sha512' by default
+    :type  hash_algo: string
 
+    :returns: hexadecimal hash of the file
+
+    :raises:
+        RuntimeError if the 'hash_algo' value isn't supported.
+        ValueError if the path isn't pointing to a regular file.
     """
     if not os.path.isfile(filepath):
         raise ValueError(_("The given file {0} is not a regular "
                            "file").format(filepath))
-    checksum = hashlib.md5()
+
+    if hash_algo not in constants.FIPS_COMPLIANT_HASHES:
+        raise RuntimeError(
+            "The requested hash algorithm (%s) is not supported." % hash_algo)
+
+    checksum = hashlib.new(hash_algo)
+
     with open(filepath, 'rb') as f:
         while True:
             fragment = f.read(65536)

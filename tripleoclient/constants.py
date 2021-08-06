@@ -277,3 +277,5 @@ UPDATE_NO = _('User did not confirm update, so exiting. '
 
 DEFAULT_PARTITION_IMAGE = 'overcloud-full.qcow2'
 DEFAULT_WHOLE_DISK_IMAGE = 'overcloud-hardened-uefi-full.qcow2'
+
+FIPS_COMPLIANT_HASHES = {'sha1', 'sha224', 'sha256', 'sha384', 'sha512'}
