@@ -80,7 +80,7 @@ class ExportCell(command.Command):
 
         # prepare clients to access the environment
         clients = self.app.client_manager
-        heat = clients.tripleoclient.orchestration
+        heat = clients.orchestration
 
         data = export.export_passwords(heat, control_plane_stack)
 
