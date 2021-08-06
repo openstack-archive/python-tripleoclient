@@ -293,3 +293,5 @@ KIND_TEMPLATES = {'roles': WD_DEFAULT_ROLES_FILE_NAME,
                   'vips': WD_DEFAULT_VIP_FILE_NAME}
 DEFAULT_PARTITION_IMAGE = 'overcloud-full.qcow2'
 DEFAULT_WHOLE_DISK_IMAGE = 'overcloud-hardened-uefi-full.qcow2'
+
+FIPS_COMPLIANT_HASHES = {'sha1', 'sha224', 'sha256', 'sha384', 'sha512'}
