@@ -1157,6 +1157,7 @@ class DeployOvercloud(command.Command):
                         parsed_args.overcloud_ssh_user,
                         self.get_key_pair(parsed_args),
                         parsed_args.overcloud_ssh_port_timeout,
+                        self.working_dir,
                         verbosity=utils.playbook_verbosity(self=self),
                         heat_type=parsed_args.heat_type
                     )

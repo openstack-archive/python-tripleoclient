@@ -232,6 +232,7 @@ class TestDeleteNode(fakes.TestDeleteNode):
                 workdir=mock.ANY,
                 playbook_dir='/usr/share/ansible/tripleo-playbooks',
                 verbosity=mock.ANY,
+                reproduce_command=True,
                 extra_vars={
                     'access_path': os.path.join(os.environ.get('HOME'),
                                                 'config-download'),

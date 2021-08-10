@@ -105,6 +105,7 @@ class UpgradePrepare(DeployOvercloud):
             parsed_args.overcloud_ssh_user,
             self.get_key_pair(parsed_args),
             parsed_args.overcloud_ssh_port_timeout,
+            working_dir=self.working_dir,
             verbosity=oooutils.playbook_verbosity(self=self)
         )
 

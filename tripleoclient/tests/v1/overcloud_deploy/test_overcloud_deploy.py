@@ -1387,7 +1387,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         # assuming heat deploy consumed a 3m out of total 451m timeout
         with mock.patch('time.time', side_effect=[1585820346,
                                                   12345678, 0, 0,
-                                                  1585820526, 0]):
+                                                  1585820526, 0,
+                                                  0, 0, 0]):
             self.cmd.take_action(parsed_args)
         self.assertIn([
             mock.call(

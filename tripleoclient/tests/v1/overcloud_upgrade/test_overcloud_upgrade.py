@@ -80,6 +80,7 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
         ]
 
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+        self.cmd.working_dir = mock.Mock()
         self.cmd.take_action(parsed_args)
         mock_usercheck.assert_called_once()
 
@@ -93,6 +94,7 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
             parsed_args.overcloud_ssh_user,
             mock.ANY,
             parsed_args.overcloud_ssh_port_timeout,
+            self.cmd.working_dir,
             mock.ANY
         )
 
