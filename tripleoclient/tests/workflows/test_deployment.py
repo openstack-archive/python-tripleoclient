@@ -36,13 +36,14 @@ class TestDeploymentWorkflows(utils.TestCommand):
         shutil.rmtree(deployment.DEFAULT_WORK_DIR)
         deployment.DEFAULT_WORK_DIR = self.orig_workdir
 
+    @mock.patch('os.path.join')
     @mock.patch('shutil.rmtree')
     @mock.patch('os.chdir')
     @mock.patch('tripleoclient.utils.tempfile')
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
                 autospec=True)
-    def test_enable_ssh_admin(self, mock_rmtree, mock_chdir, mock_tempfile,
-                              mock_playbook):
+    def test_enable_ssh_admin(self, mock_playbook, mock_tempfile,
+                              mock_chdir, mock_rmtree, mock_join):
         hosts = 'a', 'b', 'c'
         ssh_user = 'test-user'
         ssh_key = 'test-key'
@@ -53,7 +54,8 @@ class TestDeploymentWorkflows(utils.TestCommand):
             hosts,
             ssh_user,
             ssh_key,
-            timeout
+            timeout,
+            mock.Mock()
         )
 
         # once for ssh-keygen, then twice per host

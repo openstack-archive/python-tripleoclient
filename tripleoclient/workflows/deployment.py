@@ -139,7 +139,8 @@ def get_overcloud_hosts(stack, ssh_network):
 def get_hosts_and_enable_ssh_admin(stack, overcloud_ssh_network,
                                    overcloud_ssh_user, overcloud_ssh_key,
                                    overcloud_ssh_port_timeout,
-                                   verbosity=0, heat_type='installed'):
+                                   working_dir, verbosity=0,
+                                   heat_type='installed'):
     """Enable ssh admin access.
 
     Get a list of hosts from a given stack and enable admin ssh across all of
@@ -172,6 +173,7 @@ def get_hosts_and_enable_ssh_admin(stack, overcloud_ssh_network,
             overcloud_ssh_user,
             overcloud_ssh_key,
             overcloud_ssh_port_timeout,
+            working_dir,
             verbosity=verbosity,
             heat_type=heat_type
         )
@@ -185,7 +187,7 @@ def get_hosts_and_enable_ssh_admin(stack, overcloud_ssh_network,
 
 
 def enable_ssh_admin(stack, hosts, ssh_user, ssh_key, timeout,
-                     verbosity=0, heat_type='installed'):
+                     working_dir, verbosity=0, heat_type='installed'):
     """Run enable ssh admin access playbook.
 
     :param stack: Stack data.
@@ -220,22 +222,25 @@ def enable_ssh_admin(stack, hosts, ssh_user, ssh_key, timeout,
     try:
         if heat_type != 'installed' and tc_heat_utils.heatclient:
             tc_heat_utils.heatclient.save_environment()
-        with utils.TempDirs() as tmp:
-            utils.run_ansible_playbook(
-                playbook='cli-enable-ssh-admin.yaml',
-                inventory=','.join(hosts),
-                workdir=tmp,
-                playbook_dir=ANSIBLE_TRIPLEO_PLAYBOOKS,
-                key=ssh_key,
-                ssh_user=ssh_user,
-                verbosity=verbosity,
-                extra_vars={
-                    "ssh_user": ssh_user,
-                    "ssh_servers": hosts,
-                    'tripleo_cloud_name': stack.stack_name
-                },
-                ansible_timeout=timeout
-            )
+        playbook = 'cli-enable-ssh-admin.yaml'
+        ansible_work_dir = os.path.join(
+            working_dir, os.path.splitext(playbook)[0])
+        utils.run_ansible_playbook(
+            playbook=playbook,
+            inventory=','.join(hosts),
+            workdir=ansible_work_dir,
+            playbook_dir=ANSIBLE_TRIPLEO_PLAYBOOKS,
+            key=ssh_key,
+            ssh_user=ssh_user,
+            verbosity=verbosity,
+            reproduce_command=True,
+            extra_vars={
+                "ssh_user": ssh_user,
+                "ssh_servers": hosts,
+                'tripleo_cloud_name': stack.stack_name
+            },
+            ansible_timeout=timeout
+        )
     finally:
         if heat_type != 'installed' and tc_heat_utils.heatclient:
             tc_heat_utils.heatclient.restore_environment()
@@ -350,18 +355,21 @@ def config_download(log, clients, stack, ssh_network='ctlplane',
         else:
             skip_tags = 'opendev-validation'
 
-    with utils.TempDirs() as tmp:
-        utils.run_ansible_playbook(
-            playbook='cli-grant-local-access.yaml',
-            inventory='localhost,',
-            workdir=tmp,
-            playbook_dir=ANSIBLE_TRIPLEO_PLAYBOOKS,
-            verbosity=verbosity,
-            extra_vars={
-                'access_path': output_dir,
-                'execution_user': getpass.getuser()
-            }
-        )
+    playbook = 'cli-grant-local-access.yaml'
+    ansible_work_dir = os.path.join(
+        working_dir, os.path.splitext(playbook)[0])
+    utils.run_ansible_playbook(
+        playbook=playbook,
+        inventory='localhost,',
+        workdir=ansible_work_dir,
+        playbook_dir=ANSIBLE_TRIPLEO_PLAYBOOKS,
+        verbosity=verbosity,
+        reproduce_command=True,
+        extra_vars={
+            'access_path': output_dir,
+            'execution_user': getpass.getuser()
+        }
+    )
 
     _log_and_print(
         message='Checking for blacklisted hosts from stack: {}'.format(
@@ -387,7 +395,7 @@ def config_download(log, clients, stack, ssh_network='ctlplane',
     ansible_work_dir = os.path.join(
         working_dir, os.path.splitext(playbook)[0])
     utils.run_ansible_playbook(
-        playbook='cli-config-download.yaml',
+        playbook=playbook,
         inventory='localhost,',
         workdir=ansible_work_dir,
         playbook_dir=ANSIBLE_TRIPLEO_PLAYBOOKS,
