@@ -1193,6 +1193,20 @@ def check_service_vips_migrated_to_service(stack, environment):
             raise exceptions.InvalidConfiguration(msg)
 
 
+def check_neutron_resources(environment):
+    registry = environment.get('resource_registry', {})
+    msg = ("Resource {} maps to type {} and the Neutron "
+           "service is not available when using ephemeral Heat. "
+           "The generated environments from "
+           "'openstack overcloud baremetal provision' and "
+           "'openstack overcloud network provision' must be included "
+           "with the deployment command.")
+    for rsrc, rsrc_type in registry.items():
+        if (type(rsrc_type) == str and
+                rsrc_type.startswith("OS::Neutron")):
+            raise exceptions.InvalidConfiguration(msg.format(rsrc, rsrc_type))
+
+
 def check_stack_network_matches_env_files(stack, environment):
     """Check stack against proposed env files to ensure non-breaking change
 
