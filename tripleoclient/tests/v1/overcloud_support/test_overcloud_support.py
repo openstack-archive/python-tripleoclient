@@ -1,4 +1,4 @@
-#   Copyright 2017 Red Hat, Inc.
+#   Copyright 2020 Red Hat, Inc.
 #
 #   Licensed under the Apache License, Version 2.0 (the "License"); you may
 #   not use this file except in compliance with the License. You may obtain
@@ -15,119 +15,134 @@
 
 import mock
 
+from osc_lib.tests import utils
 
-from tripleoclient.tests.v1.overcloud_deploy import fakes
+from tripleoclient.tests import fakes
 from tripleoclient.v1 import overcloud_support
 
 
-class TestOvercloudSupportReport(fakes.TestDeployOvercloud):
+class TestOvercloudSupportReport(utils.TestCommand):
 
     def setUp(self):
         super(TestOvercloudSupportReport, self).setUp()
 
-        self.cmd = overcloud_support.ReportExecute(self.app, None)
+        # Get the command object to test
+        app_args = mock.Mock()
+        app_args.verbose_level = 1
         self.app.client_manager.workflow_engine = mock.Mock()
         self.app.client_manager.tripleoclient = mock.Mock()
         self.app.client_manager.object_store = mock.Mock()
         self.workflow = self.app.client_manager.workflow_engine
-        self.swift = self.app.client_manager.object_store
+        self.app.options = fakes.FakeOptions()
+        self.cmd = overcloud_support.ReportExecute(self.app, app_args)
 
-    @mock.patch('tripleoclient.workflows.support.download_files')
-    @mock.patch('tripleoclient.workflows.support.delete_container')
-    @mock.patch('tripleoclient.workflows.support.fetch_logs')
-    def test_action(self, fetch_logs_mock, delete_container_mock,
-                    download_files_mock):
-        arglist = ['-c', 'mycontainer', '-t', '60', 'control']
-        verifylist = [
-            ('server_name', 'control'),
-            ('container', 'mycontainer'),
-            ('timeout', 60)
-        ]
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+    @mock.patch('os.chmod')
+    @mock.patch('tripleoclient.workflows.package_update.get_key')
+    @mock.patch('tripleoclient.utils.get_tripleo_ansible_inventory')
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
+                autospec=True)
+    def test_overcloud_support_noargs(self, mock_playbook, mock_inventory,
+                                      mock_key, mock_chmod):
+        parsed_args = self.check_parser(self.cmd, ['all'], [])
+        self.key = mock_key
+        mock_inventory.return_value = '/home/stack/tripleo-ansible-inventory'
+        playbook = ('/usr/share/ansible/tripleo-playbooks'
+                    '/cli-support-collect-logs.yaml')
 
-        self.cmd.take_action(parsed_args)
+        with mock.patch('builtins.open', mock.mock_open()):
+            with open('/home/stack/.ssh/id_rsa_tripleo', 'w') as key_file:
+                key_file.write(self.key)
+            self.cmd.take_action(parsed_args)
 
-        fetch_logs_mock.assert_called_once_with(self.app.client_manager,
-                                                parsed_args.container,
-                                                parsed_args.server_name,
-                                                timeout=60,
-                                                concurrency=None)
+        mock_playbook.assert_called_once_with(
+            logger=mock.ANY,
+            ansible_config='/etc/ansible/ansible.cfg',
+            workdir=mock.ANY,
+            python_interpreter='/usr/bin/python3',
+            playbook=playbook,
+            inventory=mock_inventory(),
+            verbosity=1,
+            timeout=None,
+            forks=None,
+            extra_vars={
+                'server_name': 'all',
+                'sos_destination': '/var/lib/tripleo/support'
+            }
+        )
 
-        download_files_mock.assert_called_once_with(
-            self.app.client_manager, parsed_args.container,
-            parsed_args.destination)
+    @mock.patch('os.chmod')
+    @mock.patch('tripleoclient.workflows.package_update.get_key')
+    @mock.patch('tripleoclient.utils.get_tripleo_ansible_inventory')
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
+                autospec=True)
+    def test_overcloud_support_args(self, mock_playbook, mock_inventory,
+                                    mock_key, mock_chmod):
+        arglist = ['server1', '--output', 'test']
+        parsed_args = self.check_parser(self.cmd, arglist, [])
+        self.key = mock_key
+        mock_inventory.return_value = '/home/stack/tripleo-ansible-inventory'
+        playbook = ('/usr/share/ansible/tripleo-playbooks'
+                    '/cli-support-collect-logs.yaml')
 
-        delete_container_mock.assert_called_once_with(self.app.client_manager,
-                                                      parsed_args.container,
-                                                      timeout=60,
-                                                      concurrency=None)
+        with mock.patch('builtins.open', mock.mock_open()):
+            with open('/home/stack/.ssh/id_rsa_tripleo', 'w') as key_file:
+                key_file.write(self.key)
+            self.cmd.take_action(parsed_args)
 
-    @mock.patch('tripleoclient.workflows.support.download_files')
-    @mock.patch('tripleoclient.workflows.support.delete_container')
-    @mock.patch('tripleoclient.workflows.support.fetch_logs')
-    def test_action_skip_container_delete(self, fetch_logs_mock,
-                                          delete_container_mock,
-                                          download_files_mock):
-        arglist = ['-c', 'mycontainer', '--skip-container-delete', 'control']
-        verifylist = [
-            ('server_name', 'control'),
-            ('container', 'mycontainer')
-        ]
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        mock_playbook.assert_called_once_with(
+            logger=mock.ANY,
+            ansible_config='/etc/ansible/ansible.cfg',
+            workdir=mock.ANY,
+            python_interpreter='/usr/bin/python3',
+            playbook=playbook,
+            inventory=mock_inventory(),
+            verbosity=1,
+            timeout=None,
+            forks=None,
+            extra_vars={
+                'server_name': 'server1',
+                'sos_destination': 'test'
+            }
+        )
 
-        self.cmd.take_action(parsed_args)
+    @mock.patch('os.chmod')
+    @mock.patch('tripleoclient.workflows.package_update.get_key')
+    @mock.patch('tripleoclient.utils.get_tripleo_ansible_inventory')
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
+                autospec=True)
+    def test_overcloud_support_args_stack(self, mock_playbook, mock_inventory,
+                                          mock_key, mock_chmod):
+        arglist = ['server1', '--output', 'test', '--stack', 'notovercloud']
+        parsed_args = self.check_parser(self.cmd, arglist, [])
+        self.key = mock_key
 
-        fetch_logs_mock.assert_called_once_with(self.app.client_manager,
-                                                parsed_args.container,
-                                                parsed_args.server_name,
-                                                timeout=None,
-                                                concurrency=None)
+        with mock.patch('builtins.open', mock.mock_open()):
+            with open('/home/stack/.ssh/id_rsa_tripleo', 'w') as key_file:
+                key_file.write(self.key)
+            self.cmd.take_action(parsed_args)
 
-        download_files_mock.assert_called_once_with(
-            self.app.client_manager, parsed_args.container,
-            parsed_args.destination)
+        playbook = ('/usr/share/ansible/tripleo-playbooks'
+                    '/cli-support-collect-logs.yaml')
 
-        delete_container_mock.assert_not_called()
+        mock_inventory.assert_called_once_with(
+                    inventory_file='/home/stack/'
+                    'tripleo-ansible-inventory.yaml',
+                    ssh_user='tripleo-admin',
+                    stack='notovercloud',
+                    return_inventory_file_path=True)
 
-    @mock.patch('tripleoclient.workflows.support.delete_container')
-    @mock.patch('tripleoclient.workflows.support.fetch_logs')
-    def test_action_collect_logs_only(self, fetch_logs_mock,
-                                      delete_container_mock):
-        arglist = ['--collect-only', '-t', '60', '-n', '10', 'control']
-        verifylist = [
-            ('server_name', 'control'),
-            ('collect_only', True),
-            ('timeout', 60),
-            ('concurrency', 10)
-        ]
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-
-        self.cmd.take_action(parsed_args)
-
-        fetch_logs_mock.assert_called_once_with(self.app.client_manager,
-                                                parsed_args.container,
-                                                parsed_args.server_name,
-                                                timeout=60,
-                                                concurrency=10)
-        delete_container_mock.assert_not_called()
-
-    @mock.patch('tripleoclient.workflows.support.download_files')
-    @mock.patch('tripleoclient.workflows.support.delete_container')
-    @mock.patch('tripleoclient.workflows.support.fetch_logs')
-    def test_action_download_logs_only(self, fetch_logs_mock,
-                                       delete_container_mock,
-                                       download_files_mock):
-        arglist = ['--download-only', 'control']
-        verifylist = [
-            ('server_name', 'control'),
-            ('download_only', True),
-        ]
-        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-
-        self.cmd.take_action(parsed_args)
-
-        fetch_logs_mock.assert_not_called()
-        delete_container_mock.assert_not_called()
-        download_files_mock.assert_called_once_with(
-            self.app.client_manager, parsed_args.container,
-            parsed_args.destination)
+        mock_playbook.assert_called_once_with(
+            logger=mock.ANY,
+            ansible_config='/etc/ansible/ansible.cfg',
+            workdir=mock.ANY,
+            python_interpreter='/usr/bin/python3',
+            playbook=playbook,
+            inventory=mock_inventory(),
+            verbosity=1,
+            timeout=None,
+            forks=None,
+            extra_vars={
+                'server_name': 'server1',
+                'sos_destination': 'test'
+            }
+        )

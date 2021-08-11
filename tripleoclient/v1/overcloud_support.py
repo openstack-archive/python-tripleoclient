@@ -14,11 +14,14 @@
 #
 
 import logging
+import os
 
 from osc_lib.i18n import _
 
 from tripleoclient import command
-from tripleoclient.workflows import support
+from tripleoclient import constants
+from tripleoclient import utils
+from tripleoclient.workflows import package_update
 
 
 class ReportExecute(command.Command):
@@ -29,21 +32,29 @@ class ReportExecute(command.Command):
     def get_parser(self, prog_name):
         parser = super(ReportExecute, self).get_parser(prog_name)
         parser.add_argument('server_name',
-                            help=_('Nova server_name or partial name to match.'
-                                   ' For example "controller" will match all '
-                                   'controllers for an environment.'))
+                            help=_('Server name, group name, or partial name'
+                                   ' to match. For example "Controller" will'
+                                   ' match all controllers for an'
+                                   ' environment.'))
         parser.add_argument('-c', '--container', dest='container',
                             default='overcloud_support',
-                            help=_('Swift Container to store logs to'))
-        parser.add_argument('-o', '--output', dest='destination',
-                            default='support_logs',
+                            action='store_true',
+                            help=_('DEPRECATED: Swift Container to store'
+                                   ' logs to'))
+        parser.add_argument('-o',
+                            '--output',
+                            dest='destination',
+                            default='/var/lib/tripleo/support',
                             help=_('Output directory for the report'))
+        parser.add_argument('--stack',
+                            help=_("Stack name to use for log collection."),
+                            default='overcloud')
         parser.add_argument('--skip-container-delete', dest='skip_delete',
                             default=False,
-                            help=_('Do not delete the container after the '
-                                   'files have been downloaded. Ignored '
-                                   'if --collect-only or --download-only '
-                                   'is provided.'),
+                            help=_('DEPRECATED: Do not delete the container '
+                                   'after the files have been downloaded. '
+                                   'Ignored if --collect-only or '
+                                   '--download-only is provided.'),
                             action='store_true')
         parser.add_argument('-t', '--timeout', dest='timeout', type=int,
                             default=None,
@@ -56,52 +67,63 @@ class ReportExecute(command.Command):
                                    'object deletion tasks to run.'))
         group = parser.add_mutually_exclusive_group(required=False)
         group.add_argument('--collect-only', dest='collect_only',
-                           help=_('Skip log downloads, only collect logs and '
-                                  'put in the container'),
+                           help=_('DEPRECATED: Skip log downloads, only '
+                                  'collect logs and put in the container'),
                            default=False,
                            action='store_true')
         group.add_argument('--download-only', dest='download_only',
-                           help=_('Skip generation, only download from '
-                                  'the provided container'),
+                           help=_('DEPRECATED: Skip generation, only '
+                                  'download from the provided container'),
                            default=False,
                            action='store_true')
+        parser.add_argument('-v',
+                            '--verbose',
+                            dest='verbosity',
+                            type=int,
+                            default=1)
         return parser
 
     def take_action(self, parsed_args):
         self.log.debug('take_action({})'.format(parsed_args))
 
+        playbook = os.path.join(
+            constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            'cli-support-collect-logs.yaml')
+
+        inventory = utils.get_tripleo_ansible_inventory(
+                    inventory_file='/home/stack/'
+                    'tripleo-ansible-inventory.yaml',
+                    ssh_user='tripleo-admin',
+                    stack=parsed_args.stack,
+                    return_inventory_file_path=True)
+
         clients = self.app.client_manager
-        container = parsed_args.container
-        server_name = parsed_args.server_name
-        destination = parsed_args.destination
-        timeout = parsed_args.timeout
-        concurrency = parsed_args.concurrency
+        key = package_update.get_key(clients)
 
-        if not server_name:
-            raise Exception(_('Please specify the server_name option.'))
+        # The playbook we're using for this relies on this file
+        # existing in this location. So we need to write it and
+        # set the permissions appropriately. Not required after
+        # Train.
+        with open('/home/stack/.ssh/id_rsa_tripleo', 'w') as key_file:
+            key_file.write(key)
 
-        if not parsed_args.download_only:
-            print(_('Starting log collection... (This may take a while)'))
-            try:
-                support.fetch_logs(clients, container, server_name,
-                                   timeout=timeout, concurrency=concurrency)
-            except Exception as err:
-                self.log.error('Unable to fetch logs, {}'.format(err))
-                raise err
+        os.chmod('/home/stack/.ssh/id_rsa_tripleo', 0o600)
 
-        if not parsed_args.collect_only:
-            try:
-                support.download_files(clients, container, destination)
-            except Exception as err:
-                self.log.error('Unable to download files, {}'.format(err))
-                raise err
+        extra_vars = {
+            'server_name': parsed_args.server_name,
+            'sos_destination': parsed_args.destination,
+        }
 
-        if not parsed_args.collect_only and not parsed_args.download_only and \
-                not parsed_args.skip_delete:
-            print(_('Deleting container') + ' {}...'.format(container))
-            try:
-                support.delete_container(clients, container, timeout=timeout,
-                                         concurrency=concurrency)
-            except Exception as err:
-                self.log.error('Unable to delete container, {}'.format(err))
-                raise err
+        with utils.TempDirs() as tmp:
+            utils.run_ansible_playbook(
+                logger=self.log,
+                ansible_config='/etc/ansible/ansible.cfg',
+                playbook=playbook,
+                inventory=inventory,
+                python_interpreter='/usr/bin/python3',
+                workdir=tmp,
+                verbosity=parsed_args.verbosity,
+                forks=parsed_args.concurrency,
+                timeout=parsed_args.timeout,
+                extra_vars=extra_vars
+            )
