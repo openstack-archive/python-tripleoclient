@@ -32,9 +32,6 @@ class ExportCell(command.Command):
 
     def get_parser(self, prog_name):
         parser = super(ExportCell, self).get_parser(prog_name)
-        parser.add_argument('name', metavar='<cell name>',
-                            help=_('Name of the stack used for the additional '
-                                   'cell.'))
         parser.add_argument('--control-plane-stack',
                             dest='control_plane_stack',
                             metavar='<control plane stack>',
@@ -66,9 +63,11 @@ class ExportCell(command.Command):
 
         control_plane_stack = parsed_args.control_plane_stack
         cell_stack = parsed_args.cell_stack
-        cell_name = parsed_args.name
+        cell_name = control_plane_stack
+        if cell_stack:
+            cell_name = cell_stack
         output_file = parsed_args.output_file or \
-            '%s-cell-input.yaml' % cell_name
+            '%s-cell-export.yaml' % cell_name
 
         self.log.info('Running at %s with parameters %s',
                       self.now,
@@ -106,7 +105,7 @@ class ExportCell(command.Command):
         with open(output_file, 'w') as f:
             yaml.safe_dump(data, f, default_flow_style=False)
 
-        print("Cell input information exported to %s." % output_file)
+        print("Cell information exported to %s." % output_file)
 
         msg = """ \n\n
           Next steps:
@@ -123,7 +122,7 @@ class ExportCell(command.Command):
             - additional environment files used for overcloud stack
             - --stack <cellname>
             - cell role file created
-            - the exported cell input information file {output_file}
+            - the exported cell information file {output_file}
             - other specific parameter files for the cell\n
           For more details check https://docs.openstack.org/
           project-deploy-guide/tripleo-docs/latest/features/deploy_cellv2.html
