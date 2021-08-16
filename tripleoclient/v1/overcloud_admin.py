@@ -69,6 +69,13 @@ class Authorize(command.Command):
             type=int,
             default=constants.ENABLE_SSH_ADMIN_SSH_PORT_TIMEOUT
         )
+        parser.add_argument(
+            '--working-dir',
+            action='store',
+            help=_('The working directory for the deployment where all '
+                   'input, output, and generated files will be stored.\n'
+                   'Defaults to "$HOME/overcloud-deploy/<stack>"')
+        )
 
         return parser
 
@@ -78,11 +85,19 @@ class Authorize(command.Command):
         self.log.debug("take_action({})".format(parsed_args))
         clients = self.app.client_manager
         stack = oooutils.get_stack(clients.orchestration, parsed_args.stack)
+
+        if not parsed_args.working_dir:
+            self.working_dir = oooutils.get_default_working_dir(
+                parsed_args.stack)
+        else:
+            self.working_dir = parsed_args.working_dir
+
         deployment.get_hosts_and_enable_ssh_admin(
             stack,
             parsed_args.overcloud_ssh_network,
             parsed_args.overcloud_ssh_user,
             self.get_key_pair(parsed_args),
             parsed_args.overcloud_ssh_port_timeout,
+            working_dir=self.working_dir,
             verbosity=oooutils.playbook_verbosity(self=self)
         )
