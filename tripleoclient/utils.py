@@ -95,7 +95,7 @@ class TempDirs(object):
 
     def __init__(self, dir_path=None, dir_prefix='tripleo', cleanup=True,
                  chdir=True):
-        """This context manager will create, push, and cleanup temp directories.
+        """This context manager will create, push, and cleanup temp directories
 
         >>> with TempDirs() as t:
         ...     with open('file', 'w') as f:
@@ -197,7 +197,8 @@ def run_ansible_playbook(logger,
                          extra_vars=None,
                          plan='overcloud',
                          gathering_policy=None,
-                         forks=None):
+                         forks=None,
+                         timeout=None):
     """Simple wrapper for ansible-playbook
 
     :param logger: logger instance
@@ -266,6 +267,10 @@ def run_ansible_playbook(logger,
     When not specified, the policy will be the default Ansible one, ie.
     'implicit'.
     :type gathering_facts: String
+
+    :param timeout:  This sets the timeout for the ansible-playbook
+    command.
+    :type timeout: Integer
     """
     env = os.environ.copy()
 
@@ -387,6 +392,11 @@ def run_ansible_playbook(logger,
                 raise RuntimeError('No such extra vars file: %s' % extra_vars)
 
         cmd.extend(['-c', connection, play])
+
+        if timeout:
+            cmd.extend([
+                '--timeout %s' % timeout
+            ])
 
         if run_command_and_log(logger, cmd, env=env) != 0:
             logger.warning(
