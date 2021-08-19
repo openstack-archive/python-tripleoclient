@@ -17,7 +17,6 @@ import shutil
 import yaml
 
 from heatclient.common import event_utils
-from heatclient import exc as heat_exc
 from openstackclient import shell
 from tripleo_common.utils import heat as tc_heat_utils
 from tripleo_common.utils import overcloudrc as rc_utils
@@ -522,12 +521,6 @@ def get_horizon_url(stack, verbosity=0,
 
 def get_deployment_status(clients, stack_name, working_dir):
     """Return current deployment status."""
-
-    try:
-        clients.orchestration.stacks.get(stack_name)
-    except heat_exc.HTTPNotFound:
-        return None
-
     try:
         status_yaml = utils.get_status_yaml(stack_name, working_dir)
         with open(status_yaml, 'r') as status_stream:
