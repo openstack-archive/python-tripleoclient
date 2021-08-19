@@ -2,7 +2,7 @@
     templates:
       - check-requirements
       - openstackclient-plugin-jobs
-      - openstack-python3-ussuri-jobs
+      - openstack-python3-xena-jobs
       - publish-openstack-docs-pti
       - release-notes-jobs-python3
       - tripleo-buildimage-jobs
@@ -17,7 +17,7 @@
             dependencies:
               - openstack-tox-pep8
               - openstack-tox-py36
-              - openstack-tox-py37
+              - openstack-tox-py38
         - tripleo-ci-centos-8-containers-undercloud-minion:
             vars:
               consumer_job: true
