@@ -75,11 +75,13 @@ class TestExport(TestCase):
         }
         self.mock_open_ceph_all = mock.mock_open(read_data=str(ceph_all))
 
+    @mock.patch('tripleoclient.utils.os.path.exists',
+                autospec=True, reutrn_value=True)
     @mock.patch('tripleoclient.utils.get_stack')
-    def test_export_stack(self, mock_get_stack):
+    def test_export_stack(self, mock_get_stack, mock_exists):
         heat = mock.Mock()
         mock_get_stack.return_value = self.mock_stack
-        with mock.patch('six.moves.builtins.open', self.mock_open):
+        with mock.patch('tripleoclient.utils.open', self.mock_open):
             data = export.export_stack(heat, "overcloud")
 
         expected = \
@@ -95,8 +97,10 @@ class TestExport(TestCase):
                 'config-download/overcloud/group_vars/overcloud.json'),
             'r')
 
+    @mock.patch('tripleoclient.utils.os.path.exists',
+                autospec=True, reutrn_value=True)
     @mock.patch('tripleoclient.utils.get_stack')
-    def test_export_stack_should_filter(self, mock_get_stack):
+    def test_export_stack_should_filter(self, mock_get_stack, mock_exists):
         heat = mock.Mock()
         mock_get_stack.return_value = self.mock_stack
         self.mock_open = mock.mock_open(
@@ -117,29 +121,33 @@ class TestExport(TestCase):
                 'config-download/overcloud/group_vars/overcloud.json'),
             'r')
 
+    @mock.patch('tripleoclient.utils.os.path.exists',
+                autospec=True, reutrn_value=True)
     @mock.patch('tripleoclient.utils.get_stack')
-    def test_export_stack_cd_dir(self, mock_get_stack):
+    def test_export_stack_cd_dir(self, mock_get_stack, mock_exists):
         heat = mock.Mock()
         mock_get_stack.return_value = self.mock_stack
-        with mock.patch('six.moves.builtins.open', self.mock_open):
+        with mock.patch('tripleoclient.utils.open', self.mock_open):
             export.export_stack(heat, "overcloud",
                                 config_download_dir='/foo')
         self.mock_open.assert_called_once_with(
             '/foo/overcloud/group_vars/overcloud.json', 'r')
 
+    @mock.patch('tripleoclient.utils.os.path.exists',
+                autospec=True, reutrn_value=True)
     @mock.patch('tripleoclient.utils.get_stack')
-    def test_export_stack_stack_name(self, mock_get_stack):
+    def test_export_stack_stack_name(self, mock_get_stack, mock_exists):
         heat = mock.Mock()
         mock_get_stack.return_value = self.mock_stack
-        with mock.patch('six.moves.builtins.open', self.mock_open):
+        with mock.patch('tripleoclient.utils.open', self.mock_open):
             export.export_stack(heat, "control")
         mock_get_stack.assert_called_once_with(heat, 'control')
 
-    @mock.patch('tripleoclient.export.LOG.error', autospec=True)
-    @mock.patch('tripleoclient.export.json.load', autospec=True,
+    @mock.patch('tripleoclient.utils.LOG.error', autospec=True)
+    @mock.patch('tripleoclient.utils.json.load', autospec=True,
                 side_effect=JSONDecodeError)
-    @mock.patch('tripleoclient.export.open')
-    @mock.patch('tripleoclient.export.os.path.exists', autospec=True,
+    @mock.patch('tripleoclient.utils.open')
+    @mock.patch('tripleoclient.utils.os.path.exists', autospec=True,
                 return_value=True)
     @mock.patch('tripleoclient.utils.get_stack', autospec=True)
     def test_export_stack_decode_error(self, mock_get_stack, mock_exists,
@@ -147,7 +155,8 @@ class TestExport(TestCase):
 
         heat = mock.MagicMock()
         mock_get_stack.return_value = self.mock_stack
-        export.export_stack(heat, "overcloud")
+        self.assertRaises(
+            RuntimeError, export.export_stack, heat, "overcloud")
 
         mock_open.assert_called_once_with(
             os.path.join(

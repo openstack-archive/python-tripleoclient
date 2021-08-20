@@ -14,7 +14,6 @@
 #
 
 
-import json
 import logging
 import os
 import re
@@ -93,17 +92,7 @@ def export_stack(heat, stack, should_filter=False,
             file = os.path.join(config_download_dir,
                                 stack,
                                 export_param["file"])
-
-            if not os.path.exists(file):
-                LOG.warning('File %s was not found during export' %
-                            file)
-            with open(file, 'r') as parameter_file:
-                try:
-                    export_data = json.load(parameter_file)
-                except (TypeError, json.JSONDecodeError) as e:
-                    LOG.error(
-                        _('Could not read file %s') % file)
-                    LOG.error(e)
+            export_data = oooutils.get_parameter_file(file)
         else:
             # get stack data
             export_data = oooutils.get_stack_output_item(
