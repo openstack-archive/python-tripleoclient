@@ -1,6 +1,7 @@
 - project:
     templates:
       - check-requirements
+      - openstack-cover-jobs
       - openstackclient-plugin-jobs
       - openstack-python3-xena-jobs
       - publish-openstack-docs-pti
