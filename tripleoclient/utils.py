@@ -1412,6 +1412,12 @@ def run_update_ansible_action(log, clients, stack, nodes, inventory,
                               verbosity='1', extra_vars=None,
                               workdir='', priv_key='', forks=None):
 
+    if not nodes:
+        stack_obj = get_stack(clients.orchestration, stack)
+        blacklist = get_stack_output_item(stack_obj, 'BlacklistedHostnames')
+        if blacklist:
+            nodes = ':'.join(['!%s' % host for host in blacklist if host])
+
     playbooks = [playbook]
     if playbook == "all":
         playbooks = all_playbooks
