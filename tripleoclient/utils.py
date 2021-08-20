@@ -26,6 +26,7 @@ import errno
 import getpass
 import glob
 import hashlib
+import json
 import logging
 
 import multiprocessing
@@ -3052,3 +3053,25 @@ def parse_container_image_prepare(tht_key='ContainerImagePrepare',
     else:
         raise RuntimeError("Unsupported tht_key: %s" % tht_key)
     return image_map
+
+
+def get_parameter_file(path):
+    """Retrieve parameter json file from the supplied path.
+    If the file doesn't exist, or if the decoding fails, log the failure
+    and return `None`.
+    :param path: path to the parameter file
+    :dtype path: `string`
+    """
+    file_data = None
+    if os.path.exists(path):
+        with open(path, 'r') as parameter_file:
+            try:
+                file_data = json.load(parameter_file)
+            except (TypeError, json.JSONDecodeError) as e:
+                LOG.error(
+                    _('Could not read file %s') % path)
+                LOG.error(e)
+    else:
+        LOG.warning('File %s was not found during export' %
+                    path)
+    return file_data
