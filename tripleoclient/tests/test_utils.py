@@ -2277,3 +2277,21 @@ class TestProhibitedOverrides(base.TestCommand):
         self.assertIsNone(
             utils.check_prohibited_overrides(protected_overrides,
                                              [(user_env, user_env)]))
+
+    def test_check_neutron_resources(self):
+        resource_registry = {
+            "a": "A",
+            "neutron": "OS::Neutron::Port"
+        }
+        environment = dict(resource_registry=resource_registry)
+        self.assertRaises(
+            exceptions.InvalidConfiguration,
+            utils.check_neutron_resources,
+            environment)
+        resource_registry["neutron"] = "OS::Neutron::Network"
+        self.assertRaises(
+            exceptions.InvalidConfiguration,
+            utils.check_neutron_resources,
+            environment)
+        resource_registry.pop("neutron")
+        self.assertIsNone(utils.check_neutron_resources(environment))

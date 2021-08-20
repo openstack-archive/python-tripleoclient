@@ -391,6 +391,8 @@ class DeployOvercloud(command.Command):
         utils.check_nic_config_with_ansible(stack, env)
         # check migration to service vips managed by servce
         utils.check_service_vips_migrated_to_service(stack, env)
+        if parsed_args.heat_type != 'installed':
+            utils.check_neutron_resources(env)
 
         self._try_overcloud_deploy_with_compat_yaml(
             new_tht_root, stack,
