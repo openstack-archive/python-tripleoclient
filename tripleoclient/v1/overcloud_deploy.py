@@ -905,7 +905,7 @@ class DeployOvercloud(command.Command):
                                    'baremetal deployment'))
         parser.add_argument('--network-config',
                             help=_('Apply network config to provisioned '
-                                   'nodes. (Implies "--network-ports")'),
+                                   'nodes.'),
                             default=False,
                             action="store_true")
         parser.add_argument(
