@@ -76,11 +76,6 @@ class UpgradePrepare(DeployOvercloud):
 
         clients = self.app.client_manager
 
-        stack = oooutils.get_stack(clients.orchestration,
-                                   parsed_args.stack)
-
-        stack_name = stack.stack_name
-
         # In case of update and upgrade we need to force the
         # config_download to false. The heat stack update will be performed
         # by DeployOvercloud class but skipping the config download part.
@@ -98,6 +93,9 @@ class UpgradePrepare(DeployOvercloud):
                                           self.forbidden_params)
         super(UpgradePrepare, self).take_action(parsed_args)
 
+        stack = oooutils.get_stack(clients.orchestration,
+                                   parsed_args.stack)
+        stack_name = stack.stack_name
         # Download stack_name-config as this is skiped in
         # DeployOvercloud.
         package_update.get_config(clients, container=stack_name)
@@ -105,8 +103,6 @@ class UpgradePrepare(DeployOvercloud):
         # "Mandatory" validation to make sure kernelargs contains
         # a TSX flag
         if not parsed_args.disable_validations:
-            stack = oooutils.get_stack(clients.orchestration,
-                                       parsed_args.stack)
             self._post_stack_validation(stack)
 
         # enable ssh admin for Ansible-via-Mistral as that's done only
