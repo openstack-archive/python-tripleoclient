@@ -46,8 +46,12 @@ class TestValidateOvercloudNetenv(fakes.TestValidateOvercloudNetenv):
                 'OsNetConfigImpl': {
                     'properties': {
                         'config': {
-                            'os_net_config': {
-                                'network_config': bridges,
+                            'str_replace': {
+                                'params': {
+                                    '$network_config': {
+                                        'network_config': bridges,
+                                    }
+                                }
                             }
                         }
                     }
