@@ -1,0 +1,10 @@
+---
+prelude: >
+    During a minor update of the overcloud. It was previously necessary to
+    execute 3 steps.
+    - Update Prepare
+    - Update Run
+    - Update Converge
+    Starting in W, it is no longer necessary to perform a Stack update
+    during the converge. This change removes the stack update from the
+    converge step. Now, we will just run the deploy_steps_playbook instead.
