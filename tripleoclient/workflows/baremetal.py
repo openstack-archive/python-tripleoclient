@@ -50,7 +50,8 @@ def validate_nodes(clients, nodes_json):
 
 
 def register_or_update(clients, nodes_json, kernel_name=None,
-                       ramdisk_name=None, instance_boot_option=None):
+                       ramdisk_name=None, instance_boot_option=None,
+                       boot_mode=None):
     """Node Registration or Update
 
     :param clients: Application client object.
@@ -69,6 +70,9 @@ def register_or_update(clients, nodes_json, kernel_name=None,
                                  local hard drive (local) or network
                                  (netboot).
     :type instance_boot_option: String
+    :param boot_mode: Whether to set the boot mode to UEFI (uefi) or legacy
+                      BIOS (bios)
+    :type boot_mode: String
 
     :returns: List
     """
@@ -77,8 +81,10 @@ def register_or_update(clients, nodes_json, kernel_name=None,
     for node in nodes_json:
         caps = node.get('capabilities', {})
         caps = node_utils.capabilities_to_dict(caps)
-        if instance_boot_option is not None:
+        if instance_boot_option:
             caps.setdefault('boot_option', instance_boot_option)
+        if boot_mode:
+            caps.setdefault('boot_mode', boot_mode)
         node['capabilities'] = node_utils.dict_to_capabilities(caps)
 
     registered_nodes = node_utils.register_all_nodes(
@@ -232,7 +238,8 @@ def introspect_manageable_nodes(clients, run_validations, concurrency,
 def _configure_boot(clients, node_uuid,
                     kernel_name=None,
                     ramdisk_name=None,
-                    instance_boot_option=None):
+                    instance_boot_option=None,
+                    boot_mode=None):
     baremetal_client = clients.baremetal
     image_ids = {'kernel': kernel_name, 'ramdisk': ramdisk_name}
     node = baremetal_client.node.get(node_uuid)
@@ -240,6 +247,8 @@ def _configure_boot(clients, node_uuid,
     capabilities = node_utils.capabilities_to_dict(capabilities)
     if instance_boot_option is not None:
         capabilities['boot_option'] = instance_boot_option
+    if boot_mode is not None:
+        capabilities['boot_mode'] = boot_mode
     capabilities = node_utils.dict_to_capabilities(capabilities)
 
     baremetal_client.node.update(node.uuid, [
@@ -366,7 +375,7 @@ def _apply_root_device_strategy(clients, node_uuid, strategy,
 
 def configure(clients, node_uuids, kernel_name=None,
               ramdisk_name=None, instance_boot_option=None,
-              root_device=None, root_device_minimum_size=4,
+              boot_mode=None, root_device=None, root_device_minimum_size=4,
               overwrite_root_device_hints=False):
     """Configure Node boot options.
 
@@ -380,6 +389,9 @@ def configure(clients, node_uuids, kernel_name=None,
     :type ramdisk_name: String
 
     :param instance_boot_option: Boot options to use
+    :type instance_boot_option: String
+
+    :param boot_mode: Boot mode to use
     :type instance_boot_option: String
 
     :param root_device: Path (name) of the root device.
@@ -396,7 +408,7 @@ def configure(clients, node_uuids, kernel_name=None,
 
     for node_uuid in node_uuids:
         _configure_boot(clients, node_uuid, kernel_name,
-                        ramdisk_name, instance_boot_option)
+                        ramdisk_name, instance_boot_option, boot_mode)
         if root_device:
             _apply_root_device_strategy(
                 clients, node_uuid,
@@ -408,7 +420,7 @@ def configure(clients, node_uuids, kernel_name=None,
 
 def configure_manageable_nodes(clients, kernel_name='bm-deploy-kernel',
                                ramdisk_name='bm-deploy-ramdisk',
-                               instance_boot_option=None,
+                               instance_boot_option=None, boot_mode=None,
                                root_device=None, root_device_minimum_size=4,
                                overwrite_root_device_hints=False):
     """Configure all manageable Nodes.
@@ -427,6 +439,9 @@ def configure_manageable_nodes(clients, kernel_name='bm-deploy-kernel',
     :type ramdisk_name: String
 
     :param instance_boot_option: Boot options to use
+    :type instance_boot_option: String
+
+    :param boot_mode: Boot mode to use
     :type instance_boot_option: String
 
     :param root_device: Path (name) of the root device.
@@ -450,6 +465,7 @@ def configure_manageable_nodes(clients, kernel_name='bm-deploy-kernel',
         kernel_name=kernel_name,
         ramdisk_name=ramdisk_name,
         instance_boot_option=instance_boot_option,
+        boot_mode=boot_mode,
         root_device=root_device,
         root_device_minimum_size=root_device_minimum_size,
         overwrite_root_device_hints=overwrite_root_device_hints
