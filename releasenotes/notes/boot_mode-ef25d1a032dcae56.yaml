@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    The commands `openstack overcloud node import` and `openstack overcloud node
+    configure` now have a --boot-mode arguement which allows the boot mode for
+    all affected nodes to be set to UEFI boot (uefi) or legacy BIOS boot (bios).
+    This allows some nodes to have a different boot mode to the default (uefi).

@@ -308,6 +308,10 @@ class ConfigureNode(command.Command):
                             help=_('Whether to set instances for booting from '
                                    'local hard drive (local) or network '
                                    '(netboot).'))
+        parser.add_argument('--boot-mode',
+                            choices=['uefi', 'bios'],
+                            help=_('Whether to set the boot mode to UEFI '
+                                   '(uefi) or legacy BIOS (bios)'))
         parser.add_argument('--root-device',
                             help=_('Define the root device for nodes. '
                                    'Can be either a list of device names '
@@ -335,6 +339,7 @@ class ConfigureNode(command.Command):
                 kernel_name=parsed_args.deploy_kernel,
                 ramdisk_name=parsed_args.deploy_ramdisk,
                 instance_boot_option=parsed_args.instance_boot_option,
+                boot_mode=parsed_args.boot_mode,
                 root_device=parsed_args.root_device,
                 root_device_minimum_size=parsed_args.root_device_minimum_size,
                 overwrite_root_device_hints=(
@@ -346,6 +351,7 @@ class ConfigureNode(command.Command):
                 kernel_name=parsed_args.deploy_kernel,
                 ramdisk_name=parsed_args.deploy_ramdisk,
                 instance_boot_option=parsed_args.instance_boot_option,
+                boot_mode=parsed_args.boot_mode,
                 root_device=parsed_args.root_device,
                 root_device_minimum_size=parsed_args.root_device_minimum_size,
                 overwrite_root_device_hints=(

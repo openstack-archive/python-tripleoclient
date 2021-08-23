@@ -73,7 +73,11 @@ class ImportNode(command.Command):
                             choices=['local', 'netboot'], default=None,
                             help=_('Whether to set instances for booting from'
                                    ' local hard drive (local) or network '
-                                   ' (netboot).'))
+                                   ' (netboot)'))
+        parser.add_argument('--boot-mode',
+                            choices=['uefi', 'bios'], default=None,
+                            help=_('Whether to set the boot mode to UEFI '
+                                   '(uefi) or legacy BIOS (bios)'))
         parser.add_argument("--http-boot",
                             default=os.environ.get(
                                 'HTTP_BOOT',
@@ -105,7 +109,8 @@ class ImportNode(command.Command):
         nodes = baremetal.register_or_update(
             self.app.client_manager,
             nodes_json=nodes_config,
-            instance_boot_option=parsed_args.instance_boot_option
+            instance_boot_option=parsed_args.instance_boot_option,
+            boot_mode=parsed_args.boot_mode
         )
 
         nodes_uuids = [node.uuid for node in nodes]
