@@ -227,11 +227,11 @@ def introspect_manageable_nodes(clients, run_validations, concurrency,
 
 
 def _configure_boot(clients, node_uuid,
-                    kernel_name='bm-deploy-kernel',
-                    ramdisk_name='bm-deploy-ramdisk',
+                    kernel_name=None,
+                    ramdisk_name=None,
                     instance_boot_option=None):
     baremetal_client = clients.baremetal
-    image_ids = {'kernel': None, 'ramdisk': None}
+    image_ids = {'kernel': kernel_name, 'ramdisk': ramdisk_name}
     node = baremetal_client.node.get(node_uuid)
     capabilities = node.properties.get('capabilities', {})
     capabilities = node_utils.capabilities_to_dict(capabilities)
@@ -361,8 +361,8 @@ def _apply_root_device_strategy(clients, node_uuid, strategy,
              {'node': node.uuid, 'dev': root_device, 'local_gb': new_size})
 
 
-def configure(clients, node_uuids, kernel_name='bm-deploy-kernel',
-              ramdisk_name='bm-deploy-ramdisk', instance_boot_option=None,
+def configure(clients, node_uuids, kernel_name=None,
+              ramdisk_name=None, instance_boot_option=None,
               root_device=None, root_device_minimum_size=4,
               overwrite_root_device_hints=False):
     """Configure Node boot options.
