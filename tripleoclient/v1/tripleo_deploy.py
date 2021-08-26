@@ -448,19 +448,27 @@ class Deploy(command.Command):
             pid, ret = os.waitpid(self.heat_pid, 0)
             self.heat_pid = None
 
-    def _launch_heat(self, parsed_args):
+    def _launch_heat(self, parsed_args, output_dir):
         # we do this as root to chown config files properly for docker, etc.
+        heat_launcher_path = os.path.join(output_dir, 'heat_launcher')
+
+        if parsed_args.heat_user:
+            heat_user = parsed_args.heat_user
+        else:
+            heat_user = parsed_args.deployment_user
+
         if parsed_args.heat_native is not None and \
                 parsed_args.heat_native.lower() == "false":
             self.heat_launch = heat_launcher.HeatContainerLauncher(
-                parsed_args.heat_api_port,
-                parsed_args.heat_container_image,
-                parsed_args.heat_user)
+                api_port=parsed_args.heat_api_port,
+                all_container_image=parsed_args.heat_container_image,
+                user=heat_user,
+                heat_dir=heat_launcher_path)
         else:
             self.heat_launch = heat_launcher.HeatNativeLauncher(
-                parsed_args.heat_api_port,
-                parsed_args.heat_container_image,
-                parsed_args.heat_user,
+                api_port=parsed_args.heat_api_port,
+                user=heat_user,
+                heat_dir=heat_launcher_path,
                 use_root=True)
 
         # NOTE(dprince): we launch heat with fork exec because
@@ -473,12 +481,12 @@ class Deploy(command.Command):
             if parsed_args.heat_native is not None and \
                     parsed_args.heat_native.lower() == "true":
                 try:
-                    uid = pwd.getpwnam(parsed_args.heat_user).pw_uid
-                    gid = pwd.getpwnam(parsed_args.heat_user).pw_gid
+                    uid = pwd.getpwnam(heat_user).pw_uid
+                    gid = pwd.getpwnam(heat_user).pw_gid
                 except KeyError:
                     msg = _(
                         "Please create a %s user account before "
-                        "proceeding.") % parsed_args.heat_user
+                        "proceeding.") % heat_user
                     self.log.error(msg)
                     raise exceptions.DeploymentError(msg)
                 os.setgid(gid)
@@ -947,9 +955,8 @@ class Deploy(command.Command):
         parser.add_argument(
             '--heat-user', metavar='<HEAT_USER>',
             dest='heat_user',
-            default='heat',
             help=_('User to execute the non-privileged heat-all process. '
-                   'Defaults to heat.')
+                   'Defaults to the value of --deployment-user.')
         )
         # TODO(cjeanner) drop that once using oslo.privsep
         parser.add_argument(
@@ -1240,7 +1247,7 @@ class Deploy(command.Command):
             self._set_stack_action(parsed_args)
 
             # Launch heat.
-            orchestration_client = self._launch_heat(parsed_args)
+            orchestration_client = self._launch_heat(parsed_args, output_dir)
             # Wait for heat to be ready.
             utils.wait_api_port_ready(parsed_args.heat_api_port)
             # Deploy TripleO Heat templates.
