@@ -21,9 +21,9 @@ import os
 from cliff import command
 from osc_lib.i18n import _
 
-from tripleoclient.constants import (DEFAULT_HEAT_CONTAINER,
-                                     DEFAULT_HEAT_API_CONTAINER,
-                                     DEFAULT_HEAT_ENGINE_CONTAINER)
+from tripleoclient.constants import (DEFAULT_EPHEMERAL_HEAT_CONTAINER,
+                                     DEFAULT_EPHEMERAL_HEAT_API_CONTAINER,
+                                     DEFAULT_EPHEMERAL_HEAT_ENGINE_CONTAINER)
 from tripleoclient import exceptions
 from tripleoclient import utils
 
@@ -88,27 +88,30 @@ class LaunchHeat(command.Command):
         parser.add_argument(
             '--heat-container-image', metavar='<HEAT_CONTAINER_IMAGE>',
             dest='heat_container_image',
-            default=DEFAULT_HEAT_CONTAINER,
+            default=DEFAULT_EPHEMERAL_HEAT_CONTAINER,
             help=_('The container image to use when launching the heat-all '
-                   'process. Defaults to: {}'.format(DEFAULT_HEAT_CONTAINER))
+                   'process. Defaults to: {}'.format(
+                                            DEFAULT_EPHEMERAL_HEAT_CONTAINER))
         )
         parser.add_argument(
             '--heat-container-api-image',
             metavar='<HEAT_CONTAINER_API_IMAGE>',
             dest='heat_container_api_image',
-            default=DEFAULT_HEAT_API_CONTAINER,
+            default=DEFAULT_EPHEMERAL_HEAT_API_CONTAINER,
             help=_('The container image to use when launching the heat-api '
                    'process. Only used when --heat-type=pod. '
-                   'Defaults to: {}'.format(DEFAULT_HEAT_API_CONTAINER))
+                   'Defaults to: {}'.format(
+                                    DEFAULT_EPHEMERAL_HEAT_API_CONTAINER))
         )
         parser.add_argument(
             '--heat-container-engine-image',
             metavar='<HEAT_CONTAINER_ENGINE_IMAGE>',
             dest='heat_container_engine_image',
-            default=DEFAULT_HEAT_ENGINE_CONTAINER,
+            default=DEFAULT_EPHEMERAL_HEAT_ENGINE_CONTAINER,
             help=_('The container image to use when launching the heat-engine '
                    'process. Only used when --heat-type=pod. '
-                   'Defaults to: {}'.format(DEFAULT_HEAT_ENGINE_CONTAINER))
+                   'Defaults to: {}'.format(
+                                    DEFAULT_EPHEMERAL_HEAT_ENGINE_CONTAINER))
         )
         parser.add_argument(
             '--kill', '-k',
