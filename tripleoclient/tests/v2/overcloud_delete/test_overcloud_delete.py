@@ -92,6 +92,38 @@ class TestDeleteOvercloud(deploy_fakes.TestDeployOvercloud):
             )
             self.assertEqual(mock_run_playbook.call_count, 2)
 
+    @mock.patch('tripleoclient.utils.TempDirs', autospect=True)
+    @mock.patch('os.path.abspath', autospect=True)
+    @mock.patch('os.path.exists', autospect=True)
+    @mock.patch('tripleoclient.utils.run_ansible_playbook', autospec=True)
+    def test_overcloud_delete_network_unprovision(self, mock_run_playbook,
+                                                  mock_path_exists,
+                                                  mock_abspath, mock_tempdirs):
+        arglist = ["overcast", "-y",
+                   "--networks-file", "network_data_v2.yaml"]
+        verifylist = [
+            ("stack", "overcast"),
+            ("yes", True),
+            ("networks_file", "network_data_v2.yaml")
+        ]
+        mock_abspath.side_effect = ['/test/network_data_v2.yaml',
+                                    '/test/network_data_v2.yaml']
+        mock_path_exists.side_effect = [True]
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        self.cmd.take_action(parsed_args)
+
+        mock_run_playbook.assert_called_with(
+            workdir=mock.ANY,
+            playbook='cli-overcloud-network-unprovision.yaml',
+            inventory=mock.ANY,
+            playbook_dir=mock.ANY,
+            verbosity=3,
+            extra_vars={
+                "network_data_path": '/test/network_data_v2.yaml'
+            }
+        )
+        self.assertEqual(mock_run_playbook.call_count, 2)
+
     def test_no_confirmation(self):
         arglist = ["overcast", ]
         verifylist = [

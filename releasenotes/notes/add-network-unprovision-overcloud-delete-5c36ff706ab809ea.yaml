@@ -1,0 +1,5 @@
+features:
+  - |
+    Added options for "overcloud delete" command to unprovision
+    networks provisioned with "overcloud deploy" or with
+    "overcloud network provision".

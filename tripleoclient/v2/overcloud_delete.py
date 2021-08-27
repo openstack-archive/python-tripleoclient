@@ -14,6 +14,7 @@
 #
 
 import logging
+import os
 import yaml
 
 from osc_lib import exceptions as oscexc
@@ -56,6 +57,11 @@ class DeleteOvercloud(command.Command):
                             metavar='<baremetal_deployment.yaml>',
                             help=_('Configuration file describing the '
                                    'baremetal deployment'))
+        parser.add_argument('--networks-file',
+                            metavar='<network_data.yaml>',
+                            help=_('Configuration file describing the '
+                                   'network deployment to enable '
+                                   'unprovisioning of networks.'))
         parser.add_argument('--network-ports',
                             help=_('Enable unprovisioning of network ports'),
                             default=False,
@@ -65,6 +71,12 @@ class DeleteOvercloud(command.Command):
     def _validate_args(self, parsed_args):
         if parsed_args.stack in (None, ''):
             raise oscexc.CommandError("You must specify a stack name")
+        if parsed_args.networks_file:
+            networks_file_path = os.path.abspath(parsed_args.networks_file)
+            if not os.path.exists(networks_file_path):
+                raise oscexc.CommandError(
+                    "Network configuration file does not exist:"
+                    " {args}".format(args=parsed_args.networks_file))
 
     def take_action(self, parsed_args):
         self.log.debug("take_action({args})".format(args=parsed_args))
@@ -115,6 +127,21 @@ class DeleteOvercloud(command.Command):
                         "all": True,
                         "prompt": False,
                         "manage_network_ports": parsed_args.network_ports,
+                    }
+                )
+
+        if parsed_args.networks_file:
+            networks_file_path = os.path.abspath(parsed_args.networks_file)
+
+            with utils.TempDirs() as tmp:
+                utils.run_ansible_playbook(
+                    playbook='cli-overcloud-network-unprovision.yaml',
+                    inventory='localhost,',
+                    workdir=tmp,
+                    playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                    verbosity=utils.playbook_verbosity(self=self),
+                    extra_vars={
+                        "network_data_path": networks_file_path
                     }
                 )
         print("Success.")
