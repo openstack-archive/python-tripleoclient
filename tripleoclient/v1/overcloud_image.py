@@ -142,6 +142,7 @@ class BaseClientAdapter(object):
         pass
 
     def _copy_file(self, src, dest):
+        self._make_dirs(path=os.path.dirname(dest))
         cmd = 'sudo cp -f "{0}" "{1}"'.format(src, dest)
         self.log.debug(cmd)
         subprocess.check_call(cmd, shell=True)

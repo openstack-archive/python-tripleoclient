@@ -161,8 +161,12 @@ class TestBaseClientAdapter(base.TestCommand):
     @mock.patch('subprocess.check_call', autospec=True)
     def test_copy_file(self, mock_subprocess_call):
         self.adapter._copy_file('/foo.qcow2', 'bar.qcow2')
-        mock_subprocess_call.assert_called_once_with(
-            'sudo cp -f "/foo.qcow2" "bar.qcow2"', shell=True)
+        mock_subprocess_call.assert_has_calls(
+            [
+                mock.call('sudo mkdir -m 0775 -p ""', shell=True),
+                mock.call('sudo cp -f "/foo.qcow2" "bar.qcow2"', shell=True)
+            ]
+        )
 
     @mock.patch('subprocess.check_call', autospec=True)
     def test_move_file(self, mock_subprocess_call):
@@ -590,10 +594,14 @@ class TestUploadOvercloudImage(TestPluginV1):
         ])
 
         self.assertEqual(mock_convert_image.call_count, 1)
-        self.assertEqual(mock_subprocess_call.call_count, 2)
+        self.assertEqual(mock_subprocess_call.call_count, 4)
         mock_subprocess_call.assert_has_calls([
+            mock.call('sudo mkdir -m 0775 -p "/var/lib/ironic/httpboot"',
+                      shell=True),
             mock.call('sudo cp -f "./ironic-python-agent.kernel" '
                       '"/var/lib/ironic/httpboot/agent.kernel"', shell=True),
+            mock.call('sudo mkdir -m 0775 -p "/var/lib/ironic/httpboot"',
+                      shell=True),
             mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
                       '"/var/lib/ironic/httpboot/agent.ramdisk"', shell=True)
         ])
@@ -631,10 +639,21 @@ class TestUploadOvercloudImage(TestPluginV1):
                       '/foo/overcloud-full.raw'),
         ])
         mock_subprocess_call.assert_has_calls([
-            mock.call('sudo cp -f "/foo/ironic-python-agent.kernel" '
-                      '"/var/lib/ironic/httpboot/agent.kernel"', shell=True),
-            mock.call('sudo cp -f "/foo/ironic-python-agent.initramfs" '
-                      '"/var/lib/ironic/httpboot/agent.ramdisk"', shell=True)
+            mock.call(
+                'sudo qemu-img convert -O raw "/foo/overcloud-full.qcow2"'
+                ' "/foo/overcloud-full.raw"',
+                shell=True
+            ),
+            mock.call('sudo mkdir -m 0775 -p "/var/lib/ironic/httpboot"',
+                      shell=True),
+            mock.call('sudo cp -f "/foo/ironic-python-agent.kernel"'
+                      ' "/var/lib/ironic/httpboot/agent.kernel"',
+                      shell=True),
+            mock.call('sudo mkdir -m 0775 -p "/var/lib/ironic/httpboot"',
+                      shell=True),
+            mock.call('sudo cp -f "/foo/ironic-python-agent.initramfs"'
+                      ' "/var/lib/ironic/httpboot/agent.ramdisk"',
+                      shell=True)
         ])
 
     @mock.patch('tripleoclient.v1.overcloud_image.'
@@ -726,7 +745,7 @@ class TestUploadOvercloudImage(TestPluginV1):
             self.app.client_manager.image.update_image.call_count
         )
         self.assertEqual(mock_convert_image.call_count, 1)
-        self.assertEqual(mock_subprocess_call.call_count, 2)
+        self.assertEqual(mock_subprocess_call.call_count, 4)
         self.assertTrue(self.cmd.updated)
 
 
@@ -800,12 +819,18 @@ class TestUploadOvercloudImageFull(TestPluginV1):
         ])
 
         self.assertEqual(mock_convert_image.call_count, 1)
-        self.assertEqual(mock_subprocess_call.call_count, 2)
+        self.assertEqual(mock_subprocess_call.call_count, 4)
         mock_subprocess_call.assert_has_calls([
-            mock.call('sudo cp -f "./ironic-python-agent.kernel" '
-                      '"/var/lib/ironic/httpboot/agent.kernel"', shell=True),
-            mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
-                      '"/var/lib/ironic/httpboot/agent.ramdisk"', shell=True)
+            mock.call('sudo mkdir -m 0775 -p "/var/lib/ironic/httpboot"',
+                      shell=True),
+            mock.call('sudo cp -f "./ironic-python-agent.kernel"'
+                      ' "/var/lib/ironic/httpboot/agent.kernel"',
+                      shell=True),
+            mock.call('sudo mkdir -m 0775 -p "/var/lib/ironic/httpboot"',
+                      shell=True),
+            mock.call('sudo cp -f "./ironic-python-agent.initramfs"'
+                      ' "/var/lib/ironic/httpboot/agent.ramdisk"',
+                      shell=True)
         ])
 
     @mock.patch('tripleoclient.v1.overcloud_image.'
@@ -851,12 +876,18 @@ class TestUploadOvercloudImageFull(TestPluginV1):
             mock.call(mock.ANY, hw_architecture='ppc64le'),
         ])
         self.assertEqual(mock_convert_image.call_count, 1)
-        self.assertEqual(mock_subprocess_call.call_count, 2)
+        self.assertEqual(mock_subprocess_call.call_count, 4)
         mock_subprocess_call.assert_has_calls([
-            mock.call('sudo cp -f "./ironic-python-agent.kernel" '
-                      '"/var/lib/ironic/httpboot/agent.kernel"', shell=True),
-            mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
-                      '"/var/lib/ironic/httpboot/agent.ramdisk"', shell=True)
+            mock.call('sudo mkdir -m 0775 -p "/var/lib/ironic/httpboot"',
+                      shell=True),
+            mock.call('sudo cp -f "./ironic-python-agent.kernel"'
+                      ' "/var/lib/ironic/httpboot/agent.kernel"',
+                      shell=True),
+            mock.call('sudo mkdir -m 0775 -p "/var/lib/ironic/httpboot"',
+                      shell=True),
+            mock.call('sudo cp -f "./ironic-python-agent.initramfs"'
+                      ' "/var/lib/ironic/httpboot/agent.ramdisk"',
+                      shell=True)
         ])
 
     @mock.patch('tripleoclient.v1.overcloud_image.'
@@ -946,7 +977,7 @@ class TestUploadOvercloudImageFull(TestPluginV1):
             self.app.client_manager.image.update_image.call_count
         )
         self.assertEqual(mock_convert_image.call_count, 1)
-        self.assertEqual(mock_subprocess_call.call_count, 2)
+        self.assertEqual(mock_subprocess_call.call_count, 4)
 
 
 class TestUploadOvercloudImageFullMultiArch(TestPluginV1):
@@ -1041,16 +1072,28 @@ class TestUploadOvercloudImageFullMultiArch(TestPluginV1):
             mock.call(11, hw_architecture='ppc64le'),
         ])
         self.assertEqual(mock_convert_image.call_count, 2)
-        self.assertEqual(mock_subprocess_call.call_count, 4)
+        self.assertEqual(mock_subprocess_call.call_count, 8)
         mock_subprocess_call.assert_has_calls([
-            mock.call('sudo cp -f "./ironic-python-agent.kernel" '
-                      '"/var/lib/ironic/httpboot/agent.kernel"', shell=True),
-            mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
-                      '"/var/lib/ironic/httpboot/agent.ramdisk"', shell=True),
-            mock.call('sudo cp -f "./ironic-python-agent.kernel" '
-                      '"/httpboot/ppc64le/agent.kernel"', shell=True),
-            mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
-                      '"/httpboot/ppc64le/agent.ramdisk"', shell=True),
+            mock.call('sudo mkdir -m 0775 -p "/var/lib/ironic/httpboot"',
+                      shell=True),
+            mock.call('sudo cp -f "./ironic-python-agent.kernel"'
+                      ' "/var/lib/ironic/httpboot/agent.kernel"',
+                      shell=True),
+            mock.call('sudo mkdir -m 0775 -p "/var/lib/ironic/httpboot"',
+                      shell=True),
+            mock.call('sudo cp -f "./ironic-python-agent.initramfs"'
+                      ' "/var/lib/ironic/httpboot/agent.ramdisk"',
+                      shell=True),
+            mock.call('sudo mkdir -m 0775 -p "/httpboot/ppc64le"',
+                      shell=True),
+            mock.call('sudo cp -f "./ironic-python-agent.kernel"'
+                      ' "/httpboot/ppc64le/agent.kernel"',
+                      shell=True),
+            mock.call('sudo mkdir -m 0775 -p "/httpboot/ppc64le"',
+                      shell=True),
+            mock.call('sudo cp -f "./ironic-python-agent.initramfs"'
+                      ' "/httpboot/ppc64le/agent.ramdisk"',
+                      shell=True)
         ])
 
     @mock.patch('tripleoclient.v1.overcloud_image.'
@@ -1126,20 +1169,38 @@ class TestUploadOvercloudImageFullMultiArch(TestPluginV1):
             mock.call(12, hw_architecture='ppc64le', tripleo_platform='p9'),
         ])
         self.assertEqual(mock_convert_image.call_count, 3)
-        self.assertEqual(mock_subprocess.call_count, 6)
+        self.assertEqual(mock_subprocess.call_count, 12)
         mock_subprocess.assert_has_calls([
-            mock.call('sudo cp -f "./ironic-python-agent.kernel" '
-                      '"/var/lib/ironic/httpboot/agent.kernel"', shell=True),
-            mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
-                      '"/var/lib/ironic/httpboot/agent.ramdisk"', shell=True),
-            mock.call('sudo cp -f "./ironic-python-agent.kernel" '
-                      '"/httpboot/ppc64le/agent.kernel"', shell=True),
-            mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
-                      '"/httpboot/ppc64le/agent.ramdisk"', shell=True),
-            mock.call('sudo cp -f "./ironic-python-agent.kernel" '
-                      '"/httpboot/p9-ppc64le/agent.kernel"', shell=True),
-            mock.call('sudo cp -f "./ironic-python-agent.initramfs" '
-                      '"/httpboot/p9-ppc64le/agent.ramdisk"', shell=True),
+            mock.call('sudo mkdir -m 0775 -p "/var/lib/ironic/httpboot"',
+                      shell=True),
+            mock.call('sudo cp -f "./ironic-python-agent.kernel"'
+                      ' "/var/lib/ironic/httpboot/agent.kernel"',
+                      shell=True),
+            mock.call('sudo mkdir -m 0775 -p "/var/lib/ironic/httpboot"',
+                      shell=True),
+            mock.call('sudo cp -f "./ironic-python-agent.initramfs"'
+                      ' "/var/lib/ironic/httpboot/agent.ramdisk"',
+                      shell=True),
+            mock.call('sudo mkdir -m 0775 -p "/httpboot/ppc64le"',
+                      shell=True),
+            mock.call('sudo cp -f "./ironic-python-agent.kernel"'
+                      ' "/httpboot/ppc64le/agent.kernel"',
+                      shell=True),
+            mock.call('sudo mkdir -m 0775 -p "/httpboot/ppc64le"',
+                      shell=True),
+            mock.call('sudo cp -f "./ironic-python-agent.initramfs"'
+                      ' "/httpboot/ppc64le/agent.ramdisk"',
+                      shell=True),
+            mock.call('sudo mkdir -m 0775 -p "/httpboot/p9-ppc64le"',
+                      shell=True),
+            mock.call('sudo cp -f "./ironic-python-agent.kernel"'
+                      ' "/httpboot/p9-ppc64le/agent.kernel"',
+                      shell=True),
+            mock.call('sudo mkdir -m 0775 -p "/httpboot/p9-ppc64le"',
+                      shell=True),
+            mock.call('sudo cp -f "./ironic-python-agent.initramfs"'
+                      ' "/httpboot/p9-ppc64le/agent.ramdisk"',
+                      shell=True)
         ])
 
 
