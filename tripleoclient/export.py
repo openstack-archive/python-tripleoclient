@@ -53,35 +53,57 @@ def export_passwords(heat, stack, excludes=True):
 
 def export_stack(heat, stack, should_filter=False,
                  config_download_dir=constants.DEFAULT_WORK_DIR):
+    """Export stack information.
+    Iterates over parameters selected for export and loads
+    additional data from the referenced files.
 
-    # data to export
-    # parameter: Parameter to be exported
-    # file:   IF file specified it is taken as source instead of heat
-    #         output.File is relative to <config-download-dir>/stack.
-    # filter: in case only specific settings should be
-    #         exported from parameter data.
+    :param heat: tht client
+    :type heat: Client
+    :param stack: stack name for password generator
+    :type stack: string
+    :params should_filter:
+        should the export only include values with keys
+        defined in the 'filter' list. Defaults to `False`
+    :type should_filter: bool
+    :param config_download_dir:
+        path to download directory,
+        defaults to `constants.DEFAULT_WORK_DIR`
+    :type config_download_dir: string
+
+    :returns: data to export
+    :rtype: dict
+
+    The function detetermines what data to export using information,
+    obtained from the preset `tripleoclient.constants.EXPORT_DATA` dictionary.
+    parameter: Parameter to be exported
+    file:   If file is specified it is taken as source instead of heat
+            output. File is relative to <config-download-dir>/stack.
+    filter: in case only specific settings should be
+            exported from parameter data.
+    """
 
     data = {}
     heat_stack = oooutils.get_stack(heat, stack)
 
     for export_key, export_param in constants.EXPORT_DATA.items():
         param = export_param["parameter"]
+
         if "file" in export_param:
             # get file data
             file = os.path.join(config_download_dir,
                                 stack,
                                 export_param["file"])
+
             if not os.path.exists(file):
                 LOG.warning('File %s was not found during export' %
                             file)
-            with open(file, 'r') as ff:
+            with open(file, 'r') as parameter_file:
                 try:
-                    export_data = json.load(ff)
-                except Exception as e:
+                    export_data = json.load(parameter_file)
+                except (TypeError, json.JSONDecodeError) as e:
                     LOG.error(
                         _('Could not read file %s') % file)
                     LOG.error(e)
-
         else:
             # get stack data
             export_data = oooutils.get_stack_output_item(
@@ -99,7 +121,7 @@ def export_stack(heat, stack, should_filter=False,
                 data[param] = export_data
 
         else:
-            raise Exception(
+            raise RuntimeError(
                 "No data returned to export %s from." % param)
 
     return data

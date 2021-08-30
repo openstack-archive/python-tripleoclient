@@ -12,6 +12,7 @@
 #   License for the specific language governing permissions and limitations
 #   under the License.
 #
+from json.decoder import JSONDecodeError
 import os
 
 import mock
@@ -133,6 +134,26 @@ class TestExport(TestCase):
         with mock.patch('six.moves.builtins.open', self.mock_open):
             export.export_stack(heat, "control")
         mock_get_stack.assert_called_once_with(heat, 'control')
+
+    @mock.patch('tripleoclient.export.LOG.error', autospec=True)
+    @mock.patch('tripleoclient.export.json.load', autospec=True,
+                side_effect=JSONDecodeError)
+    @mock.patch('tripleoclient.export.open')
+    @mock.patch('tripleoclient.export.os.path.exists', autospec=True,
+                return_value=True)
+    @mock.patch('tripleoclient.utils.get_stack', autospec=True)
+    def test_export_stack_decode_error(self, mock_get_stack, mock_exists,
+                                       mock_open, mock_json_load, mock_log):
+
+        heat = mock.MagicMock()
+        mock_get_stack.return_value = self.mock_stack
+        export.export_stack(heat, "overcloud")
+
+        mock_open.assert_called_once_with(
+            os.path.join(
+                os.environ.get('HOME'),
+                'config-download/overcloud/group_vars/overcloud.json'),
+            'r')
 
     @mock.patch('tripleo_common.utils.plan.generate_passwords')
     def test_export_passwords(self, mock_gen_pass):
