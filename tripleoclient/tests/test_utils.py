@@ -958,8 +958,13 @@ class TestWaitForStackUtil(TestCase):
     def test_empty_file_checksum(self):
         # Used a NamedTemporaryFile since it's deleted when the file is closed.
         with tempfile.NamedTemporaryFile() as empty_temp_file:
-            self.assertEqual(utils.file_checksum(empty_temp_file.name),
-                             'd41d8cd98f00b204e9800998ecf8427e')
+            self.assertEqual(
+                utils.file_checksum(empty_temp_file.name),
+                (
+                    'cf83e1357eefb8bdf1542850d66d8007'
+                    'd620e4050b5715dc83f4a921d36ce9ce47'
+                    'd0d13c5d85f2b0ff8318d2877eec2f63b'
+                    '931bd47417a81a538327af927da3e'))
 
     def test_non_empty_file_checksum(self):
         # Used a NamedTemporaryFile since it's deleted when the file is closed.
@@ -967,8 +972,39 @@ class TestWaitForStackUtil(TestCase):
             temp_file.write(b'foo')
             temp_file.flush()
 
-            self.assertEqual(utils.file_checksum(temp_file.name),
-                             'acbd18db4cc2f85cedef654fccc4a4d8')
+            self.assertEqual(
+                utils.file_checksum(temp_file.name),
+                (
+                    'f7fbba6e0636f890e56fbbf3283e52'
+                    '4c6fa3204ae298382d624741d0dc663'
+                    '8326e282c41be5e4254d8820772c55'
+                    '18a2c5a8c0c7f7eda19594a7eb539453e1ed7'))
+
+    def test_non_empty_file_checksum_SHA256(self):
+        """Test 'file_checksum' function with an alternative algorithm.
+        """
+        # Used a NamedTemporaryFile since it's deleted when the file is closed.
+        with tempfile.NamedTemporaryFile() as temp_file:
+            temp_file.write(b'foo')
+            temp_file.flush()
+
+            self.assertEqual(
+                utils.file_checksum(temp_file.name, 'sha256'),
+                (
+                    '2c26b46b68ffc68ff99b453c1d304134'
+                    '13422d706483bfa0f98a5e886266e7ae'))
+
+    def test_non_empty_file_checksum_non_compliant(self):
+        """Test 'file_checksum' function with an alternative algorithm
+        that isn't permitted by the FIPS.
+        """
+        # Used a NamedTemporaryFile since it's deleted when the file is closed.
+        with tempfile.NamedTemporaryFile() as temp_file:
+            temp_file.write(b'foo')
+            temp_file.flush()
+
+            self.assertRaises(RuntimeError, utils.file_checksum,
+                              temp_file.name, 'md5')
 
     def test_shouldnt_checksum_open_special_files(self):
         self.assertRaises(ValueError, utils.file_checksum, '/dev/random')
