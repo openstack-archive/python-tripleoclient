@@ -316,10 +316,11 @@ def enable_ssh_admin(log, clients, plan_name, hosts, ssh_user, ssh_key,
 
         for host in hosts:
             rm_tmp_key_command = ["ssh"] + ssh_options.split()
-            rm_tmp_key_command += \
-                ["-i", ssh_key, "-l", ssh_user, host,
-                 "sed -i -e '/%s/d' $HOME/.ssh/authorized_keys" %
-                 tmp_key_comment]
+            rm_tmp_key_command += [
+                "-i", ssh_key, "-l", ssh_user, host,
+                """echo -e "$(sed -e '/%s/d' $HOME/.ssh/authorized_keys)
+                " > $HOME/.ssh/authorized_keys""" % tmp_key_comment
+            ]
             print("Removing TripleO short term key from %s" % host)
             subprocess.check_call(rm_tmp_key_command, stderr=subprocess.STDOUT)
     finally:
