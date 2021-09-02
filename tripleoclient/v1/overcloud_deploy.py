@@ -45,6 +45,8 @@ from tripleoclient.workflows import deployment
 from tripleoclient.workflows import parameters as workflow_params
 from tripleoclient.workflows import plan_management
 
+from validations_libs.validation_actions import ValidationActions
+
 
 class DeployOvercloud(command.Command):
     """Deploy Overcloud"""
@@ -276,11 +278,29 @@ class DeployOvercloud(command.Command):
         if not update_plan_only:
             print("Deploying templates in the directory {0}".format(
                 os.path.abspath(tht_root)))
+            if run_validations:
+                actions = ValidationActions()
+                results = actions.run_validations(
+                    inventory='undercloud',
+                    log_path=constants.VALIDATIONS_LOG_BASEDIR,
+                    validations_dir=constants.ANSIBLE_VALIDATION_DIR,
+                    group='pre-deployment')
+                failed_list = [r.get('UUID') for r in results
+                               if r.get('Status') == 'FAILED']
+                if failed_list:
+                    msg = ("Validations has failed, check log results "
+                           "under {}, for: {}.")
+                    raise exceptions.DeploymentError(
+                        msg.format(constants.VALIDATIONS_LOG_BASEDIR,
+                                   ', '.join(failed_list))
+                        )
+            # Force run_validations to False in order to skip the mistral
+            # Validation run.
             deployment.deploy_and_wait(
                 self.log, self.clients, stack,
                 stack_name, self.app_args.verbose_level,
                 timeout=timeout,
-                run_validations=run_validations,
+                run_validations=False,
                 skip_deploy_identifier=skip_deploy_identifier,
                 deployment_options=deployment_options)
 
