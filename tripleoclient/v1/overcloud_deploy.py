@@ -712,42 +712,6 @@ class DeployOvercloud(command.Command):
             roles=roles
         )
 
-    def _post_stack_validation(self, stack):
-        """Post stack update mandatory validation
-
-           Runs a validation in the to make sure that KernelArgs either
-           contains a TSX parameter or the ForceNoTsx parameter is defined.
-           This is a mandatory validation and it has to happen before
-           as soon as possible.
-           """
-
-        libvirt_service = "OS::TripleO::Services::NovaLibvirt"
-        services = filter(lambda x: (x.endswith('Services') and
-                                     libvirt_service in stack.parameters[x]),
-                          stack.parameters)
-        impacted_roles = []
-        for i in services:
-            role_name = re.sub('Services$', '', i)
-            role_param = stack.parameters.get(role_name + 'Parameters')
-            if role_param:
-                role_params = json.loads(role_param)
-                kernel_args = role_params.get('KernelArgs')
-                no_tsx = role_params.get('ForceNoTsx')
-                if (not no_tsx and
-                   (not kernel_args or "tsx=" not in kernel_args)):
-                    impacted_roles.append(role_name)
-        if len(impacted_roles):
-            self.log.error("Roles in the following list are expected to have "
-                           "a TSX flag configured in their KernelArgs "
-                           "parameter. For more information on why we must "
-                           "explicitly define the TSX flag, please visit: "
-                           "https://access.redhat.com/solutions/6036141")
-            self.log.error("You can also skip this validation by setting "
-                           "ForceNoTsx parameter for the desired role(s)")
-            self.log.error("Impacted roles: {roles}".format(
-                roles=",".join(impacted_roles)))
-            raise exceptions.PostStackValidationError()
-
     def get_parser(self, prog_name):
         # add_help doesn't work properly, set it to False:
         parser = argparse.ArgumentParser(
