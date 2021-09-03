@@ -112,6 +112,18 @@ class Build(command.Command):
             ),
         )
         parser.add_argument(
+            "--tcib-extras",
+            dest="tcib_extras",
+            default=None,
+            metavar="<key=val>",
+            action='append',
+            help=_(
+                "TCIB extra variables you want to pass. They can be later "
+                "used within TCIB files as conditonals. Can be passed "
+                "multiple times(default: %(default)s)"
+            ),
+        )
+        parser.add_argument(
             "--exclude",
             dest="excludes",
             metavar="<container-name>",
@@ -563,6 +575,15 @@ class Build(command.Command):
                     "ansible_connection": "local",
                 }
             )
+            if parsed_args.tcib_extras:
+                for extras in parsed_args.tcib_extras:
+                    key, value = extras.split('=')
+                    # Enforce format in order to get some consistency
+                    if not key.startswith('tcib_'):
+                        raise ValueError('Wrong key format {key}. '
+                                         'We expect "tcib_" prefix, such as '
+                                         'tcib_{key}'.format(key=key))
+                    image_config[key] = value
 
             if parsed_args.rhel_modules:
                 rhel_modules = {}
