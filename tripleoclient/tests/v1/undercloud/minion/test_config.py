@@ -51,7 +51,7 @@ class TestMinionDeploy(base.TestCase):
         cmd = minion_config.prepare_minion_deploy()
         expected_cmd = ['sudo', '--preserve-env',
                         'openstack', 'tripleo', 'deploy',
-                        '--standalone', '--standalone-role',
+                        '--standalone-role',
                         'UndercloudMinion', '--stack', 'minion',
                         '-r',
                         '/usr/share/openstack-tripleo-heat-templates/roles/'
@@ -128,7 +128,7 @@ class TestMinionDeploy(base.TestCase):
         cmd = minion_config.prepare_minion_deploy()
         expected_cmd = ['sudo', '--preserve-env',
                         'openstack', 'tripleo', 'deploy',
-                        '--standalone', '--standalone-role',
+                        '--standalone-role',
                         'UndercloudMinion', '--stack', 'minion',
                         '-r', '/foo/roles/UndercloudMinion.yaml',
                         '--local-ip=1.1.1.1/24',

@@ -886,11 +886,6 @@ class Deploy(command.Command):
             help=_("The directory containing the Heat templates to deploy"),
             default=constants.TRIPLEO_HEAT_TEMPLATES
         )
-        parser.add_argument('--standalone', default=False, action='store_true',
-                            help=_("DEPRECATED. The --standalone argument is "
-                                   "now deprecated. Standalone deployments "
-                                   "can now be run without passing "
-                                   "--standalone. "))
         parser.add_argument('--upgrade', default=False, action='store_true',
                             help=_("Upgrade an existing deployment."))
         parser.add_argument('-y', '--yes', default=False, action='store_true',
