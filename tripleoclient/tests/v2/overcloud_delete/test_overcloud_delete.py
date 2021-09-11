@@ -34,9 +34,10 @@ class TestDeleteOvercloud(deploy_fakes.TestDeployOvercloud):
     @mock.patch('os.chdir', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True)
     def test_overcloud_delete(self, mock_mkdir, mock_cd, mock_run_playbook):
-        arglist = ["overcast", "-y"]
+        arglist = ["overcast", "--heat-type", "installed", "-y"]
         verifylist = [
             ("stack", "overcast"),
+            ("heat_type", "installed"),
             ("yes", True)
         ]
 
@@ -51,6 +52,7 @@ class TestDeleteOvercloud(deploy_fakes.TestDeployOvercloud):
             constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             extra_vars={
                 "stack_name": "overcast",
+                "heat_stack_delete": True
             },
             verbosity=3,
         )
@@ -155,6 +157,7 @@ class TestDeleteOvercloud(deploy_fakes.TestDeployOvercloud):
             constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             extra_vars={
                 "stack_name": "overcast",
+                "heat_stack_delete": False
             },
             verbosity=3,
         )
