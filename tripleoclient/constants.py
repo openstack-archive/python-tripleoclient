@@ -279,3 +279,13 @@ DEFAULT_PARTITION_IMAGE = 'overcloud-full.qcow2'
 DEFAULT_WHOLE_DISK_IMAGE = 'overcloud-hardened-uefi-full.qcow2'
 
 FIPS_COMPLIANT_HASHES = {'sha1', 'sha224', 'sha256', 'sha384', 'sha512'}
+
+# Work-Dir default file names
+WD_DEFAULT_ROLES_FILE_NAME = 'tripleo-{}-roles-data.yaml'
+WD_DEFAULT_NETWORKS_FILE_NAME = 'tripleo-{}-network-data.yaml'
+WD_DEFAULT_VIP_FILE_NAME = 'tripleo-{}-virtual-ips.yaml'
+WD_DEFAULT_BAREMETAL_FILE_NAME = 'tripleo-{}-baremetal-deployment.yaml'
+KIND_TEMPLATES = {'roles': WD_DEFAULT_ROLES_FILE_NAME,
+                  'networks': WD_DEFAULT_NETWORKS_FILE_NAME,
+                  'baremetal': WD_DEFAULT_BAREMETAL_FILE_NAME,
+                  'vips': WD_DEFAULT_VIP_FILE_NAME}

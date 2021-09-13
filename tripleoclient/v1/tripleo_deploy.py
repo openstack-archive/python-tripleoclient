@@ -598,7 +598,8 @@ class Deploy(command.Command):
 
         # generate jinja templates by its work dir location
         self.log.debug(_("Using roles file %s") % roles_file_path)
-        utils.jinja_render_files(self.log, parsed_args.templates,
+        utils.jinja_render_files(self.log,
+                                 templates=parsed_args.templates,
                                  working_dir=self.tht_render,
                                  roles_file=roles_file_path,
                                  networks_file=networks_file_path,

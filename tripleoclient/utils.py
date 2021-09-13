@@ -1736,22 +1736,99 @@ def cleanup_tripleo_ansible_inventory_file(path):
         processutils.execute('/usr/bin/rm', '-f', path)
 
 
-def get_roles_file_path(roles_file, tht_root):
-    roles_file = roles_file or os.path.join(
-        tht_root, constants.OVERCLOUD_ROLES_FILE)
-    return os.path.abspath(roles_file)
+def get_roles_file_path(working_dir, stack_name):
+    roles_file = os.path.join(
+        working_dir,
+        constants.WD_DEFAULT_ROLES_FILE_NAME.format(stack_name))
+
+    return roles_file
 
 
-def get_networks_file_path(networks_file, tht_root):
-    networks_file = networks_file or os.path.join(
-        tht_root, constants.OVERCLOUD_NETWORKS_FILE)
-    return os.path.abspath(networks_file)
+def get_networks_file_path(working_dir, stack_name):
+    networks_file = os.path.join(
+        working_dir,
+        constants.WD_DEFAULT_NETWORKS_FILE_NAME.format(stack_name))
+
+    return networks_file
 
 
-def get_vip_file_path(vip_file, tht_root):
-    vip_file = vip_file or os.path.join(
-        tht_root, constants.OVERCLOUD_VIP_FILE)
-    return os.path.abspath(vip_file)
+def get_baremetal_file_path(working_dir, stack_name):
+    baremetal_file_name = os.path.join(
+        working_dir,
+        constants.WD_DEFAULT_BAREMETAL_FILE_NAME.format(stack_name))
+    baremetal_file = (baremetal_file_name
+                      if os.path.exists(baremetal_file_name) else None)
+
+    return baremetal_file
+
+
+def get_vip_file_path(working_dir, stack_name):
+    vip_file = os.path.join(
+        working_dir,
+        constants.WD_DEFAULT_VIP_FILE_NAME.format(stack_name))
+
+    return vip_file
+
+
+def rewrite_ansible_playbook_paths(src, dest):
+    """Rewrite relative paths to playbooks in the dest roles file, so that
+    the path is the absolute path relative to the src roles file
+    """
+    with open(dest, 'r') as f:
+        wd_roles = yaml.safe_load(f.read())
+    for role_idx, role in enumerate(wd_roles):
+        for pb_idx, pb_def in enumerate(role.get('ansible_playbooks', [])):
+            path = rel_or_abs_path_role_playbook(os.path.dirname(src),
+                                                 pb_def['playbook'])
+            wd_roles[role_idx]['ansible_playbooks'][pb_idx][
+                'playbook'] = path
+    with open(dest, 'w') as f:
+        f.write(yaml.safe_dump(wd_roles))
+
+
+def copy_to_wd(working_dir, file, stack, kind):
+    src = os.path.abspath(file)
+    dest = os.path.join(working_dir,
+                        constants.KIND_TEMPLATES[kind].format(stack))
+    shutil.copy(src, dest)
+    if kind == 'baremetal':
+        rewrite_ansible_playbook_paths(src, dest)
+
+
+def update_working_dir_defaults(working_dir, args):
+    stack_name = args.stack
+    tht_root = os.path.abspath(args.templates)
+
+    if args.baremetal_deployment:
+        copy_to_wd(working_dir, args.baremetal_deployment, stack_name,
+                   'baremetal')
+
+    if args.roles_file:
+        copy_to_wd(working_dir, args.roles_file, stack_name, 'roles')
+    elif not os.path.exists(
+            os.path.join(
+                working_dir,
+                constants.WD_DEFAULT_ROLES_FILE_NAME.format(stack_name))):
+        file = os.path.join(tht_root, constants.OVERCLOUD_ROLES_FILE)
+        copy_to_wd(working_dir, file, stack_name, 'roles')
+
+    if args.networks_file:
+        copy_to_wd(working_dir, args.networks_file, args.stack, 'networks')
+    elif not os.path.exists(
+            os.path.join(
+                working_dir,
+                constants.WD_DEFAULT_NETWORKS_FILE_NAME.format(stack_name))):
+        file = os.path.join(tht_root, constants.OVERCLOUD_NETWORKS_FILE)
+        copy_to_wd(working_dir, file, stack_name, 'networks')
+
+    if args.vip_file:
+        copy_to_wd(working_dir, args.vip_file, args.stack, 'vips')
+    elif not os.path.exists(
+            os.path.join(
+                working_dir,
+                constants.WD_DEFAULT_VIP_FILE_NAME.format(stack_name))):
+        file = os.path.join(tht_root, constants.OVERCLOUD_VIP_FILE)
+        copy_to_wd(working_dir, file, stack_name, 'vips')
 
 
 def build_stack_data(clients, stack_name, template,
@@ -1816,12 +1893,8 @@ def jinja_render_files(log, templates, working_dir,
     process_templates = os.path.join(
         templates, 'tools/process-templates.py')
     args = [python_cmd, process_templates]
-
-    roles_file_path = get_roles_file_path(roles_file, base_path)
-    args.extend(['--roles-data', roles_file_path])
-
-    networks_file_path = get_networks_file_path(networks_file, base_path)
-    args.extend(['--network-data', networks_file_path])
+    args.extend(['--roles-data', roles_file])
+    args.extend(['--network-data', networks_file])
 
     if base_path:
         args.extend(['-p', base_path])
@@ -2791,8 +2864,9 @@ def get_undercloud_host_entry():
 
 
 def build_enabled_sevices_image_params(env_files, parsed_args,
-                                       new_tht_root, user_tht_root):
-    params = {}
+                                       new_tht_root, user_tht_root,
+                                       working_dir):
+    params = dict()
     if parsed_args.environment_directories:
         env_files.extend(load_environment_directories(
             parsed_args.environment_directories))
@@ -2803,8 +2877,7 @@ def build_enabled_sevices_image_params(env_files, parsed_args,
         env_files, new_tht_root, user_tht_root,
         cleanup=(not parsed_args.no_cleanup))
 
-    roles_data = roles.get_roles_data(
-        parsed_args.roles_file, new_tht_root)
+    roles_data = roles.get_roles_data(working_dir, parsed_args.stack)
 
     params.update(kolla_builder.get_enabled_services(env, roles_data))
     params.update(plan_utils.default_image_params())

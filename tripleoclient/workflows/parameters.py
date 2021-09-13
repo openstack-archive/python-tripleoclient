@@ -80,13 +80,9 @@ def invoke_plan_env_workflows(clients, stack_name, plan_env_file,
             )
 
 
-def build_derived_params_environment(clients, stack_name,
-                                     tht_root, env_files,
-                                     env_files_tracker,
-                                     roles_file,
-                                     plan_env_file,
-                                     derived_env_file,
-                                     verbosity):
+def build_derived_params_environment(clients, stack_name, tht_root, env_files,
+                                     env_files_tracker, plan_env_file,
+                                     derived_env_file, verbosity, working_dir):
     template_path = os.path.join(tht_root, OVERCLOUD_YAML_NAME)
     template_files, template = template_utils.get_template_contents(
         template_file=template_path)
@@ -98,10 +94,9 @@ def build_derived_params_environment(clients, stack_name,
         files, env_files_tracker)
 
     # Get role list
-    role_list = roles.get_roles(
-        clients, roles_file, tht_root, stack_name,
-        template, files, env_files_tracker,
-        detail=False, valid=True)
+    role_list = roles.get_roles(clients, stack_name, template, files,
+                                env_files_tracker, working_dir, detail=False,
+                                valid=True)
 
     invoke_plan_env_workflows(
             clients,
@@ -114,22 +109,29 @@ def build_derived_params_environment(clients, stack_name,
         )
 
 
-def check_deprecated_parameters(clients, stack_name, tht_root, template,
-                                roles_file, files, env_files_tracker):
+def check_deprecated_parameters(clients, stack_name, template, files,
+                                env_files_tracker, working_dir):
     """Checks for deprecated parameters and adds warning if present.
 
     :param clients: application client object.
     :type clients: Object
-
-    :param container: Name of the stack container.
-    :type container: String
+    :param stack_neme: Heat stack name
+    :type stack_name: String
+    :param template:
+    :type template: String
+    :param files:
+    :type files:
+    :param env_files_tracker:
+    :type env_files_tracker:
+    :param working_dir: Tripleo working directory
+    :type working_dir: String
     """
 
     # Get role list
-    role_list = roles.get_roles(
-        clients, roles_file, tht_root, stack_name,
-        template, files, env_files_tracker,
-        detail=False, valid=True)
+    role_list = roles.get_roles(clients, stack_name, template, files,
+                                env_files_tracker, working_dir,
+                                detail=False,
+                                valid=True)
 
     # Build stack_data
     stack_data = utils.build_stack_data(

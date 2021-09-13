@@ -100,6 +100,18 @@ class OvercloudNetworkProvision(command.Command):
                             help=_("The directory containing the Heat "
                                    "templates to deploy"),
                             default=constants.TRIPLEO_HEAT_TEMPLATES)
+        parser.add_argument('--stack', dest='stack',
+                            help=_('Name or ID of heat stack, when set the '
+                                   'networks file will be copied to the '
+                                   'working dir.'),
+                            default=utils.env('OVERCLOUD_STACK_NAME',
+                                              default=None))
+        parser.add_argument(
+            '--working-dir', action='store',
+            help=_('The working directory for the deployment where all '
+                   'input, output, and generated files will be stored.\n'
+                   'Defaults to "$HOME/overcloud-deploy-<stack>"')
+        )
 
         return parser
 
@@ -140,6 +152,17 @@ class OvercloudNetworkProvision(command.Command):
                 verbosity=oooutils.playbook_verbosity(self=self),
                 extra_vars=extra_vars,
             )
+
+        if parsed_args.stack:
+            if not parsed_args.working_dir:
+                working_dir = oooutils.get_default_working_dir(
+                    parsed_args.stack)
+            else:
+                working_dir = os.path.abspath(parsed_args.working_dir)
+            oooutils.makedirs(working_dir)
+
+            oooutils.copy_to_wd(working_dir, networks_file_path,
+                                parsed_args.stack, 'networks')
 
 
 class OvercloudVirtualIPsExtract(command.Command):
@@ -223,11 +246,24 @@ class OvercloudVirtualIPsProvision(command.Command):
                             help=_("The directory containing the Heat "
                                    "templates to deploy"),
                             default=constants.TRIPLEO_HEAT_TEMPLATES)
+        parser.add_argument(
+            '--working-dir', action='store',
+            help=_('The working directory for the deployment where all '
+                   'input, output, and generated files will be stored.\n'
+                   'Defaults to "$HOME/overcloud-deploy-<stack>"')
+        )
 
         return parser
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+
+        if not parsed_args.working_dir:
+            working_dir = oooutils.get_default_working_dir(
+                parsed_args.stack)
+        else:
+            working_dir = os.path.abspath(parsed_args.working_dir)
+        oooutils.makedirs(working_dir)
 
         vip_file_path = os.path.abspath(parsed_args.vip_file)
         output_path = os.path.abspath(parsed_args.output)
@@ -264,6 +300,9 @@ class OvercloudVirtualIPsProvision(command.Command):
                 verbosity=oooutils.playbook_verbosity(self=self),
                 extra_vars=extra_vars,
             )
+
+        oooutils.copy_to_wd(working_dir, vip_file_path, parsed_args.stack,
+                            'vips')
 
 
 class OvercloudNetworkUnprovision(command.Command):
