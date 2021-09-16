@@ -26,8 +26,6 @@ from osc_lib.tests import utils as test_utils
 import yaml
 
 from tripleoclient import exceptions
-from tripleoclient import plugin
-from tripleoclient.tests import fakes as ooofakes
 from tripleoclient.tests.v1.overcloud_node import fakes
 from tripleoclient.v1 import overcloud_node
 from tripleoclient.v2 import overcloud_node as overcloud_node_v2
@@ -694,11 +692,6 @@ class TestDiscoverNode(fakes.TestOvercloudNode):
 
     def setUp(self):
         super(TestDiscoverNode, self).setUp()
-
-        client = self.app.client_manager.tripleoclient
-        client.create_mistral_context = plugin.ClientWrapper(
-            instance=ooofakes.FakeInstanceData
-        ).create_mistral_context
 
         self.cmd = overcloud_node.DiscoverNode(self.app, None)
 
