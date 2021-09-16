@@ -1364,7 +1364,7 @@ class GetDeploymentStatus(command.Command):
         )
 
         if not status:
-            self.log.info('No deployment was found for %s' % stack)
+            print('No deployment was found for %s' % stack)
             return
 
         table = PrettyTable(
