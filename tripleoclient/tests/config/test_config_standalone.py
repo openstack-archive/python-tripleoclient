@@ -1,5 +1,3 @@
-#   Copyright 2018 Red Hat, Inc.
-#
 #   Licensed under the Apache License, Version 2.0 (the "License"); you may
 #   not use this file except in compliance with the License. You may obtain
 #   a copy of the License at
@@ -50,7 +48,6 @@ class TestStandaloneConfig(base.TestCase):
                     'enable_heat',
                     'enable_ironic',
                     'enable_ironic_inspector',
-                    'enable_mistral',
                     'enable_neutron',
                     'enable_nova',
                     'enable_novajoin',
@@ -68,7 +65,6 @@ class TestStandaloneConfig(base.TestCase):
                                                   heat=True,
                                                   ironic=True,
                                                   ironic_inspector=True,
-                                                  mistral=True,
                                                   neutron=True,
                                                   nova=True,
                                                   novajoin=True,
@@ -81,7 +77,6 @@ class TestStandaloneConfig(base.TestCase):
                     'enable_heat',
                     'enable_ironic',
                     'enable_ironic_inspector',
-                    'enable_mistral',
                     'enable_neutron',
                     'enable_nova',
                     'enable_novajoin',
@@ -108,7 +103,6 @@ class TestStandaloneConfig(base.TestCase):
                     'enable_heat',
                     'enable_ironic',
                     'enable_ironic_inspector',
-                    'enable_mistral',
                     'enable_neutron',
                     'enable_nova',
                     'enable_novajoin',
