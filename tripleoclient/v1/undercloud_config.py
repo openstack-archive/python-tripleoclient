@@ -636,10 +636,6 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
         tht_templates, 'environments/services/undercloud-remove-novajoin.yaml')
         ]
 
-    if CONF.get('enable_zaqar'):
-        deploy_args += ['-e', os.path.join(
-            tht_templates, "environments/services/zaqar-swift-backend.yaml")]
-
     if CONF.get('enable_swift'):
         deploy_args += ['-e', os.path.join(
             tht_templates, "environments/undercloud-enable-swift.yaml")]
