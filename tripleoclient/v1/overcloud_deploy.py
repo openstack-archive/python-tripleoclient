@@ -1099,9 +1099,8 @@ class DeployOvercloud(command.Command):
             choices=['installed', 'pod', 'container', 'native'],
             help=_('The type of Heat process to use to execute '
                    'the deployment.\n'
-                   'installed (Default): Use the system installed '
-                   'Heat.\n'
-                   'pod: Use an ephemeral Heat pod.\n'
+                   'pod (Default): Use an ephemeral Heat pod.\n'
+                   'installed: Use the system installed Heat.\n'
                    'container: Use an ephemeral Heat container.\n'
                    'native: Use an ephemeral Heat process.')
         )
