@@ -50,6 +50,7 @@ class TestStandaloneConfig(base.TestCase):
                     'enable_heat',
                     'enable_ironic',
                     'enable_ironic_inspector',
+                    'enable_keystone',
                     'enable_mistral',
                     'enable_neutron',
                     'enable_nova',
@@ -60,12 +61,18 @@ class TestStandaloneConfig(base.TestCase):
                     'enable_zaqar']
         self.assertEqual(expected, [x.name for x in ret])
         for x in ret:
-            self.assertEqual(x.default, False, "%s config not False" % x.name)
+            if x.name == 'enable_keystone':
+                self.assertEqual(x.default, True,
+                                 "%s config not True" % x.name)
+            else:
+                self.assertEqual(x.default, False,
+                                 "%s config not False" % x.name)
 
     def test_get_service_opts_enabled(self):
         ret = self.config.get_enable_service_opts(cinder=True,
                                                   frr=True,
                                                   heat=True,
+                                                  keystone=True,
                                                   ironic=True,
                                                   ironic_inspector=True,
                                                   mistral=True,
@@ -81,6 +88,7 @@ class TestStandaloneConfig(base.TestCase):
                     'enable_heat',
                     'enable_ironic',
                     'enable_ironic_inspector',
+                    'enable_keystone',
                     'enable_mistral',
                     'enable_neutron',
                     'enable_nova',
@@ -108,6 +116,7 @@ class TestStandaloneConfig(base.TestCase):
                     'enable_heat',
                     'enable_ironic',
                     'enable_ironic_inspector',
+                    'enable_keystone',
                     'enable_mistral',
                     'enable_neutron',
                     'enable_nova',

@@ -589,6 +589,10 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
         deploy_args += ['-e', os.path.join(
             tht_templates, "environments/services/masquerade-networks.yaml")]
 
+    if CONF.get('enable_keystone'):
+        deploy_args += ['-e', os.path.join(
+            tht_templates, "environments/undercloud-enable-keystone.yaml")]
+
     if CONF.get('enable_ironic'):
         deploy_args += ['-e', os.path.join(
             tht_templates, "environments/services/ironic.yaml")]
