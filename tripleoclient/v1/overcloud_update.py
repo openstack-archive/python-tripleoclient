@@ -12,6 +12,8 @@
 #   License for the specific language governing permissions and limitations
 #   under the License.
 #
+import os
+
 from oslo_config import cfg
 from oslo_log import log as logging
 
@@ -24,18 +26,17 @@ from tripleoclient import command
 from tripleoclient import constants
 from tripleoclient import utils as oooutils
 from tripleoclient.v1.overcloud_deploy import DeployOvercloud
-from tripleoclient.workflows import deployment
 
 
 CONF = cfg.CONF
 
 
 class UpdatePrepare(DeployOvercloud):
-    """Run heat stack update for overcloud nodes to refresh heat stack outputs.
+    """Use Heat to update and render the new Ansible playbooks based
+    on the updated templates.
 
-       The heat stack outputs are what we use later on to generate ansible
-       playbooks which deliver the minor update workflow. This is used as the
-       first step for a minor update of your overcloud.
+    These playbooks will be rendered and used during the update run step
+    to perform the minor update of the overcloud nodes.
     """
 
     log = logging.getLogger(__name__ + ".MinorUpdatePrepare")
@@ -188,44 +189,46 @@ class UpdateRun(command.Command):
         else:
             playbook = parsed_args.playbook
 
-        _, ansible_dir = self.get_ansible_key_and_dir(
-            no_workflow=True,
-            stack=parsed_args.stack,
-            orchestration=self.app.client_manager.orchestration
-        )
-        deployment.config_download(
-            log=self.log,
-            clients=self.app.client_manager,
-            stack=oooutils.get_stack(
-                self.app.client_manager.orchestration,
-                parsed_args.stack
-            ),
-            output_dir=ansible_dir,
-            verbosity=oooutils.playbook_verbosity(self=self),
-            ansible_playbook_name=playbook,
-            inventory_path=oooutils.get_tripleo_ansible_inventory(
-                parsed_args.static_inventory,
-                parsed_args.ssh_user,
-                parsed_args.stack,
-                return_inventory_file_path=True
-            ),
-            limit_hosts=oooutils.playbook_limit_parse(
-                limit_nodes=parsed_args.limit
-            ),
+        ansible_dir = os.path.join(oooutils.get_default_working_dir(
+                                        parsed_args.stack
+                                        ),
+                                   'config-download',
+                                   parsed_args.stack)
+
+        if not parsed_args.static_inventory:
+            inventory = os.path.join(ansible_dir,
+                                     'tripleo-ansible-inventory.yaml')
+        else:
+            inventory = parsed_args.static_inventory
+
+        ansible_cfg = os.path.join(ansible_dir, 'ansible.cfg')
+        key_file = oooutils.get_key(parsed_args.stack)
+
+        oooutils.run_ansible_playbook(
+            playbook=playbook,
+            inventory=inventory,
+            workdir=ansible_dir,
+            playbook_dir=ansible_dir,
             skip_tags=parsed_args.skip_tags,
             tags=parsed_args.tags,
-            forks=parsed_args.ansible_forks
+            ansible_cfg=ansible_cfg,
+            ssh_user='tripleo-admin',
+            limit_hosts=parsed_args.limit,
+            reproduce_command=True,
+            forks=parsed_args.ansible_forks,
+            extra_env_variables={
+                "ANSIBLE_BECOME": True,
+                "ANSIBLE_PRIVATE_KEY_FILE": key_file
+            }
         )
-        self.log.info("Completed Overcloud Minor Update Run.")
+        self.log.info("Completed Minor Update Run.")
 
 
 class UpdateConverge(DeployOvercloud):
     """Converge the update on Overcloud nodes.
-
     This restores the plan and stack so that normal deployment
     workflow is back in place.
     """
-
     log = logging.getLogger(__name__ + ".UpdateConverge")
 
     def get_parser(self, prog_name):
@@ -236,6 +239,7 @@ class UpdateConverge(DeployOvercloud):
                                    "required before any update operation. "
                                    "Use this with caution! "),
                             )
+
         return parser
 
     def take_action(self, parsed_args):
@@ -249,13 +253,30 @@ class UpdateConverge(DeployOvercloud):
                     constants.UPDATE_PROMPT, self.log)):
             raise OvercloudUpdateNotConfirmed(constants.UPDATE_NO)
 
-        # Add the update-converge.yaml environment to unset noops
-        templates_dir = (parsed_args.templates or
-                         constants.TRIPLEO_HEAT_TEMPLATES)
-        parsed_args.environment_files = oooutils.prepend_environment(
-            parsed_args.environment_files, templates_dir,
-            constants.UPDATE_CONVERGE_ENV)
+        ansible_dir = os.path.join(oooutils.get_default_working_dir(
+                                        parsed_args.stack
+                                        ),
+                                   'config-download',
+                                   parsed_args.stack)
 
-        super(UpdateConverge, self).take_action(parsed_args)
-        self.log.info("Update converge on stack {0} complete.".format(
-                      parsed_args.stack))
+        inventory = os.path.join(ansible_dir,
+                                 'tripleo-ansible-inventory.yaml')
+
+        ansible_cfg = os.path.join(ansible_dir, 'ansible.cfg')
+        key_file = oooutils.get_key(parsed_args.stack)
+
+        oooutils.run_ansible_playbook(
+            playbook='deploy_steps_playbook.yaml',
+            inventory=inventory,
+            workdir=ansible_dir,
+            playbook_dir=ansible_dir,
+            ansible_cfg=ansible_cfg,
+            ssh_user='tripleo-admin',
+            reproduce_command=True,
+            forks=parsed_args.ansible_forks,
+            extra_env_variables={
+                "ANSIBLE_BECOME": True,
+                "ANSIBLE_PRIVATE_KEY_FILE": key_file
+            }
+        )
+        self.log.info("Completed Minor Update Converge.")

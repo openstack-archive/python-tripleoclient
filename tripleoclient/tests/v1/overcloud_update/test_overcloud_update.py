@@ -139,35 +139,57 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
 
 
 class TestOvercloudUpdateConverge(fakes.TestOvercloudUpdateConverge):
-
     def setUp(self):
         super(TestOvercloudUpdateConverge, self).setUp()
-
         # Get the command object to test
         app_args = mock.Mock()
         app_args.verbose_level = 1
         self.cmd = overcloud_update.UpdateConverge(self.app, app_args)
 
+    @mock.patch('tripleoclient.utils.get_key')
+    @mock.patch('tripleoclient.utils.get_default_working_dir')
     @mock.patch('tripleoclient.utils.ensure_run_as_normal_user')
     @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
                 return_value=True)
     @mock.patch(
-        'tripleoclient.v1.overcloud_deploy.DeployOvercloud.take_action')
+        'tripleoclient.utils.run_ansible_playbook')
     def test_update_converge(self, deploy_action, mock_confirm,
-                             mock_usercheck):
-        argslist = ['--templates', '--stack', 'cloud']
+                             mock_usercheck, mock_dir, mock_key):
+        argslist = ['--stack', 'cloud']
         verifylist = [
             ('stack', 'cloud')
         ]
-        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+        mock_dir.return_value = "/home/stack/overcloud-deploy"
+        ansible_dir = "{}/config-download/cloud".format(
+            mock_dir.return_value
+        )
+        inventory = "{}/tripleo-ansible-inventory.yaml".format(
+            ansible_dir
+        )
+        ansible_cfg = "{}/ansible.cfg".format(
+            ansible_dir
+        )
+        mock_key.return_value = '/home/stack/.ssh/id_rsa_tripleo'
 
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
         with mock.patch('os.path.exists') as mock_exists, \
                 mock.patch('os.path.isfile') as mock_isfile:
             mock_exists.return_value = True
             mock_isfile.return_value = True
             self.cmd.take_action(parsed_args)
             mock_usercheck.assert_called_once()
-            assert('/usr/share/openstack-tripleo-heat-templates/'
-                   'environments/lifecycle/update-converge.yaml'
-                   in parsed_args.environment_files)
-            deploy_action.assert_called_once_with(parsed_args)
+            deploy_action.assert_called_once_with(
+                playbook='deploy_steps_playbook.yaml',
+                inventory=inventory,
+                workdir=ansible_dir,
+                playbook_dir=ansible_dir,
+                ansible_cfg=ansible_cfg,
+                ssh_user='tripleo-admin',
+                reproduce_command=True,
+                forks=parsed_args.ansible_forks,
+                extra_env_variables={
+                    "ANSIBLE_BECOME": True,
+                    "ANSIBLE_PRIVATE_KEY_FILE":
+                    "/home/stack/.ssh/id_rsa_tripleo"
+                }
+            )

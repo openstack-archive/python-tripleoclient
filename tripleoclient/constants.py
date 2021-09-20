@@ -101,7 +101,6 @@ EXTERNAL_UPGRADE_PLAYBOOKS = ['external_upgrade_steps_playbook.yaml']
 # upgrade environment files expected by the client in the --templates
 # tripleo-heat-templates default above $TRIPLEO_HEAT_TEMPLATES
 UPDATE_PREPARE_ENV = "environments/lifecycle/update-prepare.yaml"
-UPDATE_CONVERGE_ENV = "environments/lifecycle/update-converge.yaml"
 UPGRADE_PREPARE_ENV = "environments/lifecycle/upgrade-prepare.yaml"
 UPGRADE_CONVERGE_ENV = "environments/lifecycle/upgrade-converge.yaml"
 UPGRADE_CONVERGE_FORBIDDEN_PARAMS = ["ceph3_namespace",
