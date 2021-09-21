@@ -19,8 +19,6 @@ import sys
 
 from osc_lib.tests import utils
 
-from tripleoclient import plugin
-
 AUTH_TOKEN = "foobar"
 AUTH_URL = "http://0.0.0.0"
 WS_URL = "ws://0.0.0.0"
@@ -185,7 +183,6 @@ class FakeClientManager(object):
         self.auth_ref = None
         self.tripleoclient = FakeClientWrapper()
         self.workflow_engine = mock.Mock()
-        self.create_mistral_context = mock.Mock()
 
 
 class FakeHandle(object):
@@ -288,9 +285,6 @@ class FakePlaybookExecution(utils.TestCommand):
         self.tripleoclient = mock.Mock()
         stack = self.app.client_manager.orchestration = mock.Mock()
         stack.stacks.get.return_value = FakeStackObject
-        tc = self.app.client_manager.tripleoclient = FakeClientWrapper()
-        tc.create_mistral_context = plugin.ClientWrapper(
-             instance=FakeInstanceData).create_mistral_context
 
         get_key = mock.patch('tripleoclient.utils.get_key')
         get_key.start()
