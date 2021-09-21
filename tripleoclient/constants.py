@@ -104,11 +104,10 @@ ANSIBLE_INVENTORY = \
     '/var/lib/mistral/overcloud/{}'.format(TRIPLEO_STATIC_INVENTORY)
 
 ANSIBLE_VALIDATION_DIR = (
-    os.path.join(DEFAULT_VALIDATIONS_LEGACY_BASEDIR, 'playbooks')
-    if os.path.exists(os.path.join(DEFAULT_VALIDATIONS_LEGACY_BASEDIR,
-                                   'playbooks'))
-    else "/usr/share/ansible/validation-playbooks"
-    )
+    "/usr/share/ansible/validation-playbooks"
+    if os.path.exists("/usr/share/ansible/validation-playbooks")
+    else os.path.join(DEFAULT_VALIDATIONS_LEGACY_BASEDIR,
+                      'playbooks'))
 
 ANSIBLE_TRIPLEO_PLAYBOOKS = \
     '/usr/share/ansible/tripleo-playbooks'
