@@ -279,3 +279,10 @@ class UpgradeConverge(UpgradePrepare):
     forbidden_params = constants.UPGRADE_CONVERGE_FORBIDDEN_PARAMS
 
     log = logging.getLogger(__name__ + ".UpgradeConverge")
+
+    def take_action(self, parsed_args):
+        super(UpgradeConverge, self).take_action(parsed_args)
+        deployment.set_deployment_status(
+            parsed_args.stack,
+            status='DEPLOY_SUCCESS',
+            working_dir=self.working_dir)
