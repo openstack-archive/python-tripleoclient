@@ -81,8 +81,7 @@ class UndercloudConfig(StandaloneConfig):
             novajoin=False,
             swift=False,
             telemetry=False,
-            validations=True,
-            zaqar=False)
+            validations=True)
 
     def get_base_opts(self):
         _base_opts = super(UndercloudConfig, self).get_base_opts()
