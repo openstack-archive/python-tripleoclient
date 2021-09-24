@@ -77,7 +77,7 @@ class TestContainerImages(deploy_fakes.TestDeployOvercloud):
             mock_isfile.return_value = True
             with mock.patch("os.path.isdir", autospec=True) as mock_isdir:
                 mock_isdir.return_value = True
-                with mock.patch('six.moves.builtins.open', mock_open):
+                with mock.patch('builtins.open', mock_open):
                     with mock.patch(
                         "tripleoclient.v2.tripleo_container_image.Build"
                         ".find_image",
@@ -88,7 +88,7 @@ class TestContainerImages(deploy_fakes.TestDeployOvercloud):
 
     def test_find_image(self):
         mock_open = mock.mock_open(read_data='---\ntcib_option: "data"')
-        with mock.patch('six.moves.builtins.open', mock_open):
+        with mock.patch('builtins.open', mock_open):
             image = self.cmd.find_image("keystone", "some/path", "base-image")
         self.assertEqual(image, {"tcib_option": "data"})
 

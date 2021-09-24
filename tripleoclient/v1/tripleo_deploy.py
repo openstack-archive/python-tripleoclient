@@ -14,13 +14,13 @@
 #
 
 import argparse
+import configparser
 import json
 import logging
 import netaddr
 import os
 import pwd
 import shutil
-import six
 import subprocess
 import sys
 import tempfile
@@ -31,7 +31,6 @@ import yaml
 from cliff import command
 from heatclient.common import template_utils
 from osc_lib.i18n import _
-from six.moves import configparser
 
 from tripleoclient import constants
 from tripleoclient import exceptions
@@ -1419,9 +1418,9 @@ class Deploy(command.Command):
         try:
             self._standalone_deploy(parsed_args)
         except Exception as ex:
-            self.log.error("Exception: %s" % six.text_type(ex))
+            self.log.error("Exception: %s" % str(ex))
             self.log.error(traceback.print_exc())
-            raise exceptions.DeploymentError(six.text_type(ex))
+            raise exceptions.DeploymentError(str(ex))
         finally:
             # Copy clouds.yaml from /etc/openstack so credentials can be
             # read by the deployment user and not only root.

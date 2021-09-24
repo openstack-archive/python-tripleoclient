@@ -13,11 +13,11 @@
 #   under the License.
 #
 
+import configparser
 import os
 import sys
 
 from osc_lib.i18n import _
-from six.moves import configparser
 from tripleo_common.image import kolla_builder
 
 TRIPLEO_ARCHIVE_DIR = "/var/lib/tripleo/archive"

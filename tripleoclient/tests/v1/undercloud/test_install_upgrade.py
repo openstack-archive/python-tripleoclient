@@ -57,7 +57,7 @@ class TestUndercloudInstall(TestPluginV1):
     # TODO(cjeanner) drop once we have proper oslo.privsep
     @mock.patch('os.geteuid', return_value=1001)
     @mock.patch('getpass.getuser', return_value='stack')
-    @mock.patch('six.moves.builtins.open')
+    @mock.patch('builtins.open')
     @mock.patch('shutil.copy')
     @mock.patch('os.mkdir')
     @mock.patch('tripleoclient.utils.write_env_file', autospec=True)
@@ -339,7 +339,7 @@ class TestUndercloudInstall(TestPluginV1):
     # TODO(cjeanner) drop once we have proper oslo.privsep
     @mock.patch('os.geteuid', return_value=1001)
     @mock.patch('getpass.getuser', return_value='stack')
-    @mock.patch('six.moves.builtins.open')
+    @mock.patch('builtins.open')
     @mock.patch('shutil.copy')
     @mock.patch('os.mkdir')
     @mock.patch('tripleoclient.utils.write_env_file', autospec=True)
@@ -402,7 +402,7 @@ class TestUndercloudInstall(TestPluginV1):
     # TODO(cjeanner) drop once we have proper oslo.privsep
     @mock.patch('os.geteuid', return_value=1001)
     @mock.patch('getpass.getuser', return_value='stack')
-    @mock.patch('six.moves.builtins.open')
+    @mock.patch('builtins.open')
     @mock.patch('shutil.copy')
     @mock.patch('os.mkdir')
     @mock.patch('tripleoclient.utils.write_env_file', autospec=True)

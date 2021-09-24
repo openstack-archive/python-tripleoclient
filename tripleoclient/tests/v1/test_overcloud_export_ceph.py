@@ -59,7 +59,7 @@ class TestOvercloudExportCeph(utils.TestCommand):
         data['parameter_defaults']['CephExternalMultiConfig'] = [expected]
         mock_export_ceph.return_value = expected
 
-        with mock.patch('six.moves.builtins.open', self.mock_open):
+        with mock.patch('builtins.open', self.mock_open):
             self.cmd.take_action(parsed_args)
         path = os.path.join(os.environ.get('HOME'),
                             'overcloud-deploy', 'dcn0', 'config-download')
