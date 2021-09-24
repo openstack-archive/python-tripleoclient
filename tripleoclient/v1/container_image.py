@@ -16,6 +16,7 @@
 import copy
 import datetime
 import errno
+from io import StringIO
 import json
 import logging
 import os
@@ -27,8 +28,7 @@ import uuid
 
 from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
-import six
-from six.moves.urllib import parse
+from urllib import parse
 import yaml
 
 from tripleo_common.image.builder import buildah
@@ -45,7 +45,7 @@ from tripleoclient import utils
 
 def build_env_file(params, command_options):
 
-    f = six.StringIO()
+    f = StringIO()
     f.write('# Generated with the following on %s\n#\n' %
             datetime.datetime.now().isoformat())
     f.write('#   openstack %s\n#\n\n' %

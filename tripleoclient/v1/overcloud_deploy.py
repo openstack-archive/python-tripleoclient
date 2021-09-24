@@ -23,8 +23,8 @@ from prettytable import PrettyTable
 from pwd import getpwuid
 import re
 import shutil
-import six
 import time
+import urllib
 import yaml
 
 from heatclient.common import template_utils
@@ -408,7 +408,7 @@ class DeployOvercloud(command.Command):
         # an FQDN depending on how what it's configured to output in the
         # tripleo-heat-templates. Such a configuration can be done by
         # overriding the EndpointMap through parameter_defaults.
-        overcloud_ip_or_fqdn = six.moves.urllib.parse.urlparse(
+        overcloud_ip_or_fqdn = urllib.parse.urlparse(
             overcloud_endpoint).hostname
 
         keystone_admin_ip = utils.get_endpoint('KeystoneAdmin', stack)

@@ -16,6 +16,7 @@
 import collections
 import copy
 import datetime
+from io import StringIO
 import ipaddress
 import json
 import logging
@@ -27,7 +28,6 @@ from openstack import exceptions as openstack_exc
 from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
 from osc_lib import utils
-import six
 import yaml
 
 from tripleoclient import command
@@ -111,7 +111,7 @@ class DeleteNode(command.Command):
         node_hostnames = [i['hostname'] for i in nodes if 'hostname' in i]
 
         formatter = table.TableFormatter()
-        output = six.StringIO()
+        output = StringIO()
         formatter.emit_list(
             column_names=['hostname', 'name', 'id'],
             data=nodes_data,
@@ -637,7 +637,7 @@ class ExtractProvisionedNode(command.Command):
             data.append(role)
 
         # Write the file header
-        file_data = six.StringIO()
+        file_data = StringIO()
         file_data.write('# Generated with the following on %s\n#\n' %
                         datetime.datetime.now().isoformat())
         file_data.write('#   openstack %s\n#\n\n' %
@@ -650,7 +650,7 @@ class ExtractProvisionedNode(command.Command):
         if parsed_args.output:
             if (os.path.exists(parsed_args.output)
                     and not parsed_args.yes and sys.stdin.isatty()):
-                prompt_response = six.moves.input(
+                prompt_response = input(
                     ('Overwrite existing file %s [y/N]?' % parsed_args.output)
                 ).lower()
                 if not prompt_response.startswith('y'):

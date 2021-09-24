@@ -19,8 +19,6 @@ import re
 import uuid
 import yaml
 
-import six
-
 from osc_lib.i18n import _
 
 from oslo_config import cfg
@@ -387,7 +385,7 @@ class Build(command.Command):
                 self.image_paths[key] = os.path.join(work_dir, key)
                 utils.makedirs(dir_path=self.image_paths[key])
                 self.make_dir_tree(tree=value, work_dir=self.image_paths[key])
-        elif isinstance(tree, six.string_types):
+        elif isinstance(tree, str):
             self.image_paths[tree] = os.path.join(work_dir, tree)
             utils.makedirs(dir_path=self.image_paths[tree])
 

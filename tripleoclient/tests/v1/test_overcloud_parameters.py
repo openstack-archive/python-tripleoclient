@@ -63,7 +63,7 @@ class TestGenerateFencingParameters(utils.TestCommand):
 
         mock_gen_fence.return_value = '{"result":[]}'
 
-        with mock.patch('six.moves.builtins.open', mock_open_context):
+        with mock.patch('builtins.open', mock_open_context):
             parsed_args = self.check_parser(self.cmd, arglist, verifylist)
             self.cmd.take_action(parsed_args)
 
