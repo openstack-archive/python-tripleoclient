@@ -88,11 +88,6 @@ class ExternalUpdateRun(command.Command):
                             help=('Set additional variables as key=value or '
                                   'yaml/json'),
                             default=[])
-        parser.add_argument('--no-workflow', dest='no_workflow',
-                            action='store_true',
-                            default=True,
-                            help=_('This option no longer has any effect.')
-                            )
         parser.add_argument('-y', '--yes', default=False,
                             action='store_true',
                             help=_("Use -y or --yes to skip the confirmation "
@@ -137,7 +132,6 @@ class ExternalUpdateRun(command.Command):
 
         if parsed_args.refresh:
             _, ansible_dir = self.get_ansible_key_and_dir(
-                no_workflow=True,
                 stack=parsed_args.stack,
                 orchestration=self.app.client_manager.orchestration
             )
