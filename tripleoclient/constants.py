@@ -253,6 +253,7 @@ EXPORT_DATA = {
 # Package that need to be to the latest before undercloud
 # update/update
 UNDERCLOUD_EXTRA_PACKAGES = [
+    "python3-tripleoclient",
     "openstack-tripleo-common",
     "openstack-tripleo-heat-templates",
     "openstack-tripleo-validations",
