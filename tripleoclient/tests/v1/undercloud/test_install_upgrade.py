@@ -17,7 +17,6 @@ import fixtures
 import json
 import mock
 import os
-import sys
 
 from jinja2 import Template
 
@@ -551,7 +550,6 @@ class TestUndercloudUpgrade(TestPluginV1):
 
     @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
                 return_value=True)
-    @mock.patch.object(sys, 'executable', 'python2')
     # TODO(cjeanner) drop once we have proper oslo.privsep
     @mock.patch('os.geteuid', return_value=1001)
     @mock.patch('getpass.getuser', return_value='stack')
@@ -572,7 +570,7 @@ class TestUndercloudUpgrade(TestPluginV1):
         self.cmd.take_action(parsed_args)
         mock_run_command.assert_called_with(
             ['sudo', 'dnf', 'upgrade', '-y',
-             'python2-tripleoclient',
+             'python3-tripleoclient',
              'openstack-tripleo-common',
              'openstack-tripleo-heat-templates',
              'openstack-tripleo-validations',
@@ -623,7 +621,6 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/'
              'undercloud-stack-vstate-dropin.yaml'])
 
-    @mock.patch.object(sys, 'executable', 'python3')
     # TODO(cjeanner) drop once we have proper oslo.privsep
     @mock.patch('os.geteuid', return_value=1001)
     @mock.patch('getpass.getuser', return_value='stack')
