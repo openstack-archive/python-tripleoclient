@@ -75,11 +75,6 @@ class UpgradePrepare(DeployOvercloud):
 
         clients = self.app.client_manager
 
-        stack = oooutils.get_stack(clients.orchestration,
-                                   parsed_args.stack)
-
-        stack_name = stack.stack_name
-
         # In case of update and upgrade we need to force the
         # config_download to false. The heat stack update will be performed
         # by DeployOvercloud class but skipping the config download part.
@@ -97,6 +92,9 @@ class UpgradePrepare(DeployOvercloud):
                                           self.forbidden_params)
         super(UpgradePrepare, self).take_action(parsed_args)
 
+        stack = oooutils.get_stack(clients.orchestration,
+                                   parsed_args.stack)
+        stack_name = stack.stack_name
         # enable ssh admin for Ansible-via-Mistral as that's done only
         # when config_download is true
         deployment.get_hosts_and_enable_ssh_admin(
