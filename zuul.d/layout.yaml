@@ -19,19 +19,6 @@
               - openstack-tox-pep8
               - openstack-tox-py36
               - openstack-tox-py38
-        - tripleo-ci-centos-8-containers-undercloud-minion:
-            vars:
-              consumer_job: true
-              build_container_images: false
-              remove_tags:
-                - build
-            dependencies:
-              - tripleo-ci-centos-8-content-provider
-            files:
-              - ^config-generator/.*minion.*$
-              - ^tripleoclient/config/.*minion.*$
-              - ^tripleoclient/v1/.*minion.*$
-              - ^tripleoclient/v1/tripleo_deploy.py$
         - tripleo-ci-centos-8-standalone:
             vars:
               enable_validation: true
