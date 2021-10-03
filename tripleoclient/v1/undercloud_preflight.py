@@ -404,11 +404,6 @@ def _validate_architecure_options():
         LOG.error(_('Undercloud configuration validation failed: %s'), message)
         raise FailedValidation(message)
 
-    def _validate_ppc64le_exclusive_opts(error_callback):
-        if 'ipxe_enabled' in CONF and CONF['ipxe_enabled']:
-            error_callback(_('Currently iPXE boot isn\'t supported with '
-                             'ppc64le systems but is enabled'))
-
     def _validate_additional_architectures(error_callback):
         for arch in CONF['additional_architectures']:
             if arch not in constants.ADDITIONAL_ARCHITECTURES:
@@ -421,8 +416,6 @@ def _validate_architecure_options():
                                  '%(all_architectures)s') % params)
 
     _validate_additional_architectures(error_handler)
-    if 'ppc64le' in CONF['additional_architectures']:
-        _validate_ppc64le_exclusive_opts(error_handler)
 
 
 def _checking_status(item):
