@@ -299,7 +299,7 @@ class DeployOvercloud(command.Command):
                     new_tht_root,
                     constants.DEPLOYED_SERVER_ENVIRONMENT))
 
-        if not parsed_args.skip_nodes_and_networks:
+        if parsed_args.baremetal_deployment is not None:
             created_env_files.extend(
                 self._provision_networks(parsed_args, new_tht_root,
                                          protected_overrides))
@@ -915,10 +915,16 @@ class DeployOvercloud(command.Command):
                                    'the deployment actions. This may need to '
                                    'be used if deploying on a python2 host '
                                    'from a python3 system or vice versa.'))
-        parser.add_argument('-b', '--baremetal-deployment',
-                            metavar='<baremetal_deployment.yaml>',
-                            help=_('Configuration file describing the '
-                                   'baremetal deployment'))
+        parser.add_argument(
+            '-b', '--baremetal-deployment',
+            metavar='<baremetal_deployment.yaml>',
+            nargs='?',
+            const=True,
+            help=_('Deploy baremetal nodes, network and virtual IP addresses '
+                   'as defined in baremetal_deployment.yaml along with '
+                   'overcloud. If no baremetal_deployment YAML file is given, '
+                   'the tripleo-<stack_name>-baremetal-deployment.yaml file '
+                   'in the working-dir will be used.'))
         parser.add_argument('--network-config',
                             help=_('Apply network config to provisioned '
                                    'nodes.'),
@@ -1024,11 +1030,10 @@ class DeployOvercloud(command.Command):
             '--skip-nodes-and-networks',
             action='store_true',
             default=False,
-            help=_('When this is set no Baremetal Nodes, Networks nor Virtual '
-                   'IPs will be provisioned. The resources are assumed to '
-                   'already be provisioned. The environment files including '
-                   'the necessary input for the stack create must be provided '
-                   'by the user.')
+            help=_('DEPRECATED - This option is ignored if used. '
+                   'The --baremetal-deployment option must be used to enable '
+                   'provisioning of all resources, Baremetal nodes as well as'
+                   'Networks and Virtual IPs')
         )
         parser.add_argument(
             '--disable-protected-resource-types',
