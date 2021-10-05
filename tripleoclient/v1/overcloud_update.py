@@ -130,11 +130,6 @@ class UpdateRun(command.Command):
                             default=utils.env('OVERCLOUD_STACK_NAME',
                                               default='overcloud')
                             )
-        parser.add_argument('--no-workflow', dest='no_workflow',
-                            action='store_true',
-                            default=True,
-                            help=_('This option no longer has any effect.')
-                            )
         parser.add_argument(
             '--tags',
             action='store',

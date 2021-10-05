@@ -1,0 +1,8 @@
+---
+upgrades:
+  - |
+    The ``--no-workflow`` option has been removed from the following command.
+
+    - ``openstack overcloud external update run``
+    - ``openstack overcloud external upgrade run``
+    - ``openstack overcloud update run``

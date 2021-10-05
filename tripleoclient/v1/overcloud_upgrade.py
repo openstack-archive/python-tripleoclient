@@ -187,11 +187,6 @@ class UpgradeRun(command.Command):
                             default=utils.env('OVERCLOUD_STACK_NAME',
                                               default='overcloud')
                             )
-        parser.add_argument('--no-workflow', dest='no_workflow',
-                            action='store_true',
-                            default=True,
-                            help=_('This option no longer has any effect.')
-                            )
         parser.add_argument('-y', '--yes', default=False,
                             action='store_true',
                             help=_("Use -y or --yes to skip the confirmation "
@@ -228,7 +223,6 @@ class UpgradeRun(command.Command):
             playbook = parsed_args.playbook
 
         _, ansible_dir = self.get_ansible_key_and_dir(
-            no_workflow=parsed_args.no_workflow,
             stack=parsed_args.stack,
             orchestration=self.app.client_manager.orchestration
         )
