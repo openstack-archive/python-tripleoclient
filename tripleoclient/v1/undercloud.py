@@ -19,7 +19,6 @@ import argparse
 import logging
 import os
 import subprocess
-import sys
 
 from openstackclient.i18n import _
 
@@ -245,15 +244,8 @@ class UpgradeUndercloud(InstallUndercloud):
         utils.ensure_run_as_normal_user()
 
         if not parsed_args.skip_package_updates:
-            if ('python3' in sys.executable):
-                pyver = '3'
-            else:
-                pyver = '2'
-            client_pkgs = [
-                "python{}-tripleoclient".format(pyver),
-            ]
-            pkgs = client_pkgs + constants.UNDERCLOUD_EXTRA_PACKAGES
-            self._update_extra_packages(pkgs, parsed_args.dry_run)
+            self._update_extra_packages(constants.UNDERCLOUD_EXTRA_PACKAGES,
+                                        parsed_args.dry_run)
 
         if not parsed_args.dry_run:
             self._run_upgrade(parsed_args)
