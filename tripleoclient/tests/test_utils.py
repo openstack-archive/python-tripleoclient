@@ -80,12 +80,14 @@ class TestRunAnsiblePlaybook(TestCase):
             utils.run_ansible_playbook,
             'non-existing.yaml',
             'localhost,',
-            '/tmp'
+            utils.constants.DEFAULT_WORK_DIR
         )
-        mock_exists.assert_called_with('/tmp/non-existing.yaml')
+        mock_exists.assert_called_with(os.path.join(
+            utils.constants.DEFAULT_WORK_DIR, 'non-existing.yaml'))
         mock_run.assert_not_called()
 
-    @mock.patch('tempfile.mkstemp', return_value=('foo', '/tmp/fooBar.cfg'))
+    @mock.patch('tempfile.mkstemp', return_value=('foo', os.path.join(
+        utils.constants.DEFAULT_WORK_DIR, 'fooBar.cfg')))
     @mock.patch('os.path.exists', return_value=True)
     @mock.patch('os.makedirs')
     @mock.patch.object(
@@ -102,10 +104,11 @@ class TestRunAnsiblePlaybook(TestCase):
             utils.run_ansible_playbook(
                 'existing.yaml',
                 'localhost,',
-                '/tmp'
+                utils.constants.DEFAULT_WORK_DIR
             )
 
-    @mock.patch('tempfile.mkstemp', return_value=('foo', '/tmp/fooBar.cfg'))
+    @mock.patch('tempfile.mkstemp', return_value=('foo', os.path.join(
+        utils.constants.DEFAULT_WORK_DIR, 'fooBar.cfg')))
     @mock.patch('os.path.exists', return_value=True)
     @mock.patch('os.makedirs')
     @mock.patch.object(
@@ -120,7 +123,7 @@ class TestRunAnsiblePlaybook(TestCase):
         utils.run_ansible_playbook(
             playbook='existing.yaml',
             inventory='localhost,',
-            workdir='/tmp'
+            workdir=utils.constants.DEFAULT_WORK_DIR
         )
 
     @mock.patch('os.path.exists', return_value=True)
@@ -137,10 +140,11 @@ class TestRunAnsiblePlaybook(TestCase):
         utils.run_ansible_playbook(
             playbook='existing.yaml',
             inventory='localhost,',
-            workdir='/tmp'
+            workdir=utils.constants.DEFAULT_WORK_DIR
         )
 
-    @mock.patch('tempfile.mkstemp', return_value=('foo', '/tmp/fooBar.cfg'))
+    @mock.patch('tempfile.mkstemp', return_value=('foo', os.path.join(
+        utils.constants.DEFAULT_WORK_DIR, 'fooBar.cfg')))
     @mock.patch('os.path.exists', return_value=True)
     @mock.patch('os.makedirs')
     @mock.patch.object(
@@ -156,12 +160,13 @@ class TestRunAnsiblePlaybook(TestCase):
         utils.run_ansible_playbook(
             playbook='existing.yaml',
             inventory='localhost,',
-            workdir='/tmp',
+            workdir=utils.constants.DEFAULT_WORK_DIR,
             connection='local'
         )
 
     @mock.patch('os.makedirs', return_value=None)
-    @mock.patch('tempfile.mkstemp', return_value=('foo', '/tmp/fooBar.cfg'))
+    @mock.patch('tempfile.mkstemp', return_value=('foo', os.path.join(
+        utils.constants.DEFAULT_WORK_DIR, 'fooBar.cfg')))
     @mock.patch('os.path.exists', return_value=True)
     @mock.patch.object(
         Runner,
@@ -176,13 +181,14 @@ class TestRunAnsiblePlaybook(TestCase):
         utils.run_ansible_playbook(
             playbook='existing.yaml',
             inventory='localhost,',
-            workdir='/tmp',
+            workdir=utils.constants.DEFAULT_WORK_DIR,
             connection='local',
             gathering_policy='smart'
         )
 
     @mock.patch('os.makedirs', return_value=None)
-    @mock.patch('tempfile.mkstemp', return_value=('foo', '/tmp/fooBar.cfg'))
+    @mock.patch('tempfile.mkstemp', return_value=('foo', os.path.join(
+        utils.constants.DEFAULT_WORK_DIR, 'fooBar.cfg')))
     @mock.patch('os.path.exists', return_value=True)
     @mock.patch.object(
         Runner,
@@ -199,7 +205,7 @@ class TestRunAnsiblePlaybook(TestCase):
         utils.run_ansible_playbook(
             playbook='existing.yaml',
             inventory='localhost,',
-            workdir='/tmp',
+            workdir=utils.constants.DEFAULT_WORK_DIR,
             connection='local',
             gathering_policy='smart',
             extra_vars=arglist
@@ -215,26 +221,29 @@ class TestRunAnsiblePlaybook(TestCase):
         utils.run_ansible_playbook(
             playbook='existing.yaml',
             inventory='localhost,',
-            workdir='/tmp',
+            workdir=utils.constants.DEFAULT_WORK_DIR,
             timeout=42
         )
-        self.assertIn(mock.call('/tmp/env/settings', 'w'),
+        self.assertIn(mock.call(os.path.join(utils.constants.DEFAULT_WORK_DIR,
+                                             'env/settings'), 'w'),
                       mock_open.mock_calls)
         self.assertIn(
             mock.call().__enter__().write('job_timeout: 2520\n'),  # 42m * 60
             mock_open.mock_calls)
 
+    @mock.patch('os.chmod')
     @mock.patch('six.moves.builtins.open')
     @mock.patch('tripleoclient.utils.makedirs')
     @mock.patch('os.path.exists', side_effect=(False, True, True))
-    def test_run_with_extravar_file(self, mock_exists, mock_mkdir, mock_open):
+    def test_run_with_extravar_file(self, mock_exists, mock_mkdir, mock_open,
+                                    mock_chmod):
         ansible_runner.ArtifactLoader = mock.MagicMock()
         ansible_runner.Runner.run = mock.MagicMock(return_value=('', 0))
         ansible_runner.runner_config = mock.MagicMock()
         utils.run_ansible_playbook(
             playbook='existing.yaml',
             inventory='localhost,',
-            workdir='/tmp',
+            workdir=utils.constants.DEFAULT_WORK_DIR,
             extra_vars_file={
                 'foo': 'bar',
                 'things': {
@@ -244,7 +253,8 @@ class TestRunAnsiblePlaybook(TestCase):
             }
         )
         self.assertIn(
-            mock.call('/tmp/env/extravars', 'w'),
+            mock.call(os.path.join(utils.constants.DEFAULT_WORK_DIR,
+                                   'env/extravars'), 'w'),
             mock_open.mock_calls
         )
         self.assertIn(
