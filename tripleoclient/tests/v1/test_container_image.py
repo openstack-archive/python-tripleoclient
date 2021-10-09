@@ -14,18 +14,18 @@
 #
 
 import fixtures
+from io import StringIO
 import mock
 import os
 import requests
 import shutil
-import six
 import sys
 import tempfile
+from urllib import parse
 import uuid
 import yaml
 
 from osc_lib import exceptions as oscexc
-from six.moves.urllib import parse
 from tripleo_common.image import kolla_builder
 from tripleoclient import constants
 from tripleoclient.tests.v1.test_plugin import TestPluginV1
@@ -888,7 +888,7 @@ class TestTripleoImagePrepareDefault(TestPluginV1):
         self.app.command_options = [
             'tripleo', 'container', 'image', 'prepare', 'default'
         ] + arglist
-        self.cmd.app.stdout = six.StringIO()
+        self.cmd.app.stdout = StringIO()
         cmd = container_image.TripleOImagePrepareDefault(self.app, None)
 
         parsed_args = self.check_parser(cmd, arglist, verifylist)
@@ -958,7 +958,7 @@ class TestContainerImageBuild(TestPluginV1):
 
         # Get the command object to test
         self.cmd = container_image.BuildImage(self.app, None)
-        self.cmd.app.stdout = six.StringIO()
+        self.cmd.app.stdout = StringIO()
         self.uuid = str(uuid.uuid4())
         self.temp_dir = os.path.join(self.useFixture(
                                      fixtures.TempDir()).join())

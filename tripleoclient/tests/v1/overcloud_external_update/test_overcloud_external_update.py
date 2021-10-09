@@ -50,7 +50,7 @@ class TestOvercloudExternalUpdateRun(fakes.TestOvercloudExternalUpdateRun):
                 autospec=True)
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
-    @mock.patch('six.moves.builtins.open')
+    @mock.patch('builtins.open')
     def test_update_with_user_and_tags(self, mock_open, mock_execute,
                                        mock_expanduser, update_ansible,
                                        mock_run, mock_run_prepare):
@@ -77,7 +77,7 @@ class TestOvercloudExternalUpdateRun(fakes.TestOvercloudExternalUpdateRun):
                 autospec=True)
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
-    @mock.patch('six.moves.builtins.open')
+    @mock.patch('builtins.open')
     def test_update_with_user_and_extra_vars(self, mock_open, mock_execute,
                                              mock_expanduser, update_ansible,
                                              mock_run, mock_run_prepare):

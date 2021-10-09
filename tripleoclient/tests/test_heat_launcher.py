@@ -183,7 +183,7 @@ class TestHeatPodLauncher(base.TestCase):
         mock_untar.side_effect = untar
 
         mock_open = mock.mock_open()
-        with mock.patch('six.moves.builtins.open', mock_open):
+        with mock.patch('builtins.open', mock_open):
             # pylint: disable=bad-str-strip-call
             launcher.do_restore_db()
             self.assertEqual(mock.call(str(three), launcher.heat_dir),
@@ -197,7 +197,7 @@ class TestHeatPodLauncher(base.TestCase):
         self.run.reset_mock()
         two.touch()
         mock_open = mock.mock_open()
-        with mock.patch('six.moves.builtins.open', mock_open):
+        with mock.patch('builtins.open', mock_open):
             # pylint: disable=bad-str-strip-call
             launcher.do_restore_db()
             self.assertEqual(mock.call(str(two), launcher.heat_dir),

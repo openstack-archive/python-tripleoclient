@@ -20,6 +20,7 @@ try:
 except AttributeError:
     collectionsAbc = collections
 
+import configparser
 import csv
 import datetime
 import errno
@@ -38,7 +39,6 @@ import pwd
 import re
 import shutil
 import simplejson
-import six
 import socket
 import subprocess
 import sys
@@ -56,12 +56,11 @@ from heatclient.exc import HTTPNotFound
 from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
 from oslo_concurrency import processutils
-from six.moves import configparser
 
 from heatclient import exc as hc_exc
-from six.moves.urllib import error as url_error
-from six.moves.urllib import parse as url_parse
-from six.moves.urllib import request
+from urllib import error as url_error
+from urllib import parse as url_parse
+from urllib import request
 
 from tenacity import retry
 from tenacity.stop import stop_after_attempt, stop_after_delay
@@ -181,7 +180,7 @@ def _encode_envvars(env):
     :type env: `dict`.
     """
     for key, value in env.items():
-        env[key] = six.text_type(value)
+        env[key] = str(value)
     else:
         return env
 
@@ -358,7 +357,7 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
 
     def _inventory(inventory):
         if inventory:
-            if isinstance(inventory, six.string_types):
+            if isinstance(inventory, str):
                 # check is file path
                 if os.path.exists(inventory):
                     return inventory
@@ -733,10 +732,10 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
 
 def convert(data):
     """Recursively converts dictionary keys,values to strings."""
-    if isinstance(data, six.string_types):
+    if isinstance(data, str):
         return str(data)
     if isinstance(data, collectionsAbc.Mapping):
-        return dict(map(convert, six.iteritems(data)))
+        return dict(map(convert, data.items()))
     if isinstance(data, collectionsAbc.Iterable):
         return type(data)(map(convert, data))
     return data
@@ -1223,7 +1222,7 @@ def check_stack_network_matches_env_files(stack, environment):
     """
     def _get_networks(registry):
         nets = set()
-        for k, v in six.iteritems(registry):
+        for k, v in registry.items():
             if (k.startswith('OS::TripleO::Network::')
                 and not k.startswith('OS::TripleO::Network::Port')
                     and v != 'OS::Heat::None'):
@@ -1609,7 +1608,7 @@ def replace_links_in_template(template_part, link_replacement):
 
     def replaced_dict_value(key, value):
         if ((key == 'get_file' or key == 'type') and
-                isinstance(value, six.string_types)):
+                isinstance(value, str)):
             return link_replacement.get(value, value)
         return replace_links_in_template(value, link_replacement)
 
@@ -1618,7 +1617,7 @@ def replace_links_in_template(template_part, link_replacement):
 
     if isinstance(template_part, dict):
         return {k: replaced_dict_value(k, v)
-                for k, v in six.iteritems(template_part)}
+                for k, v in template_part.items()}
     if isinstance(template_part, list):
         return list(map(replaced_list_value, template_part))
     return template_part
@@ -1633,7 +1632,7 @@ def relative_link_replacement(link_replacement, current_dir):
     """
 
     return {k: os.path.relpath(v, current_dir)
-            for k, v in six.iteritems(link_replacement)}
+            for k, v in link_replacement.items()}
 
 
 def load_environment_directories(directories):
@@ -1953,14 +1952,14 @@ def process_multiple_environments(created_env_files, tht_root,
             # See bug https://bugs.launchpad.net/tripleo/+bug/1625783
             # for details on why this is needed (backwards-compatibility)
             log.debug("Error %s processing environment file %s"
-                      % (six.text_type(ex), env_path))
+                      % (str(ex), env_path))
             # Use the temporary path as it's possible the environment
             # itself was rendered via jinja.
             with open(env_path, 'r') as f:
                 env_map = yaml.safe_load(f)
             env_registry = env_map.get('resource_registry', {})
             env_dirname = os.path.dirname(os.path.abspath(env_path))
-            for rsrc, rsrc_path in six.iteritems(env_registry):
+            for rsrc, rsrc_path in env_registry.items():
                 # We need to calculate the absolute path relative to
                 # env_path not cwd (which is what abspath uses).
                 abs_rsrc_path = os.path.normpath(

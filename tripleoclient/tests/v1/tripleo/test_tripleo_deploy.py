@@ -208,7 +208,7 @@ class TestDeployUndercloud(TestPluginV1):
         mock_exists.return_value = False
 
         mock_open_context = mock.mock_open()
-        with mock.patch('six.moves.builtins.open', mock_open_context):
+        with mock.patch('builtins.open', mock_open_context):
             self.cmd._update_passwords_env(self.temp_homedir, 'stack')
 
         mock_open_handle = mock_open_context()
@@ -397,7 +397,7 @@ class TestDeployUndercloud(TestPluginV1):
                 '_setup_heat_environments', autospec=True)
     @mock.patch('yaml.safe_dump', autospec=True)
     @mock.patch('yaml.safe_load', autospec=True)
-    @mock.patch('six.moves.builtins.open')
+    @mock.patch('builtins.open')
     @mock.patch('tempfile.NamedTemporaryFile', autospec=True)
     @mock.patch('tripleo_common.image.kolla_builder.'
                 'container_images_prepare_multi')
@@ -514,7 +514,7 @@ class TestDeployUndercloud(TestPluginV1):
     @mock.patch('yaml.safe_load', return_value={}, autospec=True)
     @mock.patch('yaml.safe_dump', autospec=True)
     @mock.patch('os.path.isfile', return_value=True)
-    @mock.patch('six.moves.builtins.open')
+    @mock.patch('builtins.open')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_process_hieradata_overrides', autospec=True)
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
@@ -715,7 +715,7 @@ class TestDeployUndercloud(TestPluginV1):
     # TODO(cjeanner) drop once we have proper oslo.privsep
     @mock.patch('getpass.getuser', return_value='stack')
     @mock.patch('os.mkdir')
-    @mock.patch('six.moves.builtins.open')
+    @mock.patch('builtins.open')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_populate_templates_dir')
     @mock.patch('tripleoclient.utils.archive_deploy_artifacts',
@@ -810,7 +810,7 @@ class TestDeployUndercloud(TestPluginV1):
     # TODO(cjeanner) drop once we have proper oslo.privsep
     @mock.patch('getpass.getuser', return_value='stack')
     @mock.patch('os.mkdir')
-    @mock.patch('six.moves.builtins.open')
+    @mock.patch('builtins.open')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_populate_templates_dir')
     @mock.patch('tripleoclient.utils.archive_deploy_artifacts',
@@ -895,7 +895,7 @@ class TestDeployUndercloud(TestPluginV1):
     # TODO(cjeanner) drop once we have proper oslo.privsep
     @mock.patch('getpass.getuser', return_value='stack')
     @mock.patch('os.mkdir')
-    @mock.patch('six.moves.builtins.open')
+    @mock.patch('builtins.open')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_populate_templates_dir')
     @mock.patch('tripleoclient.utils.archive_deploy_artifacts',
@@ -1051,7 +1051,7 @@ class TestDeployUndercloud(TestPluginV1):
     @mock.patch('os.chmod')
     # TODO(cjeanner) drop once we have proper oslo.privsep
     @mock.patch('os.mkdir')
-    @mock.patch('six.moves.builtins.open')
+    @mock.patch('builtins.open')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_populate_templates_dir')
     @mock.patch('tripleoclient.utils.archive_deploy_artifacts',
@@ -1110,7 +1110,7 @@ class TestDeployUndercloud(TestPluginV1):
     @mock.patch('os.chmod')
     # TODO(cjeanner) drop once we have proper oslo.privsep
     @mock.patch('os.mkdir')
-    @mock.patch('six.moves.builtins.open')
+    @mock.patch('builtins.open')
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
                 '_populate_templates_dir')
     @mock.patch('tripleoclient.utils.archive_deploy_artifacts',

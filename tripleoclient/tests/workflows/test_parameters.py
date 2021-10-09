@@ -37,7 +37,7 @@ class TestParameterWorkflows(utils.TestCommand):
         self.app.client_manager.baremetal = mock.Mock()
 
     @mock.patch('yaml.safe_load')
-    @mock.patch("six.moves.builtins.open")
+    @mock.patch("builtins.open")
     @mock.patch('tripleoclient.utils.run_ansible_playbook', autospec=True)
     @mock.patch('tripleoclient.utils.get_tripleo_ansible_inventory',
                 autospec=True)
@@ -81,7 +81,7 @@ class TestParameterWorkflows(utils.TestCommand):
         mock_playbook.assert_has_calls(calls, any_order=True)
 
     @mock.patch('yaml.safe_load')
-    @mock.patch("six.moves.builtins.open")
+    @mock.patch("builtins.open")
     @mock.patch('tripleoclient.utils.run_ansible_playbook', autospec=True)
     @mock.patch('tripleoclient.utils.get_tripleo_ansible_inventory',
                 autospec=True)

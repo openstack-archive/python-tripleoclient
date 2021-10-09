@@ -39,7 +39,7 @@ class TestOvercloudUpdatePrepare(fakes.TestOvercloudUpdatePrepare):
     @mock.patch('tripleoclient.utils.ensure_run_as_normal_user')
     @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
                 return_value=True)
-    @mock.patch('six.moves.builtins.open')
+    @mock.patch('builtins.open')
     @mock.patch('os.path.abspath')
     @mock.patch('yaml.safe_load')
     @mock.patch('shutil.copytree', autospec=True)
@@ -77,7 +77,7 @@ class TestOvercloudUpdatePrepare(fakes.TestOvercloudUpdatePrepare):
     @mock.patch('os.path.abspath')
     @mock.patch('yaml.safe_load')
     @mock.patch('shutil.copytree', autospec=True)
-    @mock.patch('six.moves.builtins.open')
+    @mock.patch('builtins.open')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 'take_action', autospec=True)
     def test_update_out(self, mock_deploy, mock_open, mock_copy, mock_yaml,
@@ -124,7 +124,7 @@ class TestOvercloudUpdateRun(fakes.TestOvercloudUpdateRun):
                 autospec=True)
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
-    @mock.patch('six.moves.builtins.open')
+    @mock.patch('builtins.open')
     def test_update_with_no_limit(
             self, mock_open, mock_execute, mock_expanduser, update_ansible,
             mock_confirm):

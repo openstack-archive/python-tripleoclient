@@ -19,7 +19,6 @@ import os
 
 import ipaddress
 from osc_lib.i18n import _
-import six
 import yaml
 
 from tripleoclient import command
@@ -87,7 +86,7 @@ class ValidateOvercloudNetenv(command.Command):
         objs = []
         for x in networks:
             try:
-                objs += [ipaddress.ip_network(six.u(x))]
+                objs += [ipaddress.ip_network(str(x))]
             except ValueError:
                 self.log.error('Invalid address: %s', x)
                 self.error_count += 1
@@ -108,13 +107,13 @@ class ValidateOvercloudNetenv(command.Command):
             for pool in pooldata:
                 try:
                     ip_start = ipaddress.ip_address(
-                        six.u(pool['start']))
+                        str(pool['start']))
                 except ValueError:
                     self.log.error('Invalid address: %s' % ip_start)
                     self.error_count += 1
                     ip_start = None
                 try:
-                    ip_end = ipaddress.ip_address(six.u(pool['end']))
+                    ip_end = ipaddress.ip_address(str(pool['end']))
                 except ValueError:
                     self.log.error('Invalid address: %s' % ip_start)
                     self.error_count += 1
@@ -138,7 +137,7 @@ class ValidateOvercloudNetenv(command.Command):
             subnet_item = poolitem.split('AllocationPools')[0] + 'NetCidr'
             try:
                 subnet_obj = ipaddress.ip_network(
-                    six.u(filedata[subnet_item]))
+                    str(filedata[subnet_item]))
             except ValueError:
                 self.log.error('Invalid address: %s', subnet_item)
                 self.error_count += 1
@@ -156,7 +155,7 @@ class ValidateOvercloudNetenv(command.Command):
 
     def check_vlan_ids(self, vlans):
         invertdict = {}
-        for k, v in six.iteritems(vlans):
+        for k, v in vlans.items():
             self.log.info('Checking Vlan ID {}'.format(k))
             if v not in invertdict:
                 invertdict[v] = k

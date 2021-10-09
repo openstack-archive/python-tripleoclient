@@ -51,7 +51,7 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
     @mock.patch('tripleoclient.v1.overcloud_upgrade.UpgradePrepare.log',
                 autospec=True)
     @mock.patch('yaml.safe_load')
-    @mock.patch('six.moves.builtins.open')
+    @mock.patch('builtins.open')
     def test_upgrade_out(self,
                          mock_open,
                          mock_yaml,
@@ -106,7 +106,7 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
     @mock.patch('tripleoclient.utils.get_stack',
                 autospec=True)
     @mock.patch('tripleoclient.utils.prepend_environment', autospec=True)
-    @mock.patch('six.moves.builtins.open')
+    @mock.patch('builtins.open')
     @mock.patch('yaml.safe_load')
     def test_upgrade_failed(self, mock_yaml, mock_open,
                             add_env, mock_get_stack, mock_overcloud_deploy,
@@ -170,7 +170,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                 autospec=True)
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
-    @mock.patch('six.moves.builtins.open')
+    @mock.patch('builtins.open')
     def test_upgrade_limit_with_playbook_and_user(
             self, mock_open, mock_execute, mock_expanduser, upgrade_ansible,
             mock_run, mock_run_prepare, mock_confirm):
@@ -201,7 +201,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                 autospec=True)
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
-    @mock.patch('six.moves.builtins.open')
+    @mock.patch('builtins.open')
     def test_upgrade_nodes_with_playbook_no_skip_tags(
             self, mock_open, mock_execute, mock_expanduser, upgrade_ansible,
             mock_run, mock_run_prepare, mock_confirm):
@@ -220,7 +220,7 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                 autospec=True)
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
-    @mock.patch('six.moves.builtins.open')
+    @mock.patch('builtins.open')
     def test_upgrade_with_no_limit(
             self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
         mock_expanduser.return_value = '/home/fake/'
