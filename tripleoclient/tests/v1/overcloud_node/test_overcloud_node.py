@@ -124,8 +124,8 @@ class TestDeleteNode(fakes.TestDeleteNode):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
         self.cmd.take_action(parsed_args)
 
-    @mock.patch('tripleoclient.workflows.scale.remove_node_from_stack',
-                autospec=True)
+    @mock.patch('tripleoclient.utils.get_key')
+    @mock.patch('tripleoclient.utils.get_default_working_dir')
     @mock.patch('heatclient.common.event_utils.get_events',
                 autospec=True)
     @mock.patch('tripleoclient.utils.run_ansible_playbook',
@@ -135,7 +135,8 @@ class TestDeleteNode(fakes.TestDeleteNode):
                                               mock_tempfile,
                                               mock_playbook,
                                               mock_get_events,
-                                              mock_remove_from_stack):
+                                              mock_dir,
+                                              mock_key):
 
         bm_yaml = [{
             'name': 'Compute',
@@ -163,6 +164,21 @@ class TestDeleteNode(fakes.TestDeleteNode):
             tempfile.mkdtemp(),
             tempfile.mkdtemp()
         ]
+
+        mock_dir.return_value = "/home/stack/overcloud-deploy"
+        ansible_dir = "{}/config-download/overcast".format(
+            mock_dir.return_value
+        )
+
+        inventory = "{}/tripleo-ansible-inventory.yaml".format(
+            ansible_dir
+        )
+
+        ansible_cfg = "{}/ansible.cfg".format(
+            ansible_dir
+        )
+
+        mock_key.return_value = '/home/stack/.ssh/id_rsa_tripleo'
 
         unprovision_confirm = os.path.join(tmp, 'unprovision_confirm.json')
         with open(unprovision_confirm, 'w') as confirm:
@@ -225,44 +241,19 @@ class TestDeleteNode(fakes.TestDeleteNode):
                 },
             ),
             mock.call(
-                playbook='cli-grant-local-access.yaml',
-                inventory='localhost,',
-                workdir=mock.ANY,
-                playbook_dir='/usr/share/ansible/tripleo-playbooks',
-                verbosity=mock.ANY,
-                reproduce_command=True,
-                extra_vars={
-                    'access_path': os.path.join(os.environ.get('HOME'),
-                                                'config-download'),
-                    'execution_user': mock.ANY},
-            ),
-            mock.call(
-                playbook='cli-config-download.yaml',
-                inventory='localhost,',
-                workdir=mock.ANY,
-                playbook_dir='/usr/share/ansible/tripleo-playbooks',
-                verbosity=mock.ANY,
-                extra_vars=mock.ANY,
-                reproduce_command=True,
-            ),
-            mock.call(
-                playbook=mock.ANY,
-                inventory=mock.ANY,
-                workdir=mock.ANY,
-                playbook_dir=mock.ANY,
-                skip_tags='opendev-validation',
-                ansible_cfg=None,
-                verbosity=mock.ANY,
+                playbook='scale_playbook.yaml',
+                inventory=inventory,
+                workdir=ansible_dir,
+                playbook_dir=ansible_dir,
+                ansible_cfg=ansible_cfg,
                 ssh_user='tripleo-admin',
-                key=mock.ANY,
                 limit_hosts='overcast-controller-1:overcast-compute-0',
-                ansible_timeout=42,
                 reproduce_command=True,
-                extra_env_variables={'ANSIBLE_BECOME': True},
-                extra_vars=None,
-                tags=None,
-                timeout=90,
-                forks=None
+                extra_env_variables={
+                    "ANSIBLE_BECOME": True,
+                    "ANSIBLE_PRIVATE_KEY_FILE":
+                    "/home/stack/.ssh/id_rsa_tripleo"
+                }
             ),
             mock.call(
                 inventory='localhost,',
