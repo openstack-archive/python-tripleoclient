@@ -1798,7 +1798,7 @@ def update_working_dir_defaults(working_dir, args):
     stack_name = args.stack
     tht_root = os.path.abspath(args.templates)
 
-    if args.baremetal_deployment:
+    if isinstance(args.baremetal_deployment, str):
         copy_to_wd(working_dir, args.baremetal_deployment, stack_name,
                    'baremetal')
 
