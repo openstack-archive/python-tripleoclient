@@ -31,10 +31,8 @@ import yaml
 
 from tripleoclient import command
 from tripleoclient import constants
-from tripleoclient.exceptions import InvalidConfiguration
 from tripleoclient import utils as oooutils
 from tripleoclient.workflows import baremetal
-from tripleoclient.workflows import scale
 
 
 class DeleteNode(command.Command):
@@ -133,7 +131,6 @@ class DeleteNode(command.Command):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
-        clients = self.app.client_manager
 
         if parsed_args.baremetal_deployment:
             with open(parsed_args.baremetal_deployment, 'r') as fp:
@@ -155,27 +152,31 @@ class DeleteNode(command.Command):
             if not confirm:
                 raise oscexc.CommandError("Action not confirmed, exiting.")
 
-        orchestration_client = clients.orchestration
+        ansible_dir = os.path.join(oooutils.get_default_working_dir(
+                                        parsed_args.stack
+                                        ),
+                                   'config-download',
+                                   parsed_args.stack)
 
-        stack = oooutils.get_stack(orchestration_client, parsed_args.stack)
+        inventory = os.path.join(ansible_dir,
+                                 'tripleo-ansible-inventory.yaml')
 
-        if not stack:
-            raise InvalidConfiguration("stack {} not found".format(
-                parsed_args.stack))
+        ansible_cfg = os.path.join(ansible_dir, 'ansible.cfg')
+        key_file = oooutils.get_key(parsed_args.stack)
 
-        print("Deleting the following nodes from stack {stack}:\n{nodes}"
-              .format(stack=stack.stack_name, nodes=nodes_text))
-
-        self._check_skiplist_exists(stack.environment())
-
-        scale.scale_down(
-            log=self.log,
-            clients=clients,
-            stack=stack,
-            nodes=nodes,
-            connection_timeout=parsed_args.overcloud_ssh_port_timeout,
-            timeout=parsed_args.timeout,
-            verbosity=oooutils.playbook_verbosity(self=self)
+        oooutils.run_ansible_playbook(
+            playbook='scale_playbook.yaml',
+            inventory=inventory,
+            workdir=ansible_dir,
+            playbook_dir=ansible_dir,
+            ansible_cfg=ansible_cfg,
+            ssh_user='tripleo-admin',
+            limit_hosts=':'.join('%s' % node for node in nodes),
+            reproduce_command=True,
+            extra_env_variables={
+                "ANSIBLE_BECOME": True,
+                "ANSIBLE_PRIVATE_KEY_FILE": key_file
+            }
         )
 
         if parsed_args.baremetal_deployment:
