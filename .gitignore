@@ -59,6 +59,11 @@ doc/build
 AUTHORS
 ChangeLog
 
+# Editors
+*~
+.*.swp
+.*sw?
+
 # Files created by releasenotes build
 releasenotes/build
 
