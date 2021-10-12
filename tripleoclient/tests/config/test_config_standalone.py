@@ -53,8 +53,7 @@ class TestStandaloneConfig(base.TestCase):
                     'enable_novajoin',
                     'enable_swift',
                     'enable_telemetry',
-                    'enable_validations',
-                    'enable_zaqar']
+                    'enable_validations']
         self.assertEqual(expected, [x.name for x in ret])
         for x in ret:
             self.assertEqual(x.default, False, "%s config not False" % x.name)
@@ -70,8 +69,7 @@ class TestStandaloneConfig(base.TestCase):
                                                   novajoin=True,
                                                   swift=True,
                                                   telemetry=True,
-                                                  validations=True,
-                                                  zaqar=True)
+                                                  validations=True)
         expected = ['enable_cinder',
                     'enable_frr',
                     'enable_heat',
@@ -82,8 +80,7 @@ class TestStandaloneConfig(base.TestCase):
                     'enable_novajoin',
                     'enable_swift',
                     'enable_telemetry',
-                    'enable_validations',
-                    'enable_zaqar']
+                    'enable_validations']
         self.assertEqual(expected, [x.name for x in ret])
         for x in ret:
             self.assertEqual(x.default, True, "%s config not True" % x.name)
@@ -109,7 +106,6 @@ class TestStandaloneConfig(base.TestCase):
                     'enable_swift',
                     'enable_telemetry',
                     'enable_validations',
-                    'enable_zaqar',
                     'heat_container_image',
                     'heat_native',
                     'hieradata_override',

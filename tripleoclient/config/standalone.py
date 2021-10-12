@@ -55,7 +55,7 @@ class StandaloneConfig(BaseConfig):
                                 ironic_inspector=False,
                                 nova=False, novajoin=False, swift=False,
                                 telemetry=False, validations=False,
-                                zaqar=False, neutron=False, heat=False):
+                                neutron=False, heat=False):
         _opts = [
             # service enablement
             cfg.BoolOpt('enable_cinder',
@@ -99,9 +99,6 @@ class StandaloneConfig(BaseConfig):
                             'Whether to install requirements to run the '
                             'TripleO validations.')
                         ),
-            cfg.BoolOpt('enable_zaqar',
-                        default=zaqar,
-                        help=_('Whether to enable the zaqar service.')),
             cfg.BoolOpt('enable_neutron',
                         default=neutron,
                         help=_('Whether to enable the neutron service.')),
