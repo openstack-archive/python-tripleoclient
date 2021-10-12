@@ -86,7 +86,12 @@ PUPPET_BASE = "/etc/puppet/"
 STACK_TIMEOUT = 240
 STACK_OUTPUTS = ['BlacklistedHostnames',
                  'RoleNetIpMap',
-                 'BlacklistedIpAddresses']
+                 'BlacklistedIpAddresses',
+                 'RoleNetHostnameMap',
+                 'KeystoneURL',
+                 'EndpointMap',
+                 'VipMap',
+                 'EnabledServices']
 
 IRONIC_HTTP_BOOT_BIND_MOUNT = '/var/lib/ironic/httpboot'
 IRONIC_LOCAL_IMAGE_PATH = '/var/lib/ironic/images'
