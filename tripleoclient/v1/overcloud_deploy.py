@@ -632,11 +632,8 @@ class DeployOvercloud(command.Command):
                 verbosity=utils.playbook_verbosity(self=self),
                 extra_vars=extra_vars,
             )
-
-        if parsed_args.network_config:
-            utils.run_role_playbooks(self, self.working_dir,
-                                     baremetal_file_dir,
-                                     roles)
+        utils.run_role_playbooks(self, self.working_dir, baremetal_file_dir,
+                                 roles, parsed_args.network_config)
 
         utils.extend_protected_overrides(protected_overrides, output_path)
 
