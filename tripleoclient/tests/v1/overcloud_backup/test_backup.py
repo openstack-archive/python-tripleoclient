@@ -182,6 +182,35 @@ class TestOvercloudBackup(utils.TestCommand):
             extra_vars={}
         )
 
+    @mock.patch('os.path.isfile')
+    @mock.patch('os.access')
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
+                autospec=True)
+    def test_overcloud_backup_setup_rear_ironic(self,
+                                                mock_playbook,
+                                                mock_access,
+                                                mock_isfile):
+        arglist = [
+            '--setup-ironic',
+        ]
+        verifylist = []
+        mock_isfile.return_value = True
+        mock_access.return_value = True
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
+        mock_playbook.assert_called_once_with(
+            workdir=mock.ANY,
+            playbook='cli-overcloud-conf-ironic.yaml',
+            inventory=parsed_args.inventory,
+            tags='bar_setup_rear',
+            skip_tags=None,
+            playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            verbosity=3,
+            extra_vars={}
+        )
+
     @mock.patch('tripleoclient.utils.run_ansible_playbook', autospec=True)
     def test_overcloud_backup_setup_nfs_rear_with_inventory(self,
                                                             mock_playbook):
