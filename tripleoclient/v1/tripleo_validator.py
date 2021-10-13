@@ -74,8 +74,8 @@ class TripleOValidatorRun(Run):
 
     def get_parser(self, parser):
         parser = super(TripleOValidatorRun, self).get_parser(parser)
-        parser.set_defaults(
-            validations_log_dir=constants.VALIDATIONS_LOG_BASEDIR)
+        default = {'validation_log_dir': constants.VALIDATIONS_LOG_BASEDIR}
+        parser.set_defaults(**default)
         return parser
 
 
@@ -86,8 +86,8 @@ class TripleOValidatorShowHistory(ListHistory):
 
     def get_parser(self, parser):
         parser = super(TripleOValidatorShowHistory, self).get_parser(parser)
-        parser.set_defaults(
-            validations_log_dir=constants.VALIDATIONS_LOG_BASEDIR)
+        default = {'validation_log_dir': constants.VALIDATIONS_LOG_BASEDIR}
+        parser.set_defaults(**default)
         return parser
 
 
@@ -98,6 +98,6 @@ class TripleOValidatorShowRun(GetHistory):
 
     def get_parser(self, parser):
         parser = super(TripleOValidatorShowRun, self).get_parser(parser)
-        parser.set_defaults(
-            validations_log_dir=constants.VALIDATIONS_LOG_BASEDIR)
+        default = {'validation_log_dir': constants.VALIDATIONS_LOG_BASEDIR}
+        parser.set_defaults(**default)
         return parser
