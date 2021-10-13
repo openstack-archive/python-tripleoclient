@@ -13,6 +13,7 @@
 #   under the License.
 #
 import logging
+from tripleoclient import constants
 
 from validations_libs.cli.history import GetHistory
 from validations_libs.cli.history import ListHistory
@@ -145,6 +146,8 @@ class TripleOValidatorRun(Run):
 
     def get_parser(self, parser):
         parser = super(TripleOValidatorRun, self).get_parser(parser)
+        default = {'validation_log_dir': constants.VALIDATIONS_LOG_BASEDIR}
+        parser.set_defaults(**default)
         return parser
 
 
@@ -173,6 +176,8 @@ class TripleOValidatorShowHistory(ListHistory):
 
     def get_parser(self, parser):
         parser = super(TripleOValidatorShowHistory, self).get_parser(parser)
+        default = {'validation_log_dir': constants.VALIDATIONS_LOG_BASEDIR}
+        parser.set_defaults(**default)
         return parser
 
 
@@ -201,6 +206,8 @@ class TripleOValidatorShowRun(GetHistory):
 
     def get_parser(self, parser):
         parser = super(TripleOValidatorShowRun, self).get_parser(parser)
+        default = {'validation_log_dir': constants.VALIDATIONS_LOG_BASEDIR}
+        parser.set_defaults(**default)
         return parser
 
 
