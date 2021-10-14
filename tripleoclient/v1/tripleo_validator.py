@@ -274,6 +274,18 @@ class TripleOValidatorRun(command.Command):
             help=_("Python interpreter for Ansible execution. ")
         )
 
+        parser.add_argument(
+            '--skiplist',
+            dest='skip_list',
+            default=None,
+            help=_(
+                "Path where the skip list is stored. "
+                "An example of the skiplist format could "
+                "be found at the root of the "
+                "validations-libs repository."
+            )
+        )
+
         extra_vars_group = parser.add_mutually_exclusive_group(required=False)
 
         extra_vars_group.add_argument(
@@ -413,6 +425,20 @@ class TripleOValidatorRun(command.Command):
                 undercloud_connection='local',
                 return_inventory_file_path=True)
 
+        skip_list = None
+        if parsed_args.skip_list:
+            try:
+                with open(parsed_args.skip_list, 'r') as _file:
+                    skip_list = yaml.safe_load(_file.read())
+            except (yaml.YAMLError, IOError) as error:
+                error_msg = (
+                    "The file {} must be properly formatted YAML/JSON."
+                    "Details: {}.").format(parsed_args.skip_list, error)
+                raise RuntimeError(error_msg)
+
+            if not isinstance(skip_list, dict):
+                raise RuntimeError("Wrong format for the skiplist.")
+
         v_consts.DEFAULT_VALIDATIONS_BASEDIR = constants.\
             DEFAULT_VALIDATIONS_BASEDIR
         actions = ValidationActions()
@@ -426,7 +452,8 @@ class TripleOValidatorRun(command.Command):
                 validation_name=parsed_args.validation_name,
                 extra_env_vars=extra_env_vars,
                 python_interpreter=parsed_args.python_interpreter,
-                quiet=quiet_mode)
+                quiet=quiet_mode,
+                skip_list=skip_list)
         except RuntimeError as e:
             raise exceptions.CommandError(e)
 
