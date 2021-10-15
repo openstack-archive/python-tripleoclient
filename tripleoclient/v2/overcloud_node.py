@@ -28,7 +28,6 @@ import yaml
 
 from tripleoclient import command
 from tripleoclient import constants
-from tripleoclient import exceptions
 from tripleoclient import utils as oooutils
 from tripleoclient.workflows import baremetal
 
@@ -281,14 +280,6 @@ class ProvisionNode(command.Command):
         )
 
         return parser
-
-    def _validate_playbook(self, playbook_path):
-        if not os.path.exists(playbook_path):
-            raise exceptions.PlaybookNotFound(
-                'Playbook file {} not found.'.format(playbook_path))
-        if not os.path.isfile(playbook_path):
-            raise exceptions.InvalidPlaybook(
-                'Playbook {} is not a file.'.format(playbook_path))
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
