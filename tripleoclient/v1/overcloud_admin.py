@@ -13,6 +13,7 @@
 #   under the License.
 #
 
+import os
 from oslo_config import cfg
 from oslo_log import log as logging
 
@@ -22,7 +23,7 @@ from osc_lib import utils
 from tripleoclient import command
 from tripleoclient import constants
 from tripleoclient import utils as oooutils
-from tripleoclient.workflows import deployment
+from tripleoclient.constants import ANSIBLE_TRIPLEO_PLAYBOOKS
 
 CONF = cfg.CONF
 
@@ -69,6 +70,24 @@ class Authorize(command.Command):
             type=int,
             default=constants.ENABLE_SSH_ADMIN_SSH_PORT_TIMEOUT
         )
+        parser.add_argument(
+            '--static-inventory',
+            dest='static_inventory',
+            action='store',
+            default=None,
+            help=_('Path to an existing ansible inventory to '
+                   'use. If not specified, one will be '
+                   'generated in '
+                   '~/tripleo-ansible-inventory.yaml')
+        )
+        parser.add_argument(
+            '--limit',
+            dest='limit_hosts',
+            action='store',
+            default='all',
+            help=_('Define which hosts or group of hosts to '
+                   'run the Admin Authorize tasks against.')
+        )
 
         return parser
 
@@ -76,13 +95,36 @@ class Authorize(command.Command):
         logging.register_options(CONF)
         logging.setup(CONF, '')
         self.log.debug("take_action({})".format(parsed_args))
-        clients = self.app.client_manager
-        stack = oooutils.get_stack(clients.orchestration, parsed_args.stack)
-        deployment.get_hosts_and_enable_ssh_admin(
-            stack,
-            parsed_args.overcloud_ssh_network,
-            parsed_args.overcloud_ssh_user,
-            self.get_key_pair(parsed_args),
-            parsed_args.overcloud_ssh_port_timeout,
-            verbosity=oooutils.playbook_verbosity(self=self)
+        ansible_dir = os.path.join(oooutils.get_default_working_dir(
+                                        parsed_args.stack
+                                        ),
+                                   'config-download',
+                                   parsed_args.stack)
+
+        if not parsed_args.static_inventory:
+            inventory = os.path.join(ansible_dir,
+                                     'tripleo-ansible-inventory.yaml')
+        else:
+            inventory = parsed_args.static_inventory
+
+        key_file = oooutils.get_key(parsed_args.stack)
+
+        if not parsed_args.limit_hosts:
+            hosts = parsed_args.stack
+        else:
+            hosts = parsed_args.limit_hosts
+
+        oooutils.run_ansible_playbook(
+            playbook='cli-enable-ssh-admin.yaml',
+            inventory=inventory,
+            workdir=ansible_dir,
+            key=parsed_args.overcloud_ssh_key,
+            playbook_dir=ANSIBLE_TRIPLEO_PLAYBOOKS,
+            ssh_user=parsed_args.overcloud_ssh_user,
+            extra_vars={
+                "ANSIBLE_PRIVATE_KEY_FILE": key_file,
+                "ssh_servers": oooutils.parse_ansible_inventory(
+                    inventory, hosts)
+            },
+            ansible_timeout=parsed_args.overcloud_ssh_port_timeout
         )

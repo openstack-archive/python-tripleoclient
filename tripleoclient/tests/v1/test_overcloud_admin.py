@@ -13,31 +13,56 @@
 import mock
 
 from tripleoclient.tests.v1 import test_plugin
-from tripleoclient import utils
 from tripleoclient.v1 import overcloud_admin
-from tripleoclient.workflows import deployment
 
 
-@mock.patch.object(utils, 'get_stack', autospec=True)
-@mock.patch.object(deployment, 'get_hosts_and_enable_ssh_admin', autospec=True)
 class TestAdminAuthorize(test_plugin.TestPluginV1):
     def setUp(self):
         super(TestAdminAuthorize, self).setUp()
         self.cmd = overcloud_admin.Authorize(self.app, None)
         self.app.client_manager = mock.Mock()
 
-    def test_ok(self, mock_get_host_and_enable_ssh_admin, mock_get_stack):
-        arglist = []
-        parsed_args = self.check_parser(self.cmd, arglist, [])
-        mock_stack = mock.Mock()
-        mock_get_stack.return_value = mock_stack
+    @mock.patch('tripleoclient.utils.parse_ansible_inventory',
+                autospec=True)
+    @mock.patch('tripleoclient.utils.get_key')
+    @mock.patch('tripleoclient.utils.get_default_working_dir')
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
+                autospec=True)
+    def test_admin_authorize(self,
+                             mock_playbook,
+                             mock_dir,
+                             mock_key,
+                             mock_inventory):
+        arglist = ['--limit', 'overcloud']
+        verifylist = [('limit_hosts', 'overcloud')]
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        mock_dir.return_value = "/home/stack/overcloud-deploy"
+        ansible_dir = "{}/config-download/overcloud".format(
+            mock_dir.return_value
+        )
+        inventory = "{}/tripleo-ansible-inventory.yaml".format(
+            ansible_dir
+        )
+
+        mock_key.return_value = '/home/stack/.ssh/id_rsa_tripleo'
+        mock_inventory.return_value = ['overcloud-novacompute-0',
+                                       'overcloud-dellcompute-0',
+                                       'overcloud-controller-0']
 
         self.cmd.take_action(parsed_args)
-        mock_get_host_and_enable_ssh_admin.assert_called_once_with(
-            mock_stack,
-            parsed_args.overcloud_ssh_network,
-            parsed_args.overcloud_ssh_user,
-            mock.ANY,
-            parsed_args.overcloud_ssh_port_timeout,
-            mock.ANY
+        mock_playbook.assert_called_once_with(
+            playbook='cli-enable-ssh-admin.yaml',
+            inventory=inventory,
+            workdir=ansible_dir,
+            key=parsed_args.overcloud_ssh_key,
+            playbook_dir='/usr/share/ansible/tripleo-playbooks',
+            ssh_user=parsed_args.overcloud_ssh_user,
+            extra_vars={
+                "ANSIBLE_PRIVATE_KEY_FILE": '/home/stack/.ssh/id_rsa_tripleo',
+                "ssh_servers": ['overcloud-novacompute-0',
+                                'overcloud-dellcompute-0',
+                                'overcloud-controller-0']
+            },
+            ansible_timeout=parsed_args.overcloud_ssh_port_timeout
         )
