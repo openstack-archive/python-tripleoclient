@@ -49,6 +49,8 @@ import yaml
 
 import ansible_runner
 
+from ansible.parsing.dataloader import DataLoader
+from ansible.inventory.manager import InventoryManager
 from heatclient.common import event_utils
 from heatclient.common import template_utils
 from heatclient.common import utils as heat_utils
@@ -3160,3 +3162,16 @@ def get_parameter_file(path):
         LOG.warning('File %s was not found during export' %
                     path)
     return file_data
+
+
+def parse_ansible_inventory(inventory_file, group):
+    """ Retrieve a list of hosts from a defined ansible inventory file.
+    :param inventory: Ansible inventory file
+    :param group: The group to return hosts from, default will be 'all'
+    :return: list of hosts in the inventory matching the pattern
+    """
+
+    inventory = InventoryManager(loader=DataLoader(),
+                                 sources=[inventory_file])
+
+    return(inventory.get_hosts(pattern=group))
