@@ -146,7 +146,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch(
         'tripleo_common.image.kolla_builder.container_images_prepare_multi',
         return_value={})
-    @mock.patch('tripleoclient.workflows.roles.get_roles_data',
+    @mock.patch('tripleoclient.utils.get_roles_data',
                 autospec=True, return_value={})
     @mock.patch('heatclient.common.template_utils.'
                 'process_environment_and_files', autospec=True)
@@ -270,7 +270,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch(
         'tripleo_common.image.kolla_builder.container_images_prepare_multi',
         return_value={})
-    @mock.patch('tripleoclient.workflows.roles.get_roles_data',
+    @mock.patch('tripleoclient.utils.get_roles_data',
                 autospec=True, return_value={})
     @mock.patch('heatclient.common.template_utils.'
                 'process_environment_and_files', autospec=True)
@@ -380,7 +380,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch(
         'tripleo_common.image.kolla_builder.container_images_prepare_multi',
         return_value={})
-    @mock.patch('tripleoclient.workflows.roles.get_roles_data',
+    @mock.patch('tripleoclient.utils.get_roles_data',
                 autospec=True, return_value={})
     @mock.patch('heatclient.common.template_utils.'
                 'process_environment_and_files', autospec=True)
@@ -475,7 +475,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch(
         'tripleo_common.image.kolla_builder.container_images_prepare_multi',
         return_value={})
-    @mock.patch('tripleoclient.workflows.roles.get_roles_data',
+    @mock.patch('tripleoclient.utils.get_roles_data',
                 autospec=True, return_value={})
     @mock.patch('heatclient.common.template_utils.'
                 'process_environment_and_files', autospec=True)
@@ -809,7 +809,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch(
         'tripleo_common.image.kolla_builder.container_images_prepare_multi',
         return_value={})
-    @mock.patch('tripleoclient.workflows.roles.get_roles_data',
+    @mock.patch('tripleoclient.utils.get_roles_data',
                 autospec=True, return_value={})
     @mock.patch('tripleoclient.utils.check_nic_config_with_ansible')
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
@@ -925,7 +925,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch(
         'tripleo_common.image.kolla_builder.container_images_prepare_multi',
         return_value={})
-    @mock.patch('tripleoclient.workflows.roles.get_roles_data',
+    @mock.patch('tripleoclient.utils.get_roles_data',
                 autospec=True, return_value={})
     @mock.patch('tripleoclient.utils.get_ctlplane_attrs', autospec=True,
                 return_value={})
@@ -1337,7 +1337,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch(
         'tripleo_common.image.kolla_builder.container_images_prepare_multi',
         return_value={})
-    @mock.patch('tripleoclient.workflows.roles.get_roles_data',
+    @mock.patch('tripleoclient.utils.get_roles_data',
                 autospec=True, return_value={})
     @mock.patch('tripleoclient.utils.process_multiple_environments',
                 autospec=True)

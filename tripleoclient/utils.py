@@ -74,7 +74,6 @@ from tripleo_common import update
 from tripleoclient import constants
 from tripleoclient import exceptions
 from tripleoclient import heat_launcher
-from tripleoclient.workflows import roles
 
 
 LOG = logging.getLogger(__name__ + ".utils")
@@ -2862,6 +2861,14 @@ def get_undercloud_host_entry():
     return cleanup_host_entry(out)
 
 
+def get_roles_data(working_dir, stack_name):
+    abs_roles_file = get_roles_file_path(working_dir, stack_name)
+    with open(abs_roles_file, 'r') as fp:
+        roles_data = yaml.safe_load(fp)
+
+    return roles_data
+
+
 def build_enabled_sevices_image_params(env_files, parsed_args,
                                        new_tht_root, user_tht_root,
                                        working_dir):
@@ -2876,7 +2883,7 @@ def build_enabled_sevices_image_params(env_files, parsed_args,
         env_files, new_tht_root, user_tht_root,
         cleanup=(not parsed_args.no_cleanup))
 
-    roles_data = roles.get_roles_data(working_dir, parsed_args.stack)
+    roles_data = get_roles_data(working_dir, parsed_args.stack)
 
     params.update(kolla_builder.get_enabled_services(env, roles_data))
     params.update(plan_utils.default_image_params())
