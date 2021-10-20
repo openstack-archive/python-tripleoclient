@@ -1027,15 +1027,6 @@ class DeployOvercloud(command.Command):
                    'the container image has already been pulled ')
         )
         parser.add_argument(
-            '--skip-nodes-and-networks',
-            action='store_true',
-            default=False,
-            help=_('DEPRECATED - This option is ignored if used. '
-                   'The --baremetal-deployment option must be used to enable '
-                   'provisioning of all resources, Baremetal nodes as well as'
-                   'Networks and Virtual IPs')
-        )
-        parser.add_argument(
             '--disable-protected-resource-types',
             action='store_true',
             default=False,
