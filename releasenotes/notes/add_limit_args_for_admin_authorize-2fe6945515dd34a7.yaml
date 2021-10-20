@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    The Admin Authorize command can now be targeted at
+    specific nodes using '--limit'. It can also take a
+    custom static-inventory using '--static-inventory'.
+fixes:
+  - |
+    Fixes Admin Authorize to work with Ephemeral Heat.
