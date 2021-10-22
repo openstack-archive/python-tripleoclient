@@ -203,7 +203,7 @@ def _process_drivers_and_hardware_types(conf, env):
 
 def _process_ipa_args(conf, env):
     """Populate the environment with IPA kernal args ."""
-    inspection_kernel_args = []
+    inspection_kernel_args = ['console=tty0', 'console=ttyS0,115200']
     if conf.undercloud_debug:
         inspection_kernel_args.append('ipa-debug=1')
     if conf.inspection_runbench:
