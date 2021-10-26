@@ -87,7 +87,7 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
         mock_overcloud_deploy.assert_called_once_with(parsed_args)
         args, kwargs = mock_overcloud_deploy.call_args
         # Check config_download arg is set to False
-        self.assertEqual(args[0].config_download, False)
+        self.assertEqual(args[0].stack_only, True)
         mock_enable_ssh_admin.assert_called_once_with(
             mock_stack,
             parsed_args.overcloud_ssh_network,
