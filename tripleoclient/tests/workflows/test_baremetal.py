@@ -12,8 +12,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import mock
 import netaddr
+from unittest import mock
 
 import ironic_inspector_client
 from oslo_concurrency import processutils

@@ -13,7 +13,7 @@
 #   under the License.
 #
 
-import mock
+from unittest import mock
 
 from tripleoclient.tests import base
 from tripleoclient.tests import fakes

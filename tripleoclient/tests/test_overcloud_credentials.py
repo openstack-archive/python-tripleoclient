@@ -11,9 +11,9 @@
 #   WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #   License for the specific language governing permissions and limitations
 #   under the License.
-import mock
 import shutil
 import tempfile
+from unittest import mock
 
 from tripleoclient.tests.v1 import test_plugin
 from tripleoclient.v1 import overcloud_credentials

@@ -13,7 +13,7 @@
 #   under the License.
 #
 
-import mock
+from unittest import mock
 
 from tripleo_common.exception import NotFound
 from tripleoclient.tests.v1.overcloud_deploy import fakes

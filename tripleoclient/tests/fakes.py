@@ -14,8 +14,8 @@
 #
 
 import logging
-import mock
 import sys
+from unittest import mock
 
 from osc_lib.tests import utils
 

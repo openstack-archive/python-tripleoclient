@@ -20,8 +20,8 @@ from cryptography import x509
 from cryptography.x509.oid import NameOID
 from datetime import datetime
 from datetime import timedelta
+from unittest import mock
 import fixtures
-import mock
 import os
 import tempfile
 import yaml

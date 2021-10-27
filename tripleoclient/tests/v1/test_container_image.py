@@ -15,7 +15,6 @@
 
 import fixtures
 from io import StringIO
-import mock
 import os
 import requests
 import shutil
@@ -24,6 +23,7 @@ import tempfile
 from urllib import parse
 import uuid
 import yaml
+from unittest import mock
 
 from osc_lib import exceptions as oscexc
 from tripleo_common.image import kolla_builder

@@ -13,7 +13,7 @@
 #   under the License.
 #
 
-import mock
+from unittest import mock
 
 from osc_lib.tests.utils import ParserException
 from tripleoclient import constants

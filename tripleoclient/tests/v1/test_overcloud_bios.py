@@ -11,8 +11,8 @@
 #   under the License.
 
 import json
-import mock
 import tempfile
+from unittest import mock
 
 from osc_lib.tests import utils as test_utils
 
@@ -51,7 +51,6 @@ class TestConfigureBIOS(Base):
             autospec=True
         )
         playbook_runner.start()
-        self.addCleanup(playbook_runner.stop)
 
     def test_configure_specified_nodes_ok(self):
         conf = json.dumps(self.conf)
@@ -150,7 +149,6 @@ class TestResetBIOS(Base):
             autospec=True
         )
         playbook_runner.start()
-        self.addCleanup(playbook_runner.stop)
 
     def test_reset_specified_nodes_ok(self):
         arglist = ['node_uuid1', 'node_uuid2']

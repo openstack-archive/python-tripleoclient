@@ -14,7 +14,8 @@
 #
 import tempfile
 
-import mock
+from unittest import mock
+
 from osc_lib import exceptions
 
 from tripleoclient import constants

@@ -19,8 +19,8 @@ import os
 import shutil
 import tempfile
 import yaml
+from unittest import mock
 
-import mock
 from osc_lib import exceptions as oscexc
 from osc_lib.tests import utils
 
@@ -306,6 +306,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                         mock_rc_params, mock_default_image_params,
                         mock_stack_data, mock_provision_networks,
                         mock_provision_virtual_ips):
+        mock_tmpdir.return_value = self.tmp_dir.path
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         utils_fixture = deployment.UtilsFixture()
@@ -416,6 +417,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mock_image_prepare, mock_generate_password,
             mock_rc_params, mock_stack_data,
             mock_provision_networks, mock_provision_virtual_ips):
+        mock_tmpdir.return_value = self.tmp_dir.path
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         utils_fixture = deployment.UtilsFixture()
@@ -834,6 +836,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                           mock_generate_password, mock_rc_params,
                           mock_check_service_vip_migr,
                           mock_provision_networks, mock_provision_virtual_ips):
+        mock_tmpdir.return_value = self.tmp_dir.path
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         clients = self.app.client_manager

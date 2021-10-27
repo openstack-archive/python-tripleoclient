@@ -19,7 +19,6 @@ import argparse
 import datetime
 import fixtures
 import logging
-import mock
 import openstack
 import os
 import os.path
@@ -27,6 +26,7 @@ import shutil
 import socket
 import subprocess
 import tempfile
+from unittest import mock
 
 import sys
 

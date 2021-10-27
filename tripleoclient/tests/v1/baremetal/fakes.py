@@ -13,7 +13,7 @@
 #   under the License.
 #
 
-import mock
+from unittest import mock
 
 import ironic_inspector_client
 from osc_lib.tests import utils

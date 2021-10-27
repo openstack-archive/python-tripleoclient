@@ -13,12 +13,12 @@
 #   under the License.
 
 import fixtures
-import mock
 import os
 from pathlib import Path
 import shutil
 import subprocess
 import time
+from unittest import mock
 
 from tripleoclient import heat_launcher
 from tripleoclient.exceptions import HeatPodMessageQueueException
@@ -47,13 +47,6 @@ class TestHeatPodLauncher(base.TestCase):
                 use_tmp_dir=False,
                 **kwargs)
 
-    def check_calls(self, check_call, mock_obj):
-        for call in mock_obj.call_args_list:
-            call_str = ' '.join(call.args[0])
-            if check_call in call_str:
-                return True
-        return False
-
     def test_rm_heat_launcher(self):
         self.assertIsInstance(self.get_launcher(rm_heat=True),
                               heat_launcher.HeatPodLauncher)
@@ -61,49 +54,58 @@ class TestHeatPodLauncher(base.TestCase):
     def test_chcon(self):
         launcher = self.get_launcher()
         launcher._chcon()
-        self.check_calls('chcon', self.check_call)
-        self.check_calls(launcher.heat_dir, self.check_call)
+        calls = [
+            mock.call(['chcon', '-R', '-t', 'container_file_t', '-l', 's0',
+                       launcher.heat_dir]),
+            mock.call(['chcon', '-R', '-t', 'container_file_t', '-l', 's0',
+                       launcher.heat_dir])
+        ]
+        self.assertEqual(self.check_call.mock_calls, calls)
 
     def test_fetch_container_image(self):
         launcher = self.get_launcher(skip_heat_pull=True)
+        self.check_output.reset_mock()
         launcher._fetch_container_image()
-        self.assertFalse(self.check_calls('podman pull', self.check_output))
+        self.check_output.assert_not_called()
 
         launcher = self.get_launcher(skip_heat_pull=False)
         launcher._fetch_container_image()
-        self.assertTrue(self.check_calls('podman pull', self.check_output))
+        self.check_output.assert_called_with(['sudo', 'podman', 'pull',
+                                              mock.ANY])
 
     @mock.patch('tripleoclient.heat_launcher.HeatPodLauncher._decode')
     def test_get_pod_state(self, mock_decode):
         launcher = self.get_launcher()
         launcher.get_pod_state()
-        self.check_calls('podman pod inspect', self.run)
-        self.assertTrue(mock_decode.called)
+        self.run.assert_called_once_with(
+            ['sudo', 'podman', 'pod', 'inspect', '--format', '"{{.State}}"',
+             'ephemeral-heat'], check=False, stderr=-2, stdout=-1)
 
     @mock.patch(
         'tripleoclient.heat_launcher.HeatPodLauncher._write_heat_config')
     @mock.patch('tripleoclient.heat_launcher.HeatPodLauncher._write_heat_pod')
     @mock.patch('tripleoclient.heat_launcher.HeatPodLauncher.get_pod_state')
-    def test_lauch_heat(
+    def test_launch_heat(
             self, mock_get_pod_state, mock_write_heat_pod,
             mock_write_heat_config):
 
         launcher = self.get_launcher()
+        self.check_call.reset_mock()
 
         mock_get_pod_state.return_value = 'Running'
         launcher.launch_heat()
-        self.assertFalse(mock_write_heat_pod.called)
-        self.assertFalse(self.check_calls('podman play kube', self.check_call))
+        self.check_call.assert_not_called()
 
         mock_get_pod_state.return_value = 'Exited'
         launcher.launch_heat()
-        self.assertTrue(mock_write_heat_pod.called)
-        self.assertTrue(self.check_calls('podman play kube', self.check_call))
+        self.check_call.assert_called_once_with(['sudo', 'podman', 'play',
+                                                 'kube', mock.ANY])
+        self.check_call.reset_mock()
 
         mock_get_pod_state.return_value = ''
         launcher.launch_heat()
-        self.assertTrue(mock_write_heat_pod.called)
-        self.assertTrue(self.check_calls('podman play kube', self.check_call))
+        self.check_call.assert_called_once_with(['sudo', 'podman', 'play',
+                                                 'kube', mock.ANY])
 
     @mock.patch('tripleoclient.heat_launcher.HeatPodLauncher.do_restore_db')
     @mock.patch('tripleoclient.heat_launcher.HeatPodLauncher.database_exists')
@@ -113,43 +115,72 @@ class TestHeatPodLauncher(base.TestCase):
         launcher = self.get_launcher()
         mock_db_exists.return_value = True
         launcher.heat_db_sync(restore_db=False)
-        self.assertFalse(self.check_calls('create database', self.check_call))
-        self.assertFalse(self.check_calls('create user', self.check_call))
-        self.assertFalse(self.check_calls('grant all', self.check_call))
-        self.assertFalse(self.check_calls('flush priv', self.check_call))
-        self.assertTrue(self.check_calls('heat-manage', self.check_call))
+        calls = [
+            mock.call(['chcon', '-R', '-t', 'container_file_t', '-l', 's0',
+                       mock.ANY]),
+            mock.call(['sudo', 'podman', 'run', '--rm', '--user', 'heat',
+                       '--volume', mock.ANY, '--volume', mock.ANY,
+                       'quay.io/tripleomaster/openstack-heat-api:current-'
+                       'tripleo',
+                       'heat-manage', 'db_sync'])
+        ]
+        self.assertEqual(self.check_call.mock_calls, calls)
         self.assertFalse(mock_do_restore_db.called)
 
         self.check_call.reset_mock()
 
         mock_db_exists.return_value = True
         launcher.heat_db_sync(restore_db=True)
-        self.assertFalse(self.check_calls('create database', self.check_call))
-        self.assertFalse(self.check_calls('create user', self.check_call))
-        self.assertFalse(self.check_calls('grant all', self.check_call))
-        self.assertFalse(self.check_calls('flush priv', self.check_call))
-        self.assertTrue(self.check_calls('heat-manage', self.check_call))
+        self.check_call.assert_called_once_with([
+            'sudo', 'podman', 'run', '--rm', '--user', 'heat', '--volume',
+            mock.ANY, '--volume', mock.ANY,
+            'quay.io/tripleomaster/openstack-heat-api:current-tripleo',
+            'heat-manage', 'db_sync'])
         self.assertTrue(mock_do_restore_db.called)
 
         self.check_call.reset_mock()
         mock_db_exists.return_value = False
         launcher.heat_db_sync(restore_db=True)
-        self.assertTrue(self.check_calls('create database', self.check_call))
-        self.assertTrue(self.check_calls('create user', self.check_call))
-        self.assertTrue(self.check_calls('grant all', self.check_call))
-        self.assertTrue(self.check_calls('flush priv', self.check_call))
-        self.assertTrue(self.check_calls('heat-manage', self.check_call))
+        calls = [
+            mock.call(['sudo', 'podman', 'exec', '-u', 'root', 'mysql',
+                       'mysql', '-e', 'create database heat']),
+            mock.call(['sudo', 'podman', 'exec', '-u', 'root', 'mysql',
+                       'mysql', '-e', "create user if not exists 'heat'@'%' "
+                       "identified by 'heat'"]),
+            mock.call(['sudo', 'podman', 'exec', '-u', 'root', 'mysql',
+                       'mysql', 'heat', '-e', "grant all privileges on heat.* "
+                       "to 'heat'@'%'"]),
+            mock.call(['sudo', 'podman', 'exec', '-u', 'root', 'mysql',
+                       'mysql', '-e', 'flush privileges;']),
+            mock.call(['sudo', 'podman', 'run', '--rm', '--user', 'heat',
+                       '--volume', mock.ANY, '--volume', mock.ANY,
+                       'quay.io/tripleomaster/openstack-heat-api:current-'
+                       'tripleo', 'heat-manage', 'db_sync'])
+        ]
+        self.assertEqual(self.check_call.mock_calls, calls)
         self.assertTrue(mock_do_restore_db.called)
 
         self.check_call.reset_mock()
         mock_do_restore_db.reset_mock()
         mock_db_exists.return_value = False
         launcher.heat_db_sync(restore_db=False)
-        self.assertTrue(self.check_calls('create database', self.check_call))
-        self.assertTrue(self.check_calls('create user', self.check_call))
-        self.assertTrue(self.check_calls('grant all', self.check_call))
-        self.assertTrue(self.check_calls('flush priv', self.check_call))
-        self.assertTrue(self.check_calls('heat-manage', self.check_call))
+        calls = [
+            mock.call(['sudo', 'podman', 'exec', '-u', 'root', 'mysql',
+                       'mysql', '-e', 'create database heat']),
+            mock.call(['sudo', 'podman', 'exec', '-u', 'root', 'mysql',
+                       'mysql', '-e', "create user if not exists 'heat'@'%' "
+                       "identified by 'heat'"]),
+            mock.call(['sudo', 'podman', 'exec', '-u', 'root', 'mysql',
+                       'mysql', 'heat', '-e', "grant all privileges on heat.* "
+                       "to 'heat'@'%'"]),
+            mock.call(['sudo', 'podman', 'exec', '-u', 'root', 'mysql',
+                       'mysql', '-e', 'flush privileges;']),
+            mock.call(['sudo', 'podman', 'run', '--rm', '--user', 'heat',
+                       '--volume', mock.ANY, '--volume', mock.ANY,
+                       'quay.io/tripleomaster/openstack-heat-api:current-'
+                       'tripleo', 'heat-manage', 'db_sync'])
+        ]
+        self.assertEqual(self.check_call.mock_calls, calls)
         self.assertFalse(mock_do_restore_db.called)
 
     @mock.patch('os.unlink')
@@ -217,17 +248,27 @@ class TestHeatPodLauncher(base.TestCase):
         p.unlink()
         launcher.do_backup_db()
         mock_tar.assert_called_with(str(p))
-        self.assertTrue(self.check_calls('mysqldump heat', self.run))
+        self.run.assert_called_once_with(['sudo', 'podman', 'exec', '-u',
+                                          'root', 'mysql', 'mysqldump',
+                                          'heat'],
+                                         check=True, stdout=mock.ANY)
 
     def test_pod_exists(self):
         launcher = self.get_launcher()
+        self.check_call.reset_mock()
         self.assertTrue(launcher.pod_exists())
-        self.check_calls('pod inspect', self.check_call)
+        self.check_call.assert_called_once_with(['sudo', 'podman', 'pod',
+                                                 'inspect', 'ephemeral-heat'],
+                                                stderr=subprocess.DEVNULL,
+                                                stdout=subprocess.DEVNULL)
 
         self.check_call.reset_mock()
         self.check_call.side_effect = subprocess.CalledProcessError(1, 'test')
         self.assertFalse(launcher.pod_exists())
-        self.check_calls('pod inspect', self.check_call)
+        self.check_call.assert_called_once_with(['sudo', 'podman', 'pod',
+                                                 'inspect', 'ephemeral-heat'],
+                                                stderr=subprocess.DEVNULL,
+                                                stdout=subprocess.DEVNULL)
 
     @mock.patch('os.path.exists')
     @mock.patch('tripleoclient.heat_launcher.HeatPodLauncher.tar_file')
@@ -241,6 +282,7 @@ class TestHeatPodLauncher(base.TestCase):
 
         launcher = self.get_launcher()
         launcher.log_dir = '/log'
+        self.check_call.reset_mock()
 
         mock_db_exists.return_value = True
         mock_pod_exists.return_value = True
@@ -250,10 +292,16 @@ class TestHeatPodLauncher(base.TestCase):
                 'log_file': 'heat-log'}}
         launcher.rm_heat()
         mock_backup_db.assert_called()
-        self.check_calls('drop database heat', self.check_call)
-        self.check_calls('drop user', self.check_call)
+        calls = [
+            mock.call(['sudo', 'podman', 'exec', '-u', 'root', 'mysql',
+                       'mysql', 'heat', '-e', 'drop database heat']),
+            mock.call(['sudo', 'podman', 'exec', '-u', 'root', 'mysql',
+                       'mysql', '-e', "drop user 'heat'@'%'"])
+        ]
+        self.assertEqual(self.check_call.mock_calls, calls)
         mock_pod_exists.assert_called()
-        self.check_calls('podman pod rm -f', self.call)
+        self.call.assert_called_once_with(['sudo', 'podman', 'pod', 'rm', '-f',
+                                           'ephemeral-heat'])
         mock_read_heat_config.assert_called()
         mock_tar.assert_called_with('/log/heat-log')
 
@@ -277,18 +325,21 @@ class TestHeatPodLauncher(base.TestCase):
         mock_exists.return_value = True
         launcher.rm_heat(backup_db=False)
         mock_backup_db.assert_not_called()
-        self.check_calls('podman pod rm -f', self.call)
+        self.call.assert_called_once_with(['sudo', 'podman', 'pod', 'rm', '-f',
+                                           'ephemeral-heat'])
 
     @mock.patch('tripleoclient.heat_launcher.HeatPodLauncher.get_pod_state')
     @mock.patch('tripleoclient.heat_launcher.HeatPodLauncher.pod_exists')
     def test_stop_heat(self, mock_pod_exists, mock_pod_state):
         launcher = self.get_launcher()
+        self.check_call.reset_mock()
         mock_pod_exists.return_value = True
         mock_pod_state.return_value = 'Running'
         launcher.stop_heat()
         mock_pod_exists.assert_called()
         mock_pod_state.assert_called()
-        self.check_calls('podman pod stop', self.check_call)
+        self.check_call.asert_called_once_with(['sudo', 'podman', 'pod',
+                                                'stop', 'ephemeral-heat'])
 
         self.check_call.reset_mock()
         mock_pod_exists.reset_mock()
@@ -312,8 +363,13 @@ class TestHeatPodLauncher(base.TestCase):
 
     def test_check_message_bus(self):
         launcher = self.get_launcher()
+        self.check_call.reset_mock()
         launcher.check_message_bus()
-        self.check_calls('rabbitmqctl list_queues', self.check_call)
+        self.check_call.assert_called_once_with(['sudo', 'podman', 'exec',
+                                                 '-u', 'root', 'rabbitmq',
+                                                 'rabbitmqctl', 'list_queues'],
+                                                stderr=subprocess.DEVNULL,
+                                                stdout=subprocess.DEVNULL)
 
         self.check_call.reset_mock()
         self.check_call.side_effect = subprocess.CalledProcessError(1, 'test')
@@ -324,11 +380,17 @@ class TestHeatPodLauncher(base.TestCase):
         'tripleoclient.heat_launcher.HeatPodLauncher._get_ctlplane_ip')
     def test_check_database(self, mock_ctlplane_ip):
         launcher = self.get_launcher()
+        self.check_call.reset_mock()
 
         mock_ctlplane_ip.return_value = '1.1.1.1'
         self.assertTrue(launcher.check_database())
         mock_ctlplane_ip.assert_called()
-        self.check_calls('show databases', self.check_call)
+        self.check_call.assert_called_once_with(['sudo', 'podman', 'exec',
+                                                 '-u', 'root', 'mysql',
+                                                 'mysql', '-h', '1.1.1.1',
+                                                 '-e', 'show databases;'],
+                                                stderr=subprocess.DEVNULL,
+                                                stdout=subprocess.DEVNULL)
 
         self.check_call.reset_mock()
         mock_ctlplane_ip.reset_mock()
@@ -338,21 +400,28 @@ class TestHeatPodLauncher(base.TestCase):
 
     def test_database_exists(self):
         launcher = self.get_launcher()
+        self.check_output.reset_mock()
         self.check_output.return_value = 'heat'
         self.assertTrue(launcher.database_exists())
-        self.check_calls('show databases like "heat"', self.check_output)
+        self.check_output.assert_called_once_with([
+            'sudo', 'podman', 'exec', '-u', 'root', 'mysql', 'mysql', '-e',
+            'show databases like "heat"'])
 
         self.check_output.reset_mock()
         self.check_output.return_value = 'nova'
         self.assertFalse(launcher.database_exists())
-        self.check_calls('show databases like "heat"', self.check_output)
+        self.check_output.assert_called_once_with([
+            'sudo', 'podman', 'exec', '-u', 'root', 'mysql', 'mysql', '-e',
+            'show databases like "heat"'])
 
     @mock.patch('tripleoclient.heat_launcher.HeatPodLauncher.pod_exists')
     def test_kill_heat(self, mock_pod_exists):
         launcher = self.get_launcher()
+        self.check_output.reset_mock()
         mock_pod_exists.return_value = True
         launcher.kill_heat(0)
-        self.check_calls('podman pod kill', self.call)
+        self.call.assert_called_once_with(['sudo', 'podman', 'pod', 'kill',
+                                           'ephemeral-heat'])
         mock_pod_exists.assert_called()
 
         mock_pod_exists.reset_mock()
@@ -394,17 +463,21 @@ class TestHeatPodLauncher(base.TestCase):
     @mock.patch('tripleoclient.heat_launcher.HeatPodLauncher._decode')
     def test_get_ctlplane_vip(self, mock_decode):
         launcher = self.get_launcher()
+        self.check_output.reset_mock()
         self.check_output.return_value = '1.1.1.1'
         launcher._get_ctlplane_vip()
-        self.check_calls('sudo hiera controller_virtual_ip', self.check_output)
+        self.check_output.assert_called_once_with(['sudo', 'hiera',
+                                                   'controller_virtual_ip'])
         mock_decode.assert_called_with('1.1.1.1')
 
     @mock.patch('tripleoclient.heat_launcher.HeatPodLauncher._decode')
     def test_get_ctlplane_ip(self, mock_decode):
         launcher = self.get_launcher()
+        self.check_output.reset_mock()
         self.check_output.return_value = '1.1.1.1'
         launcher._get_ctlplane_ip()
-        self.check_calls('sudo hiera ctlplane', self.check_output)
+        self.check_output.assert_called_once_with(['sudo', 'hiera',
+                                                   'ctlplane'])
         mock_decode.assert_called_with('1.1.1.1')
 
     @mock.patch('multiprocessing.cpu_count')

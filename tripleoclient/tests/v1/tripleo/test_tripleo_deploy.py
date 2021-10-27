@@ -13,11 +13,11 @@
 #   under the License.
 #
 
-import mock
 import os
 import sys
 import tempfile
 import yaml
+from unittest import mock
 
 from heatclient import exc as hc_exc
 
@@ -553,7 +553,7 @@ class TestDeployUndercloud(TestPluginV1):
         for call in mock_yaml_dump.call_args_list:
             args, kwargs = call
             for a in args:
-                if isinstance(a, mock.mock.MagicMock):
+                if isinstance(a, mock.MagicMock):
                     continue
                 if a.get('parameter_defaults', {}).get('StackAction', None):
                     self.assertTrue(
@@ -1157,9 +1157,9 @@ class TestDeployUndercloud(TestPluginV1):
                                          '--output-only'], [])
 
         self.cmd.take_action(parsed_args)
-        self.assertEqual(1, mock_ac.call_count)
-        self.assertEqual(
-            "local", mock_ac.call_args_list[0].kwargs["transport"])
+        call = mock.call('/foo', mock.ANY, ssh_private_key=None,
+                         transport='local')
+        self.assertEqual(mock_ac.mock_calls, [call])
 
         # Test transport "ssh"
         mock_ac.reset_mock()
@@ -1172,5 +1172,6 @@ class TestDeployUndercloud(TestPluginV1):
                                          '--transport', 'ssh'], [])
 
         self.cmd.take_action(parsed_args)
-        self.assertEqual(1, mock_ac.call_count)
-        self.assertEqual("ssh", mock_ac.call_args_list[0].kwargs["transport"])
+        call = mock.call('/foo', mock.ANY, ssh_private_key=None,
+                         transport='ssh')
+        self.assertEqual(mock_ac.mock_calls, [call])

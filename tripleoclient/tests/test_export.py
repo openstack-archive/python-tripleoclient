@@ -15,7 +15,7 @@
 from json.decoder import JSONDecodeError
 import os
 
-import mock
+from unittest import mock
 from unittest import TestCase
 
 from tripleoclient import export

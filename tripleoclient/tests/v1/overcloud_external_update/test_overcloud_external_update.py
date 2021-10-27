@@ -14,8 +14,8 @@
 #
 
 import fixtures
-import mock
 import os
+from unittest import mock
 
 from tripleoclient.tests import fakes as ooofakes
 from tripleoclient.tests.v1.overcloud_external_update import fakes
