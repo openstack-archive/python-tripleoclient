@@ -56,12 +56,11 @@ INSTACK_NETCONF_MAPPING = {
     'SUBNETS_STATIC_ROUTES': 'ControlPlaneStaticRoutes',
 }
 
-MULTI_PARAMETER_MAPPING = {
-    'ipxe_enabled': ['IronicIPXEEnabled', 'IronicInspectorIPXEEnabled']
-}
+MULTI_PARAMETER_MAPPING = {}
 
 PARAMETER_MAPPING = {
     'inspection_interface': 'IronicInspectorInterface',
+    'ipxe_enabled': 'IronicInspectorIPXEEnabled',
     'undercloud_debug': 'Debug',
     'certificate_generation_ca': 'CertmongerCA',
     'undercloud_public_host': 'CloudName',
