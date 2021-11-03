@@ -27,7 +27,6 @@ import urllib
 import yaml
 
 from heatclient.common import template_utils
-from keystoneauth1.exceptions.catalog import EndpointNotFound
 from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
 from tripleo_common.image import kolla_builder
@@ -54,13 +53,8 @@ class DeployOvercloud(command.Command):
         self.clients = self.app.client_manager
         self.orchestration_client = self.clients.orchestration
         if not parsed_args.deployed_server:
-            try:
-                self.compute_client = self.clients.compute
-                self.baremetal_client = self.clients.baremetal
-            except EndpointNotFound:
-                self.log.warning('WARNING: Nova endpoint not available. '
-                                 'Assuming --deployed-server')
-                parsed_args.deployed_server = True
+            self.compute_client = self.clients.compute
+            self.baremetal_client = self.clients.baremetal
 
     def _update_args_from_answers_file(self, args):
         if args.answers_file is None:
@@ -780,7 +774,7 @@ class DeployOvercloud(command.Command):
         parser.add_argument(
             '--disable-validations',
             action='store_true',
-            default=False,
+            default=True,
             help=_('DEPRECATED. Disable the pre-deployment validations '
                    'entirely. These validations are the built-in '
                    'pre-deployment validations. To enable external '
@@ -847,11 +841,16 @@ class DeployOvercloud(command.Command):
         parser.add_argument(
             '--deployed-server',
             action='store_true',
-            default=False,
-            help=_('Use pre-provisioned overcloud nodes. Removes baremetal,'
-                   'compute and image services requirements from the'
-                   'undercloud node. Must only be used with the'
-                   '--disable-validations.')
+            default=True,
+            help=_('DEPRECATED: Use pre-provisioned overcloud nodes.'
+                   'Now the default and this CLI option has no effect.')
+        )
+        parser.add_argument(
+            '--provision-nodes',
+            action='store_false',
+            dest='deployed_server',
+            default=True,
+            help=_('Provision overcloud nodes with heat.')
         )
         parser.add_argument(
             '--config-download',
