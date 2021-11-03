@@ -835,7 +835,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                           mock_roles_data, mock_image_prepare,
                           mock_generate_password, mock_rc_params,
                           mock_check_service_vip_migr,
-                          mock_provision_networks, mock_provision_virtual_ips):
+                          mock_provision_networks,
+                          mock_provision_virtual_ips):
         mock_tmpdir.return_value = self.tmp_dir.path
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
@@ -868,6 +869,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         os.makedirs(self.tmp_dir.join('tripleo-heat-templates'))
         reg_file = self.tmp_dir.join(
             'tripleo-heat-templates/overcloud-resource-registry-puppet.yaml')
+
         with open(reg_file, 'w+') as temp_file:
             temp_file.write('resource_registry:\n  Test2: OS::Heat::None')
 
@@ -884,6 +886,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         arglist = ['--answers-file', test_answerfile,
                    '--environment-file', test_env2,
                    '--disable-password-generation',
+                   '--provision-nodes',
                    '--working-dir', self.tmp_dir.path]
         verifylist = [
             ('answers_file', test_answerfile),
