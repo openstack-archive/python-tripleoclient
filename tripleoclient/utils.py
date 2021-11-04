@@ -14,11 +14,7 @@
 #
 
 import collections
-
-try:
-    collectionsAbc = collections.abc
-except AttributeError:
-    collectionsAbc = collections
+from collections import abc as collections_abc
 
 import configparser
 import csv
@@ -735,9 +731,9 @@ def convert(data):
     """Recursively converts dictionary keys,values to strings."""
     if isinstance(data, str):
         return str(data)
-    if isinstance(data, collectionsAbc.Mapping):
+    if isinstance(data, collections_abc.Mapping):
         return dict(map(convert, data.items()))
-    if isinstance(data, collectionsAbc.Iterable):
+    if isinstance(data, collections_abc.Iterable):
         return type(data)(map(convert, data))
     return data
 
