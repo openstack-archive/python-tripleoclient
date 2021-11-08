@@ -311,7 +311,7 @@ class TestOvercloudBackup(utils.TestCommand):
         ]
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             RuntimeError,
             'The inventory file',
             self.cmd.take_action,
@@ -332,7 +332,7 @@ class TestOvercloudBackup(utils.TestCommand):
 
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
-        self.assertRaisesRegexp(
+        self.assertRaisesRegex(
             RuntimeError,
             'The inventory file',
             self.cmd.take_action,
