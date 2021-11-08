@@ -48,7 +48,7 @@ class TestDeleteOvercloud(deploy_fakes.TestDeployOvercloud):
 
         mock_run_playbook.assert_called_once_with(
             ['cli-cleanup-ipa.yml', 'cli-overcloud-delete.yaml'],
-            constants.ANSIBLE_INVENTORY,
+            constants.ANSIBLE_INVENTORY.format('overcast'),
             mock.ANY,
             constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             extra_vars={
@@ -83,7 +83,7 @@ class TestDeleteOvercloud(deploy_fakes.TestDeployOvercloud):
                 'cli-overcloud-node-unprovision.yaml',
                 'localhost,',
                 mock.ANY,
-                constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                constants.ANSIBLE_TRIPLEO_PLAYBOOKS.format('overcast'),
                 extra_vars={
                     "stack_name": "overcast",
                     "baremetal_deployment": mock.ANY,
@@ -153,7 +153,7 @@ class TestDeleteOvercloud(deploy_fakes.TestDeployOvercloud):
 
         mock_run_playbook.assert_called_once_with(
             ['cli-overcloud-delete.yaml'],
-            constants.ANSIBLE_INVENTORY,
+            constants.ANSIBLE_INVENTORY.format('overcast'),
             mock.ANY,
             constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             extra_vars={
