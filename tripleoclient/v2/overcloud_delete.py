@@ -115,7 +115,7 @@ class DeleteOvercloud(command.Command):
         with utils.TempDirs() as tmp:
             utils.run_ansible_playbook(
                 playbooks,
-                constants.ANSIBLE_INVENTORY,
+                constants.ANSIBLE_INVENTORY.format(parsed_args.stack),
                 workdir=tmp,
                 playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
                 verbosity=utils.playbook_verbosity(self=self),
