@@ -46,6 +46,8 @@ class TestOvercloudRestore(utils.TestCommand):
                                            mock_access,
                                            mock_isfile):
         arglist = [
+            '--stack',
+            'overcloud',
             '--node-name',
             'overcloud-controller-0'
         ]
@@ -61,13 +63,13 @@ class TestOvercloudRestore(utils.TestCommand):
         mock_playbook.assert_called_once_with(
             workdir=mock.ANY,
             playbook='cli-overcloud-restore-node.yaml',
-            inventory=parsed_args.inventory,
+            inventory=constants.ANSIBLE_INVENTORY.format('overcloud'),
             tags=None,
             skip_tags=None,
             playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             verbosity=3,
             extra_vars={
-              parameter: arglist[1]
+              parameter: arglist[3]
             },
             ssh_user='stack'
         )
