@@ -33,12 +33,14 @@ class TestOvercloudCephDeploy(fakes.FakePlaybookExecution):
         self.cmd = overcloud_ceph.OvercloudCephDeploy(self.app,
                                                       app_args)
 
+    @mock.patch('tripleoclient.utils.get_ceph_networks', autospect=True)
     @mock.patch('tripleoclient.utils.TempDirs', autospect=True)
     @mock.patch('os.path.abspath', autospect=True)
     @mock.patch('os.path.exists', autospect=True)
     @mock.patch('tripleoclient.utils.run_ansible_playbook', autospec=True)
     def test_overcloud_deploy_ceph(self, mock_playbook, mock_abspath,
-                                   mock_path_exists, mock_tempdirs):
+                                   mock_path_exists, mock_tempdirs,
+                                   mock_get_ceph_networks):
         arglist = ['deployed-metal.yaml', '--yes',
                    '--stack', 'overcloud',
                    '--output', 'deployed-ceph.yaml',

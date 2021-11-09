@@ -2263,3 +2263,119 @@ class TestWorkingDirDefaults(base.TestCase):
                          '/rel/path/compute-playbook.yaml')
         self.assertEqual(data[1]['ansible_playbooks'][1]['playbook'],
                          '/abs/path/compute-playbook.yaml')
+
+
+class TestGetCephNetworks(TestCase):
+
+    fake_network_data_default = []
+
+    fake_network_data = [
+        {'name': 'StorageCloud0',
+         'name_lower': 'storage',
+         'ip_subnet': '172.16.1.0/24',
+         'ipv6_subnet': 'fd00:fd00:fd00:3000::/64'},
+        {'name': 'StorageMgmtCloud0',
+         'name_lower': 'storage_mgmt',
+         'ip_subnet': '172.16.3.0/24',
+         'ipv6_subnet': 'fd00:fd00:fd00:4000::/64'}]
+
+    fake_network_data_subnet = [
+        {'name': 'Storage',
+         'name_lower': 'storage_cloud_0',
+         'service_net_map_replace': 'storage',
+         'subnets':
+         {'storage_cloud_0_subnet_0':
+          {'ip_subnet': '172.16.11.0/24'}}},
+        {'name': 'Storage',
+         'name_lower': 'storage_mgmt_cloud_0',
+         'service_net_map_replace': 'storage_mgmt',
+         'subnets':
+         {'storage_mgmt_cloud_0_subnet_0':
+          {'ip_subnet': '172.16.12.0/24'}}}]
+
+    fake_double_subnet = yaml.safe_load('''
+    - name: StorageMgmtCloud0
+      name_lower: storage_mgmt_cloud_0
+      service_net_map_replace: storage_mgmt
+      subnets:
+        storage_mgmt_cloud_0_subnet12:
+          ip_subnet: '172.16.12.0/24'
+        storage_mgmt_cloud_0_subnet13:
+          ip_subnet: '172.16.13.0/24'
+    - name: StorageCloud0
+      name_lower: storage_cloud_0
+      service_net_map_replace: storage
+      subnets:
+        storage_cloud_0_subnet14:
+          ip_subnet: '172.16.14.0/24'
+        storage_cloud_0_subnet15:
+          ip_subnet: '172.16.15.0/24'
+    ''')
+
+    def test_network_data_default(self):
+        expected = {'cluster_network': '192.168.24.0/24',
+                    'cluster_network_name': 'ctlplane',
+                    'public_network': '192.168.24.0/24',
+                    'public_network_name': 'ctlplane'}
+        with tempfile.NamedTemporaryFile(mode='w') as cfgfile:
+            yaml.safe_dump(self.fake_network_data_default, cfgfile)
+            net_name = utils.get_ceph_networks(cfgfile.name,
+                                               'storage', 'storage_mgmt')
+        self.assertEqual(expected, net_name)
+
+    def test_network_data(self):
+        expected = {'cluster_network': '172.16.3.0/24',
+                    'cluster_network_name': 'storage_mgmt',
+                    'public_network': '172.16.1.0/24',
+                    'public_network_name': 'storage'}
+        with tempfile.NamedTemporaryFile(mode='w') as cfgfile:
+            yaml.safe_dump(self.fake_network_data, cfgfile)
+            net_name = utils.get_ceph_networks(cfgfile.name,
+                                               'storage', 'storage_mgmt')
+        self.assertEqual(expected, net_name)
+
+    def test_network_data_v6(self):
+        expected = {'cluster_network': 'fd00:fd00:fd00:4000::/64',
+                    'cluster_network_name': 'storage_mgmt',
+                    'public_network': 'fd00:fd00:fd00:3000::/64',
+                    'public_network_name': 'storage'}
+        [net.setdefault('ipv6', True) for net in self.fake_network_data]
+        with tempfile.NamedTemporaryFile(mode='w') as cfgfile:
+            yaml.safe_dump(self.fake_network_data, cfgfile)
+            net_name = utils.get_ceph_networks(cfgfile.name,
+                                               'storage', 'storage_mgmt')
+        self.assertEqual(expected, net_name)
+
+    def test_network_data_subnets(self):
+        expected = {'cluster_network': '172.16.12.0/24',
+                    'cluster_network_name': 'storage_mgmt_cloud_0',
+                    'public_network': '172.16.11.0/24',
+                    'public_network_name': 'storage_cloud_0'}
+        with tempfile.NamedTemporaryFile(mode='w') as cfgfile:
+            yaml.safe_dump(self.fake_network_data_subnet, cfgfile)
+            net_name = utils.get_ceph_networks(cfgfile.name,
+                                               'storage', 'storage_mgmt')
+        self.assertEqual(expected, net_name)
+
+    def test_network_data_subnets_override_names(self):
+        expected = {'cluster_network': '172.16.12.0/24',
+                    'cluster_network_name': 'storage_mgmt_cloud_0',
+                    'public_network': '172.16.11.0/24',
+                    'public_network_name': 'storage_cloud_0'}
+        with tempfile.NamedTemporaryFile(mode='w') as cfgfile:
+            yaml.safe_dump(self.fake_network_data_subnet, cfgfile)
+            net_name = utils.get_ceph_networks(cfgfile.name,
+                                               'storage_cloud_0',
+                                               'storage_mgmt_cloud_0')
+        self.assertEqual(expected, net_name)
+
+    def test_network_data_subnets_multiple(self):
+        expected = {'cluster_network': '172.16.12.0/24,172.16.13.0/24',
+                    'cluster_network_name': 'storage_mgmt_cloud_0',
+                    'public_network': '172.16.14.0/24,172.16.15.0/24',
+                    'public_network_name': 'storage_cloud_0'}
+        with tempfile.NamedTemporaryFile(mode='w') as cfgfile:
+            yaml.safe_dump(self.fake_double_subnet, cfgfile)
+            net_name = utils.get_ceph_networks(cfgfile.name,
+                                               'storage', 'storage_mgmt')
+        self.assertEqual(expected, net_name)
