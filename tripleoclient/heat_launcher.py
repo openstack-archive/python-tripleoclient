@@ -460,7 +460,7 @@ class HeatPodLauncher(HeatContainerLauncher):
         super(HeatPodLauncher, self).__init__(*args, **kwargs)
         if not os.path.isdir(self.log_dir):
             os.makedirs(self.log_dir)
-        self.host = self._get_ctlplane_ip()
+        self.host = "127.0.0.1"
         self._chcon()
 
     def _chcon(self):
