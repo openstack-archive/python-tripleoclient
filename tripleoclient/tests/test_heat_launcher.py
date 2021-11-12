@@ -20,6 +20,7 @@ import shutil
 import subprocess
 import time
 
+from tripleoclient import constants
 from tripleoclient import heat_launcher
 from tripleoclient.exceptions import HeatPodMessageQueueException
 from tripleoclient.tests import base
@@ -69,9 +70,22 @@ class TestHeatPodLauncher(base.TestCase):
         launcher._fetch_container_image()
         self.assertFalse(self.check_calls('podman pull', self.check_output))
 
+        # With skip_heat_pull=False, this should try and run the command to
+        # pull the default images from quay.io
         launcher = self.get_launcher(skip_heat_pull=False)
         launcher._fetch_container_image()
         self.assertTrue(self.check_calls('podman pull', self.check_output))
+
+        # With skip_heat_pull=False, but using the default ephemeral heat
+        # container images, this should still skip the command to run the pull
+        launcher = self.get_launcher(skip_heat_pull=False)
+        launcher.api_container_image = \
+            constants.DEFAULT_EPHEMERAL_HEAT_API_CONTAINER
+        launcher.engine_container_image = \
+            constants.DEFAULT_EPHEMERAL_HEAT_ENGINE_CONTAINER
+        self.check_output.reset_mock()
+        launcher._fetch_container_image()
+        self.check_output.assert_not_called()
 
     @mock.patch('tripleoclient.heat_launcher.HeatPodLauncher._decode')
     def test_get_pod_state(self, mock_decode):
