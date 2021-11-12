@@ -371,11 +371,12 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
                     inventory,
                     default_flow_style=False
                 )
-            return ansible_runner.utils.dump_artifact(
+            inv_file = ansible_runner.utils.dump_artifact(
                 inventory,
                 workdir,
-                constants.ANSIBLE_HOSTS_FILENAME
-            )
+                constants.ANSIBLE_HOSTS_FILENAME)
+            os.chmod(inv_file, 0o600)
+            return inv_file
 
     def _running_ansible_msg(playbook, timeout=None):
         if timeout and timeout > 0:
