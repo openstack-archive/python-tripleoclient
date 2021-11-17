@@ -12,9 +12,6 @@ Container Commands
 .. autoprogram-cliff:: openstack.tripleoclient.v2
    :command: tripleo container *
 
-.. autoprogram-cliff:: openstack.tripleoclient.v2
-   :command: overcloud container image [!prep]*
-
 ===================
 Undercloud Commands
 ===================
