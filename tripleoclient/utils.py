@@ -43,6 +43,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import textwrap
 import time
 import yaml
 
@@ -3110,6 +3111,37 @@ def get_ceph_networks(network_data_path,
                             storage_net_map['ms_bind_ipv6'] = True
 
     return storage_net_map
+
+
+def write_ephemeral_heat_clouds_yaml(heat_dir):
+    clouds_yaml_path = os.path.join(heat_dir, 'clouds.yaml')
+    clouds_dict = {}
+    clouds_dict['heat'] = {}
+    clouds_dict['heat']['auth_type'] = "none"
+    clouds_dict['heat']['endpoint'] = \
+        "http://127.0.0.1:8006/v1/admin"
+    heat_yaml = dict(clouds=clouds_dict)
+    with open(clouds_yaml_path, 'w') as f:
+        f.write(yaml.dump(heat_yaml))
+
+    heatrc = textwrap.dedent("""
+        # Clear any old environment that may conflict.
+        for key in $( set | awk -F= '/^OS_/ {print $1}' ); do
+            unset "${key}"
+        done
+        export OS_CLOUD=heat
+        # Add OS_CLOUDNAME to PS1
+        if [ -z "${CLOUDPROMPT_ENABLED:-}" ]; then
+            export PS1=${PS1:-""}
+            export PS1=${OS_CLOUD:+"($OS_CLOUD)"} $PS1
+            export CLOUDPROMPT_ENABLED=1
+        fi
+        """)
+
+    # Also write a heatrc file
+    heatrc_path = os.path.join(heat_dir, 'heatrc')
+    with open(heatrc_path, 'w') as f:
+        f.write(heatrc)
 
 
 def get_host_groups_from_ceph_spec(ceph_spec_path, prefix='',
