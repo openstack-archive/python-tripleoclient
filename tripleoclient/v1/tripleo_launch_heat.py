@@ -218,6 +218,9 @@ class LaunchHeat(command.Command):
                 msg = _('Heat launch failed.')
                 self.log.error(msg)
                 raise exceptions.DeploymentError(msg)
+            else:
+                self.log.info("Writing heat clouds.yaml")
+                utils.write_ephemeral_heat_clouds_yaml(parsed_args.heat_dir)
 
     def _configure_logging(self, parsed_args):
         formatter = logging.Formatter(
