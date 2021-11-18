@@ -36,6 +36,24 @@ class TripleOValidatorList(ValidationList):
         return parser
 
 
+class DeprecatedTripleOValidatorList(TripleOValidatorList):
+    """[DEPRECATED]: List the available validations.
+
+    Please use "validation list --help" instead.
+    """
+
+    log = logging.getLogger('deprecated')
+
+    def take_action(self, parsed_args):
+        self.log.warning(
+            'This command has been deprecated. '
+            'Please use "validation list" instead.'
+        )
+        return super(
+            DeprecatedTripleOValidatorList, self
+        ).take_action(parsed_args)
+
+
 class TripleOValidatorShow(Show):
     """Display detailed information about a Validation"""
 
@@ -44,6 +62,24 @@ class TripleOValidatorShow(Show):
     def get_parser(self, parser):
         parser = super(TripleOValidatorShow, self).get_parser(parser)
         return parser
+
+
+class DeprecatedTripleOValidatorShow(TripleOValidatorShow):
+    """[DEPRECATED]: Display detailed information about a Validation.
+
+    Please use "validation show --help" instead.
+    """
+
+    log = logging.getLogger('deprecated')
+
+    def take_action(self, parsed_args):
+        self.log.warning(
+            'This command has been deprecated. '
+            'Please use "validation show" instead.'
+        )
+        return super(
+            DeprecatedTripleOValidatorShow, self
+        ).take_action(parsed_args)
 
 
 class TripleOValidatorGroupInfo(ShowGroup):
@@ -56,6 +92,24 @@ class TripleOValidatorGroupInfo(ShowGroup):
         return parser
 
 
+class DeprecatedTripleOValidatorGroupInfo(TripleOValidatorGroupInfo):
+    """[DEPRECATED]: Display detailed information about a Group.
+
+    Please use "validation show group --help" instead.
+    """
+
+    log = logging.getLogger('deprecated')
+
+    def take_action(self, parsed_args):
+        self.log.warning(
+            'This command has been deprecated. '
+            'Please use "validation show group" instead.'
+        )
+        return super(
+            DeprecatedTripleOValidatorGroupInfo, self
+        ).take_action(parsed_args)
+
+
 class TripleOValidatorShowParameter(ShowParameter):
     """Display Validations Parameters"""
 
@@ -64,6 +118,24 @@ class TripleOValidatorShowParameter(ShowParameter):
     def get_parser(self, parser):
         parser = super(TripleOValidatorShowParameter, self).get_parser(parser)
         return parser
+
+
+class DeprecatedTripleOValidatorShowParameter(TripleOValidatorShowParameter):
+    """[DEPRECATED]: Display Validations Parameters.
+
+    Please use "validation show parameter --help" instead.
+    """
+
+    log = logging.getLogger('deprecated')
+
+    def take_action(self, parsed_args):
+        self.log.warning(
+            'This command has been deprecated. '
+            'Please use "validation show parameter" instead.'
+        )
+        return super(
+            DeprecatedTripleOValidatorShowParameter, self
+        ).take_action(parsed_args)
 
 
 class TripleOValidatorRun(Run):
@@ -76,6 +148,24 @@ class TripleOValidatorRun(Run):
         return parser
 
 
+class DeprecatedTripleOValidatorRun(TripleOValidatorRun):
+    """[DEPRECATED]: Run the available validations.
+
+    Please use "validation run --help" instead.
+    """
+
+    log = logging.getLogger('deprecated')
+
+    def take_action(self, parsed_args):
+        self.log.warning(
+            'This command has been deprecated. '
+            'Please use "validation run" instead.'
+        )
+        return super(
+            DeprecatedTripleOValidatorRun, self
+        ).take_action(parsed_args)
+
+
 class TripleOValidatorShowHistory(ListHistory):
     """Display Validations execution history"""
 
@@ -86,6 +176,24 @@ class TripleOValidatorShowHistory(ListHistory):
         return parser
 
 
+class DeprecatedTripleOValidatorShowHistory(TripleOValidatorShowHistory):
+    """[DEPRECATED]: Display Validations execution history.
+
+    Please use "validation history list --help" instead.
+    """
+
+    log = logging.getLogger('deprecated')
+
+    def take_action(self, parsed_args):
+        self.log.warning(
+            'This command has been deprecated. '
+            'Please use "validation history list" instead.'
+        )
+        return super(
+            DeprecatedTripleOValidatorShowHistory, self
+        ).take_action(parsed_args)
+
+
 class TripleOValidatorShowRun(GetHistory):
     """Display details about a Validation execution"""
 
@@ -94,3 +202,21 @@ class TripleOValidatorShowRun(GetHistory):
     def get_parser(self, parser):
         parser = super(TripleOValidatorShowRun, self).get_parser(parser)
         return parser
+
+
+class DeprecatedTripleOValidatorShowRun(TripleOValidatorShowRun):
+    """[DEPRECATED]: Display details about a Validation execution.
+
+    Please use "validation history get --help" instead.
+    """
+
+    log = logging.getLogger('deprecated')
+
+    def take_action(self, parsed_args):
+        self.log.warning(
+            'This command has been deprecated. '
+            'Please use "validation history get" instead.'
+        )
+        return super(
+            DeprecatedTripleOValidatorShowRun, self
+        ).take_action(parsed_args)

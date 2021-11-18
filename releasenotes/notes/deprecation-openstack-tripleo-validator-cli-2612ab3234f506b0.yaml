@@ -1,0 +1,18 @@
+---
+deprecations:
+  - |
+    The ``openstack tripleo validator`` CLI has been deprecated in favor the
+    ``validation`` CLI.
+
+    .. code-block:: console
+
+      +--------------------------------------------+---------------------------+
+      | Old CLI sub commands                       | New CLI sub commands      |
+      +--------------------------------------------+---------------------------+
+      | openstack tripleo validator list           | validation list           |
+      | openstack tripleo validator show           | validation show           |
+      | openstack tripleo validator group info     | validation show group     |
+      | openstack tripleo validator show parameter | validation show parameter |
+      | openstack tripleo validator show history   | validation history list   |
+      | openstack tripleo validator show run       | validation history get    |
+      +--------------------------------------------+---------------------------+
