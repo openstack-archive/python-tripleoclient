@@ -745,25 +745,7 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
 
         self.cmd = overcloud_node.ExtractProvisionedNode(self.app, None)
 
-        self.extract_file = tempfile.NamedTemporaryFile(
-            mode='w', delete=False, suffix='.yaml')
-        self.extract_file.close()
-
-        roles_data = [
-            {'name': 'Controller',
-             'default_route_networks': ['External'],
-             'networks_skip_config': ['Tenant']},
-            {'name': 'Compute'}
-        ]
-        self.roles_file = tempfile.NamedTemporaryFile(
-            mode='w', delete=False, suffix='.yaml')
-        self.roles_file.write(yaml.safe_dump(roles_data))
-        self.roles_file.close()
-        self.addCleanup(os.unlink, self.extract_file.name)
-        self.addCleanup(os.unlink, self.roles_file.name)
-
-    def test_extract(self):
-        stack_dict = {
+        self.stack_dict = {
             'parameters': {
                 'ComputeHostnameFormat': '%stackname%-novacompute-%index%',
                 'ControllerHostnameFormat': '%stackname%-controller-%index%',
@@ -803,92 +785,124 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
                 }
             }]
         }
-        stack = mock.Mock()
-        stack.to_dict.return_value = stack_dict
-        self.orchestration.stacks.get.return_value = stack
 
-        nodes = [
+        self.nodes = [
             mock.Mock(),
             mock.Mock(),
             mock.Mock(),
             mock.Mock()
         ]
-        nodes[0].name = 'bm-0'
-        nodes[1].name = 'bm-1'
-        nodes[2].name = 'bm-2'
-        nodes[3].name = 'bm-3'
+        self.nodes[0].name = 'bm-0'
+        self.nodes[1].name = 'bm-1'
+        self.nodes[2].name = 'bm-2'
+        self.nodes[3].name = 'bm-3'
 
-        nodes[0].instance_info = {'display_name': 'overcloud-controller-0'}
-        nodes[1].instance_info = {'display_name': 'overcloud-controller-1'}
-        nodes[2].instance_info = {'display_name': 'overcloud-controller-2'}
-        nodes[3].instance_info = {'display_name': 'overcloud-novacompute-0'}
+        self.nodes[0].instance_info = {
+            'display_name': 'overcloud-controller-0'}
+        self.nodes[1].instance_info = {
+            'display_name': 'overcloud-controller-1'}
+        self.nodes[2].instance_info = {
+            'display_name': 'overcloud-controller-2'}
+        self.nodes[3].instance_info = {
+            'display_name': 'overcloud-novacompute-0'}
 
-        self.baremetal.node.list.return_value = nodes
-
-        networks = [
+        self.networks = [
             mock.Mock(),  # ctlplane
             mock.Mock(),  # external
             mock.Mock(),  # internal_api
         ]
-        ctlplane_net = networks[0]
-        external_net = networks[1]
-        internal_api_net = networks[2]
+        self.ctlplane_net = self.networks[0]
+        self.external_net = self.networks[1]
+        self.internal_api_net = self.networks[2]
 
-        ctlplane_net.id = 'ctlplane_id'
-        ctlplane_net.name = 'ctlplane'
-        ctlplane_net.subnet_ids = ['ctlplane_a_id',
-                                   'ctlplane_b_id']
-        external_net.id = 'external_id'
-        external_net.name = 'external'
-        external_net.subnet_ids = ['external_a_id']
-        internal_api_net.id = 'internal_api_id'
-        internal_api_net.name = 'internal_api'
-        internal_api_net.subnet_ids = ['internal_api_a_id',
-                                       'internal_api_b_id']
+        self.ctlplane_net.id = 'ctlplane_id'
+        self.ctlplane_net.name = 'ctlplane'
+        self.ctlplane_net.subnet_ids = ['ctlplane_a_id',
+                                        'ctlplane_b_id']
+        self.external_net.id = 'external_id'
+        self.external_net.name = 'external'
+        self.external_net.subnet_ids = ['external_a_id']
+        self.internal_api_net.id = 'internal_api_id'
+        self.internal_api_net.name = 'internal_api'
+        self.internal_api_net.subnet_ids = ['internal_api_a_id',
+                                            'internal_api_b_id']
 
-        subnets = [
+        self.subnets = [
             mock.Mock(),  # ctlplane_a
             mock.Mock(),  # ctlplane_b
             mock.Mock(),  # external_a
             mock.Mock(),  # internal_api_a
             mock.Mock(),  # internal_api_b
         ]
-        ctlplane_a = subnets[0]
-        ctlplane_b = subnets[1]
-        external_a = subnets[2]
-        int_api_a = subnets[3]
-        int_api_b = subnets[4]
+        self.ctlplane_a = self.subnets[0]
+        self.ctlplane_b = self.subnets[1]
+        self.external_a = self.subnets[2]
+        self.int_api_a = self.subnets[3]
+        self.int_api_b = self.subnets[4]
 
-        ctlplane_a.id = 'ctlplane_a_id'
-        ctlplane_a.name = 'ctlplane_a'
-        ctlplane_a.cidr = '192.168.25.0/24'
-        ctlplane_b.id = 'ctlplane_b_id'
-        ctlplane_b.name = 'ctlplane_b'
-        ctlplane_b.cidr = '192.168.26.0/24'
+        self.ctlplane_a.id = 'ctlplane_a_id'
+        self.ctlplane_a.name = 'ctlplane_a'
+        self.ctlplane_a.cidr = '192.168.25.0/24'
+        self.ctlplane_b.id = 'ctlplane_b_id'
+        self.ctlplane_b.name = 'ctlplane_b'
+        self.ctlplane_b.cidr = '192.168.26.0/24'
 
-        external_a.id = 'external_a_id'
-        external_a.name = 'external_a'
-        external_a.cidr = '10.0.0.0/24'
+        self.external_a.id = 'external_a_id'
+        self.external_a.name = 'external_a'
+        self.external_a.cidr = '10.0.0.0/24'
 
-        int_api_a.id = 'internal_api_a_id'
-        int_api_a.name = 'internal_api_a'
-        int_api_a.cidr = '172.17.0.0/24'
-        int_api_b.id = 'internal_api_b_id'
-        int_api_b.name = 'internal_api_b'
-        int_api_b.cidr = '172.17.1.0/24'
+        self.int_api_a.id = 'internal_api_a_id'
+        self.int_api_a.name = 'internal_api_a'
+        self.int_api_a.cidr = '172.17.0.0/24'
+        self.int_api_b.id = 'internal_api_b_id'
+        self.int_api_b.name = 'internal_api_b'
+        self.int_api_b.cidr = '172.17.1.0/24'
 
         self.network.find_network.side_effect = [
-            ctlplane_net, internal_api_net,  # compute-0
-            ctlplane_net, external_net, internal_api_net,  # controller-0
-            ctlplane_net, external_net, internal_api_net,  # controller-1
-            ctlplane_net, external_net, internal_api_net,  # controller-2
+            # compute-0
+            self.ctlplane_net, self.internal_api_net,
+            # controller-0
+            self.ctlplane_net, self.external_net, self.internal_api_net,
+            # controller-1
+            self.ctlplane_net, self.external_net, self.internal_api_net,
+            # controller-2
+            self.ctlplane_net, self.external_net, self.internal_api_net,
         ]
         self.network.get_subnet.side_effect = [
-            ctlplane_a, ctlplane_b, int_api_a, int_api_b,  # compute-0
-            ctlplane_a, external_a, int_api_a,  # controller-0,
-            ctlplane_a, external_a, int_api_a,  # controller-1,
-            ctlplane_a, external_a, int_api_a,  # controller-2,
+            # compute-0
+            self.ctlplane_a, self.ctlplane_b, self.int_api_a, self.int_api_b,
+            # controller-0
+            self.ctlplane_a, self.external_a, self.int_api_a,
+            # controller-1
+            self.ctlplane_a, self.external_a, self.int_api_a,
+            # controller-2
+            self.ctlplane_a, self.external_a, self.int_api_a,
         ]
+
+        self.extract_file = tempfile.NamedTemporaryFile(
+            mode='w', delete=False, suffix='.yaml')
+        self.extract_file.close()
+
+        roles_data = [
+            {'name': 'Controller',
+             'default_route_networks': ['External'],
+             'networks_skip_config': ['Tenant']},
+            {'name': 'Compute'}
+        ]
+        self.roles_file = tempfile.NamedTemporaryFile(
+            mode='w', delete=False, suffix='.yaml')
+        self.roles_file.write(yaml.safe_dump(roles_data))
+        self.roles_file.close()
+        self.addCleanup(os.unlink, self.extract_file.name)
+        self.addCleanup(os.unlink, self.roles_file.name)
+
+    def test_extract(self):
+        stack = mock.Mock()
+        stack.to_dict.return_value = self.stack_dict
+        stack.environment.return_value = {}
+        self.orchestration.stacks.get.return_value = stack
+
+        self.baremetal.node.list.return_value = self.nodes
 
         argslist = ['--roles-file', self.roles_file.name,
                     '--output', self.extract_file.name,
@@ -948,6 +962,118 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
             }, {
                 'hostname': 'overcloud-controller-2',
                 'name': 'bm-2'
+            }],
+        }], yaml.safe_load(result))
+
+        with open(self.extract_file.name) as f:
+            self.assertEqual(yaml.safe_load(result), yaml.safe_load(f))
+
+    def test_extract_ips_from_pool(self):
+        stack = mock.Mock()
+        stack.to_dict.return_value = self.stack_dict
+        stack.environment.return_value = {
+            'parameter_defaults': {
+                'ComputeIPs':
+                    self.stack_dict['outputs'][1]['output_value']['Compute'],
+                'ControllerIPs':
+                    self.stack_dict['outputs'][1]['output_value']['Controller']
+            }
+        }
+        self.orchestration.stacks.get.return_value = stack
+
+        self.baremetal.node.list.return_value = self.nodes
+
+        argslist = ['--roles-file', self.roles_file.name,
+                    '--output', self.extract_file.name,
+                    '--yes']
+        self.app.command_options = argslist
+        verifylist = [('roles_file', self.roles_file.name),
+                      ('output', self.extract_file.name),
+                      ('yes', True)]
+
+        parsed_args = self.check_parser(self.cmd,
+                                        argslist, verifylist)
+        self.cmd.take_action(parsed_args)
+
+        result = self.cmd.app.stdout.make_string()
+        self.assertEqual([{
+            'name': 'Compute',
+            'count': 1,
+            'hostname_format': '%stackname%-novacompute-%index%',
+            'defaults': {
+                'network_config': {'network_config_update': False,
+                                   'physical_bridge_name': 'br-ex',
+                                   'public_interface_name': 'nic1',
+                                   'template': 'templates/compute.j2'},
+                'networks': [{'network': 'ctlplane',
+                              'vif': True},
+                             {'network': 'internal_api',
+                              'subnet': 'internal_api_b'}]
+            },
+            'instances': [{
+                'hostname': 'overcloud-novacompute-0',
+                'name': 'bm-3',
+                'networks': [{'fixed_ip': '192.168.26.11',
+                              'network': 'ctlplane',
+                              'vif': True},
+                             {'fixed_ip': '172.17.1.23',
+                              'network': 'internal_api',
+                              'subnet': 'internal_api_b'}],
+            }],
+        }, {
+            'name': 'Controller',
+            'count': 3,
+            'hostname_format': '%stackname%-controller-%index%',
+            'defaults': {
+                'network_config': {'default_route_network': ['External'],
+                                   'network_config_update': False,
+                                   'networks_skip_config': ['Tenant'],
+                                   'physical_bridge_name': 'br-ex',
+                                   'public_interface_name': 'nic1',
+                                   'template': 'templates/controller.j2'},
+                'networks': [{'network': 'ctlplane',
+                              'vif': True},
+                             {'network': 'external',
+                              'subnet': 'external_a'},
+                             {'network': 'internal_api',
+                              'subnet': 'internal_api_a'}],
+            },
+            'instances': [{
+                'hostname': 'overcloud-controller-0',
+                'name': 'bm-0',
+                'networks': [{'fixed_ip': '192.168.25.21',
+                              'network': 'ctlplane',
+                              'vif': True},
+                             {'fixed_ip': '10.0.0.199',
+                              'network': 'external',
+                              'subnet': 'external_a'},
+                             {'fixed_ip': '172.17.0.37',
+                              'network': 'internal_api',
+                              'subnet': 'internal_api_a'}],
+            }, {
+                'hostname': 'overcloud-controller-1',
+                'name': 'bm-1',
+                'networks': [{'fixed_ip': '192.168.25.25',
+                              'network': 'ctlplane',
+                              'vif': True},
+                             {'fixed_ip': '10.0.0.197',
+                              'network': 'external',
+                              'subnet': 'external_a'},
+                             {'fixed_ip': '172.17.0.33',
+                              'network': 'internal_api',
+                              'subnet': 'internal_api_a'}],
+            }, {
+                'hostname': 'overcloud-controller-2',
+                'name': 'bm-2',
+                'networks': [{'fixed_ip': '192.168.25.28',
+                              'network': 'ctlplane',
+                              'vif': True},
+                             {'fixed_ip': '10.0.0.191',
+                              'network': 'external',
+                              'subnet': 'external_a'},
+                             {'fixed_ip': '172.17.0.39',
+                              'network': 'internal_api',
+                              'subnet': 'internal_api_a'}],
             }],
         }], yaml.safe_load(result))
 

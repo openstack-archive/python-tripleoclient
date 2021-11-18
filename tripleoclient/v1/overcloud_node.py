@@ -14,6 +14,7 @@
 #
 
 import collections
+import copy
 import datetime
 from io import StringIO
 import ipaddress
@@ -531,6 +532,7 @@ class ExtractProvisionedNode(command.Command):
         role_net_ip_map = oooutils.get_stack_output_item(
             stack, 'RoleNetIpMap') or {}
         parameters = stack.to_dict().get('parameters', {})
+        parameter_defaults = stack.environment().get('parameter_defaults', {})
 
         # list all baremetal nodes and map hostname to node name
         node_details = self.baremetal_client.node.list(detail=True)
@@ -615,11 +617,21 @@ class ExtractProvisionedNode(command.Command):
                     'networks_skip_config')
 
             # Add individual instances
+            ips_from_pool = parameter_defaults.get(
+                '{}IPs'.format(role_name), {})
             instances = role['instances'] = []
-            for entry in sorted(entries):
+            for idx, entry in enumerate(sorted(entries)):
                 instance = {'hostname': entry}
+
                 if entry in hostname_node_map:
                     instance['name'] = hostname_node_map[entry]
+
+                if ips_from_pool:
+                    instance['networks'] = copy.deepcopy(role_networks)
+                    for net in instance['networks']:
+                        net['fixed_ip'] = (
+                            role_net_ip_map[role_name][net['network']][idx])
+
                 instances.append(instance)
 
             data.append(role)
