@@ -43,14 +43,14 @@ class BackupOvercloud(command.Command):
             nargs='?',
             action='store',
             help=_("Initialize environment for backup, "
-                   "using 'rear' or 'nfs' as args "
+                   "using 'rear', 'nfs' or 'ironic' as args "
                    "which will check for package install "
                    "and configured ReaR or NFS server. "
                    "Defaults to: rear. "
                    "i.e. --init rear. "
                    "WARNING: This flag will be deprecated "
-                   "and replaced by '--setup-rear' and "
-                   "'--setup-nfs'.")
+                   "and replaced by '--setup-rear' ,"
+                   "'--setup-nfs' and '--setup-ironic'.")
         )
 
         parser.add_argument(
@@ -69,6 +69,14 @@ class BackupOvercloud(command.Command):
             action='store_true',
             help=_("Setup ReaR on the overcloud 'Controller' hosts which will "
                    "install and configure ReaR.")
+        )
+
+        parser.add_argument(
+            '--setup-ironic',
+            default=False,
+            action='store_true',
+            help=_("Setup ReaR on the overcloud 'Controller' hosts which will "
+                   "install and configure ReaR with ironic")
         )
 
         parser.add_argument(
@@ -175,6 +183,17 @@ class BackupOvercloud(command.Command):
                               extra_vars=extra_vars
                               )
 
+        if parsed_args.setup_ironic is True or parsed_args.init == 'ironic':
+
+            LOG.debug(_('Installing and configuring Rear/Ironic on nodes'))
+            self._run_ansible_playbook(
+                              playbook='cli-overcloud-conf-ironic.yaml',
+                              inventory=parsed_args.inventory,
+                              tags='bar_setup_rear',
+                              skip_tags=None,
+                              extra_vars=extra_vars
+                              )
+
         if parsed_args.cron is True:
 
             LOG.debug(_('Programming cron backup'))
@@ -188,6 +207,7 @@ class BackupOvercloud(command.Command):
 
         if (parsed_args.setup_nfs is False and
            parsed_args.setup_rear is False and
+           parsed_args.setup_ironic is False and
            parsed_args.cron is False and
            parsed_args.init is None):
 
