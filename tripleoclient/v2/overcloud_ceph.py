@@ -66,6 +66,50 @@ class OvercloudCephDeploy(command.Command):
                             default=os.path.join(
                                 constants.TRIPLEO_HEAT_TEMPLATES,
                                 constants.OVERCLOUD_ROLES_FILE))
+        parser.add_argument('--network-data',
+                            help=_(
+                                "Path to an alternative network_data.yaml. "
+                                "Used to define Ceph public_network and "
+                                "cluster_network. This file is searched "
+                                "for networks with name_lower values of "
+                                "storage and storage_mgmt. If none found, "
+                                "then search repeats but with "
+                                "service_net_map_replace in place of "
+                                "name_lower. Use --public-network-name or "
+                                "--cluster-network-name options to override "
+                                "name of the searched for network from "
+                                "storage or storage_mgmt to a customized "
+                                "name. If network_data has no storage "
+                                "networks, both default to ctlplane. "
+                                "If found network has >1 subnet, they are "
+                                "all combined (for routed traffic). "
+                                "If a network has ipv6 true, then "
+                                "the ipv6_subnet is retrieved instead "
+                                "of the ip_subnet and --config should be "
+                                "used to set the Ceph global ms_bind_ipv4 "
+                                "and ms_bind_ipv6 accordingly."),
+                            default=os.path.join(
+                                constants.TRIPLEO_HEAT_TEMPLATES,
+                                constants.OVERCLOUD_NETWORKS_FILE))
+        parser.add_argument('--public-network-name',
+                            help=_(
+                                "Name of the network defined in "
+                                "network_data.yaml which should be "
+                                "used for the Ceph public_network. "
+                                "Defaults to 'storage'."),
+                            default='storage')
+        parser.add_argument('--cluster-network-name',
+                            help=_(
+                                "Name of the network defined in "
+                                "network_data.yaml which should be "
+                                "used for the Ceph cluster_network. "
+                                "Defaults to 'storage_mgmt'."),
+                            default='storage_mgmt')
+        parser.add_argument('--config',
+                            help=_(
+                                "Path to an existing ceph.conf with settings "
+                                "to be assimilated by the new cluster via "
+                                "'cephadm bootstrap --config' ")),
         spec_group = parser.add_mutually_exclusive_group()
         spec_group.add_argument('--ceph-spec',
                                 help=_(
@@ -190,6 +234,27 @@ class OvercloudCephDeploy(command.Command):
             else:
                 extra_vars['tripleo_roles_path'] = \
                     os.path.abspath(parsed_args.roles_data)
+
+        if parsed_args.config:
+            if not os.path.exists(parsed_args.config):
+                raise oscexc.CommandError(
+                    "Config file not found --config %s."
+                    % os.path.abspath(parsed_args.config))
+            else:
+                extra_vars['tripleo_cephadm_bootstrap_conf'] = \
+                    os.path.abspath(parsed_args.config)
+
+        if parsed_args.network_data:
+            if not os.path.exists(parsed_args.network_data):
+                raise oscexc.CommandError(
+                    "Network Data file not found --network-data %s."
+                    % os.path.abspath(parsed_args.network_data))
+
+        ceph_networks_map = \
+            oooutils.get_ceph_networks(parsed_args.network_data,
+                                       parsed_args.public_network_name,
+                                       parsed_args.cluster_network_name)
+        extra_vars = {**extra_vars, **ceph_networks_map}
 
         if parsed_args.ceph_spec:
             if not os.path.exists(parsed_args.ceph_spec):

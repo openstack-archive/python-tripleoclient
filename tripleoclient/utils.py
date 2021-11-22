@@ -3200,3 +3200,79 @@ def save_stack_outputs(heat, stack, working_dir):
         output_path = os.path.join(outputs_dir, output)
         with open(output_path, 'w') as f:
             f.write(yaml.dump(val))
+
+
+def get_ceph_networks(network_data_path,
+                      public_network_name,
+                      cluster_network_name):
+    """Get {public,cluster}_network{,_name} from network_data_path file
+    :param network_data_path: the path to a network_data.yaml file
+    :param str public_network_name: name of public_network, e.g. storage
+    :param str cluster_network_name: name of cluster_network, e.g. storage_mgmt
+    :return: dict mapping two network names and two CIDRs for cluster + public
+
+    The network_data_path is searched for networks with name_lower values of
+    storage and storage_mgmt by default. If none found, then search repeats
+    but with service_net_map_replace in place of name_lower. The params
+    public_network_name or cluster_network_name override name of the searched
+    for network from storage or storage_mgmt so a customized name may be used.
+    The public_network and cluster_network (without '_name') are the subnets
+    for each network, e.g. 192.168.24.0/24, as mapped by the ip_subnet key.
+    If the found network has >1 subnet, all ip_subnets are combined.
+    """
+    # default to ctlplane if nothing found in network_data
+    storage_net_map = {}
+    storage_net_map['public_network_name'] = constants.CTLPLANE_NET_NAME
+    storage_net_map['cluster_network_name'] = constants.CTLPLANE_NET_NAME
+    storage_net_map['public_network'] = constants.CTLPLANE_CIDR_DEFAULT
+    storage_net_map['cluster_network'] = constants.CTLPLANE_CIDR_DEFAULT
+    # this dict makes it easier to search for each network type in a loop
+    net_type = {}
+    net_type['public_network_name'] = public_network_name
+    net_type['cluster_network_name'] = cluster_network_name
+
+    def _get_subnet(net, ip_subnet):
+        # Return the subnet, e.g. '192.168.24.0/24', as a string
+        # The net dict can either have a ip_subnet as a root element
+        # or a dict where multiple subnets are specified. If we have
+        # a subnets dict, then parse it looking for the ip_subnet key
+        if ip_subnet in net:
+            return net[ip_subnet]
+        if 'subnets' in net:
+            ip_subnets = list(map(lambda x: x.get(ip_subnet),
+                                  net['subnets'].values()))
+            return ','.join(ip_subnets)
+
+    with open(network_data_path, 'r') as stream:
+        try:
+            net_data = yaml.safe_load(stream)
+        except yaml.YAMLError as exc:
+            raise RuntimeError(
+                "yaml.safe_load(%s) returned '%s'" % (network_data_path, exc))
+
+    # 'name_lower' is not mandatory in net_data so give it the standard default
+    [net.setdefault('name_lower', net['name'].lower()) for net in net_data]
+
+    for net in net_data:
+        if net.get('ipv6', False):
+            ip_subnet = 'ipv6_subnet'
+        else:
+            ip_subnet = 'ip_subnet'
+        for net_name, net_value in net_type.items():
+            for search_tag in ['name_lower', 'service_net_map_replace']:
+                if net.get(search_tag, None) == net_value:
+                    # if service_net_map_replace matched, still want name_lower
+                    storage_net_map[net_name] = net['name_lower']
+                    subnet = _get_subnet(net, ip_subnet)
+                    if not subnet:
+                        error = ("While searching %s, %s matched %s "
+                                 "but that network did not have a %s "
+                                 "value set."
+                                 % (network_data_path, search_tag,
+                                    net_value, ip_subnet))
+                        raise RuntimeError(error)
+                    else:
+                        subnet_key = net_name.replace('_name', '')
+                        storage_net_map[subnet_key] = subnet
+
+    return storage_net_map
