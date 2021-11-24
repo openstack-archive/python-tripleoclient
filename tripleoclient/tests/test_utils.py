@@ -2505,7 +2505,8 @@ class TestGetCephNetworks(TestCase):
         expected = {'cluster_network': '192.168.24.0/24',
                     'cluster_network_name': 'ctlplane',
                     'public_network': '192.168.24.0/24',
-                    'public_network_name': 'ctlplane'}
+                    'public_network_name': 'ctlplane',
+                    'ms_bind_ipv4': True, 'ms_bind_ipv6': False}
         with tempfile.NamedTemporaryFile(mode='w') as cfgfile:
             yaml.safe_dump(self.fake_network_data_default, cfgfile)
             net_name = utils.get_ceph_networks(cfgfile.name,
@@ -2516,7 +2517,8 @@ class TestGetCephNetworks(TestCase):
         expected = {'cluster_network': '172.16.3.0/24',
                     'cluster_network_name': 'storage_mgmt',
                     'public_network': '172.16.1.0/24',
-                    'public_network_name': 'storage'}
+                    'public_network_name': 'storage',
+                    'ms_bind_ipv4': True, 'ms_bind_ipv6': False}
         with tempfile.NamedTemporaryFile(mode='w') as cfgfile:
             yaml.safe_dump(self.fake_network_data, cfgfile)
             net_name = utils.get_ceph_networks(cfgfile.name,
@@ -2527,7 +2529,8 @@ class TestGetCephNetworks(TestCase):
         expected = {'cluster_network': 'fd00:fd00:fd00:4000::/64',
                     'cluster_network_name': 'storage_mgmt',
                     'public_network': 'fd00:fd00:fd00:3000::/64',
-                    'public_network_name': 'storage'}
+                    'public_network_name': 'storage',
+                    'ms_bind_ipv4': False, 'ms_bind_ipv6': True}
         [net.setdefault('ipv6', True) for net in self.fake_network_data]
         with tempfile.NamedTemporaryFile(mode='w') as cfgfile:
             yaml.safe_dump(self.fake_network_data, cfgfile)
@@ -2539,7 +2542,8 @@ class TestGetCephNetworks(TestCase):
         expected = {'cluster_network': '172.16.12.0/24',
                     'cluster_network_name': 'storage_mgmt_cloud_0',
                     'public_network': '172.16.11.0/24',
-                    'public_network_name': 'storage_cloud_0'}
+                    'public_network_name': 'storage_cloud_0',
+                    'ms_bind_ipv4': True, 'ms_bind_ipv6': False}
         with tempfile.NamedTemporaryFile(mode='w') as cfgfile:
             yaml.safe_dump(self.fake_network_data_subnet, cfgfile)
             net_name = utils.get_ceph_networks(cfgfile.name,
@@ -2550,7 +2554,8 @@ class TestGetCephNetworks(TestCase):
         expected = {'cluster_network': '172.16.12.0/24',
                     'cluster_network_name': 'storage_mgmt_cloud_0',
                     'public_network': '172.16.11.0/24',
-                    'public_network_name': 'storage_cloud_0'}
+                    'public_network_name': 'storage_cloud_0',
+                    'ms_bind_ipv4': True, 'ms_bind_ipv6': False}
         with tempfile.NamedTemporaryFile(mode='w') as cfgfile:
             yaml.safe_dump(self.fake_network_data_subnet, cfgfile)
             net_name = utils.get_ceph_networks(cfgfile.name,
@@ -2562,7 +2567,8 @@ class TestGetCephNetworks(TestCase):
         expected = {'cluster_network': '172.16.12.0/24,172.16.13.0/24',
                     'cluster_network_name': 'storage_mgmt_cloud_0',
                     'public_network': '172.16.14.0/24,172.16.15.0/24',
-                    'public_network_name': 'storage_cloud_0'}
+                    'public_network_name': 'storage_cloud_0',
+                    'ms_bind_ipv4': True, 'ms_bind_ipv6': False}
         with tempfile.NamedTemporaryFile(mode='w') as cfgfile:
             yaml.safe_dump(self.fake_double_subnet, cfgfile)
             net_name = utils.get_ceph_networks(cfgfile.name,

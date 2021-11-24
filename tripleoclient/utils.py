@@ -3210,6 +3210,7 @@ def get_ceph_networks(network_data_path,
     :param str public_network_name: name of public_network, e.g. storage
     :param str cluster_network_name: name of cluster_network, e.g. storage_mgmt
     :return: dict mapping two network names and two CIDRs for cluster + public
+             with ms_bind_ipv4 and ms_bind_ipv6 booleans set.
 
     The network_data_path is searched for networks with name_lower values of
     storage and storage_mgmt by default. If none found, then search repeats
@@ -3226,6 +3227,8 @@ def get_ceph_networks(network_data_path,
     storage_net_map['cluster_network_name'] = constants.CTLPLANE_NET_NAME
     storage_net_map['public_network'] = constants.CTLPLANE_CIDR_DEFAULT
     storage_net_map['cluster_network'] = constants.CTLPLANE_CIDR_DEFAULT
+    storage_net_map['ms_bind_ipv4'] = True
+    storage_net_map['ms_bind_ipv6'] = False
     # this dict makes it easier to search for each network type in a loop
     net_type = {}
     net_type['public_network_name'] = public_network_name
@@ -3274,5 +3277,12 @@ def get_ceph_networks(network_data_path,
                     else:
                         subnet_key = net_name.replace('_name', '')
                         storage_net_map[subnet_key] = subnet
+                        if ip_subnet == 'ipv6_subnet':
+                            # If _any_ storage network has v6, then
+                            # disable v4 and enable v6 ceph binding.
+                            # public_network v4 and cluster_network v6
+                            # is not supported.
+                            storage_net_map['ms_bind_ipv4'] = False
+                            storage_net_map['ms_bind_ipv6'] = True
 
     return storage_net_map
