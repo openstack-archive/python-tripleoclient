@@ -85,9 +85,10 @@ class OvercloudCephDeploy(command.Command):
                                 "all combined (for routed traffic). "
                                 "If a network has ipv6 true, then "
                                 "the ipv6_subnet is retrieved instead "
-                                "of the ip_subnet and --config should be "
-                                "used to set the Ceph global ms_bind_ipv4 "
-                                "and ms_bind_ipv6 accordingly."),
+                                "of the ip_subnet, and the Ceph global "
+                                "ms_bind_ipv4 is set false and the "
+                                "ms_bind_ipv6 is set true. Use --config "
+                                "to override these defaults if desired."),
                             default=os.path.join(
                                 constants.TRIPLEO_HEAT_TEMPLATES,
                                 constants.OVERCLOUD_NETWORKS_FILE))
