@@ -132,6 +132,11 @@ class OvercloudCephDeploy(command.Command):
                                     "data_devices value inside the "
                                     "Ceph spec file."),
                                 default=None)
+        spec_group.add_argument('--crush-hierarchy',
+                                help=_(
+                                    "Path to an existing crush hierarchy spec "
+                                    "file. "),
+                                default=None)
         parser.add_argument('--container-image-prepare',
                             help=_(
                                 "Path to an alternative "
@@ -276,6 +281,14 @@ class OvercloudCephDeploy(command.Command):
                 extra_vars['osd_spec_path'] = \
                     os.path.abspath(parsed_args.osd_spec)
 
+        if parsed_args.crush_hierarchy:
+            if not os.path.exists(parsed_args.crush_hierarchy):
+                raise oscexc.CommandError(
+                    "Crush Hierarchy Spec file not found --crush-hierarchy %s."
+                    % os.path.abspath(parsed_args.crush_hierarchy))
+            else:
+                extra_vars['crush_hierarchy_path'] = \
+                    os.path.abspath(parsed_args.crush_hierarchy)
         # optional container vars to pass to playbook
         keys = ['ceph_namespace', 'ceph_image', 'ceph_tag']
         key = 'ContainerImagePrepare'
