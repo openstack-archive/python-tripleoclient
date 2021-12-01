@@ -1016,9 +1016,9 @@ def get_endpoint_map(stack):
     return endpoint_map
 
 
-def get_blacklisted_ip_addresses(working_dir):
+def get_excluded_ip_addresses(working_dir):
     return get_stack_saved_output_item(
-        'BlacklistedIpAddresses', working_dir)
+            'BlacklistedIpAddresses', working_dir)
 
 
 def get_role_net_ip_map(working_dir):

@@ -106,7 +106,7 @@ def deploy_without_plan(clients, stack, stack_name, template,
 def get_overcloud_hosts(stack, ssh_network, working_dir):
     ips = []
     role_net_ip_map = utils.get_role_net_ip_map(working_dir)
-    blacklisted_ips = utils.get_blacklisted_ip_addresses(working_dir)
+    excluded_ips = utils.get_excluded_ip_addresses(working_dir)
     if not role_net_ip_map:
         raise exceptions.DeploymentError(
             'No overcloud hosts were found in the current stack.'
@@ -114,17 +114,17 @@ def get_overcloud_hosts(stack, ssh_network, working_dir):
         )
     for net_ip_map in role_net_ip_map.values():
         # get a copy of the lists of ssh_network and ctlplane ips
-        # as blacklisted_ips will only be the ctlplane ips, we need
-        # both lists to determine which to actually blacklist
+        # as excluded_ips will only be the ctlplane ips, we need
+        # both lists to determine which to actually exclude
         net_ips = copy.copy(net_ip_map.get(ssh_network, []))
         ctlplane_ips = copy.copy(net_ip_map.get('ctlplane', []))
 
-        blacklisted_ctlplane_ips = \
-            [ip for ip in ctlplane_ips if ip in blacklisted_ips]
+        excluded_ctlplane_ips = \
+            [ip for ip in ctlplane_ips if ip in excluded_ips]
 
-        # for each blacklisted ctlplane ip, remove the corresponding
+        # for each excluded ctlplane ip, remove the corresponding
         # ssh_network ip at that same index in the net_ips list
-        for bcip in blacklisted_ctlplane_ips:
+        for bcip in excluded_ctlplane_ips:
             if not bcip:
                 continue
             index = ctlplane_ips.index(bcip)
@@ -373,7 +373,7 @@ def config_download(log, clients, stack_name, ssh_network='ctlplane',
     )
 
     _log_and_print(
-        message='Checking for blacklisted hosts from stack: {}'.format(
+        message='Checking for excluded hosts from stack: {}'.format(
             stack_name
         ),
         logger=log,
