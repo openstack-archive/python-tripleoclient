@@ -441,7 +441,7 @@ class TestUnprovisionNode(fakes.TestOvercloudNode):
                     ],
                     'all': True,
                     'prompt': False,
-                    'manage_network_ports': False,
+                    'manage_network_ports': True,
                 },
                 inventory='localhost,',
                 playbook='cli-overcloud-node-unprovision.yaml',
