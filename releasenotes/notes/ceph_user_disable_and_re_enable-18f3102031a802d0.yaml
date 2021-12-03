@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    Two new commands, "openstack overcloud ceph user enable" and
+    "openstack overcloud ceph user disable" are added. The "enable"
+    option will create the cephadm SSH user and distribute their
+    SSH keys to Ceph nodes in the overcloud. The "disable" option
+    may be run after "openstack overcloud ceph deploy" has been run
+    to disable cephadm so that it may not be used to administer the
+    Ceph cluster and no "ceph orch ..." CLI commands will function.
+    This will also prevent Ceph node overcloud scale operations though
+    the Ceph cluster will still be able to read/write data. The "ceph
+    user disable" option will also remove the public and private SSH
+    keys of the cephadm SSH user on overclouds which host Ceph. The
+    "ceph user enable" option may also be used to re-distribute the
+    public and private SSH keys of the cephadm SSH user and re-enable
+    the cephadm mgr module.
