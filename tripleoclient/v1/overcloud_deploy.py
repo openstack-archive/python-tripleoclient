@@ -603,18 +603,6 @@ class DeployOvercloud(command.Command):
 
     def setup_ephemeral_heat(self, parsed_args):
         self.log.info("Using ephemeral heat for stack operation")
-        # Skip trying to pull the images if they are set to the default
-        # as they can't be pulled since they are tagged as localhost.
-        # If the images are missing for some reason, podman will still pull
-        # them by default, and error appropriately if needed.
-        if (parsed_args.heat_container_api_image ==
-                constants.DEFAULT_EPHEMERAL_HEAT_API_CONTAINER or
-                parsed_args.heat_container_engine_image ==
-                constants.DEFAULT_EPHEMERAL_HEAT_ENGINE_CONTAINER):
-            skip_heat_pull = True
-        else:
-            skip_heat_pull = parsed_args.skip_heat_pull
-
         self.heat_launcher = utils.get_heat_launcher(
             parsed_args.heat_type,
             api_container_image=parsed_args.heat_container_api_image,
@@ -623,7 +611,7 @@ class DeployOvercloud(command.Command):
                                   'heat-launcher'),
             use_tmp_dir=False,
             rm_heat=parsed_args.rm_heat,
-            skip_heat_pull=skip_heat_pull)
+            skip_heat_pull=parsed_args.skip_heat_pull)
         self.orchestration_client = utils.launch_heat(self.heat_launcher)
         self.clients.orchestration = self.orchestration_client
 

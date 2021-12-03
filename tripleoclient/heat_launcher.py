@@ -38,6 +38,8 @@ from tenacity.wait import wait_fixed
 from tripleoclient.constants import (DEFAULT_HEAT_CONTAINER,
                                      DEFAULT_HEAT_API_CONTAINER,
                                      DEFAULT_HEAT_ENGINE_CONTAINER,
+                                     DEFAULT_EPHEMERAL_HEAT_API_CONTAINER,
+                                     DEFAULT_EPHEMERAL_HEAT_ENGINE_CONTAINER,
                                      DEFAULT_TEMPLATES_DIR,
                                      EPHEMERAL_HEAT_POD_NAME)
 from tripleoclient.exceptions import HeatPodMessageQueueException
@@ -467,7 +469,18 @@ class HeatPodLauncher(HeatContainerLauncher):
              '-l', 's0', self.heat_dir])
 
     def _fetch_container_image(self):
-        if self.skip_heat_pull:
+        # Skip trying to pull the images if they are set to the default
+        # as they can't be pulled since they are tagged as localhost.
+        # If the images are missing for some reason, podman will still pull
+        # them by default, and error appropriately if needed.
+        if (self.api_container_image ==
+                DEFAULT_EPHEMERAL_HEAT_API_CONTAINER or
+                self.engine_container_image ==
+                DEFAULT_EPHEMERAL_HEAT_ENGINE_CONTAINER):
+            skip_heat_pull = True
+        else:
+            skip_heat_pull = self.skip_heat_pull
+        if skip_heat_pull:
             log.info("Skipping container image pull.")
             return
         # force pull of latest container image
