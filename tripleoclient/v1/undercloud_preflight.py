@@ -315,7 +315,10 @@ def _validate_no_ip_change():
         # Nothing to check if br-ctlplane wasn't configured
         return
     existing_ip = ctlplane['addresses'][0]['ip_netmask']
-    if existing_ip != CONF.local_ip:
+    conf_netaddr = netaddr.IPNetwork(CONF.local_ip)
+    existing_netaddr = netaddr.IPNetwork(existing_ip)
+    if (conf_netaddr != existing_netaddr
+            or conf_netaddr.ip != existing_netaddr.ip):
         message = _('Changing the local_ip is not allowed.  Existing IP: '
                     '{0}, Configured IP: {1}').format(
                         existing_ip, CONF.local_ip)
