@@ -908,7 +908,7 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
             'count': 1,
             'hostname_format': '%stackname%-novacompute-%index%',
             'defaults': {
-                'network_config': {'network_deployment_actions': ['CREATE'],
+                'network_config': {'network_config_update': False,
                                    'physical_bridge_name': 'br-ex',
                                    'public_interface_name': 'nic1',
                                    'template': 'templates/compute.j2'},
@@ -928,7 +928,7 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
             'hostname_format': '%stackname%-controller-%index%',
             'defaults': {
                 'network_config': {'default_route_network': ['External'],
-                                   'network_deployment_actions': ['CREATE'],
+                                   'network_config_update': False,
                                    'networks_skip_config': ['Tenant'],
                                    'physical_bridge_name': 'br-ex',
                                    'public_interface_name': 'nic1',
