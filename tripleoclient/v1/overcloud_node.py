@@ -568,7 +568,6 @@ class ExtractProvisionedNode(command.Command):
                                                                     ips[0])
                 if net_name == constants.CTLPLANE_NET_NAME:
                     role_networks.append({'network': net_name,
-                                          'subnet': subnet_name,
                                           'vif': True})
                 else:
                     role_networks.append({'network': net_name,
