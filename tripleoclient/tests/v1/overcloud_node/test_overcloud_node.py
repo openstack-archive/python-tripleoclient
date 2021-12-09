@@ -913,7 +913,6 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
                                    'public_interface_name': 'nic1',
                                    'template': 'templates/compute.j2'},
                 'networks': [{'network': 'ctlplane',
-                              'subnet': 'ctlplane_b',
                               'vif': True},
                              {'network': 'internal_api',
                               'subnet': 'internal_api_b'}]
@@ -934,7 +933,6 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
                                    'public_interface_name': 'nic1',
                                    'template': 'templates/controller.j2'},
                 'networks': [{'network': 'ctlplane',
-                              'subnet': 'ctlplane_a',
                               'vif': True},
                              {'network': 'external',
                               'subnet': 'external_a'},
