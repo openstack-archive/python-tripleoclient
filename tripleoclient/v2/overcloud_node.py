@@ -431,7 +431,7 @@ class UnprovisionNode(command.Command):
                     "baremetal_deployment": roles,
                     "all": parsed_args.all,
                     "prompt": False,
-                    "manage_network_ports": parsed_args.network_ports,
+                    "manage_network_ports": True,
                 }
             )
 
