@@ -329,18 +329,29 @@ def _validate_passwords_file():
     If the undercloud was already deployed, the passwords file needs to be
     present so passwords that can't be changed are persisted.  If the file
     is missing it will break the undercloud, so we should fail-fast and let
-    the user know about the problem.
+    the user know about the problem.  Both the old and new path to the file
+    is checked.  If either is found, the validation will pass as the old
+    path will be migrated to the new during and update/upgrade.
     """
+    old_passwd_path = None
+    file_name = 'tripleo-undercloud-passwords.yaml'
+
     if not CONF.get('output_dir'):
         output_dir = os.path.join(constants.UNDERCLOUD_OUTPUT_DIR,
                                   'tripleo-deploy', 'undercloud')
     else:
         output_dir = CONF['output_dir']
+        old_passwd_path = os.path.join(output_dir, file_name)
 
-    passwd_path = os.path.join(output_dir,
-                               'tripleo-undercloud-passwords.yaml')
+    # If old_passwd_path is not yet set, then default to the old path
+    if not old_passwd_path:
+        old_passwd_path = os.path.join(constants.CLOUD_HOME_DIR, file_name)
+
+    passwd_path = os.path.join(output_dir, file_name)
+
     if (os.path.isfile(os.path.join(constants.CLOUD_HOME_DIR, 'stackrc')) and
-            not os.path.isfile(passwd_path)):
+            not (os.path.isfile(passwd_path) or
+                 os.path.isfile(old_passwd_path))):
         message = (_('The %s file is missing.  This will cause all service '
                      'passwords to change and break the existing '
                      'undercloud. ') % passwd_path)
