@@ -12,13 +12,13 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import json
 import logging
 import netaddr
 import netifaces
 import os
 import subprocess
 import sys
+import yaml
 
 from osc_lib.i18n import _
 
@@ -304,8 +304,8 @@ def _validate_no_ip_change():
             os.path.expanduser(os_net_config_file)):
         return
     try:
-        with open(os_net_config_file) as f:
-            network_config = json.loads(f.read())
+        with open(os_net_config_file, 'r') as f:
+            network_config = yaml.safe_load(f)
         ctlplane = [i for i in network_config.get('network_config', [])
                     if i['name'] == 'br-ctlplane'][0]
     except ValueError:
