@@ -15,6 +15,7 @@
 
 import logging
 import os
+import uuid
 
 from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
@@ -25,9 +26,51 @@ from tripleoclient import constants
 from tripleoclient import utils as oooutils
 
 
+def arg_parse_common(parser):
+    """Multiple classes below need these arguments added
+    """
+    parser.add_argument('--cephadm-ssh-user', dest='cephadm_ssh_user',
+                        help=_("Name of the SSH user used by cephadm. "
+                               "Warning: if this option is used, it "
+                               "must be used consistently for every "
+                               "'openstack overcloud ceph' call. "
+                               "Defaults to 'ceph-admin'. "
+                               "(default=Env: CEPHADM_SSH_USER)"),
+                        default=utils.env("CEPHADM_SSH_USER",
+                                          default="ceph-admin"))
+
+    parser.add_argument('--stack', dest='stack',
+                        help=_('Name or ID of heat stack '
+                               '(default=Env: OVERCLOUD_STACK_NAME)'),
+                        default=utils.env('OVERCLOUD_STACK_NAME',
+                                          default='overcloud'))
+    parser.add_argument(
+        '--working-dir', action='store',
+        help=_('The working directory for the deployment where all '
+               'input, output, and generated files will be stored.\n'
+               'Defaults to "$HOME/overcloud-deploy/<stack>"'))
+
+    return parser
+
+
+def ceph_hosts_in_inventory(ceph_hosts, ceph_spec, inventory):
+    """Raise command error if any ceph_hosts are not in the inventory
+    """
+    all_host_objs = oooutils.parse_ansible_inventory(inventory, 'all')
+    all_hosts = list(map(lambda x: str(x), all_host_objs))
+    for ceph_host in ceph_hosts['_admin'] + ceph_hosts['non_admin']:
+        if ceph_host not in all_hosts:
+            raise oscexc.CommandError(
+                "Ceph host '%s' from Ceph spec '%s' was "
+                "not found in Ansible inventory '%s' so "
+                "unable to modify that host via Ansible."
+                % (ceph_host, ceph_spec, inventory))
+
+
 class OvercloudCephDeploy(command.Command):
 
     log = logging.getLogger(__name__ + ".OvercloudCephDeploy")
+    auth_required = False
 
     def get_parser(self, prog_name):
         parser = super(OvercloudCephDeploy, self).get_parser(prog_name)
@@ -46,16 +89,13 @@ class OvercloudCephDeploy(command.Command):
                             help=_('Skip yes/no prompt before overwriting an '
                                    'existing <deployed_ceph.yaml> output file '
                                    '(assume yes).'))
-        parser.add_argument('--stack', dest='stack',
-                            help=_('Name or ID of heat stack '
-                                   '(default=Env: OVERCLOUD_STACK_NAME)'),
-                            default=utils.env('OVERCLOUD_STACK_NAME',
-                                              default='overcloud'))
-        parser.add_argument(
-            '--working-dir', action='store',
-            help=_('The working directory for the deployment where all '
-                   'input, output, and generated files will be stored.\n'
-                   'Defaults to "$HOME/overcloud-deploy/<stack>"'))
+        parser.add_argument('--skip-user-create', default=False,
+                            action='store_true',
+                            help=_("Do not create the cephadm SSH user. "
+                                   "This user is necessary to deploy but "
+                                   "may be created in a separate step via "
+                                   "'openstack overcloud ceph user enable'."))
+        parser = arg_parse_common(parser)
         parser.add_argument('--roles-data',
                             help=_(
                                 "Path to an alternative roles_data.yaml. "
@@ -230,7 +270,6 @@ class OvercloudCephDeploy(command.Command):
             "working_dir": working_dir,
             "stack_name": parsed_args.stack,
         }
-
         # optional paths to pass to playbook
         if parsed_args.roles_data:
             if not os.path.exists(parsed_args.roles_data):
@@ -339,6 +378,15 @@ class OvercloudCephDeploy(command.Command):
                 extra_vars['tripleo_cephadm_registry_username'] = \
                     parsed_args.registry_username
 
+        if parsed_args.skip_user_create:
+            skip_tags = 'cephadm_ssh_user'
+        else:
+            skip_tags = ''
+
+        if parsed_args.cephadm_ssh_user:
+            extra_vars["tripleo_cephadm_ssh_user"] = \
+                parsed_args.cephadm_ssh_user
+
         # call the playbook
         with oooutils.TempDirs() as tmp:
             oooutils.run_ansible_playbook(
@@ -348,4 +396,239 @@ class OvercloudCephDeploy(command.Command):
                 playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
                 verbosity=oooutils.playbook_verbosity(self=self),
                 extra_vars=extra_vars,
+                reproduce_command=False,
+                skip_tags=skip_tags,
             )
+
+
+class OvercloudCephUserDisable(command.Command):
+
+    log = logging.getLogger(__name__ + ".OvercloudCephUserDisable")
+    auth_required = False
+
+    def get_parser(self, prog_name):
+        parser = super(OvercloudCephUserDisable, self).get_parser(prog_name)
+        parser.add_argument('ceph_spec',
+                            metavar='<ceph_spec.yaml>',
+                            help=_(
+                                "Path to an existing Ceph spec file "
+                                "which describes the Ceph cluster "
+                                "where the cephadm SSH user will have "
+                                "their public and private keys removed "
+                                "and cephadm will be disabled. "
+                                "Spec file is necessary to determine "
+                                "which nodes to modify. "
+                                "WARNING: Ceph cluster administration or "
+                                "modification will no longer function."))
+        parser.add_argument('-y', '--yes', default=False, action='store_true',
+                            help=_('Skip yes/no prompt before disabling '
+                                   'cephadm and its SSH user. '
+                                   '(assume yes).'))
+        parser = arg_parse_common(parser)
+        required = parser.add_argument_group('required named arguments')
+        required.add_argument('--fsid',
+                              metavar='<FSID>', required=True,
+                              help=_("The FSID of the Ceph cluster to be "
+                                     "disabled. Required for disable option."))
+
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)" % parsed_args)
+
+        ceph_spec = os.path.abspath(parsed_args.ceph_spec)
+
+        if not os.path.exists(ceph_spec):
+            raise oscexc.CommandError(
+                "Ceph spec file does not exist:"
+                " %s" % parsed_args.ceph_spec)
+
+        overwrite = parsed_args.yes
+        if (not overwrite
+                and not oooutils.prompt_user_for_confirmation(
+                    'Are you sure you want to disable Ceph '
+                    'cluster management [y/N]?',
+                    self.log)):
+            raise oscexc.CommandError("Will not disable cephadm and delete "
+                                      "the cephadm SSH user :"
+                                      " %s. See the --yes parameter to "
+                                      "override this behavior. " %
+                                      parsed_args.cephadm_ssh_user)
+        else:
+            overwrite = True
+
+        # use stack and working_dir to find inventory
+        if not parsed_args.working_dir:
+            working_dir = oooutils.get_default_working_dir(
+                parsed_args.stack)
+        else:
+            working_dir = os.path.abspath(parsed_args.working_dir)
+        oooutils.makedirs(working_dir)
+
+        inventory = os.path.join(working_dir,
+                                 constants.TRIPLEO_STATIC_INVENTORY)
+        if not os.path.exists(inventory):
+            raise oscexc.CommandError(
+                "Inventory file not found in working directory: "
+                "%s. It should have been created by "
+                "'openstack overcloud node provision'."
+                % inventory)
+        ceph_hosts = oooutils.get_host_groups_from_ceph_spec(ceph_spec)
+        ceph_hosts_in_inventory(ceph_hosts, ceph_spec, inventory)
+
+        if parsed_args.fsid:
+            try:
+                uuid.UUID(parsed_args.fsid)
+            except ValueError:
+                raise oscexc.CommandError(
+                    "--fsid %s is not a valid UUID."
+                    % parsed_args.fsid)
+
+        if parsed_args.fsid:  # if no FSID, then no ceph cluster to disable
+            # call the playbook to toggle cephadm w/ disable
+            # if tripleo_cephadm_backend isn't set it defaults to ''
+            extra_vars = {
+                "tripleo_cephadm_fsid": parsed_args.fsid,
+                "tripleo_cephadm_action": 'disable',
+            }
+            with oooutils.TempDirs() as tmp:
+                oooutils.run_ansible_playbook(
+                    playbook='disable_cephadm.yml',
+                    inventory=inventory,
+                    workdir=tmp,
+                    playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                    verbosity=oooutils.playbook_verbosity(self=self),
+                    extra_vars=extra_vars,
+                    limit_hosts=ceph_hosts['_admin'][0],
+                    reproduce_command=False,
+                )
+
+        # call the playbook to remove ssh_user_keys
+        extra_vars = {
+            "tripleo_cephadm_ssh_user": parsed_args.cephadm_ssh_user
+        }
+        if len(ceph_hosts['_admin']) > 0 or len(ceph_hosts['non_admin']) > 0:
+            with oooutils.TempDirs() as tmp:
+                oooutils.run_ansible_playbook(
+                    playbook='ceph-admin-user-disable.yml',
+                    inventory=inventory,
+                    workdir=tmp,
+                    playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                    verbosity=oooutils.playbook_verbosity(self=self),
+                    extra_vars=extra_vars,
+                    limit_hosts=",".join(ceph_hosts['_admin']
+                                         + ceph_hosts['non_admin']),
+                    reproduce_command=False,
+                )
+
+
+class OvercloudCephUserEnable(command.Command):
+
+    log = logging.getLogger(__name__ + ".OvercloudCephUserEnable")
+    auth_required = False
+
+    def get_parser(self, prog_name):
+        parser = super(OvercloudCephUserEnable, self).get_parser(prog_name)
+        parser.add_argument('ceph_spec',
+                            metavar='<ceph_spec.yaml>',
+                            help=_(
+                                "Path to an existing Ceph spec file "
+                                "which describes the Ceph cluster "
+                                "where the cephadm SSH user will be "
+                                "created (if necessary) and have their "
+                                "public and private keys installed. "
+                                "Spec file is necessary to determine "
+                                "which nodes to modify and if "
+                                "a public or private key is required."))
+        parser.add_argument('--fsid',
+                            metavar='<FSID>', required=False,
+                            help=_("The FSID of the Ceph cluster to be "
+                                   "(re-)enabled. If the user disable "
+                                   "option has been used, the FSID may "
+                                   "be passed to the user enable option "
+                                   "so that cephadm will be re-enabled "
+                                   "for the Ceph cluster idenified "
+                                   "by the FSID."))
+        parser = arg_parse_common(parser)
+
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)" % parsed_args)
+
+        if parsed_args.fsid:
+            try:
+                uuid.UUID(parsed_args.fsid)
+            except ValueError:
+                raise oscexc.CommandError(
+                    "--fsid %s is not a valid UUID."
+                    % parsed_args.fsid)
+
+        ceph_spec = os.path.abspath(parsed_args.ceph_spec)
+
+        if not os.path.exists(ceph_spec):
+            raise oscexc.CommandError(
+                "Ceph spec file does not exist:"
+                " %s" % parsed_args.ceph_spec)
+
+        # use stack and working_dir to find inventory
+        if not parsed_args.working_dir:
+            working_dir = oooutils.get_default_working_dir(
+                parsed_args.stack)
+        else:
+            working_dir = os.path.abspath(parsed_args.working_dir)
+        oooutils.makedirs(working_dir)
+
+        inventory = os.path.join(working_dir,
+                                 constants.TRIPLEO_STATIC_INVENTORY)
+        if not os.path.exists(inventory):
+            raise oscexc.CommandError(
+                "Inventory file not found in working directory: "
+                "%s. It should have been created by "
+                "'openstack overcloud node provision'."
+                % inventory)
+
+        # get ceph hosts from spec and make sure they're in the inventory
+        ceph_hosts = oooutils.get_host_groups_from_ceph_spec(ceph_spec)
+        ceph_hosts_in_inventory(ceph_hosts, ceph_spec, inventory)
+
+        extra_vars = {
+            "tripleo_admin_user": parsed_args.cephadm_ssh_user,
+            "distribute_private_key": True
+        }
+        for limit_list in [ceph_hosts['_admin'], ceph_hosts['non_admin']]:
+            if len(limit_list) > 0:
+                # need to include the undercloud where the keys are generated
+                limit_list.append('undercloud')
+                with oooutils.TempDirs() as tmp:
+                    oooutils.run_ansible_playbook(
+                        playbook='ceph-admin-user-playbook.yml',
+                        inventory=inventory,
+                        workdir=tmp,
+                        playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                        verbosity=oooutils.playbook_verbosity(self=self),
+                        extra_vars=extra_vars,
+                        limit_hosts=",".join(limit_list),
+                        reproduce_command=False,
+                    )
+                # _admin hosts are done now so don't distribute private key
+                extra_vars["distribute_private_key"] = False
+
+        if parsed_args.fsid:  # if no FSID, then no ceph cluster to disable
+            # Call the playbook to toggle cephadm w/ enable
+            extra_vars = {
+                "tripleo_cephadm_fsid": parsed_args.fsid,
+                "tripleo_cephadm_backend": 'cephadm',
+                "tripleo_cephadm_action": 'enable'
+            }
+            with oooutils.TempDirs() as tmp:
+                oooutils.run_ansible_playbook(
+                    playbook='disable_cephadm.yml',
+                    inventory=inventory,
+                    workdir=tmp,
+                    playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                    verbosity=oooutils.playbook_verbosity(self=self),
+                    extra_vars=extra_vars,
+                    limit_hosts=ceph_hosts['_admin'][0],
+                    reproduce_command=False,
+                )

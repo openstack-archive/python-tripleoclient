@@ -2574,3 +2574,140 @@ class TestGetCephNetworks(TestCase):
             net_name = utils.get_ceph_networks(cfgfile.name,
                                                'storage', 'storage_mgmt')
         self.assertEqual(expected, net_name)
+
+
+class TestGetHostsFromCephSpec(TestCase):
+
+    specs = []
+    specs.append(yaml.safe_load('''
+    addr: 192.168.24.13
+    hostname: ceph-0
+    labels:
+    - _admin
+    - mon
+    - mgr
+    service_type: host
+    '''))
+
+    specs.append(yaml.safe_load('''
+    addr: 192.168.24.20
+    hostname: ceph-1
+    labels:
+    - _admin
+    - mon
+    - mgr
+    service_type: host
+    '''))
+
+    specs.append(yaml.safe_load('''
+    addr: 192.168.24.16
+    hostname: ceph-2
+    labels:
+    - _admin
+    - mon
+    - mgr
+    service_type: host
+    '''))
+
+    specs.append(yaml.safe_load('''
+    addr: 192.168.24.14
+    hostname: ceph-3
+    labels:
+    - osd
+    service_type: host
+    '''))
+
+    specs.append(yaml.safe_load('''
+    addr: 192.168.24.21
+    hostname: ceph-4
+    labels:
+    - osd
+    service_type: host
+    '''))
+
+    specs.append(yaml.safe_load('''
+    addr: 192.168.24.17
+    hostname: ceph-5
+    labels:
+    - osd
+    service_type: host
+    '''))
+
+    specs.append(yaml.safe_load('''
+    placement:
+      hosts:
+      - ceph-0
+      - ceph-1
+      - ceph-2
+    service_id: mon
+    service_name: mon
+    service_type: mon
+    '''))
+
+    specs.append(yaml.safe_load('''
+    placement:
+      hosts:
+      - ceph-0
+      - ceph-1
+      - ceph-2
+    service_id: mgr
+    service_name: mgr
+    service_type: mgr
+    '''))
+
+    specs.append(yaml.safe_load('''
+    data_devices:
+      all: true
+    placement:
+      hosts:
+      - ceph-3
+      - ceph-4
+      - ceph-5
+    service_id: default_drive_group
+    service_name: osd.default_drive_group
+    service_type: osd
+    '''))
+
+    def test_get_hosts_from_ceph_spec(self):
+        expected = {'ceph__admin': ['ceph-0', 'ceph-1', 'ceph-2'],
+                    'ceph_mon': ['ceph-0', 'ceph-1', 'ceph-2'],
+                    'ceph_mgr': ['ceph-0', 'ceph-1', 'ceph-2'],
+                    'ceph_osd': ['ceph-3', 'ceph-4', 'ceph-5'],
+                    'ceph_non_admin': ['ceph-3', 'ceph-4', 'ceph-5']}
+
+        cfgfile = tempfile.NamedTemporaryFile()
+        for spec in self.specs:
+            with open(cfgfile.name, 'a') as f:
+                f.write('---\n')
+                f.write(yaml.safe_dump(spec))
+        hosts = utils.get_host_groups_from_ceph_spec(cfgfile.name,
+                                                     prefix='ceph_')
+        cfgfile.close()
+
+        self.assertEqual(expected, hosts)
+
+    def test_get_addr_from_ceph_spec(self):
+        expected = {'_admin': ['192.168.24.13',
+                               '192.168.24.20',
+                               '192.168.24.16'],
+                    'mon': ['192.168.24.13',
+                            '192.168.24.20',
+                            '192.168.24.16'],
+                    'mgr': ['192.168.24.13',
+                            '192.168.24.20',
+                            '192.168.24.16'],
+                    'osd': ['192.168.24.14',
+                            '192.168.24.21',
+                            '192.168.24.17']}
+
+        cfgfile = tempfile.NamedTemporaryFile()
+        for spec in self.specs:
+            with open(cfgfile.name, 'a') as f:
+                f.write('---\n')
+                f.write(yaml.safe_dump(spec))
+        hosts = utils.get_host_groups_from_ceph_spec(cfgfile.name,
+                                                     key='addr',
+                                                     get_non_admin=False)
+        cfgfile.close()
+
+        self.assertEqual(expected, hosts)

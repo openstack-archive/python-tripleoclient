@@ -3318,3 +3318,37 @@ def write_ephemeral_heat_clouds_yaml(heat_dir):
     heatrc_path = os.path.join(heat_dir, 'heatrc')
     with open(heatrc_path, 'w') as f:
         f.write(heatrc)
+
+
+def get_host_groups_from_ceph_spec(ceph_spec_path, prefix='',
+                                   key='hostname', get_non_admin=True):
+    """Get hosts per group based on labels in ceph_spec_path file
+    :param ceph_spec_path: the path to a ceph_spec.yaml file
+    :param (prefix) append a prefix of the group, e.g. 'ceph_'
+    :param (key) can be set to 'addr' to retrun IP, defaults to 'hostname'
+    :param (get_non_admin), get hosts without _admin label, defaults to True
+    :return: dict mapping each label to a hosts list
+    """
+    hosts = {}
+    if get_non_admin:
+        non_admin_key = prefix + 'non_admin'
+        hosts[non_admin_key] = []
+
+    with open(ceph_spec_path, 'r') as stream:
+        try:
+            for spec in yaml.safe_load_all(stream):
+                if spec.get('service_type', None) == 'host' and \
+                   'labels' in spec.keys():
+                    for label in spec['labels']:
+                        group_key = prefix + label
+                        if group_key not in hosts.keys():
+                            hosts[group_key] = []
+                        hosts[group_key].append(spec[key])
+                        if get_non_admin and \
+                           '_admin' not in spec['labels']:
+                            hosts[non_admin_key].append(spec[key])
+        except yaml.YAMLError as exc:
+            raise RuntimeError(
+                "yaml.safe_load_all(%s) returned '%s'" % (ceph_spec_path, exc))
+
+    return hosts
