@@ -3002,6 +3002,9 @@ def run_role_playbooks(self, working_dir, roles_file_dir, roles,
 
     # Pre-Network Config
     for role in roles:
+        if role.get('count', 1) == 0:
+            continue
+
         role_playbooks = []
 
         for x in role.get('ansible_playbooks', []):
