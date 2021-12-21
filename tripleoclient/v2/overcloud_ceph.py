@@ -146,6 +146,14 @@ class OvercloudCephDeploy(command.Command):
                                 "used for the Ceph cluster_network. "
                                 "Defaults to 'storage_mgmt'."),
                             default='storage_mgmt')
+        parser.add_argument('--mon-ip',
+                            help=_(
+                                "IP address of the first Ceph monitor. "
+                                "If not set, an IP from the Ceph "
+                                "public_network of a server with the "
+                                "mon label from the Ceph spec is used. "
+                                "IP must already be active on server."),
+                            default='')
         parser.add_argument('--config',
                             help=_(
                                 "Path to an existing ceph.conf with settings "
@@ -300,6 +308,15 @@ class OvercloudCephDeploy(command.Command):
                                        parsed_args.public_network_name,
                                        parsed_args.cluster_network_name)
         extra_vars = {**extra_vars, **ceph_networks_map}
+
+        if parsed_args.mon_ip:
+            if not oooutils.is_valid_ip(parsed_args.mon_ip):
+                raise oscexc.CommandError(
+                    "Invalid IP address '%s' passed to --mon-ip."
+                    % parsed_args.mon_ip)
+            else:
+                extra_vars['tripleo_cephadm_first_mon_ip'] = \
+                    parsed_args.mon_ip
 
         if parsed_args.ceph_spec:
             if not os.path.exists(parsed_args.ceph_spec):
