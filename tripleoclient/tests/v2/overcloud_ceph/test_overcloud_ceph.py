@@ -74,12 +74,65 @@ class TestOvercloudCephDeploy(fakes.FakePlaybookExecution):
             }
         )
 
+    @mock.patch('tripleoclient.utils.get_ceph_networks', autospect=True)
+    @mock.patch('tripleoclient.utils.TempDirs', autospect=True)
+    @mock.patch('os.path.abspath', autospect=True)
+    @mock.patch('os.path.exists', autospect=True)
+    @mock.patch('tripleoclient.utils.run_ansible_playbook', autospec=True)
+    def test_deploy_ceph_spec(self, mock_playbook, mock_abspath,
+                              mock_path_exists, mock_tempdirs,
+                              mock_get_ceph_networks):
+        arglist = ['--yes',
+                   '--stack', 'overcloud',
+                   '--skip-user-create',
+                   '--mon-ip', '127.0.0.1',
+                   '--ceph-spec', 'ceph_spec.yaml',
+                   '--cephadm-ssh-user', 'jimmy',
+                   '--output', 'deployed-ceph.yaml',
+                   '--container-namespace', 'quay.io/ceph',
+                   '--container-image', 'ceph',
+                   '--container-tag', 'latest']
+        parsed_args = self.check_parser(self.cmd, arglist, [])
+        self.cmd.take_action(parsed_args)
+        mock_playbook.assert_called_once_with(
+            playbook='cli-deployed-ceph.yaml',
+            inventory=mock.ANY,
+            workdir=mock.ANY,
+            playbook_dir=mock.ANY,
+            verbosity=3,
+            skip_tags='cephadm_ssh_user',
+            reproduce_command=False,
+            extra_vars={
+                "deployed_ceph_tht_path": mock.ANY,
+                "working_dir": mock.ANY,
+                "stack_name": 'overcloud',
+                'tripleo_roles_path': mock.ANY,
+                'tripleo_cephadm_first_mon_ip': '127.0.0.1',
+                'dynamic_ceph_spec': False,
+                'ceph_spec_path': mock.ANY,
+                'tripleo_cephadm_container_ns': 'quay.io/ceph',
+                'tripleo_cephadm_container_image': 'ceph',
+                'tripleo_cephadm_container_tag': 'latest',
+                'tripleo_cephadm_ssh_user': 'jimmy',
+            }
+        )
+
     @mock.patch('os.path.abspath', autospect=True)
     @mock.patch('os.path.exists', autospect=True)
     def test_overcloud_deploy_ceph_no_overwrite(self, mock_abspath,
                                                 mock_path_exists):
         arglist = ['deployed-metal.yaml',
                    '--stack', 'overcloud',
+                   '--output', 'deployed-ceph.yaml']
+        parsed_args = self.check_parser(self.cmd, arglist, [])
+        self.assertRaises(osc_lib_exc.CommandError,
+                          self.cmd.take_action, parsed_args)
+
+    @mock.patch('os.path.abspath', autospect=True)
+    @mock.patch('os.path.exists', autospect=True)
+    def test_overcloud_deploy_ceph_no_metal(self, mock_abspath,
+                                            mock_path_exists):
+        arglist = ['--stack', 'overcloud',
                    '--output', 'deployed-ceph.yaml']
         parsed_args = self.check_parser(self.cmd, arglist, [])
         self.assertRaises(osc_lib_exc.CommandError,
