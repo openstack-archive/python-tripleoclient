@@ -1,0 +1,14 @@
+---
+features:
+  - |
+    New command "openstack overcloud ceph spec" has been added. This command
+    may be used to create a cephadm spec file as a function of the output of
+    metalsmith and a TripleO roles file. For example, if metalsmith output a
+    file with multiple hosts of differing roles and each role contained various
+    Ceph services, then a cephadm spec file could parse these files and return
+    input compatible with cephadm. The ceph spec file may be then be passed to
+    "openstack overcloud ceph deploy" so that cephadm deploys only those Ceph
+    services on those hosts. This feature should save users from the need to
+    create two different files containing much of the same data and make it
+    easier and less error prone to include Ceph in a deployment without the
+    need to manually create the Ceph spec file.
