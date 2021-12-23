@@ -403,6 +403,8 @@ class TestRunRolePlaybooks(TestCase):
     @mock.patch('tripleoclient.utils.run_ansible_playbook')
     def test_role_playbooks(self, mock_run):
         roles = [
+            # No playbooks should execute for the role if count is 0.
+            {'count': 0, 'name': 'ZeroNodesRole'},
             {'count': 10, 'name': 'Compute'},
             {
                 'count': 3,
