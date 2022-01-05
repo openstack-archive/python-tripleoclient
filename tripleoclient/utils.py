@@ -3246,7 +3246,7 @@ def get_ceph_networks(network_data_path,
         if ip_subnet in net:
             return net[ip_subnet]
         if 'subnets' in net:
-            ip_subnets = list(map(lambda x: x.get(ip_subnet),
+            ip_subnets = list(map(lambda x: x.get(ip_subnet, ''),
                                   net['subnets'].values()))
             return ','.join(ip_subnets)
 
@@ -3274,9 +3274,11 @@ def get_ceph_networks(network_data_path,
                     if not subnet:
                         error = ("While searching %s, %s matched %s "
                                  "but that network did not have a %s "
-                                 "value set."
+                                 "value set. To use an ipv6_subnet add "
+                                 "key 'ipv6: true' to %s in %s."
                                  % (network_data_path, search_tag,
-                                    net_value, ip_subnet))
+                                    net_value, ip_subnet, net_value,
+                                    network_data_path))
                         raise RuntimeError(error)
                     else:
                         subnet_key = net_name.replace('_name', '')
