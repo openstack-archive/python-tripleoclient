@@ -161,6 +161,7 @@ class TestValidator(base.TestCase):
             'TripleOValidatorGroupInfo',
             'TripleOValidatorShowParameter',
             'TripleOValidatorRun',
+            'TripleOValidatorCommunityInit',
             'TripleOValidatorShowHistory',
             'TripleOValidatorShowRun'
         ])
