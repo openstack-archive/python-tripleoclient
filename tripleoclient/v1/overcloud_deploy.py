@@ -68,7 +68,7 @@ def _update_args_from_answers_file(parsed_args):
         parsed_args.environment_files = answers['environments']
 
 
-def _validate_args(parsed_args, working_dir):
+def _validate_args(parsed_args):
     if parsed_args.templates is None and parsed_args.answers_file is None:
         raise oscexc.CommandError(
             "You must specify either --templates or --answers-file")
@@ -123,15 +123,15 @@ def _validate_args(parsed_args, working_dir):
             "mean {}?".format(' -e '.join(jinja2_envs),
                               ' -e '.join(rewritten_paths)))
 
-    if parsed_args.vip_file:
-        # Check vip_file only used with network data v2
-        networks_file_path = utils.get_networks_file_path(working_dir,
-                                                          parsed_args.stack)
-        if not utils.is_network_data_v2(networks_file_path):
-            raise oscexc.CommandError(
-                'The --vip-file option can only be used in combination with a '
-                'network data v2 format networks file. The provided file {} '
-                'is network data v1 format'.format(networks_file_path))
+
+def _validate_vip_file(stack, working_dir):
+    # Check vip_file only used with network data v2
+    networks_file_path = utils.get_networks_file_path(working_dir, stack)
+    if not utils.is_network_data_v2(networks_file_path):
+        raise oscexc.CommandError(
+            'The --vip-file option can only be used in combination with a '
+            'network data v2 format networks file. The provided file {} '
+            'is network data v1 format'.format(networks_file_path))
 
 
 class DeployOvercloud(command.Command):
@@ -1080,18 +1080,21 @@ class DeployOvercloud(command.Command):
 
         _update_args_from_answers_file(parsed_args)
 
+        _validate_args(parsed_args)
+
         # Make a copy of the files provided on command line in the working dir
         # If the command is re-run without providing the argument the "backup"
         # from the previous run in the working dir is used.
         utils.update_working_dir_defaults(self.working_dir, parsed_args)
+
+        if parsed_args.vip_file:
+            _validate_vip_file(parsed_args.stack, self.working_dir)
 
         # Throw warning if deprecated service is enabled and
         # ask user if deployment should still be continued.
         if parsed_args.environment_files:
             utils.check_deprecated_service_is_enabled(
                 parsed_args.environment_files)
-
-        _validate_args(parsed_args, self.working_dir)
 
         if parsed_args.dry_run:
             self.log.info("Validation Finished")
