@@ -25,6 +25,7 @@ import openstack
 
 from osc_lib import exceptions as oscexc
 from osc_lib.tests import utils as test_utils
+from oslo_utils import units
 import yaml
 
 from tripleoclient import exceptions
@@ -697,6 +698,14 @@ class TestImportNodeMultiArch(fakes.TestOvercloudNode):
         self._check_workflow_call(parsed_args, no_deploy_image=True)
 
 
+@mock.patch.object(openstack.baremetal.v1._proxy, 'Proxy',
+                   autospec=True, name='mock_bm')
+@mock.patch('openstack.config', autospec=True,
+            name='mock_conf')
+@mock.patch('openstack.connect', autospec=True,
+            name='mock_connect')
+@mock.patch.object(openstack.connection,
+                   'Connection', autospec=True)
 class TestConfigureNode(fakes.TestOvercloudNode):
 
     def setUp(self):
@@ -714,26 +723,62 @@ class TestConfigureNode(fakes.TestOvercloudNode):
             'root_device_minimum_size': 4,
             'overwrite_root_device_hints': False
         }
+        # Mock disks
+        self.disks = [
+            {'name': '/dev/sda', 'size': 11 * units.Gi},
+            {'name': '/dev/sdb', 'size': 2 * units.Gi},
+            {'name': '/dev/sdc', 'size': 5 * units.Gi},
+            {'name': '/dev/sdd', 'size': 21 * units.Gi},
+            {'name': '/dev/sde', 'size': 13 * units.Gi},
+        ]
 
-    def test_configure_all_manageable_nodes(self):
+        for i, disk in enumerate(self.disks):
+            disk['wwn'] = 'wwn%d' % i
+            disk['serial'] = 'serial%d' % i
+
+        self.fake_baremetal_node = fakes.make_fake_machine(
+            machine_name='node1',
+            machine_id='4e540e11-1366-4b57-85d5-319d168d98a1'
+        )
+        self.fake_baremetal_node2 = fakes.make_fake_machine(
+            machine_name='node2',
+            machine_id='9070e42d-1ad7-4bd0-b868-5418bc9c7176'
+        )
+
+    def test_configure_all_manageable_nodes(self, mock_conn,
+                                            mock_connect, mock_conf,
+                                            mock_bm):
+        mock_conn.return_value = mock_bm
+        mock_bm.baremetal = mock_bm
+        mock_bm.baremetal.nodes.side_effect = [
+            iter([self.fake_baremetal_node]),
+            iter([self.fake_baremetal_node])]
         parsed_args = self.check_parser(self.cmd,
                                         ['--all-manageable'],
                                         [('all_manageable', True)])
         self.cmd.take_action(parsed_args)
 
-    def test_configure_specified_nodes(self):
+    def test_configure_specified_nodes(self, mock_conn,
+                                       mock_connect, mock_conf,
+                                       mock_bm):
+        mock_conn.return_value = mock_bm
+        mock_bm.baremetal = mock_bm
         argslist = ['node_uuid1', 'node_uuid2']
         verifylist = [('node_uuids', ['node_uuid1', 'node_uuid2'])]
 
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
         self.cmd.take_action(parsed_args)
 
-    def test_configure_no_node_or_flag_specified(self):
+    def test_configure_no_node_or_flag_specified(self, mock_conn,
+                                                 mock_connect, mock_conf,
+                                                 mock_bm):
         self.assertRaises(test_utils.ParserException,
                           self.check_parser,
                           self.cmd, [], [])
 
-    def test_configure_uuids_and_all_both_specified(self):
+    def test_configure_uuids_and_all_both_specified(self, mock_conn,
+                                                    mock_connect, mock_conf,
+                                                    mock_bm):
         argslist = ['node_id1', 'node_id2', '--all-manageable']
         verifylist = [('node_uuids', ['node_id1', 'node_id2']),
                       ('all_manageable', True)]
@@ -741,7 +786,23 @@ class TestConfigureNode(fakes.TestOvercloudNode):
                           self.check_parser,
                           self.cmd, argslist, verifylist)
 
-    def test_configure_kernel_and_ram(self):
+    def test_configure_kernel_and_ram(self, mock_conn,
+                                      mock_connect, mock_conf,
+                                      mock_bm):
+        mock_conn.return_value = mock_bm
+        mock_bm.baremetal = mock_bm
+        mock_bm.baremetal_introspection = mock_bm
+
+        introspector_client = mock_bm.baremetal_introspection
+        introspector_client.get_introspection_data = mock_bm
+        introspector_client.get_introspection_data.return_value = {
+            'inventory': {'disks': self.disks}
+        }
+
+        mock_bm.baremetal.nodes.side_effect = [
+            iter([self.fake_baremetal_node]),
+            iter([self.fake_baremetal_node])]
+
         argslist = ['--all-manageable', '--deploy-ramdisk', 'test_ramdisk',
                     '--deploy-kernel', 'test_kernel']
         verifylist = [('deploy_kernel', 'test_kernel'),
@@ -750,14 +811,35 @@ class TestConfigureNode(fakes.TestOvercloudNode):
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
         self.cmd.take_action(parsed_args)
 
-    def test_configure_instance_boot_option(self):
+    def test_configure_instance_boot_option(self, mock_conn,
+                                            mock_connect, mock_conf,
+                                            mock_bm):
+        mock_conn.return_value = mock_bm
+        mock_bm.baremetal = mock_bm
+        mock_bm.baremetal.nodes.side_effect = [
+            iter([self.fake_baremetal_node]),
+            iter([self.fake_baremetal_node])]
         argslist = ['--all-manageable', '--instance-boot-option', 'netboot']
         verifylist = [('instance_boot_option', 'netboot')]
 
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
         self.cmd.take_action(parsed_args)
 
-    def test_configure_root_device(self):
+    def test_configure_root_device(self, mock_conn,
+                                   mock_connect, mock_conf,
+                                   mock_bm):
+        mock_conn.return_value = mock_bm
+        mock_bm.baremetal = mock_bm
+        mock_bm.baremetal_introspection = mock_bm
+
+        introspector_client = mock_bm.baremetal_introspection
+        introspector_client.get_introspection_data = mock_bm
+        introspector_client.get_introspection_data.return_value = {
+            'inventory': {'disks': self.disks}
+        }
+        mock_bm.baremetal.nodes.side_effect = [
+            iter([self.fake_baremetal_node]),
+            iter([self.fake_baremetal_node])]
         argslist = ['--all-manageable',
                     '--root-device', 'smallest',
                     '--root-device-minimum-size', '2',
@@ -772,7 +854,23 @@ class TestConfigureNode(fakes.TestOvercloudNode):
     @mock.patch('tripleoclient.workflows.baremetal.'
                 '_apply_root_device_strategy')
     def test_configure_specified_node_with_all_arguments(
-            self, mock_root_device):
+            self, mock_root_device, mock_conn,
+            mock_connect, mock_conf,
+            mock_bm):
+        mock_conn.return_value = mock_bm
+        mock_bm.baremetal = mock_bm
+        mock_bm.baremetal_introspection = mock_bm
+
+        introspector_client = mock_bm.baremetal_introspection
+        introspector_client.get_introspection_data = mock_bm
+        introspector_client.get_introspection_data.return_value = {
+            'inventory': {'disks': self.disks}
+        }
+
+        mock_bm.baremetal.nodes.side_effect = [
+            iter([self.fake_baremetal_node]),
+            iter([self.fake_baremetal_node])]
+
         argslist = ['node_id',
                     '--deploy-kernel', 'test_kernel',
                     '--deploy-ramdisk', 'test_ramdisk',
