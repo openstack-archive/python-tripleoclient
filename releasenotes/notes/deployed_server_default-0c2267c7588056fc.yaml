@@ -1,0 +1,7 @@
+---
+deprecations:
+  - Ephemeral heat is now used as default for overcloud deployment
+    and assumes the nodes are pre-provisioned using metalsmith. Deprecates
+    existing ``--deployed-server`` option and adds an additional option
+    ``--provision-nodes`` for using installed heat and provisioning
+    nodes with heat.
