@@ -12,6 +12,7 @@
 #   License for the specific language governing permissions and limitations
 #   under the License.
 #
+import uuid
 
 from unittest import mock
 
@@ -35,3 +36,12 @@ class TestOvercloudNode(fakes.FakePlaybookExecution):
         )
         self.mock_playbook.start()
         self.addCleanup(self.mock_playbook.stop)
+
+
+def make_fake_machine(machine_name, provision_state='manageable',
+                      is_maintenance=False, machine_id=None):
+    if not machine_id:
+        machine_id = uuid.uuid4().hex
+    return(fakes.FakeMachine(id=machine_id, name=machine_name,
+                             provision_state=provision_state,
+                             is_maintenance=is_maintenance))

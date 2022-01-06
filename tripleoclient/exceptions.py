@@ -143,3 +143,10 @@ class HeatPodMessageQueueException(Base):
 
 class InvalidPlaybook(Base):
     """Invalid playbook path specified"""
+
+
+class NoNodeFound(Base):
+    """No nodes matching specifications found"""
+    def __init__(self):
+        message = "No nodes matching specifications could be found. "
+        super(NoNodeFound, self).__init__(message)

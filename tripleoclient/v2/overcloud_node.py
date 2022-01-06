@@ -38,6 +38,7 @@ from tripleoclient.v1.overcloud_node import ConfigureNode  # noqa
 from tripleoclient.v1.overcloud_node import DeleteNode  # noqa
 from tripleoclient.v1.overcloud_node import DiscoverNode  # noqa
 from tripleoclient.v1.overcloud_node import ProvideNode  # noqa
+from tripleoclient.workflows import tripleo_baremetal as tb
 
 
 class ImportNode(command.Command):
@@ -87,6 +88,9 @@ class ImportNode(command.Command):
                             default=20,
                             help=_('Maximum number of nodes to introspect at '
                                    'once.'))
+        parser.add_argument('--verbosity', type=int,
+                            default=1,
+                            help=_('Print debug logs during execution'))
         parser.add_argument('env_file', type=argparse.FileType('r'))
         return parser
 
@@ -132,10 +136,8 @@ class ImportNode(command.Command):
                 )
 
         if parsed_args.provide:
-            baremetal.provide(
-                verbosity=oooutils.playbook_verbosity(self=self),
-                node_uuids=nodes_uuids
-            )
+            provide = tb.TripleoProvide(verbosity=parsed_args.verbosity)
+            provide.provide(nodes=nodes_uuids)
 
 
 class IntrospectNode(command.Command):
@@ -179,6 +181,9 @@ class IntrospectNode(command.Command):
                             default=120,
                             help=_('Maximum timeout between introspection'
                                    'retries'))
+        parser.add_argument('--verbosity', type=int,
+                            default=1,
+                            help=_('Print debug logs during execution'))
         return parser
 
     def take_action(self, parsed_args):
@@ -209,16 +214,13 @@ class IntrospectNode(command.Command):
         # NOTE(cloudnull): This is using the old provide function, in a future
         #                  release this may be ported to a standalone playbook
         if parsed_args.provide:
+            provide = tb.TripleoProvide(verbosity=parsed_args.verbosity)
             if parsed_args.node_uuids:
-                baremetal.provide(
-                    node_uuids=parsed_args.node_uuids,
-                    verbosity=oooutils.playbook_verbosity(self=self)
+                provide.provide(
+                    nodes=parsed_args.node_uuids,
                 )
             else:
-                baremetal.provide_manageable_nodes(
-                    clients=self.app.client_manager,
-                    verbosity=oooutils.playbook_verbosity(self=self)
-                )
+                provide.provide_manageable_nodes()
 
 
 class ProvisionNode(command.Command):
