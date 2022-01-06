@@ -114,14 +114,6 @@ class TestBaremetalWorkflows(fakes.FakePlaybookExecution):
     def test_configure_manageable_nodes_success(self):
         baremetal.configure_manageable_nodes(self.app.client_manager)
 
-    def test_clean_nodes_success(self):
-        baremetal.clean_nodes(node_uuids=[])
-
-    def test_clean_manageable_nodes_success(self):
-        baremetal.clean_manageable_nodes(
-            self.app.client_manager
-        )
-
     def test_run_instance_boot_option(self):
         result = baremetal._configure_boot(
             self.app.client_manager,

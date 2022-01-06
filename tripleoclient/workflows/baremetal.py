@@ -629,50 +629,6 @@ def discover_and_enroll(clients, ip_addresses, credentials, kernel_name,
     )
 
 
-def clean_nodes(node_uuids, verbosity=0):
-    """Clean Baremetal Nodes
-
-    :param node_uuids: List of instance UUID(s).
-    :type node_uuids: List
-
-    :param verbosity: Verbosity level
-    :type verbosity: Integer
-    """
-
-    with utils.TempDirs() as tmp:
-        utils.run_ansible_playbook(
-            playbook='cli-baremetal-clean.yaml',
-            inventory='localhost,',
-            workdir=tmp,
-            playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
-            verbosity=verbosity,
-            extra_vars={
-                'node_uuids': node_uuids
-            }
-        )
-
-    print('Successfully cleaned nodes: {}'.format(node_uuids))
-
-
-def clean_manageable_nodes(clients, verbosity=0):
-    """Clean all manageable Nodes
-
-    :param clients: application client object.
-    :type clients: Object
-
-    :param verbosity: Verbosity level
-    :type verbosity: Integer
-    """
-
-    clean_nodes(
-        node_uuids=[
-            i.uuid for i in clients.baremetal.node.list()
-            if i.provision_state == "manageable" and not i.maintenance
-        ],
-        verbosity=verbosity
-    )
-
-
 def apply_bios_configuration(node_uuids, configuration, verbosity=0):
     """Apply BIOS settings on nodes.
 
