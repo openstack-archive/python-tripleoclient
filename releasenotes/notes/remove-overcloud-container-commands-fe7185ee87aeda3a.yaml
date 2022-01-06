@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    Removed `overcloud container image upload`, `overcloud container image build`,
+    `overcloud container image prepare` and `overcloud container image tag`
+    commands as the `tripleo container` command replaced those in Train and
+    they no longer work.
