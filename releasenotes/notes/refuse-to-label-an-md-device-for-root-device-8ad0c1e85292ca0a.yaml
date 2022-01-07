@@ -1,0 +1,13 @@
+---
+fixes:
+  - |
+    Fixes incorrect handling of root device hints when Software RAID is in
+    use with Ironic. Users may re-introspect and an automatic root device hint
+    would be added, which is incorrect and can lead to a failed deployment
+    due to Software RAID (MD) device names being inconsistent across reboot
+    from being configured to utilized. Ironic ultimately understands these
+    devices and should choose the correct device by default if present.
+    We now log an Warning and do not insert a potentially incorrect root
+    device hint. Operators using a complex set of disks may still need to
+    explicitly set a root device hint should their operational state require
+    it.

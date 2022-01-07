@@ -319,7 +319,29 @@ def _apply_root_device_strategy(clients, node_uuid, strategy,
         raise exceptions.RootDeviceDetectionError(
             'No suitable disks found for node %s' % node.uuid)
 
+    for disk in disks:
+        # NOTE(TheJulia): An md device should not explicitly forced,
+        # If software raid, Ironic knows exactly what it is doing.
+        if 'md' in disk['name']:
+            LOG.warning('A "md" device %(md)s, signifying software RAID, '
+                        'has been detected. If software raid is in '
+                        'use, this should not necessarilly need to '
+                        'be set or used if software raid is being '
+                        'managed by Ironic, unless the operator knows'
+                        'better due to site configuration. '
+                        'Unfortunately, we cannot guess a '
+                        'root deivce hint when Ironic managing a '
+                        'software raid device. If this is in error '
+                        'please set an explicit root device hint using '
+                        '$ openstack baremetal node set --property '
+                        'root_device=/dev/<DEVICE>',
+                        {'md': disk['name']})
+            return
+
     if strategy == 'smallest':
+        # NOTE(TheJulia): This is redundant, Ironic does this by default,
+        # and maintains a list of invalid devices which would show up in a
+        # the introspetion data which cannot be used. Such as flash cards.
         disks.sort(key=lambda d: d['size'])
         root_device = disks[0]
     elif strategy == 'largest':
@@ -360,6 +382,9 @@ def _apply_root_device_strategy(clients, node_uuid, strategy,
     # This -1 is what we always do to account for partitioning
     new_size -= 1
 
+    # NOTE(TheJulia): local_gb is only used for partition images,
+    # and is ignored with Whole Disk Images. With movement to Whole
+    # Disk images, this is tech debt and should be removed at some point.
     baremetal_client.node.update(
         node.uuid,
         [{'op': 'add', 'path': '/properties/root_device', 'value': hint},
