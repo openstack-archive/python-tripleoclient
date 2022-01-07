@@ -1434,8 +1434,8 @@ def assign_and_verify_profiles(bm_client, flavors,
                 scale - required_count, scale, profile, flavor_name
             )
             log.error(
-                "Recommendation: tag more nodes using ironic node-update "
-                "<NODE ID> replace properties/capabilities=profile:%s,",
+                "Recommendation: tag more nodes using $ openstack baremetal "
+                "node set --properties capabilities=profile:%s, <NODE ID>",
                 profile)
             predeploy_errors += 1
 

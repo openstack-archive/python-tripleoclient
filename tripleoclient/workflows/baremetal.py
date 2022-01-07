@@ -288,8 +288,8 @@ def _apply_root_device_strategy(clients, node_uuid, strategy,
         LOG.warning('Root device hints are already set for node %s '
                     'and overwriting is not requested, skipping',
                     node.uuid)
-        LOG.warning('You may unset them by running $ ironic '
-                    'node-update %s remove properties/root_device',
+        LOG.warning('You may unset them by running $ openstack baremetal node '
+                    'unset --properties root_device %s',
                     node.uuid)
         return
 
