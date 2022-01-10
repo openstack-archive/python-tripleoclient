@@ -75,11 +75,13 @@ class OvercloudCephDeploy(command.Command):
     def get_parser(self, prog_name):
         parser = super(OvercloudCephDeploy, self).get_parser(prog_name)
 
-        parser.add_argument('baremetal_env',
+        parser.add_argument('baremetal_env', nargs='?',
                             metavar='<deployed_baremetal.yaml>',
                             help=_('Path to the environment file '
                                    'output from "openstack '
-                                   'overcloud node provision".'))
+                                   'overcloud node provision". '
+                                   'This argument may be excluded '
+                                   'only if --ceph-spec is used.'))
         parser.add_argument('-o', '--output', required=True,
                             metavar='<deployed_ceph.yaml>',
                             help=_('The path to the output environment '
@@ -162,10 +164,12 @@ class OvercloudCephDeploy(command.Command):
         spec_group = parser.add_mutually_exclusive_group()
         spec_group.add_argument('--ceph-spec',
                                 help=_(
-                                    "Path to an existing Ceph spec file. "
-                                    "If not provided a spec will be generated "
+                                    "Path to an existing Ceph spec file. If "
+                                    "not provided a spec will be generated "
                                     "automatically based on --roles-data and "
-                                    "<deployed_baremetal.yaml>"),
+                                    "<deployed_baremetal.yaml>. The "
+                                    "<deployed_baremetal.yaml> parameter is "
+                                    "optional only if --ceph-spec is used."),
                                 default=None)
         spec_group.add_argument('--osd-spec',
                                 help=_(
@@ -235,14 +239,7 @@ class OvercloudCephDeploy(command.Command):
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
 
-        baremetal_env_path = os.path.abspath(parsed_args.baremetal_env)
         output_path = os.path.abspath(parsed_args.output)
-
-        if not os.path.exists(baremetal_env_path):
-            raise oscexc.CommandError(
-                "Baremetal environment file does not exist:"
-                " %s" % parsed_args.baremetal_env)
-
         overwrite = parsed_args.yes
         if (os.path.exists(output_path) and not overwrite
                 and not oooutils.prompt_user_for_confirmation(
@@ -273,12 +270,27 @@ class OvercloudCephDeploy(command.Command):
 
         # mandatory extra_vars are now set, add others conditionally
         extra_vars = {
-            "baremetal_deployed_path": baremetal_env_path,
             "deployed_ceph_tht_path": output_path,
             "working_dir": working_dir,
             "stack_name": parsed_args.stack,
         }
         # optional paths to pass to playbook
+        if parsed_args.ceph_spec is None and \
+           parsed_args.baremetal_env is None:
+            raise oscexc.CommandError(
+                "Either <deployed_baremetal.yaml> "
+                "or --ceph-spec must be used.")
+
+        if parsed_args.baremetal_env:
+            baremetal_env_path = os.path.abspath(parsed_args.baremetal_env)
+            if not os.path.exists(baremetal_env_path):
+                raise oscexc.CommandError(
+                    "Baremetal environment file does not exist:"
+                    " %s" % parsed_args.baremetal_env)
+            else:
+                extra_vars['baremetal_deployed_path'] = \
+                    os.path.abspath(parsed_args.baremetal_env)
+
         if parsed_args.roles_data:
             if not os.path.exists(parsed_args.roles_data):
                 raise oscexc.CommandError(
