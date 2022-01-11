@@ -12,6 +12,7 @@
 
 import copy
 import getpass
+import git
 import os
 import shutil
 import yaml
@@ -20,7 +21,6 @@ from heatclient.common import event_utils
 from openstackclient import shell
 from tripleo_common.utils import heat as tc_heat_utils
 from tripleo_common.utils import overcloudrc as rc_utils
-from tripleo_common.utils.safe_import import git
 
 from tripleoclient.constants import ANSIBLE_TRIPLEO_PLAYBOOKS
 from tripleoclient.constants import CLOUD_HOME_DIR
