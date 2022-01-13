@@ -579,15 +579,14 @@ class ExtractProvisionedNode(command.Command):
                 role_name + 'NetworkConfigTemplate')
 
             if parameters.get(role_name + 'NetworkDeploymentActions'):
-                net_conf['network_deployment_actions'] = parameters.get(
+                network_deployment_actions = parameters.get(
                     role_name + 'NetworkDeploymentActions')
             else:
-                net_conf['network_deployment_actions'] = parameters.get(
+                network_deployment_actions = parameters.get(
                     'NetworkDeploymentActions', ['CREATE'])
 
-            if isinstance(net_conf['network_deployment_actions'], str):
-                net_conf['network_deployment_actions'] = net_conf[
-                    'network_deployment_actions'].split(',')
+            net_conf['network_config_update'] = (
+                    'UPDATE' in network_deployment_actions)
 
             # The NetConfigDataLookup parameter is of type: json, but when
             # not set it returns as string '{}'
