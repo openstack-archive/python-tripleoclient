@@ -3061,7 +3061,12 @@ def check_prohibited_overrides(protected_overrides, user_environments):
     for env_path, abs_env_path in user_environments:
         with open(env_path, 'r') as file:
             data = yaml.safe_load(file.read())
-        registry = set(data.get('resource_registry', {}).keys())
+
+        _resource_registry = data.get('resource_registry')
+        if isinstance(_resource_registry, dict):
+            registry = set(_resource_registry.keys())
+        else:
+            registry = set()
 
         conflicts = set(protected_registry.keys()).intersection(registry)
         if not conflicts:
