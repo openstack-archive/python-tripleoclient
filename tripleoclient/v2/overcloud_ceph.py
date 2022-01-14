@@ -189,6 +189,11 @@ class OvercloudCephDeploy(command.Command):
                                     "Path to an existing crush hierarchy spec "
                                     "file. "),
                                 default=None)
+        parser.add_argument('--standalone', default=False,
+                            action='store_true',
+                            help=_("Use single host Ansible inventory. "
+                                   "Used only for development or testing "
+                                   "environments."))
         parser.add_argument('--container-image-prepare',
                             help=_(
                                 "Path to an alternative "
@@ -259,8 +264,11 @@ class OvercloudCephDeploy(command.Command):
             working_dir = os.path.abspath(parsed_args.working_dir)
         oooutils.makedirs(working_dir)
 
-        inventory = os.path.join(working_dir,
-                                 constants.TRIPLEO_STATIC_INVENTORY)
+        if parsed_args.standalone:
+            inventory = oooutils.standalone_ceph_inventory(working_dir)
+        else:
+            inventory = os.path.join(working_dir,
+                                     constants.TRIPLEO_STATIC_INVENTORY)
         if not os.path.exists(inventory):
             raise oscexc.CommandError(
                 "Inventory file not found in working directory: "
@@ -273,6 +281,7 @@ class OvercloudCephDeploy(command.Command):
             "deployed_ceph_tht_path": output_path,
             "working_dir": working_dir,
             "stack_name": parsed_args.stack,
+            "tripleo_cephadm_standalone": parsed_args.standalone
         }
         # optional paths to pass to playbook
         if parsed_args.ceph_spec is None and \
@@ -459,6 +468,11 @@ class OvercloudCephUserDisable(command.Command):
                               metavar='<FSID>', required=True,
                               help=_("The FSID of the Ceph cluster to be "
                                      "disabled. Required for disable option."))
+        parser.add_argument('--standalone', default=False,
+                            action='store_true',
+                            help=_("Use single host Ansible inventory. "
+                                   "Used only for development or testing "
+                                   "environments."))
 
         return parser
 
@@ -494,8 +508,11 @@ class OvercloudCephUserDisable(command.Command):
             working_dir = os.path.abspath(parsed_args.working_dir)
         oooutils.makedirs(working_dir)
 
-        inventory = os.path.join(working_dir,
-                                 constants.TRIPLEO_STATIC_INVENTORY)
+        if parsed_args.standalone:
+            inventory = oooutils.standalone_ceph_inventory(working_dir)
+        else:
+            inventory = os.path.join(working_dir,
+                                     constants.TRIPLEO_STATIC_INVENTORY)
         if not os.path.exists(inventory):
             raise oscexc.CommandError(
                 "Inventory file not found in working directory: "
@@ -578,6 +595,11 @@ class OvercloudCephUserEnable(command.Command):
                                    "so that cephadm will be re-enabled "
                                    "for the Ceph cluster idenified "
                                    "by the FSID."))
+        parser.add_argument('--standalone', default=False,
+                            action='store_true',
+                            help=_("Use single host Ansible inventory. "
+                                   "Used only for development or testing "
+                                   "environments."))
         parser = arg_parse_common(parser)
 
         return parser
@@ -608,8 +630,11 @@ class OvercloudCephUserEnable(command.Command):
             working_dir = os.path.abspath(parsed_args.working_dir)
         oooutils.makedirs(working_dir)
 
-        inventory = os.path.join(working_dir,
-                                 constants.TRIPLEO_STATIC_INVENTORY)
+        if parsed_args.standalone:
+            inventory = oooutils.standalone_ceph_inventory(working_dir)
+        else:
+            inventory = os.path.join(working_dir,
+                                     constants.TRIPLEO_STATIC_INVENTORY)
         if not os.path.exists(inventory):
             raise oscexc.CommandError(
                 "Inventory file not found in working directory: "
