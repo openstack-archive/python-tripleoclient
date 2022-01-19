@@ -309,6 +309,20 @@ class TestBaremetalWorkflows(fakes.FakePlaybookExecution):
                                strategy='smallest')
         self.assertEqual(self.baremetal.node.update.call_count, 0)
 
+    def test_md_device_found(self):
+        self.inspector.get_data.return_value = {
+            'inventory': {
+                'disks': [{'name': '/dev/md0', 'size': 99 * units.Gi},
+                          {'name': '/dev/sda', 'size': 100 * units.Gi}]
+            }
+        }
+
+        baremetal._apply_root_device_strategy(
+            self.app.client_manager,
+            node_uuid='MOCK_UUID',
+            strategy=None)
+        self.assertEqual(self.baremetal.node.update.call_count, 0)
+
     def test_no_data(self):
         self.inspector.get_data.side_effect = (
             ironic_inspector_client.ClientError(mock.Mock()))
