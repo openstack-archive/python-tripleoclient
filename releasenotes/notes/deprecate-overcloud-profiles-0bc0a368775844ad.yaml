@@ -1,0 +1,8 @@
+---
+deprecations:
+  - |
+    The commands ``openstack overcloud profiles list`` and ``openstack
+    overcloud profiles match`` has been deprecated for removal. Since the
+    Compute service is no longer used on the undercloud, the flavors based
+    scheduling is not used.
+

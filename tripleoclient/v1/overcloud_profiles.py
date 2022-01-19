@@ -20,6 +20,12 @@ from tripleoclient import command
 from tripleoclient import exceptions
 from tripleoclient import utils
 
+DEPRECATION_MSG = '''
+This command has been DEPRECATED and will be removed. The compute service is no
+longer used on the undercloud by default, hence profile matching with compute
+flavors is no longer used.
+'''
+
 
 class MatchProfiles(command.Command):
     """Assign and validate profiles on nodes"""
@@ -28,6 +34,7 @@ class MatchProfiles(command.Command):
 
     def get_parser(self, prog_name):
         parser = super(MatchProfiles, self).get_parser(prog_name)
+        parser.epilog = DEPRECATION_MSG
         parser.add_argument(
             '--dry-run',
             action='store_true',
@@ -39,6 +46,7 @@ class MatchProfiles(command.Command):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+        self.log.warning(DEPRECATION_MSG)
         bm_client = self.app.client_manager.baremetal
 
         flavors = self._collect_flavors(parsed_args)
@@ -92,6 +100,7 @@ class ListProfiles(command.Lister):
 
     def get_parser(self, prog_name):
         parser = super(ListProfiles, self).get_parser(prog_name)
+        parser.epilog = DEPRECATION_MSG
         parser.add_argument(
             '--all',
             action='store_true',
@@ -103,6 +112,7 @@ class ListProfiles(command.Lister):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+        self.log.warning(DEPRECATION_MSG)
         bm_client = self.app.client_manager.baremetal
         compute_client = self.app.client_manager.compute
 
