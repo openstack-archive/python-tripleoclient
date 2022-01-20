@@ -1,0 +1,50 @@
+---
+features:
+  - |
+    A new option --ceph-vip for the "openstack overcloud ceph deploy" command
+    has been added. This option may be used to reserve VIP(s) for each Ceph
+    service specified by the 'service/network' mapping defined as input.
+    For instance, a generic ceph service mapping can be something like the
+    following::
+
+      ---
+      ceph_services:
+        - service: ceph_nfs
+          network: storage_cloud_0
+        - service: ceph_rgw
+          network: storage_cloud_0
+
+    For each service added to the list above, a virtual IP on the specified
+    network is created to be used as frontend_vip of the ingress daemon. When
+    no subnet is specified, a default `<network>_subnet` pattern is used. If
+    the subnet does not follow the `<network>_subnet` pattern, a subnet for
+    the VIP may be specified per service::
+
+      ---
+      ceph_services:
+        - service: ceph_nfs
+          network: storage_cloud_0
+        - service: ceph_rgw
+          network: storage_cloud_0
+          subnet: storage_leafX
+
+    When the `subnet` parameter is provided, it will be used by the ansible
+    module, otherwise the default pattern is followed. This feature also
+    supports the fixed_ips mode. When fixed_ip(s) are defined, the module is
+    able to use that input to reserve the VIP on that network. A valid input
+    can be something like the following::
+
+      ---
+      fixed: true
+      ceph_services:
+        - service: ceph_nfs
+          network: storage_cloud_0
+          ip_address: 172.16.11.159
+        - service: ceph_rgw
+          network: storage_cloud_0
+          ip_address: 172.16.11.160
+
+    When the boolean fixed is set to True, the subnet pattern is ignored, and
+    a sanity check on the user input is performed, looking for the ip_address
+    keys associated to the specified services.
+    If the `fixed` keyword is missing, the subnet pattern is followed.
