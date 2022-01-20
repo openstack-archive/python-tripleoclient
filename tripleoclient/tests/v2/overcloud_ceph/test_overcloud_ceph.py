@@ -44,6 +44,7 @@ class TestOvercloudCephDeploy(fakes.FakePlaybookExecution):
         arglist = ['deployed-metal.yaml', '--yes',
                    '--stack', 'overcloud',
                    '--skip-user-create',
+                   '--skip-hosts-config',
                    '--cephadm-ssh-user', 'jimmy',
                    '--output', 'deployed-ceph.yaml',
                    '--container-namespace', 'quay.io/ceph',
