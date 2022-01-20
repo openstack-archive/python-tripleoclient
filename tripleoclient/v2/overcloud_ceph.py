@@ -97,6 +97,19 @@ class OvercloudCephDeploy(command.Command):
                                    "This user is necessary to deploy but "
                                    "may be created in a separate step via "
                                    "'openstack overcloud ceph user enable'."))
+        parser.add_argument('--skip-hosts-config', default=False,
+                            action='store_true',
+                            help=_("Do not update /etc/hosts on deployed "
+                                   "servers. By default this is configured "
+                                   "so overcloud nodes can reach each other "
+                                   "and the undercloud by name."))
+        parser.add_argument('--skip-container-registry-config', default=False,
+                            action='store_true',
+                            help=_("Do not update "
+                                   "/etc/containers/registries.conf on "
+                                   "deployed servers. By default this is "
+                                   "configured so overcloud nodes can pull "
+                                   "containers from the undercloud registry."))
         parser = arg_parse_common(parser)
         parser.add_argument('--roles-data',
                             help=_(
@@ -385,11 +398,14 @@ class OvercloudCephDeploy(command.Command):
                     os.path.abspath(parsed_args.ceph_vip)
         # optional container vars to pass to playbook
         keys = ['ceph_namespace', 'ceph_image', 'ceph_tag']
+        push_sub_keys = ['ceph_namespace']
         key = 'ContainerImagePrepare'
         container_dict = \
             oooutils.parse_container_image_prepare(key, keys,
                                                    parsed_args.
-                                                   container_image_prepare)
+                                                   container_image_prepare,
+                                                   push_sub_keys)
+
         extra_vars['tripleo_cephadm_container_ns'] = \
             parsed_args.container_namespace or \
             container_dict['ceph_namespace']
@@ -433,11 +449,6 @@ class OvercloudCephDeploy(command.Command):
                 extra_vars['tripleo_cephadm_registry_username'] = \
                     parsed_args.registry_username
 
-        if parsed_args.skip_user_create:
-            skip_tags = 'cephadm_ssh_user'
-        else:
-            skip_tags = ''
-
         if parsed_args.cephadm_ssh_user:
             extra_vars["tripleo_cephadm_ssh_user"] = \
                 parsed_args.cephadm_ssh_user
@@ -445,7 +456,71 @@ class OvercloudCephDeploy(command.Command):
         if parsed_args.single_host_defaults:
             extra_vars["tripleo_cephadm_single_host_defaults"] = True
 
-        # call the playbook
+        skip_tags = []
+        if parsed_args.skip_user_create:
+            skip_tags.append('cephadm_ssh_user')
+
+        if not parsed_args.skip_hosts_config:
+            # call playbook to set /etc/hosts
+            uc_host_list = [oooutils.get_undercloud_host_entry()]
+            ctlplane_map = oooutils.get_ctlplane_attrs()
+            short_name = oooutils.get_hostname(short=True)
+            long_name = oooutils.get_hostname(short=False)
+            dns_domain = long_name.replace(short_name+'.', '')
+            hosts_extra_vars = dict(
+                tripleo_hosts_entries_undercloud_hosts_entries=uc_host_list,
+                tripleo_hosts_entries_overcloud_hosts_entries=[],
+                tripleo_hosts_entries_vip_hosts_entries=[],
+                tripleo_hosts_entries_extra_hosts_entries=[],
+                tripleo_stack_name=parsed_args.stack,
+                hostname_resolve_network=ctlplane_map['network']['name'],
+                cloud_domain=dns_domain,
+            )
+            self.log.debug("Adding undercloud host entry "
+                           "to overcloud /etc/hosts. (%s)"
+                           % hosts_extra_vars)
+            with oooutils.TempDirs() as tmp:
+                oooutils.run_ansible_playbook(
+                    playbook='cli-hosts-file-config.yaml',
+                    inventory=inventory,
+                    workdir=tmp,
+                    playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                    verbosity=oooutils.playbook_verbosity(self=self),
+                    reproduce_command=False,
+                    extra_vars=hosts_extra_vars,
+                )
+        else:
+            self.log.debug("Not updating /etc/hosts because "
+                           "--skip-hosts-config was used.")
+
+        if not parsed_args.skip_container_registry_config and \
+           container_dict.get('push_destination_boolean', False):
+            # call playbook to set /etc/containers/registries.conf
+            ns = container_dict.get('ceph_namespace', '').partition('/')[0]
+            if ns:
+                reg_extra_vars = dict(tripleo_podman_insecure_registries=[ns])
+                self.log.debug("Adding %s as a container registry." % ns)
+                with oooutils.TempDirs() as tmp:
+                    oooutils.run_ansible_playbook(
+                        playbook='cli-container-registry-config.yaml',
+                        inventory=inventory,
+                        workdir=tmp,
+                        playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                        verbosity=oooutils.playbook_verbosity(self=self),
+                        extra_vars=reg_extra_vars,
+                        reproduce_command=False,
+                    )
+            else:
+                self.log.debug("Not updating container regsitry. "
+                               "ceph_namespace is empty.")
+        else:
+            self.log.debug("Not updating container regsitry. "
+                           "Either container_image_prepare_defaults.yaml "
+                           "or file from --container-image-prepare "
+                           "is not setting push_destination. Or "
+                           "--skip-container-registry-config was used.")
+
+        # call playbook to deploy ceph
         with oooutils.TempDirs() as tmp:
             oooutils.run_ansible_playbook(
                 playbook='cli-deployed-ceph.yaml',
@@ -455,7 +530,7 @@ class OvercloudCephDeploy(command.Command):
                 verbosity=oooutils.playbook_verbosity(self=self),
                 extra_vars=extra_vars,
                 reproduce_command=False,
-                skip_tags=skip_tags,
+                skip_tags=','.join(skip_tags),
             )
 
 
