@@ -911,7 +911,6 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
             'parameters': {
                 'ComputeHostnameFormat': '%stackname%-novacompute-%index%',
                 'ControllerHostnameFormat': '%stackname%-controller-%index%',
-                'ComputeNetworkConfigTemplate': 'templates/compute.j2',
                 'ControllerNetworkConfigTemplate': 'templates/controller.j2'
             },
             'outputs': [{
@@ -1085,7 +1084,7 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
                 'network_config': {'network_config_update': False,
                                    'physical_bridge_name': 'br-ex',
                                    'public_interface_name': 'nic1',
-                                   'template': 'templates/compute.j2'},
+                                   'template': None},
                 'networks': [{'network': 'ctlplane',
                               'vif': True},
                              {'network': 'internal_api',
@@ -1126,7 +1125,11 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
         }], yaml.safe_load(result))
 
         with open(self.extract_file.name) as f:
-            self.assertEqual(yaml.safe_load(result), yaml.safe_load(f))
+            file_content = f.read()
+        self.assertEqual(yaml.safe_load(result), yaml.safe_load(file_content))
+        self.assertIn('# WARNING: No network config found for role Compute. '
+                      'Please edit the file and set the path to the correct '
+                      'network config template.\n', file_content)
 
     def test_extract_ips_from_pool(self):
         stack = mock.Mock()
@@ -1164,7 +1167,7 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
                 'network_config': {'network_config_update': False,
                                    'physical_bridge_name': 'br-ex',
                                    'public_interface_name': 'nic1',
-                                   'template': 'templates/compute.j2'},
+                                   'template': None},
                 'networks': [{'network': 'ctlplane',
                               'vif': True},
                              {'network': 'internal_api',

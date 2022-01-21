@@ -563,6 +563,7 @@ class ExtractProvisionedNode(command.Command):
                 hostname_node_map[hostname] = node.name
 
         data = []
+        warnings = []
         for role_name, entries in host_vars.items():
             role_count = len(entries)
 
@@ -601,6 +602,11 @@ class ExtractProvisionedNode(command.Command):
             net_conf = defaults['network_config'] = {}
             net_conf['template'] = parameters.get(
                 role_name + 'NetworkConfigTemplate')
+            if net_conf['template'] is None:
+                warnings.append(
+                    'WARNING: No network config found for role {}. Please '
+                    'edit the file and set the path to the correct network '
+                    'config template.'.format(role_name))
 
             if parameters.get(role_name + 'NetworkDeploymentActions'):
                 network_deployment_actions = parameters.get(
@@ -662,6 +668,11 @@ class ExtractProvisionedNode(command.Command):
                         datetime.datetime.now().isoformat())
         file_data.write('#   openstack %s\n#\n\n' %
                         ' '.join(self.app.command_options))
+        # Write any warnings in the file header
+        for warning in warnings:
+            file_data.write('# {}\n'.format(warning))
+        if warnings:
+            file_data.write(('#\n\n'))
         # Write the data
         if data:
             yaml.dump(data, file_data, RoleDataDumper, width=120,
