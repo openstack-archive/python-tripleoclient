@@ -28,6 +28,7 @@ from openstack import exceptions as openstack_exc
 from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
 from osc_lib import utils
+import tempfile
 import yaml
 
 from tripleoclient import command
@@ -496,6 +497,15 @@ class ExtractProvisionedNode(command.Command):
         parser.add_argument('--roles-file', '-r', dest='roles_file',
                             required=False,
                             help=_('Role data definition file'))
+        parser.add_argument('--networks-file', '-n', dest='networks_file',
+                            required=False,
+                            help=_('Network data definition file'))
+        parser.add_argument('--working-dir',
+                            action='store',
+                            help=_('The working directory for the deployment '
+                                   'where all input, output, and generated '
+                                   'files will be stored.\nDefaults to '
+                                   '"$HOME/overcloud-deploy/<stack>"'))
         return parser
 
     def _get_subnet_from_net_name_and_ip(self, net_name, ip_addr):
@@ -522,8 +532,60 @@ class ExtractProvisionedNode(command.Command):
                                   "network %(net)s." % {'ip': ip_addr,
                                                         'net': net_name})
 
+    def _convert_heat_nic_conf_to_j2(self, stack, role_name, network_data,
+                                     resource_registry, parsed_args):
+        heat_nic_conf = resource_registry.get(
+            'OS::TripleO::{}::Net::SoftwareConfig'.format(role_name))
+        if heat_nic_conf is None or heat_nic_conf == 'OS::Heat::None':
+            return None
+
+        j2_nic_conf_dir = os.path.join(self.working_dir, 'nic-configs')
+        oooutils.makedirs(j2_nic_conf_dir)
+
+        heat_nic_conf_basename = os.path.basename(heat_nic_conf)
+        tmp_heat_nic_conf_path = os.path.join(j2_nic_conf_dir,
+                                              heat_nic_conf_basename)
+        heat_nic_conf_content = stack.files().get(heat_nic_conf)
+
+        j2_nic_conf_basename = (heat_nic_conf_basename.rstrip('.yaml') + '.j2')
+        j2_nic_conf_path = os.path.join(j2_nic_conf_dir, j2_nic_conf_basename)
+
+        tmp_net_data_fd, tmp_net_data_path = tempfile.mkstemp(suffix=".yaml")
+        try:
+            with open(tmp_net_data_path, 'w') as tmp_net_data:
+                tmp_net_data.write(yaml.safe_dump(network_data))
+            with open(tmp_heat_nic_conf_path, 'w') as tmp_heat_nic_conf:
+                tmp_heat_nic_conf.write(heat_nic_conf_content)
+
+            cmd = ['/usr/share/openstack-tripleo-heat-templates/tools/'
+                   'convert_heat_nic_config_to_ansible_j2.py']
+            if parsed_args.yes:
+                cmd.extend(['--yes'])
+            cmd.extend(['--stack', stack.stack_name,
+                        '--networks_file', tmp_net_data_path,
+                        tmp_heat_nic_conf_path])
+            retcode = oooutils.run_command_and_log(self.log, cmd)
+        finally:
+            try:
+                os.remove(tmp_net_data_path)
+            except (IsADirectoryError, FileNotFoundError, PermissionError):
+                pass
+            try:
+                os.remove(tmp_heat_nic_conf_path)
+            except (IsADirectoryError, FileNotFoundError, PermissionError):
+                pass
+
+        return j2_nic_conf_path if retcode == 0 else None
+
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+
+        if not parsed_args.working_dir:
+            self.working_dir = oooutils.get_default_working_dir(
+                parsed_args.stack)
+        else:
+            self.working_dir = parsed_args.working_dir
+        oooutils.makedirs(self.working_dir)
 
         self._setup_clients()
         stack = oooutils.get_stack(self.orchestration_client,
@@ -544,6 +606,19 @@ class ExtractProvisionedNode(command.Command):
                     "stack by setting the --roles-data argument.".format(
                         parsed_args.stack))
 
+        if parsed_args.networks_file:
+            networks_file = os.path.abspath(parsed_args.networks_file)
+            with open(networks_file, 'r') as fd:
+                network_data = yaml.safe_load(fd.read())
+        else:
+            network_data = tht_j2_sources.get('networks_data')
+            if network_data is None:
+                raise oscexc.CommandError(
+                    "Unable to extract. Network data not available in {} "
+                    "stack output. Please provide the networks data for the "
+                    "deployed stack by setting the --networks-data argument."
+                    .format(parsed_args.stack))
+
         # Convert role_data to a dict
         role_data = {x['name']: x for x in role_data}
 
@@ -553,6 +628,7 @@ class ExtractProvisionedNode(command.Command):
             stack, 'RoleNetIpMap') or {}
         parameters = stack.to_dict().get('parameters', {})
         parameter_defaults = stack.environment().get('parameter_defaults', {})
+        resource_registry = stack.environment().get('resource_registry', {})
 
         # list all baremetal nodes and map hostname to node name
         node_details = self.baremetal_client.node.list(detail=True)
@@ -606,10 +682,21 @@ class ExtractProvisionedNode(command.Command):
             net_conf['template'] = parameters.get(
                 role_name + 'NetworkConfigTemplate')
             if net_conf['template'] is None:
-                warnings.append(
-                    'WARNING: No network config found for role {}. Please '
-                    'edit the file and set the path to the correct network '
-                    'config template.'.format(role_name))
+                net_conf['template'] = self._convert_heat_nic_conf_to_j2(
+                    stack, role_name, network_data, resource_registry,
+                    parsed_args)
+
+                if net_conf['template'] is None:
+                    warnings.append(
+                        'WARNING: No network config found for role {}. '
+                        'Please edit the file and set the path to the correct '
+                        'network config template.'.format(role_name))
+                else:
+                    warnings.append(
+                        'WARNING: Network config for role {} was '
+                        'automatically converted from Heat template to '
+                        'Ansible Jinja2 template. Please review the file: {}'
+                        .format(role_name, net_conf['template']))
 
             if parameters.get(role_name + 'NetworkDeploymentActions'):
                 network_deployment_actions = parameters.get(
