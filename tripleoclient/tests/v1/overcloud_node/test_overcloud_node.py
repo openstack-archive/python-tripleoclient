@@ -900,6 +900,13 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
 
         self.cmd = overcloud_node.ExtractProvisionedNode(self.app, None)
 
+        roles_data = [
+            {'name': 'Controller',
+             'default_route_networks': ['External'],
+             'networks_skip_config': ['Tenant']},
+            {'name': 'Compute'}
+        ]
+
         self.stack_dict = {
             'parameters': {
                 'ComputeHostnameFormat': '%stackname%-novacompute-%index%',
@@ -908,6 +915,12 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
                 'ControllerNetworkConfigTemplate': 'templates/controller.j2'
             },
             'outputs': [{
+                'output_key': 'TripleoHeatTemplatesJinja2RenderingDataSources',
+                'output_value': {
+                    'roles_data': roles_data,
+                    'networks_data': {}
+                }
+            }, {
                 'output_key': 'AnsibleHostVarsMap',
                 'output_value': {
                     'Compute': [
@@ -1038,12 +1051,6 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
             mode='w', delete=False, suffix='.yaml')
         self.extract_file.close()
 
-        roles_data = [
-            {'name': 'Controller',
-             'default_route_networks': ['External'],
-             'networks_skip_config': ['Tenant']},
-            {'name': 'Compute'}
-        ]
         self.roles_file = tempfile.NamedTemporaryFile(
             mode='w', delete=False, suffix='.yaml')
         self.roles_file.write(yaml.safe_dump(roles_data))
@@ -1059,12 +1066,10 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
 
         self.baremetal.node.list.return_value = self.nodes
 
-        argslist = ['--roles-file', self.roles_file.name,
-                    '--output', self.extract_file.name,
+        argslist = ['--output', self.extract_file.name,
                     '--yes']
         self.app.command_options = argslist
-        verifylist = [('roles_file', self.roles_file.name),
-                      ('output', self.extract_file.name),
+        verifylist = [('output', self.extract_file.name),
                       ('yes', True)]
 
         parsed_args = self.check_parser(self.cmd,
