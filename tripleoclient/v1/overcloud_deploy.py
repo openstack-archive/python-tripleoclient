@@ -490,7 +490,7 @@ class DeployOvercloud(command.Command):
 
         utils.remove_known_hosts(overcloud_ip_or_fqdn)
 
-    def _validate_args(self, parsed_args, working_dir):
+    def _validate_args(self, parsed_args):
         if parsed_args.templates is None and parsed_args.answers_file is None:
             raise oscexc.CommandError(
                 "You must specify either --templates or --answers-file")
@@ -565,16 +565,16 @@ class DeployOvercloud(command.Command):
             self._validate_args_environment_directory(
                 parsed_args.environment_directories)
 
-        if parsed_args.vip_file:
-            # Check vip_file only used with network data v2
-            networks_file_path = utils.get_networks_file_path(
-                working_dir, parsed_args.stack)
-            if not utils.is_network_data_v2(networks_file_path):
-                raise oscexc.CommandError(
-                    'The --vip-file option can only be used in combination '
-                    'with a network data v2 format networks file. The '
-                    'provided file {} is network data v1 format'.format(
-                        networks_file_path))
+    def _validate_vip_file(self, stack, working_dir):
+        # Check vip_file only used with network data v2
+        networks_file_path = utils.get_networks_file_path(
+            working_dir, stack)
+        if not utils.is_network_data_v2(networks_file_path):
+            raise oscexc.CommandError(
+                'The --vip-file option can only be used in combination '
+                'with a network data v2 format networks file. The '
+                'provided file {} is network data v1 format'.format(
+                    networks_file_path))
 
     def _validate_args_environment_directory(self, directories):
         default = os.path.expanduser(constants.DEFAULT_ENV_DIRECTORY)
@@ -1214,6 +1214,8 @@ class DeployOvercloud(command.Command):
 
         self._update_args_from_answers_file(parsed_args)
 
+        self._validate_args(parsed_args)
+
         # Make a copy of the files provided on command line in the working dir
         # If the command is re-run without providing the argument the "backup"
         # from the previous run in the working dir is used.
@@ -1225,7 +1227,8 @@ class DeployOvercloud(command.Command):
             utils.check_deprecated_service_is_enabled(
                 parsed_args.environment_files)
 
-        self._validate_args(parsed_args, self.working_dir)
+        if parsed_args.vip_file:
+            self._validate_vip_file(parsed_args.stack, self.working_dir)
 
         if parsed_args.dry_run:
             self.log.info("Validation Finished")
