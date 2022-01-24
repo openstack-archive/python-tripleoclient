@@ -105,50 +105,6 @@ def register_or_update(clients, nodes_json, kernel_name=None,
     return registered_nodes
 
 
-def provide(node_uuids, verbosity=0):
-    """Provide Baremetal Nodes
-
-    :param node_uuids: List of instance UUID(s).
-    :type node_uuids: List
-
-    :param verbosity: Verbosity level
-    :type verbosity: Integer
-   """
-
-    with utils.TempDirs() as tmp:
-        utils.run_ansible_playbook(
-            playbook='cli-overcloud-node-provide.yaml',
-            inventory='localhost,',
-            workdir=tmp,
-            playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
-            verbosity=verbosity,
-            extra_vars={
-                'node_uuids': node_uuids
-            }
-        )
-
-    print('Successfully provided nodes: {}'.format(node_uuids))
-
-
-def provide_manageable_nodes(clients, verbosity=0):
-    """Provide all manageable Nodes
-
-    :param clients: Application client object.
-    :type clients: Object
-
-    :param verbosity: Verbosity level
-    :type verbosity: Integer
-    """
-
-    provide(
-        node_uuids=[
-            i.uuid for i in clients.baremetal.node.list()
-            if i.provision_state == "manageable" and not i.maintenance
-        ],
-        verbosity=verbosity
-    )
-
-
 def introspect(clients, node_uuids, run_validations, concurrency,
                node_timeout, max_retries, retry_timeout, verbosity=0):
     """Introspect Baremetal Nodes

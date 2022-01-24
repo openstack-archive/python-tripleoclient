@@ -12,6 +12,7 @@
 #   License for the specific language governing permissions and limitations
 #   under the License.
 #
+import uuid
 
 from tripleoclient.tests import fakes
 
@@ -26,3 +27,12 @@ class TestOvercloudNode(fakes.FakePlaybookExecution):
 
     def setUp(self):
         super(TestOvercloudNode, self).setUp()
+
+
+def make_fake_machine(machine_name, provision_state,
+                      is_maintenance, machine_id=None):
+    if not machine_id:
+        machine_id = uuid.uuid4().hex
+    return(fakes.FakeMachine(id=machine_id, name=machine_name,
+                             provision_state=provision_state,
+                             is_maintenance=is_maintenance))

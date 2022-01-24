@@ -21,6 +21,8 @@ import os
 import tempfile
 from unittest import mock
 
+import openstack
+
 from osc_lib import exceptions as oscexc
 from osc_lib.tests import utils as test_utils
 import yaml
@@ -375,40 +377,96 @@ class TestDeleteNode(fakes.TestDeleteNode):
         mock_warning.assert_called_once_with(expected_message)
 
 
+@mock.patch.object(openstack.baremetal.v1._proxy, 'Proxy',
+                   autospec=True, name='mock_bm')
+@mock.patch('openstack.config', autospec=True,
+            name='mock_conf')
+@mock.patch('openstack.connect', autospec=True,
+            name='mock_connect')
+@mock.patch.object(openstack.connection,
+                   'Connection', autospec=True)
 class TestProvideNode(fakes.TestOvercloudNode):
 
     def setUp(self):
         super(TestProvideNode, self).setUp()
-
         # Get the command object to test
         self.cmd = overcloud_node.ProvideNode(self.app, None)
 
-    def test_provide_all_manageable_nodes(self):
+        iterate_timeout = mock.MagicMock()
+        iterate_timeout.start()
+
+        self.fake_baremetal_node = fakes.make_fake_machine(
+            machine_name='node1',
+            machine_id='4e540e11-1366-4b57-85d5-319d168d98a1'
+        )
+        self.fake_baremetal_node2 = fakes.make_fake_machine(
+            machine_name='node2',
+            machine_id='9070e42d-1ad7-4bd0-b868-5418bc9c7176'
+        )
+
+    def test_provide_all_manageable_nodes(self, mock_conn,
+                                          mock_connect, mock_conf,
+                                          mock_bm):
+
+        mock_conn.return_value = mock_bm
+        mock_bm.baremetal = mock_bm
+
+        mock_bm.baremetal.nodes.side_effect = [
+            iter([self.fake_baremetal_node]),
+            iter([self.fake_baremetal_node2])
+        ]
+        mock_bm.baremetal.get_node.side_effect = [
+            self.fake_baremetal_node,
+            self.fake_baremetal_node2]
 
         parsed_args = self.check_parser(self.cmd,
                                         ['--all-manageable'],
                                         [('all_manageable', True)])
         self.cmd.take_action(parsed_args)
 
-    def test_provide_one_node(self):
+    def test_provide_one_node(self, mock_conn,
+                              mock_connect, mock_conf,
+                              mock_bm):
         node_id = 'node_uuid1'
+
+        mock_conn.return_value = mock_bm
+        mock_bm.baremetal = mock_bm
+        mock_bm.baremetal.get_node.side_effect = [
+            self.fake_baremetal_node]
 
         parsed_args = self.check_parser(self.cmd,
                                         [node_id],
                                         [('node_uuids', [node_id])])
         self.cmd.take_action(parsed_args)
 
-    def test_provide_multiple_nodes(self):
+    def test_provide_multiple_nodes(self, mock_conn,
+                                    mock_connect, mock_conf,
+                                    mock_bm):
         node_id1 = 'node_uuid1'
         node_id2 = 'node_uuid2'
 
         argslist = [node_id1, node_id2]
         verifylist = [('node_uuids', [node_id1, node_id2])]
 
+        mock_conn.return_value = mock_bm
+        mock_bm.baremetal = mock_bm
+        mock_bm.baremetal.get_node.side_effect = [
+            self.fake_baremetal_node,
+            self.fake_baremetal_node2
+        ]
+
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
         self.cmd.take_action(parsed_args)
 
 
+@mock.patch.object(openstack.baremetal.v1._proxy, 'Proxy',
+                   autospec=True, name='mock_bm')
+@mock.patch('openstack.config', autospec=True,
+            name='mock_conf')
+@mock.patch('openstack.connect', autospec=True,
+            name='mock_connect')
+@mock.patch.object(openstack.connection,
+                   'Connection', autospec=True)
 class TestCleanNode(fakes.TestOvercloudNode):
 
     def setUp(self):
@@ -417,41 +475,102 @@ class TestCleanNode(fakes.TestOvercloudNode):
         # Get the command object to test
         self.cmd = overcloud_node.CleanNode(self.app, None)
 
-    def _check_clean_all_manageable(self, parsed_args, provide=False):
+        self.fake_baremetal_node = fakes.make_fake_machine(
+            machine_name='node1',
+            machine_id='4e540e11-1366-4b57-85d5-319d168d98a1'
+        )
+        self.fake_baremetal_node2 = fakes.make_fake_machine(
+            machine_name='node2',
+            machine_id='9070e42d-1ad7-4bd0-b868-5418bc9c7176'
+        )
+
+    def _check_clean_all_manageable(self, parsed_args, mock_conn,
+                                    mock_connect, mock_conf,
+                                    mock_bm,
+                                    provide=False):
+        mock_bm.baremetal.nodes.side_effect = [
+            iter([self.fake_baremetal_node]),
+            iter([self.fake_baremetal_node])
+        ]
+        mock_bm.baremetal.get_node.side_effect = [
+            self.fake_baremetal_node,
+            self.fake_baremetal_node]
         self.cmd.take_action(parsed_args)
 
-    def _check_clean_nodes(self, parsed_args, nodes, provide=False):
+    def _check_clean_nodes(self, parsed_args, nodes, mock_conn,
+                           mock_connect, mock_conf,
+                           mock_bm, provide=False):
         self.cmd.take_action(parsed_args)
 
-    def test_clean_all_manageable_nodes_without_provide(self):
+    def test_clean_all_manageable_nodes_without_provide(self, mock_conn,
+                                                        mock_connect,
+                                                        mock_conf,
+                                                        mock_bm):
+        mock_conn.return_value = mock_bm
+        mock_bm.baremetal = mock_bm
+        mock_bm.baremetal.nodes.return_value = iter([
+            self.fake_baremetal_node
+        ])
         parsed_args = self.check_parser(self.cmd,
                                         ['--all-manageable'],
                                         [('all_manageable', True)])
-        self._check_clean_all_manageable(parsed_args, provide=False)
+        self._check_clean_all_manageable(parsed_args, mock_conn,
+                                         mock_connect, mock_conf,
+                                         mock_bm, provide=False)
 
-    def test_clean_all_manageable_nodes_with_provide(self):
+    def test_clean_all_manageable_nodes_with_provide(self, mock_conn,
+                                                     mock_connect, mock_conf,
+                                                     mock_bm):
+        mock_conn.return_value = mock_bm
+        mock_bm.baremetal = mock_bm
+        mock_bm.baremetal.nodes.side_effect = [
+            iter([self.fake_baremetal_node]),
+            iter([self.fake_baremetal_node])]
+        mock_bm.baremetal.get_node.side_effect = [
+            self.fake_baremetal_node,
+            self.fake_baremetal_node]
         parsed_args = self.check_parser(self.cmd,
                                         ['--all-manageable', '--provide'],
                                         [('all_manageable', True),
                                          ('provide', True)])
-        self._check_clean_all_manageable(parsed_args, provide=True)
+        self._check_clean_all_manageable(parsed_args, mock_conn,
+                                         mock_connect, mock_conf,
+                                         mock_bm, provide=False)
 
-    def test_clean_nodes_without_provide(self):
+    def test_clean_nodes_without_provide(self, mock_conn,
+                                         mock_connect, mock_conf,
+                                         mock_bm):
+        mock_conn.return_value = mock_bm
+        mock_bm.baremetal = mock_bm
         nodes = ['node_uuid1', 'node_uuid2']
         parsed_args = self.check_parser(self.cmd,
                                         nodes,
                                         [('node_uuids', nodes)])
-        self._check_clean_nodes(parsed_args, nodes, provide=False)
+        self._check_clean_nodes(parsed_args, nodes, mock_conn,
+                                mock_connect, mock_conf,
+                                mock_bm, provide=False)
 
-    def test_clean_nodes_with_provide(self):
+    def test_clean_nodes_with_provide(self, mock_conn,
+                                      mock_connect, mock_conf,
+                                      mock_bm):
+        mock_conn.return_value = mock_bm
+        mock_bm.baremetal = mock_bm
+
         nodes = ['node_uuid1', 'node_uuid2']
         argslist = nodes + ['--provide']
+
+        mock_bm.baremetal.get_node.side_effect = [
+            self.fake_baremetal_node,
+            self.fake_baremetal_node2
+        ]
 
         parsed_args = self.check_parser(self.cmd,
                                         argslist,
                                         [('node_uuids', nodes),
                                          ('provide', True)])
-        self._check_clean_nodes(parsed_args, nodes, provide=True)
+        self._check_clean_nodes(parsed_args, nodes, mock_conn,
+                                mock_connect, mock_conf,
+                                mock_bm, provide=False)
 
 
 class TestImportNodeMultiArch(fakes.TestOvercloudNode):
@@ -673,6 +792,17 @@ class TestConfigureNode(fakes.TestOvercloudNode):
         self.cmd.take_action(parsed_args)
 
 
+@mock.patch.object(openstack.baremetal.v1._proxy, 'Proxy', autospec=True,
+                   name="mock_bm")
+@mock.patch('openstack.config', autospec=True, name='mock_conf')
+@mock.patch('openstack.connect', autospec=True, name='mock_connect')
+@mock.patch.object(openstack.connection, 'Connection', autospec=True)
+@mock.patch('tripleo_common.utils.nodes._populate_node_mapping',
+            name='mock_nodemap')
+@mock.patch('tripleo_common.utils.nodes.register_all_nodes',
+            name='mock_tcnode')
+@mock.patch('oslo_concurrency.processutils.execute',
+            name="mock_subproc")
 class TestDiscoverNode(fakes.TestOvercloudNode):
 
     def setUp(self):
@@ -688,8 +818,19 @@ class TestDiscoverNode(fakes.TestOvercloudNode):
         self.addCleanup(self.gcn.stop)
 
         self.http_boot = '/var/lib/ironic/httpboot'
+        self.fake_baremetal_node = fakes.make_fake_machine(
+            machine_name='node1',
+            machine_id='4e540e11-1366-4b57-85d5-319d168d98a1'
+        )
+        self.fake_baremetal_node2 = fakes.make_fake_machine(
+            machine_name='node2',
+            machine_id='9070e42d-1ad7-4bd0-b868-5418bc9c7176'
+        )
 
-    def test_with_ip_range(self):
+    def test_with_ip_range(self, mock_subproc, mock_tcnode,
+                           mock_nodemap, mock_conn,
+                           mock_connect, mock_conf,
+                           mock_bm):
         argslist = ['--range', '10.0.0.0/24',
                     '--credentials', 'admin:password']
         verifylist = [('ip_addresses', '10.0.0.0/24'),
@@ -698,7 +839,10 @@ class TestDiscoverNode(fakes.TestOvercloudNode):
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
         self.cmd.take_action(parsed_args)
 
-    def test_with_address_list(self):
+    def test_with_address_list(self, mock_subproc, mock_tcnode,
+                               mock_nodemap, mock_conn,
+                               mock_connect, mock_conf,
+                               mock_bm):
         argslist = ['--ip', '10.0.0.1', '--ip', '10.0.0.2',
                     '--credentials', 'admin:password']
         verifylist = [('ip_addresses', ['10.0.0.1', '10.0.0.2']),
@@ -707,7 +851,18 @@ class TestDiscoverNode(fakes.TestOvercloudNode):
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
         self.cmd.take_action(parsed_args)
 
-    def test_with_all_options(self):
+    def test_with_all_options(self, mock_subproc, mock_tcnode,
+                              mock_nodemap, mock_conn,
+                              mock_connect, mock_conf,
+                              mock_bm):
+        mock_conn.return_value = mock_bm
+        mock_bm.baremetal = mock_bm
+        mock_bm.baremetal.get_node.side_effect = [
+            self.fake_baremetal_node,
+            self.fake_baremetal_node2,
+            self.fake_baremetal_node,
+            self.fake_baremetal_node2
+        ]
         argslist = ['--range', '10.0.0.0/24',
                     '--credentials', 'admin:password',
                     '--credentials', 'admin2:password2',

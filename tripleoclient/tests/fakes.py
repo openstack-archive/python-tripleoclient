@@ -422,3 +422,24 @@ class FakeFlavor(object):
             'capabilities:boot_option': 'local',
             'capabilities:profile': self.profile
         }
+
+
+class FakeMachine:
+    def __init__(self, id, name=None, driver=None, driver_info=None,
+                 chassis_uuid=None, instance_info=None, instance_uuid=None,
+                 properties=None, reservation=None, last_error=None,
+                 provision_state='available', is_maintenance=False,
+                 power_state='power off'):
+        self.id = id
+        self.name = name
+        self.driver = driver
+        self.driver_info = driver_info
+        self.chassis_uuid = chassis_uuid
+        self.instance_info = instance_info
+        self.instance_uuid = instance_uuid
+        self.properties = properties
+        self.reservation = reservation
+        self.last_error = last_error
+        self.provision_state = provision_state
+        self.is_maintenance = is_maintenance
+        self.power_state = power_state

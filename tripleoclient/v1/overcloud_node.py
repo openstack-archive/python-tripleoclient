@@ -34,6 +34,7 @@ from tripleoclient import command
 from tripleoclient import constants
 from tripleoclient import utils as oooutils
 from tripleoclient.workflows import baremetal
+from tripleoclient.workflows import tripleo_baremetal as tb
 
 
 class DeleteNode(command.Command):
@@ -214,19 +215,22 @@ class ProvideNode(command.Command):
                            action='store_true',
                            help=_("Provide all nodes currently in 'manageable'"
                                   " state"))
+        group.add_argument("--verbosity",
+                           type=int,
+                           default=1,
+                           help=_("Print debug output during execution"))
         return parser
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
 
+        provide = tb.TripleoProvide(verbosity=parsed_args.verbosity)
+
         if parsed_args.node_uuids:
-            baremetal.provide(node_uuids=parsed_args.node_uuids,
-                              verbosity=oooutils.playbook_verbosity(self))
+            provide.provide(nodes=parsed_args.node_uuids)
 
         else:
-            baremetal.provide_manageable_nodes(
-                self.app.client_manager,
-                verbosity=oooutils.playbook_verbosity(self))
+            provide.provide_manageable_nodes()
 
 
 class CleanNode(command.Command):
@@ -247,6 +251,10 @@ class CleanNode(command.Command):
                            action='store_true',
                            help=_("Clean all nodes currently in 'manageable'"
                                   " state"))
+        group.add_argument("--verbosity",
+                           type=int,
+                           default=1,
+                           help=_("Print debug output during execution"))
         parser.add_argument('--provide',
                             action='store_true',
                             help=_('Provide (make available) the nodes once '
@@ -270,11 +278,11 @@ class CleanNode(command.Command):
             )
 
         if parsed_args.provide:
+            provide = tb.TripleoProvide(verbosity=parsed_args.verbosity)
             if nodes:
-                baremetal.provide(node_uuids=nodes,
-                                  verbosity=oooutils.playbook_verbosity(self))
+                provide.provide(nodes=nodes)
             else:
-                baremetal.provide_manageable_nodes(self.app.client_manager)
+                provide.provide_manageable_nodes()
 
 
 class ConfigureNode(command.Command):
@@ -410,6 +418,10 @@ class DiscoverNode(command.Command):
                             default=120,
                             help=_('Maximum timeout between introspection'
                                    'retries'))
+        parser.add_argument("--verbosity",
+                            type=int,
+                            default=1,
+                            help=_("Print debug output during execution"))
         return parser
 
     # FIXME(tonyb): This is not multi-arch safe :(
@@ -457,9 +469,8 @@ class DiscoverNode(command.Command):
             )
 
         if parsed_args.provide:
-            baremetal.provide(
-                node_uuids=nodes_uuids,
-                verbosity=oooutils.playbook_verbosity(self))
+            provide = tb.TripleoProvide(verbosity=parsed_args.verbosity)
+            provide.provide(nodes=nodes_uuids)
 
 
 class ExtractProvisionedNode(command.Command):

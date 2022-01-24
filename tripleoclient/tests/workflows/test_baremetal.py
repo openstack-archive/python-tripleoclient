@@ -96,9 +96,6 @@ class TestBaremetalWorkflows(fakes.FakePlaybookExecution):
             instance_boot_option='local'
         ), [mock.ANY])
 
-    def test_provide_success(self):
-        baremetal.provide(node_uuids=[])
-
     def test_introspect_success(self):
         baremetal.introspect(self.app.client_manager, node_uuids=[],
                              run_validations=True, concurrency=20,
@@ -109,11 +106,6 @@ class TestBaremetalWorkflows(fakes.FakePlaybookExecution):
         baremetal.introspect_manageable_nodes(
             self.app.client_manager, run_validations=False, concurrency=20,
             node_timeout=1200, max_retries=1, retry_timeout=120,
-        )
-
-    def test_provide_manageable_nodes_success(self):
-        baremetal.provide_manageable_nodes(
-            self.app.client_manager
         )
 
     def test_configure_success(self):
