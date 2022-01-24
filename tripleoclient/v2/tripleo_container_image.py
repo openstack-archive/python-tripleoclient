@@ -210,7 +210,6 @@ class Build(command.Command):
             dest="volumes",
             metavar="<volume-path>",
             default=[
-                "/etc/yum.repos.d:/etc/distro.repos.d:z",
                 "/etc/pki/rpm-gpg:/etc/pki/rpm-gpg:z",
             ],
             action="append",
@@ -218,6 +217,16 @@ class Build(command.Command):
                 "Container bind mount used when building the image. Should "
                 "be specified multiple times if multiple volumes."
                 "(default: %(default)s)"
+            ),
+        )
+        parser.add_argument(
+            "--repo-dir",
+            dest="repo_dir",
+            metavar="<repo-dir>",
+            default="/etc/yum.repos.d",
+            help=_(
+                "Define a custom directory containing the repo files. This is "
+                "useful when building containers from a different OS release."
             ),
         )
         parser.add_argument(
@@ -690,6 +699,10 @@ class Build(command.Command):
         # Ensure anything not intended to be built is excluded
         excludes.extend(self.rectify_excludes(images_to_prepare))
         self.log.info("Images being excluded: {}".format(excludes))
+        volumes = parsed_args.volumes
+        volumes.append(
+            f"{parsed_args.repo_dir}:/etc/distro.repos.d:z"
+        )
 
         if not parsed_args.skip_build:
             bb = buildah.BuildahBuilder(
@@ -701,7 +714,7 @@ class Build(command.Command):
                 namespace=parsed_args.namespace,
                 registry_address=parsed_args.registry,
                 push_containers=parsed_args.push,
-                volumes=parsed_args.volumes,
+                volumes=volumes,
                 excludes=list(set(excludes)),
                 build_timeout=parsed_args.build_timeout,
                 debug=self.app.options.debug

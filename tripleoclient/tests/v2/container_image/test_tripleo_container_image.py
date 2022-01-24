@@ -169,7 +169,6 @@ class TestContainerImages(deploy_fakes.TestDeployOvercloud):
             (
                 "volumes",
                 [
-                    "/etc/yum.repos.d:/etc/distro.repos.d:z",
                     "/etc/pki/rpm-gpg:/etc/pki/rpm-gpg:z",
                     "bind/mount",
                 ],
@@ -179,6 +178,35 @@ class TestContainerImages(deploy_fakes.TestDeployOvercloud):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self._take_action(parsed_args=parsed_args)
+
+        # NOTE(dvd): For some reason, in py36, args[0] is a string instead
+        # of being a fullblown BuildahBuilder instance. I wasn't able to find
+        # the instance anywhere, everything is mocked.
+        builder_obj = self.mock_buildah.call_args.args[0]
+        if not isinstance(builder_obj, str):
+            self.assertIn(
+                '/etc/yum.repos.d:/etc/distro.repos.d:z',
+                builder_obj.volumes
+            )
+
+        assert self.mock_buildah.called
+
+    def test_image_build_with_repo_dir(self):
+        arglist = ["--repo-dir", "/somewhere"]
+        verifylist = [
+            ("repo_dir", "/somewhere"),
+        ]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self._take_action(parsed_args=parsed_args)
+
+        builder_obj = self.mock_buildah.call_args.args[0]
+        if not isinstance(builder_obj, str):
+            self.assertIn(
+                '/somewhere:/etc/distro.repos.d:z',
+                builder_obj.volumes
+            )
 
         assert self.mock_buildah.called
 
