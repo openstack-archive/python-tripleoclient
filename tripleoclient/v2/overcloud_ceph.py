@@ -164,6 +164,10 @@ class OvercloudCephDeploy(command.Command):
                                 "Path to an existing ceph.conf with settings "
                                 "to be assimilated by the new cluster via "
                                 "'cephadm bootstrap --config' ")),
+        parser.add_argument('--single-host-defaults', default=False,
+                            action='store_true',
+                            help=_("Adjust configuration defaults to suit "
+                                   "a single-host Ceph cluster."))
         spec_group = parser.add_mutually_exclusive_group()
         spec_group.add_argument('--ceph-spec',
                                 help=_(
@@ -397,6 +401,9 @@ class OvercloudCephDeploy(command.Command):
         if parsed_args.cephadm_ssh_user:
             extra_vars["tripleo_cephadm_ssh_user"] = \
                 parsed_args.cephadm_ssh_user
+
+        if parsed_args.single_host_defaults:
+            extra_vars["tripleo_cephadm_single_host_defaults"] = True
 
         skip_tags = []
         if parsed_args.skip_user_create:
