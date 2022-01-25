@@ -12,7 +12,10 @@
 # under the License.
 
 import logging
+from typing import Dict
+from typing import List
 
+from concurrent import futures
 from openstack import connect as sdkclient
 from openstack import exceptions
 from openstack.utils import iterate_timeout
@@ -175,3 +178,134 @@ class TripleoProvide(TripleoBaremetal):
 
     def provide_manageable_nodes(self):
         self.provide(self.all_manageable_nodes())
+
+
+class TripleoClean(TripleoBaremetal):
+
+    """TripleoClean manages the Ironic node cleaning process.
+
+    :param all_manageable: Should we work on all nodes in the manageable state
+    :type all_manageable: bool
+
+    :param provide: Should we also set the nodes back to the available state
+    :type provide: bool
+
+    :param timeout: How long should we wait before we consider the nodes to
+                    have failed.
+    :type timeout: integer
+
+    :param raid_config: The raid configuration we should configure on the node
+    :type raid_config: Dictionary
+
+    :param concurrency: How many nodes should we do at once
+    :type concurrency: integer
+
+    :param clean_steps: The Ironic cleaning steps that should be executed on
+                        the nodes
+    :type clean_steps: List
+    """
+    log = logging.getLogger(__name__)
+
+    def __init__(self, all_manageable: bool = False, provide: bool = False,
+                 timeout: int = 60, raid_config: Dict = {},
+                 concurrency: int = 1, verbosity: int = 0,
+                 clean_steps: List = [{'interface': 'deploy',
+                                       'step': 'erase_devices_metadata'}]):
+        super().__init__(verbosity=verbosity, timeout=timeout)
+        self.all_manageable = all_manageable
+        self.provide = provide
+        self.raid_config = raid_config
+        self.clean_steps = clean_steps
+        self.concurrency = concurrency
+
+    def _parallel_nodes_cleaning(self, nodes: List):
+        client = self.conn.baremetal
+        node_timeout = self.timeout
+        clean_steps = self.clean_steps
+        failed_nodes = []
+        success_nodes = []
+        if self.raid_config:
+            for node in nodes:
+                try:
+                    client.update_node(
+                        node,
+                        target_raid_config=self.raid_config
+                    )
+                    success_nodes.append(node)
+                    self.log.info("Setting the raid configuration "
+                                  "for node {} succeeded.".format(node))
+                except exceptions.BadRequestException as err:
+                    self.log.error("Setting raid configuration "
+                                   "for node {} failed. Error: {}".format(
+                                       node, err
+                                   ))
+                    failed_nodes.append(node)
+                    nodes.pop(nodes.index(node))
+        workers = min(len(nodes), self.concurrency) or 1
+        with futures.ThreadPoolExecutor(max_workers=workers) as executor:
+            future_to_build = {
+                executor.submit(
+                    client.set_node_provision_state,
+                    node,
+                    "clean",
+                    clean_steps=clean_steps,
+                    wait=True
+                ): node for node in nodes
+            }
+            done, not_done = futures.wait(
+                future_to_build,
+                timeout=node_timeout,
+                return_when=futures.ALL_COMPLETED
+            )
+        try:
+            self.log.info(
+                "Waiting for manageable state: {}".format(nodes))
+            res = client.wait_for_nodes_provision_state(
+                    nodes=nodes,
+                    expected_state='manageable',
+                    timeout=self.timeout,
+                    fail=False
+                )
+        except exceptions.ResourceFailure as e:
+            self.log.error("Failed providing nodes due to failure: {}".format(
+                e))
+        except exceptions.ResourceTimeout as e:
+            self.log.error("Failed providing nodes due to timeout: {}".format(
+                e))
+        finally:
+            err_nodes = [n.name for n in res if n.last_error]
+            s_nodes = [n.name for n in res if not n.last_error]
+            for node in err_nodes:
+                failed_nodes.append(node)
+            for node in s_nodes:
+                success_nodes.append(node)
+
+        return(set(failed_nodes), set(success_nodes))
+
+    def clean_manageable_nodes(self):
+        self.clean(nodes=self.all_manageable_nodes())
+
+    def clean(self, nodes: List):
+        """clean manages the cleaning process for the Ironic nodes.
+
+        Using the provided clean steps, this method will clean the provided
+        baremetal nodes.
+
+        :param nodes: A list of nodes to clean
+        :type nodes: List
+        """
+        if not nodes:
+            self.log.error("Provide either UUID or names of nodes!")
+            try:
+                failed_nodes, success_nodes = self._parallel_nodes_cleaning(
+                    nodes)
+                if failed_nodes:
+                    msg = ("Cleaning completed with failures. "
+                           f"{failed_nodes} node(s) failed.")
+                    self.log.error(msg)
+                else:
+                    msg = ("Cleaning completed "
+                           f"successfully: {len(success_nodes)} nodes")
+                    self.log.info(msg)
+            except exceptions.OpenStackCloudException as err:
+                self.log.error(str(err))

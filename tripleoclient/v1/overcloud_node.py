@@ -266,16 +266,12 @@ class CleanNode(command.Command):
 
         nodes = parsed_args.node_uuids
 
+        clean = tb.TripleoClean(verbosity=parsed_args.verbosity)
         if nodes:
-            baremetal.clean_nodes(
-                node_uuids=parsed_args.node_uuids,
-                verbosity=oooutils.playbook_verbosity(self=self)
-            )
+            clean.clean(
+                nodes=parsed_args.node_uuids)
         else:
-            baremetal.clean_manageable_nodes(
-                clients=self.app.client_manager,
-                verbosity=oooutils.playbook_verbosity(self=self)
-            )
+            clean.clean_manageable_nodes()
 
         if parsed_args.provide:
             provide = tb.TripleoProvide(verbosity=parsed_args.verbosity)
