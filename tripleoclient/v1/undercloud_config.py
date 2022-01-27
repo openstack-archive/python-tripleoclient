@@ -640,9 +640,10 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
         deploy_args += ['-e', os.path.join(
             tht_templates, "environments/disable-neutron.yaml")]
 
-    if not CONF.get('enable_heat'):
-        deploy_args += ['-e', os.path.join(
-            tht_templates, "environments/disable-heat.yaml")]
+    if CONF.get('enable_heat'):
+        LOG.warning('enable_heat has been deprecated. Ephemeral heat '
+                    'is now deployed by default. Please remove the '
+                    'option from undercloud.conf.')
 
     if CONF.get('ipa_otp'):
         deploy_args += ['-e', os.path.join(
