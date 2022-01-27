@@ -82,6 +82,13 @@ class BuildOvercloudImage(command.Command):
             help=_("Skip build if cached image exists."),
         )
         parser.add_argument(
+            "--no-package-install",
+            dest="package_install",
+            action="store_false",
+            default=True,
+            help=_("Skip installing required packages."),
+        )
+        parser.add_argument(
             "--output-directory",
             dest="output_directory",
             default=os.environ.get('TRIPLEO_ROOT', '.'),
@@ -106,7 +113,8 @@ class BuildOvercloudImage(command.Command):
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
 
-        self._ensure_packages_installed()
+        if parsed_args.package_install:
+            self._ensure_packages_installed()
 
         if not parsed_args.config_files:
             parsed_args.config_files = [os.path.join(self.IMAGE_YAML_PATH, f)
