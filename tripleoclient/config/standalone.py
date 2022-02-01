@@ -76,6 +76,9 @@ class StandaloneConfig(BaseConfig):
                         ),
             cfg.BoolOpt('enable_nova',
                         default=nova,
+                        deprecated_for_removal=True,
+                        deprecated_reason=_('Nova can no longer be enabled '
+                                            'via the config settings.'),
                         help=_('Whether to enable the nova service.')),
             cfg.BoolOpt('enable_novajoin',
                         default=novajoin,
