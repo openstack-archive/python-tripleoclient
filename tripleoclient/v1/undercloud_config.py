@@ -607,10 +607,9 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
         _process_ipa_args(CONF, env_data)
 
     if CONF.get('enable_nova'):
-        deploy_args += [
-            '-e', os.path.join(
-                tht_templates, 'environments/undercloud-enable-nova.yaml')
-            ]
+        LOG.warning('Nova has been deprecated and no longer be installed '
+                    'using the enable_nova. Please remove it from '
+                    'undercloud.conf.')
 
     if CONF.get('enable_novajoin'):
         LOG.warning('Novajoin has been deprecated and no longer be installed '
