@@ -299,3 +299,45 @@ class TestOvercloudCephUserEnable(fakes.FakePlaybookExecution):
                 "tripleo_cephadm_action": 'enable'
             }
         )
+
+
+class TestOvercloudCephSpec(fakes.FakePlaybookExecution):
+
+    def setUp(self):
+        super(TestOvercloudCephSpec, self).setUp()
+
+        # Get the command object to test
+        app_args = mock.Mock()
+        app_args.verbose_level = 1
+        self.app.options = fakes.FakeOptions()
+        self.cmd = overcloud_ceph.OvercloudCephSpec(self.app,
+                                                    app_args)
+
+    @mock.patch('tripleoclient.utils.TempDirs', autospect=True)
+    @mock.patch('os.path.abspath', autospect=True)
+    @mock.patch('os.path.exists', autospect=True)
+    @mock.patch('tripleoclient.utils.run_ansible_playbook', autospec=True)
+    def test_overcloud_ceph_spec(self, mock_playbook, mock_abspath,
+                                 mock_path_exists, mock_tempdirs):
+        arglist = ['deployed-metal.yaml', '--yes',
+                   '--stack', 'overcloud',
+                   '--roles-data', 'roles_data.yaml',
+                   '--osd-spec', 'osd_spec.yaml',
+                   '--output', 'ceph_spec.yaml']
+        parsed_args = self.check_parser(self.cmd, arglist, [])
+        self.cmd.take_action(parsed_args)
+        mock_playbook.assert_called_once_with(
+            playbook='cli-deployed-ceph.yaml',
+            inventory=mock.ANY,
+            workdir=mock.ANY,
+            playbook_dir=mock.ANY,
+            verbosity=3,
+            tags='ceph_spec',
+            reproduce_command=False,
+            extra_vars={
+                "baremetal_deployed_path": mock.ANY,
+                'tripleo_roles_path': mock.ANY,
+                'osd_spec_path': mock.ANY,
+                'ceph_spec_path': mock.ANY,
+            }
+        )

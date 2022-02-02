@@ -66,6 +66,7 @@ from tenacity.stop import stop_after_attempt, stop_after_delay
 from tenacity.wait import wait_fixed
 
 from tripleo_common.image import kolla_builder
+from tripleo_common.utils import ceph_spec
 from tripleo_common.utils import plan as plan_utils
 from tripleo_common.utils import heat as tc_heat_utils
 from tripleo_common.utils import stack as stack_utils
@@ -2075,14 +2076,27 @@ def prepend_environment(environment_files, templates_dir, environment):
     return environment_files
 
 
+def get_hostname(short=False):
+    """Returns the local hostname
+
+    :param (short): boolean true to run 'hostname -s'
+    :return string
+    """
+    if short:
+        cmd = ["hostname", "-s"]
+    else:
+        cmd = ["hostname"]
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                         universal_newlines=True)
+    return p.communicate()[0].rstrip().lower()
+
+
 def get_short_hostname():
     """Returns the local short hostname
 
     :return string
     """
-    p = subprocess.Popen(["hostname", "-s"], stdout=subprocess.PIPE,
-                         universal_newlines=True)
-    return p.communicate()[0].rstrip().lower()
+    return get_hostname(short=True)
 
 
 def wait_api_port_ready(api_port, host='127.0.0.1'):
@@ -3362,3 +3376,57 @@ def get_host_groups_from_ceph_spec(ceph_spec_path, prefix='',
                 "yaml.safe_load_all(%s) returned '%s'" % (ceph_spec_path, exc))
 
     return hosts
+
+
+def ceph_spec_standalone(ceph_spec_path, mon_ip, osd_spec_path=None):
+    """Write ceph_spec_path file for a standalone ceph host
+    :param ceph_spec_path: the path to a ceph_spec.yaml file
+    :param mon_ip: the ip address of the ceph monitor
+    :param (osd_spec_path): path to an OSD spec file
+    :return None (writes file)
+    """
+    specs = []
+    labels = ['osd', '_admin', 'mon', 'mgr']
+    host = get_hostname()
+    if osd_spec_path:
+        with open(os.path.abspath(osd_spec_path), 'r') as f:
+            try:
+                osd_spec = yaml.safe_load(f)
+            except yaml.YAMLError as exc:
+                raise oscexc.CommandError(
+                    "Unable to parse '%s': %s"
+                    % (os.path.abspath(osd_spec_path), exc))
+    else:
+        osd_spec = {
+            'data_devices': {
+                'all': True
+            }
+        }
+    placement_pattern = ''
+    spec_dict = {}
+
+    # create host spec
+    spec = ceph_spec.CephHostSpec('host', mon_ip, host, labels)
+    specs.append(spec.make_daemon_spec())
+
+    # add mon and mgr daemon specs
+    for svc in ['mon', 'mgr']:
+        d = ceph_spec.CephDaemonSpec(svc, svc, svc, [host],
+                                     placement_pattern, None,
+                                     spec_dict, labels)
+        specs.append(d.make_daemon_spec())
+
+    # add osd daemon spec
+    d = ceph_spec.CephDaemonSpec('osd', 'default_drive_group',
+                                 'osd.default_drive_group',
+                                 [host], placement_pattern,
+                                 None, spec_dict, labels,
+                                 **osd_spec)
+    specs.append(d.make_daemon_spec())
+
+    # render
+    open(ceph_spec_path, 'w').close()  # reset file
+    for spec in specs:
+        with open(ceph_spec_path, 'a') as f:
+            f.write('---\n')
+            f.write(yaml.dump(spec))
