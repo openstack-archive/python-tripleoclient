@@ -114,6 +114,65 @@ class TestUndercloudInstall(TestPluginV1):
     # TODO(cjeanner) drop once we have proper oslo.privsep
     @mock.patch('os.geteuid', return_value=1001)
     @mock.patch('getpass.getuser', return_value='stack')
+    @mock.patch('builtins.open')
+    @mock.patch('shutil.copy')
+    @mock.patch('os.mkdir')
+    @mock.patch('tripleoclient.utils.write_env_file', autospec=True)
+    @mock.patch('subprocess.check_call', autospec=True)
+    def test_undercloud_install_with_reproduce_command(self, mock_subprocess,
+                                                       mock_wr,
+                                                       mock_os, mock_copy,
+                                                       mock_open, mock_user,
+                                                       mock_getuid):
+        arglist = ['--no-validations', '--reproduce-command']
+        verifylist = []
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        # DisplayCommandBase.take_action() returns two tuples
+        self.cmd.take_action(parsed_args)
+
+        mock_subprocess.assert_called_with(
+            ['sudo', '--preserve-env', 'openstack', 'tripleo', 'deploy',
+             '--standalone', '--standalone-role', 'Undercloud', '--stack',
+             'undercloud', '--local-domain=localdomain',
+             '--local-ip=192.168.24.1/24',
+             '--templates=/usr/share/openstack-tripleo-heat-templates/',
+             '--networks-file=/usr/share/openstack-tripleo-heat-templates/'
+             'network_data_undercloud.yaml',
+             '--heat-native', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'undercloud.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'use-dns-for-vips.yaml', '-e',
+             '/home/stack/foo.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'services/ironic.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'services/ironic-inspector.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'services/undercloud-remove-novajoin.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'disable-telemetry.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'public-tls-undercloud.yaml',
+             '--public-virtual-ip', '192.168.24.2',
+             '--control-virtual-ip', '192.168.24.3', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'ssl/tls-endpoints-public-ip.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/environments/'
+             'services/undercloud-haproxy.yaml',
+             # TODO(cjeanner) drop once we have proper oslo.privsep
+             '--deployment-user', 'stack',
+             '--output-dir=/home/stack', '--cleanup',
+             '-e', '/home/stack/tripleo-config-generated-env-files/'
+             'undercloud_parameters.yaml', '--reproduce-command',
+             '--log-file=install-undercloud.log', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/'
+             'undercloud-stack-vstate-dropin.yaml'])
+
+    # TODO(cjeanner) drop once we have proper oslo.privsep
+    @mock.patch('os.geteuid', return_value=1001)
+    @mock.patch('getpass.getuser', return_value='stack')
     @mock.patch('shutil.copy')
     @mock.patch('os.makedirs', return_value=None)
     @mock.patch('tripleoclient.utils.write_env_file', autospec=True)
@@ -621,7 +680,9 @@ class TestUndercloudUpgrade(TestPluginV1):
                                          mock_os, mock_copy, mock_user,
                                          mock_getuid):
         arglist = ['--force-stack-update', '--no-validations',
-                   '--inflight-validations', '--dry-run', '--yes']
+                   '--inflight-validations', '--dry-run', '--yes',
+                   '--disable-container-prepare', '--reproduce-command',
+                   '--skip-package-updates']
         verifylist = []
         self.cmd.app_args.verbose_level = 2
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
@@ -828,12 +889,15 @@ class TestUndercloudUpgrade(TestPluginV1):
     @mock.patch('tripleoclient.utils.write_env_file', autospec=True)
     @mock.patch('subprocess.check_call', autospec=True)
     @mock.patch('tripleoclient.utils.run_command', autospec=True)
-    def test_undercloud_upgrade_with_heat_and_yes(self, mock_run_command,
-                                                  mock_subprocess,
-                                                  mock_wr, mock_os,
-                                                  mock_copy, mock_user,
-                                                  mock_getuid):
-        arglist = ['--no-validations', '-y', '--skip-package-updates']
+    def test_undercloud_upgrade_with_heat_reproduce_and_yes(self,
+                                                            mock_run_command,
+                                                            mock_subprocess,
+                                                            mock_wr, mock_os,
+                                                            mock_copy,
+                                                            mock_user,
+                                                            mock_getuid):
+        arglist = ['--no-validations', '-y', '--skip-package-updates',
+                   '--reproduce-command']
         verifylist = []
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
@@ -877,7 +941,7 @@ class TestUndercloudUpgrade(TestPluginV1):
              '--deployment-user', 'stack',
              '--output-dir=/home/stack', '--cleanup',
              '-e', '/home/stack/tripleo-config-generated-env-files/'
-             'undercloud_parameters.yaml',
+             'undercloud_parameters.yaml', '--reproduce-command',
              '--log-file=install-undercloud.log', '-e',
              '/usr/share/openstack-tripleo-heat-templates/'
              'undercloud-stack-vstate-dropin.yaml'])
