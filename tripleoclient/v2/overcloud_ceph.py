@@ -161,6 +161,11 @@ class OvercloudCephDeploy(command.Command):
                                 "Path to an existing ceph.conf with settings "
                                 "to be assimilated by the new cluster via "
                                 "'cephadm bootstrap --config' ")),
+        parser.add_argument('--ceph-vip',
+                            help=_(
+                                "Path to an existing Ceph services/network "
+                                "mapping file."),
+                            default=None),
         spec_group = parser.add_mutually_exclusive_group()
         spec_group.add_argument('--ceph-spec',
                                 help=_(
@@ -366,6 +371,14 @@ class OvercloudCephDeploy(command.Command):
             else:
                 extra_vars['crush_hierarchy_path'] = \
                     os.path.abspath(parsed_args.crush_hierarchy)
+        if parsed_args.ceph_vip:
+            if not os.path.exists(parsed_args.ceph_vip):
+                raise oscexc.CommandError(
+                    "ceph vip mapping file not found --ceph-vip %s."
+                    % os.path.abspath(parsed_args.ceph_vip))
+            else:
+                extra_vars['tripleo_cephadm_ha_services_path'] = \
+                    os.path.abspath(parsed_args.ceph_vip)
         # optional container vars to pass to playbook
         keys = ['ceph_namespace', 'ceph_image', 'ceph_tag']
         key = 'ContainerImagePrepare'
