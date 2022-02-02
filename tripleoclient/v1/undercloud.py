@@ -131,6 +131,13 @@ class InstallUndercloud(command.Command):
                    'the container parameters configured, the deployment '
                    'action may fail.')
         )
+        parser.add_argument(
+            '--reproduce-command',
+            action='store_true',
+            default=False,
+            help=_('Create a reproducer command with ansible command'
+                   'line and all environments variables.')
+        )
         return parser
 
     def take_action(self, parsed_args):
@@ -150,6 +157,7 @@ class InstallUndercloud(command.Command):
             force_stack_update=parsed_args.force_stack_update,
             dry_run=parsed_args.dry_run,
             inflight=inflight,
+            reproducer=parsed_args.reproduce_command,
             disable_container_prepare=parsed_args.disable_container_prepare)
 
         self.log.warning("Running: %s" % ' '.join(cmd))
@@ -212,6 +220,7 @@ class UpgradeUndercloud(InstallUndercloud):
                 no_validations=parsed_args.
                 no_validations,
                 verbose_level=self.app_args.verbose_level,
+                reproducer=parsed_args.reproduce_command,
                 force_stack_update=parsed_args.force_stack_update)
         self.log.warning("Running: %s" % ' '.join(cmd))
         try:
