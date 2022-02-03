@@ -333,36 +333,31 @@ class ConfigureNode(command.Command):
                             action='store_true',
                             help=_('Whether to overwrite existing root device '
                                    'hints when --root-device is used.'))
+        parser.add_argument("--verbosity",
+                            type=int,
+                            default=1,
+                            help=_("Print debug output during execution"))
         return parser
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
 
+        conf = tb.TripleoConfigure(
+                kernel_name=parsed_args.deploy_kernel,
+                ramdisk_name=parsed_args.deploy_ramdisk,
+                instance_boot_option=parsed_args.instance_boot_option,
+                boot_mode=parsed_args.boot_mode,
+                root_device=parsed_args.root_device,
+                root_device_minimum_size=parsed_args.root_device_minimum_size,
+                overwrite_root_device_hints=(
+                    parsed_args.overwrite_root_device_hints)
+                )
+
         if parsed_args.node_uuids:
-            baremetal.configure(
-                self.app.client_manager,
-                node_uuids=parsed_args.node_uuids,
-                kernel_name=parsed_args.deploy_kernel,
-                ramdisk_name=parsed_args.deploy_ramdisk,
-                instance_boot_option=parsed_args.instance_boot_option,
-                boot_mode=parsed_args.boot_mode,
-                root_device=parsed_args.root_device,
-                root_device_minimum_size=parsed_args.root_device_minimum_size,
-                overwrite_root_device_hints=(
-                    parsed_args.overwrite_root_device_hints)
-            )
+            conf.configure(
+                node_uuids=parsed_args.node_uuids)
         else:
-            baremetal.configure_manageable_nodes(
-                self.app.client_manager,
-                kernel_name=parsed_args.deploy_kernel,
-                ramdisk_name=parsed_args.deploy_ramdisk,
-                instance_boot_option=parsed_args.instance_boot_option,
-                boot_mode=parsed_args.boot_mode,
-                root_device=parsed_args.root_device,
-                root_device_minimum_size=parsed_args.root_device_minimum_size,
-                overwrite_root_device_hints=(
-                    parsed_args.overwrite_root_device_hints)
-            )
+            conf.configure_manageable_nodes()
 
 
 class DiscoverNode(command.Command):

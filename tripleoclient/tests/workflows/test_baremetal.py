@@ -108,12 +108,6 @@ class TestBaremetalWorkflows(fakes.FakePlaybookExecution):
             node_timeout=1200, max_retries=1, retry_timeout=120,
         )
 
-    def test_configure_success(self):
-        baremetal.configure(self.app.client_manager, node_uuids=[])
-
-    def test_configure_manageable_nodes_success(self):
-        baremetal.configure_manageable_nodes(self.app.client_manager)
-
     def test_run_instance_boot_option(self):
         result = baremetal._configure_boot(
             self.app.client_manager,
