@@ -15,6 +15,7 @@
 import logging
 from tripleoclient import constants
 
+from validations_libs.cli.community import CommunityValidationInit
 from validations_libs.cli.history import GetHistory
 from validations_libs.cli.history import ListHistory
 from validations_libs.cli.lister import ValidationList
@@ -167,6 +168,17 @@ class DeprecatedTripleOValidatorRun(TripleOValidatorRun):
         return super(
             DeprecatedTripleOValidatorRun, self
         ).take_action(parsed_args)
+
+
+class TripleOValidatorCommunityInit(CommunityValidationInit):
+    """Create the paths and infrastructure to create a community validation"""
+
+    auth_required = False
+
+    def get_parser(self, parser):
+        parser = super(
+            TripleOValidatorCommunityInit, self).get_parser(parser)
+        return parser
 
 
 class TripleOValidatorShowHistory(ListHistory):
