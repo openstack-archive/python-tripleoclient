@@ -142,8 +142,7 @@ class ExternalUpdateRun(command.Command):
 
         # Run ansible:
         inventory = oooutils.get_tripleo_ansible_inventory(
-            parsed_args.static_inventory, parsed_args.ssh_user, stack,
-            return_inventory_file_path=True)
+            parsed_args.static_inventory, parsed_args.ssh_user, stack)
         limit_hosts = oooutils.playbook_limit_parse(
             limit_nodes=parsed_args.limit)
         playbook = 'all'
