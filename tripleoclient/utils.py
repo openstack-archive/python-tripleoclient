@@ -44,8 +44,6 @@ import textwrap
 import time
 import yaml
 
-import ansible_runner
-
 from ansible.parsing.dataloader import DataLoader
 from ansible.inventory.manager import InventoryManager
 from heatclient.common import event_utils
@@ -75,6 +73,11 @@ from tripleo_common import update
 from tripleoclient import constants
 from tripleoclient import exceptions
 from tripleoclient import heat_launcher
+
+import warnings
+warnings.simplefilter("ignore", UserWarning)
+
+import ansible_runner  # noqa
 
 
 LOG = logging.getLogger(__name__ + ".utils")
