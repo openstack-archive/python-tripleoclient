@@ -106,6 +106,10 @@ class StandaloneConfig(BaseConfig):
                         help=_('Whether to enable the neutron service.')),
             cfg.BoolOpt('enable_heat',
                         default=heat,
+                        deprecated_for_removal=True,
+                        deprecated_reason=('Heat has been replaced by the '
+                                           'heat-ephemeral service and this '
+                                           'option has been deprecated.'),
                         help=_('Whether to enable the heat service.')),
 
         ]

@@ -91,8 +91,6 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic-inspector.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'disable-heat.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-remove-novajoin.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'disable-telemetry.yaml', '-e',
@@ -154,8 +152,6 @@ class TestUndercloudInstall(TestPluginV1):
              '/home/stack/foo.yaml', '-e',
              '/usertht/environments/services/ironic.yaml', '-e',
              '/usertht/environments/services/ironic-inspector.yaml', '-e',
-             '/usertht/environments/'
-             'disable-heat.yaml', '-e',
              '/usertht/environments/services/'
              'undercloud-remove-novajoin.yaml', '-e',
              '/usertht/environments/'
@@ -318,8 +314,6 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic-inspector.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'disable-heat.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-remove-novajoin.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'disable-telemetry.yaml', '-e',
@@ -384,8 +378,6 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic-inspector.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'disable-heat.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-remove-novajoin.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'disable-telemetry.yaml', '-e',
@@ -446,8 +438,6 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic-inspector.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'disable-heat.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-remove-novajoin.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'disable-telemetry.yaml', '-e',
@@ -504,8 +494,6 @@ class TestUndercloudInstall(TestPluginV1):
              'services/ironic.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic-inspector.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'disable-heat.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-remove-novajoin.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -599,8 +587,6 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic-inspector.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'disable-heat.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-remove-novajoin.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'disable-telemetry.yaml', '-e',
@@ -688,8 +674,6 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic-inspector.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'disable-heat.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-remove-novajoin.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'disable-telemetry.yaml', '-e',
@@ -754,8 +738,6 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic-inspector.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'disable-heat.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-remove-novajoin.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'disable-telemetry.yaml', '-e',
@@ -819,8 +801,6 @@ class TestUndercloudUpgrade(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic-inspector.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'disable-heat.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-remove-novajoin.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'disable-telemetry.yaml', '-e',
@@ -881,8 +861,6 @@ class TestUndercloudUpgrade(TestPluginV1):
              'services/ironic.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic-inspector.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'disable-heat.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-remove-novajoin.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
@@ -950,8 +928,6 @@ class TestUndercloudUpgrade(TestPluginV1):
              'services/ironic.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic-inspector.yaml', '-e',
-             '/usr/share/openstack-tripleo-heat-templates/environments/'
-             'disable-heat.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/undercloud-remove-novajoin.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
