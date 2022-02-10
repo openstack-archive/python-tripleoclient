@@ -631,11 +631,6 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
             tht_templates, "environments/services/undercloud-tls.yaml")]
         env_data['UndercloudIpaOtp'] = CONF['ipa_otp']
 
-    # add service to remove novajoin containers
-    deploy_args += ['-e', os.path.join(
-        tht_templates, 'environments/services/undercloud-remove-novajoin.yaml')
-        ]
-
     if CONF.get('enable_swift'):
         deploy_args += ['-e', os.path.join(
             tht_templates, "environments/undercloud-enable-swift.yaml")]
