@@ -205,6 +205,13 @@ class OvercloudCephDeploy(command.Command):
                                 "ContainerImageRegistryCredentials."
                             ),
                             default=None)
+        parser.add_argument('--cephadm-default-container', default=False,
+                            action='store_true',
+                            help=_("Use the default continer defined in "
+                                   "cephadm instead of "
+                                   "container_image_prepare_defaults.yaml. "
+                                   "If this is used, 'cephadm bootstrap' is "
+                                   "not passed the --image parameter."))
         container_group = parser.add_argument_group("container-image-prepare "
                                                     "overrides",
                                                     "The following options "
@@ -404,6 +411,9 @@ class OvercloudCephDeploy(command.Command):
 
         if parsed_args.single_host_defaults:
             extra_vars["tripleo_cephadm_single_host_defaults"] = True
+
+        if parsed_args.cephadm_default_container:
+            extra_vars["tripleo_cephadm_default_container"] = True
 
         skip_tags = []
         if parsed_args.skip_user_create:
