@@ -433,7 +433,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
                               verbose_level=1, yes=False,
                               force_stack_update=False, dry_run=False,
                               inflight=False,
-                              reproducer=False,
+                              reproduce_command=False,
                               disable_container_prepare=False):
     """Prepare Undercloud deploy command based on undercloud.conf"""
 
@@ -802,7 +802,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
     if inflight:
         deploy_args.append('--inflight-validations')
 
-    if reproducer:
+    if reproduce_command:
         deploy_args.append('--reproduce-command')
 
     if disable_container_prepare:

@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Expose the existing --reproduce-command from `openstack tripleo deploy`
+    CLI in the Undercloud CLI commnads.
+    A new CLI option --reproduce-command is available for the `openstack
+    undercloud install` and `openstack undercloud upgrade` commands, which
+    creates an script, named ansible-playbook-command.sh, in the Undercloud's
+    deployment artifacts directory. This script allows running the Ansible
+    playbooks for deployment or upgrade in the same way the CLI command does.
