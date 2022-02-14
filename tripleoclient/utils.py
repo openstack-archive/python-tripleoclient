@@ -69,6 +69,7 @@ from tenacity import retry
 from tenacity.stop import stop_after_attempt, stop_after_delay
 from tenacity.wait import wait_fixed
 
+from tripleo_common.image import image_uploader
 from tripleo_common.image import kolla_builder
 from tripleo_common.utils import heat as tc_heat_utils
 from tripleo_common.utils import stack as stack_utils
@@ -2910,7 +2911,8 @@ def check_prohibited_overrides(protected_overrides, user_environments):
 
 
 def parse_container_image_prepare(tht_key='ContainerImagePrepare',
-                                  keys=[], source=None):
+                                  keys=[], source=None,
+                                  push_sub_keys=[]):
     """Extracts key/value pairs from list of keys in source file
     If keys=[foo,bar] and source is the following,
     then return {foo: 1, bar: 2}
@@ -2918,12 +2920,17 @@ def parse_container_image_prepare(tht_key='ContainerImagePrepare',
     parameter_defaults:
       ContainerImagePrepare:
       - tag_from_label: grault
+        push_destination: quux.com
         set:
           foo: 1
           bar: 2
           namespace: quay.io/garply
       ContainerImageRegistryCredentials:
         'quay.io': {'quay_username': 'quay_password'}
+
+    If push_destination tag is present as above and push_sub_keys
+    contains 'namespace', then the returned dictionary d will
+    contain d['namespace'] = 'quux.com/garply'.
 
     Alternatively, if tht_key='ContainerImageRegistryCredentials' and
     keys=['quay.io/garply'] for the above, then return the following:
@@ -2937,6 +2944,7 @@ def parse_container_image_prepare(tht_key='ContainerImagePrepare',
     :param tht_key: string of a THT parameter (only 2 options)
     :param keys: list of keys to extract
     :param source: (string) path to container_image_prepare_defaults.yaml
+    :param push_sub_keys: list of keys to have substitutions if push_desination
 
     :return: dictionary
     """
@@ -2956,12 +2964,33 @@ def parse_container_image_prepare(tht_key='ContainerImagePrepare',
 
     if tht_key == 'ContainerImagePrepare':
         try:
+            push = ''
             tag_list = images['parameter_defaults'][tht_key]
             for key in keys:
                 for tag in tag_list:
+                    if 'push_destination' in tag:
+                        # substitute discovered registry
+                        # if push_destination is set to true
+                        if isinstance(tag['push_destination'], bool) and \
+                           tag['push_destination']:
+                            push = image_uploader.get_undercloud_registry()
+                            if len(push_sub_keys) > 0:
+                                image_map['push_destination_boolean'] = True
+                        elif isinstance(tag['push_destination'], str):
+                            push = tag['push_destination']
+                            if len(push_sub_keys) > 0:
+                                image_map['push_destination_boolean'] = True
+                        elif len(push_sub_keys) > 0:
+                            image_map['push_destination_boolean'] = False
                     if 'set' in tag:
                         if key in tag['set']:
                             image_map[key] = tag['set'][key]
+                            if len(push) > 0 and key in push_sub_keys:
+                                # replace the host portion of the imagename
+                                # with the push_destination, since that is
+                                # where they will be uploaded to
+                                image = image_map[key].partition('/')[2]
+                                image_map[key] = '/'.join((push, image))
         except KeyError:
             raise RuntimeError(
                 "The expected parameter_defaults and %s are not "
