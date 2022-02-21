@@ -13,8 +13,9 @@
       - tripleo-upgrades-wallaby-pipeline
     check:
       jobs:
-        - tripleo-ci-centos-8-content-provider:
+        - tripleo-ci-centos-8-content-provider: &content_provider_deps
             dependencies:
               - openstack-tox-pep8
               - openstack-tox-py36
               - openstack-tox-py37
+        - tripleo-ci-centos-9-content-provider: *content_provider_deps
