@@ -1,0 +1,22 @@
+---
+features:
+  - |
+    A new option --daemons for the "openstack overcloud ceph deploy" command
+    has been added. This option may be used to define additional Ceph daemons
+    that should be deployed at this stage.
+    For instance, a generic Ceph daemons definition can be something like the
+    following::
+
+      ---
+      ceph_nfs:
+        cephfs_data: 'manila_data'
+        cephfs_metadata: 'manila_metadata'
+      ceph_rgw: {}
+      ceph_ingress:
+        tripleo_cephadm_haproxy_container_image: undercloud.ctlplane.mydomain.tld:8787/ceph/haproxy:2.3
+        tripleo_cephadm_keepalived_container_image: undercloud.ctlplane.mydomain.tld:8787/ceph/keepalived:2.5.1
+
+    For each service added to the data structure above, additional options can
+    be defined and passed as extra_vars to the tripleo-ansible flow.
+    If no option is specified, the default values provided by the cephadm
+    tripleo-ansible role will be used.

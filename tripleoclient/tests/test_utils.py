@@ -2791,3 +2791,27 @@ class TestCephSpecStandalone(TestCase):
             list(io.open(my_spec.name)))
         expected_spec.close()
         my_spec.close()
+
+
+class TestProcessCephDaemons(TestCase):
+
+    def test_process_ceph_daemons(self):
+
+        daemon_opt = yaml.safe_load('''
+        ceph_nfs:
+          cephfs_data: manila_data
+          cephfs_metadata: manila_metadata
+        ''')
+
+        expected = {
+         'tripleo_cephadm_daemon_ceph_nfs': True,
+         'cephfs_data': 'manila_data',
+         'cephfs_metadata': 'manila_metadata'
+        }
+
+        # daemon_input = tempfile.NamedTemporaryFile()
+        with tempfile.NamedTemporaryFile(mode='w') as f:
+            yaml.safe_dump(daemon_opt, f)
+            found = utils.process_ceph_daemons(f.name)
+
+        self.assertEqual(found, expected)
