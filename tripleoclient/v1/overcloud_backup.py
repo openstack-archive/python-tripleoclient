@@ -26,6 +26,8 @@ from tripleoclient import utils
 
 LOG = logging.getLogger(__name__ + ".BackupOvercloud")
 
+INVENTORY = constants.ANSIBLE_INVENTORY.format('overcloud')
+
 
 class BackupOvercloud(command.Command):
     """Backup the Overcloud"""
@@ -91,10 +93,10 @@ class BackupOvercloud(command.Command):
 
         parser.add_argument(
             '--inventory',
-            default='/home/stack/tripleo-inventory.yaml',
+            default=INVENTORY,
             help=_("Tripleo inventory file generated with "
                    "tripleo-ansible-inventory command. "
-                   "Defaults to: /home/stack/tripleo-inventory.yaml.")
+                   "Defaults to: " + INVENTORY)
         )
 
         parser.add_argument(
