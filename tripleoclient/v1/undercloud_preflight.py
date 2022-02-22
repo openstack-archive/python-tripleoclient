@@ -74,15 +74,17 @@ def _run_live_command(args, env=None, name=None, cwd=None, wait=True):
         raise RuntimeError(message)
 
 
-def _check_diskspace(upgrade=False):
-    """Check undercloud disk space
+def _run_validations(upgrade=False):
+    """Run tripleo-validations playbook
 
-    This runs a simple ansible playbook located in tripleo-validations
-    There are currently two playbooks:
+    This runs simple ansible playbooks located in tripleo-validations
+    There are currently three playbooks:
     - undercloud-disk-space.yaml
     - undercloud-disk-space-pre-upgrade.yaml
+    - undercloud-disabled-services.yaml
     First one checks minimal disk space for a brand new deploy.
     Second one checks minimal disk space for an upgrade.
+    Third one checks for services that should be disabled on the undercloud.
     """
     if upgrade:
         playbook_args = constants.DEPLOY_ANSIBLE_ACTIONS['preflight-upgrade']
@@ -95,7 +97,7 @@ def _check_diskspace(upgrade=False):
             inventory='undercloud',
             log_path=tmp,
             validations_dir=constants.ANSIBLE_VALIDATION_DIR,
-            validation_name=[playbook_args['playbook']])
+            validation_name=playbook_args['playbooks'])
 
 
 def _check_memory():
@@ -505,7 +507,7 @@ def check(verbose_level, upgrade=False):
         _checking_status('Memory')
         _check_memory()
         _checking_status('Disk space')
-        _check_diskspace(upgrade)
+        _run_validations(upgrade)
         _checking_status('Sysctl')
         _check_sysctl()
         _checking_status('Password file')

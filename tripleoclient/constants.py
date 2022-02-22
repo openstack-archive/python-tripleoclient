@@ -197,10 +197,12 @@ DEPLOY_ANSIBLE_ACTIONS = {
         'tags': 'online_upgrade'
     },
     'preflight-deploy': {
-        'playbook': 'undercloud-disk-space.yaml'
+        'playbooks': ['undercloud-disk-space.yaml',
+                      'undercloud-disabled-services.yaml']
     },
     'preflight-upgrade': {
-        'playbook': 'undercloud-disk-space-pre-upgrade.yaml'
+        'playbooks': ['undercloud-disk-space-pre-upgrade.yaml',
+                      'undercloud-disabled-services.yaml']
     },
 }
 
