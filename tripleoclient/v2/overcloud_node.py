@@ -410,14 +410,36 @@ class UnprovisionNode(command.Command):
                 )
                 with open(unprovision_confirm) as f:
                     to_unprovision = json.load(f)
-                    if not to_unprovision:
+
+                    # (TODO: slagle) unprovision_confirm was previously a list,
+                    # but was switched to a dict so that network ports for
+                    # pre_provisioned nodes can also be confirmed for
+                    # unprovisioning. Check the data structure for backwards
+                    # compatibility, When the tripleo-ansible patch is merged,
+                    # this check can be removed.
+                    if isinstance(to_unprovision, dict):
+                        instances = to_unprovision.get('instances')
+                        pre_provisioned = to_unprovision.get('pre_provisioned')
+                    else:
+                        instances = to_unprovision
+                        pre_provisioned = None
+
+                    print()
+                    if not (instances or pre_provisioned):
                         print('Nothing to unprovision, exiting')
                         return
-                    self._print_nodes(to_unprovision)
+                    print("The following nodes will be unprovisioned:")
+                    self._print_nodes(instances)
+                    print()
+                    if pre_provisioned:
+                        print("The following pre-provisioned nodes will "
+                              "have network ports unprovisioned:")
+                        self._print_nodes(pre_provisioned)
+                        print()
 
                 confirm = oooutils.prompt_user_for_confirmation(
                     message=_("Are you sure you want to unprovision these %s "
-                              "nodes [y/N]? ") % parsed_args.stack,
+                              "nodes and ports [y/N]? ") % parsed_args.stack,
                     logger=self.log)
                 if not confirm:
                     raise oscexc.CommandError("Action not confirmed, exiting.")
