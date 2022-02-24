@@ -88,9 +88,9 @@ class TripleoProvide(TripleoBaremetal):
     """
 
     def __init__(self, wait_for_bridge_mappings: bool = False,
-                 verbosity: int = 1):
+                 timeout: int = 60, verbosity: int = 1):
 
-        super().__init__(verbosity)
+        super().__init__(timeout=timeout, verbosity=verbosity)
         self.wait_for_bridge_mappings = wait_for_bridge_mappings
 
     def _wait_for_unlocked(self, node: str, timeout: int):
