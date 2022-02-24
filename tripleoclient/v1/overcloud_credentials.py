@@ -12,6 +12,8 @@
 
 import logging
 
+from osc_lib.i18n import _
+
 from tripleoclient import command
 from tripleoclient.workflows import deployment
 from tripleoclient import utils
@@ -24,21 +26,32 @@ class OvercloudCredentials(command.Command):
 
     def get_parser(self, prog_name):
         parser = super(OvercloudCredentials, self).get_parser(prog_name)
-        parser.add_argument('plan', help=("The name of the plan you want to "
-                                          "create rc files for."))
-        parser.add_argument('--directory', default=".", nargs='?', help=(
-            "The directory to create the rc files. Defaults to the current "
-            "directory."))
+        parser.add_argument(
+                'stack',
+                help=_("The name of the stack you want to "
+                       "create rc files for."))
+        parser.add_argument(
+            '--directory',
+            default=".",
+            nargs='?',
+            help=_("The directory to create the rc files. "
+                   "Defaults to the current directory."))
+        parser.add_argument(
+            '--working-dir',
+            action='store',
+            help=_('The working directory that contains the input, output, '
+                   'and generated files for the deployment.\n'
+                   'Defaults to "$HOME/overcloud-deploy/<stack>"')
+        )
         return parser
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
-        self.clients = self.app.client_manager
-        stack = utils.get_stack(
-            self.clients.orchestration, parsed_args.plan)
         rc_params = utils.get_rc_params(
-            self.clients.orchestration,
-            parsed_args.plan)
+            parsed_args.working_dir)
+        endpoint = utils.get_overcloud_endpoint(parsed_args.working_dir)
+        admin_vip = utils.get_stack_saved_output_item(
+            'KeystoneAdminVip', parsed_args.working_dir)
         deployment.create_overcloudrc(
-            stack, rc_params,
+            parsed_args.stack, endpoint, admin_vip, rc_params,
             output_dir=parsed_args.directory)
