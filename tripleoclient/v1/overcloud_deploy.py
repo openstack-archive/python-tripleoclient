@@ -1261,7 +1261,7 @@ class DeployOvercloud(command.Command):
                     extra_vars=extra_vars
                 )
 
-        except Exception:
+        except (KeyboardInterrupt, Exception):
             if parsed_args.heat_type != 'installed' and self.heat_launcher:
                 self.log.info("Stopping ephemeral heat.")
                 utils.kill_heat(self.heat_launcher)
