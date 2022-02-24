@@ -403,7 +403,7 @@ class DeployOvercloud(command.Command):
     def _deploy_postconfig(self, stack, parsed_args):
         self.log.debug("_deploy_postconfig(%s)" % parsed_args)
 
-        overcloud_endpoint = utils.get_overcloud_endpoint(stack)
+        overcloud_endpoint = utils.get_overcloud_endpoint(self.working_dir)
         # NOTE(jaosorior): The overcloud endpoint can contain an IP address or
         # an FQDN depending on how what it's configured to output in the
         # tripleo-heat-templates. Such a configuration can be done by
@@ -411,7 +411,8 @@ class DeployOvercloud(command.Command):
         overcloud_ip_or_fqdn = urllib.parse.urlparse(
             overcloud_endpoint).hostname
 
-        keystone_admin_ip = utils.get_endpoint('KeystoneAdmin', stack)
+        keystone_admin_ip = utils.get_stack_saved_output_item(
+            'KeystoneAdminVip', self.working_dir)
         no_proxy = os.environ.get('no_proxy', overcloud_ip_or_fqdn)
         no_proxy_list = map(utils.bracket_ipv6,
                             [no_proxy, overcloud_ip_or_fqdn,
@@ -1276,24 +1277,20 @@ class DeployOvercloud(command.Command):
 
         try:
             if stack:
-                # Force fetching of attributes
-                stack.get()
-                overcloud_endpoint = utils.get_overcloud_endpoint(stack)
-                horizon_url = deployment.get_horizon_url(
-                    stack=stack.stack_name,
-                    heat_type=parsed_args.heat_type,
-                    working_dir=self.working_dir)
-                rc_params = utils.get_rc_params(
-                    self.orchestration_client,
-                    parsed_args.stack)
+                overcloud_endpoint = utils.get_overcloud_endpoint(
+                    self.working_dir)
+                overcloud_admin_vip = utils.get_stack_saved_output_item(
+                    'KeystoneAdminVip', self.working_dir)
+                rc_params = utils.get_rc_params(self.working_dir)
 
                 # For backwards compatibility, we will also write overcloudrc
                 # to $HOME and then self.working_dir.
                 old_rcpath = deployment.create_overcloudrc(
-                    stack, rc_params, parsed_args.no_proxy)
+                    parsed_args.stack, overcloud_endpoint, overcloud_admin_vip,
+                    rc_params, parsed_args.no_proxy)
                 rcpath = deployment.create_overcloudrc(
-                    stack, rc_params, parsed_args.no_proxy,
-                    self.working_dir)
+                    parsed_args.stack, overcloud_endpoint, overcloud_admin_vip,
+                    rc_params, parsed_args.no_proxy, self.working_dir)
 
             if do_setup:
                 deployment.get_hosts_and_enable_ssh_admin(

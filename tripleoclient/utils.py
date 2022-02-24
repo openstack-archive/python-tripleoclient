@@ -1006,8 +1006,8 @@ def get_stack_saved_output_item(output, working_dir):
         return yaml.safe_load(f.read())
 
 
-def get_overcloud_endpoint(stack):
-    return get_stack_output_item(stack, 'KeystoneURL')
+def get_overcloud_endpoint(working_dir):
+    return get_stack_saved_output_item('KeystoneURL', working_dir)
 
 
 def get_service_ips(stack):
@@ -1055,18 +1055,12 @@ def get_stack(orchestration_client, stack_name):
         pass
 
 
-def get_rc_params(orchestration_client, stack_name):
-    env = orchestration_client.stacks.environment(stack_name)
+def get_rc_params(working_dir):
     rc_params = {}
-    try:
-        rc_params['password'] = env[
-            'parameter_defaults']['AdminPassword']
-    except KeyError as ex:
-        error = ("Unable to find %s in the stack "
-                 "environment." % ex.args[0])
-        raise RuntimeError(error)
-    rc_params['region'] = env[
-        'parameter_defaults'].get('KeystoneRegion')
+    rc_params['password'] = get_stack_saved_output_item(
+        'AdminPassword', working_dir)
+    rc_params['region'] = get_stack_saved_output_item(
+        'KeystoneRegion', working_dir)
     return rc_params
 
 

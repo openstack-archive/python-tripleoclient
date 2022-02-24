@@ -32,7 +32,7 @@ class TestOvercloudCredentials(test_plugin.TestPluginV1):
     def test_ok(self, mock_run_playbook):
         arglist = ['overcloud', ]
         verifylist = [
-            ('plan', 'overcloud'),
+            ('stack', 'overcloud'),
             ('directory', '.')
         ]
 
@@ -46,7 +46,7 @@ class TestOvercloudCredentials(test_plugin.TestPluginV1):
 
         arglist = ['overcloud', '--directory', temp]
         verifylist = [
-            ('plan', 'overcloud'),
+            ('stack', 'overcloud'),
             ('directory', temp)
         ]
         self.check_parser(self.cmd, arglist, verifylist)
