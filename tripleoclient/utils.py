@@ -31,6 +31,7 @@ import netaddr
 import openstack
 import os
 import os.path
+import prettytable
 import pwd
 import re
 import shutil
@@ -3449,3 +3450,46 @@ def process_ceph_daemons(daemon_path):
         except AttributeError:
             return extra_vars
     return extra_vars
+
+
+def check_deploy_backups(
+        working_dir,
+        backup_usage_percent=constants.DEPLOY_BACKUPS_USAGE_PERCENT,
+        disk_usage_percent=constants.DISK_USAGE_PERCENT):
+    """Check the total space used by all deploy backups in the given
+    working_dir. If it exceeds the backup_usage_percent or total disk usage
+    exceeds disk_usage_percent, then print a warning.
+    """
+    backup_files = glob.iglob(
+        os.path.join(working_dir, '..', '*', '*.tar.bzip2'))
+    backup_table = prettytable.PrettyTable(
+        ['Backup file', 'File size (KB)'])
+
+    total_size = 0
+    backup_file = None
+
+    for backup_file in backup_files:
+        file_size = os.stat(backup_file).st_size
+        total_size += file_size
+        backup_table.add_row(
+            [os.path.realpath(backup_file), round(file_size / 1024, 2)])
+
+    if backup_file:
+        statvfs = os.statvfs(backup_file)
+        fs_size = statvfs.f_frsize * statvfs.f_blocks
+        fs_free = statvfs.f_frsize * statvfs.f_bfree
+        fs_usage = 1 - (fs_free / fs_size)
+        backup_usage = total_size / fs_size
+
+        if (backup_usage > backup_usage_percent / 100):
+            LOG.warning(
+                "Deploy backup files disk usage {:.2%} exceeds {:d}% "
+                "percent of disk size. Consider deleting some "
+                "older deploy backups.".format(fs_usage, backup_usage_percent))
+            print(backup_table, file=sys.stdout)
+        elif (fs_usage > disk_usage_percent / 100):
+            LOG.warning(
+                "Disk usage {:.2%} exceeds {:d}% "
+                "percent of disk size. Consider deleting some "
+                "older deploy backups.".format(fs_usage, disk_usage_percent))
+            print(backup_table, file=sys.stdout)

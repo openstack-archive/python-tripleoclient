@@ -299,3 +299,7 @@ KIND_TEMPLATES = {'roles': WD_DEFAULT_ROLES_FILE_NAME,
                   'networks': WD_DEFAULT_NETWORKS_FILE_NAME,
                   'baremetal': WD_DEFAULT_BAREMETAL_FILE_NAME,
                   'vips': WD_DEFAULT_VIP_FILE_NAME}
+
+# Disk usage percentages to check as related to deploy backups
+DEPLOY_BACKUPS_USAGE_PERCENT = 50
+DISK_USAGE_PERCENT = 80
