@@ -899,22 +899,24 @@ class OvercloudCephSpec(command.Command):
         else:
             overwrite = True
 
-        if not parsed_args.standalone:
-            if not parsed_args.working_dir:
-                working_dir = oooutils.get_default_working_dir(
-                    parsed_args.stack)
-            else:
-                working_dir = os.path.abspath(parsed_args.working_dir)
-            oooutils.makedirs(working_dir)
+        if not parsed_args.working_dir:
+            working_dir = oooutils.get_default_working_dir(
+                parsed_args.stack)
+        else:
+            working_dir = os.path.abspath(parsed_args.working_dir)
+        oooutils.makedirs(working_dir)
 
+        if parsed_args.standalone:
+            inventory = oooutils.standalone_ceph_inventory(working_dir)
+        else:
             inventory = os.path.join(working_dir,
                                      constants.TRIPLEO_STATIC_INVENTORY)
-            if not os.path.exists(inventory):
-                raise oscexc.CommandError(
-                    "Inventory file not found in working directory: "
-                    "%s. It should have been created by "
-                    "'openstack overcloud node provision'."
-                    % inventory)
+        if not os.path.exists(inventory):
+            raise oscexc.CommandError(
+                "Inventory file not found in working directory: "
+                "%s. It should have been created by "
+                "'openstack overcloud node provision'."
+                % inventory)
 
         # mandatory extra_vars are now set, add others conditionally
         extra_vars = {
@@ -979,21 +981,21 @@ class OvercloudCephSpec(command.Command):
                 extra_vars['crush_hierarchy_path'] = \
                     os.path.abspath(parsed_args.crush_hierarchy)
 
-        # Call the playbook to create the spec from baremetal and roles files
-        if not parsed_args.standalone:
-            with oooutils.TempDirs() as tmp:
-                oooutils.run_ansible_playbook(
-                    playbook='cli-deployed-ceph.yaml',
-                    inventory=inventory,
-                    workdir=tmp,
-                    playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
-                    verbosity=oooutils.playbook_verbosity(self=self),
-                    extra_vars=extra_vars,
-                    reproduce_command=False,
-                    tags='ceph_spec',
-                )
+        if parsed_args.standalone:
+            spec_playbook = 'cli-standalone-ceph-spec.yaml'
+            tags = ''
         else:
-            # Create the spec directly
-            oooutils.ceph_spec_standalone(ceph_spec_path=output_path,
-                                          mon_ip=parsed_args.mon_ip,
-                                          osd_spec_path=parsed_args.osd_spec)
+            spec_playbook = 'cli-deployed-ceph.yaml'
+            tags = 'ceph_spec'
+
+        with oooutils.TempDirs() as tmp:
+            oooutils.run_ansible_playbook(
+                playbook=spec_playbook,
+                inventory=inventory,
+                workdir=tmp,
+                playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                verbosity=oooutils.playbook_verbosity(self=self),
+                extra_vars=extra_vars,
+                reproduce_command=False,
+                tags=tags,
+            )
