@@ -295,3 +295,7 @@ DEFAULT_PARTITION_IMAGE = 'overcloud-full.qcow2'
 DEFAULT_WHOLE_DISK_IMAGE = 'overcloud-hardened-uefi-full.qcow2'
 
 FIPS_COMPLIANT_HASHES = {'sha1', 'sha224', 'sha256', 'sha384', 'sha512'}
+
+# Disk usage percentages to check as related to deploy backups
+DEPLOY_BACKUPS_USAGE_PERCENT = 50
+DISK_USAGE_PERCENT = 80
