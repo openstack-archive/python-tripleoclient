@@ -3485,3 +3485,22 @@ def standalone_ceph_inventory(working_dir):
     with open(path, 'w') as f:
         f.write(yaml.safe_dump(inv))
     return path
+
+
+def process_ceph_daemons(daemon_path):
+    """Load the ceph daemons related extra_vars and return the associated dict
+    :param daemon_path: the path where the daemon definition is stored
+    :return: dict mapping each daemon option to a value passes to ansible
+    """
+    extra_vars = dict()
+    with open(daemon_path, 'r') as f:
+        ceph_daemons = yaml.safe_load(f.read())
+        try:
+            for daemon in ceph_daemons.keys():
+                extra_vars['tripleo_cephadm_daemon_' + daemon] = True
+                # process current daemon paramters/options
+                for k, v in ceph_daemons.get(daemon).items():
+                    extra_vars[k] = v
+        except AttributeError:
+            return extra_vars
+    return extra_vars

@@ -179,6 +179,11 @@ class OvercloudCephDeploy(command.Command):
                                 "Path to an existing Ceph services/network "
                                 "mapping file."),
                             default=None),
+        parser.add_argument('--daemons',
+                            help=_(
+                                "Path to an existing Ceph daemon options "
+                                "definition."),
+                            default=None),
         parser.add_argument('--single-host-defaults', default=False,
                             action='store_true',
                             help=_("Adjust configuration defaults to suit "
@@ -403,6 +408,16 @@ class OvercloudCephDeploy(command.Command):
             else:
                 extra_vars['tripleo_cephadm_ha_services_path'] = \
                     os.path.abspath(parsed_args.ceph_vip)
+        if parsed_args.daemons:
+            if not os.path.exists(parsed_args.daemons):
+                raise oscexc.CommandError(
+                    "ceph daemon options file not found --daemons %s."
+                    % os.path.abspath(parsed_args.daemons))
+            else:
+                daemon_opt = oooutils.process_daemons(
+                    os.path.abspath(parsed_args.daemons))
+                # merge the processed extra_vars for daemons
+                extra_vars = {**extra_vars, **daemon_opt}
         # optional container vars to pass to playbook
         keys = ['ceph_namespace', 'ceph_image', 'ceph_tag']
         push_sub_keys = ['ceph_namespace']
