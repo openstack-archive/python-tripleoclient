@@ -211,11 +211,11 @@ class OvercloudCephDeploy(command.Command):
                                     "data_devices value inside the "
                                     "Ceph spec file."),
                                 default=None)
-        spec_group.add_argument('--crush-hierarchy',
-                                help=_(
-                                    "Path to an existing crush hierarchy spec "
-                                    "file. "),
-                                default=None)
+        parser.add_argument('--crush-hierarchy',
+                            help=_(
+                                "Path to an existing crush hierarchy spec "
+                                "file. "),
+                            default=None)
         parser.add_argument('--standalone', default=False,
                             action='store_true',
                             help=_("Use single host Ansible inventory. "
@@ -863,24 +863,22 @@ class OvercloudCephSpec(command.Command):
                             help=_("Create a spec file for a standalone "
                                    "deployment. Used for single server "
                                    "development or testing environments."))
-        spec_group = parser.add_mutually_exclusive_group()
-        spec_group.add_argument('--osd-spec',
-                                help=_(
-                                    "Path to an existing OSD spec file. "
-                                    "When the Ceph spec file is generated "
-                                    "its OSD spec defaults to "
-                                    "{data_devices: {all: true}} "
-                                    "for all service_type osd. "
-                                    "Use --osd-spec to override the "
-                                    "data_devices value inside the "
-                                    "Ceph spec file."),
-                                default=None)
-        spec_group.add_argument('--crush-hierarchy',
-                                help=_(
-                                    "Path to an existing crush hierarchy spec "
-                                    "file. "),
-                                default=None)
-
+        parser.add_argument('--osd-spec',
+                            help=_(
+                                "Path to an existing OSD spec file. "
+                                "When the Ceph spec file is generated "
+                                "its OSD spec defaults to "
+                                "{data_devices: {all: true}} "
+                                "for all service_type osd. "
+                                "Use --osd-spec to override the "
+                                "data_devices value inside the "
+                                "Ceph spec file."),
+                            default=None)
+        parser.add_argument('--crush-hierarchy',
+                            help=_(
+                                "Path to an existing crush hierarchy spec "
+                                "file. "),
+                            default=None)
         return parser
 
     def take_action(self, parsed_args):
