@@ -189,11 +189,11 @@ class OvercloudCephDeploy(command.Command):
                                     "data_devices value inside the "
                                     "Ceph spec file."),
                                 default=None)
-        spec_group.add_argument('--crush-hierarchy',
-                                help=_(
-                                    "Path to an existing crush hierarchy spec "
-                                    "file. "),
-                                default=None)
+        parser.add_argument('--crush-hierarchy',
+                            help=_(
+                                "Path to an existing crush hierarchy spec "
+                                "file. "),
+                            default=None)
         parser.add_argument('--container-image-prepare',
                             help=_(
                                 "Path to an alternative "
