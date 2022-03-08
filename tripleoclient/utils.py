@@ -2046,14 +2046,25 @@ def prepend_environment(environment_files, templates_dir, environment):
     return environment_files
 
 
-def get_short_hostname():
-    """Returns the local short hostname
-
+def get_hostname(short=False):
+    """Returns the local hostname
+    :param (short): boolean true to run 'hostname -s'
     :return string
     """
-    p = subprocess.Popen(["hostname", "-s"], stdout=subprocess.PIPE,
+    if short:
+        cmd = ["hostname", "-s"]
+    else:
+        cmd = ["hostname"]
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                          universal_newlines=True)
     return p.communicate()[0].rstrip().lower()
+
+
+def get_short_hostname():
+    """Returns the local short hostname
+    :return string
+    """
+    return get_hostname(short=True)
 
 
 def wait_api_port_ready(api_port, host='127.0.0.1'):
