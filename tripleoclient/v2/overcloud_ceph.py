@@ -164,6 +164,17 @@ class OvercloudCephDeploy(command.Command):
                                 "Path to an existing ceph.conf with settings "
                                 "to be assimilated by the new cluster via "
                                 "'cephadm bootstrap --config' ")),
+        parser.add_argument('--cephadm-extra-args',
+                            help=_(
+                                "String of extra parameters to pass cephadm. "
+                                "E.g. if --cephadm-extra-args '--log-to-file "
+                                " --skip-prepare-host', then cephadm boostrap "
+                                "will use those options. Warning: requires "
+                                "--force as not all possible options ensure a "
+                                "functional deployment.")),
+        parser.add_argument('--force', default=False,
+                            action='store_true',
+                            help=_("Run command regardless of consequences."))
         parser.add_argument('--single-host-defaults', default=False,
                             action='store_true',
                             help=_("Adjust configuration defaults to suit "
@@ -352,6 +363,12 @@ class OvercloudCephDeploy(command.Command):
             else:
                 extra_vars['crush_hierarchy_path'] = \
                     os.path.abspath(parsed_args.crush_hierarchy)
+        if parsed_args.cephadm_extra_args and not parsed_args.force:
+            raise oscexc.CommandError(
+                "--cephadm-extra-args requires --force.")
+        if parsed_args.cephadm_extra_args and parsed_args.force:
+            extra_vars['tripleo_cephadm_extra_args'] = \
+                parsed_args.cephadm_extra_args
         # optional container vars to pass to playbook
         keys = ['ceph_namespace', 'ceph_image', 'ceph_tag']
         push_sub_keys = ['ceph_namespace']
