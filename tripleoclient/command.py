@@ -83,6 +83,17 @@ class Command(command.Command):
 
         return parsed_args.overcloud_ssh_key
 
+    def _configure_logging(self, parsed_args):
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        handler = logging.StreamHandler()
+        handler.setFormatter(formatter)
+        self.log.addHandler(handler)
+        if self.app_args.verbose_level >= 2:
+            handler.setLevel(logging.DEBUG)
+        else:
+            handler.setLevel(logging.INFO)
+
 
 class Lister(Command, command.Lister):
     pass

@@ -18,9 +18,9 @@ import getpass
 import logging
 import os
 
-from cliff import command
 from osc_lib.i18n import _
 
+from tripleoclient import command
 from tripleoclient.constants import (DEFAULT_EPHEMERAL_HEAT_CONTAINER,
                                      DEFAULT_EPHEMERAL_HEAT_API_CONTAINER,
                                      DEFAULT_EPHEMERAL_HEAT_ENGINE_CONTAINER)
@@ -221,14 +221,3 @@ class LaunchHeat(command.Command):
             else:
                 self.log.info("Writing heat clouds.yaml")
                 utils.write_ephemeral_heat_clouds_yaml(parsed_args.heat_dir)
-
-    def _configure_logging(self, parsed_args):
-        formatter = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        handler = logging.StreamHandler()
-        handler.setFormatter(formatter)
-        self.log.addHandler(handler)
-        if self.app_args.verbose_level >= 2:
-            handler.setLevel(logging.DEBUG)
-        else:
-            handler.setLevel(logging.INFO)
