@@ -20,6 +20,7 @@ import datetime
 import fixtures
 import logging
 import mock
+import openstack
 import os
 import os.path
 import shutil
@@ -2597,3 +2598,62 @@ class TestGetHostEntry(base.TestCase):
             mock_process.returncode = 0
             mock_popen.return_value = mock_process
             self.assertEqual(expected, utils.get_undercloud_host_entry())
+
+
+class TestGetCtlplaneAttrs(base.TestCase):
+
+    @mock.patch('openstack.connect', autospec=True)
+    @mock.patch.object(openstack.connection, 'Connection', autospec=True)
+    def test_get_ctlplane_attrs_no_network(self, mock_conn, mock_connect):
+        mock_connect.return_value = mock_conn
+        mock_conn.network.find_network.return_value = None
+        expected = dict()
+        self.assertEqual(expected, utils.get_ctlplane_attrs())
+
+    @mock.patch('openstack.connect', autospec=True)
+    def test_get_ctlplane_attrs_no_config(self, mock_connect):
+        mock_connect.side_effect = openstack.exceptions.ConfigException
+
+        expected = dict()
+        self.assertEqual(expected, utils.get_ctlplane_attrs())
+
+    @mock.patch('openstack.connect', autospec=True)
+    @mock.patch.object(openstack.connection, 'Connection', autospec=True)
+    def test_get_ctlplane_attrs(self, mock_conn, mock_connect):
+        mock_connect.return_value = mock_conn
+        fake_network = fakes.FakeNeutronNetwork(
+            name='net_name',
+            mtu=1440,
+            dns_domain='ctlplane.localdomain.',
+            tags=[],
+            subnet_ids=['subnet_id'])
+        fake_subnet = fakes.FakeNeutronSubnet(
+            id='subnet_id',
+            name='subnet_name',
+            cidr='192.168.24.0/24',
+            gateway_ip='192.168.24.1',
+            host_routes=[
+                {'destination': '192.168.25.0/24', 'nexthop': '192.168.24.1'}],
+            dns_nameservers=['192.168.24.254'],
+            ip_version=4
+        )
+        mock_conn.network.find_network.return_value = fake_network
+        mock_conn.network.get_subnet.return_value = fake_subnet
+        expected = {
+            'network': {
+                'dns_domain': 'ctlplane.localdomain.',
+                'mtu': 1440,
+                'name': 'net_name',
+                'tags': []},
+            'subnets': {
+                'subnet_name': {
+                    'cidr': '192.168.24.0/24',
+                    'dns_nameservers': ['192.168.24.254'],
+                    'gateway_ip': '192.168.24.1',
+                    'host_routes': [{'destination': '192.168.25.0/24',
+                                     'nexthop': '192.168.24.1'}],
+                    'ip_version': 4,
+                    'name': 'subnet_name'}
+            }
+        }
+        self.assertEqual(expected, utils.get_ctlplane_attrs())
