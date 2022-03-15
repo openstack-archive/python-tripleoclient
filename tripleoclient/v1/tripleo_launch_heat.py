@@ -64,14 +64,15 @@ class LaunchHeat(command.Command):
         parser = argparse.ArgumentParser(
             description=self.get_description(),
             prog=prog_name,
-            add_help=False
+            add_help=False,
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter
         )
         parser.add_argument(
             '--heat-api-port', metavar='<HEAT_API_PORT>',
             dest='heat_api_port',
             default='8006',
             help=_('Heat API port to use for the installers private'
-                   ' Heat API instance. Optional. Default: 8006.)')
+                   ' Heat API instance. Optional.')
         )
         parser.add_argument(
             '--heat-user', metavar='<HEAT_USER>',
@@ -124,12 +125,13 @@ class LaunchHeat(command.Command):
             '--heat-dir',
             dest='heat_dir',
             action='store',
-            default=os.path.join(os.getcwd(), 'heat-launcher'),
+            default=os.path.join(
+                        utils.get_default_working_dir('overcloud'),
+                        'heat-launcher'),
             help=_("Directory to use for file storage and logs of the "
-                   "running heat process. Defaults to 'heat-launcher' "
-                   "in the current directory. Can be set to an already "
-                   "existing directory to reuse the environment from a "
-                   "previos Heat process.")
+                   "running heat process. in the current directory. Can be "
+                   "set to an already existing directory to reuse the "
+                   "environment from a previos Heat process.")
         )
         parser.add_argument(
             '--rm-heat',
@@ -172,11 +174,11 @@ class LaunchHeat(command.Command):
         heat_type_group.add_argument(
             '--heat-type',
             dest='heat_type',
-            default='native',
+            default='pod',
             choices=['native', 'container', 'pod'],
-            help=_('Type of ephemeral Heat process to launch. One of:\n'
-                   'native: Execute heat-all directly on the host.\n'
-                   'container: Execute heat-all in a container.\n'
+            help=_('Type of ephemeral Heat process to launch. One of: '
+                   'native: Execute heat-all directly on the host. '
+                   'container: Execute heat-all in a container. '
                    'pod: Execute separate heat api and engine processes in '
                    'a podman pod.')
         )
