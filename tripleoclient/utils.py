@@ -992,8 +992,8 @@ def get_service_ips(stack):
     return service_ips
 
 
-def get_endpoint_map(stack):
-    endpoint_map = get_stack_output_item(stack, 'EndpointMap')
+def get_endpoint_map(working_dir):
+    endpoint_map = get_stack_saved_output_item('EndpointMap', working_dir)
     if not endpoint_map:
         endpoint_map = {}
     return endpoint_map
@@ -1007,13 +1007,6 @@ def get_blacklisted_ip_addresses(working_dir):
 def get_role_net_ip_map(working_dir):
     return get_stack_saved_output_item(
         'RoleNetIpMap', working_dir)
-
-
-def get_endpoint(key, stack):
-    endpoint_map = get_endpoint_map(stack)
-    if endpoint_map:
-        return endpoint_map[key]['host']
-    return get_service_ips(stack).get(key + 'Vip')
 
 
 def get_stack(orchestration_client, stack_name):

@@ -846,7 +846,7 @@ class Deploy(command.Command):
         endpointmap_file = os.path.join(self.output_dir, output_file)
 
         outputs = {}
-        endpointmap = utils.get_endpoint_map(stack)
+        endpointmap = utils.get_endpoint_map(self.output_dir)
         if endpointmap:
             outputs['EndpointMapOverride'] = endpointmap
 
