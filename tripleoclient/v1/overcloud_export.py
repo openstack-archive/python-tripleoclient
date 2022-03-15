@@ -13,13 +13,17 @@
 from datetime import datetime
 import logging
 import os.path
+import shutil
+import sys
 import yaml
 
+from keystoneauth1.exceptions.catalog import EndpointNotFound
 from osc_lib.i18n import _
 from osc_lib import utils as osc_utils
 
 from tripleoclient import command
 from tripleoclient import export
+from tripleoclient import utils
 
 
 class ExportOvercloud(command.Command):
@@ -86,7 +90,31 @@ class ExportOvercloud(command.Command):
 
         # prepare clients to access the environment
         clients = self.app.client_manager
-        heat = clients.orchestration
+        try:
+            heat = clients.orchestration
+            heat.stacks.client.session.get_endpoint(
+                service_type='orchestration')
+        except EndpointNotFound:
+            self.log.warning(
+                "Heat endpoint not found. When using ephemeral Heat, "
+                "the export file exists in the stack working directory "
+                "as $HOME/overlcoud-deploy/<stack>/<stack>-export.yaml. "
+                "(default). The existing export file will be copied "
+                "to {}".format(output_file))
+            export_file_path = os.path.join(
+                utils.get_default_working_dir(parsed_args.stack),
+                '{}-export.yaml'.format(parsed_args.stack))
+            if os.path.exists(export_file_path):
+                print(
+                    "Export file found at {}, copying to {}.".format(
+                        export_file_path, output_file))
+                shutil.copy(export_file_path, output_file)
+            else:
+                print("Export file not found at {}.".format(
+                    export_file_path))
+                sys.exit(1)
+            return
+
         data = export.export_overcloud(
             heat, stack, excludes=not parsed_args.no_password_excludes,
             should_filter=False, config_download_dir=config_download_dir)
