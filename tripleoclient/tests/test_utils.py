@@ -1065,15 +1065,12 @@ class TestGetStackOutputItem(TestCase):
 
 class TestGetEndpointMap(TestCase):
 
-    def test_get_endpoint_map(self):
-        stack = mock.MagicMock()
+    @mock.patch('tripleoclient.utils.get_stack_saved_output_item')
+    def test_get_endpoint_map(self, mock_saved_output_item):
+        working_dir = mock.Mock()
         emap = {'KeystonePublic': {'uri': 'http://foo:8000/'}}
-        stack.to_dict.return_value = {
-            'outputs': [{'output_key': 'EndpointMap',
-                         'output_value': emap}]
-        }
-
-        endpoint_map = utils.get_endpoint_map(stack)
+        mock_saved_output_item.return_value = emap
+        endpoint_map = utils.get_endpoint_map(working_dir)
         self.assertEqual(endpoint_map,
                          {'KeystonePublic': {'uri': 'http://foo:8000/'}})
 

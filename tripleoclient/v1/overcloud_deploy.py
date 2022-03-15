@@ -395,7 +395,7 @@ class DeployOvercloud(command.Command):
             messages = 'Failed to deploy: %s' % str(e)
             raise ValueError(messages)
 
-    def _deploy_postconfig(self, stack, parsed_args):
+    def _deploy_postconfig(self, parsed_args):
         self.log.debug("_deploy_postconfig(%s)" % parsed_args)
 
         overcloud_endpoint = utils.get_overcloud_endpoint(self.working_dir)
@@ -1209,14 +1209,22 @@ class DeployOvercloud(command.Command):
         # a full deployment
         do_config_download = parsed_args.config_download_only or full_deploy
 
-        if ephemeral_heat and do_stack:
-            self.setup_ephemeral_heat(parsed_args)
-
         config_download_dir = parsed_args.output_dir or \
             os.path.join(self.working_dir, "config-download")
+        horizon_url = None
+        overcloud_endpoint = None
+        old_rcpath = None
+        rcpath = None
 
+        # All code within this "try" block requires Heat, and no other code
+        # outside the block should require Heat. With ephemeral Heat, the Heat
+        # pods will be cleaned up in the "finally" clause, such that it's not
+        # running during later parts of overcloud deploy.
         try:
             if do_stack:
+                if ephemeral_heat:
+                    self.setup_ephemeral_heat(parsed_args)
+
                 self.deploy_tripleo_heat_templates(
                     stack, parsed_args, new_tht_root,
                     user_tht_root, created_env_files)
@@ -1225,6 +1233,26 @@ class DeployOvercloud(command.Command):
                     self.orchestration_client, parsed_args.stack)
                 utils.save_stack_outputs(
                     self.orchestration_client, stack, self.working_dir)
+
+                horizon_url = deployment.get_horizon_url(
+                    stack=stack.stack_name,
+                    heat_type=parsed_args.heat_type,
+                    working_dir=self.working_dir)
+
+                overcloud_endpoint = utils.get_overcloud_endpoint(
+                    self.working_dir)
+                overcloud_admin_vip = utils.get_stack_saved_output_item(
+                    'KeystoneAdminVip', self.working_dir)
+                rc_params = utils.get_rc_params(self.working_dir)
+
+                # For backwards compatibility, we will also write overcloudrc
+                # to $HOME and then self.working_dir.
+                old_rcpath = deployment.create_overcloudrc(
+                    parsed_args.stack, overcloud_endpoint, overcloud_admin_vip,
+                    rc_params, parsed_args.no_proxy)
+                rcpath = deployment.create_overcloudrc(
+                    parsed_args.stack, overcloud_endpoint, overcloud_admin_vip,
+                    rc_params, parsed_args.no_proxy, self.working_dir)
 
                 # Download config
                 config_dir = parsed_args.config_dir or config_download_dir
@@ -1258,35 +1286,13 @@ class DeployOvercloud(command.Command):
                     extra_vars=extra_vars
                 )
 
-        except (KeyboardInterrupt, Exception):
+        finally:
             if parsed_args.heat_type != 'installed' and self.heat_launcher:
                 self.log.info("Stopping ephemeral heat.")
                 utils.kill_heat(self.heat_launcher)
                 utils.rm_heat(self.heat_launcher, backup_db=True)
-            raise
-
-        overcloud_endpoint = None
-        old_rcpath = None
-        rcpath = None
-        horizon_url = None
 
         try:
-            if stack:
-                overcloud_endpoint = utils.get_overcloud_endpoint(
-                    self.working_dir)
-                overcloud_admin_vip = utils.get_stack_saved_output_item(
-                    'KeystoneAdminVip', self.working_dir)
-                rc_params = utils.get_rc_params(self.working_dir)
-
-                # For backwards compatibility, we will also write overcloudrc
-                # to $HOME and then self.working_dir.
-                old_rcpath = deployment.create_overcloudrc(
-                    parsed_args.stack, overcloud_endpoint, overcloud_admin_vip,
-                    rc_params, parsed_args.no_proxy)
-                rcpath = deployment.create_overcloudrc(
-                    parsed_args.stack, overcloud_endpoint, overcloud_admin_vip,
-                    rc_params, parsed_args.no_proxy, self.working_dir)
-
             if do_setup:
                 deployment.get_hosts_and_enable_ssh_admin(
                     parsed_args.stack,
@@ -1361,7 +1367,7 @@ class DeployOvercloud(command.Command):
                 # Run postconfig on create or force
                 if (stack or parsed_args.force_postconfig
                         and not parsed_args.skip_postconfig):
-                    self._deploy_postconfig(stack, parsed_args)
+                    self._deploy_postconfig(parsed_args)
             except Exception as e:
                 self.log.error('Exception during postconfig')
                 self.log.error(e)
