@@ -235,6 +235,9 @@ class ProvisionNode(command.Command):
         parser.add_argument('-o', '--output',
                             default='baremetal_environment.yaml',
                             help=_('The output environment file path'))
+        parser.add_argument('-y', '--yes', default=False, action='store_true',
+                            help=_('Skip yes/no prompt for existing files '
+                                   '(assume yes).'))
         parser.add_argument('--stack', dest='stack',
                             help=_('Name or ID of heat stack '
                                    '(default=Env: OVERCLOUD_STACK_NAME)'),
@@ -289,6 +292,18 @@ class ProvisionNode(command.Command):
                              'This option is no longer used, network ports '
                              'are always managed.')
 
+        output_path = os.path.abspath(parsed_args.output)
+
+        overwrite = parsed_args.yes
+        if (os.path.exists(output_path) and not overwrite
+                and not oooutils.prompt_user_for_confirmation(
+                    'Overwrite existing file %s [y/N]?' % parsed_args.output,
+                    self.log)):
+            raise oscexc.CommandError("Will not overwrite existing file:"
+                                      " %s" % parsed_args.output)
+        else:
+            overwrite = True
+
         if not parsed_args.working_dir:
             working_dir = oooutils.get_default_working_dir(
                 parsed_args.stack)
@@ -307,8 +322,6 @@ class ProvisionNode(command.Command):
         with open('{}.pub'.format(key), 'rt') as fp:
             ssh_key = fp.read()
 
-        output_path = os.path.abspath(parsed_args.output)
-
         extra_vars = {
             "stack_name": parsed_args.stack,
             "baremetal_deployment": roles,
@@ -322,6 +335,7 @@ class ProvisionNode(command.Command):
             "configure_networking": parsed_args.network_config,
             "working_dir": working_dir,
             "templates": parsed_args.templates,
+            "overwrite": overwrite,
         }
 
         with oooutils.TempDirs() as tmp:

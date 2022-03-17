@@ -337,10 +337,12 @@ class TestProvisionNode(fakes.TestOvercloudNode):
 
                     argslist = ['--output', outp.name,
                                 '--overcloud-ssh-key', keyf.name,
+                                '--yes',
                                 inp.name]
                     verifylist = [('input', inp.name),
                                   ('output', outp.name),
-                                  ('overcloud_ssh_key', keyf.name)]
+                                  ('overcloud_ssh_key', keyf.name),
+                                  ('yes', True)]
 
                     parsed_args = self.check_parser(self.cmd,
                                                     argslist, verifylist)
@@ -363,6 +365,7 @@ class TestProvisionNode(fakes.TestOvercloudNode):
                 'configure_networking': False,
                 'working_dir': mock.ANY,
                 'templates': constants.TRIPLEO_HEAT_TEMPLATES,
+                'overwrite': True,
             },
             inventory='localhost,',
             playbook='cli-overcloud-node-provision.yaml',
