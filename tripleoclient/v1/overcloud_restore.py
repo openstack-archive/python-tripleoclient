@@ -28,6 +28,8 @@ from tripleoclient import utils
 
 LOG = logging.getLogger(__name__ + ".RestoreOvercloud")
 
+INVENTORY = constants.ANSIBLE_INVENTORY.format('overcloud')
+
 
 class RestoreOvercloud(command.Command):
     """Restore the Overcloud"""
@@ -37,6 +39,14 @@ class RestoreOvercloud(command.Command):
             description=self.get_description(),
             prog=prog_name,
             add_help=False
+        )
+
+        parser.add_argument(
+            '--inventory',
+            default=INVENTORY,
+            help=_("Tripleo inventory file generated with "
+                   "tripleo-ansible-inventory command. "
+                   "Defaults to: " + INVENTORY)
         )
 
         parser.add_argument(
@@ -102,7 +112,7 @@ class RestoreOvercloud(command.Command):
 
         self._run_ansible_playbook(
               playbook='cli-overcloud-restore-node.yaml',
-              inventory=constants.ANSIBLE_INVENTORY.format(parsed_args.stack),
+              inventory=parsed_args.inventory,
               tags=None,
               skip_tags=None,
               extra_vars=extra_vars,

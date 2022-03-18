@@ -26,6 +26,8 @@ from tripleoclient import utils
 
 LOG = logging.getLogger(__name__ + ".BackupUndercloud")
 
+INVENTORY = constants.ANSIBLE_INVENTORY.format('overcloud')
+
 
 class BackupUndercloud(command.Command):
     """Backup the undercloud"""
@@ -95,10 +97,10 @@ class BackupUndercloud(command.Command):
         parser.add_argument(
             '--inventory',
             action='store',
-            default='/home/stack/tripleo-inventory.yaml',
+            default=INVENTORY,
             help=_("Tripleo inventory file generated with "
                    "tripleo-ansible-inventory command. "
-                   "Defaults to: /home/stack/tripleo-inventory.yaml.")
+                   "Defaults to: " + INVENTORY)
         )
 
         # Parameter to choose the files to backup
