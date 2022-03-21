@@ -113,6 +113,16 @@ def export_stack(heat, stack, should_filter=False,
             raise RuntimeError(
                 "No data returned to export %s from." % param)
 
+    # Check if AuthCloudName is in the stack environment, and if so add it to
+    # the export data. Otherwise set it to the exported stack's name.
+    auth_cloud_name = heat_stack.environment().get(
+                        'parameter_defaults').get(
+                            'AuthCloudName', None)
+    if auth_cloud_name:
+        data['AuthCloudName'] = auth_cloud_name
+    else:
+        data['AuthCloudName'] = stack
+
     return data
 
 

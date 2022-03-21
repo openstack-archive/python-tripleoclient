@@ -40,6 +40,11 @@ class TestExport(TestCase):
         self.mock_stack.to_dict.return_value = dict(outputs=outputs)
         self.mock_open = mock.mock_open(read_data='{"an_key":"an_value"}')
 
+        mock_environment = mock.Mock()
+        self.mock_stack.environment = mock_environment
+        mock_environment.return_value = dict(
+            parameter_defaults=dict())
+
         ceph_inv = {
             'DistributedComputeHCI': {
                 'hosts': {
@@ -86,6 +91,33 @@ class TestExport(TestCase):
 
         expected = \
             {'AllNodesExtraMapData': {u'an_key': u'an_value'},
+             'AuthCloudName': 'overcloud',
+             'EndpointMapOverride': {'em_key': 'em_value'},
+             'ExtraHostFileEntries': 'hosts entry',
+             'GlobalConfigExtraMapData': {'gc_key': 'gc_value'}}
+
+        self.assertEqual(expected, data)
+        self.mock_open.assert_called_once_with(
+            os.path.join(
+                os.environ.get('HOME'),
+                'config-download/overcloud/group_vars/overcloud.json'),
+            'r')
+
+    @mock.patch('tripleoclient.utils.os.path.exists',
+                autospec=True, reutrn_value=True)
+    @mock.patch('tripleoclient.utils.get_stack')
+    def test_export_stack_auth_cloud_name_set(
+            self, mock_get_stack, mock_exists):
+        heat = mock.Mock()
+        mock_get_stack.return_value = self.mock_stack
+        self.mock_stack.environment.return_value['parameter_defaults'] = (
+            dict(AuthCloudName='central'))
+        with mock.patch('tripleoclient.utils.open', self.mock_open):
+            data = export.export_stack(heat, "overcloud")
+
+        expected = \
+            {'AllNodesExtraMapData': {u'an_key': u'an_value'},
+             'AuthCloudName': 'central',
              'EndpointMapOverride': {'em_key': 'em_value'},
              'ExtraHostFileEntries': 'hosts entry',
              'GlobalConfigExtraMapData': {'gc_key': 'gc_value'}}
@@ -110,6 +142,7 @@ class TestExport(TestCase):
 
         expected = \
             {'AllNodesExtraMapData': {u'ovn_dbs_vip': u'vip'},
+             'AuthCloudName': 'overcloud',
              'EndpointMapOverride': {'em_key': 'em_value'},
              'ExtraHostFileEntries': 'hosts entry',
              'GlobalConfigExtraMapData': {'gc_key': 'gc_value'}}
