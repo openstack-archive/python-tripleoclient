@@ -44,8 +44,6 @@ import textwrap
 import time
 import yaml
 
-from ansible.parsing.dataloader import DataLoader
-from ansible.inventory.manager import InventoryManager
 from heatclient.common import event_utils
 from heatclient.common import template_utils
 from heatclient.common import utils as heat_utils
@@ -77,7 +75,8 @@ import warnings
 warnings.simplefilter("ignore", UserWarning)
 
 import ansible_runner  # noqa
-
+from ansible.parsing.dataloader import DataLoader  # noqa
+from ansible.inventory.manager import InventoryManager  # noqa
 
 LOG = logging.getLogger(__name__ + ".utils")
 _local_orchestration_client = None
