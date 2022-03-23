@@ -108,6 +108,12 @@ class TripleoProvide(TripleoBaremetal):
     def _wait_for_bridge_mapping(self, node: str):
 
         client = self.conn.network
+        try:
+            node_id = self.conn.baremetal.find_node(
+                node, ignore_missing=False).id
+        except exceptions.ResourceNotFound:
+            self.log.error('Node with UUID: {} not found'.format(node))
+
         timeout_msg = (f'Timeout waiting for node {node} to have '
                        'bridge_mappings set in the ironic-neutron-agent '
                        'entry')
@@ -117,7 +123,7 @@ class TripleoProvide(TripleoBaremetal):
 
         for count in iterate_timeout(timeout, timeout_msg):
             agents = list(
-                client.agents(host=node, binary='ironic-neutron-agent'))
+                client.agents(host=node_id, binary='ironic-neutron-agent'))
 
             if agents:
                 if agents[0].configuration.get('bridge_mappings'):
