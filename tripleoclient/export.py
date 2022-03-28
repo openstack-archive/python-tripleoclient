@@ -173,41 +173,63 @@ def export_storage_ips(stack, config_download_dir=constants.DEFAULT_WORK_DIR,
 
 def export_ceph(stack, cephx,
                 config_download_dir=constants.DEFAULT_WORK_DIR,
-                mon_ips=[]):
+                mon_ips=[], config_download_files=[]):
     # Return a map of ceph data for a list item in CephExternalMultiConfig
     # by parsing files within the config_download_dir of a certain stack
 
-    if len(mon_ips) == 0:
-        mon_ips = export_storage_ips(stack, config_download_dir)
+    if len(config_download_files) == 0:
+        config_download_files = os.listdir(os.path.join(
+            config_download_dir, stack))
+    if 'ceph-ansible' in config_download_files:
+        if len(mon_ips) == 0:
+            mon_ips = export_storage_ips(stack, config_download_dir)
+        external_cluster_mon_ips = str(','.join(mon_ips))
 
-    # Use ceph-ansible group_vars/all.yml to get remaining values
-    ceph_ansible_all = "ceph-ansible/group_vars/all.yml"
-    file = os.path.join(config_download_dir, stack, ceph_ansible_all)
-    with open(file, 'r') as ff:
-        try:
-            ceph_data = yaml.safe_load(ff)
-        except yaml.MarkedYAMLError as e:
-            LOG.error(
-                _('Could not read file %s') % file)
-            LOG.error(e)
+        # Use ceph-ansible group_vars/all.yml to get remaining values
+        ceph_ansible_all = "ceph-ansible/group_vars/all.yml"
+        file = os.path.join(config_download_dir, stack, ceph_ansible_all)
+        with open(file, 'r') as ff:
+            try:
+                ceph_data = yaml.safe_load(ff)
+            except yaml.MarkedYAMLError as e:
+                LOG.error(
+                    _('Could not read file %s') % file)
+                LOG.error(e)
+        cluster = ceph_data['cluster']
+        fsid = ceph_data['fsid']
 
+    if 'cephadm' in config_download_files:
+        ceph_client = "cephadm/ceph_client.yml"
+        file = os.path.join(config_download_dir, stack, ceph_client)
+        with open(file, 'r') as ff:
+            try:
+                ceph_data = yaml.safe_load(ff)
+            except yaml.MarkedYAMLError as e:
+                LOG.error(
+                    _('Could not read file %s') % file)
+                LOG.error(e)
+        external_cluster_mon_ips = ceph_data['external_cluster_mon_ips']
+        cluster = ceph_data['tripleo_ceph_client_cluster']
+        fsid = ceph_data['tripleo_ceph_client_fsid']
+
+    # set cephx_keys
     for key in ceph_data['keys']:
         if key['name'] == 'client.' + str(cephx):
             cephx_keys = [key]
-
+    # set ceph_conf_overrides
     ceph_conf_overrides = {}
     ceph_conf_overrides['client'] = {}
     ceph_conf_overrides['client']['keyring'] = '/etc/ceph/' \
-                                               + ceph_data['cluster'] \
+                                               + cluster \
                                                + '.client.' + cephx \
                                                + '.keyring'
     # Combine extracted data into one map to return
     data = {}
-    data['external_cluster_mon_ips'] = str(','.join(mon_ips))
+    data['external_cluster_mon_ips'] = external_cluster_mon_ips
     data['keys'] = cephx_keys
     data['ceph_conf_overrides'] = ceph_conf_overrides
-    data['cluster'] = ceph_data['cluster']
-    data['fsid'] = ceph_data['fsid']
+    data['cluster'] = cluster
+    data['fsid'] = fsid
     data['dashboard_enabled'] = False
 
     return data
