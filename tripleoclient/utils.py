@@ -563,7 +563,7 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
             constants.DEFAULT_VALIDATIONS_BASEDIR
         )
     )
-    env['ANSIBLE_CALLBACK_WHITELIST'] = callback_whitelist
+    env['ANSIBLE_CALLBACKS_ENABLED'] = callback_whitelist
     env['ANSIBLE_RETRY_FILES_ENABLED'] = False
     env['ANSIBLE_HOST_KEY_CHECKING'] = False
     env['ANSIBLE_TRANSPORT'] = connection
