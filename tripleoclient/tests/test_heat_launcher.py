@@ -134,9 +134,7 @@ class TestHeatPodLauncher(base.TestCase):
                        mock.ANY]),
             mock.call(['sudo', 'podman', 'run', '--rm', '--user', 'heat',
                        '--volume', mock.ANY, '--volume', mock.ANY,
-                       'quay.io/tripleomaster/openstack-heat-api:current-'
-                       'tripleo',
-                       'heat-manage', 'db_sync'])
+                       mock.ANY, 'heat-manage', 'db_sync'])
         ]
         self.assertEqual(self.check_call.mock_calls, calls)
         self.assertFalse(mock_do_restore_db.called)
@@ -147,9 +145,8 @@ class TestHeatPodLauncher(base.TestCase):
         launcher.heat_db_sync(restore_db=True)
         self.check_call.assert_called_once_with([
             'sudo', 'podman', 'run', '--rm', '--user', 'heat', '--volume',
-            mock.ANY, '--volume', mock.ANY,
-            'quay.io/tripleomaster/openstack-heat-api:current-tripleo',
-            'heat-manage', 'db_sync'])
+            mock.ANY, '--volume', mock.ANY, mock.ANY, 'heat-manage', 'db_sync'
+        ])
         self.assertTrue(mock_do_restore_db.called)
 
         self.check_call.reset_mock()
@@ -168,8 +165,7 @@ class TestHeatPodLauncher(base.TestCase):
                        'mysql', '-e', 'flush privileges;']),
             mock.call(['sudo', 'podman', 'run', '--rm', '--user', 'heat',
                        '--volume', mock.ANY, '--volume', mock.ANY,
-                       'quay.io/tripleomaster/openstack-heat-api:current-'
-                       'tripleo', 'heat-manage', 'db_sync'])
+                       mock.ANY, 'heat-manage', 'db_sync'])
         ]
         self.assertEqual(self.check_call.mock_calls, calls)
         self.assertTrue(mock_do_restore_db.called)
@@ -191,8 +187,7 @@ class TestHeatPodLauncher(base.TestCase):
                        'mysql', '-e', 'flush privileges;']),
             mock.call(['sudo', 'podman', 'run', '--rm', '--user', 'heat',
                        '--volume', mock.ANY, '--volume', mock.ANY,
-                       'quay.io/tripleomaster/openstack-heat-api:current-'
-                       'tripleo', 'heat-manage', 'db_sync'])
+                       mock.ANY, 'heat-manage', 'db_sync'])
         ]
         self.assertEqual(self.check_call.mock_calls, calls)
         self.assertFalse(mock_do_restore_db.called)
