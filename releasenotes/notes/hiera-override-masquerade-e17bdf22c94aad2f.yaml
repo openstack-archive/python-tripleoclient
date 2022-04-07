@@ -1,0 +1,11 @@
+---
+upgrade:
+  - |
+    The operator cannot override the masquerade_networks using
+    hieradata_override in the undercloud.conf.
+    They now must provide a custom env file, using custom_env_file and passing
+    the hash through MasqueradeNetworks parameter.
+deprecations:
+  - |
+    hieradata "tripleo::masquerade_networks::masquerade_networks" has no
+    effect anymore.
