@@ -156,7 +156,7 @@ class TestOvercloudExport(utils.TestCommand):
         mock_working_dir.return_value = 'wd'
         heat = self.app.client_manager.orchestration
         heat.stacks.client.session.get_endpoint.side_effect = EndpointNotFound
-        with mock.patch('six.moves.builtins.open', self.mock_open):
+        with mock.patch('builtins.open', self.mock_open):
             self.cmd.take_action(parsed_args)
         mock_working_dir.assert_called()
         mock_copy.assert_called_with(
