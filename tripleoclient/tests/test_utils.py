@@ -2753,3 +2753,58 @@ class TestProcessCephDaemons(TestCase):
             found = utils.process_ceph_daemons(f.name)
 
         self.assertEqual(found, expected)
+
+
+class TestCheckDeployBackups(TestCase):
+
+    @mock.patch('tripleoclient.utils.LOG')
+    @mock.patch('prettytable.PrettyTable')
+    @mock.patch('os.statvfs')
+    @mock.patch('glob.iglob')
+    def test_check_deploy_backups(
+            self, mock_iglob,
+            mock_statvfs, mock_prettytable, mock_log):
+        working_dir = '/home/foo/overcloud-deploy/overcloud'
+        mock_iglob.return_value = ['x', 'y', 'z']
+        mock_table = mock.Mock()
+        mock_prettytable.return_value = mock_table
+        mock_stat_return1 = mock.Mock()
+        mock_stat_return2 = mock.Mock()
+        mock_stat_return3 = mock.Mock()
+        mock_stat_return1.st_size = 1024
+        mock_stat_return2.st_size = 2048
+        mock_stat_return3.st_size = 4096
+        mock_statvfs_return = mock.Mock()
+        mock_statvfs.return_value = mock_statvfs_return
+        mock_statvfs_return.f_frsize = 1024
+        mock_statvfs_return.f_blocks = 100
+        mock_statvfs_return.f_bfree = 10
+
+        with mock.patch('os.stat') as mock_stat:
+            mock_stat.side_effect = [
+                mock_stat_return1,
+                mock_stat_return2,
+                mock_stat_return3]
+            utils.check_deploy_backups(working_dir)
+
+        self.assertEqual(3, mock_table.add_row.call_count)
+        self.assertEqual(1.0, mock_table.add_row.call_args_list[0][0][0][1])
+        self.assertEqual(2.0, mock_table.add_row.call_args_list[1][0][0][1])
+        self.assertEqual(4.0, mock_table.add_row.call_args_list[2][0][0][1])
+        mock_statvfs.assert_called_once_with('z')
+        self.assertIn(
+            'Disk usage 90.00% exceeds 80% percent of disk size',
+            mock_log.warning.call_args_list[0][0][0])
+
+        mock_log.reset_mock()
+        mock_stat_return3.st_size = 81920
+
+        with mock.patch('os.stat') as mock_stat:
+            mock_stat.side_effect = [
+                mock_stat_return1,
+                mock_stat_return2,
+                mock_stat_return3]
+            utils.check_deploy_backups(working_dir)
+        self.assertIn(
+            'Deploy backup files disk usage 90.00% exceeds 50% percent',
+            mock_log.warning.call_args_list[0][0][0])
