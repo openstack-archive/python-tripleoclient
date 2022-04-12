@@ -443,6 +443,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
     env_data = {}
     registry_overwrites = {}
     deploy_args = []
+    net_config_yaml = None
     # Fetch configuration and use its log file param to add logging to a file
     utils.load_config(CONF, constants.UNDERCLOUD_CONF_PATH)
     utils.configure_logging(LOG, verbose_level, CONF['undercloud_log_file'])
@@ -766,17 +767,17 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
             os.path.split(data_file)[-1]).render(context).replace(
                 "'", '"').replace('&quot;', '"')
         try:
-            net_config_json = yaml.safe_load(net_config_str)
+            net_config_yaml = yaml.safe_load(net_config_str)
         except ValueError:
-            net_config_json = yaml.safe_load("{%s}" % net_config_str)
+            net_config_yaml = yaml.safe_load("{%s}" % net_config_str)
 
-        if 'network_config' not in net_config_json:
+        if 'network_config' not in net_config_yaml:
             msg = ('Unsupported data format in net_config_override '
                    'file %s: %s' % (data_file, net_config_str))
             LOG.error(msg)
             raise exceptions.DeploymentError(msg)
 
-        env_data['UndercloudNetConfigOverride'] = net_config_json
+        env_data['UndercloudNetConfigOverride'] = net_config_yaml
 
     params_file = os.path.join(tempdir, 'undercloud_parameters.yaml')
     utils.write_env_file(env_data, params_file, registry_overwrites)
@@ -795,7 +796,7 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
         deploy_args += ['--hieradata-override=%s' % data_file]
 
     if CONF.get('enable_validations') and not no_validations:
-        undercloud_preflight.check(verbose_level, upgrade)
+        undercloud_preflight.check(verbose_level, upgrade, net_config_yaml)
         deploy_args += ['-e', os.path.join(
             tht_templates, "environments/tripleo-validations.yaml")]
 
