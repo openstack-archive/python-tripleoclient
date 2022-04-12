@@ -92,10 +92,9 @@ def _run_validations(upgrade=False):
         playbook_args = constants.DEPLOY_ANSIBLE_ACTIONS['preflight-deploy']
 
     with utils.TempDirs() as tmp:
-        actions = ValidationActions()
+        actions = ValidationActions(log_path=tmp)
         actions.run_validations(
             inventory='undercloud',
-            log_path=tmp,
             validations_dir=constants.ANSIBLE_VALIDATION_DIR,
             validation_name=playbook_args['playbooks'])
 
