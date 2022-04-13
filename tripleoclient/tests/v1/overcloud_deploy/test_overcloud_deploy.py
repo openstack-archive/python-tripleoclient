@@ -190,11 +190,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         orchestration_client.stacks.get.return_value = mock_stack
         utils_fixture = deployment.UtilsFixture()
         self.useFixture(utils_fixture)
-        arglist = ['--templates',
-                   '--heat-type', 'installed']
+        arglist = ['--templates']
         verifylist = [
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
-            ('heat_type', 'installed'),
         ]
 
         clients = self.app.client_manager
@@ -228,7 +226,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             'SnmpdReadonlyUserPassword': 'PASSWORD',
             'DeployIdentifier': 12345678,
             'RootStackName': 'overcloud',
-            'StackAction': 'UPDATE',
+            'StackAction': 'CREATE',
             'UndercloudHostsEntries': [
                 '192.168.0.1 uc.ctlplane.localhost uc.ctlplane'],
             'CtlplaneNetworkAttributes': {},
@@ -247,8 +245,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_process_env.return_value = {}, {
             'parameter_defaults': expected_parameters}
         self.cmd.take_action(parsed_args)
-
-        self.assertTrue(orchestration_client.stacks.update.called)
 
         mock_get_template_contents.assert_called_with(
             template_file=mock.ANY)
@@ -315,26 +311,15 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.useFixture(utils_fixture)
         utils_overcloud_fixture = deployment.UtilsOvercloudFixture()
         self.useFixture(utils_overcloud_fixture)
-        arglist = ['--templates', '--no-cleanup',
-                   '--heat-type', 'installed']
+        arglist = ['--templates', '--no-cleanup']
         verifylist = [
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
-            ('heat_type', 'installed'),
         ]
         mock_stack_data.return_value = {'environment_parameters': {},
                                         'heat_resource_tree': {}}
         mock_tmpdir.return_value = self.tmp_dir.path
 
         clients = self.app.client_manager
-        orchestration_client = clients.orchestration
-        mock_stack = fakes.create_tht_stack()
-        orchestration_client.stacks.get.side_effect = \
-            [None, mock_stack, mock_stack]
-
-        def _orch_clt_create(**kwargs):
-            orchestration_client.stacks.get.return_value = mock_stack
-
-        orchestration_client.stacks.create.side_effect = _orch_clt_create
 
         clients.network.api.find_attr.return_value = {
             "id": "network id"
@@ -360,8 +345,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_open_context = mock.mock_open()
         with mock.patch('builtins.open', mock_open_context):
             self.cmd.take_action(parsed_args)
-
-        self.assertTrue(orchestration_client.stacks.create.called)
 
         mock_get_template_contents.assert_called_with(
             template_file=mock.ANY)
@@ -526,16 +509,12 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         utils_fixture = deployment.UtilsFixture()
         self.useFixture(utils_fixture)
 
-        arglist = ['--templates', '/home/stack/tripleo-heat-templates',
-                   '--heat-type', 'installed']
+        arglist = ['--templates', '/home/stack/tripleo-heat-templates']
         verifylist = [
             ('templates', '/home/stack/tripleo-heat-templates'),
-            ('heat_type', 'installed'),
         ]
 
         clients = self.app.client_manager
-        orchestration_client = clients.orchestration
-        orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
         mock_events.return_value = []
 
         clients.network.api.find_attr.return_value = {
@@ -559,8 +538,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                             os.O_RDWR),
                                     self.parameter_defaults_env_file)
             self.cmd.take_action(parsed_args)
-
-        self.assertTrue(orchestration_client.stacks.update.called)
 
         mock_get_template_contents.assert_called_with(
             template_file=mock.ANY)
