@@ -65,6 +65,9 @@ class UpgradePrepare(DeployOvercloud):
         # Throw deprecation warning if service is enabled and
         # ask user if upgrade should still be continued.
         if parsed_args.environment_files:
+            oooutils.duplicate_param_check(
+                user_environments=parsed_args.environment_files
+            )
             oooutils.check_deprecated_service_is_enabled(
                 parsed_args.environment_files)
 

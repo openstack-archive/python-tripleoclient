@@ -3499,3 +3499,33 @@ def get_tripleo_cephadm_keys(username, key, pools):
             mon='profile rbd',
             osd=', '.join(list(
                 map(lambda x: 'profile rbd pool=' + x, pools)))))]
+
+
+def duplicate_param_check(user_environments):
+    """Register warnings when duplcate parameters are discovered.
+
+    :param user_environments: List of user defined environment files.
+    :type user_environments: Array
+    """
+    used_params = collections.defaultdict(int)
+    duplicate_params = dict()
+    for env_file in user_environments:
+        _env_file_parsed = url_parse.urlparse(env_file)
+        try:
+            with open(_env_file_parsed.path, 'r') as f:
+                _env_map = yaml.safe_load(f)
+        except FileNotFoundError:
+            continue
+        else:
+            LOG.debug('Inspecting "%s"', _env_file_parsed.path)
+
+        for k, v in _env_map.get('parameter_defaults', {}).items():
+            used_params[k] += 1
+            if used_params[k] > 1:
+                duplicate_params[k] = v
+
+    for k, v in duplicate_params.items():
+        LOG.warning(
+            'Duplicate parameter defined. Key: "%s", Current Value: %s', k,
+            yaml.dump(v, default_flow_style=False)
+        )
