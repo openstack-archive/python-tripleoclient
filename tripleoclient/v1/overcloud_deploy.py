@@ -1160,6 +1160,12 @@ class DeployOvercloud(command.Command):
         # outside the block should require Heat. With ephemeral Heat, the Heat
         # pods will be cleaned up in the "finally" clause, such that it's not
         # running during later parts of overcloud deploy.
+        self.log.info("Deploying overcloud.")
+        deployment.set_deployment_status(
+            parsed_args.stack,
+            status='DEPLOYING',
+            working_dir=self.working_dir)
+
         try:
             if do_stack:
                 if ephemeral_heat:
@@ -1225,13 +1231,20 @@ class DeployOvercloud(command.Command):
                     verbosity=utils.playbook_verbosity(self=self),
                     extra_vars=extra_vars
                 )
+        except (BaseException, Exception):
+            with excutils.save_and_reraise_exception():
+                deploy_status = 'DEPLOY_FAILED'
+                deploy_message = 'with error'
+                deployment.set_deployment_status(
+                    parsed_args.stack,
+                    status=deploy_status,
+                    working_dir=self.working_dir)
 
         finally:
             if parsed_args.heat_type != 'installed' and self.heat_launcher:
                 self.log.info("Stopping ephemeral heat.")
                 utils.kill_heat(self.heat_launcher)
                 utils.rm_heat(self.heat_launcher, backup_db=True)
-
         try:
             if do_setup:
                 deployment.get_hosts_and_enable_ssh_admin(
@@ -1254,13 +1267,6 @@ class DeployOvercloud(command.Command):
                     if timeout <= 0:
                         raise exceptions.DeploymentError(
                             'Deployment timed out after %sm' % used)
-
-                self.log.info("Deploying overcloud configuration")
-                deployment.set_deployment_status(
-                    parsed_args.stack,
-                    status='DEPLOYING',
-                    working_dir=self.working_dir
-                )
 
                 deployment_options = {}
                 if parsed_args.deployment_python_interpreter:
