@@ -295,11 +295,14 @@ def _validate_no_ip_change():
     if CONF.net_config_override:
         os_net_config_file = CONF.net_config_override
     else:
-        os_net_config_file = '/etc/os-net-config/config.json'
-    # Nothing to do if we haven't already installed
+        os_net_config_file = '/etc/os-net-config/config.yaml'
+
     if not os.path.isfile(
             os.path.expanduser(os_net_config_file)):
-        return
+        os_net_config_file = '/etc/os-net-config/config.json'
+        # Nothing to do if we haven't already installed
+        if not os.path.isfile(os.path.expanduser(os_net_config_file)):
+            return
     try:
         with open(os_net_config_file, 'r') as f:
             network_config = yaml.safe_load(f)
