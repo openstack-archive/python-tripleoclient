@@ -2711,3 +2711,24 @@ class TestCheckDeployBackups(TestCase):
         self.assertIn(
             'Deploy backup files disk usage 90.00% exceeds 50% percent',
             mock_log.warning.call_args_list[0][0][0])
+
+
+class TestGetCephadmKeys(TestCase):
+
+    def test_get_cephadm_keys(self):
+        user = 'openstack'
+        key = 'AQC+vYNXgDAgAhAAc8UoYt+OTz5uhV7ItLdwUw=='
+        pools = ['foo', 'bar']
+        keys = utils.get_tripleo_cephadm_keys(user,
+                                              key,
+                                              pools)
+        expected = [
+            {'name': 'client.openstack',
+             'key': key,
+             'mode': '0600',
+             'caps': {
+                 'mgr': 'allow *',
+                 'mon': 'profile rbd',
+                 'osd': 'profile rbd pool=foo, profile rbd pool=bar'}}]
+
+        self.assertEqual(keys, expected)
