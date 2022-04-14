@@ -510,63 +510,6 @@ class TestDeployUndercloud(TestPluginV1):
                                                      env_files)
         self.assertEqual(expected, results)
 
-    @mock.patch('time.time', return_value=123)
-    @mock.patch('yaml.safe_load', return_value={}, autospec=True)
-    @mock.patch('yaml.safe_dump', autospec=True)
-    @mock.patch('os.path.isfile', return_value=True)
-    @mock.patch('builtins.open')
-    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
-                '_process_hieradata_overrides', autospec=True)
-    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
-                '_update_passwords_env', autospec=True)
-    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
-                '_normalize_user_templates', return_value=[], autospec=True)
-    @mock.patch('tripleoclient.utils.rel_or_abs_path', return_value={},
-                autospec=True)
-    @mock.patch('tripleoclient.utils.run_command_and_log', return_value=0,
-                autospec=True)
-    def test_setup_heat_environments_dropin(
-            self, mock_run, mock_paths, mock_norm, mock_update_pass_env,
-            mock_process_hiera, mock_open, mock_os, mock_yaml_dump,
-            mock_yaml_load, mock_time):
-
-        parsed_args = self.check_parser(
-            self.cmd, ['--local-ip', '127.0.0.1/8',
-                       '--templates', 'tht_from',
-                       '--output-dir', 'tht_to',
-                       '--roles-file', '/roles_file,yaml',
-                       '--networks-file', '/networks_file.yaml'], [])
-        dropin = 'tht_from/standalone-stack-vstate-dropin.yaml'
-        self.cmd.output_dir = 'tht_to'
-        self.cmd.tht_render = 'tht_from'
-        self.cmd.stack_action = 'UPDATE'
-        environment = self.cmd._setup_heat_environments(
-            parsed_args.roles_file, parsed_args.networks_file, parsed_args)
-
-        self.assertIn(dropin, environment)
-        mock_open.assert_has_calls([mock.call(dropin, 'w')])
-
-        # unpack the dump yaml calls to verify if the produced stack update
-        # dropin matches our expectations
-        found_dropin = False
-        found_identifier = False
-        for call in mock_yaml_dump.call_args_list:
-            args, kwargs = call
-            for a in args:
-                if isinstance(a, mock.MagicMock):
-                    continue
-                if a.get('parameter_defaults', {}).get('StackAction', None):
-                    self.assertTrue(
-                        a['parameter_defaults']['StackAction'] == 'UPDATE')
-                    found_dropin = True
-                if a.get('parameter_defaults', {}).get('DeployIdentifier',
-                                                       None):
-                    self.assertTrue(
-                        a['parameter_defaults']['DeployIdentifier'] == 123)
-                    found_identifier = True
-        self.assertTrue(found_dropin)
-        self.assertTrue(found_identifier)
-
     def _setup_heat_environments(self, tmpdir, tht_from,
                                  mock_update_pass_env, mock_run,
                                  extra_cmd=None):
@@ -626,7 +569,6 @@ class TestDeployUndercloud(TestPluginV1):
             os.path.join(tht_render,
                          'tripleoclient-hosts-portmaps.yaml'),
             'hiera_or.yaml',
-            os.path.join(tht_render, 'standalone-stack-vstate-dropin.yaml'),
             os.path.join(tht_render, 'foo.yaml'),
             os.path.join(tht_render, 'outside.yaml')]
 
@@ -983,61 +925,6 @@ class TestDeployUndercloud(TestPluginV1):
         self.assertRaises(exceptions.DeploymentError,
                           self.cmd.take_action, parsed_args)
         mock_copy.assert_called_once()
-
-    @mock.patch('os.path.isfile', return_value=False)
-    def test_set_stack_action_default_create(self, mock_isfile):
-        parsed_args = self.check_parser(self.cmd,
-                                        ['--local-ip', '127.0.0.1',
-                                         '--templates', '/tmp/thtroot',
-                                         '--stack', 'undercloud',
-                                         '--output-dir', '/my'], [])
-        self.cmd._set_stack_action(parsed_args)
-        self.assertEqual('CREATE', self.cmd.stack_action)
-
-    @mock.patch('os.path.isfile', return_value=True)
-    def test_set_stack_action_default_update(self, mock_isfile):
-        parsed_args = self.check_parser(self.cmd,
-                                        ['--local-ip', '127.0.0.1',
-                                         '--templates', '/tmp/thtroot',
-                                         '--stack', 'undercloud',
-                                         '--output-dir', '/my'], [])
-        self.cmd._set_stack_action(parsed_args)
-        self.assertEqual('UPDATE', self.cmd.stack_action)
-
-    @mock.patch('os.path.isfile', return_value=False)
-    def test_set_stack_action_force_update(self, mock_isfile):
-        parsed_args = self.check_parser(self.cmd,
-                                        ['--local-ip', '127.0.0.1',
-                                         '--templates', '/tmp/thtroot',
-                                         '--stack', 'undercloud',
-                                         '--output-dir', '/my',
-                                         '--force-stack-update'], [])
-        self.cmd._set_stack_action(parsed_args)
-        self.assertEqual('UPDATE', self.cmd.stack_action)
-
-    @mock.patch('os.path.isfile', return_value=True)
-    def test_set_stack_action_force_create(self, mock_isfile):
-        parsed_args = self.check_parser(self.cmd,
-                                        ['--local-ip', '127.0.0.1',
-                                         '--templates', '/tmp/thtroot',
-                                         '--stack', 'undercloud',
-                                         '--output-dir', '/my',
-                                         '--force-stack-create'], [])
-        self.cmd._set_stack_action(parsed_args)
-        self.assertEqual('CREATE', self.cmd.stack_action)
-
-    @mock.patch('os.path.isfile', return_value=True)
-    def test_set_stack_action_mutually_exclusive(self, mock_isfile):
-        self.assertRaises(
-            SystemExit,
-            self.check_parser,
-            self.cmd,
-            ['--local-ip', '127.0.0.1',
-             '--templates', '/tmp/thtroot',
-             '--stack', 'undercloud',
-             '--output-dir', '/my',
-             '--force-stack-create',
-             '--force-stack-update'], [])
 
     @mock.patch('os.path.exists', return_value=True)
     @mock.patch('os.chdir')
