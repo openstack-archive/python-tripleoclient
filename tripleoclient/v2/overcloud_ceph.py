@@ -159,6 +159,19 @@ class OvercloudCephDeploy(command.Command):
                                 "used for the Ceph cluster_network. "
                                 "Defaults to 'storage_mgmt'."),
                             default='storage_mgmt')
+        parser.add_argument('--cluster',
+                            help=_(
+                                "Name of the Ceph cluster. "
+                                "If set to 'foo', then the files "
+                                "/etc/ceph/<FSID>/foo.conf and "
+                                "/etc/ceph/<FSID>/foo.client.admin.keyring "
+                                "will be created. Otherwise these "
+                                "files will use the name 'ceph'. "
+                                "Changing this means changing command line "
+                                "calls too, e.g. 'ceph health' will become "
+                                "'ceph --cluster foo health' unless export "
+                                "CEPH_ARGS='--cluster foo' is used."),
+                            default='ceph')
         parser.add_argument('--config',
                             help=_(
                                 "Path to an existing ceph.conf with settings "
@@ -335,6 +348,10 @@ class OvercloudCephDeploy(command.Command):
                                        parsed_args.public_network_name,
                                        parsed_args.cluster_network_name)
         extra_vars = {**extra_vars, **ceph_networks_map}
+
+        if parsed_args.cluster:
+            extra_vars['tripleo_cephadm_cluster'] = \
+                parsed_args.cluster
 
         if parsed_args.ceph_spec:
             if not os.path.exists(parsed_args.ceph_spec):

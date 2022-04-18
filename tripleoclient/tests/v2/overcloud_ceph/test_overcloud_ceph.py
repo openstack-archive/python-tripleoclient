@@ -66,6 +66,7 @@ class TestOvercloudCephDeploy(fakes.FakePlaybookExecution):
                 "working_dir": mock.ANY,
                 "stack_name": 'overcloud',
                 'tripleo_cephadm_ssh_user': 'jimmy',
+                'tripleo_cephadm_cluster': 'ceph',
                 'tripleo_roles_path': mock.ANY,
                 'tripleo_cephadm_container_ns': 'quay.io/ceph',
                 'tripleo_cephadm_container_image': 'ceph',
