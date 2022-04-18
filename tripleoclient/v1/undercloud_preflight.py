@@ -285,7 +285,7 @@ def _validate_interface_exists(config_var='local_interface'):
         raise FailedValidation(message)
 
 
-def _validate_no_ip_change():
+def _validate_no_ip_change(net_config_yaml=None):
     """Disallow provisioning interface IP changes
 
     Changing the provisioning network IP causes a number of issues, so we
@@ -293,7 +293,7 @@ def _validate_no_ip_change():
     be changed.
     """
     if CONF.net_config_override:
-        os_net_config_file = CONF.net_config_override
+        os_net_config_file = net_config_yaml
     else:
         os_net_config_file = '/etc/os-net-config/config.yaml'
 
@@ -496,7 +496,7 @@ def _check_all_or_no_subnets_use_dns_nameservers():
         raise FailedValidation(message)
 
 
-def check(verbose_level, upgrade=False):
+def check(verbose_level, upgrade=False, net_config_yaml=None):
     # Fetch configuration and use its log file param to add logging to a file
     utils.load_config(CONF, constants.UNDERCLOUD_CONF_PATH)
     utils.configure_logging(LOG, verbose_level, CONF['undercloud_log_file'])
@@ -539,7 +539,7 @@ def check(verbose_level, upgrade=False):
         _checking_status('Network interfaces')
         _validate_interface_exists()
         _checking_status('Provisioning IP change')
-        _validate_no_ip_change()
+        _validate_no_ip_change(net_config_yaml)
         _checking_status('Architecture')
         _validate_architecure_options()
     except KeyError as e:
