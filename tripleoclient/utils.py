@@ -459,13 +459,28 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
         forks = min(multiprocessing.cpu_count() * 4, 100)
 
     env = dict()
-    env['ANSIBLE_SSH_ARGS'] = '-o UserKnownHostsFile={}'.format(os.devnull)
+    env['ANSIBLE_SSH_ARGS'] = (
+        '-o UserKnownHostsFile={} '
+        '-o StrictHostKeyChecking=no '
+        '-o ControlMaster=auto '
+        '-o ControlPersist=30m '
+        '-o ServerAliveInterval=64 '
+        '-o ServerAliveCountMax=1024 '
+        '-o Compression=no '
+        '-o TCPKeepAlive=yes '
+        '-o VerifyHostKeyDNS=no '
+        '-o ForwardX11=no '
+        '-o ForwardAgent=yes '
+        '-o PreferredAuthentications=publickey '
+        '-T'
+    ).format(os.devnull)
     env['ANSIBLE_DISPLAY_FAILED_STDERR'] = True
     env['ANSIBLE_FORKS'] = forks
     env['ANSIBLE_TIMEOUT'] = ansible_timeout
     env['ANSIBLE_GATHER_TIMEOUT'] = 45
     env['ANSIBLE_SSH_RETRIES'] = 3
     env['ANSIBLE_PIPELINING'] = True
+    env['ANSIBLE_SCP_IF_SSH'] = True
     env['ANSIBLE_REMOTE_USER'] = ssh_user
     env['ANSIBLE_STDOUT_CALLBACK'] = output_callback
     env['ANSIBLE_LIBRARY'] = os.path.expanduser(
@@ -558,6 +573,9 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
     env['ANSIBLE_INJECT_FACT_VARS'] = False
     env['ANSIBLE_VARS_PLUGIN_STAGE'] = 'all'
     env['ANSIBLE_GATHER_SUBSET'] = '!all,min'
+
+    if connection == 'local':
+        env['ANSIBLE_PYTHON_INTERPRETER'] = sys.executable
 
     if gathering_policy in ('smart', 'explicit', 'implicit'):
         env['ANSIBLE_GATHERING'] = gathering_policy
