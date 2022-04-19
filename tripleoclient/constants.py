@@ -89,10 +89,12 @@ STACK_OUTPUTS = ['BlacklistedHostnames',
                  'RoleNetIpMap',
                  'BlacklistedIpAddresses',
                  'RoleNetHostnameMap',
+                 'KeystoneRegion',
                  'KeystoneURL',
                  'EndpointMap',
                  'VipMap',
-                 'EnabledServices']
+                 'EnabledServices',
+                 'AdminPassword']
 
 IRONIC_HTTP_BOOT_BIND_MOUNT = '/var/lib/ironic/httpboot'
 IRONIC_LOCAL_IMAGE_PATH = '/var/lib/ironic/images'

@@ -32,13 +32,12 @@ from tripleoclient import utils
 _WORKFLOW_TIMEOUT = 360  # 6 * 60 seconds
 
 
-def create_overcloudrc(stack, rc_params, no_proxy='',
-                       output_dir=CLOUD_HOME_DIR):
-    overcloudrcs = rc_utils._create_overcloudrc(
-        stack, no_proxy,
-        rc_params['password'],
+def create_overcloudrc(stack_name, endpoint, admin_vip, rc_params,
+                       no_proxy='', output_dir=CLOUD_HOME_DIR):
+    overcloudrcs = rc_utils._create_overcloudrc_from_outputs(
+        stack_name, endpoint, admin_vip, no_proxy, rc_params['password'],
         rc_params['region'])
-    rcpath = os.path.join(output_dir, '%src' % stack.stack_name)
+    rcpath = os.path.join(output_dir, '%src' % stack_name)
     with open(rcpath, 'w') as rcfile:
         rcfile.write(overcloudrcs['overcloudrc'])
     os.chmod(rcpath, 0o600)
