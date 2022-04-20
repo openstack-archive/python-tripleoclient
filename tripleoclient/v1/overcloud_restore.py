@@ -52,7 +52,7 @@ class RestoreOvercloud(command.Command):
         parser.add_argument(
             '--stack',
             nargs='?',
-            help=_('Name or ID of heat stack to delete'
+            help=_('Name or ID of the stack to be used'
                    '(default=Env: OVERCLOUD_STACK_NAME)'),
             default=osc_utils.env('OVERCLOUD_STACK_NAME'))
 
