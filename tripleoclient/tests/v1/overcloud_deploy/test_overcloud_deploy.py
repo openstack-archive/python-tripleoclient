@@ -14,9 +14,9 @@
 #
 
 import fixtures
+from io import StringIO
 import os
 import shutil
-import six
 import tempfile
 import yaml
 
@@ -227,7 +227,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         def _custom_create_params_env(parameters, tht_root,
                                       stack):
-            for key, value in six.iteritems(parameters):
+            for key, value in parameters.items():
                 self.assertEqual(value, expected_parameters[key])
             parameter_defaults = {"parameter_defaults": parameters}
             return parameter_defaults
@@ -350,7 +350,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 'CtlplaneNetworkAttributes': {}}}
         mock_process_env.return_value = {}, parameters_env
         mock_open_context = mock.mock_open()
-        with mock.patch('six.moves.builtins.open', mock_open_context):
+        with mock.patch('builtins.open', mock_open_context):
             self.cmd.take_action(parsed_args)
 
         self.assertTrue(orchestration_client.stacks.create.called)
@@ -1028,7 +1028,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         def _custom_create_params_env(parameters, tht_root,
                                       stack):
-            for key, value in six.iteritems(parameters):
+            for key, value in parameters.items():
                 self.assertEqual(value, expected_parameters[key])
             parameter_defaults = {"parameter_defaults": parameters}
             return parameter_defaults
@@ -1777,7 +1777,7 @@ class TestGetDeploymentStatus(utils.TestCommand):
     @mock.patch("tripleoclient.workflows.deployment.get_deployment_status")
     def test_get_deployment_status(self, mock_get_deployment_status):
         parsed_args = self.check_parser(self.cmd, [], [])
-        self.cmd.app.stdout = six.StringIO()
+        self.cmd.app.stdout = StringIO()
         status = 'DEPLOY_SUCCESS'
         mock_get_deployment_status.return_value = status
 

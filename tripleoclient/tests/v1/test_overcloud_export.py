@@ -47,7 +47,7 @@ class TestOvercloudExport(utils.TestCommand):
         mock_exists.return_value = False
         mock_export_passwords.return_value = {'key': 'value'}
         mock_export_stack.return_value = {'key0': 'value0'}
-        with mock.patch('six.moves.builtins.open', self.mock_open):
+        with mock.patch('builtins.open', self.mock_open):
             self.cmd.take_action(parsed_args)
         mock_export_passwords.assert_called_once_with(
             self.app.client_manager.orchestration,
@@ -79,7 +79,7 @@ class TestOvercloudExport(utils.TestCommand):
         verifylist = [('stack', 'foo')]
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
         mock_exists.return_value = False
-        with mock.patch('six.moves.builtins.open', self.mock_open):
+        with mock.patch('builtins.open', self.mock_open):
             self.cmd.take_action(parsed_args)
         mock_export_passwords.assert_called_once_with(
             self.app.client_manager.orchestration,
@@ -107,7 +107,7 @@ class TestOvercloudExport(utils.TestCommand):
                       ('config_download_dir', '/tmp/bar')]
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
         mock_exists.return_value = False
-        with mock.patch('six.moves.builtins.open', self.mock_open):
+        with mock.patch('builtins.open', self.mock_open):
             self.cmd.take_action(parsed_args)
         mock_export_passwords.assert_called_once_with(
             self.app.client_manager.orchestration,
@@ -133,7 +133,7 @@ class TestOvercloudExport(utils.TestCommand):
                       ('no_password_excludes', True)]
         parsed_args = self.check_parser(self.cmd, argslist, verifylist)
         mock_exists.return_value = False
-        with mock.patch('six.moves.builtins.open', self.mock_open):
+        with mock.patch('builtins.open', self.mock_open):
             self.cmd.take_action(parsed_args)
         mock_export_passwords.assert_called_once_with(
             self.app.client_manager.orchestration,

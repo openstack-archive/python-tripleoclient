@@ -527,7 +527,7 @@ class TestImportNodeMultiArch(fakes.TestOvercloudNode):
             }
         ]
         mock_open = mock.mock_open(read_data=json.dumps(file_return_nodes))
-        with mock.patch('six.moves.builtins.open', mock_open):
+        with mock.patch('builtins.open', mock_open):
             self.cmd.take_action(parsed_args)
 
         nodes_list = copy.deepcopy(self.nodes_list)

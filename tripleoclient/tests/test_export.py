@@ -137,7 +137,7 @@ class TestExport(TestCase):
         mock_get_stack.return_value = self.mock_stack
         self.mock_open = mock.mock_open(
             read_data='{"an_key":"an_value","ovn_dbs_vip":"vip"}')
-        with mock.patch('six.moves.builtins.open', self.mock_open):
+        with mock.patch('builtins.open', self.mock_open):
             data = export.export_stack(heat, "overcloud", should_filter=True)
 
         expected = \
@@ -229,7 +229,7 @@ class TestExport(TestCase):
         self.assertEqual(mock_passwords, data)
 
     def test_export_ceph_net_key(self):
-        with mock.patch('six.moves.builtins.open', self.mock_open_ceph_global):
+        with mock.patch('builtins.open', self.mock_open_ceph_global):
             mon_key = export.export_ceph_net_key('dcn0',
                                                  config_download_dir='/foo')
         self.assertEqual(mon_key, 'storage_ip')
@@ -237,7 +237,7 @@ class TestExport(TestCase):
             '/foo/dcn0/global_vars.yaml', 'r')
 
     def test_export_storage_ips(self):
-        with mock.patch('six.moves.builtins.open', self.mock_open_ceph_inv):
+        with mock.patch('builtins.open', self.mock_open_ceph_inv):
             storage_ips = export.export_storage_ips('dcn0',
                                                     config_download_dir='/foo',
                                                     ceph_net_key='foo_ip')
@@ -260,7 +260,7 @@ class TestExport(TestCase):
             'fsid': 'a5a22d37-e01f-4fa0-a440-c72585c7487f',
             'dashboard_enabled': False
         }
-        with mock.patch('six.moves.builtins.open', self.mock_open_ceph_all):
+        with mock.patch('builtins.open', self.mock_open_ceph_all):
             data = export.export_ceph('dcn0', 'openstack',
                                       config_download_dir='/foo',
                                       mon_ips=['192.168.24.42'])

@@ -44,8 +44,8 @@ from tripleoclient import utils
 from tripleoclient.tests import base
 from tripleoclient.tests import fakes
 
-from six.moves.configparser import ConfigParser
-from six.moves.urllib import error as url_error
+from configparser import ConfigParser
+from urllib import error as url_error
 
 from ansible_runner import Runner
 
@@ -212,10 +212,12 @@ class TestRunAnsiblePlaybook(TestCase):
             extra_vars=arglist
         )
 
-    @mock.patch('six.moves.builtins.open')
+    @mock.patch('os.chmod')
+    @mock.patch('builtins.open')
     @mock.patch('tripleoclient.utils.makedirs')
     @mock.patch('os.path.exists', side_effect=(False, True, True))
-    def test_run_with_timeout(self, mock_exists, mock_mkdir, mock_open):
+    def test_run_with_timeout(self, mock_exists, mock_mkdir, mock_open,
+                              mock_chmod):
         ansible_runner.ArtifactLoader = mock.MagicMock()
         ansible_runner.Runner.run = mock.MagicMock(return_value=('', 0))
         ansible_runner.runner_config = mock.MagicMock()
@@ -233,7 +235,7 @@ class TestRunAnsiblePlaybook(TestCase):
             mock_open.mock_calls)
 
     @mock.patch('os.chmod')
-    @mock.patch('six.moves.builtins.open')
+    @mock.patch('builtins.open')
     @mock.patch('tripleoclient.utils.makedirs')
     @mock.patch('os.path.exists', side_effect=(False, True, True))
     def test_run_with_extravar_file(self, mock_exists, mock_mkdir, mock_open,
@@ -1495,7 +1497,7 @@ class TestStoreCliParam(TestCase):
                 self.a = 1
 
         dt = datetime.datetime(2017, 11, 22)
-        with mock.patch("six.moves.builtins.open", mock_file):
+        with mock.patch("builtins.open", mock_file):
             with mock.patch('tripleoclient.utils.datetime') as mock_date:
                 mock_date.datetime.now.return_value = dt
                 utils.store_cli_param("overcloud plan list", ArgsFake())
@@ -1506,7 +1508,7 @@ class TestStoreCliParam(TestCase):
         ]
         mock_file.assert_has_calls(expected_call, any_order=True)
 
-    @mock.patch('six.moves.builtins.open')
+    @mock.patch('builtins.open')
     @mock.patch('os.path.isdir')
     @mock.patch('os.path.exists')
     def test_fail_to_write_data(self, mock_exists, mock_isdir, mock_open):
@@ -1576,7 +1578,7 @@ class ProcessMultipleEnvironments(TestCase):
                 'parse', autospec=True, return_value=dict())
     @mock.patch('yaml.safe_dump', autospec=True)
     @mock.patch('yaml.safe_load', autospec=True)
-    @mock.patch('six.moves.builtins.open')
+    @mock.patch('builtins.open')
     @mock.patch('tempfile.NamedTemporaryFile', autospec=True)
     def test_rewrite_env_files(self,
                                mock_temp, mock_open,
@@ -1819,13 +1821,13 @@ class TestDeploymentPythonInterpreter(TestCase):
 
 
 class TestWaitApiPortReady(TestCase):
-    @mock.patch('six.moves.urllib.request.urlopen')
+    @mock.patch('urllib.request.urlopen')
     def test_success(self, urlopen_mock):
         has_errors = utils.wait_api_port_ready(8080)
         self.assertFalse(has_errors)
 
     @mock.patch(
-        'six.moves.urllib.request.urlopen',
+        'urllib.request.urlopen',
         side_effect=[
             url_error.HTTPError("", 201, None, None, None), socket.timeout,
             url_error.URLError("")
@@ -1838,7 +1840,7 @@ class TestWaitApiPortReady(TestCase):
         self.assertEqual(sleep_mock.call_count, 30)
 
     @mock.patch(
-        'six.moves.urllib.request.urlopen',
+        'urllib.request.urlopen',
         side_effect=[
             socket.timeout,
             url_error.URLError(""),
@@ -1851,7 +1853,7 @@ class TestWaitApiPortReady(TestCase):
         self.assertEqual(sleep_mock.call_count, 4)
 
     @mock.patch(
-        'six.moves.urllib.request.urlopen',
+        'urllib.request.urlopen',
         side_effect=[
             socket.timeout,
             url_error.URLError(""),
@@ -1864,7 +1866,7 @@ class TestWaitApiPortReady(TestCase):
         self.assertEqual(urlopen_mock.call_count, 3)
         self.assertEqual(sleep_mock.call_count, 3)
 
-    @mock.patch('six.moves.urllib.request.urlopen', side_effect=NameError)
+    @mock.patch('urllib.request.urlopen', side_effect=NameError)
     @mock.patch('time.sleep')
     def test_dont_retry_at_unknown_exception(self, urlopen_mock, sleep_mock):
         with self.assertRaises(NameError):
