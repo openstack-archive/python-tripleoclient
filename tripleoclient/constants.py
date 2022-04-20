@@ -40,7 +40,7 @@ EPHEMERAL_HEAT_POD_NAME = "ephemeral-heat"
 ANSIBLE_CWL = "tripleo_dense,tripleo_profile_tasks,tripleo_states"
 CONTAINER_IMAGE_PREPARE_LOG_FILE = "container_image_prepare.log"
 DEFAULT_CONTAINER_REGISTRY = "quay.io"
-DEFAULT_CONTAINER_NAMESPACE = "tripleomaster"
+DEFAULT_CONTAINER_NAMESPACE = "tripleomastercentos9"
 DEFAULT_CONTAINER_TAG = "current-tripleo"
 DEFAULT_RESOURCE_REGISTRY = 'overcloud-resource-registry-puppet.yaml'
 
@@ -49,7 +49,10 @@ if os.path.isfile(kolla_builder.DEFAULT_PREPARE_FILE):
     DEFAULT_CONTAINER_IMAGE_PARAMS = kolla_builder.CONTAINER_IMAGES_DEFAULTS
 else:
     DEFAULT_CONTAINER_IMAGE_PARAMS = {
-        'namespace': 'quay.io/tripleomaster',
+        'namespace': '{}/{}'.format(
+            DEFAULT_CONTAINER_REGISTRY,
+            DEFAULT_CONTAINER_NAMESPACE
+        ),
         'name_prefix': 'openstack-',
         'tag': 'current-tripleo'
     }
