@@ -13,13 +13,9 @@
 from datetime import datetime
 import logging
 import os.path
-import shutil
-import sys
 import yaml
 
-from keystoneauth1.exceptions.catalog import EndpointNotFound
 from osc_lib.i18n import _
-from osc_lib import utils as osc_utils
 
 from tripleoclient import command
 from tripleoclient import export
@@ -39,10 +35,8 @@ class ExportOvercloud(command.Command):
                             metavar='<stack>',
                             help=_('Name of the environment main Heat stack '
                                    'to export information from. '
-                                   '(default=Env: OVERCLOUD_STACK_NAME)'),
-                            default=osc_utils.env(
-                                'OVERCLOUD_STACK_NAME',
-                                default='overcloud'))
+                                   '(default=overcloud)'),
+                            default='overcloud')
         parser.add_argument('--output-file', '-o', metavar='<output file>',
                             help=_('Name of the output file for the stack '
                                    'data export. It will default to '
@@ -50,6 +44,12 @@ class ExportOvercloud(command.Command):
         parser.add_argument('--force-overwrite', '-f', action='store_true',
                             default=False,
                             help=_('Overwrite output file if it exists.'))
+        parser.add_argument(
+            '--working-dir',
+            action='store',
+            help=_('The working directory for the deployment where all '
+                   'input, output, and generated files are stored.\n'
+                   'Defaults to "$HOME/overcloud-deploy/<stack>"'))
         parser.add_argument('--config-download-dir',
                             action='store',
                             help=_('Directory to search for config-download '
@@ -76,9 +76,10 @@ class ExportOvercloud(command.Command):
                       self.now,
                       parsed_args)
 
-        if os.path.exists(output_file) and not parsed_args.force_overwrite:
-            raise Exception(
-                "File '%s' already exists, not exporting." % output_file)
+        if not parsed_args.working_dir:
+            working_dir = utils.get_default_working_dir(stack)
+        else:
+            working_dir = parsed_args.working_dir
 
         if not parsed_args.config_download_dir:
             config_download_dir = os.path.join(os.environ.get('HOME'),
@@ -88,38 +89,19 @@ class ExportOvercloud(command.Command):
         else:
             config_download_dir = parsed_args.config_download_dir
 
-        # prepare clients to access the environment
-        clients = self.app.client_manager
-        try:
-            heat = clients.orchestration
-            heat.stacks.client.session.get_endpoint(
-                service_type='orchestration')
-        except EndpointNotFound:
-            self.log.warning(
-                "Heat endpoint not found. When using ephemeral Heat, "
-                "the export file exists in the stack working directory "
-                "as $HOME/overlcoud-deploy/<stack>/<stack>-export.yaml. "
-                "(default). The existing export file will be copied "
-                "to {}".format(output_file))
-            export_file_path = os.path.join(
-                utils.get_default_working_dir(parsed_args.stack),
-                '{}-export.yaml'.format(parsed_args.stack))
-            if os.path.exists(export_file_path):
-                print(
-                    "Export file found at {}, copying to {}.".format(
-                        export_file_path, output_file))
-                shutil.copy(export_file_path, output_file)
-            else:
-                print("Export file not found at {}.".format(
-                    export_file_path))
-                sys.exit(1)
-            return
+        export_file_path = os.path.join(
+            working_dir,
+            '{}-export.yaml'.format(parsed_args.stack))
+        if (os.path.exists(export_file_path) and
+                not parsed_args.force_overwrite):
+            raise Exception(
+                "File '%s' already exists, not exporting." % export_file_path)
 
         data = export.export_overcloud(
-            heat, stack, excludes=not parsed_args.no_password_excludes,
+            working_dir, stack, excludes=not parsed_args.no_password_excludes,
             should_filter=False, config_download_dir=config_download_dir)
         # write the exported data
-        with open(output_file, 'w') as f:
+        with open(export_file_path, 'w') as f:
             yaml.safe_dump(data, f, default_flow_style=False)
 
         print("Stack information exported to %s." % output_file)
