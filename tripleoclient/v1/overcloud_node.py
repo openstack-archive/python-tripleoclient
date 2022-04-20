@@ -489,7 +489,7 @@ class ExtractProvisionedNode(command.Command):
                             help=_('Skip yes/no prompt for existing files '
                                    '(assume yes).'))
         parser.add_argument('--roles-file', '-r', dest='roles_file',
-                            required=True,
+                            required=False,
                             help=_('Role data definition file'))
         return parser
 
@@ -520,15 +520,28 @@ class ExtractProvisionedNode(command.Command):
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
 
-        roles_file = os.path.abspath(parsed_args.roles_file)
-        with open(roles_file, 'r') as fd:
-            role_data = yaml.safe_load(fd.read())
-        # Convert role_data to a dict
-        role_data = {x['name']: x for x in role_data}
-
         self._setup_clients()
         stack = oooutils.get_stack(self.orchestration_client,
                                    parsed_args.stack)
+        tht_j2_sources = oooutils.get_stack_output_item(
+            stack, 'TripleoHeatTemplatesJinja2RenderingDataSources') or {}
+
+        if parsed_args.roles_file:
+            roles_file = os.path.abspath(parsed_args.roles_file)
+            with open(roles_file, 'r') as fd:
+                role_data = yaml.safe_load(fd.read())
+        else:
+            role_data = tht_j2_sources.get('roles_data')
+            if role_data is None:
+                raise oscexc.CommandError(
+                    "Unable to extract. Role data not available in {} stack "
+                    "output. Please provide the roles data for the deployed "
+                    "stack by setting the --roles-data argument.".format(
+                        parsed_args.stack))
+
+        # Convert role_data to a dict
+        role_data = {x['name']: x for x in role_data}
+
         host_vars = oooutils.get_stack_output_item(
             stack, 'AnsibleHostVarsMap') or {}
         role_net_ip_map = oooutils.get_stack_output_item(
