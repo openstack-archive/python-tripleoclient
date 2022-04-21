@@ -1126,6 +1126,7 @@ class DeployOvercloud(command.Command):
         else:
             self.working_dir = parsed_args.working_dir
         utils.makedirs(self.working_dir)
+        utils.check_deploy_backups(self.working_dir)
 
         if parsed_args.update_plan_only:
             raise exceptions.DeploymentError(
