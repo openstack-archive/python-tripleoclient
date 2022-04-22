@@ -276,7 +276,8 @@ class TestDeleteNode(fakes.TestDeleteNode):
                         }],
                         'name': 'Controller'
                     }],
-                    'prompt': False
+                    'prompt': False,
+                    'manage_network_ports': True
                 },
             )
         ])
