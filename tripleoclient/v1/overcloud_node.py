@@ -98,7 +98,12 @@ class DeleteNode(command.Command):
                 }
             )
             with open(unprovision_confirm) as f:
-                nodes = json.load(f)
+                to_unprovision = json.load(f)
+                if isinstance(to_unprovision, dict):
+                    nodes = to_unprovision.get(
+                        'instances') + to_unprovision.get('pre_provisioned')
+                else:
+                    nodes = to_unprovision
         if not nodes:
             print('No nodes to unprovision')
             return None, None
@@ -193,6 +198,7 @@ class DeleteNode(command.Command):
                         "stack_name": parsed_args.stack,
                         "baremetal_deployment": roles,
                         "prompt": False,
+                        "manage_network_ports": True,
                     }
                 )
 
