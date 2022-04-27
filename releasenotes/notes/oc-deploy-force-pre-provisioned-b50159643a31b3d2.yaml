@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    Overcloud deployment no longer supports deploying overcloud nodes by Heat.
+    Because of this change, the ``openstack overcloud deploy`` command now
+    always fails if the ``--provisioned-nodes`` option is used.

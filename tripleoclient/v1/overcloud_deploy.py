@@ -78,10 +78,9 @@ def _validate_args(parsed_args):
         raise oscexc.CommandError(
             "You must specify either --templates or --answers-file")
 
-    if parsed_args.baremetal_deployment and not parsed_args.deployed_server:
+    if not parsed_args.deployed_server:
         raise oscexc.CommandError(
-            "Error: --deployed-server must be used when using "
-            "--baremetal-deployment")
+            "Error: --provision-node is no longer supported")
 
     if (parsed_args.baremetal_deployment
             and (parsed_args.config_download_only or parsed_args.setup_only)):
@@ -146,9 +145,6 @@ class DeployOvercloud(command.Command):
     def _setup_clients(self, parsed_args):
         self.clients = self.app.client_manager
         self.orchestration_client = self.clients.orchestration
-        if not parsed_args.deployed_server:
-            self.compute_client = self.clients.compute
-            self.baremetal_client = self.clients.baremetal
 
     def _update_parameters(self, args, parameters,
                            tht_root, user_tht_root):
@@ -270,11 +266,10 @@ class DeployOvercloud(command.Command):
             parameters, new_tht_root, parsed_args.stack)
         created_env_files.extend(param_env)
 
-        if parsed_args.deployed_server:
-            created_env_files.append(
-                os.path.join(
-                    new_tht_root,
-                    constants.DEPLOYED_SERVER_ENVIRONMENT))
+        created_env_files.append(
+            os.path.join(
+                new_tht_root,
+                constants.DEPLOYED_SERVER_ENVIRONMENT))
 
         if parsed_args.baremetal_deployment is not None:
             created_env_files.extend(
@@ -781,7 +776,8 @@ class DeployOvercloud(command.Command):
             action='store_false',
             dest='deployed_server',
             default=True,
-            help=_('Provision overcloud nodes with heat.')
+            help=_('DEPRECATED: Provision overcloud nodes with heat.'
+                   'This method is no longer supported.')
         )
         parser.add_argument(
             '--config-download',
