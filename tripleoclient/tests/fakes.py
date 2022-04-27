@@ -148,6 +148,14 @@ VALIDATIONS_LOGS_CONTENTS_LIST = [{
     'validation_output': []
 }]
 
+FAKE_SUCCESS_RUN = [{'Duration': '0:00:01.761',
+                     'Host_Group': 'overcloud',
+                     'Status': 'PASSED',
+                     'Status_by_Host': 'subnode-1,PASSED, subnode-2,PASSED',
+                     'UUID': '123',
+                     'Unreachable_Hosts': '',
+                     'Validations': 'foo'}]
+
 
 class FakeOptions(object):
     def __init__(self):
