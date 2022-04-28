@@ -758,6 +758,9 @@ class Deploy(command.Command):
             environments, self.tht_render, parsed_args.templates,
             cleanup=parsed_args.cleanup)
 
+        # check if we're trying to deploy ceph during the overcloud deployment
+        utils.check_deployed_ceph_stage(env)
+
         roles_data = utils.fetch_roles_file(
             roles_file_path, parsed_args.templates)
 
