@@ -7,7 +7,6 @@
       - publish-openstack-docs-pti
       - release-notes-jobs-python3
       - tripleo-buildimage-jobs
-      - tripleo-build-containers-jobs
       - tripleo-multinode-container-minimal-pipeline
       - tripleo-undercloud-jobs-pipeline
       - tripleo-standalone-scenarios-pipeline
