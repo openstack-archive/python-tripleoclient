@@ -238,7 +238,8 @@ class TestExport(TestCase):
         with mock.patch('builtins.open', self.mock_open_ceph_all):
             data = export.export_ceph('dcn0', 'openstack',
                                       config_download_dir='/foo',
-                                      mon_ips=['192.168.24.42'])
+                                      mon_ips=['192.168.24.42'],
+                                      config_download_files=['ceph-ansible'])
         self.assertEqual(data, expected)
         self.mock_open_ceph_all.assert_called_once_with(
             '/foo/dcn0/ceph-ansible/group_vars/all.yml', 'r')
