@@ -61,6 +61,7 @@ class TestOvercloudCephDeploy(fakes.FakePlaybookExecution):
             verbosity=3,
             skip_tags='cephadm_ssh_user',
             reproduce_command=False,
+            extra_vars_file=mock.ANY,
             extra_vars={
                 "baremetal_deployed_path": mock.ANY,
                 "deployed_ceph_tht_path": mock.ANY,
@@ -106,6 +107,7 @@ class TestOvercloudCephDeploy(fakes.FakePlaybookExecution):
             verbosity=3,
             skip_tags='cephadm_ssh_user',
             reproduce_command=False,
+            extra_vars_file=mock.ANY,
             extra_vars={
                 "deployed_ceph_tht_path": mock.ANY,
                 "working_dir": mock.ANY,
@@ -139,6 +141,24 @@ class TestOvercloudCephDeploy(fakes.FakePlaybookExecution):
     def test_overcloud_deploy_ceph_no_metal(self, mock_abspath,
                                             mock_path_exists):
         arglist = ['--stack', 'overcloud',
+                   '--output', 'deployed-ceph.yaml']
+        parsed_args = self.check_parser(self.cmd, arglist, [])
+        self.assertRaises(osc_lib_exc.CommandError,
+                          self.cmd.take_action, parsed_args)
+
+    @mock.patch('tripleoclient.utils.get_ceph_networks', autospect=True)
+    @mock.patch('tripleoclient.utils.TempDirs', autospect=True)
+    @mock.patch('os.path.abspath', autospect=True)
+    @mock.patch('os.path.exists', autospect=True)
+    @mock.patch('tripleoclient.utils.run_ansible_playbook', autospec=True)
+    def test_overcloud_deploy_ceph_ansible_no_force(self,
+                                                    mock_playbook,
+                                                    mock_abspath,
+                                                    mock_path_exists,
+                                                    mock_tempdirs,
+                                                    mock_get_ceph_networks):
+        arglist = ['deployed-metal.yaml', '--yes',
+                   '--ansible-extra-vars', 'foo.yml',
                    '--output', 'deployed-ceph.yaml']
         parsed_args = self.check_parser(self.cmd, arglist, [])
         self.assertRaises(osc_lib_exc.CommandError,
