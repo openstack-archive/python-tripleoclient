@@ -83,11 +83,6 @@ class DeployOvercloud(command.Command):
         else:
             parameters['DeployIdentifier'] = ''
 
-        if args.heat_type != 'installed':
-            heat = None
-        else:
-            heat = self.orchestration_client
-
         # Check for existing passwords file
         password_params_path = os.path.join(
             self.working_dir,
@@ -98,6 +93,7 @@ class DeployOvercloud(command.Command):
         else:
             passwords_env = None
 
+        heat = None
         password_params = plan_utils.generate_passwords(
             None, heat, args.stack, passwords_env=passwords_env)
 
@@ -1029,13 +1025,13 @@ class DeployOvercloud(command.Command):
             '--heat-type',
             action='store',
             default='pod',
-            choices=['installed', 'pod', 'container', 'native'],
+            choices=['pod', 'container', 'native'],
             help=_('The type of Heat process to use to execute '
                    'the deployment.\n'
                    'pod (Default): Use an ephemeral Heat pod.\n'
-                   'installed: Use the system installed Heat.\n'
-                   'container: Use an ephemeral Heat container.\n'
-                   'native: Use an ephemeral Heat process.')
+                   'container (Experimental): Use an ephemeral Heat '
+                   'container.\n'
+                   'native (Experimental): Use an ephemeral Heat process.')
         )
         parser.add_argument(
             '--heat-container-api-image',
@@ -1164,33 +1160,12 @@ class DeployOvercloud(command.Command):
 
         self.heat_launcher = None
         stack = None
-        stack_create = None
         start = time.time()
-
-        if parsed_args.heat_type == 'installed':
-            stack = utils.get_stack(self.orchestration_client,
-                                    parsed_args.stack)
-
-            stack_create = stack is None
-            if stack_create:
-                self.log.info("No stack found, "
-                              "will be doing a stack create")
-            else:
-                self.log.info("Stack found, "
-                              "will be doing a stack update")
 
         new_tht_root, user_tht_root = \
             self.create_template_dirs(parsed_args)
         created_env_files = self.create_env_files(
                 stack, parsed_args, new_tht_root, user_tht_root)
-
-        if parsed_args.heat_type != 'installed':
-            ephemeral_heat = True
-        else:
-            ephemeral_heat = False
-            self.log.warning(
-                ("DEPRECATED: Using --heat-type=installed is deprecated "
-                 "and will be removed in a future release."))
 
         # full_deploy means we're doing a full deployment
         # e.g., no --*-only args were passed
@@ -1222,8 +1197,7 @@ class DeployOvercloud(command.Command):
         # running during later parts of overcloud deploy.
         try:
             if do_stack:
-                if ephemeral_heat:
-                    self.setup_ephemeral_heat(parsed_args)
+                self.setup_ephemeral_heat(parsed_args)
 
                 self.deploy_tripleo_heat_templates(
                     stack, parsed_args, new_tht_root,
@@ -1287,7 +1261,7 @@ class DeployOvercloud(command.Command):
                 )
 
         finally:
-            if parsed_args.heat_type != 'installed' and self.heat_launcher:
+            if self.heat_launcher:
                 self.log.info("Stopping ephemeral heat.")
                 utils.kill_heat(self.heat_launcher)
                 utils.rm_heat(self.heat_launcher, backup_db=True)
@@ -1389,8 +1363,7 @@ class DeployOvercloud(command.Command):
                 self.log.error(e)
 
             try:
-                if (parsed_args.heat_type != 'installed' and
-                        parsed_args.config_download):
+                if parsed_args.config_download:
                     # Create overcloud export
                     data = export.export_overcloud(
                         self.working_dir,
@@ -1415,10 +1388,9 @@ class DeployOvercloud(command.Command):
                 print("Overcloud Deployed {0}".format(deploy_message))
 
             try:
-                if parsed_args.heat_type != 'installed':
-                    self.log.info("Stopping ephemeral heat.")
-                    utils.kill_heat(self.heat_launcher)
-                    utils.rm_heat(self.heat_launcher, backup_db=True)
+                self.log.info("Stopping ephemeral heat.")
+                utils.kill_heat(self.heat_launcher)
+                utils.rm_heat(self.heat_launcher, backup_db=True)
             except Exception as e:
                 self.log.error('Exception stopping ephemeral Heat')
                 self.log.error(e)

@@ -1,0 +1,5 @@
+---
+other:
+  - The --heat-type argument for openstack overcloud deploy no longer accepts a
+    value of "installed", as using an undercloud installed Heat to deploy the
+    overcloud is no longer supported.
