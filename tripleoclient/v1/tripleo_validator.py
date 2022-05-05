@@ -13,8 +13,6 @@
 #   under the License.
 #
 import logging
-import os
-
 from tripleoclient import constants
 
 from validations_libs.cli.community import CommunityValidationInit
@@ -149,11 +147,7 @@ class TripleOValidatorRun(Run):
 
     def get_parser(self, parser):
         parser = super(TripleOValidatorRun, self).get_parser(parser)
-        default = {
-            'validation_log_dir': constants.VALIDATIONS_LOG_BASEDIR,
-            'inventory': os.path.join(
-                parser.output_dir,
-                constants.TRIPLEO_STATIC_INVENTORY)}
+        default = {'validation_log_dir': constants.VALIDATIONS_LOG_BASEDIR}
         parser.set_defaults(**default)
         return parser
 
