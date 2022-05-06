@@ -126,6 +126,11 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_copy_to_wd.start()
         self.addCleanup(mock_copy_to_wd.stop)
 
+        mock_check_deploy_backups = mock.patch(
+            'tripleoclient.utils.check_deploy_backups', autospec=True)
+        mock_check_deploy_backups.start()
+        self.addCleanup(mock_check_deploy_backups.stop)
+
     def tearDown(self):
         super(TestDeployOvercloud, self).tearDown()
         os.unlink(self.parameter_defaults_env_file)
