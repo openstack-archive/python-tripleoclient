@@ -547,7 +547,7 @@ class OvercloudCephDeploy(command.Command):
                     "ceph daemon options file not found --daemons %s."
                     % os.path.abspath(parsed_args.daemons))
             else:
-                daemon_opt = oooutils.process_daemons(
+                daemon_opt = oooutils.process_ceph_daemons(
                     os.path.abspath(parsed_args.daemons))
                 # merge the processed extra_vars for daemons
                 extra_vars = {**extra_vars, **daemon_opt}
