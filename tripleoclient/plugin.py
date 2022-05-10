@@ -18,7 +18,6 @@
 import logging
 
 from osc_lib import utils
-from swiftclient import client as swift_client
 
 LOG = logging.getLogger(__name__)
 
@@ -63,7 +62,6 @@ class ClientWrapper(object):
 
     def __init__(self, instance):
         self._instance = instance
-        self._object_store = None
         self._local_orchestration = None
 
     def local_orchestration(self, api_port):
@@ -92,29 +90,3 @@ class ClientWrapper(object):
 
         self._local_orchestration = client
         return self._local_orchestration
-
-    @property
-    def object_store(self):
-        """Returns an object_store service client
-
-        The Swift/Object client returned by python-openstack client isn't an
-        instance of python-swiftclient, and had far less functionality.
-        """
-
-        if self._object_store is not None:
-            return self._object_store
-
-        endpoint = self._instance.get_endpoint_for_service_type(
-            "object-store",
-            region_name=self._instance._region_name,
-        )
-
-        token = self._instance.auth.get_token(self._instance.session)
-
-        kwargs = {
-            'preauthurl': endpoint,
-            'preauthtoken': token
-        }
-
-        self._object_store = swift_client.Connection(**kwargs)
-        return self._object_store

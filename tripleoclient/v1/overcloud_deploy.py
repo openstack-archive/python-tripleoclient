@@ -1068,13 +1068,6 @@ class DeployOvercloud(command.Command):
 
         self._setup_clients(parsed_args)
 
-        # Swiftclient logs things like 404s at error level, which is a problem
-        # because we use EAFP to check for the existence of files.  Turn off
-        # most swiftclient logging to avoid cluttering up our output with
-        # pointless tracebacks.
-        sc_logger = logging.getLogger("swiftclient")
-        sc_logger.setLevel(logging.CRITICAL)
-
         _update_args_from_answers_file(parsed_args)
 
         _validate_args(parsed_args)
