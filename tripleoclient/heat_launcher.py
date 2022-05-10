@@ -235,7 +235,6 @@ class HeatBaseLauncher(object):
 [DEFAULT]
 log_file = %(log_file)s
 transport_url = 'fake://'
-rpc_poll_timeout = 60
 rpc_response_timeout = 600
 deferred_auth_method = password
 num_engine_workers=1
