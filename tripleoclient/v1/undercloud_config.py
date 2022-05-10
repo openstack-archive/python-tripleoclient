@@ -592,8 +592,9 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
             tht_templates, "environments/services/masquerade-networks.yaml")]
 
     if CONF.get('enable_keystone'):
-        deploy_args += ['-e', os.path.join(
-            tht_templates, "environments/undercloud-enable-keystone.yaml")]
+        LOG.warning('Keystone has been deprecated and no longer be installed '
+                    'using the enable_keystone. Please remove it from '
+                    'undercloud.conf.')
 
     if CONF.get('enable_ironic'):
         deploy_args += ['-e', os.path.join(
@@ -634,28 +635,20 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
         env_data['UndercloudIpaOtp'] = CONF['ipa_otp']
 
     if CONF.get('enable_swift'):
-        deploy_args += ['-e', os.path.join(
-            tht_templates, "environments/undercloud-enable-swift.yaml")]
+        LOG.warning('Swift has been deprecated and no longer be installed '
+                    'using the enable_swift')
 
     if CONF.get('enable_telemetry'):
-        deploy_args += ['-e', os.path.join(
-            tht_templates, "environments/enable-legacy-telemetry.yaml")]
+        LOG.warning('Telemetry has been deprecated and no longer be installed '
+                    'using the enable_telemetry')
 
     if CONF.get('enable_cinder'):
-        deploy_args += ['-e', os.path.join(
-            tht_templates,
-            "environments/services/undercloud-cinder.yaml")]
+        LOG.warning('Cinder has been deprecated and no longer be installed '
+                    'using the enable_cinder')
 
     if CONF.get('enable_swift_encryption'):
-        deploy_args += [
-            '-e', os.path.join(tht_templates,
-                               "environments/services/barbican.yaml"),
-            '-e', os.path.join(
-                tht_templates,
-                "environments/barbican-backend-simple-crypto.yaml")
-            ]
-        env_data['BarbicanSimpleCryptoGlobalDefault'] = True
-        env_data['SwiftEncryptionEnabled'] = True
+        LOG.warning('Swift has been deprecated and no longer be installed '
+                    'using the enable_swift_encryption')
 
     if CONF.get('enable_frr'):
         deploy_args += ['-e', os.path.join(
