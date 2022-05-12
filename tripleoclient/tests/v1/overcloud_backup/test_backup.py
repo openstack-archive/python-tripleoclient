@@ -366,3 +366,137 @@ class TestOvercloudBackup(utils.TestCommand):
             'The inventory file',
             self.cmd.take_action,
             parsed_args)
+
+
+class TestOvercloudSnapshot(utils.TestCommand):
+
+    def setUp(self):
+        super(TestOvercloudSnapshot, self).setUp()
+
+        # Get the command object to test
+        app_args = mock.Mock()
+        app_args.verbose_level = 1
+        self.app.options = fakes.FakeOptions()
+        self.cmd = overcloud_backup.BackupSnapshot(self.app, app_args)
+        self.app.client_manager.workflow_engine = mock.Mock()
+        self.workflow = self.app.client_manager.workflow_engine
+        self.inventory = '/tmp/test_inventory.yaml'
+        self.file = open(self.inventory, 'w').close()
+
+    @mock.patch('os.path.isfile')
+    @mock.patch('os.access')
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
+                autospec=True)
+    def test_overcloud_snapshot_noargs(self,
+                                       mock_playbook,
+                                       mock_access,
+                                       mock_isfile):
+        arglist = []
+        verifylist = []
+        mock_isfile.return_value = True
+        mock_access.return_value = True
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
+        mock_playbook.assert_called_once_with(
+            workdir=mock.ANY,
+            playbook='cli-overcloud-snapshot.yaml',
+            inventory=parsed_args.inventory,
+            tags=None,
+            skip_tags=None,
+            playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            verbosity=3,
+            extra_vars={}
+        )
+
+    @mock.patch('tripleoclient.utils.run_ansible_playbook', autospec=True)
+    def test_overcloud_snapshot_inventory(self, mock_playbook):
+        arglist = [
+            '--inventory',
+            self.inventory
+        ]
+        verifylist = []
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
+        mock_playbook.assert_called_once_with(
+            workdir=mock.ANY,
+            playbook='cli-overcloud-snapshot.yaml',
+            inventory=parsed_args.inventory,
+            tags=None,
+            skip_tags=None,
+            playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            verbosity=3,
+            extra_vars={}
+        )
+
+    @mock.patch('os.path.isfile')
+    @mock.patch('os.access')
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
+                autospec=True)
+    def test_overcloud_snapshot_extra_vars_inline(self,
+                                                  mock_playbook,
+                                                  mock_access,
+                                                  mock_isfile):
+        arglist = [
+            '--extra-vars',
+            '{"tripleo_snapshot_revert_var_size": "2G"}'
+        ]
+        verifylist = []
+        mock_isfile.return_value = True
+        mock_access.return_value = True
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        extra_vars_dict = {
+            'tripleo_snapshot_revert_var_size': '2G'
+        }
+
+        self.cmd.take_action(parsed_args)
+        mock_playbook.assert_called_once_with(
+            workdir=mock.ANY,
+            playbook='cli-overcloud-snapshot.yaml',
+            inventory=parsed_args.inventory,
+            tags=None,
+            skip_tags=None,
+            playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            verbosity=3,
+            extra_vars=extra_vars_dict
+            )
+
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
+                autospec=True)
+    def test_overcloud_backup_no_inventory(self, mock_playbook):
+        arglist = [
+            '--inventory',
+            '/tmp/no_inventory.yaml'
+        ]
+        verifylist = []
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+        self.assertRaisesRegex(
+            RuntimeError,
+            'The inventory file',
+            self.cmd.take_action,
+            parsed_args)
+
+    @mock.patch('os.access')
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
+                autospec=True)
+    def test_overcloud_backup_no_readable_inventory(self,
+                                                    mock_playbook,
+                                                    mock_access):
+        arglist = [
+            '--inventory',
+            self.inventory
+        ]
+        verifylist = []
+        mock_access.return_value = False
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.assertRaisesRegex(
+            RuntimeError,
+            'The inventory file',
+            self.cmd.take_action,
+            parsed_args)
