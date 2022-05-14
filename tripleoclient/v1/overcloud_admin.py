@@ -114,6 +114,10 @@ class Authorize(command.Command):
         else:
             hosts = parsed_args.limit_hosts
 
+        host_list = [str(h) for h in oooutils.parse_ansible_inventory(
+            inventory, hosts
+        )]
+
         oooutils.run_ansible_playbook(
             playbook='cli-enable-ssh-admin.yaml',
             inventory=inventory,
@@ -123,8 +127,7 @@ class Authorize(command.Command):
             ssh_user=parsed_args.overcloud_ssh_user,
             extra_vars={
                 "ANSIBLE_PRIVATE_KEY_FILE": key_file,
-                "ssh_servers": oooutils.parse_ansible_inventory(
-                    inventory, hosts)
+                "ssh_servers": host_list
             },
             ansible_timeout=parsed_args.overcloud_ssh_port_timeout
         )
