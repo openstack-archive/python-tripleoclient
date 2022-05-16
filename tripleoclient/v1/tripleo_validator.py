@@ -15,6 +15,7 @@
 import logging
 from tripleoclient import constants
 
+from validations_libs.cli.community import CommunityValidationInit
 from validations_libs.cli.history import GetHistory
 from validations_libs.cli.history import ListHistory
 from validations_libs.cli.lister import ValidationList
@@ -76,6 +77,17 @@ class TripleOValidatorRun(Run):
         parser = super(TripleOValidatorRun, self).get_parser(parser)
         default = {'validation_log_dir': constants.VALIDATIONS_LOG_BASEDIR}
         parser.set_defaults(**default)
+        return parser
+
+
+class TripleOValidatorCommunityInit(CommunityValidationInit):
+    """Create the paths and infrastructure to create a community validation"""
+
+    auth_required = False
+
+    def get_parser(self, parser):
+        parser = super(
+            TripleOValidatorCommunityInit, self).get_parser(parser)
         return parser
 
 
