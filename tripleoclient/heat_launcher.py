@@ -485,7 +485,7 @@ class HeatPodLauncher(HeatContainerLauncher):
             return
         # force pull of latest container image
         for image in self.api_container_image, self.engine_container_image:
-            log.info("Pulling conatiner image {}.".format(image))
+            log.info("Pulling container image {}.".format(image))
             cmd = ['sudo', 'podman', 'pull', image]
             log.debug(' '.join(cmd))
             try:
