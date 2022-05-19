@@ -647,6 +647,7 @@ class Deploy(command.Command):
             p_ip = parsed_args.public_virtual_ip
         else:
             p_ip = ip
+        ip_version = str(ip_nw.version)
 
         role_name = self._get_primary_role_name(
             roles_file_path, parsed_args.templates)
@@ -692,6 +693,7 @@ class Deploy(command.Command):
                         'ctlplane-subnet': {
                             'cidr': str(ip_nw.cidr),
                             'host_routes': host_routes,
+                            'ip_version': ip_version,
                         }
                     }
                 }
