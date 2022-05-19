@@ -654,6 +654,7 @@ class Deploy(command.Command):
             p_ip = parsed_args.public_virtual_ip
         else:
             p_ip = ip
+        ip_version = str(ip_nw.version)
 
         tmp_env = self._generate_hosts_parameters(parsed_args, p_ip)
         tmp_env.update(self._generate_portmap_parameters(
@@ -698,6 +699,7 @@ class Deploy(command.Command):
                         'ctlplane-subnet': {
                             'cidr': str(ip_nw.cidr),
                             'host_routes': host_routes,
+                            'ip_version': ip_version,
                         }
                     }
                 }
