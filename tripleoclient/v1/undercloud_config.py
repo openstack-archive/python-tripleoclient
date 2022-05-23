@@ -587,10 +587,6 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
     # later into other deployment artifacts and user-provided files.
     _container_images_config(CONF, deploy_args, env_data, tempdir)
 
-    if env_data['MasqueradeNetworks']:
-        deploy_args += ['-e', os.path.join(
-            tht_templates, "environments/services/masquerade-networks.yaml")]
-
     if CONF.get('enable_keystone'):
         deploy_args += ['-e', os.path.join(
             tht_templates, "environments/undercloud-enable-keystone.yaml")]
