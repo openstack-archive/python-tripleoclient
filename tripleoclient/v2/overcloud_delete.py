@@ -63,7 +63,9 @@ class DeleteOvercloud(command.Command):
                                    'network deployment to enable '
                                    'unprovisioning of networks.'))
         parser.add_argument('--network-ports',
-                            help=_('Enable unprovisioning of network ports'),
+                            help=_('DEPRECATED! Network ports will always be '
+                                   'unprovisioned.\n'
+                                   'Enable unprovisioning of network ports'),
                             default=False,
                             action="store_true")
         parser.add_argument(
@@ -141,7 +143,7 @@ class DeleteOvercloud(command.Command):
                         "baremetal_deployment": roles,
                         "all": True,
                         "prompt": False,
-                        "manage_network_ports": parsed_args.network_ports,
+                        "manage_network_ports": True,
                     }
                 )
 
