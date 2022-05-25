@@ -15,11 +15,15 @@
 
 import logging
 import os
+import re
 import uuid
+import yaml
 
 from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
 from osc_lib import utils
+
+from tripleo_common.utils import passwords
 
 from tripleoclient import command
 from tripleoclient import constants
@@ -188,6 +192,54 @@ class OvercloudCephDeploy(command.Command):
         parser.add_argument('--force', default=False,
                             action='store_true',
                             help=_("Run command regardless of consequences."))
+        parser.add_argument('--ansible-extra-vars',
+                            help=_(
+                                "Path to an existing Ansible vars file which "
+                                "can override any variable in "
+                                "tripleo-ansible. If "
+                                "'--ansible-extra-vars vars.yaml' is passed, "
+                                "then 'ansible-playbook -e @vars.yaml ...' is "
+                                "used to call tripleo-ansible Ceph roles. "
+                                "Warning: requires --force as not all "
+                                "options ensure a functional deployment."))
+        parser.add_argument('--ceph-client-username',
+                            help=_(
+                                "Name of the cephx user. E.g. if "
+                                "'openstack' is used, then "
+                                "'ceph auth get client.openstack' will "
+                                "return a working user with key and "
+                                "capabilities on the deployed Ceph cluster. "
+                                "Ignored unless tripleo_cephadm_pools is set "
+                                "via --ansible-extra-vars. "
+                                "If this parameter is not set and "
+                                "tripleo_cephadm_keys is set via "
+                                "--ansible-extra-vars, then "
+                                "'openstack' will be used. "
+                                "Used to set CephClientUserName in --output."),
+                            default='openstack'),
+        parser.add_argument('--ceph-client-key',
+                            help=_(
+                                "Value of the cephx key. E.g. "
+                                "'AQC+vYNXgDAgAhAAc8UoYt+OTz5uhV7ItLdwUw=='. "
+                                "Ignored unless tripleo_cephadm_pools is set "
+                                "via --ansible-extra-vars. "
+                                "If this parameter is not set and "
+                                "tripleo_cephadm_keys is set via "
+                                "--ansible-extra-vars, then a random "
+                                "key will be generated. "
+                                "Used to set CephClientKey in --output."),
+                            default='')
+        parser.add_argument('--skip-cephx-keys', default=False,
+                            action='store_true',
+                            help=_("Do not create cephx keys even if "
+                                   "tripleo_cephadm_pools is set via "
+                                   "--ansible-extra-vars. If this option "
+                                   "is used, then even the defaults of "
+                                   "--ceph-client-key and "
+                                   "--ceph-client-username are ignored, "
+                                   "but the pools defined via "
+                                   "--ansible-extra-vars "
+                                   "are still created."))
         parser.add_argument('--single-host-defaults', default=False,
                             action='store_true',
                             help=_("Adjust configuration defaults to suit "
@@ -318,6 +370,7 @@ class OvercloudCephDeploy(command.Command):
             "working_dir": working_dir,
             "stack_name": parsed_args.stack,
         }
+        extra_vars_file = None
         # optional paths to pass to playbook
         if parsed_args.roles_data:
             if not os.path.exists(parsed_args.roles_data):
@@ -386,6 +439,52 @@ class OvercloudCephDeploy(command.Command):
         if parsed_args.cephadm_extra_args and parsed_args.force:
             extra_vars['tripleo_cephadm_extra_args'] = \
                 parsed_args.cephadm_extra_args
+
+        if parsed_args.ansible_extra_vars and not parsed_args.force:
+            raise oscexc.CommandError(
+                "--ansible-extra-vars requires --force.")
+        if parsed_args.ansible_extra_vars and parsed_args.force:
+            if not os.path.exists(parsed_args.ansible_extra_vars):
+                raise oscexc.CommandError(
+                    "Ansible vars file not found --ansible-extra-vars %s."
+                    % os.path.abspath(parsed_args.ansible_extra_vars))
+            else:
+                # utils.run_ansible_playbook() assums extra_vars_file is a dict
+                with open(os.path.abspath(parsed_args.ansible_extra_vars),
+                          'r') as f:
+                    extra_vars_file = yaml.safe_load(f)
+                if (not parsed_args.skip_cephx_keys and
+                    'tripleo_cephadm_pools' in extra_vars_file and # noqa
+                    'tripleo_cephadm_keys' not in extra_vars_file): # noqa
+                    # create tripleo_cephadm_keys and add it to extra_vars
+                    self.log.debug("Generating tripleo_cephadm_keys")
+                    if len(parsed_args.ceph_client_key) == 0:
+                        parsed_args.ceph_client_key = \
+                            passwords.create_cephx_key()
+                    cephx = re.compile(r"^[a-zA-Z0-9+/]{38}==$")
+                    if not cephx.match(parsed_args.ceph_client_key):
+                        msg = ("'%s' is not a valid cephx key"
+                               % str(parsed_args.ceph_client_key))
+                        raise oscexc.CommandError(msg)
+                    extra_vars['tripleo_cephadm_keys'] = \
+                        oooutils.get_tripleo_cephadm_keys(
+                            parsed_args.ceph_client_username,
+                            parsed_args.ceph_client_key,
+                            list(map(lambda x: x.get('name', ''),
+                                     extra_vars_file['tripleo_cephadm_pools']))
+                        )
+                    # pass CLI args to THT via --output deployed_ceph.yaml
+                    extra_vars['ceph_client_key'] = parsed_args.ceph_client_key
+                    extra_vars['ceph_client_username'] =\
+                        parsed_args.ceph_client_username
+                else:
+                    self.log.debug("Not generating tripleo_cephadm_keys. "
+                                   "Either --skip-cephx-keys was used, "
+                                   "or tripleo_cephadm_pools was not "
+                                   "in %s, or tripleo_cephadm_keys was "
+                                   "in %s." % (
+                                       (parsed_args.ansible_extra_vars,)*2))
+
         # optional container vars to pass to playbook
         keys = ['ceph_namespace', 'ceph_image', 'ceph_tag']
         push_sub_keys = ['ceph_namespace']
@@ -481,6 +580,7 @@ class OvercloudCephDeploy(command.Command):
                     verbosity=oooutils.playbook_verbosity(self=self),
                     reproduce_command=False,
                     extra_vars=hosts_extra_vars,
+                    extra_vars_file=extra_vars_file,
                 )
         else:
             self.log.debug("Not updating /etc/hosts because "
@@ -501,6 +601,7 @@ class OvercloudCephDeploy(command.Command):
                         playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
                         verbosity=oooutils.playbook_verbosity(self=self),
                         extra_vars=reg_extra_vars,
+                        extra_vars_file=extra_vars_file,
                         reproduce_command=False,
                     )
             else:
@@ -522,6 +623,7 @@ class OvercloudCephDeploy(command.Command):
                 playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
                 verbosity=oooutils.playbook_verbosity(self=self),
                 extra_vars=extra_vars,
+                extra_vars_file=extra_vars_file,
                 reproduce_command=False,
                 skip_tags=','.join(skip_tags),
             )

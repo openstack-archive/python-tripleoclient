@@ -3350,3 +3350,23 @@ def check_deploy_backups(
                 "percent of disk size. Consider deleting some "
                 "older deploy backups.".format(fs_usage, disk_usage_percent))
             print(backup_table, file=sys.stdout)
+
+
+def get_tripleo_cephadm_keys(username, key, pools):
+    """Get a tripleo_cephadm_keys structure to be passed to
+       the tripleo-ansible role tripleo_cephadm. Assumes only
+       one key will be created to write to all pools.
+    :param username: string, e.g. 'openstack'
+    :param key: string for cephx secret key, e.g. 'AQC+...w=='
+    :param pools: list of pool names, e.g. ['vms', 'images']
+    :return a list containing a single dictionary
+    """
+    return [dict(
+        name='client.' + username,
+        key=key,
+        mode='0600',
+        caps=dict(
+            mgr='allow *',
+            mon='profile rbd',
+            osd=', '.join(list(
+                map(lambda x: 'profile rbd pool=' + x, pools)))))]
