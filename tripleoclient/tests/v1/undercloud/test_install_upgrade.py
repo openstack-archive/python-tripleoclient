@@ -353,6 +353,9 @@ class TestUndercloudInstall(TestPluginV1):
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'use-dns-for-vips.yaml', '-e',
              '/home/stack/foo.yaml', '-e',
+             '/usr/share/openstack-tripleo-heat-templates/'
+             'environments/services/masquerade-networks.yaml',
+             '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
              'services/ironic.yaml', '-e',
              '/usr/share/openstack-tripleo-heat-templates/environments/'
