@@ -18,6 +18,7 @@ from unittest import mock
 from tripleoclient.tests import base
 
 from tripleoclient.v1 import tripleo_validator
+from tripleoclient import constants
 from tripleoclient.tests import fakes
 
 
@@ -54,7 +55,8 @@ class TestValidatorGroupInfo(base.TestCommand):
         self.cmd = tripleo_validator.TripleOValidatorGroupInfo(self.app, None)
 
     @mock.patch('validations_libs.validation_actions.ValidationActions.'
-                'group_information', return_value=fakes.GROUPS_LIST)
+                'group_information', autospec=True,
+                return_value=fakes.GROUPS_LIST)
     def test_show_group_info(self, mock_validations):
         arglist = []
         verifylist = []
@@ -74,6 +76,7 @@ class TestValidatorList(base.TestCommand):
 
     @mock.patch('validations_libs.validation_actions.ValidationActions.'
                 'list_validations',
+                autospec=True,
                 return_value=fakes.VALIDATIONS_LIST)
     def test_validation_list_noargs(self, mock_validations):
         arglist = []
@@ -94,6 +97,7 @@ class TestValidatorShow(base.TestCommand):
 
     @mock.patch('validations_libs.validation_actions.ValidationActions.'
                 'show_validations',
+                autospec=True,
                 return_value=fakes.VALIDATIONS_LIST[0])
     def test_validation_show(self, mock_validations):
         arglist = ['my_val1']
@@ -115,6 +119,7 @@ class TestValidatorShowParameter(base.TestCommand):
 
     @mock.patch('validations_libs.validation_actions.ValidationActions.'
                 'show_validations_parameters',
+                autospec=True,
                 return_value=fakes.VALIDATIONS_LIST[1])
     def test_validation_show_parameter(self, mock_validations):
         arglist = ['--validation', 'my_val2']
@@ -136,6 +141,7 @@ class TestValidatorShowRun(base.TestCommand):
 
     @mock.patch('validations_libs.validation_actions.ValidationLogs.'
                 'get_logfile_content_by_uuid',
+                autospec=True,
                 return_value=fakes.VALIDATIONS_LOGS_CONTENTS_LIST)
     def test_validation_show_run(self, mock_validations):
         arglist = ['008886df-d297-1eaa-2a74-000000000008']
@@ -157,6 +163,7 @@ class TestValidatorShowHistory(base.TestCommand):
 
     @mock.patch('validations_libs.validation_actions.ValidationActions.'
                 'show_history',
+                autospec=True,
                 return_value=fakes.VALIDATIONS_LOGS_CONTENTS_LIST)
     def test_validation_show_history(self, mock_validations):
         arglist = []
@@ -168,6 +175,7 @@ class TestValidatorShowHistory(base.TestCommand):
 
     @mock.patch('validations_libs.validation_actions.ValidationActions.'
                 'show_history',
+                autospec=True,
                 return_value=fakes.VALIDATIONS_LOGS_CONTENTS_LIST)
     def test_validation_show_history_for_a_validation(self, mock_validations):
         arglist = [
@@ -179,3 +187,36 @@ class TestValidatorShowHistory(base.TestCommand):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.cmd.take_action(parsed_args)
+
+
+class TestValidatorRun(base.TestCommand):
+
+    def setUp(self):
+        super().setUp()
+
+        self.cmd = tripleo_validator.TripleOValidatorRun(self.app, None)
+
+    @mock.patch('validations_libs.cli.run.common.print_dict', autospec=True)
+    @mock.patch('validations_libs.cli.run.common.write_output', autospec=True)
+    @mock.patch('validations_libs.validation_actions.ValidationActions.'
+                'run_validations',
+                return_value=fakes.FAKE_SUCCESS_RUN,
+                autospec=True)
+    def test_validation_run(self, mock_validations, mock_write_output,
+                            mock_print_dict):
+        arglist = ['--validation', 'mock_validation']
+        verify_list = [
+            ('validation_name', ['mock_validation']),
+            ('validation_log_dir', constants.VALIDATIONS_LOG_BASEDIR)]
+
+        parsed_args = self.check_parser(self.cmd, arglist, verify_list)
+        self.cmd.take_action(parsed_args)
+
+        # The 'output.log' argument value isn't derived from CLI arguments
+        # but from the VF configuration file. Changes to it, or to the way
+        # it is handled, should be reflected here.
+
+        mock_write_output.assert_called_once_with(
+            'output.log', fakes.FAKE_SUCCESS_RUN)
+
+        mock_print_dict.assert_called_once_with(fakes.FAKE_SUCCESS_RUN)
