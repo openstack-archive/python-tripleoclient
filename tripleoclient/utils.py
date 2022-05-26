@@ -2643,7 +2643,7 @@ def copy_clouds_yaml(user):
     clouds_user_id = os.stat(clouds_home_dir).st_uid
     clouds_group_id = os.stat(clouds_home_dir).st_gid
 
-    # If the file doesn't exist (e.g. on a minion node), we don't need to copy
+    # If the file doesn't exist, we don't need to copy
     # /etc/openstack/clouds.yaml to the user directory.
     if not os.path.isfile(clouds_etc_file):
         return

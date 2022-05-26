@@ -34,7 +34,6 @@ lib64
 # Installer logs
 pip-log.txt
 install-undercloud.log
-install-minion.log
 
 # Unit test / coverage reports
 .coverage
