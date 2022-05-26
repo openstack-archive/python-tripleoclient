@@ -95,7 +95,8 @@ STACK_OUTPUTS = ['BlacklistedHostnames',
                  'VipMap',
                  'EnabledServices',
                  'HostsEntry',
-                 'AdminPassword']
+                 'AdminPassword',
+                 'GlobalConfig']
 
 IRONIC_HTTP_BOOT_BIND_MOUNT = '/var/lib/ironic/httpboot'
 IRONIC_LOCAL_IMAGE_PATH = '/var/lib/ironic/images'
