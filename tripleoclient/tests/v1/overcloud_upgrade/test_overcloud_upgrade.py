@@ -46,8 +46,7 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
     @mock.patch('tripleoclient.workflows.deployment.'
                 'get_hosts_and_enable_ssh_admin', autospec=True)
     @mock.patch('tripleoclient.utils.prepend_environment', autospec=True)
-    @mock.patch('tripleoclient.utils.get_stack',
-                autospec=True)
+    @mock.patch('tripleoclient.utils.get_stack')
     @mock.patch('tripleoclient.v1.overcloud_upgrade.UpgradePrepare.log',
                 autospec=True)
     @mock.patch('yaml.safe_load')
@@ -64,8 +63,8 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
                          mock_usercheck):
 
         mock_stack = mock.Mock(parameters={'DeployIdentifier': ''})
-        mock_stack.stack_name = 'overcloud'
         mock_get_stack.return_value = mock_stack
+        mock_stack.stack_name = 'overcloud'
         mock_yaml.return_value = {'fake_container': 'fake_value'}
         add_env = mock.Mock()
         add_env.return_value = True
@@ -103,8 +102,7 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
                 return_value=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 'take_action')
-    @mock.patch('tripleoclient.utils.get_stack',
-                autospec=True)
+    @mock.patch('tripleoclient.utils.get_stack')
     @mock.patch('tripleoclient.utils.prepend_environment', autospec=True)
     @mock.patch('builtins.open')
     @mock.patch('yaml.safe_load')
@@ -190,7 +188,6 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
                 return_value=True)
     @mock.patch(
         'ansible_runner.runner_config.RunnerConfig',
-        autospec=True,
         return_value=ooofakes.FakeRunnerConfig()
     )
     @mock.patch(

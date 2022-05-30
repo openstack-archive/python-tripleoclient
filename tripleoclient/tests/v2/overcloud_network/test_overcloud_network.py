@@ -34,8 +34,8 @@ class TestOvercloudNetworkExtract(fakes.FakePlaybookExecution):
         self.cmd = overcloud_network.OvercloudNetworkExtract(self.app,
                                                              app_args)
 
-    @mock.patch('tripleoclient.utils.TempDirs', autospect=True)
-    @mock.patch('os.path.abspath', autospect=True)
+    @mock.patch('tripleoclient.utils.TempDirs', autospec=True)
+    @mock.patch('os.path.abspath', autospec=True)
     @mock.patch('tripleoclient.utils.run_ansible_playbook', autospec=True)
     def test_overcloud_network_extract(self, mock_playbook, mock_abspath,
                                        mock_tempdirs):
@@ -56,8 +56,8 @@ class TestOvercloudNetworkExtract(fakes.FakePlaybookExecution):
             }
         )
 
-    @mock.patch('os.path.abspath', autospect=True)
-    @mock.patch('os.path.exists', autospect=True)
+    @mock.patch('os.path.abspath', autospec=True)
+    @mock.patch('os.path.exists', autospec=True)
     def test_overcloud_network_extract_no_overwrite(self, mock_abspath,
                                                     mock_path_exists):
         mock_abspath.return_value = '/test/test'
@@ -86,9 +86,9 @@ class TestOvercloudNetworkProvision(fakes.FakePlaybookExecution):
         mock_copy_to_wd.start()
         self.addCleanup(mock_copy_to_wd.stop)
 
-    @mock.patch('tripleoclient.utils.TempDirs', autospect=True)
-    @mock.patch('os.path.abspath', autospect=True)
-    @mock.patch('os.path.exists', autospect=True)
+    @mock.patch('tripleoclient.utils.TempDirs', autospec=True)
+    @mock.patch('os.path.abspath', autospec=True)
+    @mock.patch('os.path.exists', autospec=True)
     @mock.patch('tripleoclient.utils.run_ansible_playbook', autospec=True)
     def test_overcloud_network_provision(self, mock_playbook, mock_path_exists,
                                          mock_abspath, mock_tempdirs):
@@ -114,8 +114,8 @@ class TestOvercloudNetworkProvision(fakes.FakePlaybookExecution):
             }
         )
 
-    @mock.patch('os.path.abspath', autospect=True)
-    @mock.patch('os.path.exists', autospect=True)
+    @mock.patch('os.path.abspath', autospec=True)
+    @mock.patch('os.path.exists', autospec=True)
     def test_overcloud_network_extract_no_overwrite(self, mock_abspath,
                                                     mock_path_exists):
         arglist = ['--output', 'deployed_networks.yaml', 'network-data.yaml']
@@ -142,9 +142,9 @@ class TestOvercloudNetworkUnprovision(fakes.FakePlaybookExecution):
                                                                  None)
         self.cmd.app_args = mock.Mock(verbose_level=1)
 
-    @mock.patch('tripleoclient.utils.TempDirs', autospect=True)
-    @mock.patch('os.path.abspath', autospect=True)
-    @mock.patch('os.path.exists', autospect=True)
+    @mock.patch('tripleoclient.utils.TempDirs', autospec=True)
+    @mock.patch('os.path.abspath', autospec=True)
+    @mock.patch('os.path.exists', autospec=True)
     @mock.patch('tripleoclient.utils.run_ansible_playbook', autospec=True)
     def test_overcloud_network_unprovision(self, mock_playbook,
                                            mock_path_exists,
