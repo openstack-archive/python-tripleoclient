@@ -317,7 +317,7 @@ class DeployOvercloud(command.Command):
                 rewritten_user_environments.append((env_path, abs_env_path))
             utils.check_prohibited_overrides(protected_overrides,
                                              rewritten_user_environments)
-
+        utils.duplicate_param_check(user_environments=user_environments)
         created_env_files.extend(user_environments)
 
         return created_env_files
