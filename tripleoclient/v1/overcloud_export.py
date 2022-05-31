@@ -69,9 +69,6 @@ class ExportOvercloud(command.Command):
         self.log.debug("take_action(%s)" % parsed_args)
 
         stack = parsed_args.stack
-        output_file = parsed_args.output_file or \
-            '%s-export.yaml' % stack
-
         self.log.info('Running at %s with parameters %s',
                       self.now,
                       parsed_args)
@@ -89,9 +86,17 @@ class ExportOvercloud(command.Command):
         else:
             config_download_dir = parsed_args.config_download_dir
 
-        export_file_path = os.path.join(
+        output_file = parsed_args.output_file or os.path.join(
             working_dir,
-            '{}-export.yaml'.format(parsed_args.stack))
+            '{}-export.yaml'.format(
+                parsed_args.stack
+            )
+        )
+        export_file_path = os.path.abspath(
+            os.path.expanduser(
+                output_file
+            )
+        )
         if (os.path.exists(export_file_path) and
                 not parsed_args.force_overwrite):
             raise Exception(
@@ -104,4 +109,4 @@ class ExportOvercloud(command.Command):
         with open(export_file_path, 'w') as f:
             yaml.safe_dump(data, f, default_flow_style=False)
 
-        print("Stack information exported to %s." % output_file)
+        print("Stack information exported to %s." % export_file_path)
