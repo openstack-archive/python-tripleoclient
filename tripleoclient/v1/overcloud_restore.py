@@ -18,15 +18,15 @@ import logging
 import os
 import yaml
 
+from osc_lib import exceptions as oscexc
 from osc_lib.command import command
 from osc_lib.i18n import _
+from osc_lib import utils as osc_utils
 
 from tripleoclient import constants
 from tripleoclient import utils
 
 LOG = logging.getLogger(__name__ + ".RestoreOvercloud")
-
-INVENTORY = '~/overcloud-deploy/overcloud/'+constants.TRIPLEO_STATIC_INVENTORY
 
 
 class RestoreOvercloud(command.Command):
@@ -40,12 +40,11 @@ class RestoreOvercloud(command.Command):
         )
 
         parser.add_argument(
-            '--inventory',
-            default=INVENTORY,
-            help=_("Tripleo inventory file generated with "
-                   "tripleo-ansible-inventory command. "
-                   "Defaults to: " + INVENTORY)
-        )
+            '--stack',
+            nargs='?',
+            help=_('Name or ID of the stack to be used'
+                   '(default=Env: OVERCLOUD_STACK_NAME)'),
+            default=osc_utils.env('OVERCLOUD_STACK_NAME'))
 
         parser.add_argument(
             '--node-name',
@@ -93,19 +92,22 @@ class RestoreOvercloud(command.Command):
     def _run_restore_overcloud(self, parsed_args):
         """Backup defined overcloud nodes."""
 
+        if parsed_args.stack in (None, ''):
+            raise oscexc.CommandError("You must specify a stack name")
+
         extra_vars = self._parse_extra_vars(parsed_args.extra_vars)
         node = parsed_args.node_name
         parameter = 'tripleo_backup_and_restore_overcloud_restore_name'
         extra_vars[parameter] = node
 
         self._run_ansible_playbook(
-                          playbook='cli-overcloud-restore-node.yaml',
-                          inventory=parsed_args.inventory,
-                          tags=None,
-                          skip_tags=None,
-                          extra_vars=extra_vars,
-                          ssh_user='stack'
-                          )
+              playbook='cli-overcloud-restore-node.yaml',
+              inventory=constants.ANSIBLE_INVENTORY.format(parsed_args.stack),
+              tags=None,
+              skip_tags=None,
+              extra_vars=extra_vars,
+              ssh_user='stack'
+              )
 
     def _run_ansible_playbook(self,
                               playbook,
