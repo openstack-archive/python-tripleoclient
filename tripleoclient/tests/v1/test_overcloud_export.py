@@ -30,7 +30,6 @@ class TestOvercloudExport(utils.TestCommand):
         self.app.client_manager.orchestration = mock.Mock()
         self.tripleoclient = mock.Mock()
         self.app.client_manager.tripleoclient = self.tripleoclient
-        self.app.client_manager.tripleoclient.object_store = mock.Mock()
         self.mock_open = mock.mock_open()
 
     @mock.patch('os.path.exists')

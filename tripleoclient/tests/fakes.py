@@ -218,7 +218,6 @@ class FakeClientWrapper(object):
 
     def __init__(self):
         self._instance = mock.Mock()
-        self.object_store = FakeObjectClient()
 
 
 class FakeRunnerConfig(object):
@@ -262,19 +261,6 @@ class FakeInstanceData(object):
         class auth(object):
             class auth_ref(object):
                 _data = {'token': {}}
-
-
-class FakeObjectClient(object):
-
-    def __init__(self):
-        self._instance = mock.Mock()
-        self.put_object = mock.Mock()
-
-    def get_object(self, *args):
-        return [None, "fake"]
-
-    def get_container(self, *args):
-        return [None, [{"name": "fake"}]]
 
 
 class FakePlaybookExecution(utils.TestCommand):
