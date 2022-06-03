@@ -19,9 +19,9 @@ from osc_lib.i18n import _
 from osc_lib import utils
 
 from tripleoclient import command
-from tripleoclient import constants
 from tripleoclient import exceptions
 from tripleoclient import export
+from tripleoclient import utils as oooutils
 
 
 class ExportCell(command.Command):
@@ -48,11 +48,16 @@ class ExportCell(command.Command):
         parser.add_argument('--output-file', '-o', metavar='<output file>',
                             help=_('Name of the output file for the cell data '
                                    'export. It will default to "<name>.yaml"'))
+        parser.add_argument('--working-dir', action='store',
+                            help=_('The working directory for the '
+                                   'deployment where all input, output, and '
+                                   'generated files are stored. Defaults to '
+                                   '"$HOME/overcloud-deploy/<stack>"'))
         parser.add_argument('--config-download-dir',
                             action='store',
                             help=_('Directory to search for config-download '
-                                   'export data. Defaults to '
-                                   '$HOME/config-download'))
+                                   'export data. Defaults to $HOME/'
+                                   'overcloud-deploy/<stack>/config-download'))
         parser.add_argument('--force-overwrite', '-f', action='store_true',
                             default=False,
                             help=_('Overwrite output file if it exists.'))
@@ -77,11 +82,9 @@ class ExportCell(command.Command):
             raise exceptions.CellExportError(
                 "File '%s' already exists, not exporting." % output_file)
 
-        # prepare clients to access the environment
-        clients = self.app.client_manager
-        heat = clients.orchestration
-
-        data = export.export_passwords(heat, control_plane_stack)
+        data = export.export_passwords(
+                oooutils.get_default_working_dir(control_plane_stack),
+                control_plane_stack)
 
         stack_to_export = control_plane_stack
         should_filter = True
@@ -89,15 +92,21 @@ class ExportCell(command.Command):
             stack_to_export = cell_stack
             should_filter = False
 
+        if not parsed_args.working_dir:
+            working_dir = oooutils.get_default_working_dir(stack_to_export)
+        else:
+            working_dir = parsed_args.working_dir
+
         if not parsed_args.config_download_dir:
-            download_dir = constants.DEFAULT_WORK_DIR
+            download_dir = os.path.join(working_dir, 'config-download')
         else:
             download_dir = parsed_args.config_download_dir
 
         config_download_dir = os.path.join(download_dir, stack_to_export)
 
         data.update(export.export_stack(
-            heat, stack_to_export, should_filter,
+            oooutils.get_default_working_dir(stack_to_export),
+            stack_to_export, should_filter,
             config_download_dir))
         data = dict(parameter_defaults=data)
 

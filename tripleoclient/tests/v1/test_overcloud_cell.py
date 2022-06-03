@@ -15,8 +15,8 @@ from unittest import mock
 from osc_lib.tests import utils
 
 from tripleoclient.v1 import overcloud_cell
-from tripleoclient import constants
 from tripleoclient.exceptions import CellExportError
+from tripleoclient import utils as oooutils
 
 
 class TestExportCell(utils.TestCommand):
@@ -50,13 +50,16 @@ class TestExportCell(utils.TestCommand):
         self.cmd.take_action(parsed_args)
         mock_path_exists.assert_any_call('overcloud-cell-export.yaml')
         mock_export_passwords.assert_called_once_with(
-            self.app.client_manager.orchestration,
+            oooutils.get_default_working_dir('overcloud'),
             'overcloud')
         mock_export_stack.assert_called_once_with(
-            self.app.client_manager.orchestration,
+            oooutils.get_default_working_dir('overcloud'),
             'overcloud',
             True,
-            os.path.join(constants.DEFAULT_WORK_DIR, 'overcloud'))
+            os.path.join(
+                oooutils.get_default_working_dir('overcloud'),
+                'config-download',
+                'overcloud'))
         mock_print.assert_called()
         mock_open.assert_called_once_with('overcloud-cell-export.yaml', 'w')
         mock_yaml_dump.assert_called_once()
@@ -89,10 +92,10 @@ class TestExportCell(utils.TestCommand):
         self.cmd.take_action(parsed_args)
         mock_path_exists.assert_any_call('fizz-cell-export.yaml')
         mock_export_passwords.assert_called_once_with(
-            self.app.client_manager.orchestration,
+            oooutils.get_default_working_dir('overcloud'),
             'overcloud')
         mock_export_stack.assert_called_once_with(
-            self.app.client_manager.orchestration,
+            oooutils.get_default_working_dir('fizz'),
             'fizz',
             False,
             os.path.join('buzz', 'fizz'))
