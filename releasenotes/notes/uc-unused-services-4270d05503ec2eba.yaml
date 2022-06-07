@@ -1,0 +1,12 @@
+---
+deprecations:
+  - |
+    The following ``[DEFAULT]`` options of ``undercloud.conf`` have been
+    deprecated and have no effect, because the correponding services are no
+    longer supported in Undercloud.
+
+    - ``enable_cinder``
+    - ``enable_keystone``
+    - ``enable_swift``
+    - ``enable_swift_encryption``
+    - ``enable_telemetry``

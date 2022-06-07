@@ -60,6 +60,9 @@ class StandaloneConfig(BaseConfig):
             # service enablement
             cfg.BoolOpt('enable_cinder',
                         default=cinder,
+                        deprecated_for_removal=True,
+                        deprecated_reason=_('Cinder can no longer be enabled '
+                                            'via the config settings.'),
                         help=_('Whether to install the cinder service.')),
             cfg.BoolOpt('enable_frr',
                         default=frr,
@@ -88,10 +91,17 @@ class StandaloneConfig(BaseConfig):
                         ),
             cfg.BoolOpt('enable_swift',
                         default=swift,
+                        deprecated_for_removal=True,
+                        deprecated_reason=_('Swift can no longer be enabled '
+                                            'via the config settings.'),
                         help=_('Whether to install the swift services')
                         ),
             cfg.BoolOpt('enable_telemetry',
                         default=telemetry,
+                        deprecated_for_removal=True,
+                        deprecated_reason=_('Telemetry can no longer be '
+                                            'enabled via the config '
+                                            'settings.'),
                         help=_('Whether to install Telemetry services '
                                '(ceilometer, gnocchi, aodh).')
                         ),
@@ -113,6 +123,10 @@ class StandaloneConfig(BaseConfig):
                         help=_('Whether to enable the heat service.')),
             cfg.BoolOpt('enable_keystone',
                         default=keystone,
+                        deprecated_for_removal=True,
+                        deprecated_reason=_('Keystone can no longer be '
+                                            'enabled via the config '
+                                            'settings.'),
                         help=_('Whether to enable the keystone service.')),
 
         ]
