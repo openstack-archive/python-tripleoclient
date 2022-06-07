@@ -66,6 +66,12 @@ def _update_args_from_answers_file(parsed_args):
         if parsed_args.environment_files is not None:
             answers['environments'].extend(parsed_args.environment_files)
         parsed_args.environment_files = answers['environments']
+    if 'roles' in answers:
+        if parsed_args.roles_file is None:
+            parsed_args.roles_file = answers['roles']
+    if 'networks' in answers:
+        if parsed_args.networks_file is None:
+            parsed_args.networks_file = answers['networks']
 
 
 def _validate_args(parsed_args):
