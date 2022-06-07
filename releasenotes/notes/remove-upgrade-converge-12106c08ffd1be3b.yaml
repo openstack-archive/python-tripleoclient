@@ -1,0 +1,7 @@
+---
+other:
+  - |
+    Remove upgrade converge. This step was required to converge
+    the Heat stack information with the upgraded environment.
+    With Ephemeral Heat, this is no longer necessary and we can
+    remove it to reduce upgrade steps and complexity.
