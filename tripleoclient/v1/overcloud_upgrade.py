@@ -250,28 +250,3 @@ class UpgradeRun(command.Command):
             forks=parsed_args.ansible_forks
         )
         self.log.info("Completed Overcloud Major Upgrade Run.")
-
-
-class UpgradeConverge(UpgradePrepare):
-    """Major upgrade converge - reset Heat resources in the stored plan
-
-       This is the last step for completion of a overcloud major
-       upgrade.  The main task is updating the plan and stack to
-       unblock future stack updates. For the major upgrade workflow we
-       have set specific values for some stack Heat resources. This
-       unsets those back to their default values.
-    """
-    operation = "Converge"
-
-    template = constants.UPGRADE_CONVERGE_ENV
-
-    forbidden_params = constants.UPGRADE_CONVERGE_FORBIDDEN_PARAMS
-
-    log = logging.getLogger(__name__ + ".UpgradeConverge")
-
-    def take_action(self, parsed_args):
-        super(UpgradeConverge, self).take_action(parsed_args)
-        deployment.set_deployment_status(
-            parsed_args.stack,
-            status='DEPLOY_SUCCESS',
-            working_dir=self.working_dir)

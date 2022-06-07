@@ -117,16 +117,6 @@ EXTERNAL_UPGRADE_PLAYBOOKS = ['external_upgrade_steps_playbook.yaml']
 # tripleo-heat-templates default above $TRIPLEO_HEAT_TEMPLATES
 UPDATE_PREPARE_ENV = "environments/lifecycle/update-prepare.yaml"
 UPGRADE_PREPARE_ENV = "environments/lifecycle/upgrade-prepare.yaml"
-UPGRADE_CONVERGE_ENV = "environments/lifecycle/upgrade-converge.yaml"
-UPGRADE_CONVERGE_FORBIDDEN_PARAMS = ["ceph3_namespace",
-                                     "ceph3_tag",
-                                     "ceph3_image",
-                                     "name_prefix_stein",
-                                     "name_suffix_stein",
-                                     "namespace_stein",
-                                     "tag_stein",
-                                     ]
-
 ENABLE_SSH_ADMIN_TIMEOUT = 600
 ENABLE_SSH_ADMIN_STATUS_INTERVAL = 5
 ENABLE_SSH_ADMIN_SSH_PORT_TIMEOUT = 600

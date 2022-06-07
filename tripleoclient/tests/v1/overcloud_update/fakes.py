@@ -26,9 +26,3 @@ class TestOvercloudUpdateRun(fakes.FakePlaybookExecution):
 
     def setUp(self):
         super(TestOvercloudUpdateRun, self).setUp()
-
-
-class TestOvercloudUpdateConverge(fakes.FakePlaybookExecution):
-
-    def setUp(self):
-        super(TestOvercloudUpdateConverge, self).setUp()
