@@ -64,16 +64,24 @@ class DeployOvercloud(command.Command):
                 parsed_args.deployed_server = True
 
     def _update_args_from_answers_file(self, args):
-        if args.answers_file is not None:
-            with open(args.answers_file, 'r') as answers_file:
-                answers = yaml.safe_load(answers_file)
+        if args.answers_file is None:
+            return
 
-            if args.templates is None:
-                args.templates = answers['templates']
-            if 'environments' in answers:
-                if args.environment_files is not None:
-                    answers['environments'].extend(args.environment_files)
-                args.environment_files = answers['environments']
+        with open(args.answers_file, 'r') as answers_file:
+            answers = yaml.safe_load(answers_file)
+
+        if args.templates is None:
+            args.templates = answers['templates']
+        if 'environments' in answers:
+            if args.environment_files is not None:
+                answers['environments'].extend(args.environment_files)
+            args.environment_files = answers['environments']
+        if 'roles' in answers:
+            if args.roles_file is None:
+                args.roles_file = answers['roles']
+        if 'networks' in answers:
+            if args.networks_file is None:
+                args.networks_file = answers['networks']
 
     def _update_parameters(self, args, parameters,
                            tht_root, user_tht_root):
