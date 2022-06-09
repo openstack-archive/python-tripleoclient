@@ -556,7 +556,6 @@ class Deploy(command.Command):
 
     def _load_user_params(self, user_environments):
         user_params = {}
-        utils.duplicate_param_check(user_environments=user_environments)
         for env_file in user_environments:
             # undercloud and minion heat stack virtual state tracking is not
             # available yet
