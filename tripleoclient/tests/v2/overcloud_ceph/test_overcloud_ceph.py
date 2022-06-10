@@ -33,10 +33,10 @@ class TestOvercloudCephDeploy(fakes.FakePlaybookExecution):
         self.cmd = overcloud_ceph.OvercloudCephDeploy(self.app,
                                                       app_args)
 
-    @mock.patch('tripleoclient.utils.get_ceph_networks', autospect=True)
-    @mock.patch('tripleoclient.utils.TempDirs', autospect=True)
-    @mock.patch('os.path.abspath', autospect=True)
-    @mock.patch('os.path.exists', autospect=True)
+    @mock.patch('tripleoclient.utils.get_ceph_networks', autospec=True)
+    @mock.patch('tripleoclient.utils.TempDirs', autospec=True)
+    @mock.patch('os.path.abspath', autospec=True)
+    @mock.patch('os.path.exists', autospec=True)
     @mock.patch('tripleoclient.utils.run_ansible_playbook', autospec=True)
     def test_overcloud_deploy_ceph(self, mock_playbook, mock_abspath,
                                    mock_path_exists, mock_tempdirs,
@@ -78,10 +78,10 @@ class TestOvercloudCephDeploy(fakes.FakePlaybookExecution):
             }
         )
 
-    @mock.patch('tripleoclient.utils.get_ceph_networks', autospect=True)
-    @mock.patch('tripleoclient.utils.TempDirs', autospect=True)
-    @mock.patch('os.path.abspath', autospect=True)
-    @mock.patch('os.path.exists', autospect=True)
+    @mock.patch('tripleoclient.utils.get_ceph_networks', autospec=True)
+    @mock.patch('tripleoclient.utils.TempDirs', autospec=True)
+    @mock.patch('os.path.abspath', autospec=True)
+    @mock.patch('os.path.exists', autospec=True)
     @mock.patch('tripleoclient.utils.run_ansible_playbook', autospec=True)
     def test_deploy_ceph_spec(self, mock_playbook, mock_abspath,
                               mock_path_exists, mock_tempdirs,
@@ -125,8 +125,8 @@ class TestOvercloudCephDeploy(fakes.FakePlaybookExecution):
             }
         )
 
-    @mock.patch('os.path.abspath', autospect=True)
-    @mock.patch('os.path.exists', autospect=True)
+    @mock.patch('os.path.abspath', autospec=True)
+    @mock.patch('os.path.exists', autospec=True)
     def test_overcloud_deploy_ceph_no_overwrite(self, mock_abspath,
                                                 mock_path_exists):
         arglist = ['deployed-metal.yaml',
@@ -136,8 +136,8 @@ class TestOvercloudCephDeploy(fakes.FakePlaybookExecution):
         self.assertRaises(osc_lib_exc.CommandError,
                           self.cmd.take_action, parsed_args)
 
-    @mock.patch('os.path.abspath', autospect=True)
-    @mock.patch('os.path.exists', autospect=True)
+    @mock.patch('os.path.abspath', autospec=True)
+    @mock.patch('os.path.exists', autospec=True)
     def test_overcloud_deploy_ceph_no_metal(self, mock_abspath,
                                             mock_path_exists):
         arglist = ['--stack', 'overcloud',
@@ -146,10 +146,10 @@ class TestOvercloudCephDeploy(fakes.FakePlaybookExecution):
         self.assertRaises(osc_lib_exc.CommandError,
                           self.cmd.take_action, parsed_args)
 
-    @mock.patch('tripleoclient.utils.get_ceph_networks', autospect=True)
-    @mock.patch('tripleoclient.utils.TempDirs', autospect=True)
-    @mock.patch('os.path.abspath', autospect=True)
-    @mock.patch('os.path.exists', autospect=True)
+    @mock.patch('tripleoclient.utils.get_ceph_networks', autospec=True)
+    @mock.patch('tripleoclient.utils.TempDirs', autospec=True)
+    @mock.patch('os.path.abspath', autospec=True)
+    @mock.patch('os.path.exists', autospec=True)
     @mock.patch('tripleoclient.utils.run_ansible_playbook', autospec=True)
     def test_overcloud_deploy_ceph_ansible_no_force(self,
                                                     mock_playbook,
@@ -177,13 +177,13 @@ class TestOvercloudCephUserDisable(fakes.FakePlaybookExecution):
                                                            app_args)
 
     @mock.patch('tripleoclient.utils.parse_ansible_inventory',
-                autospect=True, return_value=['ceph0', 'ceph1', 'compute0'])
+                autospec=True, return_value=['ceph0', 'ceph1', 'compute0'])
     @mock.patch('tripleoclient.utils.get_host_groups_from_ceph_spec',
-                autospect=True, return_value={'_admin': ['ceph0'],
-                                              'non_admin': ['ceph1']})
-    @mock.patch('tripleoclient.utils.TempDirs', autospect=True)
-    @mock.patch('os.path.abspath', autospect=True)
-    @mock.patch('os.path.exists', autospect=True)
+                autospec=True, return_value={'_admin': ['ceph0'],
+                                             'non_admin': ['ceph1']})
+    @mock.patch('tripleoclient.utils.TempDirs', autospec=True)
+    @mock.patch('os.path.abspath', autospec=True)
+    @mock.patch('os.path.exists', autospec=True)
     @mock.patch('tripleoclient.utils.run_ansible_playbook', autospec=True)
     def test_ceph_user_disable(self, mock_playbook, mock_abspath,
                                mock_path_exists, mock_tempdirs,
@@ -221,8 +221,8 @@ class TestOvercloudCephUserDisable(fakes.FakePlaybookExecution):
             }
         )
 
-    @mock.patch('os.path.abspath', autospect=True)
-    @mock.patch('os.path.exists', autospect=True)
+    @mock.patch('os.path.abspath', autospec=True)
+    @mock.patch('os.path.exists', autospec=True)
     def test_ceph_user_disable_no_yes(self, mock_abspath,
                                       mock_path_exists):
         arglist = ['ceph_spec.yaml',
@@ -233,8 +233,8 @@ class TestOvercloudCephUserDisable(fakes.FakePlaybookExecution):
         self.assertRaises(osc_lib_exc.CommandError,
                           self.cmd.take_action, parsed_args)
 
-    @mock.patch('os.path.abspath', autospect=True)
-    @mock.patch('os.path.exists', autospect=True)
+    @mock.patch('os.path.abspath', autospec=True)
+    @mock.patch('os.path.exists', autospec=True)
     def test_ceph_user_disable_invalid_fsid(self, mock_abspath,
                                             mock_path_exists):
         arglist = ['ceph_spec.yaml',
@@ -258,13 +258,13 @@ class TestOvercloudCephUserEnable(fakes.FakePlaybookExecution):
                                                           app_args)
 
     @mock.patch('tripleoclient.utils.parse_ansible_inventory',
-                autospect=True, return_value=['ceph0', 'ceph1', 'compute0'])
+                autospec=True, return_value=['ceph0', 'ceph1', 'compute0'])
     @mock.patch('tripleoclient.utils.get_host_groups_from_ceph_spec',
-                autospect=True, return_value={'_admin': ['ceph0'],
-                                              'non_admin': ['ceph1']})
-    @mock.patch('tripleoclient.utils.TempDirs', autospect=True)
-    @mock.patch('os.path.abspath', autospect=True)
-    @mock.patch('os.path.exists', autospect=True)
+                autospec=True, return_value={'_admin': ['ceph0'],
+                                             'non_admin': ['ceph1']})
+    @mock.patch('tripleoclient.utils.TempDirs', autospec=True)
+    @mock.patch('os.path.abspath', autospec=True)
+    @mock.patch('os.path.exists', autospec=True)
     @mock.patch('tripleoclient.utils.run_ansible_playbook', autospec=True)
     def test_ceph_user_enable_no_fsid(self, mock_playbook, mock_abspath,
                                       mock_path_exists, mock_tempdirs,
@@ -291,12 +291,12 @@ class TestOvercloudCephUserEnable(fakes.FakePlaybookExecution):
         )
 
     @mock.patch('tripleoclient.utils.parse_ansible_inventory',
-                autospect=True)
+                autospec=True)
     @mock.patch('tripleoclient.utils.get_host_groups_from_ceph_spec',
-                autospect=True)
-    @mock.patch('tripleoclient.utils.TempDirs', autospect=True)
-    @mock.patch('os.path.abspath', autospect=True)
-    @mock.patch('os.path.exists', autospect=True)
+                autospec=True)
+    @mock.patch('tripleoclient.utils.TempDirs', autospec=True)
+    @mock.patch('os.path.abspath', autospec=True)
+    @mock.patch('os.path.exists', autospec=True)
     @mock.patch('tripleoclient.utils.run_ansible_playbook', autospec=True)
     def test_ceph_user_enable_fsid(self, mock_playbook, mock_abspath,
                                    mock_path_exists, mock_tempdirs,
@@ -339,9 +339,9 @@ class TestOvercloudCephSpec(fakes.FakePlaybookExecution):
         self.cmd = overcloud_ceph.OvercloudCephSpec(self.app,
                                                     app_args)
 
-    @mock.patch('tripleoclient.utils.TempDirs', autospect=True)
-    @mock.patch('os.path.abspath', autospect=True)
-    @mock.patch('os.path.exists', autospect=True)
+    @mock.patch('tripleoclient.utils.TempDirs', autospec=True)
+    @mock.patch('os.path.abspath', autospec=True)
+    @mock.patch('os.path.exists', autospec=True)
     @mock.patch('tripleoclient.utils.run_ansible_playbook', autospec=True)
     def test_overcloud_ceph_spec(self, mock_playbook, mock_abspath,
                                  mock_path_exists, mock_tempdirs):

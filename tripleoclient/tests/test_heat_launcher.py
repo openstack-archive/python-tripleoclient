@@ -347,8 +347,8 @@ class TestHeatPodLauncher(base.TestCase):
         launcher.stop_heat()
         mock_pod_exists.assert_called()
         mock_pod_state.assert_called()
-        self.check_call.asert_called_once_with(['sudo', 'podman', 'pod',
-                                                'stop', 'ephemeral-heat'])
+        self.check_call.assert_called_once_with(['sudo', 'podman', 'pod',
+                                                 'stop', 'ephemeral-heat'])
 
         self.check_call.reset_mock()
         mock_pod_exists.reset_mock()

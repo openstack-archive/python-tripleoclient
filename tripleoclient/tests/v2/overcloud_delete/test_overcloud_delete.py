@@ -95,9 +95,9 @@ class TestDeleteOvercloud(deploy_fakes.TestDeployOvercloud):
             )
             self.assertEqual(mock_run_playbook.call_count, 2)
 
-    @mock.patch('tripleoclient.utils.TempDirs', autospect=True)
-    @mock.patch('os.path.abspath', autospect=True)
-    @mock.patch('os.path.exists', autospect=True)
+    @mock.patch('tripleoclient.utils.TempDirs', autospec=True)
+    @mock.patch('os.path.abspath', autospec=True)
+    @mock.patch('os.path.exists', autospec=True)
     @mock.patch('tripleoclient.utils.run_ansible_playbook', autospec=True)
     def test_overcloud_delete_network_unprovision(self, mock_run_playbook,
                                                   mock_path_exists,

@@ -3181,7 +3181,8 @@ def parse_container_image_prepare(tht_key='ContainerImagePrepare',
                     if len(registry) == 0:
                         registry = url_parse.urlparse('//' + key).netloc
                     if tag == registry:
-                        if isinstance(tag_list[registry], collections.Mapping):
+                        if isinstance(tag_list[registry],
+                                      collections.abc.Mapping):
                             credentials = tag_list[registry].popitem()
                             image_map['registry_username'] = credentials[0]
                             image_map['registry_password'] = credentials[1]
