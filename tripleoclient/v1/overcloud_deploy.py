@@ -1300,7 +1300,7 @@ class DeployOvercloud(command.Command):
                 self.log.error(e)
 
             try:
-                if parsed_args.config_download:
+                if do_stack:
                     # Create overcloud export
                     data = export.export_overcloud(
                         self.working_dir,
