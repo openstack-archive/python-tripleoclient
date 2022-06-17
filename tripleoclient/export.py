@@ -212,6 +212,9 @@ def export_ceph(stack, cephx,
     if 'cephadm' in config_download_files:
         ceph_client = "cephadm/ceph_client.yml"
         file = os.path.join(config_download_dir, stack, ceph_client)
+        if not os.path.exists(file):
+            # fall back to old path if user had LP 1978846 during deployment
+            file = "/home/stack/ceph_client.yaml"
         with open(file, 'r') as ff:
             try:
                 ceph_data = yaml.safe_load(ff)
