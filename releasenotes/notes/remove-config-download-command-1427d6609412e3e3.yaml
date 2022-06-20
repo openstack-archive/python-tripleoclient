@@ -1,0 +1,7 @@
+---
+other:
+  - |
+    The overcloud config download command no longer works with Ephemeral Heat.
+    We already have the ability to do the same thing using overcloud deploy using
+    the --stack-only flag. As such, the overcloud config download command is being
+    removed.
