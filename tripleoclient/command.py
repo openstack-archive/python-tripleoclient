@@ -39,11 +39,8 @@ class Command(command.Command):
             raise
 
     @staticmethod
-    def get_ansible_key_and_dir(no_workflow, stack, orchestration):
+    def get_ansible_key_and_dir(stack, orchestration):
         """Return the ansible directory and key path.
-
-        :param no_workflow: Enable or disable the mistral workflow code path.
-        :type no_workflow: Boolean
 
         :oaram stack: Name of a given stack to run against.
         :type stack: String
@@ -53,22 +50,15 @@ class Command(command.Command):
 
         :returns: Tuple
         """
-
-        if no_workflow:
-            key = utils.get_key(stack=stack)
-            stack_config = config.Config(orchestration)
-            with utils.TempDirs(chdir=False) as tmp:
-                stack_config.write_config(
-                    stack_config.fetch_config(stack),
-                    stack,
-                    tmp
-                )
-                return key, tmp
-        else:
-            # Assumes execution will take place from within a mistral
-            # container.
-            key = '.ssh/tripleo-admin-rsa'
-            return key, None
+        key = utils.get_key(stack=stack)
+        stack_config = config.Config(orchestration)
+        with utils.TempDirs(chdir=False) as tmp:
+            stack_config.write_config(
+                stack_config.fetch_config(stack),
+                stack,
+                tmp
+            )
+            return key, tmp
 
     def get_key_pair(self, parsed_args):
         """Autodetect or return a user defined key file.
