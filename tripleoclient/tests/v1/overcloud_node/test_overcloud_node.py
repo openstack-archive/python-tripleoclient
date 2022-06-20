@@ -246,6 +246,7 @@ class TestDeleteNode(fakes.TestDeleteNode):
                 ssh_user='tripleo-admin',
                 limit_hosts='overcast-controller-1:overcast-compute-0',
                 reproduce_command=True,
+                ignore_unreachable=True,
                 extra_env_variables={
                     "ANSIBLE_BECOME": True,
                     "ANSIBLE_PRIVATE_KEY_FILE":
