@@ -154,7 +154,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
     @mock.patch('tripleoclient.utils.get_undercloud_host_entry', autospec=True,
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
-    @mock.patch('tripleoclient.utils.check_stack_network_matches_env_files')
     @mock.patch('tripleoclient.utils.check_ceph_fsid_matches_env_files')
     @mock.patch('tripleoclient.utils.check_swift_and_rgw')
     @mock.patch("heatclient.common.event_utils.get_events")
@@ -169,7 +168,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                        mock_create_tempest_deployer_input,
                        mock_create_parameters_env,
                        mock_breakpoints_cleanup,
-                       mock_events, mock_stack_network_check,
+                       mock_events,
                        mock_ceph_fsid, mock_swift_rgw,
                        mock_get_undercloud_host_entry, mock_copy,
                        mock_get_ctlplane_attrs, mock_nic_ansiblei,
@@ -194,6 +193,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
         orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
+        utils_fixture.mock_launch_heat.return_value = orchestration_client
         mock_event = mock.Mock()
         mock_event.id = '1234'
         mock_events.return_value = [mock_events]
@@ -317,7 +317,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_tmpdir.return_value = self.tmp_dir.path
 
         clients = self.app.client_manager
-
+        orchestration_client = clients.orchestration
+        orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
+        utils_fixture.mock_launch_heat.return_value = orchestration_client
         clients.network.api.find_attr.return_value = {
             "id": "network id"
         }
@@ -372,7 +374,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
     @mock.patch('tripleoclient.utils.get_undercloud_host_entry', autospec=True,
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
-    @mock.patch('tripleoclient.utils.check_stack_network_matches_env_files')
     @mock.patch('tripleoclient.utils.check_ceph_fsid_matches_env_files')
     @mock.patch('tripleoclient.utils.check_swift_and_rgw')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
@@ -394,7 +395,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             mock_create_parameters_env, mock_validate_args,
             mock_validate_vip_file,
             mock_breakpoints_cleanup,
-            mock_postconfig, mock_stack_network_check,
+            mock_postconfig,
             mock_ceph_fsid, mock_swift_rgw,
             mock_get_undercloud_host_entry, mock_copy,
             mock_chdir,
@@ -421,7 +422,8 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
         mock_stack = fakes.create_tht_stack()
-        orchestration_client.stacks.get.side_effect = [None, mock_stack]
+        orchestration_client.stacks.get.side_effect = [mock_stack]
+        utils_fixture.mock_launch_heat.return_value = orchestration_client
 
         def _orch_clt_create(**kwargs):
             orchestration_client.stacks.get.return_value = mock_stack
@@ -470,7 +472,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
     @mock.patch('tripleoclient.utils.get_undercloud_host_entry', autospec=True,
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
-    @mock.patch('tripleoclient.utils.check_stack_network_matches_env_files')
     @mock.patch('tripleoclient.utils.check_ceph_fsid_matches_env_files')
     @mock.patch('tripleoclient.utils.check_swift_and_rgw')
     @mock.patch("heatclient.common.event_utils.get_events", autospec=True)
@@ -486,7 +487,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                      mock_create_tempest_deployer_input,
                                      mock_deploy_postconfig,
                                      mock_breakpoints_cleanup,
-                                     mock_events, mock_stack_network_check,
+                                     mock_events,
                                      mock_ceph_fsid, mock_swift_rgw,
                                      mock_get_undercloud_host_entry,
                                      mock_copy, mock_nic_ansible,
@@ -503,13 +504,15 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.useFixture(fixture)
         utils_fixture = deployment.UtilsFixture()
         self.useFixture(utils_fixture)
-
+        clients = self.app.client_manager
+        orchestration_client = clients.orchestration
+        orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
+        utils_fixture.mock_launch_heat.return_value = orchestration_client
         arglist = ['--templates', '/home/stack/tripleo-heat-templates']
         verifylist = [
             ('templates', '/home/stack/tripleo-heat-templates'),
         ]
 
-        clients = self.app.client_manager
         mock_events.return_value = []
 
         clients.network.api.find_attr.return_value = {
@@ -566,7 +569,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True)
     @mock.patch('tripleoclient.utils.check_nic_config_with_ansible')
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
-    @mock.patch('tripleoclient.utils.check_stack_network_matches_env_files')
     @mock.patch('tripleoclient.utils.check_ceph_fsid_matches_env_files')
     @mock.patch('tripleoclient.utils.check_swift_and_rgw')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
@@ -579,23 +581,21 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 '_heat_deploy', autospec=True)
     def test_environment_dirs(self, mock_deploy_heat, mock_create_env,
                               mock_update_parameters, mock_post_config,
-                              mock_stack_network_check, mock_ceph_fsid,
-                              mock_swift_rgw, mock_copy, mock_nic_ansible,
-                              mock_process_env, mock_rc_params,
-                              mock_check_service_vip_migr):
+                              mock_ceph_fsid, mock_swift_rgw, mock_copy,
+                              mock_nic_ansible, mock_process_env,
+                              mock_rc_params, mock_check_service_vip_migr):
         fixture = deployment.DeploymentWorkflowFixture()
         self.useFixture(fixture)
         utils_overcloud_fixture = deployment.UtilsOvercloudFixture()
         self.useFixture(utils_overcloud_fixture)
         utils_fixture = deployment.UtilsFixture()
         self.useFixture(utils_fixture)
-
-        clients = self.app.client_manager
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
         orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
-        mock_update_parameters.return_value = {}
+        utils_fixture.mock_launch_heat.return_value = orchestration_client
         utils_overcloud_fixture.mock_utils_endpoint.return_value = 'foo.bar'
+        mock_update_parameters.return_value = {}
 
         test_env = os.path.join(self.tmp_dir.path, 'foo1.yaml')
 
@@ -625,7 +625,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         def assertEqual(*args):
             self.assertEqual(*args)
 
-        def _fake_heat_deploy(self, stack, stack_name, template_path,
+        def _fake_heat_deploy(self, stack_name, template_path,
                               environments, timeout, tht_root,
                               env, run_validations,
                               roles_file,
@@ -712,12 +712,12 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     def test_try_overcloud_deploy_with_first_template_existing(
             self, mock_heat_deploy_func):
         result = self.cmd._try_overcloud_deploy_with_compat_yaml(
-            '/fake/path', {}, 'overcloud', ['~/overcloud-env.json'], 1,
+            '/fake/path', 'overcloud', ['~/overcloud-env.json'], 1,
             {}, False, None, None)
         # If it returns None it succeeded
         self.assertIsNone(result)
         mock_heat_deploy_func.assert_called_once_with(
-            self.cmd, {}, 'overcloud',
+            self.cmd, 'overcloud',
             '/fake/path/' + constants.OVERCLOUD_YAML_NAME,
             ['~/overcloud-env.json'], 1, '/fake/path', {}, False,
             None, deployment_options=None, env_files_tracker=None)
@@ -729,7 +729,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         mock_heat_deploy_func.side_effect = Exception('error')
         self.assertRaises(ValueError,
                           self.cmd._try_overcloud_deploy_with_compat_yaml,
-                          '/fake/path', mock.ANY, mock.ANY,
+                          '/fake/path', mock.ANY,
                           mock.ANY, mock.ANY, mock.ANY, mock.ANY, mock.ANY,
                           None)
 
@@ -741,7 +741,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             Exception('/fake/path not found')
         try:
             self.cmd._try_overcloud_deploy_with_compat_yaml(
-                '/fake/path', mock.ANY, mock.ANY,
+                '/fake/path', mock.ANY,
                 mock.ANY, mock.ANY, mock.ANY, mock.ANY, mock.ANY,
                 None)
         except ValueError as value_error:
@@ -790,7 +790,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
     @mock.patch('tripleoclient.utils.get_undercloud_host_entry', autospec=True,
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
-    @mock.patch('tripleoclient.utils.check_stack_network_matches_env_files')
     @mock.patch('tripleoclient.utils.check_ceph_fsid_matches_env_files')
     @mock.patch('tripleoclient.utils.check_swift_and_rgw')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
@@ -798,7 +797,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tempfile.mkdtemp', autospec=True)
     @mock.patch('shutil.rmtree', autospec=True)
     def test_answers_file(self, mock_rmtree, mock_tmpdir,
-                          mock_heat_deploy, mock_stack_network_check,
+                          mock_heat_deploy,
                           mock_ceph_fsid, mock_swift_rgw,
                           mock_get_undercloud_host_entry,
                           mock_copy, mock_nic_ansible,
@@ -816,6 +815,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.useFixture(utils_oc_fixture)
         utils_fixture = deployment.UtilsFixture()
         self.useFixture(utils_fixture)
+        utils_fixture.mock_launch_heat.return_value = orchestration_client
 
         clients = self.app.client_manager
 
@@ -866,17 +866,16 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.cmd.take_action(parsed_args)
 
         self.assertTrue(mock_heat_deploy.called)
-        self.assertTrue(utils_oc_fixture.mock_deploy_tht.called)
 
         # Check that Heat was called with correct parameters:
         call_args = mock_heat_deploy.call_args[0]
-        self.assertEqual(call_args[3],
+        self.assertEqual(call_args[2],
                          self.tmp_dir.join(
                              'tripleo-heat-templates/overcloud.yaml'))
-        self.assertEqual(call_args[6],
+        self.assertEqual(call_args[5],
                          self.tmp_dir.join('tripleo-heat-templates'))
-        self.assertIn('Test', call_args[7]['resource_registry'])
-        self.assertIn('Test2', call_args[7]['resource_registry'])
+        self.assertIn('Test', call_args[6]['resource_registry'])
+        self.assertIn('Test2', call_args[6]['resource_registry'])
 
         utils_oc_fixture.mock_deploy_tht.assert_called_with(
             output_dir=self.cmd.working_dir)
@@ -905,7 +904,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
     @mock.patch('tripleoclient.utils.get_undercloud_host_entry', autospec=True,
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
-    @mock.patch('tripleoclient.utils.check_stack_network_matches_env_files')
     @mock.patch('tripleoclient.utils.check_ceph_fsid_matches_env_files')
     @mock.patch('tripleoclient.utils.check_swift_and_rgw')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
@@ -930,7 +928,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                  mock_validate_vip_file,
                                  mock_breakpoints_cleanup,
                                  mock_deploy_post_config,
-                                 mock_stack_network_check,
                                  mock_ceph_fsid, mock_swift_rgw,
                                  mock_get_undercloud_host_entry, mock_copy,
                                  mock_get_ctlplane_attrs,
@@ -958,9 +955,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         orchestration_client = clients.orchestration
         mock_stack = fakes.create_tht_stack()
         orchestration_client.stacks.get.side_effect = [
-            None,
             mock_stack
         ]
+        utils_fixture.mock_launch_heat.return_value = orchestration_client
 
         def _orch_clt_create(**kwargs):
             orchestration_client.stacks.get.return_value = mock_stack
@@ -1060,6 +1057,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         clients.compute = mock.Mock()
         orchestration_client = clients.orchestration
         orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
+        utils_fixture.mock_launch_heat.return_value = orchestration_client
         mock_create_env.return_value = (
             dict(ContainerHeatApiImage='container-heat-api-image',
                  ContainerHeatEngineImage='container-heat-engine-image'),
@@ -1093,6 +1091,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
         orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
+        utils_fixture.mock_launch_heat.return_value = orchestration_client
 
         arglist = ['--templates', '--config-download']
         verifylist = [
@@ -1138,6 +1137,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
         orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
+        utils_fixture.mock_launch_heat.return_value = orchestration_client
         mock_create_env.return_value = ({}, [])
         mock_create_env.return_value = (
             dict(ContainerHeatApiImage='container-heat-api-image',
@@ -1184,6 +1184,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
         orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
+        utils_fixture.mock_launch_heat.return_value = orchestration_client
         mock_create_parameters_env.return_value = (
             dict(ContainerHeatApiImage='container-heat-api-image',
                  ContainerHeatEngineImage='container-heat-engine-image'),
@@ -1233,6 +1234,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
         orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
+        utils_fixture.mock_launch_heat.return_value = orchestration_client
         mock_create_parameters_env.return_value = (
             dict(ContainerHeatApiImage='container-heat-api-image',
                  ContainerHeatEngineImage='container-heat-engine-image'),
@@ -1281,6 +1283,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
         orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
+        utils_fixture.mock_launch_heat.return_value = orchestration_client
 
         arglist = ['--templates',
                    '--override-ansible-cfg', 'ansible.cfg']
@@ -1324,12 +1327,11 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_heat_deploy', autospec=True)
-    @mock.patch('tripleoclient.utils.check_stack_network_matches_env_files')
     @mock.patch('tripleoclient.utils.check_ceph_fsid_matches_env_files')
     @mock.patch('tripleoclient.utils.check_swift_and_rgw')
     @mock.patch('heatclient.common.template_utils.deep_update', autospec=True)
     def test_config_download_timeout(
-            self, mock_hc, mock_stack_network_check,
+            self, mock_hc,
             mock_ceph_fsid, mock_swift_rgw, mock_hd,
             mock_get_undercloud_host_entry, mock_copy,
             mock_get_ctlplane_attrs, mock_nic_ansible,
@@ -1347,6 +1349,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         clients = self.app.client_manager
         orchestration_client = clients.orchestration
         orchestration_client.stacks.get.return_value = fakes.create_tht_stack()
+        utils_fixture.mock_launch_heat.return_value = orchestration_client
         mock_create_parameters_env.return_value = []
 
         arglist = ['--templates', '--overcloud-ssh-port-timeout', '42',
@@ -1376,7 +1379,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             self.cmd.take_action(parsed_args)
         self.assertIn([
             mock.call(
-                mock.ANY, mock.ANY, 'overcloud', mock.ANY,
+                mock.ANY, 'overcloud', mock.ANY,
                 mock.ANY, 451, mock.ANY,
                 {'parameter_defaults': {
                     'ContainerHeatApiImage': 'container-heat-api-image',

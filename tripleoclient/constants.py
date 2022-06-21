@@ -303,6 +303,7 @@ DEFAULT_WHOLE_DISK_IMAGE = 'overcloud-hardened-uefi-full.qcow2'
 
 FIPS_COMPLIANT_HASHES = {'sha1', 'sha224', 'sha256', 'sha384', 'sha512'}
 
+STACK_ENV_FILE_NAME = 'tripleo-{}-environment.yaml'
 # Disk usage percentages to check as related to deploy backups
 DEPLOY_BACKUPS_USAGE_PERCENT = 50
 DISK_USAGE_PERCENT = 80
