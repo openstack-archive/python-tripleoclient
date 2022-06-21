@@ -1372,6 +1372,10 @@ class Deploy(command.Command):
                 cleanup=parsed_args.cleanup,
                 user=parsed_args.deployment_user
                 )
+            self._set_data_rights(
+                os.path.join(constants.CLOUD_HOME_DIR, '.tripleo'),
+                user=parsed_args.deployment_user,
+                mode=0o700)
             if tar_filename:
                 self.log.warning('Install artifact is located at %s' %
                                  tar_filename)

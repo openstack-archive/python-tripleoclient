@@ -1046,6 +1046,8 @@ class TestDeployUndercloud(TestPluginV1):
              '--force-stack-create',
              '--force-stack-update'], [])
 
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_set_data_rights')
     @mock.patch('os.path.exists', return_value=True)
     @mock.patch('os.chdir')
     @mock.patch('tripleoclient.utils.reset_cmdline')
@@ -1094,7 +1096,7 @@ class TestDeployUndercloud(TestPluginV1):
             mock_templates_dir, mock_open, mock_os,
             mock_chmod, mock_ac,
             mock_outputs, mock_copy, mock_cmdline,
-            mock_chdir, mock_file_exists):
+            mock_chdir, mock_file_exists, mock_set_data_rights):
         parsed_args = self.check_parser(self.cmd,
                                         ['--local-ip', '127.0.0.1',
                                          '--templates', '/tmp/thtroot',
@@ -1105,6 +1107,8 @@ class TestDeployUndercloud(TestPluginV1):
         rc = self.cmd.take_action(parsed_args)
         self.assertEqual(None, rc)
 
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_set_data_rights')
     @mock.patch('os.path.exists', return_value=True)
     @mock.patch('os.chdir')
     @mock.patch('tripleoclient.utils.reset_cmdline')
@@ -1153,7 +1157,7 @@ class TestDeployUndercloud(TestPluginV1):
             mock_templates_dir, mock_open, mock_os,
             mock_chmod, mock_ac,
             mock_outputs, mock_copy, mock_cmdline,
-            mock_chdir, mock_file_exists):
+            mock_chdir, mock_file_exists, mock_set_data_rights):
 
         # Test default transport "local"
         parsed_args = self.check_parser(self.cmd,
