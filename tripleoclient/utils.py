@@ -1077,7 +1077,7 @@ def check_ceph_ansible(resource_registry, stage):
                                                   'file.')
 
 
-def check_ceph_fsid_matches_env_files(stack, environment):
+def check_ceph_fsid_matches_env_files(old_env, environment):
     """Check CephClusterFSID against proposed env files
 
     There have been cases where operators inadvertenly changed the
@@ -1089,8 +1089,8 @@ def check_ceph_fsid_matches_env_files(stack, environment):
     """
     env_ceph_fsid = environment.get('parameter_defaults',
                                     {}).get('CephClusterFSID', False)
-    stack_ceph_fsid = stack.environment().get('parameter_defaults',
-                                              {}).get('CephClusterFSID', False)
+    stack_ceph_fsid = old_env.get('parameter_defaults',
+                                  {}).get('CephClusterFSID', False)
 
     if bool(env_ceph_fsid) and env_ceph_fsid != stack_ceph_fsid:
         raise exceptions.InvalidConfiguration('The CephFSID environment value '
@@ -1104,7 +1104,7 @@ def check_ceph_fsid_matches_env_files(stack, environment):
                                                       stack_ceph_fsid))
 
 
-def check_swift_and_rgw(stack, env, stage):
+def check_swift_and_rgw(old_env, env, stage):
     """Check that Swift and RGW aren't both enabled in the overcloud
 
     When Ceph is deployed by TripleO using the default cephadm environment
@@ -1126,9 +1126,9 @@ def check_swift_and_rgw(stack, env, stage):
     if not re.match(allowed_stage, stage) or rgw_env == 'OS::Heat::None':
         return
 
-    sw = stack.environment().get('resource_registry',
-                                 {}).get('OS::TripleO::Services::SwiftProxy',
-                                         'OS::Heat::None')
+    sw = old_env.get('resource_registry',
+                     {}).get('OS::TripleO::Services::SwiftProxy',
+                             'OS::Heat::None')
 
     # RGW is present in the env list and swift was previously deployed
     if sw != "OS::Heat::None":
@@ -1141,22 +1141,11 @@ def check_swift_and_rgw(stack, env, stage):
                                               'RGW)')
 
 
-def check_nic_config_with_ansible(stack, environment):
+def check_nic_config_with_ansible(environment):
     registry = environment.get('resource_registry', {})
-    stack_registry = {}
-    is_ansible_config_stack = True
-    if stack:
-        stack_registry = stack.environment().get(
-            'resource_registry', {})
-        is_ansible_config_stack = stack.environment().get(
-            'parameter_defaults', {}).get(
-                'NetworkConfigWithAnsible', True)
-
     is_ansible_config = environment.get(
         'parameter_defaults', {}).get(
-            'NetworkConfigWithAnsible', is_ansible_config_stack)
-
-    nic_configs_in_update = set()
+            'NetworkConfigWithAnsible', True)
     if is_ansible_config:
         for k, v in registry.items():
             if k.endswith('Net::SoftwareConfig'):
@@ -1166,23 +1155,10 @@ def check_nic_config_with_ansible(stack, environment):
                         "Migrate to ansible jinja templates or use "
                         "'NetworkConfigWithAnsible: false' "
                         "in 'parameter_defaults'.")
-                nic_configs_in_update.add(k)
-        for k, v in stack_registry.items():
-            if (k.endswith('Net::SoftwareConfig') and v != 'OS::Heat::None'
-                    and k not in nic_configs_in_update):
-                raise exceptions.InvalidConfiguration(
-                        "DEPRECATED: Old heat nic configs are used, "
-                        "Migrate to ansible jinja templates or use "
-                        "'NetworkConfigWithAnsible: false' "
-                        "in 'parameter_defaults'.")
 
 
-def check_service_vips_migrated_to_service(stack, environment):
+def check_service_vips_migrated_to_service(environment):
     registry = environment.get('resource_registry', {})
-    stack_registry = {}
-    if stack:
-        stack_registry = stack.environment().get(
-            'resource_registry', {})
     removed_resources = {'OS::TripleO::Network::Ports::RedisVipPort',
                          'OS::TripleO::Network::Ports::OVNDBsVipPort'}
     msg = ("Resources 'OS::TripleO::Network::Ports::RedisVipPort' and "
@@ -1194,7 +1170,7 @@ def check_service_vips_migrated_to_service(stack, environment):
            "'ServiceNetMap' and/or 'VipSubnetMap' parameters with the desired "
            "network and/or subnet for the service.")
     for resource in removed_resources:
-        if ((resource in registry or resource in stack_registry) and
+        if (resource in registry and
                 registry.get(resource) != 'OS::Heat::None'):
             raise exceptions.InvalidConfiguration(msg)
 
@@ -1211,43 +1187,6 @@ def check_neutron_resources(environment):
         if (type(rsrc_type) == str and
                 rsrc_type.startswith("OS::Neutron")):
             raise exceptions.InvalidConfiguration(msg.format(rsrc, rsrc_type))
-
-
-def check_stack_network_matches_env_files(stack, environment):
-    """Check stack against proposed env files to ensure non-breaking change
-
-    Historically we have have had issues with folks forgetting the network
-    isolation templates in subsequent overcloud actions which have completely
-    broken the stack. We need to check that the networks continue to be
-    provided on updates and if they aren't, it's likely that the user has
-    failed to provide the network-isolation templates. This is a light check
-    to only ensure they are defined. A user can still change settings in these
-    networks that may break things but this will catch folks who forget
-    network-isolation in a subsequent update.
-    """
-    def _get_networks(registry):
-        nets = set()
-        for k, v in registry.items():
-            if (k.startswith('OS::TripleO::Network::')
-                and not k.startswith('OS::TripleO::Network::Port')
-                    and v != 'OS::Heat::None'):
-                nets.add(k)
-        return nets
-
-    stack_registry = stack.environment().get('resource_registry', {})
-    env_registry = environment.get('resource_registry', {})
-
-    stack_nets = _get_networks(stack_registry)
-    env_nets = _get_networks(env_registry)
-
-    env_diff = set(stack_nets) - set(env_nets)
-    if env_diff:
-        raise exceptions.InvalidConfiguration('Missing networks from '
-                                              'environment configuration. '
-                                              'Ensure the following networks '
-                                              'are properly configured in '
-                                              'the provided environment files '
-                                              '[{}]'.format(env_diff))
 
 
 def remove_known_hosts(overcloud_ip):
@@ -3238,7 +3177,9 @@ def parse_ansible_inventory(inventory_file, group):
     return(inventory.get_hosts(pattern=group))
 
 
-def save_stack_outputs(heat, stack, working_dir):
+def save_stack(stack, working_dir):
+    if not stack:
+        return
     outputs_dir = os.path.join(working_dir, 'outputs')
     makedirs(outputs_dir)
     for output in constants.STACK_OUTPUTS:
@@ -3246,6 +3187,24 @@ def save_stack_outputs(heat, stack, working_dir):
         output_path = os.path.join(outputs_dir, output)
         with open(output_path, 'w') as f:
             f.write(yaml.dump(val))
+    env_dir = os.path.join(working_dir, 'environment')
+    makedirs(env_dir)
+    env = stack.environment()
+    env_path = os.path.join(
+        env_dir,
+        constants.STACK_ENV_FILE_NAME.format(stack.stack_name))
+    with open(env_path, 'w') as f:
+        f.write(yaml.dump(env))
+
+
+def get_saved_stack_env(working_dir, stack_name):
+    env_path = os.path.join(
+        working_dir, 'environment',
+        constants.STACK_ENV_FILE_NAME.format(stack_name))
+    if not os.path.isfile(env_path):
+        return None
+    with open(env_path) as f:
+        return yaml.safe_load(f.read())
 
 
 def get_ceph_networks(network_data_path,

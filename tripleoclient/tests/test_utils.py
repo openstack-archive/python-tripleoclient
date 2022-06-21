@@ -678,40 +678,21 @@ class TestWaitForStackUtil(TestCase):
         self.assertEqual(False, result)
 
     def test_check_heat_network_config(self):
-        stack_reg = {
-            'OS::TripleO::Controller::Net::SoftwareConfig': 'val',
-            'OS::TripleO::Compute::Net::SoftwareConfig': 'val',
-        }
         env_reg = {
             'OS::TripleO::Controller::Net::SoftwareConfig': 'val',
             'OS::TripleO::Compute::Net::SoftwareConfig': 'val',
-        }
-        mock_stack = mock.MagicMock()
-        mock_stack.environment = mock.MagicMock()
-        mock_stack.environment.return_value = {
-            'resource_registry':  stack_reg,
         }
         env = {
             'resource_registry':  env_reg
         }
 
         self.assertRaises(exceptions.InvalidConfiguration,
-                          utils.check_nic_config_with_ansible,
-                          mock_stack, env)
+                          utils.check_nic_config_with_ansible, env)
 
     def test_check_service_vips_migrated_to_service(self):
-        stack_reg = {
-            'OS::TripleO::Network::Ports::RedisVipPort': 'val',
-            'OS::TripleO::Network::Ports::OVNDBsVipPort': 'val',
-        }
         env_reg = {
             'OS::TripleO::Network::Ports::RedisVipPort': 'val',
             'OS::TripleO::Network::Ports::OVNDBsVipPort': 'val',
-        }
-        mock_stack = mock.MagicMock()
-        mock_stack.environment = mock.MagicMock()
-        mock_stack.environment.return_value = {
-            'resource_registry':  stack_reg,
         }
         env = {
             'resource_registry':  env_reg
@@ -719,129 +700,29 @@ class TestWaitForStackUtil(TestCase):
 
         self.assertRaises(exceptions.InvalidConfiguration,
                           utils.check_service_vips_migrated_to_service,
-                          mock_stack, env)
-
-    def test_check_heat_missing_network_config(self):
-        stack_reg = {
-            'OS::TripleO::Controller::Net::SoftwareConfig': 'val',
-            'OS::TripleO::Compute::Net::SoftwareConfig': 'val',
-        }
-        env_reg = {
-            'OS::TripleO::Controller::Net::SoftwareConfig': 'OS::Heat::None',
-        }
-        mock_stack = mock.MagicMock()
-        mock_stack.environment = mock.MagicMock()
-        mock_stack.environment.return_value = {
-            'resource_registry':  stack_reg,
-        }
-        env = {
-            'resource_registry':  env_reg
-        }
-
-        self.assertRaises(exceptions.InvalidConfiguration,
-                          utils.check_nic_config_with_ansible,
-                          mock_stack, env)
+                          env)
 
     def test_check_heat_none_network_config(self):
-        stack_reg = {
-            'OS::TripleO::Controller::Net::SoftwareConfig': 'val',
-            'OS::TripleO::Compute::Net::SoftwareConfig': 'val',
-        }
         env_reg = {
             'OS::TripleO::Controller::Net::SoftwareConfig': 'OS::Heat::None',
             'OS::TripleO::Compute::Net::SoftwareConfig': 'OS::Heat::None',
-        }
-        mock_stack = mock.MagicMock()
-        mock_stack.environment = mock.MagicMock()
-        mock_stack.environment.return_value = {
-            'resource_registry':  stack_reg,
         }
         env = {
             'resource_registry':  env_reg,
             'parameter_defaults': {'NetworkConfigWithAnsible': True}
         }
-        utils.check_nic_config_with_ansible(mock_stack, env)
+        utils.check_nic_config_with_ansible(env)
 
     def test_check_heat_network_config_no_ansible(self):
-        stack_reg = {
-            'OS::TripleO::Controller::Net::SoftwareConfig': 'val',
-            'OS::TripleO::Compute::Net::SoftwareConfig': 'val',
-        }
         env_reg = {
             'OS::TripleO::Controller::Net::SoftwareConfig': 'val',
             'OS::TripleO::Compute::Net::SoftwareConfig': 'val',
-        }
-        mock_stack = mock.MagicMock()
-        mock_stack.environment = mock.MagicMock()
-        mock_stack.environment.return_value = {
-            'resource_registry':  stack_reg,
         }
         env = {
             'resource_registry':  env_reg,
             'parameter_defaults': {'NetworkConfigWithAnsible': False}
         }
-        utils.check_nic_config_with_ansible(mock_stack, env)
-
-    def test_check_stack_network_matches_env_files(self):
-        stack_reg = {
-            'OS::TripleO::Network': 'val',
-            'OS::TripleO::Network::External': 'val',
-            'OS::TripleO::Network::ExtraConfig': 'OS::Heat::None',
-            'OS::TripleO::Network::InternalApi': 'val',
-            'OS::TripleO::Network::Port::InternalApi': 'val',
-            'OS::TripleO::Network::Management': 'val',
-            'OS::TripleO::Network::Storage': 'val',
-            'OS::TripleO::Network::StorageMgmt': 'val',
-            'OS::TripleO::Network::Tenant': 'val'
-        }
-        env_reg = {
-            'OS::TripleO::Network': 'newval',
-            'OS::TripleO::Network::External': 'newval',
-            'OS::TripleO::Network::ExtraConfig': 'OS::Heat::None',
-            'OS::TripleO::Network::InternalApi': 'newval',
-            'OS::TripleO::Network::Management': 'newval',
-            'OS::TripleO::Network::Storage': 'val',
-            'OS::TripleO::Network::StorageMgmt': 'val',
-            'OS::TripleO::Network::Tenant': 'val'
-        }
-        mock_stack = mock.MagicMock()
-        mock_stack.environment = mock.MagicMock()
-        mock_stack.environment.return_value = {
-            'resource_registry':  stack_reg
-        }
-        env = {
-            'resource_registry':  env_reg
-        }
-        utils.check_stack_network_matches_env_files(mock_stack, env)
-
-    def test_check_stack_network_matches_env_files_fail(self):
-        stack_reg = {
-            'OS::TripleO::LoggingConfiguration': 'val',
-            'OS::TripleO::Network': 'val',
-            'OS::TripleO::Network::External': 'val',
-            'OS::TripleO::Network::ExtraConfig': 'OS::Heat::None',
-            'OS::TripleO::Network::InternalApi': 'val',
-            'OS::TripleO::Network::Port::InternalApi': 'val',
-            'OS::TripleO::Network::Management': 'val',
-            'OS::TripleO::Network::Storage': 'val',
-            'OS::TripleO::Network::StorageMgmt': 'val',
-            'OS::TripleO::Network::Tenant': 'val'
-        }
-        env_reg = {
-            'OS::TripleO::LoggingConfiguration': 'newval',
-            'OS::TripleO::Network': 'newval',
-            'OS::TripleO::Network::InternalApi': 'newval'
-        }
-        mock_stack = mock.MagicMock()
-        mock_stack.environment = mock.MagicMock()
-        mock_stack.environment.return_value = {
-            'resource_registry':  stack_reg
-        }
-        env = {
-            'resource_registry':  env_reg
-        }
-        with self.assertRaises(exceptions.InvalidConfiguration):
-            utils.check_stack_network_matches_env_files(mock_stack, env)
+        utils.check_nic_config_with_ansible(env)
 
     def test_check_ceph_fsid_matches_env_files(self):
         stack_params = {
@@ -863,7 +744,8 @@ class TestWaitForStackUtil(TestCase):
                 'key2': 'val2',
             }
         }
-        utils.check_ceph_fsid_matches_env_files(mock_stack, provided_env)
+        utils.check_ceph_fsid_matches_env_files(mock_stack.environment(),
+                                                provided_env)
 
     def test_check_ceph_fsid_matches_env_files_fail(self):
         stack_params = {
@@ -884,10 +766,10 @@ class TestWaitForStackUtil(TestCase):
             'parameter_defaults': stack_params
         }
         with self.assertRaises(exceptions.InvalidConfiguration):
-            utils.check_ceph_fsid_matches_env_files(mock_stack, provided_env)
+            utils.check_ceph_fsid_matches_env_files(mock_stack.environment(),
+                                                    provided_env)
 
     def test_check_ceph_ansible(self):
-
         res_reg = {
             'resource_registry': {
                 'OS::Tripleo::Services::CephMon': '/path/to/ceph-ansible.yml',
@@ -900,7 +782,6 @@ class TestWaitForStackUtil(TestCase):
                                  'UpgradeConverge')
 
     def test_check_ceph_ansible_fail(self):
-
         res_reg = {
             'resource_registry': {
                 'OS::Tripleo::Services::CephMon': '/path/to/ceph-ansible.yml',
@@ -927,7 +808,8 @@ class TestWaitForStackUtil(TestCase):
             'resource_registry': env_reg,
         }
 
-        utils.check_swift_and_rgw(mock_stack, env, 'UpgradePrepare')
+        utils.check_swift_and_rgw(mock_stack.environment(),
+                                  env, 'UpgradePrepare')
 
     def test_check_swift_and_rgw_fail(self):
         stack_reg = {
@@ -945,7 +827,8 @@ class TestWaitForStackUtil(TestCase):
             'resource_registry': env_reg,
         }
         with self.assertRaises(exceptions.InvalidConfiguration):
-            utils.check_swift_and_rgw(mock_stack, env, 'UpgradePrepare')
+            utils.check_swift_and_rgw(mock_stack.environment(),
+                                      env, 'UpgradePrepare')
 
     @mock.patch('subprocess.check_call')
     @mock.patch('os.path.exists')
