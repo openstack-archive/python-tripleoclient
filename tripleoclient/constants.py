@@ -98,6 +98,7 @@ STACK_OUTPUTS = ['BlacklistedHostnames',
                  'EndpointMap',
                  'VipMap',
                  'EnabledServices',
+                 'HostsEntry',
                  'AdminPassword',
                  'GlobalConfig']
 
