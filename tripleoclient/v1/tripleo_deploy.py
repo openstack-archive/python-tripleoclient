@@ -676,6 +676,9 @@ class Deploy(command.Command):
             # unless user provided an override.
             bridge_mappings = user_params.get('NeutronBridgeMappings',
                                               ['datacentre:br-ex'])
+            # Handle heat comma_delimited_list
+            if isinstance(bridge_mappings, str) and bridge_mappings:
+                bridge_mappings = bridge_mappings.split(',')
             physnets = [bridge.split(':')[0] for bridge in bridge_mappings]
             for idx, physnet in enumerate(physnets):
                 ovn_bridge_macs[physnet] = 'fa:16:3a:00:53:{:02X}'.format(idx)
