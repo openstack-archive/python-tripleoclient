@@ -17,7 +17,6 @@ import fixtures
 import os
 from unittest import mock
 
-from tripleoclient.tests import fakes as ooofakes
 from tripleoclient.tests.v1.overcloud_external_update import fakes
 from tripleoclient.v1 import overcloud_external_update
 
@@ -37,23 +36,11 @@ class TestOvercloudExternalUpdateRun(fakes.TestOvercloudExternalUpdateRun):
         self.mock_uuid4 = uuid4_patcher.start()
         self.addCleanup(self.mock_uuid4.stop)
 
-    @mock.patch(
-        'ansible_runner.runner_config.RunnerConfig',
-        autospec=True,
-        return_value=ooofakes.FakeRunnerConfig()
-    )
-    @mock.patch(
-        'ansible_runner.Runner.run',
-        return_value=ooofakes.fake_ansible_runner_run_return()
-    )
-    @mock.patch('tripleoclient.utils.run_ansible_playbook',
-                autospec=True)
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
     @mock.patch('builtins.open')
     def test_update_with_user_and_tags(self, mock_open, mock_execute,
-                                       mock_expanduser, update_ansible,
-                                       mock_run, mock_run_prepare):
+                                       mock_expanduser):
         mock_expanduser.return_value = '/home/fake/'
         argslist = ['--ssh-user', 'tripleo-admin',
                     '--tags', 'ceph']
@@ -64,23 +51,11 @@ class TestOvercloudExternalUpdateRun(fakes.TestOvercloudExternalUpdateRun):
 
         self.check_parser(self.cmd, argslist, verifylist)
 
-    @mock.patch(
-        'ansible_runner.runner_config.RunnerConfig',
-        autospec=True,
-        return_value=ooofakes.FakeRunnerConfig()
-    )
-    @mock.patch(
-        'ansible_runner.Runner.run',
-        return_value=ooofakes.fake_ansible_runner_run_return()
-    )
-    @mock.patch('tripleoclient.utils.run_ansible_playbook',
-                autospec=True)
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
     @mock.patch('builtins.open')
     def test_update_with_user_and_extra_vars(self, mock_open, mock_execute,
-                                             mock_expanduser, update_ansible,
-                                             mock_run, mock_run_prepare):
+                                             mock_expanduser):
         mock_expanduser.return_value = '/home/fake/'
         argslist = ['--ssh-user', 'tripleo-admin',
                     '--extra-vars', 'key1=val1',

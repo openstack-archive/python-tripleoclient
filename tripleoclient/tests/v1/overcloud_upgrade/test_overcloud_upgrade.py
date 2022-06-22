@@ -19,7 +19,6 @@ from osc_lib import exceptions as oscexc
 from osc_lib.tests.utils import ParserException
 from tripleoclient import constants
 from tripleoclient import exceptions
-from tripleoclient.tests import fakes as ooofakes
 from tripleoclient.tests.v1.overcloud_upgrade import fakes
 from tripleoclient.v1 import overcloud_upgrade
 
@@ -153,25 +152,11 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
         self.mock_uuid4 = uuid4_patcher.start()
         self.addCleanup(self.mock_uuid4.stop)
 
-    @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
-                return_value=True)
-    @mock.patch(
-        'ansible_runner.runner_config.RunnerConfig',
-        autospec=True,
-        return_value=ooofakes.FakeRunnerConfig()
-    )
-    @mock.patch(
-        'ansible_runner.Runner.run',
-        return_value=ooofakes.fake_ansible_runner_run_return()
-    )
-    @mock.patch('tripleoclient.utils.run_ansible_playbook',
-                autospec=True)
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
     @mock.patch('builtins.open')
     def test_upgrade_limit_with_playbook_and_user(
-            self, mock_open, mock_execute, mock_expanduser, upgrade_ansible,
-            mock_run, mock_run_prepare, mock_confirm):
+            self, mock_open, mock_execute, mock_expanduser):
         mock_expanduser.return_value = '/home/fake/'
         argslist = ['--limit', 'Compute, Controller',
                     '--playbook', 'fake-playbook1.yaml',
@@ -184,24 +169,11 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
 
         self.check_parser(self.cmd, argslist, verifylist)
 
-    @mock.patch('tripleoclient.utils.prompt_user_for_confirmation',
-                return_value=True)
-    @mock.patch(
-        'ansible_runner.runner_config.RunnerConfig',
-        return_value=ooofakes.FakeRunnerConfig()
-    )
-    @mock.patch(
-        'ansible_runner.Runner.run',
-        return_value=ooofakes.fake_ansible_runner_run_return()
-    )
-    @mock.patch('tripleoclient.utils.run_ansible_playbook',
-                autospec=True)
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
     @mock.patch('builtins.open')
     def test_upgrade_nodes_with_playbook_no_skip_tags(
-            self, mock_open, mock_execute, mock_expanduser, upgrade_ansible,
-            mock_run, mock_run_prepare, mock_confirm):
+            self, mock_open, mock_execute, mock_expanduser):
         mock_expanduser.return_value = '/home/fake/'
         argslist = ['--limit', 'compute-0,compute-1',
                     '--playbook', 'fake-playbook.yaml', ]
@@ -213,13 +185,11 @@ class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
 
         self.check_parser(self.cmd, argslist, verifylist)
 
-    @mock.patch('tripleoclient.utils.run_ansible_playbook',
-                autospec=True)
     @mock.patch('os.path.expanduser')
     @mock.patch('oslo_concurrency.processutils.execute')
     @mock.patch('builtins.open')
     def test_upgrade_with_no_limit(
-            self, mock_open, mock_execute, mock_expanduser, upgrade_ansible):
+            self, mock_open, mock_execute, mock_expanduser):
         mock_expanduser.return_value = '/home/fake/'
         argslist = []
         verifylist = []
