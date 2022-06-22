@@ -2234,6 +2234,29 @@ class TestParseContainerImagePrepare(TestCase):
                                                     push_sub_keys)
         self.assertEqual(reg_actual, reg_expected)
 
+    def test_parse_container_image_prepare_push_dest_no_slash(self):
+        # Cover case from https://bugs.launchpad.net/tripleo/+bug/1979554
+        key = 'ContainerImagePrepare'
+        keys = ['ceph_namespace', 'ceph_image', 'ceph_tag']
+        push_sub_keys = ['ceph_namespace']
+        reg_expected = {'ceph_image': 'ceph',
+                        'ceph_namespace': 'foo.com',
+                        'ceph_tag': 'latest',
+                        'push_destination_boolean': True}
+        local_fake_env = self.fake_env
+        # Remove '/ceph' from 'quay.io:443/ceph' in local copy to
+        # make sure parse_container_image_prepare() can handle it
+        local_fake_env['parameter_defaults'][
+            'ContainerImagePrepare'][0]['set']['ceph_namespace'] \
+            = 'quay.io:443'
+        with tempfile.NamedTemporaryFile(mode='w') as cfgfile:
+            yaml.safe_dump(local_fake_env, cfgfile)
+            reg_actual = \
+                utils.parse_container_image_prepare(key, keys,
+                                                    cfgfile.name,
+                                                    push_sub_keys)
+        self.assertEqual(reg_actual, reg_expected)
+
     def test_parse_container_image_prepare_credentials(self):
         key = 'ContainerImageRegistryCredentials'
         keys = ['quay.io:443/ceph']
