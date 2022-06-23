@@ -94,6 +94,7 @@ STACK_OUTPUTS = ['BlacklistedHostnames',
                  'EndpointMap',
                  'VipMap',
                  'EnabledServices',
+                 'HostsEntry',
                  'AdminPassword']
 
 IRONIC_HTTP_BOOT_BIND_MOUNT = '/var/lib/ironic/httpboot'
