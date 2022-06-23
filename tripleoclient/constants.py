@@ -41,6 +41,7 @@ ANSIBLE_CWL = "tripleo_dense,tripleo_profile_tasks,tripleo_states"
 CONTAINER_IMAGE_PREPARE_LOG_FILE = "container_image_prepare.log"
 DEFAULT_CONTAINER_REGISTRY = "quay.io"
 DEFAULT_CONTAINER_NAMESPACE = "tripleomastercentos9"
+DEFAULT_CONTAINER_NAME_PREFIX = "openstack-"
 DEFAULT_CONTAINER_TAG = "current-tripleo"
 DEFAULT_RESOURCE_REGISTRY = 'overcloud-resource-registry-puppet.yaml'
 
@@ -53,8 +54,8 @@ else:
             DEFAULT_CONTAINER_REGISTRY,
             DEFAULT_CONTAINER_NAMESPACE
         ),
-        'name_prefix': 'openstack-',
-        'tag': 'current-tripleo'
+        'name_prefix': DEFAULT_CONTAINER_NAME_PREFIX,
+        'tag': DEFAULT_CONTAINER_TAG
     }
 DEFAULT_HEAT_CONTAINER = ('{}/{}heat-all:{}'.format(
     DEFAULT_CONTAINER_IMAGE_PARAMS['namespace'],
