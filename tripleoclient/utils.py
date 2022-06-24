@@ -3171,7 +3171,8 @@ def parse_container_image_prepare(tht_key='ContainerImagePrepare',
                                 # with the push_destination, since that is
                                 # where they will be uploaded to
                                 image = image_map[key].partition('/')[2]
-                                image_map[key] = '/'.join((push, image))
+                                image_map[key] = os.path.normpath(
+                                    os.path.join(push, image))
         except KeyError:
             raise RuntimeError(
                 "The expected parameter_defaults and %s are not "
