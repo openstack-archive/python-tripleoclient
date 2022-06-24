@@ -68,8 +68,6 @@ class UpgradePrepare(DeployOvercloud):
             oooutils.check_deprecated_service_is_enabled(
                 parsed_args.environment_files)
 
-        clients = self.app.client_manager
-
         # In case of update and upgrade we need to force the
         # stack_only to true. The heat stack update will be performed
         # by DeployOvercloud class but skipping the config download part.
@@ -87,23 +85,19 @@ class UpgradePrepare(DeployOvercloud):
                                           self.forbidden_params)
         super(UpgradePrepare, self).take_action(parsed_args)
 
-        stack = oooutils.get_stack(clients.orchestration,
-                                   parsed_args.stack)
-        stack_name = stack.stack_name
-        # enable ssh admin for Ansible-via-Mistral as that's done only
-        # when config_download is true
         deployment.get_hosts_and_enable_ssh_admin(
-            stack,
+            parsed_args.stack,
             parsed_args.overcloud_ssh_network,
             parsed_args.overcloud_ssh_user,
             self.get_key_pair(parsed_args),
             parsed_args.overcloud_ssh_port_timeout,
             working_dir=self.working_dir,
-            verbosity=oooutils.playbook_verbosity(self=self)
+            verbosity=oooutils.playbook_verbosity(self=self),
+            heat_type=parsed_args.heat_type
         )
 
         self.log.info("Completed Overcloud Upgrade {} for stack "
-                      "{}".format(self.operation, stack_name))
+                      "{}".format(self.operation, parsed_args.stack))
 
 
 class UpgradeRun(command.Command):

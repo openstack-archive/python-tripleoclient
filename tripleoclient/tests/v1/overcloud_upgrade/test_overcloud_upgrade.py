@@ -89,13 +89,14 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
         # Check config_download arg is set to False
         self.assertEqual(args[0].stack_only, True)
         mock_enable_ssh_admin.assert_called_once_with(
-            mock_stack,
+            parsed_args.stack,
             parsed_args.overcloud_ssh_network,
             parsed_args.overcloud_ssh_user,
             mock.ANY,
             parsed_args.overcloud_ssh_port_timeout,
             self.cmd.working_dir,
-            mock.ANY
+            mock.ANY,
+            'pod'
         )
 
     @mock.patch('tripleoclient.utils.ensure_run_as_normal_user')
