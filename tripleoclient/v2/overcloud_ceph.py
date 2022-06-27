@@ -880,8 +880,16 @@ class OvercloudCephUserEnable(command.Command):
         }
         for limit_list in [ceph_hosts['_admin'], ceph_hosts['non_admin']]:
             if len(limit_list) > 0:
-                # need to include the undercloud where the keys are generated
-                limit_list.append('undercloud')
+                if parsed_args.standalone:
+                    # In standalone, Ansible groups allovercloud and undercloud
+                    # denote the same single host. So just use undercloud to
+                    # avoid LP 1979093.
+                    limit_list = ['undercloud']
+                else:
+                    # Need to include the undercloud, where the keys are
+                    # generated, in the subset of allovercloud hosts,
+                    # denoted by limit_list.
+                    limit_list.append('undercloud')
                 with oooutils.TempDirs() as tmp:
                     oooutils.run_ansible_playbook(
                         playbook='ceph-admin-user-playbook.yml',
