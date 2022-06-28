@@ -122,10 +122,8 @@ class UpdateRun(command.Command):
                             dest='static_inventory',
                             action="store",
                             default=None,
-                            help=_('Path to an existing ansible inventory to '
-                                   'use. If not specified, one will be '
-                                   'generated in '
-                                   '~/tripleo-ansible-inventory.yaml')
+                            help=_('DEPRECATED: tripleo-ansible-inventory.yaml'
+                                   ' in working dir will be used.')
                             )
         parser.add_argument('--stack', dest='stack',
                             help=_('Name or ID of heat stack '
@@ -188,12 +186,7 @@ class UpdateRun(command.Command):
                                    'config-download',
                                    parsed_args.stack)
 
-        if not parsed_args.static_inventory:
-            inventory = os.path.join(ansible_dir,
-                                     'tripleo-ansible-inventory.yaml')
-        else:
-            inventory = parsed_args.static_inventory
-
+        inventory = os.path.join(ansible_dir, 'tripleo-ansible-inventory.yaml')
         ansible_cfg = os.path.join(ansible_dir, 'ansible.cfg')
         key_file = oooutils.get_key(parsed_args.stack)
 

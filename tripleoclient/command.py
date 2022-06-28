@@ -18,8 +18,6 @@ import logging
 from osc_lib.command import command
 from osc_lib import exceptions as oscexc
 
-from tripleo_common.utils import config
-
 from tripleoclient import exceptions
 from tripleoclient import utils
 
@@ -37,28 +35,6 @@ class Command(command.Command):
         except Exception:
             self.log.exception("Exception occured while running the command")
             raise
-
-    @staticmethod
-    def get_ansible_key_and_dir(stack, orchestration):
-        """Return the ansible directory and key path.
-
-        :oaram stack: Name of a given stack to run against.
-        :type stack: String
-
-        :param orchestration: Orchestration client object.
-        :type orchestration: Object
-
-        :returns: Tuple
-        """
-        key = utils.get_key(stack=stack)
-        stack_config = config.Config(orchestration)
-        with utils.TempDirs(chdir=False) as tmp:
-            stack_config.write_config(
-                stack_config.fetch_config(stack),
-                stack,
-                tmp
-            )
-            return key, tmp
 
     def get_key_pair(self, parsed_args):
         """Autodetect or return a user defined key file.
