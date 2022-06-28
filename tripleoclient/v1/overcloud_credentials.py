@@ -47,11 +47,15 @@ class OvercloudCredentials(command.Command):
 
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+        if not parsed_args.working_dir:
+            working_dir = utils.get_default_working_dir(parsed_args.stack)
+        else:
+            working_dir = parsed_args.working_dir
         rc_params = utils.get_rc_params(
-            parsed_args.working_dir)
-        endpoint = utils.get_overcloud_endpoint(parsed_args.working_dir)
+            working_dir)
+        endpoint = utils.get_overcloud_endpoint(working_dir)
         admin_vip = utils.get_stack_saved_output_item(
-            'KeystoneAdminVip', parsed_args.working_dir)
+            'KeystoneAdminVip', working_dir)
         deployment.create_overcloudrc(
             parsed_args.stack, endpoint, admin_vip, rc_params,
             output_dir=parsed_args.directory)
