@@ -179,6 +179,7 @@ class DeleteNode(command.Command):
             ssh_user='tripleo-admin',
             limit_hosts=':'.join('%s' % node for node in nodes),
             reproduce_command=True,
+            ignore_unreachable=True,
             extra_env_variables={
                 "ANSIBLE_BECOME": True,
                 "ANSIBLE_PRIVATE_KEY_FILE": key_file

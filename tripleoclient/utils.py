@@ -260,7 +260,8 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
                          callback_whitelist=constants.ANSIBLE_CWL,
                          ansible_cfg=None, ansible_timeout=30,
                          reproduce_command=False,
-                         timeout=None, forks=None):
+                         timeout=None, forks=None,
+                         ignore_unreachable=False):
     """Simple wrapper for ansible-playbook.
 
     :param playbook: Playbook filename.
@@ -713,27 +714,30 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
                         f.write(str(val))
 
     if rc != 0:
-        err_msg = (
-            'Ansible execution failed. playbook: {},'
-            ' Run Status: {},'
-            ' Return Code: {}'.format(
-                playbook,
-                status,
-                rc
-            )
-        )
-        if command_path:
-            err_msg += (
-                ', To rerun the failed command manually execute the'
-                ' following script: {}'.format(
-                    command_path
+        if rc == 4 and ignore_unreachable:
+            LOG.info('Ignoring unreachable nodes')
+        else:
+            err_msg = (
+                'Ansible execution failed. playbook: {},'
+                ' Run Status: {},'
+                ' Return Code: {}'.format(
+                    playbook,
+                    status,
+                    rc
                 )
             )
+            if command_path:
+                err_msg += (
+                    ', To rerun the failed command manually execute the'
+                    ' following script: {}'.format(
+                        command_path
+                    )
+                )
 
-        if not quiet:
-            LOG.error(err_msg)
+            if not quiet:
+                LOG.error(err_msg)
 
-        raise RuntimeError(err_msg)
+            raise RuntimeError(err_msg)
 
     LOG.info(
         'Ansible execution success. playbook: {}'.format(
