@@ -73,6 +73,7 @@ FAKE_STACK = {
 def create_to_dict_mock(**kwargs):
     mock_with_to_dict = mock.Mock()
     mock_with_to_dict.configure_mock(**kwargs)
+    mock_with_to_dict.environment.return_value = {}
     mock_with_to_dict.to_dict.return_value = kwargs
     return mock_with_to_dict
 
