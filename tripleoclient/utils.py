@@ -3226,6 +3226,29 @@ def get_host_groups_from_ceph_spec(ceph_spec_path, prefix='',
     return hosts
 
 
+def standalone_ceph_inventory(working_dir):
+    """return an ansible inventory for deployed ceph standalone
+    :param working_dir: directory where inventory should be written
+    :return string: the path to the inventory
+    """
+    host = get_hostname()
+    inv = \
+        {'Standalone':
+         {'hosts': {host: {},
+                    'undercloud': {}},
+          'vars': {'ansible_connection': 'local',
+                   'ansible_host': host,
+                   'ansible_python_interpreter': sys.executable}},
+         'allovercloud':
+         {'children': {'Standalone': {}}}}
+
+    path = os.path.join(working_dir,
+                        constants.TRIPLEO_STATIC_INVENTORY)
+    with open(path, 'w') as f:
+        f.write(yaml.safe_dump(inv))
+    return path
+
+
 def cleanup_host_entry(entry):
     # remove any tab or space excess
     entry_stripped = re.sub('[ \t]+', ' ', str(entry).rstrip())

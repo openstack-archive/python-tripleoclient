@@ -79,11 +79,13 @@ class OvercloudCephDeploy(command.Command):
     def get_parser(self, prog_name):
         parser = super(OvercloudCephDeploy, self).get_parser(prog_name)
 
-        parser.add_argument('baremetal_env',
+        parser.add_argument('baremetal_env', nargs='?',
                             metavar='<deployed_baremetal.yaml>',
                             help=_('Path to the environment file '
                                    'output from "openstack '
-                                   'overcloud node provision".'))
+                                   'overcloud node provision". '
+                                   'This argument may be excluded '
+                                   'only if --ceph-spec is used.'))
         parser.add_argument('-o', '--output', required=True,
                             metavar='<deployed_ceph.yaml>',
                             help=_('The path to the output environment '
@@ -176,6 +178,14 @@ class OvercloudCephDeploy(command.Command):
                                 "'ceph --cluster foo health' unless export "
                                 "CEPH_ARGS='--cluster foo' is used."),
                             default='ceph')
+        parser.add_argument('--mon-ip',
+                            help=_(
+                                "IP address of the first Ceph monitor. "
+                                "If not set, an IP from the Ceph "
+                                "public_network of a server with the "
+                                "mon label from the Ceph spec is used. "
+                                "IP must already be active on server."),
+                            default='')
         parser.add_argument('--config',
                             help=_(
                                 "Path to an existing ceph.conf with settings "
@@ -247,10 +257,12 @@ class OvercloudCephDeploy(command.Command):
         spec_group = parser.add_mutually_exclusive_group()
         spec_group.add_argument('--ceph-spec',
                                 help=_(
-                                    "Path to an existing Ceph spec file. "
-                                    "If not provided a spec will be generated "
+                                    "Path to an existing Ceph spec file. If "
+                                    "not provided a spec will be generated "
                                     "automatically based on --roles-data and "
-                                    "<deployed_baremetal.yaml>"),
+                                    "<deployed_baremetal.yaml>. The "
+                                    "<deployed_baremetal.yaml> parameter is "
+                                    "optional only if --ceph-spec is used."),
                                 default=None)
         spec_group.add_argument('--osd-spec',
                                 help=_(
@@ -270,6 +282,11 @@ class OvercloudCephDeploy(command.Command):
                                 "Path to an existing crush hierarchy spec "
                                 "file. "),
                             default=None)
+        parser.add_argument('--standalone', default=False,
+                            action='store_true',
+                            help=_("Use single host Ansible inventory. "
+                                   "Used only for development or testing "
+                                   "environments."))
         parser.add_argument('--container-image-prepare',
                             help=_(
                                 "Path to an alternative "
@@ -327,14 +344,7 @@ class OvercloudCephDeploy(command.Command):
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
 
-        baremetal_env_path = os.path.abspath(parsed_args.baremetal_env)
         output_path = os.path.abspath(parsed_args.output)
-
-        if not os.path.exists(baremetal_env_path):
-            raise oscexc.CommandError(
-                "Baremetal environment file does not exist:"
-                " %s" % parsed_args.baremetal_env)
-
         overwrite = parsed_args.yes
         if (os.path.exists(output_path) and not overwrite
                 and not oooutils.prompt_user_for_confirmation(
@@ -354,8 +364,11 @@ class OvercloudCephDeploy(command.Command):
             working_dir = os.path.abspath(parsed_args.working_dir)
         oooutils.makedirs(working_dir)
 
-        inventory = os.path.join(working_dir,
-                                 constants.TRIPLEO_STATIC_INVENTORY)
+        if parsed_args.standalone:
+            inventory = oooutils.standalone_ceph_inventory(working_dir)
+        else:
+            inventory = os.path.join(working_dir,
+                                     constants.TRIPLEO_STATIC_INVENTORY)
         if not os.path.exists(inventory):
             raise oscexc.CommandError(
                 "Inventory file not found in working directory: "
@@ -365,13 +378,29 @@ class OvercloudCephDeploy(command.Command):
 
         # mandatory extra_vars are now set, add others conditionally
         extra_vars = {
-            "baremetal_deployed_path": baremetal_env_path,
             "deployed_ceph_tht_path": output_path,
             "working_dir": working_dir,
             "stack_name": parsed_args.stack,
+            "tripleo_cephadm_standalone": parsed_args.standalone
         }
         extra_vars_file = None
         # optional paths to pass to playbook
+        if parsed_args.ceph_spec is None and \
+           parsed_args.baremetal_env is None:
+            raise oscexc.CommandError(
+                "Either <deployed_baremetal.yaml> "
+                "or --ceph-spec must be used.")
+
+        if parsed_args.baremetal_env:
+            baremetal_env_path = os.path.abspath(parsed_args.baremetal_env)
+            if not os.path.exists(baremetal_env_path):
+                raise oscexc.CommandError(
+                    "Baremetal environment file does not exist:"
+                    " %s" % parsed_args.baremetal_env)
+            else:
+                extra_vars['baremetal_deployed_path'] = \
+                    os.path.abspath(parsed_args.baremetal_env)
+
         if parsed_args.roles_data:
             if not os.path.exists(parsed_args.roles_data):
                 raise oscexc.CommandError(
@@ -405,6 +434,15 @@ class OvercloudCephDeploy(command.Command):
         if parsed_args.cluster:
             extra_vars['tripleo_cephadm_cluster'] = \
                 parsed_args.cluster
+
+        if parsed_args.mon_ip:
+            if not oooutils.is_valid_ip(parsed_args.mon_ip):
+                raise oscexc.CommandError(
+                    "Invalid IP address '%s' passed to --mon-ip."
+                    % parsed_args.mon_ip)
+            else:
+                extra_vars['tripleo_cephadm_first_mon_ip'] = \
+                    parsed_args.mon_ip
 
         if parsed_args.ceph_spec:
             if not os.path.exists(parsed_args.ceph_spec):
@@ -658,6 +696,11 @@ class OvercloudCephUserDisable(command.Command):
                               metavar='<FSID>', required=True,
                               help=_("The FSID of the Ceph cluster to be "
                                      "disabled. Required for disable option."))
+        parser.add_argument('--standalone', default=False,
+                            action='store_true',
+                            help=_("Use single host Ansible inventory. "
+                                   "Used only for development or testing "
+                                   "environments."))
 
         return parser
 
@@ -693,8 +736,11 @@ class OvercloudCephUserDisable(command.Command):
             working_dir = os.path.abspath(parsed_args.working_dir)
         oooutils.makedirs(working_dir)
 
-        inventory = os.path.join(working_dir,
-                                 constants.TRIPLEO_STATIC_INVENTORY)
+        if parsed_args.standalone:
+            inventory = oooutils.standalone_ceph_inventory(working_dir)
+        else:
+            inventory = os.path.join(working_dir,
+                                     constants.TRIPLEO_STATIC_INVENTORY)
         if not os.path.exists(inventory):
             raise oscexc.CommandError(
                 "Inventory file not found in working directory: "
@@ -777,6 +823,11 @@ class OvercloudCephUserEnable(command.Command):
                                    "so that cephadm will be re-enabled "
                                    "for the Ceph cluster idenified "
                                    "by the FSID."))
+        parser.add_argument('--standalone', default=False,
+                            action='store_true',
+                            help=_("Use single host Ansible inventory. "
+                                   "Used only for development or testing "
+                                   "environments."))
         parser = arg_parse_common(parser)
 
         return parser
@@ -807,8 +858,11 @@ class OvercloudCephUserEnable(command.Command):
             working_dir = os.path.abspath(parsed_args.working_dir)
         oooutils.makedirs(working_dir)
 
-        inventory = os.path.join(working_dir,
-                                 constants.TRIPLEO_STATIC_INVENTORY)
+        if parsed_args.standalone:
+            inventory = oooutils.standalone_ceph_inventory(working_dir)
+        else:
+            inventory = os.path.join(working_dir,
+                                     constants.TRIPLEO_STATIC_INVENTORY)
         if not os.path.exists(inventory):
             raise oscexc.CommandError(
                 "Inventory file not found in working directory: "
@@ -860,3 +914,196 @@ class OvercloudCephUserEnable(command.Command):
                     limit_hosts=ceph_hosts['_admin'][0],
                     reproduce_command=False,
                 )
+
+
+class OvercloudCephSpec(command.Command):
+
+    log = logging.getLogger(__name__ + ".OvercloudCephSpec")
+    auth_required = False
+
+    def get_parser(self, prog_name):
+        parser = super(OvercloudCephSpec, self).get_parser(prog_name)
+
+        parser.add_argument('baremetal_env', nargs='?',
+                            metavar='<deployed_baremetal.yaml>',
+                            help=_('Path to the environment file '
+                                   'output from "openstack '
+                                   'overcloud node provision". '
+                                   'This argument may be excluded '
+                                   'only if --standalone is used.'))
+        parser.add_argument('-o', '--output', required=True,
+                            metavar='<ceph_spec.yaml>',
+                            help=_('The path to the output cephadm spec '
+                                   'file to pass to the "openstack '
+                                   'overcloud ceph deploy --ceph-spec '
+                                   '<ceph_spec.yaml>" command.'))
+        parser.add_argument('-y', '--yes', default=False, action='store_true',
+                            help=_('Skip yes/no prompt before overwriting an '
+                                   'existing <ceph_spec.yaml> output file '
+                                   '(assume yes).'))
+        parser.add_argument('--stack', dest='stack',
+                            help=_('Name or ID of heat stack '
+                                   '(default=Env: OVERCLOUD_STACK_NAME)'),
+                            default=utils.env('OVERCLOUD_STACK_NAME',
+                                              default='overcloud'))
+        parser.add_argument(
+            '--working-dir', action='store',
+            help=_('The working directory for the deployment where all '
+                   'input, output, and generated files will be stored.\n'
+                   'Defaults to "$HOME/overcloud-deploy/<stack>"'))
+        parser.add_argument('--roles-data',
+                            help=_(
+                                "Path to an alternative roles_data.yaml. "
+                                "Used to decide which node gets which "
+                                "Ceph mon, mgr, or osd service "
+                                "based on the node's role in "
+                                "<deployed_baremetal.yaml>."),
+                            default=os.path.join(
+                                constants.TRIPLEO_HEAT_TEMPLATES,
+                                constants.OVERCLOUD_ROLES_FILE))
+        parser.add_argument('--mon-ip',
+                            help=_(
+                                "IP address of the first Ceph monitor. "
+                                "Only available with --standalone."),
+                            default='')
+        parser.add_argument('--standalone', default=False,
+                            action='store_true',
+                            help=_("Create a spec file for a standalone "
+                                   "deployment. Used for single server "
+                                   "development or testing environments."))
+        spec_group = parser.add_mutually_exclusive_group()
+        spec_group.add_argument('--osd-spec',
+                                help=_(
+                                    "Path to an existing OSD spec file. "
+                                    "When the Ceph spec file is generated "
+                                    "its OSD spec defaults to "
+                                    "{data_devices: {all: true}} "
+                                    "for all service_type osd. "
+                                    "Use --osd-spec to override the "
+                                    "data_devices value inside the "
+                                    "Ceph spec file."),
+                                default=None)
+        spec_group.add_argument('--crush-hierarchy',
+                                help=_(
+                                    "Path to an existing crush hierarchy spec "
+                                    "file. "),
+                                default=None)
+
+        return parser
+
+    def take_action(self, parsed_args):
+        self.log.debug("take_action(%s)" % parsed_args)
+
+        output_path = os.path.abspath(parsed_args.output)
+        overwrite = parsed_args.yes
+        if (os.path.exists(output_path) and not overwrite
+                and not oooutils.prompt_user_for_confirmation(
+                    'Overwrite existing file %s [y/N]?' % parsed_args.output,
+                    self.log)):
+            raise oscexc.CommandError("Will not overwrite existing file:"
+                                      " %s. See the --yes parameter to "
+                                      "override this behavior. " %
+                                      parsed_args.output)
+        else:
+            overwrite = True
+
+        if not parsed_args.working_dir:
+            working_dir = oooutils.get_default_working_dir(
+                parsed_args.stack)
+        else:
+            working_dir = os.path.abspath(parsed_args.working_dir)
+        oooutils.makedirs(working_dir)
+
+        if parsed_args.standalone:
+            inventory = oooutils.standalone_ceph_inventory(working_dir)
+        else:
+            inventory = os.path.join(working_dir,
+                                     constants.TRIPLEO_STATIC_INVENTORY)
+        if not os.path.exists(inventory):
+            raise oscexc.CommandError(
+                "Inventory file not found in working directory: "
+                "%s. It should have been created by "
+                "'openstack overcloud node provision'."
+                % inventory)
+
+        # mandatory extra_vars are now set, add others conditionally
+        extra_vars = {
+            'ceph_spec_path': output_path,
+        }
+
+        # optional paths to pass to playbook
+        if parsed_args.standalone is None and \
+           parsed_args.baremetal_env is None:
+            raise oscexc.CommandError(
+                "Either <deployed_baremetal.yaml> "
+                "or --standalone must be used.")
+
+        if parsed_args.baremetal_env:
+            baremetal_env_path = os.path.abspath(parsed_args.baremetal_env)
+            if not os.path.exists(baremetal_env_path):
+                raise oscexc.CommandError(
+                    "Baremetal environment file does not exist:"
+                    " %s" % parsed_args.baremetal_env)
+            else:
+                extra_vars['baremetal_deployed_path'] = \
+                    os.path.abspath(parsed_args.baremetal_env)
+
+        if parsed_args.roles_data:
+            if not os.path.exists(parsed_args.roles_data):
+                raise oscexc.CommandError(
+                    "Roles Data file not found --roles-data %s."
+                    % os.path.abspath(parsed_args.roles_data))
+            else:
+                extra_vars['tripleo_roles_path'] = \
+                    os.path.abspath(parsed_args.roles_data)
+
+        if parsed_args.mon_ip:
+            if not oooutils.is_valid_ip(parsed_args.mon_ip):
+                raise oscexc.CommandError(
+                    "Invalid IP address '%s' passed to --mon-ip."
+                    % parsed_args.mon_ip)
+            else:
+                if parsed_args.standalone:
+                    extra_vars['tripleo_cephadm_first_mon_ip'] = \
+                        parsed_args.mon_ip
+                else:
+                    raise oscexc.CommandError(
+                        "Option --mon-ip may only be "
+                        "used with --standalone")
+
+        if parsed_args.osd_spec:
+            if not os.path.exists(parsed_args.osd_spec):
+                raise oscexc.CommandError(
+                    "OSD Spec file not found --osd-spec %s."
+                    % os.path.abspath(parsed_args.osd_spec))
+            else:
+                extra_vars['osd_spec_path'] = \
+                    os.path.abspath(parsed_args.osd_spec)
+
+        if parsed_args.crush_hierarchy:
+            if not os.path.exists(parsed_args.crush_hierarchy):
+                raise oscexc.CommandError(
+                    "Crush Hierarchy Spec file not found --crush-hierarchy %s."
+                    % os.path.abspath(parsed_args.crush_hierarchy))
+            else:
+                extra_vars['crush_hierarchy_path'] = \
+                    os.path.abspath(parsed_args.crush_hierarchy)
+
+        if parsed_args.standalone:
+            spec_playbook = 'cli-standalone-ceph-spec.yaml'
+            tags = ''
+        else:
+            spec_playbook = 'cli-deployed-ceph.yaml'
+            tags = 'ceph_spec'
+
+        with oooutils.TempDirs() as tmp:
+            oooutils.run_ansible_playbook(
+                playbook=spec_playbook,
+                inventory=inventory,
+                workdir=tmp,
+                playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                verbosity=oooutils.playbook_verbosity(self=self),
+                extra_vars=extra_vars,
+                reproduce_command=False,
+                tags=tags,
+            )

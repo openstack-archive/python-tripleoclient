@@ -45,6 +45,7 @@ class TestOvercloudCephDeploy(fakes.FakePlaybookExecution):
                    '--stack', 'overcloud',
                    '--skip-user-create',
                    '--skip-hosts-config',
+                   '--mon-ip', '127.0.0.1',
                    '--cephadm-ssh-user', 'jimmy',
                    '--output', 'deployed-ceph.yaml',
                    '--container-namespace', 'quay.io/ceph',
@@ -66,12 +67,61 @@ class TestOvercloudCephDeploy(fakes.FakePlaybookExecution):
                 "deployed_ceph_tht_path": mock.ANY,
                 "working_dir": mock.ANY,
                 "stack_name": 'overcloud',
+                "tripleo_cephadm_standalone": False,
                 'tripleo_cephadm_ssh_user': 'jimmy',
                 'tripleo_cephadm_cluster': 'ceph',
+                'tripleo_cephadm_first_mon_ip': '127.0.0.1',
                 'tripleo_roles_path': mock.ANY,
                 'tripleo_cephadm_container_ns': 'quay.io/ceph',
                 'tripleo_cephadm_container_image': 'ceph',
                 'tripleo_cephadm_container_tag': 'latest',
+            }
+        )
+
+    @mock.patch('tripleoclient.utils.get_ceph_networks', autospect=True)
+    @mock.patch('tripleoclient.utils.TempDirs', autospect=True)
+    @mock.patch('os.path.abspath', autospect=True)
+    @mock.patch('os.path.exists', autospect=True)
+    @mock.patch('tripleoclient.utils.run_ansible_playbook', autospec=True)
+    def test_deploy_ceph_spec(self, mock_playbook, mock_abspath,
+                              mock_path_exists, mock_tempdirs,
+                              mock_get_ceph_networks):
+        arglist = ['--yes',
+                   '--stack', 'overcloud',
+                   '--skip-user-create',
+                   '--skip-hosts-config',
+                   '--mon-ip', '127.0.0.1',
+                   '--ceph-spec', 'ceph_spec.yaml',
+                   '--cephadm-ssh-user', 'jimmy',
+                   '--output', 'deployed-ceph.yaml',
+                   '--container-namespace', 'quay.io/ceph',
+                   '--container-image', 'ceph',
+                   '--container-tag', 'latest']
+        parsed_args = self.check_parser(self.cmd, arglist, [])
+        self.cmd.take_action(parsed_args)
+        mock_playbook.assert_called_once_with(
+            playbook='cli-deployed-ceph.yaml',
+            inventory=mock.ANY,
+            workdir=mock.ANY,
+            playbook_dir=mock.ANY,
+            verbosity=3,
+            skip_tags='cephadm_ssh_user',
+            reproduce_command=False,
+            extra_vars_file=mock.ANY,
+            extra_vars={
+                "deployed_ceph_tht_path": mock.ANY,
+                "working_dir": mock.ANY,
+                "stack_name": 'overcloud',
+                "tripleo_cephadm_standalone": False,
+                'tripleo_roles_path': mock.ANY,
+                'tripleo_cephadm_first_mon_ip': '127.0.0.1',
+                'tripleo_cephadm_cluster': 'ceph',
+                'dynamic_ceph_spec': False,
+                'ceph_spec_path': mock.ANY,
+                'tripleo_cephadm_container_ns': 'quay.io/ceph',
+                'tripleo_cephadm_container_image': 'ceph',
+                'tripleo_cephadm_container_tag': 'latest',
+                'tripleo_cephadm_ssh_user': 'jimmy',
             }
         )
 
@@ -99,6 +149,16 @@ class TestOvercloudCephDeploy(fakes.FakePlaybookExecution):
                                                     mock_get_ceph_networks):
         arglist = ['deployed-metal.yaml', '--yes',
                    '--ansible-extra-vars', 'foo.yml',
+                   '--output', 'deployed-ceph.yaml']
+        parsed_args = self.check_parser(self.cmd, arglist, [])
+        self.assertRaises(osc_lib_exc.CommandError,
+                          self.cmd.take_action, parsed_args)
+
+    @mock.patch('os.path.abspath', autospect=True)
+    @mock.patch('os.path.exists', autospect=True)
+    def test_overcloud_deploy_ceph_no_metal(self, mock_abspath,
+                                            mock_path_exists):
+        arglist = ['--stack', 'overcloud',
                    '--output', 'deployed-ceph.yaml']
         parsed_args = self.check_parser(self.cmd, arglist, [])
         self.assertRaises(osc_lib_exc.CommandError,
@@ -263,5 +323,47 @@ class TestOvercloudCephUserEnable(fakes.FakePlaybookExecution):
                 "tripleo_cephadm_fsid": '7bdfa1a6-d606-562c-bbf7-05f17c35763e',
                 "tripleo_cephadm_backend": 'cephadm',
                 "tripleo_cephadm_action": 'enable'
+            }
+        )
+
+
+class TestOvercloudCephSpec(fakes.FakePlaybookExecution):
+
+    def setUp(self):
+        super(TestOvercloudCephSpec, self).setUp()
+
+        # Get the command object to test
+        app_args = mock.Mock()
+        app_args.verbose_level = 1
+        self.app.options = fakes.FakeOptions()
+        self.cmd = overcloud_ceph.OvercloudCephSpec(self.app,
+                                                    app_args)
+
+    @mock.patch('tripleoclient.utils.TempDirs', autospect=True)
+    @mock.patch('os.path.abspath', autospect=True)
+    @mock.patch('os.path.exists', autospect=True)
+    @mock.patch('tripleoclient.utils.run_ansible_playbook', autospec=True)
+    def test_overcloud_ceph_spec(self, mock_playbook, mock_abspath,
+                                 mock_path_exists, mock_tempdirs):
+        arglist = ['deployed-metal.yaml', '--yes',
+                   '--stack', 'overcloud',
+                   '--roles-data', 'roles_data.yaml',
+                   '--osd-spec', 'osd_spec.yaml',
+                   '--output', 'ceph_spec.yaml']
+        parsed_args = self.check_parser(self.cmd, arglist, [])
+        self.cmd.take_action(parsed_args)
+        mock_playbook.assert_called_once_with(
+            playbook='cli-deployed-ceph.yaml',
+            inventory=mock.ANY,
+            workdir=mock.ANY,
+            playbook_dir=mock.ANY,
+            verbosity=3,
+            tags='ceph_spec',
+            reproduce_command=False,
+            extra_vars={
+                "baremetal_deployed_path": mock.ANY,
+                'tripleo_roles_path': mock.ANY,
+                'osd_spec_path': mock.ANY,
+                'ceph_spec_path': mock.ANY,
             }
         )
