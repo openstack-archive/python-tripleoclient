@@ -557,10 +557,13 @@ class ExtractProvisionedNode(command.Command):
         # list all baremetal nodes and map hostname to node name
         node_details = self.baremetal_client.node.list(detail=True)
         hostname_node_map = {}
+        hostname_node_resource = {}
         for node in node_details:
             hostname = node.instance_info.get('display_name')
             if hostname and node.name:
                 hostname_node_map[hostname] = node.name
+            if hostname and node.resource_class:
+                hostname_node_resource[hostname] = node.resource_class
 
         data = []
         for role_name, entries in host_vars.items():
@@ -645,6 +648,9 @@ class ExtractProvisionedNode(command.Command):
 
                 if entry in hostname_node_map:
                     instance['name'] = hostname_node_map[entry]
+
+                if entry in hostname_node_resource:
+                    instance['resource_class'] = hostname_node_resource[entry]
 
                 if ips_from_pool:
                     instance['networks'] = copy.deepcopy(role_networks)
