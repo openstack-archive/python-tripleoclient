@@ -1,0 +1,6 @@
+---
+deprecations:
+  - |
+    The --static-inventory argument to the openstack update/upgrade commands
+    has been deprecated and would be ignored. The inventory generated in
+    work_dir with update/upgrade prepare would be used instead.

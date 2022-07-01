@@ -12,6 +12,8 @@
 #   License for the specific language governing permissions and limitations
 #   under the License.
 #
+import os
+
 from oslo_config import cfg
 from oslo_log import log as logging
 
@@ -141,10 +143,8 @@ class UpgradeRun(command.Command):
                             dest='static_inventory',
                             action="store",
                             default=None,
-                            help=_('Path to an existing ansible inventory to '
-                                   'use. If not specified, one will be '
-                                   'generated in '
-                                   '~/tripleo-ansible-inventory.yaml')
+                            help=_('DEPRECATED: tripleo-ansible-inventory.yaml'
+                                   ' in working dir will be used.')
                             )
         parser.add_argument("--ssh-user",
                             dest="ssh_user",
@@ -216,30 +216,26 @@ class UpgradeRun(command.Command):
         else:
             playbook = parsed_args.playbook
 
-        _, ansible_dir = self.get_ansible_key_and_dir(
-            stack=parsed_args.stack,
-            orchestration=self.app.client_manager.orchestration
-        )
-        deployment.config_download(
-            log=self.log,
-            clients=self.app.client_manager,
-            stack_name=parsed_args.stack,
-            output_dir=ansible_dir,
-            verbosity=oooutils.playbook_verbosity(self=self),
-            ansible_playbook_name=playbook,
-            inventory_path=oooutils.get_tripleo_ansible_inventory(
-                parsed_args.static_inventory,
-                parsed_args.ssh_user,
-                parsed_args.stack,
-                return_inventory_file_path=True
-            ),
+        working_dir = oooutils.get_default_working_dir(parsed_args.stack)
+        config_download_dir = os.path.join(working_dir, 'config-download')
+        ansible_dir = os.path.join(config_download_dir, parsed_args.stack)
+        inventory_path = os.path.join(ansible_dir,
+                                      'tripleo-ansible-inventory.yaml')
+        key = oooutils.get_key(parsed_args.stack)
+        oooutils.run_ansible_playbook(
+            playbook=playbook,
+            inventory=inventory_path,
+            workdir=config_download_dir,
             tags=parsed_args.tags,
             skip_tags=parsed_args.skip_tags,
             limit_hosts=oooutils.playbook_limit_parse(
                 limit_nodes=parsed_args.limit
             ),
-            forks=parsed_args.ansible_forks
+            forks=parsed_args.ansible_forks,
+            key=key,
+            reproduce_command=True
         )
+        deployment.snapshot_dir(ansible_dir)
         self.log.info("Completed Overcloud Major Upgrade Run.")
 
 
