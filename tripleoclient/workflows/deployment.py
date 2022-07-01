@@ -16,7 +16,6 @@ import os
 import shutil
 import yaml
 
-from heatclient.common import event_utils
 from openstackclient import shell
 from tripleo_common.utils import heat as tc_heat_utils
 from tripleo_common.utils import overcloudrc as rc_utils
@@ -44,26 +43,13 @@ def create_overcloudrc(stack_name, endpoint, admin_vip, rc_params,
     return os.path.abspath(rcpath)
 
 
-def deploy_without_plan(clients, stack, stack_name, template,
+def deploy_without_plan(clients, stack_name, template,
                         files, env_files,
                         log,
                         working_dir):
     orchestration_client = clients.orchestration
-    if stack is None:
-        log.info("Performing Heat stack create")
-        action = 'CREATE'
-        marker = None
-    else:
-        log.info("Performing Heat stack update")
-        # Make sure existing parameters for stack are reused
-        # Find the last top-level event to use for the first marker
-        events = event_utils.get_events(orchestration_client,
-                                        stack_id=stack_name,
-                                        event_args={'sort_dir': 'desc',
-                                                    'limit': 1})
-        marker = events[0].id if events else None
-        action = 'UPDATE'
-
+    log.info("Performing Heat stack create")
+    marker = None
     set_deployment_status(stack_name,
                           status='DEPLOYING',
                           working_dir=working_dir)
@@ -73,12 +59,7 @@ def deploy_without_plan(clients, stack, stack_name, template,
         'environment_files': env_files,
         'files': files}
     try:
-        if stack:
-            stack_args['existing'] = True
-            orchestration_client.stacks.update(stack.id, **stack_args)
-        else:
-            stack = orchestration_client.stacks.create(**stack_args)
-
+        orchestration_client.stacks.create(**stack_args)
         print("Success.")
     except Exception:
         set_deployment_status(stack_name,
@@ -87,7 +68,7 @@ def deploy_without_plan(clients, stack, stack_name, template,
         raise
 
     create_result = utils.wait_for_stack_ready(
-        orchestration_client, stack_name, marker, action)
+        orchestration_client, stack_name, marker)
     if not create_result:
         shell.OpenStackShell().run(
             ["stack", "failures", "list", '--long', stack_name])
@@ -96,10 +77,7 @@ def deploy_without_plan(clients, stack, stack_name, template,
             status='DEPLOY_FAILED',
             working_dir=working_dir
         )
-        if stack is None:
-            raise exceptions.DeploymentError("Heat Stack create failed.")
-        else:
-            raise exceptions.DeploymentError("Heat Stack update failed.")
+        raise exceptions.DeploymentError("Heat Stack create failed.")
 
 
 def get_overcloud_hosts(stack, ssh_network, working_dir):

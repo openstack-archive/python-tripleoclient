@@ -31,7 +31,6 @@ from keystoneauth1.exceptions.catalog import EndpointNotFound
 from osc_lib import exceptions as oscexc
 from osc_lib.i18n import _
 from tripleo_common.image import kolla_builder
-from tripleo_common import update
 from tripleo_common.utils import plan as plan_utils
 
 from tripleoclient import command
@@ -127,22 +126,13 @@ class DeployOvercloud(command.Command):
                     'be ignored because --limit has been specified.')
             self.log.warning(msg)
 
-    def _heat_deploy(self, stack, stack_name, template_path,
+    def _heat_deploy(self, stack_name, template_path,
                      env_files, timeout, tht_root, env,
                      run_validations,
                      roles_file,
                      env_files_tracker=None,
                      deployment_options=None):
         """Verify the Baremetal nodes are available and do a stack update"""
-
-        if stack:
-            self.log.debug(
-                "Checking compatibilities of neutron drivers for {0}".format(
-                    stack_name))
-            msg = update.check_neutron_mechanism_drivers(
-                env, stack, None, stack_name)
-            if msg:
-                raise oscexc.CommandError(msg)
 
         self.log.debug("Getting template contents from plan %s" % stack_name)
 
@@ -161,7 +151,7 @@ class DeployOvercloud(command.Command):
         self.log.info("Deploying templates in the directory {0}".format(
             os.path.abspath(tht_root)))
         deployment.deploy_without_plan(
-            self.clients, stack, stack_name,
+            self.clients, stack_name,
             template, files, env_files_tracker,
             self.log, self.working_dir)
 
@@ -209,7 +199,7 @@ class DeployOvercloud(command.Command):
                 env, roles_data, dry_run=True))
         return params
 
-    def create_env_files(self, stack, parsed_args,
+    def create_env_files(self, parsed_args,
                          new_tht_root, user_tht_root):
         self.log.debug("Creating Environment files")
         # A dictionary to store resource registry types that are internal,
@@ -224,17 +214,9 @@ class DeployOvercloud(command.Command):
         self._update_parameters(
             parsed_args, parameters, new_tht_root, user_tht_root)
 
-        stack_is_new = stack is None
-        parameters['StackAction'] = 'CREATE' if stack_is_new else 'UPDATE'
-
         param_env = utils.create_parameters_env(
             parameters, new_tht_root, parsed_args.stack)
         created_env_files.extend(param_env)
-
-        if stack:
-            env_path = utils.create_breakpoint_cleanup_env(
-                new_tht_root, parsed_args.stack)
-            created_env_files.extend(env_path)
 
         if parsed_args.deployed_server:
             created_env_files.append(
@@ -275,7 +257,7 @@ class DeployOvercloud(command.Command):
 
         return created_env_files
 
-    def deploy_tripleo_heat_templates(self, stack, parsed_args,
+    def deploy_tripleo_heat_templates(self, parsed_args,
                                       new_tht_root, user_tht_root,
                                       created_env_files):
         """Deploy the fixed templates in TripleO Heat Templates"""
@@ -320,10 +302,10 @@ class DeployOvercloud(command.Command):
             # warning if necessary
             self._check_limit_skiplist_warning(env)
 
-        if stack:
+        old_stack_env = utils.get_saved_stack_env(
+            self.working_dir, parsed_args.stack)
+        if old_stack_env:
             if not parsed_args.disable_validations:
-                # note(aschultz): network validation goes here before we deploy
-                utils.check_stack_network_matches_env_files(stack, env)
                 ceph_deployed = env.get('resource_registry', {}).get(
                     'OS::TripleO::Services::CephMon', 'OS::Heat::None')
                 ceph_external = env.get('resource_registry', {}).get(
@@ -333,17 +315,17 @@ class DeployOvercloud(command.Command):
                 # make this check and we can simply ignore it
                 if (ceph_deployed != "OS::Heat::None"
                         or ceph_external != "OS::Heat::None"):
-                    utils.check_ceph_fsid_matches_env_files(stack, env)
+                    utils.check_ceph_fsid_matches_env_files(old_stack_env, env)
                     # upgrades: check if swift is deployed
-                    utils.check_swift_and_rgw(stack, env,
+                    utils.check_swift_and_rgw(old_stack_env, env,
                                               self.__class__.__name__)
         # check migration to new nic config with ansible
-        utils.check_nic_config_with_ansible(stack, env)
+        utils.check_nic_config_with_ansible(env)
         # check migration to service vips managed by servce
-        utils.check_service_vips_migrated_to_service(stack, env)
+        utils.check_service_vips_migrated_to_service(env)
 
         self._try_overcloud_deploy_with_compat_yaml(
-            new_tht_root, stack,
+            new_tht_root,
             parsed_args.stack, env_files,
             parsed_args.timeout, env,
             parsed_args.run_validations,
@@ -371,7 +353,7 @@ class DeployOvercloud(command.Command):
                 "user-environments/{}".format(os.path.basename(path)))
             utils.safe_write(reloc_path, files_dict[fullpath])
 
-    def _try_overcloud_deploy_with_compat_yaml(self, tht_root, stack,
+    def _try_overcloud_deploy_with_compat_yaml(self, tht_root,
                                                stack_name,
                                                env_files, timeout,
                                                env, run_validations,
@@ -380,7 +362,7 @@ class DeployOvercloud(command.Command):
                                                deployment_options=None):
         overcloud_yaml = os.path.join(tht_root, constants.OVERCLOUD_YAML_NAME)
         try:
-            self._heat_deploy(stack, stack_name, overcloud_yaml,
+            self._heat_deploy(stack_name, overcloud_yaml,
                               env_files, timeout,
                               tht_root, env,
                               run_validations,
@@ -1158,13 +1140,12 @@ class DeployOvercloud(command.Command):
             return
 
         self.heat_launcher = None
-        stack = None
         start = time.time()
 
         new_tht_root, user_tht_root = \
             self.create_template_dirs(parsed_args)
         created_env_files = self.create_env_files(
-                stack, parsed_args, new_tht_root, user_tht_root)
+                parsed_args, new_tht_root, user_tht_root)
 
         # full_deploy means we're doing a full deployment
         # e.g., no --*-only args were passed
@@ -1205,13 +1186,12 @@ class DeployOvercloud(command.Command):
                 self.setup_ephemeral_heat(parsed_args)
 
                 self.deploy_tripleo_heat_templates(
-                    stack, parsed_args, new_tht_root,
+                    parsed_args, new_tht_root,
                     user_tht_root, created_env_files)
 
                 stack = utils.get_stack(
                     self.orchestration_client, parsed_args.stack)
-                utils.save_stack_outputs(
-                    self.orchestration_client, stack, self.working_dir)
+                utils.save_stack(stack, self.working_dir)
 
                 horizon_url = deployment.get_horizon_url(
                     stack=stack.stack_name,

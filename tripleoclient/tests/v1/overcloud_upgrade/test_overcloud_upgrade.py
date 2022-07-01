@@ -15,7 +15,6 @@
 
 import mock
 
-from osc_lib import exceptions as oscexc
 from osc_lib.tests.utils import ParserException
 from tripleoclient import constants
 from tripleoclient import exceptions
@@ -130,16 +129,6 @@ class TestOvercloudUpgradePrepare(fakes.TestOvercloudUpgradePrepare):
                           self.cmd.take_action, parsed_args)
         mock_usercheck.assert_called_once()
         mock_overcloud_deploy.assert_called_once_with(parsed_args)
-
-    @mock.patch('tripleo_common.update.check_neutron_mechanism_drivers')
-    def test_upgrade_failed_wrong_driver(self, check_mech):
-        check_mech.return_value = 'Wrong mech'
-        mock_stack = mock.Mock(parameters={'DeployIdentifier': ''})
-        argslist = (mock_stack, 'mock_stack', '/tmp', {},
-                    {}, 1, '/tmp', {}, True, False, None)
-        self.cmd.object_client = mock.Mock()
-        self.assertRaises(oscexc.CommandError,
-                          self.cmd._heat_deploy, *argslist)
 
 
 class TestOvercloudUpgradeRun(fakes.TestOvercloudUpgradeRun):
