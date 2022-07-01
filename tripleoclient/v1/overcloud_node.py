@@ -562,8 +562,8 @@ class ExtractProvisionedNode(command.Command):
         hostname_node_resource = {}
         for node in node_details:
             hostname = node.instance_info.get('display_name')
-            if hostname and node.name:
-                hostname_node_map[hostname] = node.name
+            if hostname:
+                hostname_node_map[hostname] = node.id
             if hostname and node.resource_class:
                 hostname_node_resource[hostname] = node.resource_class
 

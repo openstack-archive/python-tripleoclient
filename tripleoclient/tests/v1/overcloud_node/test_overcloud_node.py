@@ -1060,12 +1060,16 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
             mock.Mock()
         ]
         self.nodes[0].name = 'bm-0'
+        self.nodes[0].id = 'bm-0-uuid'
         self.nodes[0].resource_class = 'controller'
         self.nodes[1].name = 'bm-1'
+        self.nodes[1].id = 'bm-1-uuid'
         self.nodes[1].resource_class = 'controller'
         self.nodes[2].name = 'bm-2'
+        self.nodes[2].id = 'bm-2-uuid'
         self.nodes[2].resource_class = None
         self.nodes[3].name = 'bm-3'
+        self.nodes[3].id = 'bm-3-uuid'
         self.nodes[3].resource_class = 'compute'
 
         self.nodes[0].instance_info = {
@@ -1195,7 +1199,7 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
             },
             'instances': [{
                 'hostname': 'overcloud-novacompute-0',
-                'name': 'bm-3',
+                'name': 'bm-3-uuid',
                 'resource_class': 'compute',
             }],
         }, {
@@ -1218,15 +1222,15 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
             },
             'instances': [{
                 'hostname': 'overcloud-controller-0',
-                'name': 'bm-0',
+                'name': 'bm-0-uuid',
                 'resource_class': 'controller',
             }, {
                 'hostname': 'overcloud-controller-1',
-                'name': 'bm-1',
+                'name': 'bm-1-uuid',
                 'resource_class': 'controller',
             }, {
                 'hostname': 'overcloud-controller-2',
-                'name': 'bm-2'
+                'name': 'bm-2-uuid',
             }],
         }], yaml.safe_load(result))
 
@@ -1280,7 +1284,7 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
             },
             'instances': [{
                 'hostname': 'overcloud-novacompute-0',
-                'name': 'bm-3',
+                'name': 'bm-3-uuid',
                 'resource_class': 'compute',
                 'networks': [{'fixed_ip': '192.168.26.11',
                               'network': 'ctlplane',
@@ -1309,7 +1313,7 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
             },
             'instances': [{
                 'hostname': 'overcloud-controller-0',
-                'name': 'bm-0',
+                'name': 'bm-0-uuid',
                 'resource_class': 'controller',
                 'networks': [{'fixed_ip': '192.168.25.21',
                               'network': 'ctlplane',
@@ -1322,7 +1326,7 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
                               'subnet': 'internal_api_a'}],
             }, {
                 'hostname': 'overcloud-controller-1',
-                'name': 'bm-1',
+                'name': 'bm-1-uuid',
                 'resource_class': 'controller',
                 'networks': [{'fixed_ip': '192.168.25.25',
                               'network': 'ctlplane',
@@ -1335,7 +1339,7 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
                               'subnet': 'internal_api_a'}],
             }, {
                 'hostname': 'overcloud-controller-2',
-                'name': 'bm-2',
+                'name': 'bm-2-uuid',
                 'networks': [{'fixed_ip': '192.168.25.28',
                               'network': 'ctlplane',
                               'vif': True},
