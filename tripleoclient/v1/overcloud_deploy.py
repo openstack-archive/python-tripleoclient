@@ -355,6 +355,9 @@ class DeployOvercloud(command.Command):
             # warning if necessary
             self._check_limit_skiplist_warning(env)
 
+        # check if we're trying to deploy ceph during the overcloud deployment
+        utils.check_deployed_ceph_stage(env)
+
         old_stack_env = utils.get_saved_stack_env(
             self.working_dir, parsed_args.stack)
         if old_stack_env:

@@ -792,6 +792,59 @@ class TestWaitForStackUtil(TestCase):
             utils.check_ceph_ansible(res_reg.get('resource_registry', {}),
                                      'DeployOvercloud')
 
+    def test_check_deployed_ceph_stage(self):
+
+        env = {
+            'resource_registry': {
+                'OS::Tripleo::Services::CephMon': '/path/cephadm/ceph-mon.yml',
+                'OS::TripleO::Services::CephMgr': '/path/cephadm/ceph-mgr.yml',
+                'OS::TripleO::Services::CephMon': '/path/cephadm/ceph-mon.yml',
+                'OS::TripleO::Services::CephOSD': '/path/cephadm/ceph-osd.yml',
+                'OS::TripleO::Services::CephMds': '/path/cephadm/ceph-mds.yml',
+                'OS::TripleO::Services::CephNfs': '/path/cephadm/ceph-nfs.yml',
+                'OS::TripleO::Services::CephRgw': '/path/cephadm/ceph-rgw.yml',
+            },
+            'parameter_defaults': {
+                'DeployedCeph': True
+            }
+        }
+
+        utils.check_deployed_ceph_stage(env)
+
+    def test_check_deployed_ceph_stage_fail(self):
+
+        env = {
+            'resource_registry': {
+                'OS::Tripleo::Services::CephMon': '/path/cephadm/ceph-mon.yml',
+                'OS::TripleO::Services::CephMgr': '/path/cephadm/ceph-mgr.yml',
+                'OS::TripleO::Services::CephMon': '/path/cephadm/ceph-mon.yml',
+                'OS::TripleO::Services::CephOSD': '/path/cephadm/ceph-osd.yml',
+                'OS::TripleO::Services::CephMds': '/path/cephadm/ceph-mds.yml',
+                'OS::TripleO::Services::CephNfs': '/path/cephadm/ceph-nfs.yml',
+                'OS::TripleO::Services::CephRgw': '/path/cephadm/ceph-rgw.yml',
+            },
+            'parameter_defaults': {
+                'DeployedCeph': False
+            }
+        }
+
+        with self.assertRaises(exceptions.InvalidConfiguration):
+            utils.check_deployed_ceph_stage(env)
+
+    def test_check_deployed_ceph_stage_external(self):
+
+        env = {
+            'resource_registry': {
+                'OS::Tripleo::Services::CephExternal': '/path/cephadm/ceph-client.yml',  # noqa E501
+            },
+            'parameter_defaults': {
+                'DeployedCeph': False
+            }
+        }
+
+        with self.assertRaises(exceptions.InvalidConfiguration):
+            utils.check_deployed_ceph_stage(env)
+
     def test_check_swift_and_rgw(self):
         stack_reg = {
             'OS::TripleO::Services::SwiftProxy': 'OS::Heat::None',

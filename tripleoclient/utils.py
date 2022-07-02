@@ -1077,6 +1077,51 @@ def check_ceph_ansible(resource_registry, stage):
                                                   'file.')
 
 
+def check_deployed_ceph_stage(environment):
+    """Raises an exception if Ceph is being deployed without DeployedCeph:True.
+
+       If Ceph is not being deployed or DeployedCeph is true, then return
+       nothing, so the program that calls this function can continue without
+       error. This function also looks for the external Ceph Heat resource to
+       make sure in this scenario an error is not raised regardless of the
+       DeployedCeph boolean value.
+    """
+
+    resource_registry = environment.get('resource_registry', {})
+
+    if not resource_registry:
+        return
+
+    ceph_external = environment.get('resource_registry', {}).get(
+        'OS::TripleO::Services::CephExternal', 'OS::Heat::None')
+
+    if ceph_external != "OS::Heat::None":
+        return
+
+    # it's not an external Ceph cluster, let's evaluate the DeployedCeph param
+    # and the Ceph resources provided
+    deployed_ceph = environment.get('parameter_defaults',
+                                    {}).get('DeployedCeph', False)
+
+    # for each ceph resource, if the path contains cephadm and the DeployedCeph
+    # boolean is not True, raise an exception and guide the operator through
+    # the right path of deploying ceph
+
+    for name, path in resource_registry.items():
+        if 'Ceph' in name and 'cephadm' in path and not deployed_ceph:
+            raise exceptions.InvalidConfiguration('Ceph deployment is not '
+                                                  'available anymore during '
+                                                  'overcloud deploy. If you '
+                                                  'want to deploy Ceph, '
+                                                  'please see "openstack '
+                                                  ' overcloud ceph deploy '
+                                                  '--help" to deploy ceph '
+                                                  ' before deploying the '
+                                                  'overcloud and then include '
+                                                  'the cephadm environment '
+                                                  'file.')
+
+
 def check_ceph_fsid_matches_env_files(old_env, environment):
     """Check CephClusterFSID against proposed env files
 
