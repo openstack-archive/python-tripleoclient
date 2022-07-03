@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Users can now specify roles_data.yaml and network_data.yaml locations
+    in their answers file. Using `networks` and `roles` along with their
+    `templates` and `environments` arguments.
