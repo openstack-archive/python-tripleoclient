@@ -1060,9 +1060,13 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
             mock.Mock()
         ]
         self.nodes[0].name = 'bm-0'
+        self.nodes[0].resource_class = 'controller'
         self.nodes[1].name = 'bm-1'
+        self.nodes[1].resource_class = 'controller'
         self.nodes[2].name = 'bm-2'
+        self.nodes[2].resource_class = None
         self.nodes[3].name = 'bm-3'
+        self.nodes[3].resource_class = 'compute'
 
         self.nodes[0].instance_info = {
             'display_name': 'overcloud-controller-0'}
@@ -1164,7 +1168,6 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
         self.orchestration.stacks.get.return_value = stack
 
         self.baremetal.node.list.return_value = self.nodes
-
         argslist = ['--output', self.extract_file.name,
                     '--yes']
         self.app.command_options = argslist
@@ -1192,7 +1195,8 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
             },
             'instances': [{
                 'hostname': 'overcloud-novacompute-0',
-                'name': 'bm-3'
+                'name': 'bm-3',
+                'resource_class': 'compute',
             }],
         }, {
             'name': 'Controller',
@@ -1214,10 +1218,12 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
             },
             'instances': [{
                 'hostname': 'overcloud-controller-0',
-                'name': 'bm-0'
+                'name': 'bm-0',
+                'resource_class': 'controller',
             }, {
                 'hostname': 'overcloud-controller-1',
-                'name': 'bm-1'
+                'name': 'bm-1',
+                'resource_class': 'controller',
             }, {
                 'hostname': 'overcloud-controller-2',
                 'name': 'bm-2'
@@ -1245,7 +1251,6 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
         self.orchestration.stacks.get.return_value = stack
 
         self.baremetal.node.list.return_value = self.nodes
-
         argslist = ['--roles-file', self.roles_file.name,
                     '--output', self.extract_file.name,
                     '--yes']
@@ -1276,6 +1281,7 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
             'instances': [{
                 'hostname': 'overcloud-novacompute-0',
                 'name': 'bm-3',
+                'resource_class': 'compute',
                 'networks': [{'fixed_ip': '192.168.26.11',
                               'network': 'ctlplane',
                               'vif': True},
@@ -1304,6 +1310,7 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
             'instances': [{
                 'hostname': 'overcloud-controller-0',
                 'name': 'bm-0',
+                'resource_class': 'controller',
                 'networks': [{'fixed_ip': '192.168.25.21',
                               'network': 'ctlplane',
                               'vif': True},
@@ -1316,6 +1323,7 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
             }, {
                 'hostname': 'overcloud-controller-1',
                 'name': 'bm-1',
+                'resource_class': 'controller',
                 'networks': [{'fixed_ip': '192.168.25.25',
                               'network': 'ctlplane',
                               'vif': True},
