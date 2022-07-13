@@ -180,8 +180,7 @@ class Deploy(command.Command):
         roles_data = utils.fetch_roles_file(
             roles_file_path, templates)
         if not roles_data:
-            # TODO(aschultz): should this be Undercloud instead?
-            return 'Controller'
+            return 'Undercloud'
 
         for r in roles_data:
             if 'tags' in r and 'primary' in r['tags']:
