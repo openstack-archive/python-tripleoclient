@@ -246,7 +246,7 @@ class ProvisionNode(command.Command):
                             default=utils.env('OVERCLOUD_STACK_NAME',
                                               default='overcloud'))
         parser.add_argument('--overcloud-ssh-user',
-                            default='heat-admin',
+                            default='tripleo-admin',
                             help=_('User for SSH access to newly deployed '
                                    'nodes'))
         parser.add_argument('--overcloud-ssh-key',
