@@ -1529,7 +1529,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                     ],
                     'baremetal_deployed_path': env_path,
                     'ssh_public_keys': 'sekrit',
-                    'ssh_user_name': 'heat-admin',
+                    'ssh_user_name': 'tripleo-admin',
                     'ssh_private_key_file': self.tmp_dir.join('id_rsa.pub'),
                     'manage_network_ports': True,
                     'configure_networking': False,

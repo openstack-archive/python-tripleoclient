@@ -357,7 +357,7 @@ class TestProvisionNode(fakes.TestOvercloudNode):
                 ],
                 'baremetal_deployed_path': mock.ANY,
                 'ssh_public_keys': 'I am a key',
-                'ssh_user_name': 'heat-admin',
+                'ssh_user_name': 'tripleo-admin',
                 'ssh_private_key_file': key_file_name,
                 'node_timeout': 3600,
                 'concurrency': 20,

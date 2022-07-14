@@ -44,7 +44,7 @@ class Authorize(command.Command):
 
         parser.add_argument(
             '--overcloud-ssh-user',
-            default='heat-admin',
+            default='tripleo-admin',
             help=_('User for ssh access to overcloud nodes')
         )
         parser.add_argument(
