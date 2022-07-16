@@ -1165,7 +1165,6 @@ class DeployOvercloud(command.Command):
                     'config_dir': config_dir,
                     'preserve_config': preserve_config_dir,
                     'output_dir': config_download_dir,
-                    'ansible_ssh_user': parsed_args.overcloud_ssh_user,
                     'ansible_ssh_private_key_file': key_file,
                     'ssh_network': parsed_args.overcloud_ssh_network,
                     'python_interpreter':
