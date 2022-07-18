@@ -22,6 +22,7 @@ import time
 import yaml
 
 from heatclient.common import event_utils
+from mistralclient.api import base as mistralclient_exc
 from openstackclient import shell
 import six
 import tenacity
@@ -199,8 +200,23 @@ def get_hosts_and_enable_ssh_admin(
         overcloud_ssh_key, enable_ssh_timeout=ENABLE_SSH_ADMIN_TIMEOUT,
         enable_ssh_port_timeout=ENABLE_SSH_ADMIN_SSH_PORT_TIMEOUT):
     hosts = get_overcloud_hosts(stack, overcloud_ssh_network)
+    mc = clients.workflow_engine
+    key = utils.get_key(stack=stack.stack_name, needs_pair=True)
+    if key:
+        with open('{}.pub'.format(key), 'rt') as fp:
+            pub_ssh_key = fp.read()
+        with open('{}'.format(key), 'rt') as fp:
+            priv_ssh_key = fp.read()
+        try:
+            mc.environments.get('ssh_keys').variables
+            mc.environments.update(name='ssh_keys',
+                                   variables={'public_key': pub_ssh_key,
+                                              'private_key': priv_ssh_key})
+        except mistralclient_exc.APIException:
+            mc.environments.create(name='ssh_keys',
+                                   variables={'public_key': pub_ssh_key,
+                                              'private_key': priv_ssh_key})
     if [host for host in hosts if host]:
-
         try:
             enable_ssh_admin(log, clients, stack.stack_name, hosts,
                              overcloud_ssh_user, overcloud_ssh_key,
