@@ -210,8 +210,8 @@ def export_ceph(stack, cephx,
         fsid = ceph_data['fsid']
 
     if 'cephadm' in config_download_files:
-        ceph_client = "cephadm/ceph_client.yml"
-        file = os.path.join(config_download_dir, stack, ceph_client)
+        file = os.path.join(oooutils.get_default_working_dir(stack),
+                            'ceph_client.yml')
         if not os.path.exists(file):
             # fall back to old path if user had LP 1978846 during deployment
             file = "/home/stack/ceph_client.yaml"
