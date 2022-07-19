@@ -391,7 +391,9 @@ class OvercloudCephDeploy(command.Command):
             "deployed_ceph_tht_path": output_path,
             "working_dir": working_dir,
             "stack_name": parsed_args.stack,
-            "tripleo_cephadm_standalone": parsed_args.standalone
+            "tripleo_cephadm_standalone": parsed_args.standalone,
+            "tripleo_ceph_client_vars": os.path.join(working_dir,
+                                                     'ceph_client.yml')
         }
         extra_vars_file = None
         # optional paths to pass to playbook
