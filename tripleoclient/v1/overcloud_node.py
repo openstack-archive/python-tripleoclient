@@ -643,9 +643,17 @@ class ExtractProvisionedNode(command.Command):
 
         data = []
         warnings = []
+        network_environment = {'resource_registry': {},
+                               'parameter_defaults': {}}
         for role_name, entries in host_vars.items():
             role_count = len(entries)
 
+            net_parameter_defaults = {}
+            net_resource_registry = {
+                    "OS::TripleO::{}::Net::SoftwareConfig".format(role_name):
+                    "OS::Heat::None"}
+            network_environment['resource_registry'].update(
+                    net_resource_registry)
             # skip zero count roles
             if not role_count:
                 continue
@@ -692,6 +700,9 @@ class ExtractProvisionedNode(command.Command):
                         'Please edit the file and set the path to the correct '
                         'network config template.'.format(role_name))
                 else:
+                    net_parameter_defaults = {
+                            "{}NetworkConfigTemplate".format(role_name):
+                            "{}".format(net_conf['template'])}
                     warnings.append(
                         'WARNING: Network config for role {} was '
                         'automatically converted from Heat template to '
@@ -752,7 +763,9 @@ class ExtractProvisionedNode(command.Command):
                             role_net_ip_map[role_name][net['network']][idx])
 
                 instances.append(instance)
-
+            if net_parameter_defaults != {}:
+                network_environment['parameter_defaults'].update(
+                        net_parameter_defaults)
             data.append(role)
 
         # Write the file header
@@ -770,6 +783,15 @@ class ExtractProvisionedNode(command.Command):
         if data:
             yaml.dump(data, file_data, RoleDataDumper, width=120,
                       default_flow_style=False)
+
+        if len(network_environment['parameter_defaults']) > 0:
+            net_env_file = os.path.join(self.working_dir,
+                                        "{}-network-environment.yaml".format(
+                                            parsed_args.stack))
+            with open(net_env_file, 'w+') as nfp:
+                nfp.write(yaml.dump(network_environment,
+                                    width=120,
+                                    default_flow_style=False))
 
         if parsed_args.output:
             if (os.path.exists(parsed_args.output)
