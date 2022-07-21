@@ -28,7 +28,6 @@ class TestBaremetalWorkflows(fakes.FakePlaybookExecution):
 
     def setUp(self):
         super(TestBaremetalWorkflows, self).setUp()
-        self.app.client_manager.workflow_engine = self.workflow = mock.Mock()
         self.glance = self.app.client_manager.image = mock.Mock()
         self.tripleoclient = mock.Mock()
         self.app.client_manager.tripleoclient = self.tripleoclient
