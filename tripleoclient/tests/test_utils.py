@@ -71,11 +71,13 @@ class TestRunAnsiblePlaybook(TestCase):
     def tearDown(self):
         utils.constants.DEFAULT_WORK_DIR = self.orig_workdir
 
+    @mock.patch('os.makedirs')
     @mock.patch('os.path.exists', return_value=False)
     @mock.patch('tripleoclient.utils.run_command_and_log')
     @mock.patch('ansible_runner.utils.dump_artifact', autospec=True,
                 return_value="/foo/inventory.yaml")
-    def test_no_playbook(self, mock_dump_artifact, mock_run, mock_exists):
+    def test_no_playbook(self, mock_dump_artifact, mock_run, mock_exists,
+                         mock_mkdir):
         self.assertRaises(
             RuntimeError,
             utils.run_ansible_playbook,
