@@ -92,6 +92,7 @@ class TestOvercloudExternalUpdateRun(fakes.TestOvercloudExternalUpdateRun):
 
         self.check_parser(self.cmd, argslist, verifylist)
 
+    @mock.patch('tripleoclient.utils.ensure_run_as_normal_user')
     @mock.patch('tripleoclient.workflows.deployment.config_download')
     @mock.patch('tripleoclient.utils.get_default_working_dir', autospec=True)
     @mock.patch('tripleoclient.workflows.deployment.snapshot_dir',
@@ -103,7 +104,8 @@ class TestOvercloudExternalUpdateRun(fakes.TestOvercloudExternalUpdateRun):
             mock_run_ansible_playbook,
             mock_snapshot_dir,
             mock_get_default_working_dir,
-            mock_config_download):
+            mock_config_download,
+            mock_usercheck):
         argslist = ['--yes', '--refresh']
         verifylist = [
             ('refresh', True)
