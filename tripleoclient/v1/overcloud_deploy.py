@@ -285,23 +285,6 @@ class DeployOvercloud(command.Command):
             env_files_tracker=env_files_tracker,
             cleanup=(not parsed_args.no_cleanup))
 
-        # Invokes the workflows specified in plan environment file
-        if parsed_args.plan_environment_file:
-            output_path = utils.build_user_env_path(
-                'derived_parameters.yaml', new_tht_root)
-            workflow_params.build_derived_params_environment(
-                self.clients, parsed_args.stack, new_tht_root, env_files,
-                env_files_tracker, parsed_args.plan_environment_file,
-                output_path, utils.playbook_verbosity(self=self),
-                self.working_dir)
-
-            created_env_files.append(output_path)
-            env_files_tracker = []
-            env_files, env = utils.process_multiple_environments(
-                created_env_files, new_tht_root, user_tht_root,
-                env_files_tracker=env_files_tracker,
-                cleanup=(not parsed_args.no_cleanup))
-
         # Copy the env_files to tmp folder for archiving
         self._copy_env_files(env_files, new_tht_root)
 
@@ -430,11 +413,6 @@ class DeployOvercloud(command.Command):
             if parsed_args.vip_file:
                 if not os.path.isfile(parsed_args.vip_file):
                     nonexisting_envs.append(parsed_args.vip_file)
-
-            # check plan_environment_file existence
-            if parsed_args.plan_environment_file:
-                if not os.path.isfile(parsed_args.plan_environment_file):
-                    nonexisting_envs.append(parsed_args.plan_environment_file)
 
             # check answers_file existence
             if parsed_args.answers_file:
@@ -758,10 +736,6 @@ class DeployOvercloud(command.Command):
         parser.add_argument(
             '--vip-file', dest='vip_file',
             help=_('Configuration file describing the network Virtual IPs.'))
-        parser.add_argument(
-            '--plan-environment-file', '-p',
-            help=_('Plan Environment file for derived parameters.')
-        )
         parser.add_argument(
             '--no-cleanup', action='store_true',
             help=_('Don\'t cleanup temporary files, just log their location')
