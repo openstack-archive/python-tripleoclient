@@ -15,11 +15,8 @@ import os
 import re
 import yaml
 
-from heatclient.common import template_utils
 from tripleo_common.utils import stack_parameters as stk_parameters
 
-from tripleoclient.constants import ANSIBLE_TRIPLEO_PLAYBOOKS
-from tripleoclient.constants import OVERCLOUD_YAML_NAME
 from tripleoclient.constants import UNUSED_PARAMETER_EXCLUDES_RE
 from tripleoclient import exceptions
 from tripleoclient import utils
@@ -27,86 +24,6 @@ from tripleoclient.workflows import roles
 
 
 LOG = logging.getLogger(__name__)
-
-
-def invoke_plan_env_workflows(clients, stack_name, plan_env_file,
-                              stack_data, role_list,
-                              derived_environment_path,
-                              verbosity=0):
-    """Invokes the workflows in plan environment file"""
-
-    try:
-        with open(plan_env_file) as pf:
-            plan_env_data = yaml.safe_load(pf.read())
-    except IOError as exc:
-        raise exceptions.PlanEnvWorkflowError('File (%s) is not found: '
-                                              '%s' % (plan_env_file, exc))
-
-    static_inventory = utils.get_tripleo_ansible_inventory(
-        ssh_user='heat-admin',
-        stack=stack_name,
-        undercloud_connection='local',
-        return_inventory_file_path=True
-    )
-    with utils.TempDirs() as tmp:
-        for pb, pb_vars in plan_env_data["playbook_parameters"].items():
-            print(
-                'Invoking playbook ({}) specified in'
-                ' plan-environment file'.format(pb)
-            )
-            LOG.debug(
-                'Running playbook "{}" with the'
-                ' following options {}.'.format(
-                    pb,
-                    pb_vars
-                )
-            )
-            pb_vars_file = {'tripleo_get_flatten_params': {
-               'stack_data': stack_data}, 'tripleo_role_list': {
-                   'roles': role_list}}
-            pb_vars['derived_environment_path'] = derived_environment_path
-            playbook_dir = os.path.dirname(pb)
-            if not playbook_dir:
-                playbook_dir = ANSIBLE_TRIPLEO_PLAYBOOKS
-
-            utils.run_ansible_playbook(
-                playbook=os.path.basename(pb),
-                inventory=static_inventory,
-                workdir=tmp,
-                playbook_dir=playbook_dir,
-                verbosity=verbosity,
-                extra_vars=pb_vars,
-                extra_vars_file=pb_vars_file
-            )
-
-
-def build_derived_params_environment(clients, stack_name, tht_root, env_files,
-                                     env_files_tracker, plan_env_file,
-                                     derived_env_file, verbosity, working_dir):
-    template_path = os.path.join(tht_root, OVERCLOUD_YAML_NAME)
-    template_files, template = template_utils.get_template_contents(
-        template_file=template_path)
-    files = dict(list(template_files.items()) + list(
-        env_files.items()))
-    # Build stack_data
-    stack_data = utils.build_stack_data(
-        clients, stack_name, template,
-        files, env_files_tracker)
-
-    # Get role list
-    role_list = roles.get_roles(clients, stack_name, template, files,
-                                env_files_tracker, working_dir, detail=False,
-                                valid=True)
-
-    invoke_plan_env_workflows(
-            clients,
-            stack_name,
-            plan_env_file,
-            stack_data=stack_data,
-            role_list=role_list,
-            derived_environment_path=derived_env_file,
-            verbosity=verbosity
-        )
 
 
 def check_deprecated_parameters(clients, stack_name, template, files,

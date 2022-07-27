@@ -282,8 +282,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
     @mock.patch('tripleoclient.utils.get_undercloud_host_entry', autospec=True,
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
-    @mock.patch('tripleoclient.workflows.parameters.invoke_plan_env_workflows',
-                autospec=True)
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_deploy_postconfig', autospec=True)
     @mock.patch('tripleo_common.update.add_breakpoints_cleanup_into_env',
@@ -300,7 +298,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                         mock_get_template_contents, mock_validate_args,
                         mock_validate_vip_file,
                         mock_breakpoints_cleanup, mock_postconfig,
-                        mock_invoke_plan_env_wf,
                         mock_get_undercloud_host_entry,
                         mock_copy, mock_overcloudrc,
                         mock_get_ctlplane_attrs,
@@ -361,7 +358,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
 
         mock_validate_args.assert_called_once_with(parsed_args)
         mock_validate_vip_file.assert_not_called()
-        self.assertFalse(mock_invoke_plan_env_wf.called)
 
     @mock.patch('tripleoclient.v1.overcloud_deploy.DeployOvercloud.'
                 '_provision_virtual_ips', autospec=True)

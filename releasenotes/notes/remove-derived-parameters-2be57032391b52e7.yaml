@@ -1,0 +1,5 @@
+---
+deprecations:
+  - |
+    The derive parameters ``--plan-environment-file`` option of the
+    ``overcloud deploy`` command has been removed.
