@@ -18,3 +18,18 @@
               - openstack-tox-py36
               - openstack-tox-py38
         - tripleo-ci-centos-9-content-provider: *content_provider_deps
+        - tripleo-ci-centos-8-9-multinode-mixed-os: &multinode_mixed_os
+            voting: false
+            vars:
+              consumer_job: true
+              build_container_images: false
+              remove_tags:
+                - build
+            dependencies:
+              - tripleo-ci-centos-8-content-provider
+              - tripleo-ci-centos-9-content-provider
+    gate:
+      jobs:
+        - tripleo-ci-centos-8-content-provider: *content_provider_deps
+        - tripleo-ci-centos-9-content-provider: *content_provider_deps
+        - tripleo-ci-centos-8-9-multinode-mixed-os: *multinode_mixed_os
