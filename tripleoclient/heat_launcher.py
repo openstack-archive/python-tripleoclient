@@ -43,6 +43,7 @@ from tripleoclient.constants import (DEFAULT_HEAT_CONTAINER,
                                      DEFAULT_TEMPLATES_DIR,
                                      EPHEMERAL_HEAT_POD_NAME)
 from tripleoclient.exceptions import HeatPodMessageQueueException
+from tripleoclient import utils as oooutils
 
 log = logging.getLogger(__name__)
 
@@ -706,7 +707,7 @@ class HeatPodLauncher(HeatContainerLauncher):
         return ('mysql+pymysql://'
                 'heat:heat@{}/heat?read_default_file='
                 '/etc/my.cnf.d/tripleo.cnf&read_default_group=tripleo'.format(
-                    self._get_ctlplane_vip()))
+                    oooutils.bracket_ipv6(self._get_ctlplane_vip())))
 
     def _get_ctlplane_vip(self):
         return self._decode(subprocess.check_output(

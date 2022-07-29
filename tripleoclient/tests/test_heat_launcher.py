@@ -39,6 +39,9 @@ class TestHeatPodLauncher(base.TestCase):
             os.path.join(os.path.dirname(__file__),
                          '..', '..', 'templates')).start()
         self.heat_dir = self.useFixture(fixtures.TempDir()).path
+        self.bracket_ipv6 = mock.patch(
+            'tripleoclient.utils.bracket_ipv6').start()
+        self.bracket_ipv6.return_value = '1.1.1.1'
 
         self.addCleanup(mock.patch.stopall)
 
