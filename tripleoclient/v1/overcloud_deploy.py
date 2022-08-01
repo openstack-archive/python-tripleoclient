@@ -14,6 +14,7 @@
 #
 
 import argparse
+import copy
 import os
 import os.path
 from oslo_config import cfg
@@ -205,6 +206,25 @@ class DeployOvercloud(command.Command):
 
         params.update(kolla_builder.container_images_prepare_multi(
                 env, roles_data, dry_run=True))
+
+        for role in roles_data:
+            # NOTE(tkajinam): If a role-specific container image prepare
+            #                 parameter is set, run the image prepare process
+            #                 with the overridden environment
+            role_param = '%sContainerImagePrepare' % role['name']
+            if env.get('parameter_defaults', {}).get(role_param):
+                tmp_env = copy.deepcopy(env)
+                tmp_env['parameter_defaults']['ContainerImagePrepare'] = (
+                    env['parameter_defaults'][role_param]
+                )
+
+                # NOTE(tkajinam): Put the image parameters as role-specific
+                #                 parameters
+                params['%sParameters' % role['name']] = (
+                    kolla_builder.container_images_prepare_multi(
+                        tmp_env, [role], dry_run=True)
+                )
+
         return params
 
     def create_env_files(self, parsed_args,
