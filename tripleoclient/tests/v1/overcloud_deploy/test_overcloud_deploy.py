@@ -1375,7 +1375,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                                   0, 12345678, 0,
                                                   1585820526,
                                                   1585820526,
-                                                  0, 0, 0]):
+                                                  0, 0, 0, 0, 0]):
             self.cmd.take_action(parsed_args)
         self.assertIn([
             mock.call(
