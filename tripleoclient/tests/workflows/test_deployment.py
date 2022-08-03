@@ -148,7 +148,7 @@ class TestDeploymentWorkflows(utils.TestCommand):
             # Verify the old config-download dir is a symlink
             self.assertTrue(os.path.islink(old_cd_dir))
             # Verify old config-download dir symlink points to new dir
-            self.assertEqual(os.path.join(new, stack),
+            self.assertEqual(os.path.join(os.path.realpath(new), stack),
                              os.path.realpath(old_cd_dir))
 
     def test_config_download_migrate_dirs(self):
@@ -168,7 +168,7 @@ class TestDeploymentWorkflows(utils.TestCommand):
             # Verify the old config-download dir is a symlink
             self.assertTrue(os.path.islink(old_cd_dir))
             # Verify old config-download dir symlink points to new dir
-            self.assertEqual(os.path.join(new, stack),
+            self.assertEqual(os.path.join(os.path.realpath(new), stack),
                              os.path.realpath(old_cd_dir))
 
     def test_config_download_no_migrate_dirs(self):
@@ -191,5 +191,5 @@ class TestDeploymentWorkflows(utils.TestCommand):
             # Verify the old config-download dir is a symlink
             self.assertTrue(os.path.islink(old_cd_dir))
             # Verify old config-download dir symlink points to new dir
-            self.assertEqual(os.path.join(new, stack),
+            self.assertEqual(os.path.join(os.path.realpath(new), stack),
                              os.path.realpath(old_cd_dir))
