@@ -561,17 +561,6 @@ class TestRunCommandAndLog(TestCase):
         self.mock_logger.warning.assert_has_calls(self.log_calls,
                                                   any_order=False)
 
-    def test_success_no_retcode(self):
-        run = utils.run_command_and_log(self.mock_logger, self.cmd,
-                                        retcode_only=False)
-        self.mock_popen.assert_called_once_with(self.cmd,
-                                                stdout=subprocess.PIPE,
-                                                stderr=subprocess.STDOUT,
-                                                shell=False,
-                                                cwd=None, env=None)
-        self.assertEqual(run, self.mock_process)
-        self.mock_logger.warning.assert_not_called()
-
 
 class TestWaitForStackUtil(TestCase):
     def setUp(self):
