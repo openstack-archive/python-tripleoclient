@@ -2163,7 +2163,6 @@ def run_command_and_log(log, cmd, cwd=None, env=None, retcode_only=True):
                             stderr=subprocess.STDOUT, shell=False,
                             cwd=cwd, env=env)
     if retcode_only:
-        # TODO(aschultz): this should probably goto a log file
         while True:
             try:
                 line = proc.stdout.readline()
