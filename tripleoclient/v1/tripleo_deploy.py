@@ -14,7 +14,6 @@
 #
 
 import argparse
-import configparser
 import json
 import logging
 import netaddr
@@ -256,14 +255,12 @@ class Deploy(command.Command):
                            constants.PUPPET_MODULES,
                            constants.PUPPET_BASE)
 
-    def _update_passwords_env(self, output_dir, user, upgrade=None,
-                              passwords=None, stack_name='undercloud'):
+    def _update_passwords_env(self, output_dir, user, passwords=None,
+                              stack_name='undercloud'):
         old_pw_file = os.path.join(constants.CLOUD_HOME_DIR,
                                    'tripleo-' + stack_name + '-passwords.yaml')
         pw_file = os.path.join(output_dir,
                                'tripleo-' + stack_name + '-passwords.yaml')
-        undercloud_pw_file = os.path.join(constants.CLOUD_HOME_DIR,
-                                          stack_name + '-passwords.conf')
 
         # Generated passwords take the lowest precedence, allowing
         # custom overrides
@@ -286,75 +283,6 @@ class Deploy(command.Command):
                 stack_env['parameter_defaults'].update(
                     yaml.safe_load(pf.read())['parameter_defaults'])
             self.log.warning("Reading passwords from %s" % pw_file)
-
-        if upgrade:
-            # Getting passwords that were managed by instack-undercloud so
-            # we can upgrade to a containerized undercloud and keep old
-            # passwords.
-            legacy_env = {}
-            if os.path.exists(undercloud_pw_file):
-                config = configparser.ConfigParser()
-                config.read(undercloud_pw_file)
-                for k, v in config.items('auth'):
-                    # Manage exceptions
-                    if k == 'undercloud_db_password':
-                        k = 'MysqlRootPassword'
-                    elif k == 'undercloud_rabbit_username':
-                        k = 'RpcUserName'
-                    elif k == 'undercloud_rabbit_password':
-                        try:
-                            # NOTE(aschultz): Only save rabbit password to rpc
-                            # if it's not already defined for the upgrade case.
-                            # The passwords are usually different so we don't
-                            # want to overwrite it if it already exists because
-                            # we'll end up rewriting the passwords later and
-                            # causing problems.
-                            config.get('auth', 'undercloud_rpc_password')
-                        except configparser.Error:
-                            legacy_env['RpcPassword'] = v
-                        k = 'RabbitPassword'
-                    elif k == 'undercloud_rabbit_cookie':
-                        k = 'RabbitCookie'
-                    elif k == 'undercloud_heat_encryption_key':
-                        k = 'HeatAuthEncryptionKey'
-                    elif k == 'undercloud_libvirt_tls_password':
-                        k = 'LibvirtTLSPassword'
-                    elif k == 'undercloud_ha_proxy_stats_password':
-                        k = 'HAProxyStatsPassword'
-                    else:
-                        k = ''.join(i.capitalize() for i in k.split('_')[1:])
-                    legacy_env[k] = v
-                os.remove(undercloud_pw_file)
-
-            # Get the keystone keys before upgrade
-            keystone_fernet_repo = '/etc/keystone/fernet-keys/'
-            keystone_credential_repo = '/etc/keystone/credential-keys/'
-            self._set_data_rights('/etc/keystone', user=user)
-
-            for key_index in range(0, 2):
-                file_name = keystone_credential_repo + str(key_index)
-                key = 'KeystoneCredential' + str(key_index)
-                if os.path.exists(file_name):
-                    with open(file_name, 'r') as file_content:
-                        content = file_content.read()
-                        legacy_env[key] = content
-
-            fernet_keys = {}
-            file_count = 0
-            if os.path.exists(keystone_fernet_repo):
-                file_count = len(os.listdir(keystone_fernet_repo))
-
-            for key_index in range(0, file_count):
-                file_name = keystone_fernet_repo + str(key_index)
-                if os.path.exists(file_name):
-                    with open(file_name, 'r') as file_content:
-                        content = file_content.read()
-                        fernet_keys[file_name] = {'content': content}
-            if fernet_keys:
-                legacy_env['KeystoneFernetKeys'] = fernet_keys
-
-            # Override with picked legacy instack-undercloud values
-            stack_env['parameter_defaults'].update(legacy_env)
 
         if passwords:
             # These passwords are the DefaultPasswords so we only
@@ -616,7 +544,6 @@ class Deploy(command.Command):
         pw_file = self._update_passwords_env(
             output_dir=self.output_dir,
             user=parsed_args.deployment_user,
-            upgrade=parsed_args.upgrade,
             stack_name=parsed_args.stack.lower(),
         )
         environments.append(pw_file)
