@@ -22,6 +22,7 @@ import json
 import logging
 import os
 import sys
+import time
 
 from cliff.formatters import table
 from openstack import exceptions as openstack_exc
@@ -32,6 +33,7 @@ import yaml
 
 from tripleoclient import command
 from tripleoclient import constants
+from tripleoclient import exceptions
 from tripleoclient import utils as oooutils
 from tripleoclient.workflows import baremetal
 from tripleoclient.workflows import tripleo_baremetal as tb
@@ -88,6 +90,7 @@ class DeleteNode(command.Command):
                 playbook='cli-overcloud-node-unprovision.yaml',
                 inventory='localhost,',
                 workdir=tmp,
+                timeout=parsed_args.timeout,
                 playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
                 verbosity=oooutils.playbook_verbosity(self=self),
                 extra_vars={
@@ -136,8 +139,20 @@ class DeleteNode(command.Command):
                                'any actions executed on them, please shut '
                                'them off prior to their removal.'))
 
+    def _check_timeout(self, start, timeout):
+        used = int((time.time() - start) // 60)
+        remaining = timeout - used
+        if remaining <= 0:
+            raise exceptions.DeploymentError(
+                'Deployment timed out after %sm' % used
+            )
+        return remaining
+
     def take_action(self, parsed_args):
         self.log.debug("take_action(%s)" % parsed_args)
+
+        # Start our timer. This will be used to calculate the timeout.
+        start = time.time()
 
         if parsed_args.baremetal_deployment:
             with open(parsed_args.baremetal_deployment, 'r') as fp:
@@ -171,6 +186,8 @@ class DeleteNode(command.Command):
         ansible_cfg = os.path.join(ansible_dir, 'ansible.cfg')
         key_file = oooutils.get_key(parsed_args.stack)
 
+        remaining = self._check_timeout(start, parsed_args.timeout)
+
         oooutils.run_ansible_playbook(
             playbook='scale_playbook.yaml',
             inventory=inventory,
@@ -181,11 +198,14 @@ class DeleteNode(command.Command):
             limit_hosts=':'.join('%s' % node for node in nodes),
             reproduce_command=True,
             ignore_unreachable=True,
+            timeout=remaining,
             extra_env_variables={
                 "ANSIBLE_BECOME": True,
                 "ANSIBLE_PRIVATE_KEY_FILE": key_file
             }
         )
+
+        remaining = self._check_timeout(start, parsed_args.timeout)
 
         if parsed_args.baremetal_deployment:
             with oooutils.TempDirs() as tmp:
@@ -194,6 +214,7 @@ class DeleteNode(command.Command):
                     inventory='localhost,',
                     workdir=tmp,
                     playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                    timeout=remaining,
                     verbosity=oooutils.playbook_verbosity(self=self),
                     extra_vars={
                         "stack_name": parsed_args.stack,
