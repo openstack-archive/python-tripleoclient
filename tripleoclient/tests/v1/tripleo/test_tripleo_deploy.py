@@ -161,7 +161,7 @@ class TestDeployUndercloud(TestPluginV1):
         self.assertEqual(
             self.cmd._get_primary_role_name(parsed_args.roles_file,
                                             parsed_args.templates),
-            'Controller')
+            'Undercloud')
 
     @mock.patch('tripleoclient.utils.fetch_roles_file')
     def test_get_primary_role_name_no_primary(self, mock_data):
