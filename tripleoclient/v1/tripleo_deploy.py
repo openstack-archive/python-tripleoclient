@@ -113,8 +113,8 @@ class Deploy(command.Command):
 
         :param parsed_args: parsed arguments from the cli
         """
-        # we skip preflight checks for output only and undercloud
-        if parsed_args.output_only or self._is_undercloud_deploy(parsed_args):
+        # we skip preflight checks for output only
+        if parsed_args.output_only or not parsed_args.preflight:
             return
 
         # in standalone we don't want to fixup the /etc/hosts as we'll be
@@ -161,7 +161,7 @@ class Deploy(command.Command):
         """Return roles_file for the deployment"""
         if not parsed_args.roles_file:
             roles_file = os.path.join(parsed_args.templates,
-                                      constants.UNDERCLOUD_ROLES_FILE)
+                                      constants.STANDALONE_ROLES_FILE)
         else:
             roles_file = parsed_args.roles_file
         return roles_file
@@ -178,7 +178,7 @@ class Deploy(command.Command):
         roles_data = utils.fetch_roles_file(
             roles_file_path, templates)
         if not roles_data:
-            return 'Undercloud'
+            return 'Standalone'
 
         for r in roles_data:
             if 'tags' in r and 'primary' in r['tags']:
@@ -191,7 +191,7 @@ class Deploy(command.Command):
         """Creates temporary working directories"""
         utils.makedirs(constants.STANDALONE_EPHEMERAL_STACK_VSTATE)
 
-    def _create_working_dirs(self, stack_name='undercloud'):
+    def _create_working_dirs(self, stack_name='standalone'):
         """Creates temporary working directories"""
         if self.output_dir:
             utils.makedirs(self.output_dir)
@@ -208,7 +208,7 @@ class Deploy(command.Command):
                 prefix=stack_name + '-ansible-', dir=self.output_dir)
 
     def _populate_templates_dir(self, source_templates_dir,
-                                stack_name='undercloud'):
+                                stack_name='standalone'):
         """Creates template dir with templates
 
         * Copy --templates content into a working dir
@@ -256,7 +256,7 @@ class Deploy(command.Command):
                            constants.PUPPET_BASE)
 
     def _update_passwords_env(self, output_dir, user, passwords=None,
-                              stack_name='undercloud'):
+                              stack_name='standalone'):
         old_pw_file = os.path.join(constants.CLOUD_HOME_DIR,
                                    'tripleo-' + stack_name + '-passwords.yaml')
         pw_file = os.path.join(output_dir,
@@ -317,8 +317,8 @@ class Deploy(command.Command):
         return data
 
     def _generate_portmap_parameters(self, ip_addr, ip_nw, ctlplane_vip_addr,
-                                     public_vip_addr, stack_name='Undercloud',
-                                     role_name='Undercloud'):
+                                     public_vip_addr, stack_name='standalone',
+                                     role_name='Standalone'):
         hostname = utils.get_short_hostname()
 
         # in order for deployed server network information to match correctly,
@@ -851,7 +851,7 @@ class Deploy(command.Command):
                 'Roles file, overrides the default %s in the t-h-t templates '
                 'directory used for deployment. May be an '
                 'absolute path or the path relative to the templates dir.'
-                ) % constants.UNDERCLOUD_ROLES_FILE
+                ) % constants.STANDALONE_ROLES_FILE
         )
         parser.add_argument(
             '--networks-file', '-n', dest='networks_file',
@@ -917,18 +917,18 @@ class Deploy(command.Command):
         parser.add_argument(
             '--local-ip', metavar='<LOCAL_IP>',
             dest='local_ip',
-            help=_('Local IP/CIDR for undercloud traffic. Required.')
+            help=_('Local IP/CIDR for standalone traffic. Required.')
         )
         parser.add_argument(
             '--control-virtual-ip', metavar='<CONTROL_VIRTUAL_IP>',
             dest='control_virtual_ip',
-            help=_('Control plane VIP. This allows the undercloud installer '
+            help=_('Control plane VIP. This allows the standalone installer '
                    'to configure a custom VIP on the control plane.')
         )
         parser.add_argument(
             '--public-virtual-ip', metavar='<PUBLIC_VIRTUAL_IP>',
             dest='public_virtual_ip',
-            help=_('Public nw VIP. This allows the undercloud installer '
+            help=_('Public nw VIP. This allows the standalone installer '
                    'to configure a custom VIP on the public (external) NW.')
         )
         parser.add_argument(
@@ -967,6 +967,14 @@ class Deploy(command.Command):
                    'OS_ENDPOINT=http://127.0.0.1:8006/v1/admin '
                    'openstack stack list\n'
                    'where 8006 is the port specified by --heat-api-port.')
+        )
+        parser.add_argument(
+            '--preflight-validations',
+            action='store_true',
+            default=False,
+            dest='preflight',
+            help=_('Activate pre-flight validations before starting '
+                   'the actual deployment process.')
         )
         parser.add_argument(
             '--inflight-validations',
@@ -1040,7 +1048,7 @@ class Deploy(command.Command):
 
     def _process_hieradata_overrides(self, override_file=None,
                                      tripleo_role_name='Standalone',
-                                     stack_name='undercloud'):
+                                     stack_name='standalone'):
         """Count in hiera data overrides including legacy formats
 
         Return a file name that points to processed hiera data overrides file
@@ -1071,7 +1079,7 @@ class Deploy(command.Command):
         self._create_working_dirs(stack_name)
 
         # NOTE(bogdando): In t-h-t, hiera data should come in wrapped as
-        # {parameter_defaults: {UndercloudExtraConfig: ... }}
+        # {parameter_defaults: {StandaloneExtraConfig: ... }}
         extra_config_var = '%sExtraConfig' % tripleo_role_name
         if (extra_config_var not in hiera_data.get('parameter_defaults', {})):
             hiera_override_file = os.path.join(
@@ -1112,9 +1120,11 @@ class Deploy(command.Command):
 
     def _standalone_deploy(self, parsed_args):
         extra_env_var = dict()
+
         if self._is_undercloud_deploy(parsed_args):
             extra_env_var['ANSIBLE_LOG_PATH'] = os.path.join(
                     parsed_args.output_dir, constants.UNDERCLOUD_LOG_FILE)
+
         if not parsed_args.local_ip:
             msg = _('Please set --local-ip to the correct '
                     'ipaddress/cidr for this machine.')
@@ -1138,6 +1148,7 @@ class Deploy(command.Command):
                                           parsed_args.stack)
 
         self.output_dir = os.path.abspath(output_dir)
+
         self._create_working_dirs(parsed_args.stack.lower())
         # The state that needs to be persisted between serial deployments
         # and cannot be contained in ephemeral heat stacks or working dirs

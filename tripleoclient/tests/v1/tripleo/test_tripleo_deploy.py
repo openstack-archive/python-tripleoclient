@@ -62,7 +62,8 @@ class TestDeployUndercloud(TestPluginV1):
     @mock.patch('tripleoclient.utils.check_hostname')
     def test_run_preflight_checks(self, mock_check_hostname, mock_uc):
         parsed_args = self.check_parser(self.cmd,
-                                        ['--local-ip', '127.0.0.1/8'], [])
+                                        ['--local-ip', '127.0.0.1/8',
+                                         '--preflight-validations'], [])
 
         mock_uc.return_value = False
         self.cmd._run_preflight_checks(parsed_args)
@@ -74,7 +75,8 @@ class TestDeployUndercloud(TestPluginV1):
                                               mock_uc):
         parsed_args = self.check_parser(self.cmd,
                                         ['--local-ip', '127.0.0.1/8',
-                                         '--output-only'], [])
+                                         '--output-only',
+                                         '--preflight-validations'], [])
 
         mock_uc.return_value = False
         self.cmd._run_preflight_checks(parsed_args)
@@ -82,10 +84,11 @@ class TestDeployUndercloud(TestPluginV1):
 
     @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy._is_undercloud_deploy')
     @mock.patch('tripleoclient.utils.check_hostname')
-    def test_run_preflight_checks_undercloud(self, mock_check_hostname,
-                                             mock_uc):
+    def test_run_preflight_checks_disabled(self, mock_check_hostname,
+                                           mock_uc):
         parsed_args = self.check_parser(self.cmd,
-                                        ['--local-ip', '127.0.0.1/8'], [])
+                                        ['--local-ip', '127.0.0.1/8'],
+                                        [])
 
         mock_uc.return_value = True
         self.cmd._run_preflight_checks(parsed_args)
@@ -98,7 +101,7 @@ class TestDeployUndercloud(TestPluginV1):
         roles_file = self.cmd._get_roles_file_path(parsed_args)
         self.assertEqual(roles_file,
                          '/usr/share/openstack-tripleo-heat-templates/'
-                         'roles_data_undercloud.yaml')
+                         'roles_data_standalone.yaml')
 
     def test_get_roles_file_path_custom_file(self):
         parsed_args = self.check_parser(self.cmd,
@@ -118,7 +121,7 @@ class TestDeployUndercloud(TestPluginV1):
         pprint.pprint(parsed_args)
         roles_file = self.cmd._get_roles_file_path(parsed_args)
         self.assertEqual(roles_file,
-                         '/tmp/thtroot/roles_data_undercloud.yaml')
+                         '/tmp/thtroot/roles_data_standalone.yaml')
 
     def test_get_networks_file_path(self):
         parsed_args = self.check_parser(self.cmd,
@@ -161,7 +164,7 @@ class TestDeployUndercloud(TestPluginV1):
         self.assertEqual(
             self.cmd._get_primary_role_name(parsed_args.roles_file,
                                             parsed_args.templates),
-            'Undercloud')
+            'Standalone')
 
     @mock.patch('tripleoclient.utils.fetch_roles_file')
     def test_get_primary_role_name_no_primary(self, mock_data):
@@ -228,12 +231,12 @@ class TestDeployUndercloud(TestPluginV1):
                                   mock_exists, mock_chmod, mock_user):
         pw_dict = {"GeneratedPassword": 123, "LegacyPass": "override me"}
         t_pw_conf_path = os.path.join(
-            self.temp_homedir, 'tripleo-undercloud-passwords.yaml')
+            self.temp_homedir, 'tripleo-standalone-passwords.yaml')
 
         mock_pw.return_value = pw_dict
 
         old_pw_file = os.path.join(constants.CLOUD_HOME_DIR,
-                                   'tripleo-undercloud-passwords.yaml')
+                                   'tripleo-standalone-passwords.yaml')
 
         def mock_file_exists(file_name):
             return not file_name == old_pw_file

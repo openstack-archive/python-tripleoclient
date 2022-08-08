@@ -25,6 +25,7 @@ TRIPLEO_HEAT_TEMPLATES = "/usr/share/openstack-tripleo-heat-templates/"
 OVERCLOUD_YAML_NAME = "overcloud.yaml"
 OVERCLOUD_ROLES_FILE = "roles_data.yaml"
 UNDERCLOUD_ROLES_FILE = "roles_data_undercloud.yaml"
+STANDALONE_ROLES_FILE = "roles_data_standalone.yaml"
 STANDALONE_EPHEMERAL_STACK_VSTATE = '/var/lib/tripleo-heat-installer'
 UNDERCLOUD_LOG_FILE = "install-undercloud.log"
 OVERCLOUD_NETWORKS_FILE = "network_data_default.yaml"
