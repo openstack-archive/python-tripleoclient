@@ -582,6 +582,18 @@ class DeployOvercloud(command.Command):
 
         return [output_path]
 
+    def _export_stack(self, parsed_args, should_filter,
+                      config_download_dir, export_file):
+        # Create overcloud export
+        data = export.export_overcloud(
+            self.working_dir,
+            parsed_args.stack, True, should_filter,
+            config_download_dir)
+        # write the exported data
+        with open(export_file, 'w') as f:
+            yaml.safe_dump(data, f, default_flow_style=False)
+            os.chmod(export_file, 0o600)
+
     def setup_ephemeral_heat(self, parsed_args):
         self.log.info("Using ephemeral heat for stack operation")
         self.heat_launcher = utils.get_heat_launcher(
@@ -1291,16 +1303,19 @@ class DeployOvercloud(command.Command):
             try:
                 if do_stack:
                     # Create overcloud export
-                    data = export.export_overcloud(
-                        self.working_dir,
-                        parsed_args.stack, True, False,
-                        config_download_dir)
-                    export_file = os.path.join(
-                        self.working_dir, "%s-export.yaml" % parsed_args.stack)
-                    # write the exported data
-                    with open(export_file, 'w') as f:
-                        yaml.safe_dump(data, f, default_flow_style=False)
-                        os.chmod(export_file, 0o600)
+                    self._export_stack(
+                        parsed_args, False,
+                        config_download_dir,
+                        os.path.join(
+                            self.working_dir, "%s-export.yaml" %
+                            parsed_args.stack))
+                    # Create overcloud cell export
+                    self._export_stack(
+                        parsed_args, True,
+                        config_download_dir,
+                        os.path.join(
+                            self.working_dir, "%s-cell-export.yaml" %
+                            parsed_args.stack))
             except Exception as e:
                 self.log.error('Exception creating overcloud export.')
                 self.log.error(e)
