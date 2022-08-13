@@ -403,7 +403,89 @@ class TestOvercloudSnapshot(utils.TestCommand):
             workdir=mock.ANY,
             playbook='cli-overcloud-snapshot.yaml',
             inventory=parsed_args.inventory,
-            tags=None,
+            tags='create_snapshots',
+            skip_tags=None,
+            playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            verbosity=3,
+            extra_vars={}
+        )
+
+    @mock.patch('os.path.isfile')
+    @mock.patch('os.access')
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
+                autospec=True)
+    def test_overcloud_snapshot_revert_remove(self,
+                                              mock_playbook,
+                                              mock_access,
+                                              mock_isfile):
+        arglist = [
+            '--remove',
+            '--revert',
+        ]
+        verifylist = []
+        mock_isfile.return_value = True
+        mock_access.return_value = True
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.assertRaisesRegex(
+            RuntimeError,
+            '--revert and --remove are mutually exclusive',
+            self.cmd.take_action,
+            parsed_args)
+
+    @mock.patch('os.path.isfile')
+    @mock.patch('os.access')
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
+                autospec=True)
+    def test_overcloud_snapshot_revert(self,
+                                       mock_playbook,
+                                       mock_access,
+                                       mock_isfile):
+        arglist = [
+            '--revert',
+        ]
+        verifylist = []
+        mock_isfile.return_value = True
+        mock_access.return_value = True
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
+        mock_playbook.assert_called_once_with(
+            workdir=mock.ANY,
+            playbook='cli-overcloud-snapshot.yaml',
+            inventory=parsed_args.inventory,
+            tags='revert_snapshots',
+            skip_tags=None,
+            playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+            verbosity=3,
+            extra_vars={}
+        )
+
+    @mock.patch('os.path.isfile')
+    @mock.patch('os.access')
+    @mock.patch('tripleoclient.utils.run_ansible_playbook',
+                autospec=True)
+    def test_overcloud_snapshot_remove(self,
+                                       mock_playbook,
+                                       mock_access,
+                                       mock_isfile):
+        arglist = [
+            '--remove',
+        ]
+        verifylist = []
+        mock_isfile.return_value = True
+        mock_access.return_value = True
+
+        parsed_args = self.check_parser(self.cmd, arglist, verifylist)
+
+        self.cmd.take_action(parsed_args)
+        mock_playbook.assert_called_once_with(
+            workdir=mock.ANY,
+            playbook='cli-overcloud-snapshot.yaml',
+            inventory=parsed_args.inventory,
+            tags='remove_snapshots',
             skip_tags=None,
             playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             verbosity=3,
@@ -425,7 +507,7 @@ class TestOvercloudSnapshot(utils.TestCommand):
             workdir=mock.ANY,
             playbook='cli-overcloud-snapshot.yaml',
             inventory=parsed_args.inventory,
-            tags=None,
+            tags='create_snapshots',
             skip_tags=None,
             playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             verbosity=3,
@@ -458,7 +540,7 @@ class TestOvercloudSnapshot(utils.TestCommand):
             workdir=mock.ANY,
             playbook='cli-overcloud-snapshot.yaml',
             inventory=parsed_args.inventory,
-            tags=None,
+            tags='create_snapshots',
             skip_tags=None,
             playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             verbosity=3,

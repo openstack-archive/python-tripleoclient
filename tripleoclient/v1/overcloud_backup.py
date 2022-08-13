@@ -294,6 +294,22 @@ class BackupSnapshot(command.Command):
         )
 
         parser.add_argument(
+            '--remove',
+            default=False,
+            action='store_true',
+            help=_("Removes all the snapshot volumes "
+                   "that were created.")
+        )
+
+        parser.add_argument(
+            '--revert',
+            default=False,
+            action='store_true',
+            help=_("Reverts all the disks to the moment "
+                   "when the snapshot was created.")
+        )
+
+        parser.add_argument(
             '--extra-vars',
             default=None,
             action='store',
@@ -339,11 +355,21 @@ class BackupSnapshot(command.Command):
                 _('The inventory file {} does not exist or is not '
                     'readable'.format(parsed_args.inventory)))
 
+        if parsed_args.remove is True and parsed_args.revert is True:
+            raise RuntimeError(
+                _('--revert and --remove are mutually exclusive'))
+        if parsed_args.remove is True and parsed_args.revert is False:
+            tags = 'remove_snapshots'
+        if parsed_args.revert is True and parsed_args.remove is False:
+            tags = 'revert_snapshots'
+        if parsed_args.remove is False and parsed_args.revert is False:
+            tags = 'create_snapshots'
+
         self.log.debug(_('Starting Overcloud Snapshot'))
         self._run_ansible_playbook(
                     playbook='cli-overcloud-snapshot.yaml',
                     inventory=parsed_args.inventory,
-                    tags=None,
+                    tags=tags,
                     skip_tags=None,
                     extra_vars=extra_vars
                     )
