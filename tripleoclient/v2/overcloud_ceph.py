@@ -356,6 +356,7 @@ class OvercloudCephDeploy(command.Command):
 
         output_path = os.path.abspath(parsed_args.output)
         overwrite = parsed_args.yes
+        ceph_ingress = True
         if (os.path.exists(output_path) and not overwrite
                 and not oooutils.prompt_user_for_confirmation(
                     'Overwrite existing file %s [y/N]?' % parsed_args.output,
@@ -376,6 +377,7 @@ class OvercloudCephDeploy(command.Command):
 
         if parsed_args.standalone:
             inventory = oooutils.standalone_ceph_inventory(working_dir)
+            ceph_ingress = False
         else:
             inventory = os.path.join(working_dir,
                                      constants.TRIPLEO_STATIC_INVENTORY)
@@ -392,6 +394,7 @@ class OvercloudCephDeploy(command.Command):
             "working_dir": working_dir,
             "stack_name": parsed_args.stack,
             "tripleo_cephadm_standalone": parsed_args.standalone,
+            "tripleo_cephadm_ingress": ceph_ingress,
             "tripleo_ceph_client_vars": os.path.join(working_dir,
                                                      'ceph_client.yml')
         }
