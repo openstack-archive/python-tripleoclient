@@ -874,6 +874,82 @@ class TestWaitForStackUtil(TestCase):
             utils.check_swift_and_rgw(mock_stack.environment(),
                                       env, 'UpgradePrepare')
 
+    @mock.patch('os.path.isfile', return_value=False)
+    def test_check_network_plugin_no_neutron(self, mock_file):
+        fake_env = {
+            'parameter_defaults': {
+                'NeutronMechanismDrivers': ['ovn']},
+        }
+        utils.check_network_plugin('/tmp',
+                                   fake_env)
+        mock_file.assert_not_called()
+
+    @mock.patch('os.path.isfile', return_value=False)
+    def test_check_network_plugin_inventory_missing(self, mock_file):
+        fake_env = {
+            'parameter_defaults': {
+                'NeutronMechanismDrivers': ['ovn']},
+            'resource_registry': {
+                'OS::TripleO::Services::NeutronApi': 'foo'}
+        }
+        with self.assertRaises(exceptions.InvalidConfiguration):
+            utils.check_network_plugin('/tmp',
+                                       fake_env)
+
+    @mock.patch('os.path.isfile', return_value=True)
+    def test_check_network_plugin_inventory_ovs_match(self, mock_file):
+        fake_env = {
+            'parameter_defaults': {
+                'NeutronMechanismDrivers': ['openvswitch']},
+            'resource_registry': {
+                'OS::TripleO::Services::NeutronApi': 'foo'}
+        }
+        mock_open_ctx = mock.mock_open(read_data='neutron_ovs_agent')
+        with mock.patch('builtins.open', mock_open_ctx):
+            utils.check_network_plugin('/tmp',
+                                       fake_env)
+
+    @mock.patch('os.path.isfile', return_value=True)
+    def test_check_network_plugin_inventory_ovs_mismatch(self, mock_file):
+        fake_env = {
+            'parameter_defaults': {
+                'NeutronMechanismDrivers': ['ovn']},
+            'resource_registry': {
+                'OS::TripleO::Services::NeutronApi': 'foo'}
+        }
+        with self.assertRaises(exceptions.InvalidConfiguration):
+            mock_open_ctx = mock.mock_open(read_data='neutron_ovs_agent')
+            with mock.patch('builtins.open', mock_open_ctx):
+                utils.check_network_plugin('/tmp',
+                                           fake_env)
+
+    @mock.patch('os.path.isfile', return_value=True)
+    def test_check_network_plugin_inventory_ovn_match(self, mock_file):
+        fake_env = {
+            'parameter_defaults': {
+                'NeutronMechanismDrivers': ['ovn']},
+            'resource_registry': {
+                'OS::TripleO::Services::NeutronApi': 'foo'}
+        }
+        mock_open_ctx = mock.mock_open(read_data='ovn_controller')
+        with mock.patch('builtins.open', mock_open_ctx):
+            utils.check_network_plugin('/tmp',
+                                       fake_env)
+
+    @mock.patch('os.path.isfile', return_value=True)
+    def test_check_network_plugin_inventory_ovn_mismatch(self, mock_file):
+        fake_env = {
+            'parameter_defaults': {
+                'NeutronMechanismDrivers': ['openvswitch']},
+            'resource_registry': {
+                'OS::TripleO::Services::NeutronApi': 'foo'}
+        }
+        with self.assertRaises(exceptions.InvalidConfiguration):
+            mock_open_ctx = mock.mock_open(read_data='ovn_controller')
+            with mock.patch('builtins.open', mock_open_ctx):
+                utils.check_network_plugin('/tmp',
+                                           fake_env)
+
     @mock.patch('subprocess.check_call')
     @mock.patch('os.path.exists')
     def test_remove_known_hosts(self, mock_exists, mock_check_call):

@@ -758,6 +758,10 @@ class Deploy(command.Command):
         # check if we're trying to deploy ceph during the overcloud deployment
         utils.check_deployed_ceph_stage(env)
 
+        # check network plugin with undercloud upgrade
+        if parsed_args.upgrade and self._is_undercloud_deploy(parsed_args):
+            utils.check_network_plugin(parsed_args.output_dir, env)
+
         roles_data = utils.fetch_roles_file(
             roles_file_path, parsed_args.templates)
 

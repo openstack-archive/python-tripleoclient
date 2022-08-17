@@ -456,6 +456,94 @@ class TestDeployUndercloud(TestPluginV1):
         mock_yaml_dump.assert_has_calls([mock.call(rewritten_env,
                                         default_flow_style=False)])
 
+    @mock.patch('tripleoclient.utils.check_network_plugin')
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy._is_undercloud_deploy')
+    @mock.patch('tripleoclient.utils.fetch_roles_file',
+                return_value={}, autospec=True)
+    @mock.patch('heatclient.common.template_utils.'
+                'process_environment_and_files', return_value=({}, {}),
+                autospec=True)
+    @mock.patch('heatclient.common.template_utils.'
+                'get_template_contents', return_value=({}, {}),
+                autospec=True)
+    @mock.patch('heatclient.common.environment_format.'
+                'parse', autospec=True, return_value=dict())
+    @mock.patch('heatclient.common.template_format.'
+                'parse', autospec=True, return_value=dict())
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_setup_heat_environments', autospec=True)
+    @mock.patch('tripleo_common.image.kolla_builder.'
+                'container_images_prepare_multi')
+    def test_deploy_tripleo_heat_templates_nw_plugin_uc(self,
+                                                        mock_cipm,
+                                                        mock_setup_heat_envs,
+                                                        mock_hc_templ_parse,
+                                                        mock_hc_env_parse,
+                                                        mock_hc_get_templ_cont,
+                                                        mock_hc_process,
+                                                        mock_role_data,
+                                                        mock_is_uc,
+                                                        mock_check_nw_plugin):
+
+        with tempfile.NamedTemporaryFile(delete=False) as roles_file:
+            self.addCleanup(os.unlink, roles_file.name)
+
+        mock_cipm.return_value = {}
+        mock_is_uc.return_value = True
+
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--local-ip', '127.0.0.1/8',
+                                         '--upgrade', '--output-dir', '/my',
+                                         '--roles-file', roles_file.name], [])
+
+        self.cmd._deploy_tripleo_heat_templates(self.orc, parsed_args)
+
+        mock_check_nw_plugin.assert_called_once_with('/my', {})
+
+    @mock.patch('tripleoclient.utils.check_network_plugin')
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy._is_undercloud_deploy')
+    @mock.patch('tripleoclient.utils.fetch_roles_file',
+                return_value={}, autospec=True)
+    @mock.patch('heatclient.common.template_utils.'
+                'process_environment_and_files', return_value=({}, {}),
+                autospec=True)
+    @mock.patch('heatclient.common.template_utils.'
+                'get_template_contents', return_value=({}, {}),
+                autospec=True)
+    @mock.patch('heatclient.common.environment_format.'
+                'parse', autospec=True, return_value=dict())
+    @mock.patch('heatclient.common.template_format.'
+                'parse', autospec=True, return_value=dict())
+    @mock.patch('tripleoclient.v1.tripleo_deploy.Deploy.'
+                '_setup_heat_environments', autospec=True)
+    @mock.patch('tripleo_common.image.kolla_builder.'
+                'container_images_prepare_multi')
+    def test_deploy_tripleo_heat_templates_nw_plugin_st(self,
+                                                        mock_cipm,
+                                                        mock_setup_heat_envs,
+                                                        mock_hc_templ_parse,
+                                                        mock_hc_env_parse,
+                                                        mock_hc_get_templ_cont,
+                                                        mock_hc_process,
+                                                        mock_role_data,
+                                                        mock_is_uc,
+                                                        mock_check_nw_plugin):
+
+        with tempfile.NamedTemporaryFile(delete=False) as roles_file:
+            self.addCleanup(os.unlink, roles_file.name)
+
+        mock_cipm.return_value = {}
+        mock_is_uc.return_value = False
+
+        parsed_args = self.check_parser(self.cmd,
+                                        ['--local-ip', '127.0.0.1/8',
+                                         '--upgrade', '--output-dir', '/my',
+                                         '--roles-file', roles_file.name], [])
+
+        self.cmd._deploy_tripleo_heat_templates(self.orc, parsed_args)
+
+        mock_check_nw_plugin.assert_not_called()
+
     @mock.patch('shutil.copy')
     @mock.patch('os.path.exists', return_value=False)
     def test_normalize_user_templates(self, mock_exists, mock_copy):

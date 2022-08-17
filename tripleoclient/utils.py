@@ -1186,6 +1186,54 @@ def check_swift_and_rgw(old_env, env, stage):
                                               'RGW)')
 
 
+def check_network_plugin(output_dir, env):
+    """Disallow upgrade if change in network plugin detected
+
+    If the undercloud is upgraded with a change in network plugin
+    i.e ovs to ovn or ovn to ovs it will break the undercloud as
+    just switching is not enough it needs network resources to be
+    migrated, so we detect if there is change in network and block
+    the upgrade
+    """
+
+    neutron_env = env.get('resource_registry',
+                          {}).get('OS::TripleO::Services::NeutronApi',
+                                  'OS::Heat::None')
+
+    # Neutron is not deployed so just return
+    if neutron_env == "OS::Heat::None":
+        return
+
+    parameters = env.get('parameter_defaults', {})
+
+    file_name = constants.TRIPLEO_STATIC_INVENTORY
+
+    inventory_path = os.path.join(output_dir, file_name)
+
+    if not os.path.isfile(inventory_path):
+        message = (_("The %s inventory file is missing. Without it "
+                     "network plugin change can't be detected, and upgrade "
+                     "will have issues if there is a change" % inventory_path))
+        LOG.error(message)
+        raise exceptions.InvalidConfiguration(message)
+
+    with open(inventory_path, 'r') as f:
+        inventory_data = yaml.safe_load(f)
+
+    if ('neutron_ovs_agent' in inventory_data and
+            'ovn' in parameters.get('NeutronMechanismDrivers')):
+        message = _("Network Plugin mismatch detected, "
+                    "Upgrade from ml2 ovs to ml2 ovn is not allowed")
+        LOG.error(message)
+        raise exceptions.InvalidConfiguration(message)
+    elif ("ovn_controller" in inventory_data and
+          "openvswitch" in parameters.get('NeutronMechanismDrivers')):
+        message = _("Network Plugin mismatch detected, "
+                    "Upgrade from ml2 ovn to ml2 ovs is not allowed")
+        LOG.error(message)
+        raise exceptions.InvalidConfiguration(message)
+
+
 def check_nic_config_with_ansible(environment):
     registry = environment.get('resource_registry', {})
     is_ansible_config = environment.get(

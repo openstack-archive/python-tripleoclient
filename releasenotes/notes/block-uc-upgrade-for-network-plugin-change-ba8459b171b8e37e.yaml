@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    Undercloud upgrade is not allowed if a change in network plugin
+    i.e ovs to ovn or ovn to ovs is detected. Such a change will break
+    the undercloud as just switching is not enough it also requires
+    network resources to be migrated.
