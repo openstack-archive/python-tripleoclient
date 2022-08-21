@@ -69,7 +69,7 @@ class Build(command.Command):
             "--base",
             dest="base",
             metavar="<base-image>",
-            default="ubi8",
+            default="centos:stream9",
             help=_(
                 "Base image name, with optional version. Can be 'centos:8', "
                 "base name image will be 'centos' but 'centos:8' will be "
@@ -105,8 +105,19 @@ class Build(command.Command):
             default="centos",
             metavar="<distro>",
             help=_(
-                "Distro name, if undefined the system will build using the "
-                "host distro. (default: %(default)s)"
+                "Distro name which sets tcib_distro, if undefined the "
+                "system will build using the host distro. "
+                "(default: %(default)s)"
+            ),
+        )
+        parser.add_argument(
+            "--release",
+            dest="release",
+            default="9",
+            metavar="<release>",
+            help=_(
+                "Distro major release version which sets tcib_release. "
+                "(default: %(default)s)"
             ),
         )
         parser.add_argument(
@@ -577,6 +588,7 @@ class Build(command.Command):
                 {
                     "workdir": self.image_paths.get(image, work_dir),
                     "tcib_distro": parsed_args.distro,
+                    "tcib_release": parsed_args.release,
                     "tcib_path": self.image_paths.get(image, work_dir),
                     "tcib_meta": {"name": image_parsed_name},
                     "ansible_connection": "local",

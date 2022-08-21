@@ -269,8 +269,8 @@ class TestContainerImages(deploy_fakes.TestDeployOvercloud):
             mock_find_image.return_value = rtn_value
             cfgs = self.cmd.process_images(expected_images, parsed_args,
                                            image_configs)
-            mock_find_image.assert_called_once_with(self.cmd, 'foo',
-                                                    '/foo/tcib', 'ubi8')
+            mock_find_image.assert_called_once_with(
+                self.cmd, 'foo', '/foo/tcib', 'centos:stream9')
         self.assertEqual(cfgs, {'foo': rtn_value})
 
 
