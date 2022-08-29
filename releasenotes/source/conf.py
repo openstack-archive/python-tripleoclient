@@ -44,7 +44,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-copyright = u'2016, TripleO Developers'
+copyright = '2016, TripleO Developers'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -188,8 +188,8 @@ htmlhelp_basename = 'python-tripleoclientReleaseNotesdoc'
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
   ('index', 'python-tripleoclientReleaseNotes.tex',
-   u'python-tripleoclient Release Notes Documentation',
-   u'2016, TripleO Developers', 'manual'),
+   'python-tripleoclient Release Notes Documentation',
+   '2016, TripleO Developers', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -218,8 +218,8 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'python-tripleoclientreleasenotes', u'python-tripleoclient Release Notes Documentation',
-     [u'2016, TripleO Developers'], 1)
+    ('index', 'python-tripleoclientreleasenotes', 'python-tripleoclient Release Notes Documentation',
+     ['2016, TripleO Developers'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -232,8 +232,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'python-tripleoclientReleaseNotes', u'python-tripleoclient Release Notes Documentation',
-   u'2016, TripleO Developers', 'python-tripleoclientReleaseNotes', 'One line description of project.',
+  ('index', 'python-tripleoclientReleaseNotes', 'python-tripleoclient Release Notes Documentation',
+   '2016, TripleO Developers', 'python-tripleoclientReleaseNotes', 'One line description of project.',
    'Miscellaneous'),
 ]
 

@@ -41,7 +41,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-copyright = u'2017 Red Hat, Inc.'
+copyright = '2017 Red Hat, Inc.'
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
 add_function_parentheses = True
@@ -72,8 +72,8 @@ htmlhelp_basename = 'tripleoclientdoc'
 latex_documents = [
     ('index',
      'doc-python-tripleoclient.tex',
-     u'Tripleoclient Documentation',
-     u'OpenStack Foundation', 'manual'),
+     'Tripleoclient Documentation',
+     'OpenStack Foundation', 'manual'),
 ]
 
 # Allow deeper levels of nesting for \begin...\end stanzas
