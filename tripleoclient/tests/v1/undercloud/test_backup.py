@@ -33,8 +33,6 @@ class TestUndercloudBackup(utils.TestCommand):
         app_args.verbose_level = 1
         self.app.options = fakes.FakeOptions()
         self.cmd = undercloud_backup.BackupUndercloud(self.app, app_args)
-        self.app.client_manager.workflow_engine = mock.Mock()
-        self.workflow = self.app.client_manager.workflow_engine
         self.inventory = '/tmp/test_inventory.yaml'
         self.file = open(self.inventory, 'w').close()
 

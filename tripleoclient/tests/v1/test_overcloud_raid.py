@@ -30,7 +30,6 @@ class TestCreateRAID(fakes.TestBaremetal):
         self.app.options = ooofakes.FakeOptions()
         self.cmd = overcloud_raid.CreateRAID(self.app, app_args)
 
-        self.workflow = self.app.client_manager.workflow_engine
         self.conf = {
             "logical_disks": [
                 {"foo": "bar"},
@@ -43,7 +42,6 @@ class TestCreateRAID(fakes.TestBaremetal):
             })
         )
         execution.id = "IDID"
-        self.workflow.executions.create.return_value = execution
         playbook_runner = mock.patch(
             'tripleoclient.utils.run_ansible_playbook',
             autospec=True
@@ -81,7 +79,6 @@ class TestCreateRAID(fakes.TestBaremetal):
         ]
         self.assertRaises(test_utils.ParserException, self.check_parser,
                           self.cmd, arglist, verifylist)
-        self.assertFalse(self.workflow.executions.create.called)
 
     def test_not_yaml(self):
         arglist = ['--node', 'uuid1', '--node', 'uuid2', ':']
@@ -93,7 +90,6 @@ class TestCreateRAID(fakes.TestBaremetal):
 
         self.assertRaisesRegex(RuntimeError, 'cannot be parsed as YAML',
                                self.cmd.take_action, parsed_args)
-        self.assertFalse(self.workflow.executions.create.called)
 
     def test_bad_type(self):
         for conf in ('[]', '{logical_disks: 42}', '{logical_disks: [42]}'):
@@ -105,7 +101,6 @@ class TestCreateRAID(fakes.TestBaremetal):
             parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
             self.assertRaises(TypeError, self.cmd.take_action, parsed_args)
-            self.assertFalse(self.workflow.executions.create.called)
 
     def test_bad_value(self):
         conf = '{another_key: [{}]}'
@@ -117,4 +112,3 @@ class TestCreateRAID(fakes.TestBaremetal):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.assertRaises(ValueError, self.cmd.take_action, parsed_args)
-        self.assertFalse(self.workflow.executions.create.called)

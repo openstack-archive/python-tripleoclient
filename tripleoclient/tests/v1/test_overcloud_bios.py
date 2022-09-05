@@ -24,7 +24,6 @@ from tripleoclient.v1 import overcloud_bios
 class Base(fakes.TestBaremetal):
     def setUp(self):
         super(Base, self).setUp()
-        self.workflow = self.app.client_manager.workflow_engine
         self.conf = {
             "settings": [
                 {"name": "virtualization", "value": "on"},
@@ -32,10 +31,6 @@ class Base(fakes.TestBaremetal):
             ]
         }
         self.app.client_manager.baremetal.node.list.return_value = []
-
-        self.execution = self.workflow.executions.create.return_value
-        self.execution.id = 'fake id'
-        self.execution.output = '{"result": null}'
 
 
 class TestConfigureBIOS(Base):
@@ -86,7 +81,6 @@ class TestConfigureBIOS(Base):
 
         self.assertRaisesRegex(RuntimeError, 'cannot be parsed as YAML',
                                self.cmd.take_action, parsed_args)
-        self.assertFalse(self.workflow.executions.create.called)
 
     def test_configure_specified_nodes_and_configuration_bad_type(self):
         for conf in ('[]', '{"settings": 42}', '{settings: [42]}'):
@@ -98,7 +92,6 @@ class TestConfigureBIOS(Base):
             parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
             self.assertRaises(TypeError, self.cmd.take_action, parsed_args)
-            self.assertFalse(self.workflow.executions.create.called)
 
     def test_configure_specified_nodes_and_configuration_bad_value(self):
         conf = '{"another_key": [{}]}'
@@ -110,7 +103,6 @@ class TestConfigureBIOS(Base):
         parsed_args = self.check_parser(self.cmd, arglist, verifylist)
 
         self.assertRaises(ValueError, self.cmd.take_action, parsed_args)
-        self.assertFalse(self.workflow.executions.create.called)
 
     def test_configure_uuids_and_all_both_specified(self):
         conf = json.dumps(self.conf)
@@ -169,7 +161,6 @@ class TestResetBIOS(Base):
         verifylist = []
         self.assertRaises(test_utils.ParserException, self.check_parser,
                           self.cmd, arglist, verifylist)
-        self.assertFalse(self.workflow.executions.create.called)
 
     def test_reset_uuids_and_all_both_specified(self):
         arglist = ['node_uuid1', 'node_uuid2', '--all-manageable']

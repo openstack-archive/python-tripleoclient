@@ -61,7 +61,6 @@ class TestBaremetal(utils.TestCommand):
         self.app.client_manager.baremetal_introspection = FakeInspectorClient()
         self.app.client_manager._region_name = "Arcadia"
         self.app.client_manager.session = mock.Mock()
-        self.app.client_manager.workflow_engine = mock.Mock()
         self.app.client_manager.tripleoclient = ClientWrapper()
 
     def tearDown(self):

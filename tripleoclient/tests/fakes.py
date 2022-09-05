@@ -187,10 +187,8 @@ class FakeStackObject(object):
 class FakeClientManager(object):
     def __init__(self):
         self.identity = None
-        self.workflow_engine = None
         self.auth_ref = None
         self.tripleoclient = FakeClientWrapper()
-        self.workflow_engine = mock.Mock()
 
 
 class FakeHandle(object):
