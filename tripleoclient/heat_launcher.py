@@ -31,7 +31,7 @@ import time
 
 import jinja2
 from oslo_utils import timeutils
-from tenacity import retry, retry_if_exception_type
+from tenacity import retry, retry_if_exception_type, retry_if_exception_message
 from tenacity.stop import stop_after_attempt, stop_after_delay
 from tenacity.wait import wait_fixed
 
@@ -449,6 +449,14 @@ class HeatNativeLauncher(HeatBaseLauncher):
                 os.path.join(self.heat_dir,
                              'tripleo_deploy-%s' % self.timestamp))
         self.umount_install_dir()
+        self._remove_install_dir()
+
+    @retry(retry=(retry_if_exception_type(OSError) |
+                  retry_if_exception_message('Device or resource busy')),
+           reraise=True,
+           stop=(stop_after_delay(10) | stop_after_attempt(10)),
+           wait=wait_fixed(0.5))
+    def _remove_install_dir(self):
         shutil.rmtree(self.install_dir)
 
 
