@@ -284,6 +284,7 @@ class DeployOvercloud(command.Command):
             created_env_files.extend(
                 self._provision_virtual_ips(parsed_args, new_tht_root,
                                             protected_overrides))
+            self._unprovision_baremetal(parsed_args)
             created_env_files.extend(
                 self._provision_baremetal(parsed_args, new_tht_root,
                                           protected_overrides))
@@ -393,8 +394,6 @@ class DeployOvercloud(command.Command):
             parsed_args.roles_file,
             env_files_tracker=env_files_tracker,
             deployment_options=deployment_options)
-
-        self._unprovision_baremetal(parsed_args)
 
     def _try_overcloud_deploy_with_compat_yaml(self, tht_root,
                                                stack_name,
