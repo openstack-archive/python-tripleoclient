@@ -383,6 +383,7 @@ class HeatContainerLauncher(HeatBaseLauncher):
 
         cmd = [
             'podman', 'run', '--rm',
+            '--net', 'host',
             '--user', self.user,
             '--volume', '%(conf)s:/etc/heat/heat.conf:Z' % {'conf':
                                                             self.config_file},
@@ -396,6 +397,7 @@ class HeatContainerLauncher(HeatBaseLauncher):
     def get_heat_uid(self):
         cmd = [
             'podman', 'run', '--rm',
+            '--net', 'host',
             self.all_container_image,
             'getent', 'passwd', self.user
         ]
@@ -410,6 +412,7 @@ class HeatContainerLauncher(HeatBaseLauncher):
     def get_heat_gid(self):
         cmd = [
             'podman', 'run', '--rm',
+            '--net', 'host',
             self.all_container_image,
             'getent', 'group', self.user
         ]
@@ -546,6 +549,7 @@ class HeatPodLauncher(HeatContainerLauncher):
         cmd = [
             'sudo', 'podman', 'run', '--rm',
             '--user', 'heat',
+            '--net', 'host',
             '--volume', '%(conf)s:/etc/heat/heat.conf:z' % {'conf':
                                                             self.config_file},
             '--volume', '%(inst_tmp)s:%(inst_tmp)s:z' % {'inst_tmp':
