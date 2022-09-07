@@ -136,8 +136,8 @@ class TestHeatPodLauncher(base.TestCase):
             mock.call(['chcon', '-R', '-t', 'container_file_t', '-l', 's0',
                        mock.ANY]),
             mock.call(['sudo', 'podman', 'run', '--rm', '--user', 'heat',
-                       '--volume', mock.ANY, '--volume', mock.ANY,
-                       mock.ANY, 'heat-manage', 'db_sync'])
+                       '--net', 'host', '--volume', mock.ANY, '--volume',
+                       mock.ANY, mock.ANY, 'heat-manage', 'db_sync'])
         ]
         self.assertEqual(self.check_call.mock_calls, calls)
         self.assertFalse(mock_do_restore_db.called)
@@ -147,8 +147,9 @@ class TestHeatPodLauncher(base.TestCase):
         mock_db_exists.return_value = True
         launcher.heat_db_sync(restore_db=True)
         self.check_call.assert_called_once_with([
-            'sudo', 'podman', 'run', '--rm', '--user', 'heat', '--volume',
-            mock.ANY, '--volume', mock.ANY, mock.ANY, 'heat-manage', 'db_sync'
+            'sudo', 'podman', 'run', '--rm', '--user', 'heat', '--net', 'host',
+            '--volume', mock.ANY, '--volume', mock.ANY, mock.ANY,
+            'heat-manage', 'db_sync'
         ])
         self.assertTrue(mock_do_restore_db.called)
 
@@ -167,8 +168,8 @@ class TestHeatPodLauncher(base.TestCase):
             mock.call(['sudo', 'podman', 'exec', '-u', 'root', 'mysql',
                        'mysql', '-e', 'flush privileges;']),
             mock.call(['sudo', 'podman', 'run', '--rm', '--user', 'heat',
-                       '--volume', mock.ANY, '--volume', mock.ANY,
-                       mock.ANY, 'heat-manage', 'db_sync'])
+                       '--net', 'host', '--volume', mock.ANY, '--volume',
+                       mock.ANY, mock.ANY, 'heat-manage', 'db_sync'])
         ]
         self.assertEqual(self.check_call.mock_calls, calls)
         self.assertTrue(mock_do_restore_db.called)
@@ -189,8 +190,8 @@ class TestHeatPodLauncher(base.TestCase):
             mock.call(['sudo', 'podman', 'exec', '-u', 'root', 'mysql',
                        'mysql', '-e', 'flush privileges;']),
             mock.call(['sudo', 'podman', 'run', '--rm', '--user', 'heat',
-                       '--volume', mock.ANY, '--volume', mock.ANY,
-                       mock.ANY, 'heat-manage', 'db_sync'])
+                       '--net', 'host', '--volume', mock.ANY, '--volume',
+                       mock.ANY, mock.ANY, 'heat-manage', 'db_sync'])
         ]
         self.assertEqual(self.check_call.mock_calls, calls)
         self.assertFalse(mock_do_restore_db.called)
