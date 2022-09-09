@@ -779,8 +779,6 @@ class HeatPodLauncher(HeatContainerLauncher):
             "install_dir": self.install_dir,
             "heat_dir": self.heat_dir,
             "policy_file": self.policy_file,
-            "ctlplane_ip": self.host,
-            "api_port": self.api_port,
             "api_image": self.api_container_image,
             "engine_image": self.engine_container_image,
             "heat_pod_name": EPHEMERAL_HEAT_POD_NAME
