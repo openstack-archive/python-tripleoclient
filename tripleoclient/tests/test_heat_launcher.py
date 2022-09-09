@@ -549,15 +549,11 @@ class TestHeatPodLauncher(base.TestCase):
     def test_write_heat_pod(self):
         launcher = self.get_launcher()
         launcher.install_dir = 'install-dir'
-        launcher.host = '1.1.1.1'
-        launcher.api_port = '1234'
         launcher.api_container_image = 'api-image'
         launcher.engine_container_image = 'engine-image'
         launcher._write_heat_pod()
         with open(os.path.join(launcher.heat_dir, 'heat-pod.yaml')) as f:
             pod = f.read()
-            self.assertIn('hostPort: 1234', pod)
-            self.assertIn('hostIP: 1.1.1.1', pod)
             self.assertIn('image: api-image', pod)
             self.assertIn('image: engine-image', pod)
 

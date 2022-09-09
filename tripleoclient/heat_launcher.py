@@ -778,8 +778,6 @@ class HeatPodLauncher(HeatContainerLauncher):
         pod_vars = {
             "install_dir": self.install_dir,
             "heat_dir": self.heat_dir,
-            "ctlplane_ip": self.host,
-            "api_port": self.api_port,
             "api_image": self.api_container_image,
             "engine_image": self.engine_container_image,
             "heat_pod_name": EPHEMERAL_HEAT_POD_NAME
