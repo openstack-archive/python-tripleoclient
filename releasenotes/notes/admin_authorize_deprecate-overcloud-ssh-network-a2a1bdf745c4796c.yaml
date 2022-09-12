@@ -1,0 +1,5 @@
+---
+deprecations:
+  - |
+    The ``--overcloud-ssh-network`` option of the ``openstack admin authorize``
+    command has been deprecated. This option has has no effect.
