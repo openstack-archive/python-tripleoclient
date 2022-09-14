@@ -1584,7 +1584,7 @@ def get_key(stack, needs_pair=False):
     """
 
     key_files = list()
-    stack_dir = os.path.join(constants.DEFAULT_WORK_DIR, stack)
+    stack_dir = get_default_working_dir(stack)
     key_files.append(os.path.join(stack_dir, 'ssh_private_key'))
     user_dir = os.path.join(constants.CLOUD_HOME_DIR, '.ssh')
     key_files.append(os.path.join(user_dir, 'id_rsa_tripleo'))
