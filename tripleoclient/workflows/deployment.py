@@ -426,7 +426,7 @@ def snapshot_dir(directory):
         repo = git.Repo(directory)
 
         # Configure git user.name and user.email
-        git_config_user = "mistral"
+        git_config_user = "tripleo-admin"
         git_config_email = git_config_user + '@' + os.uname().nodename.strip()
         repo.config_writer().set_value(
             "user", "name", git_config_user
