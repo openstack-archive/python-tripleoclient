@@ -5,6 +5,7 @@ metadata:
     app: {{ heat_pod_name }}
   name: {{ heat_pod_name }}
 spec:
+  hostNetwork: true
   containers:
   - command:
     - heat-engine
@@ -41,10 +42,6 @@ spec:
     - heat-api
     - --config-file
     - /etc/heat/heat.conf
-    ports:
-    - containerPort: {{ api_port }}
-      hostPort: {{ api_port }}
-      hostIP: {{ ctlplane_ip }}
     env:
     - name: PATH
       value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
