@@ -35,7 +35,6 @@ import prettytable
 import pwd
 import re
 import shutil
-import simplejson
 import socket
 import subprocess
 import sys
@@ -1556,7 +1555,7 @@ def _csv_to_nodes_dict(nodes_csv):
 
 def parse_env_file(env_file, file_type=None):
     if file_type == 'json' or env_file.name.endswith('.json'):
-        nodes_config = simplejson.load(env_file)
+        nodes_config = json.load(env_file)
     elif file_type == 'csv' or env_file.name.endswith('.csv'):
         nodes_config = _csv_to_nodes_dict(env_file)
     elif env_file.name.endswith('.yaml'):
