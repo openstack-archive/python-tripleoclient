@@ -390,13 +390,6 @@ def _process_network_args(env):
                                               'Please provide less than 6 '
                                               'servers in undercloud_'
                                               'nameservers.')
-    if netaddr.IPNetwork(CONF['local_ip']).version == 6:
-        env['NovaIPv6'] = True
-        env['RabbitIPv6'] = True
-        env['MemcachedIPv6'] = True
-        env['RedisIPv6'] = True
-        env['MysqlIPv6'] = True
-        env['IronicIpVersion'] = '6'
 
     # We do not use undercloud ips for env, but just validate the configured
     # value here.
