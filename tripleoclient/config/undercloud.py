@@ -287,6 +287,10 @@ class UndercloudConfig(StandaloneConfig):
                         ),
             cfg.IntOpt('scheduler_max_attempts',
                        default=30, min=1,
+                       deprecated_for_removal=True,
+                       deprecated_reason=_(
+                            'This option has no effect since nova was removed '
+                            'from undercloud.'),
                        help=_(
                            'Maximum number of attempts the scheduler will '
                            'make when deploying the instance. You should keep '
