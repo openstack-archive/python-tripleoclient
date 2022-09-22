@@ -68,12 +68,13 @@ class TestDeploymentWorkflows(utils.TestCommand):
                                  mock_excluded_ip_addresses):
         stack = mock.Mock()
         working_dir = mock.Mock()
+        # empty string added to Compute ctlplane to test LP 1990566 fix
         mock_role_net_ip_map.return_value = {
             'Controller': {
                 'ctlplane': ['1.1.1.1', '2.2.2.2', '3.3.3.3'],
                 'external': ['4.4.4.4', '5.5.5.5', '6.6.6.6']},
             'Compute': {
-                'ctlplane': ['7.7.7.7', '8.8.8.8', '9.9.9.9'],
+                'ctlplane': ['7.7.7.7', '', '8.8.8.8', '9.9.9.9'],
                 'external': ['10.10.10.10', '11.11.11.11', '12.12.12.12']},
         }
         mock_excluded_ip_addresses.return_value = []

@@ -110,6 +110,8 @@ def get_overcloud_hosts(stack, ssh_network, working_dir):
 
         ips.extend(net_ips)
 
+    # ensure there are no empty strings in IP list (LP1990566)
+    ips = [i for i in ips if i]
     return ips
 
 
