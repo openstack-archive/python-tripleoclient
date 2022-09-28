@@ -215,12 +215,6 @@ class TestNetworkSettings(TestBaseNetworkSettings):
                          group='ctlplane-subnet')
         undercloud_config._process_network_args(env)
         expected = {
-            'NovaIPv6': True,
-            'RabbitIPv6': True,
-            'MemcachedIPv6': True,
-            'RedisIPv6': True,
-            'MysqlIPv6': True,
-            'IronicIpVersion': '6',
             'ControlPlaneStaticRoutes': [],
             'IronicInspectorSubnets': [
                 {'gateway': 'fd12:3456:789a:1::1',
@@ -265,12 +259,6 @@ class TestNetworkSettings(TestBaseNetworkSettings):
                          group='ctlplane-subnet')
         undercloud_config._process_network_args(env)
         expected = {
-            'NovaIPv6': True,
-            'RabbitIPv6': True,
-            'MemcachedIPv6': True,
-            'RedisIPv6': True,
-            'MysqlIPv6': True,
-            'IronicIpVersion': '6',
             'ControlPlaneStaticRoutes': [],
             'IronicInspectorSubnets': [
                 {'gateway': 'fd12:3456:789a:1::1',
