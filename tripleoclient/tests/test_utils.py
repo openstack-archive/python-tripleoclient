@@ -668,18 +668,6 @@ class TestWaitForStackUtil(TestCase):
         result = utils.wait_for_stack_ready(self.mock_orchestration, 'stack')
         self.assertEqual(False, result)
 
-    def test_check_heat_network_config(self):
-        env_reg = {
-            'OS::TripleO::Controller::Net::SoftwareConfig': 'val',
-            'OS::TripleO::Compute::Net::SoftwareConfig': 'val',
-        }
-        env = {
-            'resource_registry':  env_reg
-        }
-
-        self.assertRaises(exceptions.InvalidConfiguration,
-                          utils.check_nic_config_with_ansible, env)
-
     def test_check_service_vips_migrated_to_service(self):
         env_reg = {
             'OS::TripleO::Network::Ports::RedisVipPort': 'val',
@@ -692,28 +680,6 @@ class TestWaitForStackUtil(TestCase):
         self.assertRaises(exceptions.InvalidConfiguration,
                           utils.check_service_vips_migrated_to_service,
                           env)
-
-    def test_check_heat_none_network_config(self):
-        env_reg = {
-            'OS::TripleO::Controller::Net::SoftwareConfig': 'OS::Heat::None',
-            'OS::TripleO::Compute::Net::SoftwareConfig': 'OS::Heat::None',
-        }
-        env = {
-            'resource_registry':  env_reg,
-            'parameter_defaults': {'NetworkConfigWithAnsible': True}
-        }
-        utils.check_nic_config_with_ansible(env)
-
-    def test_check_heat_network_config_no_ansible(self):
-        env_reg = {
-            'OS::TripleO::Controller::Net::SoftwareConfig': 'val',
-            'OS::TripleO::Compute::Net::SoftwareConfig': 'val',
-        }
-        env = {
-            'resource_registry':  env_reg,
-            'parameter_defaults': {'NetworkConfigWithAnsible': False}
-        }
-        utils.check_nic_config_with_ansible(env)
 
     def test_check_ceph_fsid_matches_env_files(self):
         stack_params = {

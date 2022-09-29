@@ -1233,22 +1233,6 @@ def check_network_plugin(output_dir, env):
         raise exceptions.InvalidConfiguration(message)
 
 
-def check_nic_config_with_ansible(environment):
-    registry = environment.get('resource_registry', {})
-    is_ansible_config = environment.get(
-        'parameter_defaults', {}).get(
-            'NetworkConfigWithAnsible', True)
-    if is_ansible_config:
-        for k, v in registry.items():
-            if k.endswith('Net::SoftwareConfig'):
-                if v != 'OS::Heat::None':
-                    raise exceptions.InvalidConfiguration(
-                        "DEPRECATED: Old heat nic configs are used, "
-                        "Migrate to ansible jinja templates or use "
-                        "'NetworkConfigWithAnsible: false' "
-                        "in 'parameter_defaults'.")
-
-
 def check_service_vips_migrated_to_service(environment):
     registry = environment.get('resource_registry', {})
     removed_resources = {'OS::TripleO::Network::Ports::RedisVipPort',
