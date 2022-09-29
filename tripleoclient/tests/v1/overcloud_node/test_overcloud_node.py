@@ -215,6 +215,7 @@ class TestDeleteNode(fakes.TestDeleteNode):
                 verbosity=mock.ANY,
                 workdir=mock.ANY,
                 playbook_dir='/usr/share/ansible/tripleo-playbooks',
+                timeout=mock.ANY,
                 extra_vars={
                     'stack_name': 'overcast',
                     'baremetal_deployment': [{
@@ -247,6 +248,7 @@ class TestDeleteNode(fakes.TestDeleteNode):
                 limit_hosts='overcast-controller-1:overcast-compute-0',
                 reproduce_command=True,
                 ignore_unreachable=True,
+                timeout=mock.ANY,
                 extra_env_variables={
                     "ANSIBLE_BECOME": True,
                     "ANSIBLE_PRIVATE_KEY_FILE":
@@ -259,6 +261,7 @@ class TestDeleteNode(fakes.TestDeleteNode):
                 verbosity=mock.ANY,
                 workdir=mock.ANY,
                 playbook_dir='/usr/share/ansible/tripleo-playbooks',
+                timeout=mock.ANY,
                 extra_vars={
                     'stack_name': 'overcast',
                     'baremetal_deployment': [{

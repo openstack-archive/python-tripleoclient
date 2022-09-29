@@ -84,7 +84,7 @@ TRIPLEO_PUPPET_MODULES = "/usr/share/openstack-puppet/modules/"
 PUPPET_MODULES = "/etc/puppet/modules/"
 PUPPET_BASE = "/etc/puppet/"
 
-STACK_TIMEOUT = 240
+STACK_TIMEOUT = 60
 STACK_OUTPUTS = ['BlacklistedHostnames',
                  'RoleNetIpMap',
                  'BlacklistedIpAddresses',
