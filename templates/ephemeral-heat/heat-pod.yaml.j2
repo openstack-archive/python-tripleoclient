@@ -4,6 +4,8 @@ metadata:
   labels:
     app: {{ heat_pod_name }}
   name: {{ heat_pod_name }}
+  annotations:
+    seccomp.security.alpha.kubernetes.io/pod: localhost/seccomp_allow.json
 spec:
   hostNetwork: true
   containers:
