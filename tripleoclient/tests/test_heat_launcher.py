@@ -204,12 +204,9 @@ class TestHeatPodLauncher(base.TestCase):
 
         launcher = self.get_launcher()
 
-        one = Path(os.path.join(launcher.heat_dir,
-                                'heat-db-dump-one.tar.bz2'))
-        two = Path(os.path.join(launcher.heat_dir,
-                                'heat-db-dump-two.tar.bz2'))
-        three = Path(os.path.join(launcher.heat_dir,
-                                  'heat-db-dump-three.tar.bz2'))
+        one = Path(launcher.heat_dir) / 'heat-db-dump-one.tar.bz2'
+        two = Path(launcher.heat_dir) / 'heat-db-dump-two.tar.bz2'
+        three = Path(launcher.heat_dir) / 'heat-db-dump-three.tar.bz2'
 
         now = time.time()
         one.touch()
@@ -254,7 +251,7 @@ class TestHeatPodLauncher(base.TestCase):
     @mock.patch('tripleoclient.heat_launcher.HeatPodLauncher.tar_file')
     def test_do_backup_db(self, mock_tar):
         launcher = self.get_launcher()
-        p = Path(os.path.join(launcher.heat_dir, 'heat-db.sql'))
+        p = Path(launcher.heat_dir) / 'heat-db.sql'
         p.touch()
         self.assertRaises(Exception, launcher.do_backup_db, str(p))
 
@@ -553,7 +550,8 @@ class TestHeatPodLauncher(base.TestCase):
         launcher.api_container_image = 'api-image'
         launcher.engine_container_image = 'engine-image'
         launcher._write_heat_pod()
-        with open(os.path.join(launcher.heat_dir, 'heat-pod.yaml')) as f:
+        pod_yaml_path = Path(launcher.heat_dir) / 'heat-pod.yaml'
+        with pod_yaml_path.open() as f:
             pod = f.read()
             self.assertIn('image: api-image', pod)
             self.assertIn('image: engine-image', pod)
