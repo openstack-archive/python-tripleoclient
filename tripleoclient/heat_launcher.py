@@ -330,6 +330,9 @@ heat.filter_factory = heat.api.openstack:faultwrap_filter
         tf = tarfile.open(tar_path, 'r:bz2')
         tf.extractall(extract_dir)
 
+    def rm_heat(self, backup_db=True):
+        pass
+
 
 class HeatContainerLauncher(HeatBaseLauncher):
 
@@ -422,7 +425,7 @@ class HeatContainerLauncher(HeatBaseLauncher):
         # We don't want to hear from this command..
         subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    def rm_heat(self, pid):
+    def rm_heat(self, backup_db=True):
         cmd = ['podman', 'rm', 'heat_all']
         log.debug(' '.join(cmd))
         # We don't want to hear from this command..

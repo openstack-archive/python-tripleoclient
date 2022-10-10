@@ -1187,7 +1187,7 @@ class DeployOvercloud(command.Command):
             if self.heat_launcher:
                 self.log.info("Stopping ephemeral heat.")
                 utils.kill_heat(self.heat_launcher)
-                utils.rm_heat(self.heat_launcher, backup_db=True)
+                utils.rm_heat(self.heat_launcher)
         try:
             if do_setup:
                 deployment.get_hosts_and_enable_ssh_admin(
@@ -1308,7 +1308,7 @@ class DeployOvercloud(command.Command):
             try:
                 self.log.info("Stopping ephemeral heat.")
                 utils.kill_heat(self.heat_launcher)
-                utils.rm_heat(self.heat_launcher, backup_db=True)
+                utils.rm_heat(self.heat_launcher)
             except Exception as e:
                 self.log.error('Exception stopping ephemeral Heat')
                 self.log.error(e)
