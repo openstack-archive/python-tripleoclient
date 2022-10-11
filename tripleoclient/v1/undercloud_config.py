@@ -454,12 +454,8 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
     utils.configure_logging(LOG, verbose_level, CONF['undercloud_log_file'])
     _load_subnets_config_groups()
 
-    if not CONF.get('output_dir'):
-        output_dir = os.path.join(constants.UNDERCLOUD_OUTPUT_DIR,
-                                  'tripleo-deploy',
-                                  'undercloud')
-    else:
-        output_dir = CONF['output_dir']
+    output_dir = utils.get_output_dir(CONF['output_dir'])
+
     # NOTE(bogdando): the generated env files are stored another path then
     # picked up later.
     # NOTE(aschultz): We copy this into the tht root that we save because

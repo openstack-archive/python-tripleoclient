@@ -341,12 +341,10 @@ def _validate_passwords_file():
     old_passwd_path = None
     file_name = 'tripleo-undercloud-passwords.yaml'
 
-    if not CONF.get('output_dir'):
-        output_dir = os.path.join(constants.UNDERCLOUD_OUTPUT_DIR,
-                                  'tripleo-deploy', 'undercloud')
-    else:
-        output_dir = CONF['output_dir']
-        old_passwd_path = os.path.join(output_dir, file_name)
+    output_dir = utils.get_output_dir(CONF.get('output_dir'))
+
+    if CONF.get('output_dir'):
+        old_passwd_path = os.path.join(CONF.get('output_dir'), file_name)
 
     # If old_passwd_path is not yet set, then default to the old path
     if not old_passwd_path:

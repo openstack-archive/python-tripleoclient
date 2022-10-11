@@ -1233,13 +1233,9 @@ class Deploy(command.Command):
 
         self._run_preflight_checks(parsed_args)
 
-        # prepare working spaces
-        if not parsed_args.output_dir:
-            output_dir = os.path.join(constants.UNDERCLOUD_OUTPUT_DIR,
-                                      'tripleo-deploy',
-                                      parsed_args.stack)
-        else:
-            output_dir = parsed_args.output_dir
+        output_dir = utils.get_output_dir(parsed_args.output_dir,
+                                          parsed_args.stack)
+
         self.output_dir = os.path.abspath(output_dir)
         self._create_working_dirs(parsed_args.stack.lower())
         # The state that needs to be persisted between serial deployments

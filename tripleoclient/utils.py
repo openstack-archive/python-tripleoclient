@@ -3358,3 +3358,10 @@ def get_tripleo_cephadm_keys(username, key, pools):
             mon='profile rbd',
             osd=', '.join(list(
                 map(lambda x: 'profile rbd pool=' + x, pools)))))]
+
+
+def get_output_dir(output_dir: str, stack_name: str = "undercloud") -> str:
+    if not output_dir:
+        return os.path.join(constants.UNDERCLOUD_OUTPUT_DIR,
+                            'tripleo-deploy', stack_name)
+    return output_dir
