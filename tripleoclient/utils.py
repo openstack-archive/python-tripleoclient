@@ -3600,3 +3600,10 @@ def duplicate_param_check(user_environments):
             'Duplicate parameter defined. Key: "%s", Current Value: %s', k,
             yaml.dump(v, default_flow_style=False)
         )
+
+
+def get_output_dir(output_dir: str, stack_name: str = "undercloud") -> str:
+    if not output_dir:
+        return os.path.join(constants.UNDERCLOUD_OUTPUT_DIR,
+                            'tripleo-deploy', stack_name)
+    return output_dir

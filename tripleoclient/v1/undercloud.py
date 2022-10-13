@@ -141,6 +141,7 @@ class InstallUndercloud(command.Command):
         return parser
 
     def take_action(self, parsed_args):
+        output_dir = utils.get_output_dir(self.osloconfig.get('output_dir'))
         # Fetch configuration used to add logging to a file
         utils.load_config(self.osloconfig, constants.UNDERCLOUD_CONF_PATH)
         utils.configure_logging(self.log, self.app_args.verbose_level,
@@ -166,7 +167,7 @@ class InstallUndercloud(command.Command):
                 subprocess.check_call(cmd)
                 self.log.warning(UNDERCLOUD_COMPLETION_MESSAGE.format(
                     os.path.join(
-                        constants.UNDERCLOUD_OUTPUT_DIR,
+                        output_dir,
                         'tripleo-undercloud-passwords.yaml'
                     ),
                     '~/stackrc'
@@ -213,6 +214,7 @@ class UpgradeUndercloud(InstallUndercloud):
                 " ".join(cmd)))
 
     def _run_upgrade(self, parsed_args):
+        output_dir = utils.get_output_dir(self.osloconfig.get('output_dir'))
         cmd = undercloud_config.\
             prepare_undercloud_deploy(
                 upgrade=True,
@@ -228,7 +230,7 @@ class UpgradeUndercloud(InstallUndercloud):
             self.log.warning(
                 UNDERCLOUD_UPGRADE_COMPLETION_MESSAGE.format(
                     os.path.join(
-                        constants.UNDERCLOUD_OUTPUT_DIR,
+                        output_dir,
                         'tripleo-undercloud-passwords.yaml'
                     ),
                     '~/stackrc'))
