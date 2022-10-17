@@ -854,13 +854,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         with open(reg_file, 'w+') as temp_file:
             temp_file.write('resource_registry:\n  Test2: OS::Heat::None')
 
-        os.makedirs(self.tmp_dir.join('tripleo-heat-templates/environments'))
-        deployed_server_file = self.tmp_dir.join(
-            'tripleo-heat-templates/environments/'
-            'deployed-server-environment.yaml')
-        with open(deployed_server_file, 'w+') as temp_file:
-            temp_file.write('')
-
         test_answerfile = self.tmp_dir.join('answerfile')
         with open(test_answerfile, 'w') as answerfile:
             yaml.dump(
