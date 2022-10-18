@@ -309,6 +309,9 @@ class UndercloudConfig(StandaloneConfig):
                             'Enable support for routed ctlplane networks.')),
             cfg.BoolOpt('enable_swift_encryption',
                         default=False,
+                        deprecated_for_removal=True,
+                        deprecated_reason=_(
+                            'Swift has been disabled in undercloud.'),
                         help=_(
                             'Whether to enable Swift encryption at-rest or '
                             'not.'
