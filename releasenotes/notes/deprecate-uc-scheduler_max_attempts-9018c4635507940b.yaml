@@ -1,0 +1,6 @@
+---
+deprecations:
+  - |
+    The ``[DEFAULT] scheduler_max_attempts`` option of undercloud.conf has been
+    deprecated. The option has had no effect since nova was removed from
+    undercloud.

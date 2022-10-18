@@ -64,7 +64,6 @@ PARAMETER_MAPPING = {
     'undercloud_debug': 'Debug',
     'certificate_generation_ca': 'CertmongerCA',
     'undercloud_public_host': 'CloudName',
-    'scheduler_max_attempts': 'NovaSchedulerMaxAttempts',
     'local_mtu': 'UndercloudLocalMtu',
     'clean_nodes': 'IronicAutomatedClean',
     'container_healthcheck_disabled': 'ContainerHealthcheckDisabled',
