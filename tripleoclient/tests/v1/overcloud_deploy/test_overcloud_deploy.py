@@ -854,6 +854,13 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         with open(reg_file, 'w+') as temp_file:
             temp_file.write('resource_registry:\n  Test2: OS::Heat::None')
 
+        os.makedirs(self.tmp_dir.join('tripleo-heat-templates/environments'))
+        deployed_server_file = self.tmp_dir.join(
+            'tripleo-heat-templates/environments/'
+            'deployed-server-environment.yaml')
+        with open(deployed_server_file, 'w+') as temp_file:
+            temp_file.write('')
+
         test_answerfile = self.tmp_dir.join('answerfile')
         with open(test_answerfile, 'w') as answerfile:
             yaml.dump(
@@ -867,7 +874,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         arglist = ['--answers-file', test_answerfile,
                    '--environment-file', test_env2,
                    '--disable-password-generation',
-                   '--provision-nodes',
                    '--working-dir', self.tmp_dir.path]
         verifylist = [
             ('answers_file', test_answerfile),
@@ -1058,10 +1064,9 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         self.useFixture(utils_oc_fixture)
         utils_fixture = deployment.UtilsFixture()
         self.useFixture(utils_fixture)
-        arglist = ['--templates', '--deployed-server', '--disable-validations']
+        arglist = ['--templates', '--disable-validations']
         verifylist = [
             ('templates', '/usr/share/openstack-tripleo-heat-templates/'),
-            ('deployed_server', True),
             ('disable_validations', True),
         ]
 
