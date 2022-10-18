@@ -55,7 +55,8 @@ class Authorize(command.Command):
         )
         parser.add_argument(
             '--overcloud-ssh-network',
-            help=_('Network name to use for ssh access to overcloud nodes.'),
+            help=_('DEPRECATED: Network name to use for ssh access to '
+                   'overcloud nodes. This has no effect now.'),
             default='ctlplane'
         )
         parser.add_argument(
@@ -100,6 +101,10 @@ class Authorize(command.Command):
                                         ),
                                    'config-download',
                                    parsed_args.stack)
+
+        if parsed_args.overcloud_ssh_network:
+            self.log.warning('The --overcloud-ssh-network option is '
+                             'deprecated and has no effect now.')
 
         if not parsed_args.static_inventory:
             inventory = os.path.join(ansible_dir,
