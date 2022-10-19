@@ -53,7 +53,6 @@ class TestDeleteOvercloud(deploy_fakes.TestDeployOvercloud):
             constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             extra_vars={
                 "stack_name": "overcast",
-                "heat_stack_delete": True
             },
             verbosity=3,
         )
@@ -158,7 +157,6 @@ class TestDeleteOvercloud(deploy_fakes.TestDeployOvercloud):
             constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
             extra_vars={
                 "stack_name": "overcast",
-                "heat_stack_delete": False
             },
             verbosity=3,
         )

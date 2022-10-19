@@ -73,8 +73,9 @@ class DeleteOvercloud(command.Command):
             action='store',
             default='pod',
             choices=['installed', 'pod', 'container', 'native'],
-            help=_('The type of Heat process that was used to execute'
-                   'the deployment.\n'
+            help=_('DEPRECATED: This option is ineffective and '
+                   'ignored after deprecation. The type of Heat '
+                   'process that was used to execute the deployment.\n'
                    'pod (Default): Use an ephemeral Heat pod.\n'
                    'installed: Use the system installed Heat.\n'
                    'container: Use an ephemeral Heat container.\n'
@@ -112,8 +113,6 @@ class DeleteOvercloud(command.Command):
             # start removing infrastructure.
             playbooks = ["cli-cleanup-ipa.yml", "cli-overcloud-delete.yaml"]
 
-        heat_stack_delete = parsed_args.heat_type in ["installed", "native"]
-
         with utils.TempDirs() as tmp:
             utils.run_ansible_playbook(
                 playbooks,
@@ -123,7 +122,6 @@ class DeleteOvercloud(command.Command):
                 verbosity=utils.playbook_verbosity(self=self),
                 extra_vars={
                     "stack_name": parsed_args.stack,
-                    "heat_stack_delete": heat_stack_delete
                 }
             )
 

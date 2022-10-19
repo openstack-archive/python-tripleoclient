@@ -2795,7 +2795,7 @@ def kill_heat(launcher):
     launcher.kill_heat(_heat_pid)
 
 
-def rm_heat(launcher, backup_db=False):
+def rm_heat(launcher, backup_db=True):
     launcher.rm_heat(backup_db)
 
 

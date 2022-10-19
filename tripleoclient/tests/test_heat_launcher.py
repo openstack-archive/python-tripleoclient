@@ -564,13 +564,13 @@ class TestHeatPodLauncherUtils(base.TestCase):
     def test_rm_heat(self):
         launcher = mock.Mock()
         utils.rm_heat(launcher)
-        launcher.rm_heat.assert_called_once_with(False)
-        launcher.reset_mock()
-        utils.rm_heat(launcher, True)
         launcher.rm_heat.assert_called_once_with(True)
         launcher.reset_mock()
         utils.rm_heat(launcher, False)
         launcher.rm_heat.assert_called_once_with(False)
+        launcher.reset_mock()
+        utils.rm_heat(launcher)
+        launcher.rm_heat.assert_called_once_with(True)
 
     def test_kill_heat(self):
         launcher = mock.Mock()
