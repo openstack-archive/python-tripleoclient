@@ -57,9 +57,10 @@ class TestExportCell(utils.TestCommand):
             'overcloud',
             True,
             os.path.join(
-                oooutils.get_default_working_dir('overcloud'),
-                'config-download',
-                'overcloud'))
+                os.environ.get('HOME'),
+                'overcloud-deploy',
+                'overcloud',
+                'config-download'))
         mock_print.assert_called()
         mock_open.assert_called_once_with('overcloud-cell-export.yaml', 'w')
         mock_yaml_dump.assert_called_once()
@@ -92,13 +93,13 @@ class TestExportCell(utils.TestCommand):
         self.cmd.take_action(parsed_args)
         mock_path_exists.assert_any_call('fizz-cell-export.yaml')
         mock_export_passwords.assert_called_once_with(
-            oooutils.get_default_working_dir('overcloud'),
-            'overcloud')
+            oooutils.get_default_working_dir('fizz'),
+            'fizz')
         mock_export_stack.assert_called_once_with(
             oooutils.get_default_working_dir('fizz'),
             'fizz',
             False,
-            os.path.join('buzz', 'fizz'))
+            'buzz')
         mock_print.assert_called()
         mock_open.assert_called_once_with('fizz-cell-export.yaml', 'w')
         mock_yaml_dump.assert_called_once()

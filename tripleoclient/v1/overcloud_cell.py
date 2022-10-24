@@ -82,10 +82,6 @@ class ExportCell(command.Command):
             raise exceptions.CellExportError(
                 "File '%s' already exists, not exporting." % output_file)
 
-        data = export.export_passwords(
-                oooutils.get_default_working_dir(control_plane_stack),
-                control_plane_stack)
-
         stack_to_export = control_plane_stack
         should_filter = True
         if cell_stack:
@@ -98,14 +94,17 @@ class ExportCell(command.Command):
             working_dir = parsed_args.working_dir
 
         if not parsed_args.config_download_dir:
-            download_dir = os.path.join(working_dir, 'config-download')
+            config_download_dir = os.path.join(os.environ.get('HOME'),
+                                               "overcloud-deploy",
+                                               stack_to_export,
+                                               'config-download')
         else:
-            download_dir = parsed_args.config_download_dir
+            config_download_dir = parsed_args.config_download_dir
 
-        config_download_dir = os.path.join(download_dir, stack_to_export)
+        data = export.export_passwords(working_dir, stack_to_export)
 
         data.update(export.export_stack(
-            oooutils.get_default_working_dir(stack_to_export),
+            working_dir,
             stack_to_export, should_filter,
             config_download_dir))
         data = dict(parameter_defaults=data)
