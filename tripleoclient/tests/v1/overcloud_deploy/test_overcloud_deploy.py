@@ -155,7 +155,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True, return_value={})
     @mock.patch('heatclient.common.template_utils.'
                 'process_environment_and_files', autospec=True)
-    @mock.patch('tripleoclient.utils.check_nic_config_with_ansible')
     @mock.patch('tripleoclient.utils.get_ctlplane_attrs', autospec=True,
                 return_value={})
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
@@ -180,7 +179,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                        mock_ceph_fsid, mock_swift_rgw,
                        mock_ceph_ansible,
                        mock_get_undercloud_host_entry, mock_copy,
-                       mock_get_ctlplane_attrs, mock_nic_ansiblei,
+                       mock_get_ctlplane_attrs,
                        mock_process_env, mock_roles_data,
                        mock_container_prepare, mock_generate_password,
                        mock_rc_params, mock_default_image_params,
@@ -472,7 +471,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True, return_value={})
     @mock.patch('heatclient.common.template_utils.'
                 'process_environment_and_files', autospec=True)
-    @mock.patch('tripleoclient.utils.check_nic_config_with_ansible')
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
     @mock.patch('tripleoclient.utils.get_undercloud_host_entry', autospec=True,
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
@@ -496,7 +494,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                                      mock_ceph_fsid, mock_swift_rgw,
                                      mock_ceph_ansible,
                                      mock_get_undercloud_host_entry,
-                                     mock_copy, mock_nic_ansible,
+                                     mock_copy,
                                      mock_process_env,
                                      mock_roles_data,
                                      mock_image_prepare,
@@ -573,7 +571,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
     @mock.patch('tripleoclient.utils.get_rc_params', autospec=True)
     @mock.patch('tripleoclient.utils.process_multiple_environments',
                 autospec=True)
-    @mock.patch('tripleoclient.utils.check_nic_config_with_ansible')
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
     @mock.patch('tripleoclient.utils.check_ceph_fsid_matches_env_files')
     @mock.patch('tripleoclient.utils.check_swift_and_rgw')
@@ -590,7 +587,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                               mock_update_parameters, mock_post_config,
                               mock_ceph_fsid,
                               mock_swift_rgw, mock_ceph_ansible,
-                              mock_copy, mock_nic_ansible,
+                              mock_copy,
                               mock_process_env, mock_rc_params,
                               mock_check_service_vip_migr):
         fixture = deployment.DeploymentWorkflowFixture()
@@ -795,7 +792,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
         return_value={})
     @mock.patch('tripleoclient.utils.get_roles_data',
                 autospec=True, return_value={})
-    @mock.patch('tripleoclient.utils.check_nic_config_with_ansible')
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
     @mock.patch('tripleoclient.utils.get_undercloud_host_entry', autospec=True,
                 return_value='192.168.0.1 uc.ctlplane.localhost uc.ctlplane')
@@ -811,7 +807,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                           mock_ceph_fsid, mock_swift_rgw,
                           mock_ceph_ansible,
                           mock_get_undercloud_host_entry,
-                          mock_copy, mock_nic_ansible,
+                          mock_copy,
                           mock_roles_data, mock_image_prepare,
                           mock_generate_password, mock_rc_params,
                           mock_check_service_vip_migr,
@@ -1339,7 +1335,6 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
                 autospec=True, return_value={})
     @mock.patch('tripleoclient.utils.process_multiple_environments',
                 autospec=True)
-    @mock.patch('tripleoclient.utils.check_nic_config_with_ansible')
     @mock.patch('tripleoclient.utils.get_ctlplane_attrs', autospec=True,
                 return_value={})
     @mock.patch('tripleoclient.utils.copy_clouds_yaml')
@@ -1355,7 +1350,7 @@ class TestDeployOvercloud(fakes.TestDeployOvercloud):
             self, mock_hc,
             mock_ceph_fsid, mock_swift_rgw, mock_ceph_ansible,
             mock_hd, mock_get_undercloud_host_entry, mock_copy,
-            mock_get_ctlplane_attrs, mock_nic_ansible,
+            mock_get_ctlplane_attrs,
             mock_process_env, mock_roles_data,
             mock_container_prepare, mock_generate_password,
             mock_rc_params, mock_default_image_params,
