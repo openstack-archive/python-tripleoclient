@@ -29,6 +29,7 @@ from oslo_config import cfg
 
 from tripleoclient import constants
 from tripleoclient import utils
+from tripleo_common.inventory import TripleoInventory
 
 
 class FailedValidation(Exception):
@@ -89,7 +90,12 @@ def _run_validations(upgrade=False):
     else:
         playbook_args = constants.DEPLOY_ANSIBLE_ACTIONS['preflight-deploy']
 
-    args = ['validation', 'run', '-i', 'undercloud', '--validation',
+    undercloud_hosts_file = os.path.join(constants.CLOUD_HOME_DIR,
+                                         'undercloud_ansible_hosts.yaml')
+    undercloud_inventory = TripleoInventory()
+    undercloud_inventory.write_static_inventory(undercloud_hosts_file)
+
+    args = ['validation', 'run', '-i', undercloud_hosts_file, '--validation',
             ','.join(playbook_args['playbooks'])]
     _run_live_command(args)
 
