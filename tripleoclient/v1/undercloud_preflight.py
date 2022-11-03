@@ -30,8 +30,6 @@ from oslo_config import cfg
 from tripleoclient import constants
 from tripleoclient import utils
 
-from validations_libs.validation_actions import ValidationActions
-
 
 class FailedValidation(Exception):
     pass
@@ -63,7 +61,7 @@ def _run_live_command(args, env=None, name=None, cwd=None, wait=True):
         return process
 
     while True:
-        line = process.stdout.readline().decode('utf-8')
+        line = process.stdout.readline()
         if line:
             LOG.info(line.rstrip())
         if line == '' and process.poll() is not None:
@@ -91,13 +89,9 @@ def _run_validations(upgrade=False):
     else:
         playbook_args = constants.DEPLOY_ANSIBLE_ACTIONS['preflight-deploy']
 
-    with utils.TempDirs() as tmp:
-        actions = ValidationActions()
-        actions.run_validations(
-            inventory='undercloud',
-            log_path=tmp,
-            validations_dir=constants.ANSIBLE_VALIDATION_DIR,
-            validation_name=playbook_args['playbooks'])
+    args = ['validation', 'run', '-i', 'undercloud', '--validation',
+            ','.join(playbook_args['playbooks'])]
+    _run_live_command(args)
 
 
 def _check_memory():
