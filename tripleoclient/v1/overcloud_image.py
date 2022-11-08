@@ -22,7 +22,7 @@ import re
 import subprocess
 import sys
 
-from glanceclient.common.progressbar import VerboseFileWrapper
+from openstackclient.common.progressbar import VerboseFileWrapper
 from keystoneauth1.exceptions import catalog as exc_catalog
 from osc_lib import exceptions
 from osc_lib.i18n import _
