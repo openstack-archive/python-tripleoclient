@@ -266,11 +266,6 @@ class DeployOvercloud(command.Command):
             parameters, new_tht_root, parsed_args.stack)
         created_env_files.extend(param_env)
 
-        created_env_files.append(
-            os.path.join(
-                new_tht_root,
-                constants.DEPLOYED_SERVER_ENVIRONMENT))
-
         if parsed_args.baremetal_deployment is not None:
             created_env_files.extend(
                 self._provision_networks(parsed_args, new_tht_root,

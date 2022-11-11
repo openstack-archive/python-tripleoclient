@@ -337,9 +337,7 @@ class Deploy(command.Command):
             'ExternalNetCidr': '%s/%s' % (public_vip_addr, ip_nw.prefixlen),
             # This requires use of the
             # ../deployed-server/deployed-neutron-port.yaml resource in t-h-t
-            # We use this for the control plane VIP and also via
-            # the environments/deployed-server-noop-ctlplane.yaml
-            # for the server IP itself
+            # We use this for the control plane VIP and the server IP itself
             'DeployedServerPortMap': {
                 ('%s-ctlplane' % hostname): {
                     'fixed_ips': [{'ip_address': ip_addr}],
@@ -547,12 +545,6 @@ class Deploy(command.Command):
             stack_name=parsed_args.stack.lower(),
         )
         environments.append(pw_file)
-
-        # use deployed-server because we run os-collect-config locally
-        deployed_server_env = os.path.join(
-            self.tht_render, 'environments',
-            'deployed-server-noop-ctlplane.yaml')
-        environments.append(deployed_server_env)
 
         self.log.info(_("Deploying templates in the directory {0}").format(
             os.path.abspath(self.tht_render)))

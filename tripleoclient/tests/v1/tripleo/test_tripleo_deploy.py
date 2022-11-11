@@ -589,8 +589,6 @@ class TestDeployUndercloud(TestPluginV1):
                          'overcloud-resource-registry-puppet.yaml'),
             os.path.join(tht_render, 'passwords.yaml'),
             os.path.join(tht_render,
-                         'environments/deployed-server-noop-ctlplane.yaml'),
-            os.path.join(tht_render,
                          'tripleoclient-hosts-portmaps.yaml'),
             'hiera_or.yaml',
             os.path.join(tht_render, 'foo.yaml'),
