@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Now the ``openstack overcloud image build`` command uses CentOS Stream 9 as
+    base os by default.
