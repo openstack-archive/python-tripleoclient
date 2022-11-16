@@ -629,14 +629,6 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
 
         runner_config = ansible_runner.runner_config.RunnerConfig(**r_opts)
         runner_config.prepare()
-        # NOTE(cloudnull): overload the output callback after prepare
-        #                  to define the specific format we want.
-        #                  This is only required until PR
-        #                  https://github.com/ansible/ansible-runner/pull/387
-        #                  is merged and released. After this PR has been
-        #                  made available to us, this line should be removed.
-        runner_config.env['ANSIBLE_STDOUT_CALLBACK'] = \
-            r_opts['envvars']['ANSIBLE_STDOUT_CALLBACK']
         runner = ansible_runner.Runner(config=runner_config)
 
         if reproduce_command:
