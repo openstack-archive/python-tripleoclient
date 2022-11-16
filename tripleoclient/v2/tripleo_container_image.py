@@ -700,7 +700,8 @@ class Build(command.Command):
                 workdir=tmp,
                 playbook_dir=tmp,
                 extra_env_variables={
-                    "ANSIBLE_FORKS": len(tcib_inventory_hosts.keys())
+                    "ANSIBLE_FORKS": len(tcib_inventory_hosts.keys()),
+                    "ANSIBLE_PYTHON_INTERPRETER": "{{ansible_playbook_python}}"
                 },
                 verbosity=utils.playbook_verbosity(self=self),
             )
