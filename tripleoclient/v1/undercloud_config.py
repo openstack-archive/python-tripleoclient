@@ -540,6 +540,9 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
 
     if CONF.get('roles_file'):
         deploy_args.append('--roles-file=%s' % CONF['roles_file'])
+    else:
+        deploy_args.append('--roles-file=%s' % os.path.join(
+            tht_templates, constants.UNDERCLOUD_ROLES_FILE))
 
     networks_file = (CONF.get('networks_file') or
                      os.path.join(tht_templates,

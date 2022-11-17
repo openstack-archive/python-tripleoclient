@@ -45,13 +45,11 @@ class GenerateAnsibleConfig(command.Command):
             help=_('User who executes the tripleo config generate command. '
                    'Defaults to stack.')
         )
-        # TODO(bogdando): find a better UNDERCLOUD_OUTPUT_DIR constant name
-        # Add more params as far as the imported ansible actions support it
         parser.add_argument('--output-dir',
                             dest='output_dir',
                             help=_("Directory to output ansible.cfg and "
                                    "ansible.log files."),
-                            default=constants.UNDERCLOUD_OUTPUT_DIR)
+                            default=constants.CLOUD_HOME_DIR)
 
         return parser
 

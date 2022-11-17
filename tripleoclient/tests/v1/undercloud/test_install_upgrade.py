@@ -78,6 +78,8 @@ class TestUndercloudInstall(TestPluginV1):
              'undercloud', '--local-domain=localdomain',
              '--local-ip=192.168.24.1/24',
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
+             '--roles-file=/usr/share/openstack-tripleo-heat-templates/'
+             'roles_data_undercloud.yaml',
              '--networks-file=/usr/share/openstack-tripleo-heat-templates/'
              'network_data_undercloud.yaml',
              '--heat-native', '-e',
@@ -133,6 +135,8 @@ class TestUndercloudInstall(TestPluginV1):
              'undercloud', '--local-domain=localdomain',
              '--local-ip=192.168.24.1/24',
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
+             '--roles-file=/usr/share/openstack-tripleo-heat-templates/'
+             'roles_data_undercloud.yaml',
              '--networks-file=/usr/share/openstack-tripleo-heat-templates/'
              'network_data_undercloud.yaml',
              '--heat-native', '-e',
@@ -345,6 +349,8 @@ class TestUndercloudInstall(TestPluginV1):
              'undercloud', '--local-domain=localdomain',
              '--local-ip=192.168.24.1/24',
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
+             '--roles-file=/usr/share/openstack-tripleo-heat-templates/'
+             'roles_data_undercloud.yaml',
              '--networks-file=/usr/share/openstack-tripleo-heat-templates/'
              'network_data_undercloud.yaml',
              '--heat-native', '-e',
@@ -408,6 +414,8 @@ class TestUndercloudInstall(TestPluginV1):
              'undercloud', '--local-domain=localdomain',
              '--local-ip=192.168.24.1/24',
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
+             '--roles-file=/usr/share/openstack-tripleo-heat-templates/'
+             'roles_data_undercloud.yaml',
              '--networks-file=/usr/share/openstack-tripleo-heat-templates/'
              'network_data_undercloud.yaml',
              '--heat-native', '-e',
@@ -464,6 +472,8 @@ class TestUndercloudInstall(TestPluginV1):
              'undercloud', '--local-domain=localdomain',
              '--local-ip=192.168.24.1/24',
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
+             '--roles-file=/usr/share/openstack-tripleo-heat-templates/'
+             'roles_data_undercloud.yaml',
              '--networks-file=/usr/share/openstack-tripleo-heat-templates/'
              'network_data_undercloud.yaml',
              '--heat-native', '-e',
@@ -545,6 +555,8 @@ class TestUndercloudUpgrade(TestPluginV1):
              'undercloud', '--local-domain=localdomain',
              '--local-ip=192.168.24.1/24',
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
+             '--roles-file=/usr/share/openstack-tripleo-heat-templates/'
+             'roles_data_undercloud.yaml',
              '--networks-file=/usr/share/openstack-tripleo-heat-templates/'
              'network_data_undercloud.yaml',
              '--upgrade', '-e',
@@ -630,6 +642,8 @@ class TestUndercloudUpgrade(TestPluginV1):
              'undercloud', '--local-domain=localdomain',
              '--local-ip=192.168.24.1/24',
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
+             '--roles-file=/usr/share/openstack-tripleo-heat-templates/'
+             'roles_data_undercloud.yaml',
              '--networks-file=/usr/share/openstack-tripleo-heat-templates/'
              'network_data_undercloud.yaml',
              '--upgrade', '-e',
@@ -690,6 +704,8 @@ class TestUndercloudUpgrade(TestPluginV1):
              'undercloud', '--local-domain=localdomain',
              '--local-ip=192.168.24.1/24',
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
+             '--roles-file=/usr/share/openstack-tripleo-heat-templates/'
+             'roles_data_undercloud.yaml',
              '--networks-file=/usr/share/openstack-tripleo-heat-templates/'
              'network_data_undercloud.yaml',
              '--upgrade', '-e',
@@ -749,6 +765,8 @@ class TestUndercloudUpgrade(TestPluginV1):
              'undercloud', '--local-domain=localdomain',
              '--local-ip=192.168.24.1/24',
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
+             '--roles-file=/usr/share/openstack-tripleo-heat-templates/'
+             'roles_data_undercloud.yaml',
              '--networks-file=/usr/share/openstack-tripleo-heat-templates/'
              'network_data_undercloud.yaml',
              '--upgrade', '-e',
@@ -809,6 +827,8 @@ class TestUndercloudUpgrade(TestPluginV1):
              'undercloud', '--local-domain=localdomain',
              '--local-ip=192.168.24.1/24',
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
+             '--roles-file=/usr/share/openstack-tripleo-heat-templates/'
+             'roles_data_undercloud.yaml',
              '--networks-file=/usr/share/openstack-tripleo-heat-templates/'
              'network_data_undercloud.yaml',
              '-y', '--upgrade', '-e',
@@ -872,6 +892,8 @@ class TestUndercloudUpgrade(TestPluginV1):
              'undercloud', '--local-domain=localdomain',
              '--local-ip=192.168.24.1/24',
              '--templates=/usr/share/openstack-tripleo-heat-templates/',
+             '--roles-file=/usr/share/openstack-tripleo-heat-templates/'
+             'roles_data_undercloud.yaml',
              '--networks-file=/usr/share/openstack-tripleo-heat-templates/'
              'network_data_undercloud.yaml',
              '--upgrade', '-e',
