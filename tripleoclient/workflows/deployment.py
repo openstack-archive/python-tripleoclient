@@ -119,7 +119,7 @@ def get_hosts_and_enable_ssh_admin(stack_name, overcloud_ssh_network,
                                    overcloud_ssh_user, overcloud_ssh_key,
                                    overcloud_ssh_port_timeout,
                                    working_dir, verbosity=0,
-                                   heat_type='installed'):
+                                   heat_type='pod'):
     """Enable ssh admin access.
 
     Get a list of hosts from a given stack and enable admin ssh across all of
@@ -166,7 +166,7 @@ def get_hosts_and_enable_ssh_admin(stack_name, overcloud_ssh_network,
 
 
 def enable_ssh_admin(stack_name, hosts, ssh_user, ssh_key, timeout,
-                     working_dir, verbosity=0, heat_type='installed'):
+                     working_dir, verbosity=0, heat_type='pod'):
     """Run enable ssh admin access playbook.
 
     :param stack_name: Stack name.
@@ -199,7 +199,7 @@ def enable_ssh_admin(stack_name, hosts, ssh_user, ssh_key, timeout,
         )
     )
     try:
-        if heat_type != 'installed' and tc_heat_utils.heatclient:
+        if tc_heat_utils.heatclient:
             tc_heat_utils.heatclient.save_environment()
         playbook = 'cli-enable-ssh-admin.yaml'
         ansible_work_dir = os.path.join(
@@ -221,7 +221,7 @@ def enable_ssh_admin(stack_name, hosts, ssh_user, ssh_key, timeout,
             ansible_timeout=timeout
         )
     finally:
-        if heat_type != 'installed' and tc_heat_utils.heatclient:
+        if tc_heat_utils.heatclient:
             tc_heat_utils.heatclient.restore_environment()
     print("Enabling ssh admin - COMPLETE.")
 
@@ -443,7 +443,7 @@ def snapshot_dir(directory):
 
 
 def get_horizon_url(stack, verbosity=0,
-                    heat_type='installed',
+                    heat_type='pod',
                     working_dir=None):
     """Return horizon URL string.
 
@@ -453,7 +453,7 @@ def get_horizon_url(stack, verbosity=0,
     """
 
     try:
-        if heat_type != 'installed' and tc_heat_utils.heatclient:
+        if tc_heat_utils.heatclient:
             tc_heat_utils.heatclient.save_environment()
         playbook = 'cli-undercloud-get-horizon-url.yaml'
         ansible_work_dir = os.path.join(
@@ -472,7 +472,7 @@ def get_horizon_url(stack, verbosity=0,
             }
         )
     finally:
-        if heat_type != 'installed' and tc_heat_utils.heatclient:
+        if tc_heat_utils.heatclient:
             tc_heat_utils.heatclient.restore_environment()
 
     with open(horizon_file) as f:

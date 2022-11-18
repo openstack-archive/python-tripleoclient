@@ -35,10 +35,10 @@ class TestDeleteOvercloud(deploy_fakes.TestDeployOvercloud):
     @mock.patch('os.chdir', autospec=True)
     @mock.patch('tempfile.mkdtemp', autospec=True)
     def test_overcloud_delete(self, mock_mkdir, mock_cd, mock_run_playbook):
-        arglist = ["overcast", "--heat-type", "installed", "-y"]
+        arglist = ["overcast", "--heat-type", "native", "-y"]
         verifylist = [
             ("stack", "overcast"),
-            ("heat_type", "installed"),
+            ("heat_type", "native"),
             ("yes", True)
         ]
 

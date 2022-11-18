@@ -72,12 +72,11 @@ class DeleteOvercloud(command.Command):
             '--heat-type',
             action='store',
             default='pod',
-            choices=['installed', 'pod', 'container', 'native'],
+            choices=['pod', 'container', 'native'],
             help=_('DEPRECATED: This option is ineffective and '
                    'ignored after deprecation. The type of Heat '
                    'process that was used to execute the deployment.\n'
                    'pod (Default): Use an ephemeral Heat pod.\n'
-                   'installed: Use the system installed Heat.\n'
                    'container: Use an ephemeral Heat container.\n'
                    'native: Use an ephemeral Heat process.')
         )
