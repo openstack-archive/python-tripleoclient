@@ -43,7 +43,7 @@ class BuildOvercloudImage(command.Command):
 
     IMAGE_YAML_PATH = "/usr/share/openstack-tripleo-common/image-yaml"
     DEFAULT_YAML = ['overcloud-images-python3.yaml',
-                    'overcloud-images-centos8.yaml']
+                    'overcloud-images-centos9.yaml']
     REQUIRED_PACKAGES = [
         'openstack-tripleo-common',
         'openstack-ironic-python-agent-builder',

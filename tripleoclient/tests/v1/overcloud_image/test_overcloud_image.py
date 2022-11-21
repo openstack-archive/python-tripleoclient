@@ -50,7 +50,7 @@ class TestOvercloudImageBuild(TestPluginV1):
             ['/usr/share/openstack-tripleo-common/image-yaml/'
              'overcloud-images-python3.yaml',
              '/usr/share/openstack-tripleo-common/image-yaml/'
-             'overcloud-images-centos8.yaml'],
+             'overcloud-images-centos9.yaml'],
             output_directory='.',
             skip=True,
             images=None)
