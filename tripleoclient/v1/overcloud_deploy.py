@@ -1295,14 +1295,6 @@ class DeployOvercloud(command.Command):
                 print("Overcloud Deployed {0}".format(deploy_message))
 
             try:
-                self.log.info("Stopping ephemeral heat.")
-                utils.kill_heat(self.heat_launcher)
-                utils.rm_heat(self.heat_launcher)
-            except Exception as e:
-                self.log.error('Exception stopping ephemeral Heat')
-                self.log.error(e)
-
-            try:
                 if parsed_args.output_dir:
                     ansible_dir = config_download_dir
                 else:
