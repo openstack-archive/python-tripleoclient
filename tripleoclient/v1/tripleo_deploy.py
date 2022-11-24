@@ -316,6 +316,11 @@ class Deploy(command.Command):
         }
         return data
 
+    def _ip_for_uri(self, ip_addr, ip_nw):
+        if ip_nw.version == 6:
+            return '[%s]' % ip_addr
+        return ip_addr
+
     def _generate_portmap_parameters(self, ip_addr, ip_nw, ctlplane_vip_addr,
                                      public_vip_addr, stack_name='standalone',
                                      role_name='Standalone'):
@@ -356,6 +361,34 @@ class Deploy(command.Command):
                     'subnets': [{'cidr': str(ip_nw.cidr),
                                  'ip_version': ip_nw.version}],
                     'network': {'tags': [str(ip_nw.cidr)]}
+                }
+            },
+            'NodePortMap': {
+                hostname: {
+                    'ctlplane': {
+                        'ip_address': ip_addr,
+                        'ip_address_uri': self._ip_for_uri(ip_addr, ip_nw),
+                        'ip_subnet': '%s/%s' % (ip_addr, ip_nw.prefixlen)
+                    }
+                }
+            },
+            'ControlPlaneVipData': {
+                'fixed_ips': [
+                    {'ip_address': ctlplane_vip_addr}
+                ],
+                'name': 'control_virtual_ip',
+                'network': {
+                    'tags': ['%s/%s' % (ctlplane_vip_addr, ip_nw.prefixlen)]
+                },
+                'subnets': [
+                    {'ip_version': ip_nw.version}
+                ]
+            },
+            'VipPortMap': {
+                'external': {
+                    'ip_address': public_vip_addr,
+                    'ip_address_uri': self._ip_for_uri(public_vip_addr, ip_nw),
+                    'ip_subnet': '%s/%s' % (public_vip_addr, ip_nw.prefixlen)
                 }
             }
         }
