@@ -219,8 +219,7 @@ class UpgradeUndercloud(InstallUndercloud):
             prepare_undercloud_deploy(
                 upgrade=True,
                 yes=parsed_args.yes,
-                no_validations=parsed_args.
-                no_validations,
+                no_validations=parsed_args.no_validations,
                 verbose_level=self.app_args.verbose_level,
                 reproduce_command=parsed_args.reproduce_command,
                 force_stack_update=parsed_args.force_stack_update)
