@@ -213,6 +213,14 @@ class BackupOvercloud(command.Command):
            parsed_args.cron is False and
            parsed_args.init is None):
 
+            self.log.warning(
+                '\n'
+                ' ########################################################\n'
+                ' #                  Deprecation note                    #\n'
+                ' # Backup and restore feature is deprecated and will be #\n'
+                ' # removed in the next release. Please consider using   #\n'
+                ' # snapshot and revert feature.                         #\n'
+                ' ########################################################\n')
             self.log.debug(_('Starting Overcloud Backup'))
             self._run_ansible_playbook(
                             playbook='cli-overcloud-backup.yaml',
