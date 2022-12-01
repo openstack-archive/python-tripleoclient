@@ -176,6 +176,14 @@ class BackupUndercloud(command.Command):
 
         extra_vars = self._parse_extra_vars(parsed_args.extra_vars)
 
+        LOG.warning(
+            '\n'
+            ' #############################################################\n'
+            ' #                  Deprecation note                         #\n'
+            ' # Backup and restore feature is deprecated and will be      #\n'
+            ' # removed in the next release.                              #\n'
+            ' #############################################################\n')
+
         if not (os.path.isfile(parsed_args.inventory) and
                 os.access(parsed_args.inventory, os.R_OK)):
             raise RuntimeError(
