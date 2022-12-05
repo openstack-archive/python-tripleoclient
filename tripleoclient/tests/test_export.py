@@ -128,13 +128,15 @@ class TestExport(TestCase):
         working_dir = utils.get_default_working_dir('overcloud')
         mock_stack_output.side_effect = self._get_stack_saved_output_item
         self.mock_open = mock.mock_open(
-            read_data='{"an_key":"an_value","ovn_dbs_vip":"vip"}')
+            read_data=('{"an_key":"an_value","ovn_dbs_vip":"vip",'
+                       '"ovn_dbs_node_ips":[1,2]}'))
         with mock.patch('builtins.open', self.mock_open):
             data = export.export_stack(
                     working_dir, "overcloud", should_filter=True)
 
         expected = \
-            {'AllNodesExtraMapData': {u'ovn_dbs_vip': u'vip'},
+            {'AllNodesExtraMapData': {u'ovn_dbs_vip': u'vip',
+                                      u'ovn_dbs_node_ips': [1, 2]},
              'AuthCloudName': 'central',
              'EndpointMapOverride': {'em_key': 'em_value'},
              'ExtraHostFileEntries': 'hosts entry',

@@ -250,6 +250,7 @@ EXPORT_DATA = {
                        "oslo_messaging_rpc_node_names",
                        "memcached_node_ips",
                        "ovn_dbs_vip",
+                       "ovn_dbs_node_ips",
                        "redis_vip"]},
     }
 
