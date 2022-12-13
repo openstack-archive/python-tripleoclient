@@ -211,19 +211,20 @@ class UpgradeRun(command.Command):
                     constants.UPGRADE_PROMPT, self.log)):
             raise OvercloudUpgradeNotConfirmed(constants.UPGRADE_NO)
 
-        # NOTE(cloudnull): The string option "all" was a special default
-        #                  that is no longer relevant. To retain compatibility
-        #                  this condition has been put in place.
-        if not parsed_args.playbook or parsed_args.playbook == ['all']:
-            playbook = constants.MAJOR_UPGRADE_PLAYBOOKS
-        else:
-            playbook = parsed_args.playbook
-
         working_dir = oooutils.get_default_working_dir(parsed_args.stack)
         config_download_dir = os.path.join(working_dir, 'config-download')
         ansible_dir = os.path.join(config_download_dir, parsed_args.stack)
         inventory_path = os.path.join(ansible_dir,
                                       'tripleo-ansible-inventory.yaml')
+        # NOTE(cloudnull): The string option "all" was a special default
+        #                  that is no longer relevant. To retain compatibility
+        #                  this condition has been put in place.
+        if not parsed_args.playbook or parsed_args.playbook == ['all']:
+            playbook = [os.path.join(ansible_dir, p)
+                        for p in constants.MAJOR_UPGRADE_PLAYBOOKS]
+        else:
+            playbook = parsed_args.playbook
+
         key = oooutils.get_key(parsed_args.stack)
         oooutils.run_ansible_playbook(
             playbook=playbook,
