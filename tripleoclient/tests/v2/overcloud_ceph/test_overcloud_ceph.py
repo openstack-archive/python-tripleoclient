@@ -362,6 +362,7 @@ class TestOvercloudCephSpec(fakes.FakePlaybookExecution):
             verbosity=3,
             tags='ceph_spec',
             reproduce_command=False,
+            rotate_log=True,
             extra_vars={
                 "baremetal_deployed_path": mock.ANY,
                 'tripleo_roles_path': mock.ANY,

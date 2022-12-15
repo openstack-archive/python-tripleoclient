@@ -256,7 +256,7 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
                          ansible_cfg=None, ansible_timeout=30,
                          reproduce_command=False,
                          timeout=None, forks=None,
-                         ignore_unreachable=False):
+                         ignore_unreachable=False, rotate_log=False):
     """Simple wrapper for ansible-playbook.
 
     :param playbook: Playbook filename.
@@ -349,6 +349,9 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
 
     :param timeout: Timeout for ansible to finish playbook execution (minutes).
     :type timeout: int
+
+    :param rotate_log: Enable or disable option to rotate ansible.log
+    :type rotate_log: Boolean
     """
 
     def _playbook_check(play):
@@ -660,6 +663,9 @@ def run_ansible_playbook(playbook, inventory, workdir, playbook_dir=None,
 
         if parallel_run:
             r_opts['directory_isolation_base_path'] = ansible_artifact_path
+
+        if rotate_log and os.path.exists(env['ANSIBLE_LOG_PATH']):
+            rotate_ansible_log(env['ANSIBLE_LOG_PATH'])
 
         runner_config = ansible_runner.runner_config.RunnerConfig(**r_opts)
         runner_config.prepare()
@@ -3361,3 +3367,9 @@ def get_output_dir(output_dir: str, stack_name: str = "undercloud") -> str:
         return os.path.join(constants.UNDERCLOUD_OUTPUT_DIR,
                             'tripleo-deploy', stack_name)
     return output_dir
+
+
+def rotate_ansible_log(ansible_log_abspath):
+    now = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S')
+    new_ansible_log_abspath = os.path.join(ansible_log_abspath+"-"+now)
+    os.rename(ansible_log_abspath, new_ansible_log_abspath)

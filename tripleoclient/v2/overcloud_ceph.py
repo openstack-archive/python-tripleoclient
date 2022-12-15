@@ -1116,4 +1116,5 @@ class OvercloudCephSpec(command.Command):
                 extra_vars=extra_vars,
                 reproduce_command=False,
                 tags=tags,
+                rotate_log=True,
             )
