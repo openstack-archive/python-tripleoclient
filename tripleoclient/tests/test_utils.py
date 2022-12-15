@@ -15,8 +15,8 @@
 
 
 import ansible_runner
-import argparse
 import datetime
+import errno
 import fixtures
 import logging
 import openstack
@@ -1450,34 +1450,65 @@ class TestGetSingleIp(TestCase):
 class TestStoreCliParam(TestCase):
 
     def setUp(self):
-        self.args = argparse.ArgumentParser()
+        class ArgsFake(object):
+            def __init__(self):
+                self.a = 1
+
+        self.args = ArgsFake()
 
     @mock.patch('os.path.isdir')
-    @mock.patch('os.path.exists')
-    def test_exists_but_not_dir(self, mock_exists, mock_isdir):
-        mock_exists.return_value = True
+    @mock.patch('os.chown')
+    @mock.patch('os.mkdir')
+    def test_non_directory_exists(self, mock_mkdir, mock_chown, mock_isdir):
         mock_isdir.return_value = False
         self.assertRaises(exceptions.InvalidConfiguration,
                           utils.store_cli_param,
                           "overcloud deploy", self.args)
 
+    @mock.patch('tripleoclient.utils.datetime')
     @mock.patch('os.path.isdir')
-    @mock.patch('os.path.exists')
-    def test_write_cli_param(self, mock_exists, mock_isdir):
+    @mock.patch('os.chown')
+    @mock.patch('os.mkdir')
+    def test_directory_exists(self, mock_mkdir, mock_chown, mock_isdir,
+                              mock_date):
         history_path = os.path.join(os.path.expanduser("~"), '.tripleo')
-        mock_exists.return_value = True
+        mock_mkdir.side_effect = OSError(errno.EEXIST, 'error')
         mock_isdir.return_value = True
         mock_file = mock.mock_open()
+        mock_date.datetime.now.return_value = datetime.datetime(2017, 11, 22)
 
-        class ArgsFake(object):
-            def __init__(self):
-                self.a = 1
-
-        dt = datetime.datetime(2017, 11, 22)
         with mock.patch("builtins.open", mock_file):
-            with mock.patch('tripleoclient.utils.datetime') as mock_date:
-                mock_date.datetime.now.return_value = dt
-                utils.store_cli_param("overcloud plan list", ArgsFake())
+            utils.store_cli_param("overcloud plan list", self.args)
+
+        expected_call = [
+            mock.call("%s/history" % history_path, 'a'),
+            mock.call().write('2017-11-22 00:00:00 overcloud-plan-list a=1 \n')
+        ]
+        mock_file.assert_has_calls(expected_call, any_order=True)
+
+    @mock.patch('os.path.isdir')
+    @mock.patch('os.chown')
+    @mock.patch('os.mkdir')
+    def test_directory_fail(self, mock_mkdir, mock_chown, mock_isdir):
+        mock_mkdir.side_effect = OSError()
+        with self.assertRaises(IOError):
+            utils.store_cli_param("overcloud plan list", self.args)
+        mock_chown.assert_not_called()
+        mock_isdir.assert_not_called()
+
+    @mock.patch('tripleoclient.utils.datetime')
+    @mock.patch('os.path.isdir')
+    @mock.patch('os.chown')
+    @mock.patch('os.mkdir')
+    def test_write_cli_param(self, mock_mkdir, mock_chown, mock_isdir,
+                             mock_date):
+        history_path = os.path.join(os.path.expanduser("~"), '.tripleo')
+        mock_isdir.return_value = True
+        mock_file = mock.mock_open()
+        mock_date.datetime.now.return_value = datetime.datetime(2017, 11, 22)
+
+        with mock.patch("builtins.open", mock_file):
+            utils.store_cli_param("overcloud plan list", self.args)
 
         expected_call = [
             mock.call("%s/history" % history_path, 'a'),
@@ -1487,12 +1518,14 @@ class TestStoreCliParam(TestCase):
 
     @mock.patch('builtins.open')
     @mock.patch('os.path.isdir')
-    @mock.patch('os.path.exists')
-    def test_fail_to_write_data(self, mock_exists, mock_isdir, mock_open):
-        mock_exists.return_value = True
+    @mock.patch('os.chown')
+    @mock.patch('os.mkdir')
+    def test_fail_to_write_data(self, mock_mkdir, mock_chown, mock_isdir,
+                                mock_open):
         mock_isdir.return_value = True
         mock_open.side_effect = IOError()
-        self.assertRaises(IOError, utils.store_cli_param, "command", self.args)
+        with self.assertRaises(IOError):
+            utils.store_cli_param("command", self.args)
 
 
 class ProcessMultipleEnvironments(TestCase):
