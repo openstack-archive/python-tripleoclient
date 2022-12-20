@@ -54,7 +54,8 @@ class TestOvercloudImageBuild(TestPluginV1):
             output_directory='.',
             skip=True,
             images=None)
-        cmd = ['sudo', 'dnf', 'install', '-y'] + self.cmd.REQUIRED_PACKAGES
+        cmd = ['sudo', 'dnf', 'install', '-y',
+               '--setopt=install_weak_deps=False'] + self.cmd.REQUIRED_PACKAGES
         self.mock_run_command.assert_called_once_with(
             cmd, name="Install required packages")
 
