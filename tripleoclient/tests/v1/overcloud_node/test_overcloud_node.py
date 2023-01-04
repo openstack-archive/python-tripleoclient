@@ -1010,6 +1010,8 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
             {'name': 'Compute'}
         ]
 
+        networks_data = []
+
         self.stack_dict = {
             'parameters': {
                 'ComputeHostnameFormat': '%stackname%-novacompute-%index%',
@@ -1020,7 +1022,7 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
                 'output_key': 'TripleoHeatTemplatesJinja2RenderingDataSources',
                 'output_value': {
                     'roles_data': roles_data,
-                    'networks_data': {}
+                    'networks_data': networks_data,
                 }
             }, {
                 'output_key': 'AnsibleHostVarsMap',
@@ -1165,8 +1167,17 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
             mode='w', delete=False, suffix='.yaml')
         self.roles_file.write(yaml.safe_dump(roles_data))
         self.roles_file.close()
+
+        self.networks_file = tempfile.NamedTemporaryFile(
+            mode='w', delete=False, suffix='.yaml')
+        self.networks_file.write(yaml.safe_dump(networks_data))
+        self.networks_file.close()
+
+        self.working_dir = tempfile.TemporaryDirectory()
+
         self.addCleanup(os.unlink, self.extract_file.name)
         self.addCleanup(os.unlink, self.roles_file.name)
+        self.addCleanup(os.unlink, self.networks_file.name)
 
     def test_extract(self):
         stack = mock.Mock()
@@ -1259,10 +1270,12 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
 
         self.baremetal.node.list.return_value = self.nodes
         argslist = ['--roles-file', self.roles_file.name,
+                    '--networks-file', self.networks_file.name,
                     '--output', self.extract_file.name,
                     '--yes']
         self.app.command_options = argslist
         verifylist = [('roles_file', self.roles_file.name),
+                      ('networks_file', self.networks_file.name),
                       ('output', self.extract_file.name),
                       ('yes', True)]
 
@@ -1358,6 +1371,114 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
         with open(self.extract_file.name) as f:
             self.assertEqual(yaml.safe_load(result), yaml.safe_load(f))
 
+    @mock.patch('tripleoclient.utils.run_command_and_log', autospec=True)
+    def test_extract_convert_nic_configs(self, mock_run_cmd):
+        stack = mock.Mock()
+        stack.stack_name = 'overcloud'
+        stack.to_dict.return_value = self.stack_dict
+        stack.files.return_value = {
+            'https://1.1.1.1:13808/v1/AUTH_xx/overcloud/user-files/'
+            'home/stack/overcloud/compute-net-config.yaml': 'FAKE_CONTENT'}
+        stack.environment.return_value = {
+            'resource_registry': {
+                'OS::TripleO::Compute::Net::SoftwareConfig':
+                    'https://1.1.1.1:13808/v1/AUTH_xx/overcloud/user-files/'
+                    'home/stack/overcloud/compute-net-config.yaml'
+            }
+        }
+        self.orchestration.stacks.get.return_value = stack
+
+        self.baremetal.node.list.return_value = self.nodes
+
+        mock_run_cmd.return_value = 0
+
+        argslist = ['--output', self.extract_file.name,
+                    '--working-dir', self.working_dir.name,
+                    '--yes']
+        self.app.command_options = argslist
+        verifylist = [('output', self.extract_file.name),
+                      ('working_dir', self.working_dir.name),
+                      ('yes', True)]
+        parsed_args = self.check_parser(self.cmd,
+                                        argslist, verifylist)
+        self.cmd.take_action(parsed_args)
+
+        result = self.cmd.app.stdout.make_string()
+        heat_nic_conf_path = os.path.join(self.working_dir.name,
+                                          'nic-configs',
+                                          'compute-net-config.yaml')
+        cmd = ['/usr/share/openstack-tripleo-heat-templates/tools/'
+               'convert_heat_nic_config_to_ansible_j2.py',
+               '--yes',
+               '--stack', stack.stack_name,
+               '--networks_file', mock.ANY,
+               heat_nic_conf_path]
+        mock_run_cmd.assert_called_once_with(mock.ANY, cmd)
+        self.assertEqual([{
+            'name': 'Compute',
+            'count': 1,
+            'hostname_format': '%stackname%-novacompute-%index%',
+            'defaults': {
+                'network_config': {'network_config_update': False,
+                                   'physical_bridge_name': 'br-ex',
+                                   'public_interface_name': 'nic1',
+                                   'template':
+                                       os.path.join(self.working_dir.name,
+                                                    'nic-configs',
+                                                    'compute-net-config.j2')},
+                'networks': [{'network': 'ctlplane',
+                              'vif': True},
+                             {'network': 'internal_api',
+                              'subnet': 'internal_api_b'}]
+            },
+            'instances': [{
+                'hostname': 'overcloud-novacompute-0',
+                'resource_class': 'compute',
+                'name': 'bm-3-uuid'
+            }],
+        }, {
+            'name': 'Controller',
+            'count': 3,
+            'hostname_format': '%stackname%-controller-%index%',
+            'defaults': {
+                'network_config': {'default_route_network': ['External'],
+                                   'network_config_update': False,
+                                   'networks_skip_config': ['Tenant'],
+                                   'physical_bridge_name': 'br-ex',
+                                   'public_interface_name': 'nic1',
+                                   'template': 'templates/controller.j2'},
+                'networks': [{'network': 'ctlplane',
+                              'vif': True},
+                             {'network': 'external',
+                              'subnet': 'external_a'},
+                             {'network': 'internal_api',
+                              'subnet': 'internal_api_a'}]
+            },
+            'instances': [{
+                'hostname': 'overcloud-controller-0',
+                'resource_class': 'controller',
+                'name': 'bm-0-uuid'
+            }, {
+                'hostname': 'overcloud-controller-1',
+                'resource_class': 'controller',
+                'name': 'bm-1-uuid'
+            }, {
+                'hostname': 'overcloud-controller-2',
+                'name': 'bm-2-uuid'
+            }],
+        }], yaml.safe_load(result))
+
+        with open(self.extract_file.name) as f:
+            file_content = f.read()
+        self.assertEqual(yaml.safe_load(result), yaml.safe_load(file_content))
+        self.assertIn('WARNING: Network config for role Compute was '
+                      'automatically converted from Heat template to Ansible '
+                      'Jinja2 template. Please review the file: {}\n'
+                      .format(os.path.join(self.working_dir.name,
+                                           'nic-configs',
+                                           'compute-net-config.j2')),
+                      file_content)
+
     def test_extract_empty(self):
         stack_dict = {
             'parameters': {},
@@ -1371,9 +1492,11 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
 
         self.baremetal.node.list.return_value = nodes
 
-        argslist = ['--roles-file', self.roles_file.name]
+        argslist = ['--roles-file', self.roles_file.name,
+                    '--networks-file', self.networks_file.name]
         self.app.command_options = argslist
-        verifylist = [('roles_file', self.roles_file.name)]
+        verifylist = [('roles_file', self.roles_file.name),
+                      ('networks_file', self.networks_file.name)]
 
         parsed_args = self.check_parser(self.cmd,
                                         argslist, verifylist)
