@@ -1072,7 +1072,8 @@ class TripleOImagePrepare(command.Command):
         env_dirs = [os.path.abspath(x)
                     for x in parsed_args.environment_directories]
         env_files = [os.path.abspath(x)
-                     for x in parsed_args.environment_files]
+                     for x in (parsed_args.environment_files or [])]
+
         extra_vars = {
             "roles_file": role_file,
             "environment_directories": env_dirs,
