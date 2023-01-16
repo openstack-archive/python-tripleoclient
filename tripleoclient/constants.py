@@ -192,6 +192,10 @@ DEPLOY_ANSIBLE_ACTIONS = {
         'playbook': 'upgrade_steps_playbook.yaml',
         'skip_tags': 'validation'
     },
+    'system-upgrade': {
+        'playbook': 'upgrade_steps_playbook.yaml',
+        'tags': 'system_upgrade'
+    },
     'post-upgrade': {
         'playbook': 'post_upgrade_steps_playbook.yaml',
         'skip_tags': 'validation'
