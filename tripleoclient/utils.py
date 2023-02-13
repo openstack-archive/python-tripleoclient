@@ -869,16 +869,29 @@ def store_cli_param(command_name, parsed_args):
     command_name = command_name.replace(" ", "-")
 
     history_path = os.path.join(constants.CLOUD_HOME_DIR, '.tripleo')
-    makedirs(history_path)
+    try:
+        os.mkdir(history_path, 0o700)
+        os.chown(history_path,
+                 int(os.environ.get('SUDO_UID', -1)),
+                 int(os.environ.get('SUDO_GID', -1)))
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            messages = _("Unable to create the .tripleo directory: "
+                         "{0}, {1}").format(history_path, e)
+            raise IOError(messages)
+
     if os.path.isdir(history_path):
         try:
-            with open(os.path.join(history_path,
-                                   'history'), 'a') as history:
+            history_file_path = os.path.join(history_path, 'history')
+            with open(history_file_path, 'a') as history:
                 args = parsed_args.__dict__.copy()
                 used_args = ', '.join('%s=%s' % (key, value)
                                       for key, value in args.items())
                 history.write(' '.join([str(datetime.datetime.now()),
                                        str(command_name), used_args, "\n"]))
+            os.chown(history_file_path,
+                     int(os.environ.get('SUDO_UID', -1)),
+                     int(os.environ.get('SUDO_GID', -1)))
         except IOError as e:
             messages = _("Unable to write into TripleO history file: "
                          "{0}, {1}").format(history_path, e)
