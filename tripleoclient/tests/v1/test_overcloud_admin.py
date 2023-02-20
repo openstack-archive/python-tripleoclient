@@ -64,5 +64,6 @@ class TestAdminAuthorize(test_plugin.TestPluginV1):
                                 'overcloud-dellcompute-0',
                                 'overcloud-controller-0']
             },
+            limit_hosts='localhost,overcloud',
             ansible_timeout=parsed_args.overcloud_ssh_port_timeout
         )

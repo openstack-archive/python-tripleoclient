@@ -60,8 +60,7 @@ def arg_parse_common(parser):
 def ceph_hosts_in_inventory(ceph_hosts, ceph_spec, inventory):
     """Raise command error if any ceph_hosts are not in the inventory
     """
-    all_host_objs = oooutils.parse_ansible_inventory(inventory, 'all')
-    all_hosts = list(map(lambda x: str(x), all_host_objs))
+    all_hosts = oooutils.parse_ansible_inventory(inventory)
     for ceph_host in ceph_hosts['_admin'] + ceph_hosts['non_admin']:
         if ceph_host not in all_hosts:
             raise oscexc.CommandError(

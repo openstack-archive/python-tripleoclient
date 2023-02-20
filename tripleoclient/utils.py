@@ -76,8 +76,6 @@ import warnings
 warnings.simplefilter("ignore", UserWarning)
 
 import ansible_runner  # noqa
-from ansible.parsing.dataloader import DataLoader  # noqa
-from ansible.inventory.manager import InventoryManager  # noqa
 
 LOG = logging.getLogger(__name__ + ".utils")
 _local_orchestration_client = None
@@ -3234,17 +3232,23 @@ def get_parameter_file(path):
     return file_data
 
 
-def parse_ansible_inventory(inventory_file, group):
+def parse_ansible_inventory(inventory_file):
     """ Retrieve a list of hosts from a defined ansible inventory file.
-    :param inventory: Ansible inventory file
-    :param group: The group to return hosts from, default will be 'all'
-    :return: list of hosts in the inventory matching the pattern
+    :param inventory_file: Ansible inventory file
+    :return: list of strings: names of hosts in the inventory
     """
 
-    inventory = InventoryManager(loader=DataLoader(),
-                                 sources=[inventory_file])
+    json_inv, err = ansible_runner.interface.get_inventory('list',
+                                                           [inventory_file],
+                                                           quiet=True)
+    if err:
+        msg = 'Error parsing inventory {}:\n{}'.format(inventory_file, err)
+        raise ansible_runner.exceptions.AnsibleRunnerException(msg)
 
-    return(inventory.get_hosts(pattern=group))
+    inventory = json.loads(json_inv)
+    hosts = list(inventory['_meta']['hostvars'].keys())
+
+    return hosts
 
 
 def save_stack(stack, working_dir):
