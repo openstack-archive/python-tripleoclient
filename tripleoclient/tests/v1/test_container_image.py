@@ -916,6 +916,28 @@ class TestTripleoImagePrepareDefault(TestPluginV1):
         }
         self.assertEqual(expected, yaml.safe_load(result))
 
+    def test_prepare_default_no_env(self):
+        arglist = []
+        verifylist = []
+
+        self.app.command_options = [
+            'tripleo', 'container', 'image', 'prepare'
+        ] + arglist
+        self.cmd.app.stdout = StringIO()
+        cmd = container_image.TripleOImagePrepareDefault(self.app, None)
+
+        parsed_args = self.check_parser(cmd, arglist, verifylist)
+        cmd.take_action(parsed_args)
+
+        result = self.app.stdout.getvalue()
+        expected_param = kolla_builder.CONTAINER_IMAGE_PREPARE_PARAM
+        expected = {
+            'parameter_defaults': {
+                'ContainerImagePrepare': expected_param
+            }
+        }
+        self.assertEqual(expected, yaml.safe_load(result))
+
     def test_prepare_default_local_registry(self):
         temp = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, temp)
