@@ -98,7 +98,8 @@ class BuildOvercloudImage(command.Command):
         return parser
 
     def _ensure_packages_installed(self):
-        cmd = ['sudo', 'dnf', 'install', '-y'] + self.REQUIRED_PACKAGES
+        cmd = ['sudo', 'dnf', 'install', '-y',
+               '--setopt=install_weak_deps=False'] + self.REQUIRED_PACKAGES
         output = plugin_utils.run_command(cmd,
                                           name="Install required packages")
         self.log.info(output)
