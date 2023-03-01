@@ -95,9 +95,12 @@ class UpdateRun(command.Command):
             action='store',
             required=True,
             help=_("A string that identifies a single node or comma-separated"
-                   "list of nodes the config-download Ansible playbook "
-                   "execution will be limited to. For example: --limit"
-                   " \"compute-0,compute-1,compute-5\".")
+                   " list of nodes the config-download Ansible playbook"
+                   " execution will be limited to. For example: --limit"
+                   " \"compute-0,compute-1,compute-5\". When"
+                   " DeploymentServerBlacklist is defined, excluded_overcloud"
+                   " group is added at the end of the string and nodes from"
+                   " the group will be skipped during the execution.")
         )
         parser.add_argument('--playbook',
                             nargs="*",
@@ -190,6 +193,19 @@ class UpdateRun(command.Command):
         ansible_cfg = os.path.join(ansible_dir, 'ansible.cfg')
         key_file = oooutils.get_key(parsed_args.stack)
 
+        limit_hosts = oooutils.playbook_limit_parse(parsed_args.limit)
+        excluded_hostnames = oooutils.get_excluded_hostnames(
+                                oooutils.get_default_working_dir(
+                                    parsed_args.stack))
+
+        if any(excluded_hostname.strip() for excluded_hostname in
+               excluded_hostnames):
+            oooutils.compare_limit_nodes_with_excluded_hosts(
+                    limit_nodes=limit_hosts, excluded_hosts=excluded_hostnames)
+            self.log.info("Excluded hostnames detected. Added"
+                          " excluded_overcloud host group to --limit flag.")
+            limit_hosts += ':!excluded_overcloud'
+
         oooutils.run_ansible_playbook(
             playbook=playbook,
             inventory=inventory,
@@ -199,7 +215,9 @@ class UpdateRun(command.Command):
             tags=parsed_args.tags,
             ansible_cfg=ansible_cfg,
             ssh_user='tripleo-admin',
-            limit_hosts=parsed_args.limit,
+            limit_hosts=oooutils.playbook_limit_parse(
+                limit_nodes=limit_hosts
+            ),
             reproduce_command=True,
             forks=parsed_args.ansible_forks,
             extra_env_variables={
