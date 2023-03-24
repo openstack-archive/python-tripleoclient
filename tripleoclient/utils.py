@@ -210,6 +210,40 @@ def makedirs(dir_path):
         return True
 
 
+def compare_limit_nodes_with_excluded_hosts(limit_nodes, excluded_hosts):
+    """Compare limit nodes list with excluded hosts list.
+
+    This will compare the limit nodes list with the excluded hosts list
+    and raise an Exception if there is a match to inform user that the
+    host is in both lists. If user marks a host in limit option as
+    excluded with exclamatory mark (!) then it will be ignored during
+    the comparison.
+
+    :param limit_hosts: list of hosts to limit the playbook to.
+    :type limit_hosts: `list`
+    :param excluded_hosts: list of hosts to exclude from the playbook.
+    :type excluded_hosts: `list`
+
+    :raises:
+        RuntimeError if there is a match between the limit nodes and the
+        excluded hosts.
+
+    """
+    if limit_nodes and excluded_hosts:
+        matching_hosts_found = []
+        for limit_node in re.split(':', limit_nodes):
+            if not limit_node.startswith('!') and limit_node in \
+               excluded_hosts:
+                matching_hosts_found.append(limit_node)
+
+        if matching_hosts_found:
+            raise RuntimeError(
+                'Hosts {} are in both the limit nodes and the '
+                'excluded hosts list. Please remove it from one of '
+                'the lists.'.format(','.join(matching_hosts_found))
+            )
+
+
 def playbook_limit_parse(limit_nodes):
     """Return a parsed string for limits.
 
@@ -1010,6 +1044,11 @@ def get_endpoint_map(working_dir):
 def get_excluded_ip_addresses(working_dir):
     return get_stack_saved_output_item(
             'BlacklistedIpAddresses', working_dir)
+
+
+def get_excluded_hostnames(working_dir):
+    return get_stack_saved_output_item(
+            'BlacklistedHostnames', working_dir)
 
 
 def get_role_net_ip_map(working_dir):
