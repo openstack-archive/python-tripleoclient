@@ -637,7 +637,7 @@ class ExtractProvisionedNode(command.Command):
         for node in node_details:
             hostname = node.instance_info.get('display_name')
             if hostname:
-                hostname_node_map[hostname] = node.id
+                hostname_node_map[hostname] = node.uuid
             if hostname and node.resource_class:
                 hostname_node_resource[hostname] = node.resource_class
 

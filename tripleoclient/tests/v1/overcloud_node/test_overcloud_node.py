@@ -809,16 +809,16 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
             mock.Mock()
         ]
         self.nodes[0].name = 'bm-0'
-        self.nodes[0].id = 'bm-0-uuid'
+        self.nodes[0].uuid = 'bm-0-uuid'
         self.nodes[0].resource_class = 'controller'
         self.nodes[1].name = 'bm-1'
-        self.nodes[1].id = 'bm-1-uuid'
+        self.nodes[1].uuid = 'bm-1-uuid'
         self.nodes[1].resource_class = 'controller'
         self.nodes[2].name = 'bm-2'
-        self.nodes[2].id = 'bm-2-uuid'
+        self.nodes[2].uuid = 'bm-2-uuid'
         self.nodes[2].resource_class = None
         self.nodes[3].name = 'bm-3'
-        self.nodes[3].id = 'bm-3-uuid'
+        self.nodes[3].uuid = 'bm-3-uuid'
         self.nodes[3].resource_class = 'compute'
 
         self.nodes[0].instance_info = {
