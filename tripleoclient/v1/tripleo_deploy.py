@@ -915,6 +915,9 @@ class Deploy(command.Command):
                                    "--standalone. "))
         parser.add_argument('--upgrade', default=False, action='store_true',
                             help=_("Upgrade an existing deployment."))
+        parser.add_argument('--system-upgrade', default=False,
+                            action='store_true',
+                            help=_("System-upgrade an existing deployment."))
         parser.add_argument('-y', '--yes', default=False, action='store_true',
                             help=_("Skip yes/no prompt (assume yes)."))
         parser.add_argument('--stack',
@@ -1317,14 +1320,20 @@ class Deploy(command.Command):
                 self._kill_heat(parsed_args)
             if not parsed_args.output_only:
                 operations = list()
-                if parsed_args.upgrade:
-                    # Run Upgrade tasks before the deployment
+                if parsed_args.system_upgrade:
+                    # Run System Upgrade tasks before the deployment
                     operations.append(
-                        constants.DEPLOY_ANSIBLE_ACTIONS['upgrade']
+                        constants.DEPLOY_ANSIBLE_ACTIONS['system-upgrade']
                     )
-                operations.append(
-                    constants.DEPLOY_ANSIBLE_ACTIONS['deploy']
-                )
+                else:
+                    if parsed_args.upgrade:
+                        # Run Upgrade tasks before the deployment
+                        operations.append(
+                            constants.DEPLOY_ANSIBLE_ACTIONS['upgrade']
+                        )
+                    operations.append(
+                        constants.DEPLOY_ANSIBLE_ACTIONS['deploy']
+                    )
                 if parsed_args.upgrade:
                     # Run Post Upgrade tasks after the deployment
                     operations.append(

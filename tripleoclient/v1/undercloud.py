@@ -194,6 +194,14 @@ class UpgradeUndercloud(InstallUndercloud):
                             help=_("Flag to skip the package update when "
                                    "performing upgrades and updates"),
                             )
+        parser.add_argument(
+            '--system-upgrade',
+            dest='system_upgrade',
+            action='store',
+            default=None,
+            help=_("Run system upgrade while using "
+                   "provided environment yaml file."),
+        )
         return parser
 
     def _update_extra_packages(self, packages=[], dry_run=False):
@@ -218,6 +226,7 @@ class UpgradeUndercloud(InstallUndercloud):
         cmd = undercloud_config.\
             prepare_undercloud_deploy(
                 upgrade=True,
+                system_upgrade=parsed_args.system_upgrade,
                 yes=parsed_args.yes,
                 no_validations=parsed_args.
                 no_validations,

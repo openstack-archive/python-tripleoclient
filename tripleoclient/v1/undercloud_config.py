@@ -436,6 +436,7 @@ def _process_chrony_acls(env):
 
 
 def prepare_undercloud_deploy(upgrade=False, no_validations=True,
+                              system_upgrade=None,
                               verbose_level=1, yes=False,
                               force_stack_update=False, dry_run=False,
                               inflight=False,
@@ -821,6 +822,9 @@ def prepare_undercloud_deploy(upgrade=False, no_validations=True,
 
     if reproducer:
         deploy_args.append('--reproduce-command')
+
+    if system_upgrade:
+        deploy_args += ['--system-upgrade', '-e', system_upgrade]
 
     if disable_container_prepare:
         deploy_args.append('--disable-container-prepare')
