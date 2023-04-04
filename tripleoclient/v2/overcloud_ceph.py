@@ -114,6 +114,12 @@ class OvercloudCephDeploy(command.Command):
                                    "deployed servers. By default this is "
                                    "configured so overcloud nodes can pull "
                                    "containers from the undercloud registry."))
+        parser.add_argument('--skip-ntp', default=False,
+                            action='store_true',
+                            help=_("Do not install/enable NTP chronyd "
+                                   "service. By default time synchronization "
+                                   "service chronyd is installed and enabled "
+                                   "later by tripleo."))
         parser = arg_parse_common(parser)
         parser.add_argument('--roles-data',
                             help=_(
@@ -254,6 +260,18 @@ class OvercloudCephDeploy(command.Command):
                             action='store_true',
                             help=_("Adjust configuration defaults to suit "
                                    "a single-host Ceph cluster."))
+        ntp_group = parser.add_mutually_exclusive_group()
+        ntp_group.add_argument('--ntp-server',
+                               help=_("NTP Servers to be used while "
+                                      "configuring chronyd service."
+                                      "e.g. --ntp-server '0.pool.ntp.org,"
+                                      "1.pool.ntp.org,2.pool.ntp.org'"))
+        ntp_group.add_argument('--ntp-heat-env-file', default=None,
+                               help=_("Path to existing heat environment "
+                                      "file with NTP servers to be used "
+                                      "while configuring chronyd service."
+                                      "NTP servers are extracted from "
+                                      "'NtpServer' key"))
         spec_group = parser.add_mutually_exclusive_group()
         spec_group.add_argument('--ceph-spec',
                                 help=_(
@@ -653,6 +671,39 @@ class OvercloudCephDeploy(command.Command):
                            "or file from --container-image-prepare "
                            "is not setting push_destination. Or "
                            "--skip-container-registry-config was used.")
+
+        if not parsed_args.skip_ntp:
+            ntpserver = ""
+            ntp_extra_vars = {}
+            if parsed_args.ntp_server:
+                ntpserver = str(parsed_args.ntp_server)
+            elif parsed_args.ntp_heat_env_file:
+                with open(os.path.abspath(parsed_args.ntp_heat_env_file),
+                          'r') as f:
+                    ntp_vars_file = yaml.safe_load(f)
+                ntpserver = \
+                    str(ntp_vars_file['parameter_defaults']['NtpServer'])
+
+            if ntpserver:
+                ntp_extra_vars = {
+                    'chrony_ntp_servers':
+                        [item for item in ntpserver.split(',')]
+                }
+
+            # call playbook to configure ntp chrony
+            with oooutils.TempDirs() as tmp:
+                oooutils.run_ansible_playbook(
+                    playbook='ceph-chrony.yaml',
+                    inventory=inventory,
+                    workdir=tmp,
+                    playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                    verbosity=oooutils.playbook_verbosity(self=self),
+                    extra_vars=ntp_extra_vars,
+                    reproduce_command=False,
+                )
+        else:
+            self.log.debug("Not installing NTP chrony service because "
+                           "--skip-ntp was used.")
 
         # call playbook to deploy ceph
         with oooutils.TempDirs() as tmp:
