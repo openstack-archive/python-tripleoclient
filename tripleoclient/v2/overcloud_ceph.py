@@ -282,6 +282,11 @@ class OvercloudCephDeploy(command.Command):
                                 "Path to an existing crush hierarchy spec "
                                 "file. "),
                             default=None)
+        parser.add_argument('--tld',
+                            help=_(
+                                "postfix added to the hostname to represent "
+                                "canonical hostname "),
+                            default=None)
         parser.add_argument('--standalone', default=False,
                             action='store_true',
                             help=_("Use single host Ansible inventory. "
@@ -473,6 +478,21 @@ class OvercloudCephDeploy(command.Command):
             else:
                 extra_vars['crush_hierarchy_path'] = \
                     os.path.abspath(parsed_args.crush_hierarchy)
+
+        if parsed_args.tld:
+            extra_vars['tld_option'] = str(parsed_args.tld)
+            # call playbook to update hostname with tld
+            with oooutils.TempDirs() as tmp:
+                oooutils.run_ansible_playbook(
+                    playbook='ceph-set-hostname.yaml',
+                    inventory=inventory,
+                    workdir=tmp,
+                    playbook_dir=constants.ANSIBLE_TRIPLEO_PLAYBOOKS,
+                    verbosity=oooutils.playbook_verbosity(self=self),
+                    extra_vars=extra_vars,
+                    reproduce_command=False,
+                )
+
         if parsed_args.cephadm_extra_args and not parsed_args.force:
             raise oscexc.CommandError(
                 "--cephadm-extra-args requires --force.")
@@ -981,6 +1001,11 @@ class OvercloudCephSpec(command.Command):
                             help=_("Create a spec file for a standalone "
                                    "deployment. Used for single server "
                                    "development or testing environments."))
+        parser.add_argument('--tld',
+                            help=_(
+                                "postfix added to the hostname to represent "
+                                "canonical hostname "),
+                            default=None)
         spec_group = parser.add_mutually_exclusive_group()
         spec_group.add_argument('--osd-spec',
                                 help=_(
@@ -1098,6 +1123,9 @@ class OvercloudCephSpec(command.Command):
             else:
                 extra_vars['crush_hierarchy_path'] = \
                     os.path.abspath(parsed_args.crush_hierarchy)
+
+        if parsed_args.tld:
+            extra_vars['tld_option'] = str(parsed_args.tld)
 
         if parsed_args.standalone:
             spec_playbook = 'cli-standalone-ceph-spec.yaml'
