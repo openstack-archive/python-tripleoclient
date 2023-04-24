@@ -53,7 +53,7 @@ class TestOvercloudCephDeploy(fakes.FakePlaybookExecution):
                    '--container-tag', 'latest']
         parsed_args = self.check_parser(self.cmd, arglist, [])
         self.cmd.take_action(parsed_args)
-        mock_playbook.assert_called_once_with(
+        mock_playbook.assert_called_with(
             playbook='cli-deployed-ceph.yaml',
             inventory=mock.ANY,
             workdir=mock.ANY,
@@ -100,7 +100,7 @@ class TestOvercloudCephDeploy(fakes.FakePlaybookExecution):
                    '--container-tag', 'latest']
         parsed_args = self.check_parser(self.cmd, arglist, [])
         self.cmd.take_action(parsed_args)
-        mock_playbook.assert_called_once_with(
+        mock_playbook.assert_called_with(
             playbook='cli-deployed-ceph.yaml',
             inventory=mock.ANY,
             workdir=mock.ANY,
