@@ -30,24 +30,9 @@ class TestExport(TestCase):
 
         self.mock_open = mock.mock_open(read_data='{"an_key":"an_value"}')
 
-        ceph_inv = {
-            'DistributedComputeHCI': {
-                'hosts': {
-                    'dcn0-distributedcomputehci-0': {
-                        'foo_ip': '192.168.24.42'
-                    },
-                    'dcn0-distributedcomputehci-1': {
-                        'foo_ip': '192.168.8.8'
-                    }
-                }
-            },
-            'mons': {
-                'children': {
-                    'DistributedComputeHCI': {}
-                }
-            }
-        }
-        self.mock_open_ceph_inv = mock.mock_open(read_data=str(ceph_inv))
+        self.mock_open_ceph_inv = mock.mock_open(read_data=str(
+            self._get_test_inventory()
+        ))
 
         ceph_global = {
             'service_net_map': {
@@ -64,6 +49,25 @@ class TestExport(TestCase):
             ]
         }
         self.mock_open_ceph_all = mock.mock_open(read_data=str(ceph_all))
+
+    def _get_test_inventory(self):
+        return {
+            'DistributedComputeHCI': {
+                'hosts': {
+                    'dcn0-distributedcomputehci-0': {
+                        'foo_ip': '192.168.24.42'
+                    },
+                    'dcn0-distributedcomputehci-1': {
+                        'foo_ip': '192.168.8.8'
+                    }
+                }
+            },
+            'mons': {
+                'children': {
+                    'DistributedComputeHCI': {}
+                }
+            }
+        }
 
     def _get_stack_saved_output_item(self, output_key, working_dir):
         outputs = {
@@ -245,3 +249,32 @@ class TestExport(TestCase):
         self.assertEqual(data, expected)
         self.mock_open_ceph_all.assert_called_once_with(
             '/foo/dcn0/ceph-ansible/group_vars/all.yml', 'r')
+
+
+class TestExportNestedInventory(TestExport):
+    def _get_test_inventory(self):
+        return {
+            'DistributedComputeHCI': {
+                'hosts': {
+                    'dcn0-distributedcomputehci-0': {
+                        'foo_ip': '192.168.24.42'
+                    },
+                    'dcn0-distributedcomputehci-1': {
+                        'foo_ip': '192.168.8.8'
+                    }
+                }
+            },
+            'stackfoo_mons': {
+                'children': {
+                    'DistributedComputeHCI': {}
+                }
+            },
+            'mons': {
+                'children': {
+                    'stackfoo_mons': {}
+                }
+            }
+        }
+
+    def test_export_storage_ips(self):
+        return super().test_export_storage_ips()

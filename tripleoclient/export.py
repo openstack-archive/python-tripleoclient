@@ -174,10 +174,14 @@ def export_storage_ips(stack, config_download_dir=constants.DEFAULT_WORK_DIR,
                 _('Could not read file %s') % file)
             LOG.error(e)
     mon_ips = []
-    for mon_role in inventory_data['mons']['children'].keys():
-        for hostname in inventory_data[mon_role]['hosts']:
-            ip = inventory_data[mon_role]['hosts'][hostname][ceph_net_key]
+
+    def get_mon_ips(group):
+        for hostname in inventory_data[group].get('hosts', {}):
+            ip = inventory_data[group]['hosts'][hostname][ceph_net_key]
             mon_ips.append(ip)
+        for child in inventory_data[group].get('children', {}):
+            get_mon_ips(child)
+    get_mon_ips('mons')
 
     return mon_ips
 
