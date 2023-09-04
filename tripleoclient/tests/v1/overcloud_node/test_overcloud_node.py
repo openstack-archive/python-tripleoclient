@@ -1247,3 +1247,133 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
         self.cmd.take_action(parsed_args)
         result = self.cmd.app.stdout.make_string()
         self.assertIsNone(yaml.safe_load(result))
+
+    @mock.patch('tripleoclient.utils.run_command_and_log', autospec=True)
+    def test_extract_no_network_isolation(self, mock_run_cmd):
+        controller_ips = ['192.168.25.21', '192.168.25.25', '192.168.25.28']
+        compute_ips = ['192.168.26.11']
+        roles_data = [
+            {'name': 'Controller',
+             'default_route_networks': ['External'],
+             'networks_skip_config': ['Tenant']},
+            {'name': 'Compute'}
+        ]
+        networks_data = []
+        stack_dict = {
+            'parameters': {
+                'ComputeHostnameFormat': '%stackname%-novacompute-%index%',
+                'ControllerHostnameFormat': '%stackname%-controller-%index%',
+            },
+            'outputs': [{
+                'output_key': 'TripleoHeatTemplatesJinja2RenderingDataSources',
+                'output_value': {
+                    'roles_data': roles_data,
+                    'networks_data': networks_data,
+                }
+            }, {
+                'output_key': 'AnsibleHostVarsMap',
+                'output_value': {
+                    'Compute': [
+                        'overcloud-novacompute-0'
+                    ],
+                    'Controller': [
+                        'overcloud-controller-0',
+                        'overcloud-controller-1',
+                        'overcloud-controller-2'
+                    ],
+                }
+            }, {
+                'output_key': 'RoleNetIpMap',
+                'output_value': {
+                    'Compute': {
+                        'ctlplane': compute_ips,
+                        'internal_api': compute_ips,
+                    },
+                    'Controller': {
+                        'ctlplane': controller_ips,
+                        'external': controller_ips,
+                        'internal_api': controller_ips,
+                    }
+                }
+            }]
+        }
+
+        stack = mock.Mock()
+        stack.stack_name = 'overcloud'
+        stack.to_dict.return_value = stack_dict
+        stack.environment.return_value = {}
+        self.orchestration.stacks.get.return_value = stack
+        self.baremetal.node.list.return_value = self.nodes
+        self.network.find_network.side_effect = [
+            self.ctlplane_net, None,
+            # controller-0
+            self.ctlplane_net, None, None,
+            # controller-1
+            self.ctlplane_net, None, None,
+            # controller-2
+            self.ctlplane_net, None, None,
+        ]
+        self.network.get_subnet.side_effect = [
+            # compute-0
+            self.ctlplane_a, self.ctlplane_b,
+            # controller-0
+            self.ctlplane_a,
+            # controller-1
+            self.ctlplane_a,
+            # controller-2
+            self.ctlplane_a,
+        ]
+        mock_run_cmd.return_value = 0
+
+        argslist = ['--output', self.extract_file.name,
+                    '--yes']
+        self.app.command_options = argslist
+        verifylist = [('output', self.extract_file.name),
+                      ('yes', True)]
+        parsed_args = self.check_parser(self.cmd,
+                                        argslist, verifylist)
+        self.cmd.take_action(parsed_args)
+
+        result = self.cmd.app.stdout.make_string()
+        self.assertEqual([{
+            'name': 'Compute',
+            'count': 1,
+            'hostname_format': '%stackname%-novacompute-%index%',
+            'defaults': {
+                'network_config': {'network_config_update': False,
+                                   'physical_bridge_name': 'br-ex',
+                                   'public_interface_name': 'nic1',
+                                   'template': None},
+                'networks': [{'network': 'ctlplane', 'vif': True}]
+            },
+            'instances': [{
+                'hostname': 'overcloud-novacompute-0',
+                'name': 'bm-3-uuid',
+                'resource_class': 'compute',
+            }],
+        }, {
+            'name': 'Controller',
+            'count': 3,
+            'hostname_format': '%stackname%-controller-%index%',
+            'defaults': {
+                'network_config': {'default_route_network': ['External'],
+                                   'network_config_update': False,
+                                   'networks_skip_config': ['Tenant'],
+                                   'physical_bridge_name': 'br-ex',
+                                   'public_interface_name': 'nic1',
+                                   'template': None},
+                'networks': [{'network': 'ctlplane', 'vif': True}],
+            },
+            'instances': [{
+                'hostname': 'overcloud-controller-0',
+                'name': 'bm-0-uuid',
+                'resource_class': 'controller',
+            }, {
+                'hostname': 'overcloud-controller-1',
+                'name': 'bm-1-uuid',
+                'resource_class': 'controller',
+            }, {
+                'hostname': 'overcloud-controller-2',
+                'name': 'bm-2-uuid',
+            }],
+        }], yaml.safe_load(result))

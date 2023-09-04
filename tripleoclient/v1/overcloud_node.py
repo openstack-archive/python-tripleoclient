@@ -508,7 +508,7 @@ class ExtractProvisionedNode(command.Command):
                                    '"$HOME/overcloud-deploy/<stack>"'))
         return parser
 
-    def _get_subnet_from_net_name_and_ip(self, net_name, ip_addr):
+    def _get_network_from_net_name(self, net_name):
         try:
             network = self.network_client.find_network(net_name)
         except openstack_exc.DuplicateResource:
@@ -516,10 +516,9 @@ class ExtractProvisionedNode(command.Command):
                 "Unable to extract role networks. Duplicate network resources "
                 "with name %s detected." % net_name)
 
-        if network is None:
-            raise oscexc.CommandError("Unable to extract role networks. "
-                                      "Network %s not found." % net_name)
+        return network
 
+    def _get_subnet_from_ip(self, network, ip_addr):
         for subnet_id in network.subnet_ids:
             subnet = self.network_client.get_subnet(subnet_id)
             if (ipaddress.ip_address(ip_addr)
@@ -530,7 +529,7 @@ class ExtractProvisionedNode(command.Command):
         raise oscexc.CommandError("Unable to extract role networks. Could not "
                                   "find subnet for IP address %(ip)s on "
                                   "network %(net)s." % {'ip': ip_addr,
-                                                        'net': net_name})
+                                                        'net': network.name})
 
     def _convert_heat_nic_conf_to_j2(self, stack, role_name, network_data,
                                      resource_registry, parsed_args):
@@ -676,8 +675,14 @@ class ExtractProvisionedNode(command.Command):
             # Add networks to the role default section
             role_networks = defaults['networks'] = []
             for net_name, ips in role_net_ip_map[role_name].items():
-                subnet_name = self._get_subnet_from_net_name_and_ip(net_name,
-                                                                    ips[0])
+                network = self._get_network_from_net_name(net_name)
+                # NOTE(hjensas): If network is not found (None)
+                # network-isolation is not enabled i.e ignore default
+                # network-data networks when not enabled.
+                if network is None:
+                    continue
+
+                subnet_name = self._get_subnet_from_ip(network, ips[0])
                 if net_name == constants.CTLPLANE_NET_NAME:
                     role_networks.append({'network': net_name,
                                           'vif': True})
