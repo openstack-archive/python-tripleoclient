@@ -1091,6 +1091,19 @@ def get_role_net_ip_map(working_dir):
         'RoleNetIpMap', working_dir)
 
 
+def get_role_removed_rsrc_list(orchestration_client, stack_id, role_name):
+    res = orchestration_client.resources.get(stack_id, role_name)
+
+    return res.attributes.get('removed_rsrc_list', [])
+
+
+def generate_hostname(hostname_format, stack_name, index):
+
+    return hostname_format.replace(
+        '%stackname%', stack_name).replace(
+        '%index%', str(index))
+
+
 def get_stack(orchestration_client, stack_name):
     """Get the ID for the current deployed overcloud stack if it exists.
 

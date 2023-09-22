@@ -771,14 +771,14 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
             }, {
                 'output_key': 'AnsibleHostVarsMap',
                 'output_value': {
-                    'Compute': [
-                        'overcloud-novacompute-0'
-                    ],
-                    'Controller': [
-                        'overcloud-controller-0',
-                        'overcloud-controller-1',
-                        'overcloud-controller-2'
-                    ],
+                    'Compute': {
+                        'overcloud-novacompute-0': {},
+                    },
+                    'Controller': {
+                        'overcloud-controller-0': {},
+                        'overcloud-controller-1': {},
+                        'overcloud-controller-2': {},
+                    },
                 }
             }, {
                 'output_key': 'RoleNetIpMap',
@@ -801,6 +801,10 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
                 }
             }]
         }
+
+        self.resource = mock.Mock()
+        self.resource.attributes = dict()
+        self.resource.attributes['removed_rsrc_list'] = []
 
         self.nodes = [
             mock.Mock(),
@@ -925,9 +929,11 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
 
     def test_extract(self):
         stack = mock.Mock()
+        stack.stack_name = 'overcloud'
         stack.to_dict.return_value = self.stack_dict
         stack.environment.return_value = {}
         self.orchestration.stacks.get.return_value = stack
+        self.orchestration.resources.get.return_value = self.resource
 
         self.baremetal.node.list.return_value = self.nodes
         argslist = ['--output', self.extract_file.name,
@@ -1001,6 +1007,7 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
 
     def test_extract_ips_from_pool(self):
         stack = mock.Mock()
+        stack.stack_name = 'overcloud'
         stack.to_dict.return_value = self.stack_dict
         stack.environment.return_value = {
             'parameter_defaults': {
@@ -1011,6 +1018,7 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
             }
         }
         self.orchestration.stacks.get.return_value = stack
+        self.orchestration.resources.get.return_value = self.resource
 
         self.baremetal.node.list.return_value = self.nodes
         argslist = ['--roles-file', self.roles_file.name,
@@ -1131,6 +1139,7 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
             }
         }
         self.orchestration.stacks.get.return_value = stack
+        self.orchestration.resources.get.return_value = self.resource
 
         self.baremetal.node.list.return_value = self.nodes
 
@@ -1229,6 +1238,7 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
             'outputs': []
         }
         stack = mock.Mock()
+        stack.stack_name = 'overcloud'
         stack.to_dict.return_value = stack_dict
         self.orchestration.stacks.get.return_value = stack
 
@@ -1273,14 +1283,14 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
             }, {
                 'output_key': 'AnsibleHostVarsMap',
                 'output_value': {
-                    'Compute': [
-                        'overcloud-novacompute-0'
-                    ],
-                    'Controller': [
-                        'overcloud-controller-0',
-                        'overcloud-controller-1',
-                        'overcloud-controller-2'
-                    ],
+                    'Compute': {
+                        'overcloud-novacompute-0': {}
+                    },
+                    'Controller': {
+                        'overcloud-controller-0': {},
+                        'overcloud-controller-1': {},
+                        'overcloud-controller-2': {},
+                    },
                 }
             }, {
                 'output_key': 'RoleNetIpMap',
@@ -1303,6 +1313,8 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
         stack.to_dict.return_value = stack_dict
         stack.environment.return_value = {}
         self.orchestration.stacks.get.return_value = stack
+        self.orchestration.resources.get.return_value = self.resource
+
         self.baremetal.node.list.return_value = self.nodes
         self.network.find_network.side_effect = [
             self.ctlplane_net, None,
@@ -1377,3 +1389,112 @@ class TestExtractProvisionedNode(test_utils.TestCommand):
                 'name': 'bm-2-uuid',
             }],
         }], yaml.safe_load(result))
+
+    def test_extract_removed_resources(self):
+        roles_data = [{'name': 'Controller',
+                       'default_route_networks': ['External'],
+                       'networks_skip_config': ['Tenant']}]
+        networks_data = []
+        stack = mock.Mock()
+        stack.stack_name = 'overcloud'
+        stack_dict = {
+            'parameters': {
+                'ControllerHostnameFormat': '%stackname%-controller-%index%',
+                'ControllerNetworkConfigTemplate': 'templates/controller.j2'
+            },
+            'outputs': [{
+                'output_key': 'TripleoHeatTemplatesJinja2RenderingDataSources',
+                'output_value': {
+                    'roles_data': roles_data,
+                    'networks_data': networks_data,
+                }
+            }, {
+                'output_key': 'AnsibleHostVarsMap',
+                'output_value': {
+                    'Controller': {
+                        'overcloud-controller-0': {},
+                        'overcloud-controller-2': {},
+                        'overcloud-controller-3': {},
+                    },
+                }
+            }, {
+                'output_key': 'RoleNetIpMap',
+                'output_value': {
+                    'Controller': {
+                        'ctlplane': ['192.168.25.21',
+                                     '192.168.25.25',
+                                     '192.168.25.28'],
+                        'external': ['10.0.0.199',
+                                     '10.0.0.197',
+                                     '10.0.0.191'],
+                        'internal_api': ['172.17.0.37',
+                                         '172.17.0.33',
+                                         '172.17.0.39'],
+                    }
+                }
+            }]
+        }
+        stack.to_dict.return_value = stack_dict
+        stack.environment.return_value = {}
+        self.orchestration.stacks.get.return_value = stack
+        resource = mock.Mock()
+        resource.attributes = dict()
+        resource.attributes['removed_rsrc_list'] = ['1']
+        self.orchestration.resources.get.return_value = resource
+        nodes = [mock.Mock(), mock.Mock(), mock.Mock()]
+        nodes[0].name = 'bm-0'
+        nodes[0].uuid = 'bm-0-uuid'
+        nodes[0].resource_class = 'controller'
+        nodes[1].name = 'bm-2'
+        nodes[1].uuid = 'bm-2-uuid'
+        nodes[1].resource_class = 'controller'
+        nodes[2].name = 'bm-3'
+        nodes[2].uuid = 'bm-3-uuid'
+        nodes[2].resource_class = None
+
+        nodes[0].instance_info = {'display_name': 'overcloud-controller-0'}
+        nodes[1].instance_info = {'display_name': 'overcloud-controller-2'}
+        nodes[2].instance_info = {'display_name': 'overcloud-controller-3'}
+
+        self.baremetal.node.list.return_value = nodes
+
+        self.network.find_network.side_effect = [
+            # controller-0
+            self.ctlplane_net, self.external_net, self.internal_api_net,
+            # controller-2
+            self.ctlplane_net, self.external_net, self.internal_api_net,
+            # controller-3
+            self.ctlplane_net, self.external_net, self.internal_api_net,
+        ]
+        self.network.get_subnet.side_effect = [
+            # controller-0
+            self.ctlplane_a, self.external_a, self.int_api_a,
+            # controller-2
+            self.ctlplane_a, self.external_a, self.int_api_a,
+            # controller-3
+            self.ctlplane_a, self.external_a, self.int_api_a,
+        ]
+
+        argslist = ['--output', self.extract_file.name, '--yes']
+        self.app.command_options = argslist
+        verifylist = [('output', self.extract_file.name), ('yes', True)]
+
+        parsed_args = self.check_parser(self.cmd, argslist, verifylist)
+        self.cmd.take_action(parsed_args)
+
+        result = self.cmd.app.stdout.make_string()
+        self.assertEqual(
+            [
+                {'hostname': 'overcloud-controller-0',
+                 'name': 'bm-0-uuid',
+                 'resource_class': 'controller'},
+                {'hostname': 'overcloud-controller-1',
+                 'provisioned': False},
+                {'hostname': 'overcloud-controller-2',
+                 'name': 'bm-2-uuid',
+                 'resource_class': 'controller'},
+                {'hostname': 'overcloud-controller-3',
+                 'name': 'bm-3-uuid'}
+            ],
+            yaml.safe_load(result)[0]['instances']
+        )

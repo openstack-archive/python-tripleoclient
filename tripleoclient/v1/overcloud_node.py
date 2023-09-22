@@ -749,10 +749,31 @@ class ExtractProvisionedNode(command.Command):
                     'networks_skip_config')
 
             # Add individual instances
+            removed_rsrc_list = oooutils.get_role_removed_rsrc_list(
+                self.orchestration_client, stack.id, role_name)
             ips_from_pool = parameter_defaults.get(
                 '{}IPs'.format(role_name), {})
             instances = role['instances'] = []
-            for idx, entry in enumerate(sorted(entries)):
+            entry_names = list(entries.keys())
+            for idx in range(len(entries) + len(removed_rsrc_list)):
+                try:
+                    entry = entry_names[idx]
+                except IndexError:
+                    # In case of scale down removed_rsrc_list can cause
+                    # iteration out of range. There should be no need to add
+                    # unprovisioned entries at the end of instances list.
+                    break
+
+                # Insert unprovisioned entry if removed node was not replaced
+                # by a node re-using the hostname via HostnameMap.
+                # If the hostname was re-used we should safely be able to re-
+                # use the original index in ephemeral heat.
+                gen_name = oooutils.generate_hostname(
+                    hostname_format, stack.stack_name, idx)
+                if str(idx) in removed_rsrc_list and gen_name not in entries:
+                    instance = {'hostname': gen_name, 'provisioned': False}
+                    instances.append(instance)
+
                 instance = {'hostname': entry}
 
                 if entry in hostname_node_map:
