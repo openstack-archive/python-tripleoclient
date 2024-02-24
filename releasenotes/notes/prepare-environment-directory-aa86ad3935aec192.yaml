@@ -1,5 +1,0 @@
----
-features:
-  - |
-    Add '--environment-directory' option to the `openstack overcloud container
-    image prepare` command.

@@ -1,23 +1,10 @@
-===================
-About tripleoclient
-===================
+This project is no longer maintained.
 
-General information
--------------------
+The contents of this repository are still available in the Git
+source code management system.  To see the contents of this
+repository before it reached its end of life, please check out the
+previous commit with "git checkout HEAD^1".
 
-**tripleoclient** is an OpenStackClient (OSC) plugin implementation that
-implements commands useful for TripleO and the install and management of
-both an undercloud and an overcloud.
-
-See the
-`TripleO Documentation <https://docs.openstack.org/tripleo-docs/latest/>`_
-for details on using tripleoclient.
-
-See the
-`Release Notes <https://docs.openstack.org/releasenotes/python-tripleoclient>`_
-
-Team and repository tags
-------------------------
-
-.. image:: https://governance.openstack.org/tc/badges/python-tripleoclient.svg
-    :target: https://governance.openstack.org/tc/reference/tags/index.html
+For any further questions, please email
+openstack-discuss@lists.openstack.org or join #openstack-dev on
+OFTC.

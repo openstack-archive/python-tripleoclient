@@ -1,5 +1,0 @@
----
-features:
-  - |
-    [EXPERIMENTAL] The `openstack tripleo deploy` command is experimental
-    and may change in future releases.

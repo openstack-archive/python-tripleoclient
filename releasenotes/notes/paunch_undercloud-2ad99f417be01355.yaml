@@ -1,7 +1,0 @@
----
-features:
-  - |
-    Paunch is now disabled by default when the Undercloud is deployed
-    and upgraded. Containers will be started by Ansible and not Paunch
-    anymore. One can enable Paunch again with undercloud_enable_paunch
-    set to True.

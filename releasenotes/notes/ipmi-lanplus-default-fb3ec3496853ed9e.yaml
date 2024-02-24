@@ -1,6 +1,0 @@
----
-features:
-  - |
-    Deprecate --ipmi-lanplus for ``openstack overcloud generate fencing``
-    command since now this is the default and add new option --ipmi-no-lanplus
-    to override it.

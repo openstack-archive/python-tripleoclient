@@ -1,6 +1,0 @@
----
-upgrade:
-  - |
-    The rhel registration options that were part of the `openstack overcloud deploy`
-    have been removed. Please use the `RhsmVars` option in an environment file
-    to deploy. See https://docs.openstack.org/tripleo-docs/latest/install/advanced_deployment/rhsm.html

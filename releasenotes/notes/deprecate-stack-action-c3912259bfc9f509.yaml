@@ -1,6 +1,0 @@
----
-deprecations:
-  - |
-    `force-stack-update` and `force_stack_create` cli arguments
-    for undercloud/standalone deploy has been deprecated and
-    are now irrelevant.

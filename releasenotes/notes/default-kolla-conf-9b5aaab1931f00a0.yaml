@@ -1,5 +1,0 @@
----
-features:
-  - |
-    Added a default kolla conf file for the container image building command
-

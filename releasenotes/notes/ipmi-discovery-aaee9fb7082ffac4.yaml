@@ -1,5 +1,0 @@
----
-features:
-  - |
-    Add new command ``openstack overcloud node discover`` for nodes discovery
-    by probing a range of IP addresses for accessible BMCs.

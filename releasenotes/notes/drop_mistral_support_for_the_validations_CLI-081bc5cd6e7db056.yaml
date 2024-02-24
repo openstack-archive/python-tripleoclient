@@ -1,5 +1,0 @@
----
-deprecations:
-  - |
-    The TripleO Validator CLI doesn't support Mistral anymore for listing and
-    running the Validations. Ansible is now the way to run them.

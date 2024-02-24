@@ -1,8 +1,0 @@
----
-features:
-  - |
-
-    If no undercloud.conf `container_images_file` is set then `openstack
-    undercloud install --use-heat` will deploy an undercloud with the latest
-    containers as specified by the defaults. This allows the
-    `container_images_file` option to be not mandatory.

@@ -1,5 +1,0 @@
----
-upgrade:
-  - |
-    The ``--*-flavor`` options and the ``--*-count`` options were removed from
-    the ``overcloud deploy`` command.

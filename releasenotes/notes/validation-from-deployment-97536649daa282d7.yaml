@@ -1,4 +1,0 @@
----
-features:
-  - Adds the ability for external TripleO validations to
-    be called during a deployment workflow.

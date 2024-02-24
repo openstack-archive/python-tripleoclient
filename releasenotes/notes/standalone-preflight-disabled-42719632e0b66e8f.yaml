@@ -1,6 +1,0 @@
----
-upgrade:
-  - |
-    The ``openstack tripleo deploy`` command no longer executes the preflight
-    validations by default. The ``--preflight-validation`` option should be
-    added to enable the validations.

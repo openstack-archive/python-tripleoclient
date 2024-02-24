@@ -1,5 +1,0 @@
----
-features:
-  - |
-    Add new command ``openstack overcloud raid create`` for building RAID on
-    given nodes.

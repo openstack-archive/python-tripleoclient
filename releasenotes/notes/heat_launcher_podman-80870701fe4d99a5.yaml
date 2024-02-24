@@ -1,5 +1,0 @@
----
-features:
-  - |
-    Switch the Heat Launcher to use Podman instead of Docker when
-    heat_native is disabled.

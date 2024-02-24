@@ -1,6 +1,0 @@
----
-upgrade:
-  - |
-    ``openstack overcloud parameters set`` command has been removed.
-    It was used to update the plan parameters. Now that we use sever
-    side parameter merging and no plan, this is not relevant anymore.
